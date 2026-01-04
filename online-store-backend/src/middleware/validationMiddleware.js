@@ -1,0 +1,117 @@
+/**
+ * Input validation middleware using express-validator
+ * Validates request body fields and returns errors if validation fails
+ */
+
+const { body, validationResult } = require('express-validator');
+
+/**
+ * Middleware to check validation errors and return 400 if any
+ * Used after validation middlewares in routes
+ */
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Validation failed',
+      errors: errors.array().map(err => ({
+        field: err.param,
+        message: err.msg,
+      })),
+    });
+  }
+  next();
+};
+
+/**
+ * Validation rules for user registration
+ */
+const validateRegister = [
+  body('username')
+    .trim()
+    .notEmpty()
+    .withMessage('Tên đăng nhập là bắt buộc')
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Tên đăng nhập phải từ 3 đến 30 ký tự')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Tên đăng nhập chỉ chứa chữ, số, _, -'),
+
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email là bắt buộc')
+    .isEmail()
+    .withMessage('Email không hợp lệ')
+    .normalizeEmail(),
+
+  body('password')
+    .notEmpty()
+    .withMessage('Mật khẩu là bắt buộc')
+    .isLength({ min: 6 })
+    .withMessage('Mật khẩu phải ít nhất 6 ký tự')
+    .matches(/[A-Z]/)
+    .withMessage('Mật khẩu phải chứa ít nhất một ký tự hoa')
+    .matches(/[0-9]/)
+    .withMessage('Mật khẩu phải chứa ít nhất một số'),
+
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Tên không được vượt quá 100 ký tự'),
+];
+
+/**
+ * Validation rules for user login
+ */
+const validateLogin = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email là bắt buộc')
+    .isEmail()
+    .withMessage('Email không hợp lệ')
+    .normalizeEmail(),
+
+  body('password')
+    .notEmpty()
+    .withMessage('Mật khẩu là bắt buộc'),
+];
+
+/**
+ * Validation rules for updating user profile
+ */
+const validateUpdateProfile = [
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Tên phải từ 1 đến 100 ký tự'),
+
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Email không hợp lệ')
+    .normalizeEmail(),
+
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage('Số điện thoại phải từ 10-11 chữ số'),
+
+  body('address')
+    .optional()
+    .trim()
+    .isLength({ max: 255 })
+    .withMessage('Địa chỉ không được vượt quá 255 ký tự'),
+];
+
+module.exports = {
+  handleValidationErrors,
+  validateRegister,
+  validateLogin,
+  validateUpdateProfile,
+};
