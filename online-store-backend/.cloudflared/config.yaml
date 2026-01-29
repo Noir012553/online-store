@@ -1,0 +1,15 @@
+# Cloudflare Tunnel Configuration
+# Tunnel: online-store-backend
+# Domain: backend.manln.online
+
+tunnel: e353a2aa-3e0f-4916-8dd7-19228c532a14
+credentials-file: ~/.cloudflared/e353a2aa-3e0f-4916-8dd7-19228c532a14.json
+
+# Ingress rules - route requests to local backend
+ingress:
+  # Route API requests to Express server on port 5000
+  - hostname: backend.manln.online
+    service: http://localhost:5000
+
+  # Catch-all rule - default service
+  - service: http_status:404
