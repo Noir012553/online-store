@@ -1,0 +1,10 @@
+tunnel: 1b9619bf-6be6-4638-afd5-8aae3194b2c7
+credentials-file: C:\Users\noir0\.cloudflared\1b9619bf-6be6-4638-afd5-8aae3194b2c7.json
+protocol: http2
+
+ingress:
+  - hostname: manln.online
+    service: http://localhost:3000
+  - hostname: backend.manln.online
+    service: http://localhost:5000
+  - service: http_status:404
