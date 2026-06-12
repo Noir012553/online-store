@@ -31,7 +31,10 @@ const StaticTranslationSchema = new mongoose.Schema(
   }
 );
 
+// Index cho queries thường dùng
 StaticTranslationSchema.index({ code: 1, namespace: 1 }, { unique: true });
+StaticTranslationSchema.index({ code: 1 });
+StaticTranslationSchema.index({ isDeleted: 1 });
 
 // Scope query để không lấy deleted records mặc định
 StaticTranslationSchema.query.notDeleted = function () {

@@ -326,3 +326,121 @@ exports.deleteLanguage = async (req, res) => {
     });
   }
 };
+
+// Get translation progress/statistics for a language
+exports.getTranslationProgress = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+
+    // Get error statistics
+    const errorStats = await RateLimitHandler.getErrorStatistics(code);
+
+    // Get language info
+    const language = await Language.findOne({ code: code.toLowerCase() });
+
+    res.json({
+      success: true,
+      data: {
+        language: language || { code: code.toLowerCase() },
+        translation_status: errorStats,
+        failed_translations_total: errorStats.total_failed,
+        is_ready: language?.isReady || false,
+      },
+    });
+  } catch (error) {
+    console.error('[LanguageController] Error getting translation progress:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Get failed translations list for a language (for Admin Dashboard)
+exports.getFailedTranslations = async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { entityType, limit = 50 } = req.query;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+
+    const failed = await RateLimitHandler.getFailedTranslations(
+      code.toLowerCase(),
+      entityType || null,
+      Math.min(parseInt(limit) || 50, 500)
+    );
+
+    res.json({
+      success: true,
+      data: {
+        language_code: code.toLowerCase(),
+        total_failed: failed.length,
+        failed_translations: failed.map(f => ({
+          hashKey: f.hashKey,
+          originalText: f.originalText,
+          translatedText: f.translatedText,
+          entityType: f.entityType,
+          entityId: f.entityId,
+          status: f.status,
+          retryCount: f.retryCount,
+          lastRetryAt: f.lastRetryAt,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('[LanguageController] Error getting failed translations:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Retry failed translations for a language (triggered by Admin)
+exports.retryFailedTranslations = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+
+    // Reset status để Background Job xử lý lại
+    const updateResult = await RateLimitHandler.resetFailedForRetry(code.toLowerCase());
+
+    res.json({
+      success: true,
+      message: `Marked ${updateResult.modifiedCount} failed translations for retry. Check setupStatus endpoint to monitor progress.`,
+      data: {
+        modified_count: updateResult.modifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error('[LanguageController] Error retrying failed translations:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

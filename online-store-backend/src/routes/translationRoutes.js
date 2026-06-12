@@ -154,4 +154,20 @@ router.post(
   translationController.batchEditTranslations
 );
 
+// ============ MANUAL OVERRIDE APIs (Layer 2 - Products) ============
+
+router.post(
+  '/admin/manual-override',
+  protect,
+  admin,
+  translationController.manualOverrideTranslation
+);
+
+router.post(
+  '/admin/batch-manual-override',
+  protect,
+  admin,
+  translationController.batchManualOverride
+);
+
 module.exports = router;
