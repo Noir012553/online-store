@@ -2,26 +2,28 @@
  * ProductTranslationSeederService
  * 
  * Dịch tất cả sản phẩm từ tiếng Việt (vi) sang ngôn ngữ mới
- * Tối ưu hóa cho production:
- * - Chunking: Xử lý 20 sản phẩm mỗi lần (không load hết lên RAM)
- * - Concurrency: 3 sản phẩm đồng thời
- * - Throttling: 1500ms nghỉ giữa các chunk
- * - Cache check: Kiểm tra cache trước khi dịch
+ * CHIẾN LƯỢC LAYER 2 (Linh hoạt - chấp nhận dính Rate Limit):
+ * - Chunking: Xử lý 10 sản phẩm mỗi lần (chấp nhận dính Rate Limit)
+ * - Concurrency: 8 sản phẩm đồng thời (thoải mái hơn Layer 1)
+ * - Throttling: 500ms - mềm mại hơn Layer 1 (1500ms)
+ * - 429 Error Handling: Ghi nhận status='failed_rate_limit' thay vì crash
+ * - Fallback: Giữ text gốc (originalText) khi dính Rate Limit
  */
 
 const Product = require('../models/Product');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
+const RateLimitHandler = require('./rateLimitHandler');
 const crypto = require('crypto');
 
 class ProductTranslationSeederService {
   /**
    * Dịch tất cả sản phẩm sang ngôn ngữ mới
-   * Sử dụng chunking + concurrency + throttling để tránh overload
+   * Sử dụng chunking + concurrency + throttling + Rate Limit handling
    * 
    * @param {string} targetLang - Ngôn ngữ đích (e.g., 'pt')
    * @param {string} sourceLang - Ngôn ngữ nguồn (mặc định: 'vi')
-   * @returns {Promise<{successCount: number, errorCount: number, totalProcessed: number}>}
+   * @returns {Promise<{successCount, rateLimitCount, errorCount, totalProcessed}>}
    */
   static async translateAllProducts(targetLang, sourceLang = 'vi') {
     if (!targetLang || targetLang === sourceLang) {
@@ -30,23 +32,25 @@ class ProductTranslationSeederService {
 
     try {
       console.log(`\n[ProductSeeder] PHASE 2 (Giai đoạn 2): Dịch sản phẩm từ ${sourceLang} sang ${targetLang}`);
+      console.log(`[ProductSeeder] Chiến lược Layer 2: Chấp nhận dính Rate Limit, ghi nhận lỗi, cho Admin retry\n`);
 
-      // Lấy tổng số sản phẩm
       const totalProducts = await Product.countDocuments({});
       console.log(`[ProductSeeder] Tổng sản phẩm cần dịch: ${totalProducts}`);
 
       if (totalProducts === 0) {
         console.log(`[ProductSeeder] Không có sản phẩm để dịch`);
-        return { successCount: 0, errorCount: 0, totalProcessed: 0 };
+        return { successCount: 0, rateLimitCount: 0, errorCount: 0, totalProcessed: 0 };
       }
 
       let successCount = 0;
+      let rateLimitCount = 0;
       let errorCount = 0;
       let totalProcessed = 0;
 
-      const CHUNK_SIZE = 20; // Lấy 20 sản phẩm mỗi lần
-      const CONCURRENT_PRODUCTS = 3; // Dịch 3 sản phẩm đồng thời
-      const THROTTLE_BETWEEN_CHUNKS = 1500; // Nghỉ 1500ms giữa các chunk
+      // Layer 2 Configuration: Thoải mái hơn Layer 1
+      const CHUNK_SIZE = 10;
+      const CONCURRENT_PRODUCTS = 8;
+      const THROTTLE_BETWEEN_CHUNKS = 500;
 
       const totalChunks = Math.ceil(totalProducts / CHUNK_SIZE);
 
@@ -54,7 +58,7 @@ class ProductTranslationSeederService {
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         const skip = chunkIndex * CHUNK_SIZE;
         
-        console.log(`[ProductSeeder] Chunk ${chunkIndex + 1}/${totalChunks} (skip=${skip}, limit=${CHUNK_SIZE})`);
+        console.log(`[ProductSeeder] 📦 Chunk ${chunkIndex + 1}/${totalChunks} (skip=${skip}, limit=${CHUNK_SIZE})`);
 
         // Lấy chunk sản phẩm hiện tại
         const products = await Product.find({})
@@ -78,30 +82,123 @@ class ProductTranslationSeederService {
           for (const result of results) {
             totalProcessed++;
             if (result.status === 'fulfilled') {
-              const { success, errorCount: err } = result.value;
+              const { success, rateLimitErr, otherErr } = result.value;
               successCount += success;
-              errorCount += err;
+              rateLimitCount += rateLimitErr;
+              errorCount += otherErr;
             } else {
               errorCount++;
             }
           }
         }
 
-        // Throttle giữa các chunk
+        // Throttle giữa các chunk (mềm mại hơn Layer 1)
         if (chunkIndex < totalChunks - 1) {
           console.log(`[ProductSeeder] ⏸️  Nghỉ ${THROTTLE_BETWEEN_CHUNKS}ms trước chunk tiếp theo...`);
           await this._sleep(THROTTLE_BETWEEN_CHUNKS);
         }
       }
 
-      console.log(`\n[ProductSeeder] PHASE 2 hoàn tất:`);
-      console.log(`  • Thành công: ${successCount}`);
-      console.log(`  • Lỗi: ${errorCount}`);
-      console.log(`  • Tổng xử lý: ${totalProcessed}`);
+      console.log(`\n[ProductSeeder] 🎯 PHASE 2 hoàn tất:`);
+      console.log(`  ✅ Thành công: ${successCount}`);
+      console.log(`  ⚠️  Rate Limit (ghi nhận): ${rateLimitCount}`);
+      console.log(`  ❌ Lỗi khác: ${errorCount}`);
+      console.log(`  📊 Tổng xử lý: ${totalProcessed}`);
 
-      return { successCount, errorCount, totalProcessed };
+      if (rateLimitCount > 0) {
+        console.log(`\n[ProductSeeder] 💡 Gợi ý: Admin có thể bấn nút "🔄 Dịch lại các sản phẩm lỗi" trên Dashboard`);
+        console.log(`[ProductSeeder]    để retry các translations bị Rate Limit\n`);
+      }
+
+      return { successCount, rateLimitCount, errorCount, totalProcessed };
     } catch (error) {
-      console.error(`[ProductSeeder] Lỗi dịch sản phẩm: ${error.message}`);
+      console.error(`[ProductSeeder] ❌ Lỗi dịch sản phẩm: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry translations bị lỗi Rate Limit
+   * Admin bấn nút "Dịch lại" -> gọi hàm này
+   * 
+   * @param {string} targetLang - Language code
+   * @param {string} sourceLang - Source language
+   * @param {number} maxRetries - Max retry attempts
+   * @returns {Promise<{successCount, stillFailedCount}>}
+   */
+  static async retryFailedTranslations(targetLang, sourceLang = 'vi', maxRetries = 3) {
+    try {
+      console.log(`\n[ProductSeeder] 🔄 RETRY: Đang thử dịch lại các sản phẩm bị lỗi...`);
+
+      // Lấy danh sách translations lỗi
+      const failed = await RateLimitHandler.getFailedTranslations(targetLang, null, 1000);
+      console.log(`[ProductSeeder] Tìm thấy ${failed.length} translations cần retry`);
+
+      if (failed.length === 0) {
+        console.log(`[ProductSeeder] ✅ Không có translations lỗi cần retry`);
+        return { successCount: 0, stillFailedCount: 0 };
+      }
+
+      let successCount = 0;
+      let stillFailedCount = 0;
+
+      // Dịch lại từng entry
+      for (const entry of failed) {
+        try {
+          // Check nếu vượt max retries
+          if (entry.retryCount >= maxRetries) {
+            console.warn(
+              `[ProductSeeder] ⏭️  Bỏ qua ${entry.entityType} (đã retry ${entry.retryCount} lần)`
+            );
+            stillFailedCount++;
+            continue;
+          }
+
+          // Thử dịch lại
+          const translatedText = await cloudflareAiService.translate(
+            entry.originalText,
+            sourceLang,
+            targetLang
+          );
+
+          // Cập nhật DB
+          await LiveTranslationCache.updateOne(
+            { _id: entry._id },
+            {
+              $set: {
+                translatedText,
+                status: 'success',
+                lastRetryAt: new Date(),
+              },
+              $inc: { retryCount: 1 }
+            }
+          );
+
+          successCount++;
+        } catch (err) {
+          // Vẫn lỗi? Cập nhật retry count
+          if (err.response?.status === 429) {
+            // Vẫn dính Rate Limit - chỉ tăng counter, không thay đổi status
+            await LiveTranslationCache.updateOne(
+              { _id: entry._id },
+              {
+                $set: { lastRetryAt: new Date() },
+                $inc: { retryCount: 1 }
+              }
+            );
+          }
+
+          stillFailedCount++;
+        }
+      }
+
+      console.log(`[ProductSeeder] 🎯 RETRY kết thúc:`);
+      console.log(`  ✅ Dịch thành công: ${successCount}`);
+      console.log(`  ❌ Vẫn lỗi: ${stillFailedCount}`);
+
+      return { successCount, stillFailedCount };
+    } catch (error) {
+      console.error(`[ProductSeeder] Lỗi retry: ${error.message}`);
       throw error;
     }
   }
@@ -113,7 +210,8 @@ class ProductTranslationSeederService {
   static async _translateProduct(product, targetLang, sourceLang, index) {
     try {
       let successCount = 0;
-      let errorCount = 0;
+      let rateLimitCount = 0;
+      let otherErrorCount = 0;
 
       const productId = product._id.toString();
 
@@ -172,7 +270,6 @@ class ProductTranslationSeederService {
       // Dịch từng field
       for (const field of fieldsToTranslate) {
         try {
-          // Tạo hash key để check cache
           const hashKey = crypto
             .createHash('md5')
             .update(`${field.originalText}:${targetLang}`)
@@ -201,21 +298,47 @@ class ProductTranslationSeederService {
             entityId: productId,
             entityType: field.entityType,
             specKey: field.specKey || null,
+            status: 'success',
+            retryCount: 0,
           });
 
           successCount++;
         } catch (err) {
-          console.error(
-            `[ProductSeeder] Lỗi dịch field '${field.entityType}' của sản phẩm ${productId}: ${err.message}`
-          );
-          errorCount++;
+          // ========== Xử lý 429 Rate Limit ==========
+          if (err.response?.status === 429) {
+            console.warn(
+              `[ProductSeeder] ⚠️  429 Rate Limit: ${field.entityType} (${productId})`
+            );
+
+            // Ghi nhận vào DB thay vì crash
+            try {
+              await RateLimitHandler.recordRateLimitError(
+                field.originalText,
+                targetLang,
+                productId,
+                field.entityType,
+                `429 Too Many Requests from Cloudflare AI`
+              );
+
+              rateLimitCount++;
+            } catch (recordErr) {
+              console.error(`[ProductSeeder] Lỗi ghi nhận 429: ${recordErr.message}`);
+              otherErrorCount++;
+            }
+          } else {
+            // ========== Xử lý lỗi khác ==========
+            console.error(
+              `[ProductSeeder] ❌ Lỗi dịch field '${field.entityType}' của sản phẩm ${productId}: ${err.message}`
+            );
+            otherErrorCount++;
+          }
         }
       }
 
-      return { success: successCount, errorCount };
+      return { success: successCount, rateLimitErr: rateLimitCount, otherErr: otherErrorCount };
     } catch (err) {
-      console.error(`[ProductSeeder] Lỗi xử lý sản phẩm: ${err.message}`);
-      return { success: 0, errorCount: 1 };
+      console.error(`[ProductSeeder] ❌ Lỗi xử lý sản phẩm: ${err.message}`);
+      return { success: 0, rateLimitErr: 0, otherErr: 1 };
     }
   }
 
