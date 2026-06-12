@@ -1,6 +1,7 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const LanguageService = require('../services/languageService');
 const crypto = require('crypto');
 const seedTranslations = require('../seeds/translationSeeder');
 const { getMessage } = require('../i18n/messages');
@@ -50,10 +51,8 @@ exports.getStaticTranslations = async (req, res) => {
   }
 };
 
-const SUPPORTED_LANGUAGES = {
-  vi: 'Vietnamese',
-  en: 'English',
-};
+// REMOVED: Hardcoded SUPPORTED_LANGUAGES
+// Now using dynamic check via LanguageService.isSupportedLanguage()
 
 exports.translateText = async (req, res) => {
   try {
@@ -66,14 +65,18 @@ exports.translateText = async (req, res) => {
       });
     }
 
-    if (!SUPPORTED_LANGUAGES[sourceLang]) {
+    // Check source language dynamically
+    const isSourceSupported = await LanguageService.isSupportedLanguage(sourceLang);
+    if (!isSourceSupported) {
       return res.status(400).json({
         success: false,
         message: `Unsupported source language: ${sourceLang}`,
       });
     }
 
-    if (!SUPPORTED_LANGUAGES[targetLang]) {
+    // Check target language dynamically
+    const isTargetSupported = await LanguageService.isSupportedLanguage(targetLang);
+    if (!isTargetSupported) {
       return res.status(400).json({
         success: false,
         message: `Unsupported target language: ${targetLang}`,
@@ -154,10 +157,12 @@ exports.getProductTranslations = async (req, res) => {
       });
     }
 
-    if (!SUPPORTED_LANGUAGES[lang]) {
+    // Check language dynamically from DB
+    const isLangSupported = await LanguageService.isSupportedLanguage(lang);
+    if (!isLangSupported) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${lang}`,
+        message: `Unsupported language: ${lang}. Please ensure the language is added and activated in the system.`,
       });
     }
 
@@ -247,10 +252,12 @@ exports.getCategoryTranslations = async (req, res) => {
       });
     }
 
-    if (!SUPPORTED_LANGUAGES[lang]) {
+    // Check language dynamically from DB
+    const isLangSupported = await LanguageService.isSupportedLanguage(lang);
+    if (!isLangSupported) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${lang}`,
+        message: `Unsupported language: ${lang}. Please ensure the language is added and activated in the system.`,
       });
     }
 

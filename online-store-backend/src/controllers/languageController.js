@@ -2,6 +2,8 @@ const Language = require('../models/Language');
 const Product = require('../models/Product');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const LanguageService = require('../services/languageService');
+const TranslationSeederService = require('../services/translationSeederService');
 const crypto = require('crypto');
 
 const SUPPORTED_LANGUAGES = {
@@ -110,68 +112,96 @@ exports.createLanguage = async (req, res) => {
     // Response immediately to prevent gateway timeout
     res.status(201).json({
       success: true,
-      message: 'Language added. Background translation job started...',
+      message: 'Language added. Static translations and background job started...',
       data: newLang,
     });
 
-    // Background task: Translate all products asynchronously (non-blocking)
+    // Background task: Seed static translations + translate all products asynchronously
     setImmediate(async () => {
       try {
-        console.log(`[i18n] Starting auto-translation of products to language: ${code}`);
+        console.log(`[Language] Starting background setup for language: ${code}`);
 
-        // Get all Vietnamese products
+        // Step 1: Clone static translations from 'en' to new language
+        try {
+          const clonedCount = await TranslationSeederService.cloneStaticTranslations('en', code);
+          console.log(`[Language] Cloned ${clonedCount} static translations for ${code}`);
+        } catch (seedError) {
+          console.error(`[Language] Static translation seeding failed:`, seedError.message);
+          // Continue even if seeding fails - still translate products
+        }
+
+        // Step 2: Invalidate language cache so endpoints pick up new language
+        LanguageService.invalidateCache();
+        console.log(`[Language] Language cache invalidated`);
+
+        // Step 3: Translate all products
+        console.log(`[Language] Starting auto-translation of products to language: ${code}`);
+
         const allProducts = await Product.find({}).lean();
-        console.log(`[i18n] Found ${allProducts.length} products to translate`);
+        console.log(`[Language] Found ${allProducts.length} products to translate`);
 
         let successCount = 0;
         let errorCount = 0;
 
-        // OPTIMIZATION: Bulk collect all texts to check cache in ONE query
-        const textsToCheck = [];
-        allProducts.forEach(product => {
-          if (product.name && product.name.trim()) textsToCheck.push(product.name);
-          if (product.description && product.description.trim()) textsToCheck.push(product.description);
-        });
+        // OPTIMIZATION: Bulk collect all product field texts
+        const fieldsToTranslate = [];
+        for (const product of allProducts) {
+          if (product.name && product.name.trim()) {
+            fieldsToTranslate.push({
+              productId: product._id,
+              originalText: product.name,
+              entityType: 'product_name',
+            });
+          }
+          if (product.description && product.description.trim()) {
+            fieldsToTranslate.push({
+              productId: product._id,
+              originalText: product.description,
+              entityType: 'product_description',
+            });
+          }
+        }
 
-        // Batch query cache: $in operator (1 query instead of N*2)
-        const hashKeysToCheck = textsToCheck.map(text =>
-          crypto.createHash('md5').update(`${text}:${code}`).digest('hex')
+        console.log(`[Language] Total fields to translate: ${fieldsToTranslate.length}`);
+
+        // Batch check cache
+        const hashKeysToCheck = fieldsToTranslate.map(field =>
+          crypto.createHash('md5').update(`${field.originalText}:${code}`).digest('hex')
         );
+
         const cachedRecords = await LiveTranslationCache.find(
-          { hashKey: { $in: hashKeysToCheck } },
+          {
+            hashKey: { $in: hashKeysToCheck },
+          },
           { hashKey: 1 }
         ).lean();
 
         const cachedHashSet = new Set(cachedRecords.map(r => r.hashKey));
 
-        // Batch translate product names and descriptions
+        // Prepare translation batch with correct format
         const translateBatch = [];
-        for (const product of allProducts) {
-          const fieldsToTranslate = [
-            { field: 'name', value: product.name },
-            { field: 'description', value: product.description || '' },
-          ];
+        for (const field of fieldsToTranslate) {
+          const hashKey = crypto
+            .createHash('md5')
+            .update(`${field.originalText}:${code}`)
+            .digest('hex');
 
-          for (const { field, value } of fieldsToTranslate) {
-            if (!value || value.trim() === '') continue;
-
-            const hashKey = crypto
-              .createHash('md5')
-              .update(`${value}:${code}`)
-              .digest('hex');
-
-            // Skip if already cached
-            if (cachedHashSet.has(hashKey)) {
-              console.log(`[i18n] Cache hit for ${product._id} ${field} to ${code}`);
-              successCount++;
-              continue;
-            }
-
-            translateBatch.push({ hashKey, originalText: value, field, productId: product._id });
+          // Skip if already cached
+          if (cachedHashSet.has(hashKey)) {
+            console.log(`[Language] Cache hit for ${field.productId} ${field.entityType} to ${code}`);
+            successCount++;
+            continue;
           }
+
+          translateBatch.push({
+            hashKey,
+            originalText: field.originalText,
+            productId: field.productId,
+            entityType: field.entityType,
+          });
         }
 
-        // Translate all uncached items and batch save to DB (1 insertMany instead of N creates)
+        // Translate all uncached items
         for (const item of translateBatch) {
           try {
             const translatedText = await cloudflareAiService.translate(
@@ -184,14 +214,11 @@ exports.createLanguage = async (req, res) => {
             item.targetLang = code;
           } catch (err) {
             errorCount++;
-            console.error(
-              `[i18n] Error translating product ${item.productId}:`,
-              err.message
-            );
+            console.error(`[Language] Error translating product ${item.productId}:`, err.message);
           }
         }
 
-        // Bulk insert all translations (1 DB write instead of N)
+        // Bulk insert with correct format (entityId + entityType)
         if (translateBatch.filter(t => t.translatedText).length > 0) {
           try {
             const validBatch = translateBatch.filter(t => t.translatedText).map(t => ({
@@ -199,21 +226,24 @@ exports.createLanguage = async (req, res) => {
               originalText: t.originalText,
               targetLang: t.targetLang,
               translatedText: t.translatedText,
+              entityId: t.productId,      // [NEW] Required for getProductTranslations
+              entityType: t.entityType,   // [NEW] Required for getProductTranslations
             }));
 
             await LiveTranslationCache.insertMany(validBatch, { ordered: false });
             successCount += validBatch.length;
           } catch (err) {
-            // Ignore duplicate key errors
             if (err.code !== 11000) {
-              console.error('[i18n] Batch insert error:', err.message);
+              console.error('[Language] Batch insert error:', err.message);
             }
           }
         }
 
-        console.log(`[i18n] Completed bulk translation for language: ${code}. Success: ${successCount}, Errors: ${errorCount}`);
+        console.log(
+          `[Language] Completed setup for ${code}. Products translated: ${successCount}, Errors: ${errorCount}`
+        );
       } catch (error) {
-        console.error(`[i18n] Background translation job failed:`, error.message || error);
+        console.error(`[Language] Background job failed:`, error.message || error);
       }
     });
   } catch (error) {
@@ -245,6 +275,9 @@ exports.updateLanguage = async (req, res) => {
         message: 'Language not found',
       });
     }
+
+    // Invalidate cache when language status changes
+    LanguageService.invalidateCache();
 
     res.json({
       success: true,
@@ -280,6 +313,9 @@ exports.deleteLanguage = async (req, res) => {
     }
 
     await Language.findByIdAndDelete(id);
+
+    // Invalidate cache when language is deleted
+    LanguageService.invalidateCache();
 
     res.json({
       success: true,
