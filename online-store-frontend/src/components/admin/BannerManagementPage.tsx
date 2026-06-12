@@ -727,7 +727,7 @@ export function BannerManagementPage() {
         />
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => (!open ? closeDialog() : setIsDialogOpen(true))}>
+      <Dialog open={isDialogOpen} onOpenChange={(open: boolean) => (!open ? closeDialog() : setIsDialogOpen(true))}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{editingBanner?._id ? t('banner_edit_title', 'admin') : t('banner_add_title', 'admin')}</DialogTitle>
@@ -997,7 +997,7 @@ export function BannerManagementPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(confirmTarget)} onOpenChange={(open) => !open && setConfirmTarget(null)}>
+      <Dialog open={Boolean(confirmTarget)} onOpenChange={(open: boolean) => !open && setConfirmTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
