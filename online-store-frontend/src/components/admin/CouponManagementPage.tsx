@@ -991,7 +991,7 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <Dialog open={deleteTarget !== null} onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
