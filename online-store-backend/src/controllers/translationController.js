@@ -928,3 +928,277 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     });
   }
 };
+
+// ============ ADMIN DASHBOARD APIs (NEW - Phase 2) ============
+
+/**
+ * GET /api/admin/translation-status/:lang
+ * Lấy tiến độ dịch cho ngôn ngữ (Layer 1 & 2)
+ * Trả về: %UI dịch, %sản phẩm dịch, danh sách lỗi
+ */
+exports.getTranslationStatus = async (req, res) => {
+  try {
+    const { lang } = req.params;
+
+    if (!lang) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    // Layer 1: UI strings progress
+    const totalUINamespaces = await StaticTranslation.countDocuments({
+      isDeleted: false,
+    }) / 2; // Chia cho 2 vì mỗi namespace có ở en + vi
+
+    const translatedUINamespaces = await StaticTranslation.countDocuments({
+      code: lang,
+      isDeleted: false,
+    });
+
+    const uiProgress = totalUINamespaces > 0 ? (translatedUINamespaces / totalUINamespaces) * 100 : 0;
+
+    // Layer 2: Product translations progress
+    const totalProducts = await Product.countDocuments({});
+
+    // Estimate: mỗi sản phẩm có ~5 fields (name, desc, brand, 2 specs)
+    const expectedProductTranslations = totalProducts * 5;
+    const actualProductTranslations = await LiveTranslationCache.countDocuments({
+      targetLang: lang,
+      status: 'success',
+      entityType: { $regex: '^product_' }
+    });
+
+    const productProgress = expectedProductTranslations > 0
+      ? (actualProductTranslations / expectedProductTranslations) * 100
+      : 0;
+
+    // Count errors
+    const errorStats = await LiveTranslationCache.aggregate([
+      {
+        $match: {
+          targetLang: lang,
+          status: { $ne: 'success' }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const errors = {
+      failed_rate_limit: 0,
+      failed_error: 0,
+      pending_retry: 0,
+    };
+
+    for (const stat of errorStats) {
+      errors[stat._id] = stat.count;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        code: lang,
+        layer1: {
+          name: 'UI Strings (Static)',
+          progress: Math.round(uiProgress),
+          totalNamespaces: Math.round(totalUINamespaces),
+          completedNamespaces: translatedUINamespaces,
+        },
+        layer2: {
+          name: 'Products (Dynamic)',
+          progress: Math.round(productProgress),
+          expectedTranslations: expectedProductTranslations,
+          actualTranslations: actualProductTranslations,
+        },
+        errors,
+        totalErrors: Object.values(errors).reduce((a, b) => a + b, 0),
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error fetching translation status:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/admin/failed-translations/:lang
+ * Lấy danh sách các translations lỗi (429, error, pending_retry)
+ * Admin Dashboard sử dụng để hiển thị & sửa
+ */
+exports.getFailedTranslations = async (req, res) => {
+  try {
+    const { lang } = req.params;
+    const { limit = 100, skip = 0, status = null, entityType = null } = req.query;
+
+    if (!lang) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    const query = {
+      targetLang: lang,
+      status: { $ne: 'success' }
+    };
+
+    if (status && ['failed_rate_limit', 'failed_error', 'pending_retry'].includes(status)) {
+      query.status = status;
+    }
+
+    if (entityType) {
+      query.entityType = entityType;
+    }
+
+    const failed = await LiveTranslationCache.find(query)
+      .limit(parseInt(limit))
+      .skip(parseInt(skip))
+      .sort({ lastRetryAt: -1, createdAt: -1 })
+      .lean();
+
+    const total = await LiveTranslationCache.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: {
+        items: failed,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          skip: parseInt(skip),
+          hasMore: total > (parseInt(skip) + parseInt(limit))
+        }
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error fetching failed translations:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/admin/retry-translations/:lang
+ * Admin bấn nút "Dịch lại các sản phẩm lỗi"
+ * Trigger background job để retry translations bị 429
+ */
+exports.retryFailedTranslations = async (req, res) => {
+  try {
+    const { lang } = req.params;
+    const { entityType = null } = req.body;
+
+    if (!lang) {
+      return res.status(400).json({
+        success: false,
+        message: 'Language code is required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+    const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+
+    // Đánh dấu lỗi để retry
+    const updateResult = await RateLimitHandler.resetFailedForRetry(lang, entityType);
+    console.log(`[TranslationController] Reset ${updateResult.modifiedCount} for retry`);
+
+    // Trigger background job (non-blocking)
+    setImmediate(async () => {
+      try {
+        console.log(`[TranslationController] 🔄 Starting retry background job for ${lang}`);
+        const result = await ProductTranslationSeederService.retryFailedTranslations(lang, 'vi', 3);
+        console.log(`[TranslationController] ✅ Retry completed:`, result);
+      } catch (err) {
+        console.error(`[TranslationController] Retry failed:`, err.message);
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Marked ${updateResult.modifiedCount} translations for retry. Background job started.`,
+      data: {
+        resetCount: updateResult.modifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error retrying translations:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/admin/edit-translation
+ * Admin sửa tay bản dịch (Manual Override)
+ */
+exports.editTranslationManual = async (req, res) => {
+  try {
+    const { hashKey, translatedText } = req.body;
+
+    if (!hashKey || !translatedText) {
+      return res.status(400).json({
+        success: false,
+        message: 'hashKey and translatedText are required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+    const updated = await RateLimitHandler.manualOverride(hashKey, translatedText);
+
+    res.json({
+      success: true,
+      message: 'Translation updated successfully',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error editing translation:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/admin/batch-edit-translations
+ * Admin sửa multiple translations cùng lúc
+ */
+exports.batchEditTranslations = async (req, res) => {
+  try {
+    const { updates } = req.body;
+
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'updates array is required and must not be empty',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+    const result = await RateLimitHandler.batchManualOverride(updates);
+
+    res.json({
+      success: true,
+      message: `Updated ${result.modifiedCount} translations`,
+      data: result,
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error batch editing translations:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

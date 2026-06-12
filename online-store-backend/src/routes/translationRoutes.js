@@ -117,4 +117,41 @@ router.post(
   translationController.createStaticTranslation
 );
 
+// ============ ADMIN DASHBOARD APIs (Phase 2) ============
+
+router.get(
+  '/admin/status/:lang',
+  protect,
+  admin,
+  translationController.getTranslationStatus
+);
+
+router.get(
+  '/admin/failed/:lang',
+  protect,
+  admin,
+  translationController.getFailedTranslations
+);
+
+router.post(
+  '/admin/retry/:lang',
+  protect,
+  admin,
+  translationController.retryFailedTranslations
+);
+
+router.post(
+  '/admin/edit-manual',
+  protect,
+  admin,
+  translationController.editTranslationManual
+);
+
+router.post(
+  '/admin/batch-edit',
+  protect,
+  admin,
+  translationController.batchEditTranslations
+);
+
 module.exports = router;
