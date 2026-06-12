@@ -76,6 +76,13 @@ LiveTranslationCacheSchema.pre('save', function (next) {
   }
 });
 
+// Compound index cho lookup nhanh: entityId + targetLang + entityType
+LiveTranslationCacheSchema.index({ entityId: 1, targetLang: 1, entityType: 1 });
+// Index cho admin lọc lỗi
+LiveTranslationCacheSchema.index({ status: 1, targetLang: 1 });
+// TTL Index: Tự động xóa sau 30 ngày
+LiveTranslationCacheSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+
 // Helper method: Get failed translations for retry
 LiveTranslationCacheSchema.statics.getFailedTranslations = async function(targetLang, entityType = null, limit = 100) {
   const query = {

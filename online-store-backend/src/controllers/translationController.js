@@ -1202,3 +1202,87 @@ exports.batchEditTranslations = async (req, res) => {
     });
   }
 };
+
+// Manual Override: Admin sửa dịch thủ công cho Layer 2 (Products)
+// Khi dịch tự động bị lỗi hoặc không chuẩn, Admin gõ vào ô này để sửa
+exports.manualOverrideTranslation = async (req, res) => {
+  try {
+    const { hashKey, translatedText } = req.body;
+
+    if (!hashKey || !translatedText) {
+      return res.status(400).json({
+        success: false,
+        message: 'hashKey and translatedText are required',
+      });
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+
+    const updated = await RateLimitHandler.manualOverride(hashKey, translatedText);
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Translation not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Translation updated successfully',
+      data: {
+        hashKey: updated.hashKey,
+        translatedText: updated.translatedText,
+        status: updated.status,
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error manual override:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Batch Manual Override: Admin sửa nhiều dịch cùng lúc
+exports.batchManualOverride = async (req, res) => {
+  try {
+    const { updates } = req.body;
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'updates array is required and must not be empty',
+      });
+    }
+
+    // Validate each update
+    for (const update of updates) {
+      if (!update.hashKey || !update.translatedText) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each update must have hashKey and translatedText',
+        });
+      }
+    }
+
+    const RateLimitHandler = require('../services/rateLimitHandler');
+
+    const result = await RateLimitHandler.batchManualOverride(updates);
+
+    res.json({
+      success: true,
+      message: `Updated ${result.modifiedCount} translations`,
+      data: {
+        modified_count: result.modifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error batch manual override:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
