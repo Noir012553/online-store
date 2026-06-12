@@ -80,6 +80,8 @@ exports.createLanguage = async (req, res) => {
     }
 
     // Validate against supported languages
+    console.log('[DEBUG] SUPPORTED_LANGUAGES:', SUPPORTED_LANGUAGES);
+    console.log('[DEBUG] code:', code, 'type:', typeof code);
     if (!SUPPORTED_LANGUAGES[code.toLowerCase()]) {
       const supportedCodes = Object.keys(SUPPORTED_LANGUAGES).join(', ');
       return res.status(400).json({
