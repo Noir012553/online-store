@@ -72,29 +72,44 @@ try {
 # ============================================================================
 Write-Section "STEP 2️⃣  Check existing languages"
 
-Write-Host "GET $BACKEND_URL/api/languages" -ForegroundColor $Colors.Info
+Write-Host "GET $BACKEND_URL/api/languages (with auth)" -ForegroundColor $Colors.Info
 
 try {
     $Response_Languages = Invoke-RestMethod -Uri "$BACKEND_URL/api/languages" `
         -Method Get `
-        -Headers @{ "Content-Type" = "application/json" } `
+        -Headers @{
+            "Authorization" = "Bearer $AUTH_TOKEN"
+            "Content-Type" = "application/json"
+        } `
         -ErrorAction Stop
 
     Write-Host "✅ Languages fetched: $($Response_Languages.data.Count) languages" -ForegroundColor $Colors.Success
-    
+
     $ptLang = $Response_Languages.data | Where-Object { $_.code -eq 'pt' }
     if ($ptLang) {
         Write-Host "⚠️  Portuguese (pt) already exists!" -ForegroundColor $Colors.Warning
         Write-Host "   Language ID: $($ptLang._id)" -ForegroundColor $Colors.Debug
-        Write-Host "   You can: " -ForegroundColor $Colors.Warning
-        Write-Host "     1. Wait for background job to complete translation" -ForegroundColor $Colors.Warning
-        Write-Host "     2. Or delete it first with: DELETE /api/languages/$($ptLang._id)" -ForegroundColor $Colors.Warning
-        Write-Host "`n   Continuing with test...`n" -ForegroundColor $Colors.Warning
-        $PT_LANG_ID = $ptLang._id
+        Write-Host "   Deleting existing Portuguese to start fresh..." -ForegroundColor $Colors.Warning
+
+        try {
+            Invoke-RestMethod -Uri "$BACKEND_URL/api/languages/$($ptLang._id)" `
+                -Method Delete `
+                -Headers @{
+                    "Authorization" = "Bearer $AUTH_TOKEN"
+                    "Content-Type" = "application/json"
+                } `
+                -ErrorAction Stop
+
+            Write-Host "✅ Deleted existing Portuguese language" -ForegroundColor $Colors.Success
+        } catch {
+            Write-Host "⚠️  Could not delete existing Portuguese - will skip creation" -ForegroundColor $Colors.Warning
+            Exit 1
+        }
     } else {
         Write-Host "✅ Portuguese (pt) doesn't exist yet - we'll create it" -ForegroundColor $Colors.Success
     }
-    
+
+    Write-Host "`n📋 Available languages:" -ForegroundColor $Colors.Info
     foreach ($lang in $Response_Languages.data) {
         Write-Host "   - $($lang.code): $($lang.name)" -ForegroundColor $Colors.Debug
     }

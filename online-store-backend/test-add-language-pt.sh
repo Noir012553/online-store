@@ -87,20 +87,30 @@ write_debug "Token: ${AUTH_TOKEN:0:50}..."
 # ============================================================================
 write_section "STEP 2️⃣  Check existing languages"
 
-echo "GET $BACKEND_URL/api/languages"
+echo "GET $BACKEND_URL/api/languages (with auth)"
 
 RESPONSE_LANGUAGES=$(curl -s -X GET "$BACKEND_URL/api/languages" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
   -H "Content-Type: application/json")
 
 PT_LANG=$(echo $RESPONSE_LANGUAGES | grep -o '"code":"pt"')
 
 if [ ! -z "$PT_LANG" ]; then
-    write_warning "Portuguese (pt) already exists!"
-    write_info "You can wait for background job to complete or delete it first"
+    write_warning "Portuguese (pt) already exists! Deleting..."
+
+    PT_ID=$(echo $RESPONSE_LANGUAGES | grep -o '"_id":"[^"]*","code":"pt"' | cut -d'"' -f4)
+
+    if [ ! -z "$PT_ID" ]; then
+        DELETE_RESPONSE=$(curl -s -X DELETE "$BACKEND_URL/api/languages/$PT_ID" \
+          -H "Authorization: Bearer $AUTH_TOKEN" \
+          -H "Content-Type: application/json")
+
+        write_success "Deleted existing Portuguese language"
+    fi
 fi
 
-write_success "Languages fetched"
-echo $RESPONSE_LANGUAGES | grep -o '"code":"[a-z]*"' | while read code; do
+write_success "Languages checked"
+echo $RESPONSE_LANGUAGES | grep -o '"code":"[a-z]*"' | head -5 | while read code; do
     write_debug "$code"
 done
 
