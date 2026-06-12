@@ -11,27 +11,34 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
  * ==================== SEEDS - Database Initialization ====================
  *
  * Script để khởi tạo database với dữ liệu test/demo
+ * ⚡ LAYER 1 (i18n) được ưu tiên chạy trước tất cả entities khác
  *
  * Cách dùng:
  * npm run seed                                    - Full seed (vi → en)
  * npm run seed -- --dry-run                      - Test mode (skip AI, use mock data)
  * npm run seed -- --incremental                  - Only translate missing items
  * npm run seed -- --products-only                - Reseed only products
+ * npm run seed -- --i18n-only                    - Seed ONLY i18n (Layer 1: languages + translations)
  *
  * Environment Variables:
  * DRY_RUN=true                 - Test without AI calls
  * INCREMENTAL_SEED=true        - Skip already-translated items
  *
- * Thứ tự seeding (phải theo dependencies):
- * 0. Languages (vi as default, en as secondary)
- * 1. Users (admin, user1, user2)
- * 2. Categories (6 danh mục)
- * 3. Suppliers (5 nhà cung cấp)
- * 4. Products (20 sản phẩm liên kết đến users, categories, suppliers)
- * 5. Customers (5 khách hàng)
- * 6. Reviews (8 đánh giá liên kết đến products, users)
- * 7. Orders (600 đơn hàng liên kết đến users, products, customers)
- * 8. Coupons (4 mã giảm giá liên kết đến products, categories)
+ * Thứ tự seeding (LAYER 1 i18n luôn ưu tiên đầu tiên):
+ * LAYER 1 (i18n - ⚡ ưu tiên cao nhất)
+ *   0. Languages (vi as default, en as secondary)
+ *   1. Static Translations (Load từ JSON files)
+ *
+ * LAYER 2 (Core entities - chỉ chạy nếu không --i18n-only)
+ *   2. Users (admin, user1, user2)
+ *   3. Categories (6 danh mục)
+ *   4. Suppliers (5 nhà cung cấp)
+ *   5. Products (20 sản phẩm)
+ *   6. Customers (30 khách hàng)
+ *   7. Reviews (8 đánh giá)
+ *   8. Orders (600 đơn hàng)
+ *   9. Coupons (4 mã giảm giá)
+ *   10. Features Translations
  */
 
 // ==================== Import Seeders ====================
@@ -64,6 +71,7 @@ function parseCliArgs() {
     dryRun: args.includes('--dry-run'),
     incremental: args.includes('--incremental'),
     productsOnly: args.includes('--products-only'),
+    i18nOnly: args.includes('--i18n-only'),
   };
 }
 
@@ -91,6 +99,10 @@ const seed = async () => {
       console.log('🛍️ PRODUCTS ONLY: Reseeding products and translations only\n');
     }
 
+    if (cliArgs.i18nOnly) {
+      console.log('🌐 i18n ONLY (LAYER 1): Seeding only i18n (languages + translations)\n');
+    }
+
     // ==================== Database Connection ====================
 
     /**
@@ -113,8 +125,12 @@ const seed = async () => {
       console.warn(`⚠️ Failed to clear cache: ${cacheError.message}`);
     }
 
+    // ==================== LAYER 1: i18n (Languages + Translations) ====================
+    // ⚡ ưu tiên cao nhất - LUÔN chạy trước tất cả entities khác
+    console.log('\n🌐 ========== LAYER 1: i18n (Languages + Static Translations) ==========\n');
+
     /**
-     * 0. Seed System Languages (independent entity)
+     * LAYER 1.0: Seed System Languages (independent entity)
      * Tạo: Vietnamese (default), English (secondary)
      * Xóa: Tất cả ngôn ngữ khác (ja, zh, ko, fr, de, es, th)
      */
@@ -127,7 +143,7 @@ const seed = async () => {
     }
 
     /**
-     * 1. Seed Static Translations (independent entity)
+     * LAYER 1.1: Seed Static Translations (independent entity)
      * Tạo: Load translations từ JSON files (vi, en) vào DB
      * Namespaces: common, admin, checkout, products
      * Phải chạy trước để frontend có thể fetch i18n data
@@ -140,6 +156,18 @@ const seed = async () => {
     } catch (translationError) {
       console.warn(`⚠️ Translation seeding failed: ${translationError.message}`);
     }
+
+    console.log('\n✅ LAYER 1 (i18n) COMPLETED - All i18n data is ready!\n');
+
+    // ==================== Early Exit if --i18n-only ====================
+    if (cliArgs.i18nOnly) {
+      console.log('🎉 i18n-only mode: Skipping LAYER 2 (core entities)');
+      console.log('\n✅ i18n seeding completed successfully!\n');
+      process.exit(0);
+    }
+
+    // ==================== LAYER 2: Core Entities (Users, Products, Orders, etc.) ====================
+    console.log('🏢 ========== LAYER 2: Core Entities (Users, Products, Orders, etc.) ==========\n');
 
     /**
      * 2. Seed Users (base entity)
