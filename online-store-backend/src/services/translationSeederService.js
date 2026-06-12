@@ -164,8 +164,55 @@ class TranslationSeederService {
   }
 
   /**
+   * Extract template variables from a string (e.g., {{variable}})
+   * @param {string} str - The string to extract variables from
+   * @returns {Array<{original: string, placeholder: string}>}
+   */
+  static _extractTemplateVariables(str) {
+    const variablePattern = /\{\{[^}]+\}\}/g;
+    const matches = str.match(variablePattern) || [];
+    return matches.map((original, index) => ({
+      original,
+      placeholder: `__VAR_${index}__`,
+    }));
+  }
+
+  /**
+   * Replace template variables with placeholders to protect them during translation
+   * @param {string} str - Original string with variables
+   * @returns {object} {textToTranslate, variables}
+   */
+  static _protectTemplateVariables(str) {
+    const variables = this._extractTemplateVariables(str);
+    let textToTranslate = str;
+
+    for (const variable of variables) {
+      textToTranslate = textToTranslate.replace(variable.original, variable.placeholder);
+    }
+
+    return { textToTranslate, variables };
+  }
+
+  /**
+   * Restore template variables after translation
+   * @param {string} translatedText - The translated text with placeholders
+   * @param {Array} variables - Original variables extracted earlier
+   * @returns {string} Text with original variables restored
+   */
+  static _restoreTemplateVariables(translatedText, variables) {
+    let restored = translatedText;
+
+    for (const variable of variables) {
+      restored = restored.replace(variable.placeholder, variable.original);
+    }
+
+    return restored;
+  }
+
+  /**
    * Translate all static UI strings from source language to target language
    * Called after cloneStaticTranslations to actually translate the cloned content
+   * Protects template variables like {{variable}} during translation
    * @param {string} targetLang - Target language code (e.g., 'pt')
    * @param {string} sourceLang - Source language code (defaults to 'en')
    * @returns {Promise<number>} Number of records translated
@@ -211,18 +258,30 @@ class TranslationSeederService {
                 continue;
               }
 
+              // Protect template variables like {{variable}}
+              const { textToTranslate, variables } = this._protectTemplateVariables(englishValue);
+
               const translated = await cloudflareAiService.translate(
-                englishValue,
+                textToTranslate,
                 sourceLang,
                 targetLang
               );
 
-              translatedKeys[key] = translated;
+              // Restore template variables after translation
+              const restoredTranslated = this._restoreTemplateVariables(translated, variables);
+
+              translatedKeys[key] = restoredTranslated;
               totalTranslated++;
+
+              // Log if variables were protected
+              if (variables.length > 0) {
+                console.log(
+                  `[TranslationSeeder] Protected ${variables.length} variables in key '${key}' (namespace '${record.namespace}')`
+                );
+              }
             } catch (err) {
               console.error(
-                `[TranslationSeeder] Failed to translate key '${key}' in namespace '${record.namespace}':`,
-                err.message
+                `[TranslationSeeder] Failed to translate key '${key}' in namespace '${record.namespace}': ${err.message}`
               );
               // Fallback to original (English) value
               translatedKeys[key] = englishValue;
@@ -237,19 +296,18 @@ class TranslationSeederService {
           );
 
           console.log(
-            `[TranslationSeeder] Namespace '${record.namespace}' translation completed`
+            `[TranslationSeeder] Namespace '${record.namespace}' translation completed (${keyCount} keys)`
           );
         } catch (err) {
           console.error(
-            `[TranslationSeeder] Error processing namespace '${record.namespace}':`,
-            err.message
+            `[TranslationSeeder] Error processing namespace '${record.namespace}': ${err.message}`
           );
           totalErrors += Object.keys(record.translations || {}).length;
         }
       }
 
       console.log(
-        `[TranslationSeeder] UI translation completed. Total translated: ${totalTranslated}, Errors: ${totalErrors}`
+        `[TranslationSeeder] UI translation completed for ${targetLang}. Total translated: ${totalTranslated}, Errors: ${totalErrors}`
       );
 
       return totalTranslated;
