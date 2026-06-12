@@ -162,6 +162,102 @@ class TranslationSeederService {
 
     return translations.map(t => t.namespace);
   }
+
+  /**
+   * Translate all static UI strings from source language to target language
+   * Called after cloneStaticTranslations to actually translate the cloned content
+   * @param {string} targetLang - Target language code (e.g., 'pt')
+   * @param {string} sourceLang - Source language code (defaults to 'en')
+   * @returns {Promise<number>} Number of records translated
+   */
+  static async translateStaticTranslations(targetLang, sourceLang = 'en') {
+    if (!targetLang || targetLang === sourceLang) {
+      throw new Error('Target language must be different from source language');
+    }
+
+    try {
+      const cloudflareAiService = require('./cloudflareAiService');
+
+      console.log(`[TranslationSeeder] Starting translation of UI strings from ${sourceLang} to ${targetLang}`);
+
+      // Get all cloned records in the target language
+      const targetRecords = await StaticTranslation.find({
+        code: targetLang,
+        isDeleted: false,
+      });
+
+      if (targetRecords.length === 0) {
+        console.warn(`[TranslationSeeder] No records found for language ${targetLang} to translate`);
+        return 0;
+      }
+
+      let totalTranslated = 0;
+      let totalErrors = 0;
+
+      // Translate each namespace
+      for (const record of targetRecords) {
+        try {
+          const translatedKeys = {};
+          const keyCount = Object.keys(record.translations || {}).length;
+
+          console.log(`[TranslationSeeder] Translating namespace '${record.namespace}' (${keyCount} keys) to ${targetLang}`);
+
+          // Translate each key
+          for (const [key, englishValue] of Object.entries(record.translations || {})) {
+            try {
+              // Skip empty values
+              if (!englishValue || typeof englishValue !== 'string') {
+                translatedKeys[key] = englishValue;
+                continue;
+              }
+
+              const translated = await cloudflareAiService.translate(
+                englishValue,
+                sourceLang,
+                targetLang
+              );
+
+              translatedKeys[key] = translated;
+              totalTranslated++;
+            } catch (err) {
+              console.error(
+                `[TranslationSeeder] Failed to translate key '${key}' in namespace '${record.namespace}':`,
+                err.message
+              );
+              // Fallback to original (English) value
+              translatedKeys[key] = englishValue;
+              totalErrors++;
+            }
+          }
+
+          // Update record with translated data
+          await StaticTranslation.updateOne(
+            { _id: record._id },
+            { translations: translatedKeys, updatedAt: new Date() }
+          );
+
+          console.log(
+            `[TranslationSeeder] Namespace '${record.namespace}' translation completed`
+          );
+        } catch (err) {
+          console.error(
+            `[TranslationSeeder] Error processing namespace '${record.namespace}':`,
+            err.message
+          );
+          totalErrors += Object.keys(record.translations || {}).length;
+        }
+      }
+
+      console.log(
+        `[TranslationSeeder] UI translation completed. Total translated: ${totalTranslated}, Errors: ${totalErrors}`
+      );
+
+      return totalTranslated;
+    } catch (error) {
+      console.error(`[TranslationSeeder] Error translating static translations:`, error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = TranslationSeederService;

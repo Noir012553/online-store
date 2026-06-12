@@ -136,6 +136,16 @@ exports.createLanguage = async (req, res) => {
           // Continue even if seeding fails - still translate products
         }
 
+        // Step 1.5: Translate all cloned UI strings from 'en' to target language
+        try {
+          const translatedCount = await TranslationSeederService.translateStaticTranslations(langCode, 'en');
+          console.log(`[Language] Translated ${translatedCount} UI strings to ${langCode}`);
+        } catch (translateError) {
+          console.error(`[Language] Static translation failed:`, translateError.message);
+          console.error('[Language] Stack:', translateError.stack);
+          // Continue even if translation fails - products can still be translated
+        }
+
         // Step 2: Invalidate language cache so endpoints pick up new language
         LanguageService.invalidateCache();
         console.log(`[Language] Language cache invalidated`);
