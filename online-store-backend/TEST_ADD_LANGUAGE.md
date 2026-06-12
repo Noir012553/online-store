@@ -18,10 +18,9 @@ This guide covers testing the **Add Language** feature which now includes:
 # 1. Navigate to backend directory
 cd online-store-backend
 
-# 2. Update credentials in script (if needed)
-# Open test-add-language-pt.ps1 and update:
-#   $ADMIN_EMAIL = "noir@example.com"
-#   $ADMIN_PASSWORD = "password123"
+# 2. Credentials (automatically updated):
+#   $ADMIN_EMAIL = "admin@laptop.com"
+#   $ADMIN_PASSWORD = "admin123"
 
 # 3. Run the test script
 .\test-add-language-pt.ps1
@@ -36,10 +35,9 @@ cd online-store-backend
 # 2. Make script executable
 chmod +x test-add-language-pt.sh
 
-# 3. Update credentials in script (if needed)
-# Edit test-add-language-pt.sh and update:
-#   ADMIN_EMAIL="noir@example.com"
-#   ADMIN_PASSWORD="password123"
+# 3. Credentials (automatically updated):
+#   ADMIN_EMAIL="admin@laptop.com"
+#   ADMIN_PASSWORD="admin123"
 
 # 4. Run the test script
 ./test-add-language-pt.sh
@@ -61,7 +59,7 @@ chmod +x test-add-language-pt.sh
 $Response = Invoke-RestMethod -Uri "http://localhost:5000/api/users/login" `
     -Method Post `
     -Headers @{"Content-Type" = "application/json"} `
-    -Body '{"email":"noir@example.com","password":"password123"}'
+    -Body '{"email":"admin@laptop.com","password":"admin123"}'
 
 $TOKEN = $Response.token
 Write-Host $TOKEN
@@ -71,7 +69,7 @@ Write-Host $TOKEN
 ```bash
 RESPONSE=$(curl -s -X POST "http://localhost:5000/api/users/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"noir@example.com","password":"password123"}')
+  -d '{"email":"admin@laptop.com","password":"admin123"}')
 
 TOKEN=$(echo $RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)
 echo $TOKEN

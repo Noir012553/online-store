@@ -13,8 +13,8 @@
 
 # Configuration
 BACKEND_URL="http://localhost:5000"
-ADMIN_EMAIL="noir@example.com"
-ADMIN_PASSWORD="password123"
+ADMIN_EMAIL="admin@laptop.com"
+ADMIN_PASSWORD="admin123"
 
 # Colors for output
 RED='\033[0;31m'
