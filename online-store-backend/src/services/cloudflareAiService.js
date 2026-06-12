@@ -3,6 +3,13 @@ const axios = require('axios');
 const SUPPORTED_LANGUAGES = {
   vi: 'Vietnamese',
   en: 'English',
+  pt: 'Português',
+  fr: 'Français',
+  de: 'Deutsch',
+  it: 'Italiano',
+  es: 'Español',
+  nl: 'Nederlands',
+  sv: 'Svenska',
 };
 
 const LOCALIZATION_SYSTEM_PROMPT = `You are an expert software localization specialist with deep knowledge of e-commerce platforms and laptop industry terminology. 
