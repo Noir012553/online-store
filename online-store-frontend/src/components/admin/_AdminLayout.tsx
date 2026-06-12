@@ -180,6 +180,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         icon: Languages,
         children: [
           { path: "/admin/languagesConfig", icon: Languages, label: t('admin_languages_config', 'admin-common') },
+          { path: "/admin/translationDashboard", icon: BarChart3, label: "📊 Bảng điều khiển dịch" },
           { path: "/admin/translationsAdminTier1", icon: Languages, label: t('admin_translations_tier1', 'admin-common') },
           { path: "/admin/translationsAdminTier2", icon: Languages, label: t('admin_translations_tier2', 'admin-common') },
           { path: "/admin/productsTranslationsAdmin", icon: Globe, label: "Dịch Features" },
