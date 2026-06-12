@@ -1,423 +1,292 @@
 ================================================================================
-         LANGUAGE SYNCHRONIZATION ARCHITECTURE
-         Backend-Driven Complete Setup (Giải pháp 1)
+LANGUAGE SYNCHRONIZATION ARCHITECTURE - BEFORE vs AFTER
 ================================================================================
 
+═══════════════════════════════════════════════════════════════════════════════
+BEFORE (❌ BROKEN):
+═══════════════════════════════════════════════════════════════════════════════
+
+Admin Add Language: PT
+  │
+  ├─→ Frontend POST /api/languages {code: 'pt'}
+  │   └─→ Backend Language.create()
+  │   └─→ Background: Translate products
+  │
+  └─→ User switch to Portuguese
+      │
+      ├─→ GET /api/translations?lang=pt&ns=common
+      │   └─→ ❌ 404 NOT FOUND
+      │       Reason: Seeder only seeded 'vi', 'en'
+      │       StaticTranslation collection has no 'pt' records
+      │
+      └─→ GET /api/products/{id}/translations?lang=pt
+          └─→ ❌ 400 BAD REQUEST
+              Reason 1: translationController.js hardcoded allowlist
+              Reason 2: Even if allowed, cache format wrong
+              Cache format: {hashKey, translatedText}
+              Endpoint needs: {entityId, entityType, translatedText}
+
+
+═══════════════════════════════════════════════════════════════════════════════
+AFTER (✅ FIXED):
+═══════════════════════════════════════════════════════════════════════════════
+
+Admin Add Language: PT
+  │
+  ├─→ Frontend POST /api/languages {code: 'pt'}
+  │   └─→ Backend Language.create()
+  │   └─→ Response 201 immediately
+  │
+  └─→ Background Job Starts (setImmediate):
+      │
+      ├─→ [STEP 1] Clone StaticTranslation
+      │   └─→ Find all 'en' records in DB
+      │   └─→ If missing, load from /locales/en/*.json ← NEW FALLBACK
+      │   └─→ Clone all records: replace code 'en' → 'pt'
+      │   └─→ INSERT into StaticTranslation collection
+      │   └─→ Result: StaticTranslation('pt') now has all namespaces
+      │
+      ├─→ [STEP 2] Invalidate Language Cache
+      │   └─→ LanguageService.invalidateCache()
+      │   └─→ Next query will fetch 'pt' from DB
+      │
+      └─→ [STEP 3] Translate Products (Async)
+          └─→ For each product field:
+              ├─→ Generate: hashKey = md5(text + 'pt')
+              ├─→ Check cache (skip if exists)
+              ├─→ Call CloudflareAI: vi → pt
+              ├─→ INSERT with CORRECT FORMAT:
+              │   {
+              │     hashKey: "...",
+              │     originalText: "...",
+              │     targetLang: 'pt',
+              │     translatedText: "...",
+              │     entityId: "product_123",      ← NEW
+              │     entityType: "product_name"    ← NEW
+              │   }
+              │
+              └─→ Done (~10-30s depending on product count)
+
+
+User Switch to Portuguese
+  │
+  ├─→ GET /api/translations?lang=pt&ns=common
+  │   └─→ Check: LanguageService.isSupportedLanguage('pt')
+  │   │   └─→ Query DB: Language.find({isActive: true})
+  │   │   └─→ Result: ['vi', 'en', 'pt'] ✓
+  │   │
+  │   └─→ Query: StaticTranslation.findOne({code: 'pt', namespace: 'common'})
+  │   │   └─→ ✅ Found! (cloned from 'en')
+  │   │
+  │   └─→ ✅ 200 OK - Return UI strings
+  │
+  └─→ GET /api/products/{id}/translations?lang=pt
+      │
+      ├─→ Check: LanguageService.isSupportedLanguage('pt') ← DYNAMIC
+      │   └─→ ✅ Allowed (no more hardcoded whitelist)
+      │
+      ├─→ Query: LiveTranslationCache.find({
+      │       entityId: "product_123",     ← Now findable
+      │       targetLang: 'pt'
+      │   })
+      │   └─→ ✅ Found! (from background job)
+      │
+      └─→ ✅ 200 OK - Return translations
+
+
+═══════════════════════════════════════════════════════════════════════════════
+KEY CHANGES IN CODE:
+═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            FRONTEND (Browser)                              │
+│ 1. DYNAMIC ALLOWLIST (translationController.js)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ Language Configuration                                               │  │
-│  │ SUPPORTED_LOCALES = [vi, en, pt, fr, de, it, es, nl, sv]            │  │
-│  │                                                                       │  │
-│  │ Admin UI: "Add Language" → Select "Português" → Click Add           │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                    │                                         │
-│                                    │ POST /api/languages                    │
-│                                    │ {code: 'pt', name: 'Português'}       │
-│                                    ▼                                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ HTTP Request
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BACKEND LAYER                                    │
+│ BEFORE:                                                                      │
+│   const SUPPORTED_LANGUAGES = {vi, en};  // Hardcoded in code              │
+│   if (!SUPPORTED_LANGUAGES[lang]) return 400;                              │
 │                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ 1. LANGUAGE CONTROLLER (Orchestrator)                               │  │
-│  │                                                                       │  │
-│  │ POST /api/languages {code: 'pt', name: 'Português'}                │  │
-│  │   │                                                                   │  │
-│  │   ├─→ Validate input                                               │  │
-│  │   │   └─→ Check: code in SUPPORTED_LANGUAGES ✓                     │  │
-│  │   │       (SUPPORTED_LANGUAGES = {en, pt, fr, de, it, es, nl, sv}) │  │
-│  │   │                                                                   │  │
-│  │   ├─→ Check if language exists                                      │  │
-│  │   │   └─→ Language.findOne({code: 'pt'}) → null ✓                  │  │
-│  │   │                                                                   │  │
-│  │   ├─→ Create Language record                                        │  │
-│  │   │   └─→ Language.create({code: 'pt', isActive: true})           │  │
-│  │   │       Result: {_id: ObjectId, code: 'pt', ...}                │  │
-│  │   │                                                                   │  │
-│  │   └─→ Return 201 Created (ASYNC - don't wait)                      │  │
-│  │       Response: "Language added. Background job started..."         │  │
-│  │                                                                       │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-│  Response sent to Frontend ✅                                               │
-│  But BACKGROUND JOB continues running asynchronously...                    │
-│                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │ BACKGROUND JOB (3 Steps)                                             │  │
-│  │                                                                       │  │
-│  │ Step 1: CLONE STATIC TRANSLATIONS                                   │  │
-│  │ ────────────────────────────────────────────────                    │  │
-│  │                                                                       │  │
-│  │   TranslationSeederService.cloneStaticTranslations('en', 'pt')     │  │
-│  │         │                                                            │  │
-│  │         ├─→ StaticTranslation.find({code: 'en'})                   │  │
-│  │         │   Result: [                                               │  │
-│  │         │     {code:'en', namespace:'common', trans:{...}},        │  │
-│  │         │     {code:'en', namespace:'admin', trans:{...}},         │  │
-│  │         │     {code:'en', namespace:'checkout', trans:{...}},      │  │
-│  │         │     {code:'en', namespace:'products', trans:{...}}       │  │
-│  │         │   ]                                                        │  │
-│  │         │                                                            │  │
-│  │         └─→ StaticTranslation.insertMany([                         │  │
-│  │             {code:'pt', namespace:'common', trans:{...}},          │  │
-│  │             {code:'pt', namespace:'admin', trans:{...}},           │  │
-│  │             {code:'pt', namespace:'checkout', trans:{...}},        │  │
-│  │             {code:'pt', namespace:'products', trans:{...}}         │  │
-│  │           ])                                                         │  │
-│  │         Result: 4 records cloned ✓                                  │  │
-│  │                                                                       │  │
-│  │ Step 2: INVALIDATE LANGUAGE CACHE                                   │  │
-│  │ ─────────────────────────────────                                   │  │
-│  │                                                                       │  │
-│  │   LanguageService.invalidateCache()                                 │  │
-│  │     └─→ Clear in-memory language cache                             │  │
-│  │         Next request will query DB for active languages             │  │
-│  │                                                                       │  │
-│  │ Step 3: TRANSLATE ALL PRODUCTS                                      │  │
-│  │ ──────────────────────────────                                      │  │
-│  │                                                                       │  │
-│  │   For each product:                                                 │  │
-│  │     Product.find({})                                                │  │
-│  │       └─→ Result: [product_1, product_2, ..., product_N]           │  │
-│  │                                                                       │  │
-│  │   For each product field (name, description):                       │  │
-│  │     ├─→ Check cache: hashKey = MD5(text:pt)                        │  │
-│  │     │   ├─ HIT → Skip (already translated)                         │  │
-│  │     │   └─ MISS → Proceed to translate                             │  │
-│  │     │                                                                │  │
-│  │     ├─→ Translate using CloudflareAI                               │  │
-│  │     │   cloudflareAiService.translate('Product Name', 'vi', 'pt')  │  │
-│  │     │     └─→ Result: 'Nome do Produto'                            │  │
-│  │     │                                                                │  │
-│  │     └─→ Store in LiveTranslationCache with CORRECT FORMAT          │  │
-│  │         LiveTranslationCache.insertMany([                          │  │
-│  │           {                                                          │  │
-│  │             hashKey: 'abc123',                                      │  │
-│  │             originalText: 'Product Name',                           │  │
-│  │             targetLang: 'pt',                                       │  │
-│  │             translatedText: 'Nome do Produto',                      │  │
-│  │             entityId: 'product_123',     ← CRITICAL               │  │
-│  │             entityType: 'product_name'   ← CRITICAL               │  │
-│  │           },                                                         │  │
-│  │           {                                                          │  │
-│  │             hashKey: 'def456',                                      │  │
-│  │             originalText: 'Product Description...',                 │  │
-│  │             targetLang: 'pt',                                       │  │
-│  │             translatedText: 'Descrição do Produto...',             │  │
-│  │             entityId: 'product_123',                                │  │
-│  │             entityType: 'product_description'                       │  │
-│  │           },                                                         │  │
-│  │           ...                                                        │  │
-│  │         ])                                                           │  │
-│  │         Result: ~500 translations stored ✓                          │  │
-│  │                                                                       │  │
-│  │ 🎉 Background job completed!                                        │  │
-│  │                                                                       │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ Time elapsed: ~10-15 seconds
-                                    │ (user not blocked)
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (User Changes Language)                        │
-│                                                                              │
-│  Language Selector: [Português] ✓                                           │
-│                                                                              │
-│  Request 1: GET /api/translations?lang=pt&ns=common                        │
-│             ───────────────────────────────────────────                    │
-│             Response: {                                                     │
-│               success: true,                                               │
-│               data: {                                                      │
-│                 code: 'pt',                                                │
-│                 namespace: 'common',                                       │
-│                 translations: {                                            │
-│                   'header.title': 'Título',                               │
-│                   'footer.copyright': '© 2024',                           │
-│                   ...                                                      │
-│                 }                                                           │
-│               }                                                             │
-│             }                                                               │
-│             Status: 200 OK ✅ (Cloned from 'en')                          │
-│                                                                              │
-│  Request 2: GET /api/products/product_123/translations?lang=pt            │
-│             ─────────────────────────────────────────────────────────     │
-│             Response: {                                                     │
-│               success: true,                                               │
-│               data: {                                                      │
-│                 name: 'Nome do Produto',                                  │
-│                 description: 'Descrição completa do produto...',          │
-│                 brand: 'Nome da Marca',                                   │
-│                 categoryName: 'Nome da Categoria'                         │
-│               }                                                             │
-│             }                                                               │
-│             Status: 200 OK ✅ (From background job translation)           │
-│                                                                              │
-│  🎉 EVERYTHING IN PORTUGUESE!                                              │
+│ AFTER:                                                                       │
+│   // 6 endpoints now use:                                                   │
+│   const isSupported = await LanguageService.isSupportedLanguage(lang);     │
+│   if (!isSupported) return 400;                                            │
+│   // Reads from DB: Language.find({isActive: true})                        │
+│   // + 5min cache for performance                                          │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. AUTO-CLONE STATIC TRANSLATIONS (languageController.js)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ ADDED (in createLanguage background job):                                   │
+│   const clonedCount = await TranslationSeederService                        │
+│     .cloneStaticTranslations('en', newLangCode);                            │
+│   // Copies: common, footer, products, components, categories, etc.        │
+│   // From: StaticTranslation(code='en')                                    │
+│   // To: StaticTranslation(code='pt')                                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-================================================================================
-                         REQUEST/RESPONSE TIMELINE
-================================================================================
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. FALLBACK TO JSON (translationSeederService.js)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ ADDED (in cloneStaticTranslations):                                         │
+│   // If source language not in DB, load from files                          │
+│   if (sourceTranslations.length === 0) {                                    │
+│     sourceTranslations = await this._loadTranslationsFromJSON(sourceCode);  │
+│     // Reads from: /src/locales/[lang]/*.json                             │
+│   }                                                                          │
+│   // Ensures clone always works, even if DB seeding incomplete              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-TIME    FRONTEND                    BACKEND                    DATABASE
-────────────────────────────────────────────────────────────────────────────
-
-T0      User clicks "Add Language"
-        Selects "Português"
-        ↓
-
-T1      POST /api/languages
-        {code: 'pt'}
-        ────────────────────────→
-
-T2                                  Validate code
-                                    Check SUPPORTED_LANGUAGES
-                                    ✓ 'pt' exists
-                                    ↓
-
-T3                                  Language.findOne({code: 'pt'})
-                                    ────────────────────────────→ Query DB
-
-T4                                                                ← null
-                                    Language doesn't exist
-                                    ↓
-
-T5                                  Language.create({code: 'pt'})
-                                    ────────────────────────────→ INSERT into DB
-
-T6                                                                ← {_id, code: 'pt', ...}
-                                    Return 201 Created
-                                    ↓
-
-T7      ← 201 OK                     Response sent to Frontend
-        "Language added.              
-         Background job started..."
-
-T8      ✓ User can continue          setImmediate(() => {
-        (Not blocked)                 Background job starts
-                                     });
-
-
-T9-T20                             Background Job Step 1:
-                                   Clone Static Translations
-                                   StaticTranslation.find({code: 'en'})
-                                   ────────────────────────────────────→ READ en
-
-T10                                                                ← [4 records]
-                                   StaticTranslation.insertMany([...])
-                                   ────────────────────────────────────→ INSERT pt
-
-T20                                                                ← [4 inserted]
-                                   ✓ Cloning done
-
-
-T21-T25                            Background Job Step 2:
-                                   Invalidate cache
-                                   (In-memory operation)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. CORRECT CACHE FORMAT (languageController.js)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│ BEFORE (background job):                                                    │
+│   await LiveTranslationCache.insertMany([                                   │
+│     {                                                                        │
+│       hashKey: "...",                                                       │
+│       originalText: "...",                                                  │
+│       targetLang: "pt",                                                     │
+│       translatedText: "..."                                                 │
+│     }                                                                        │
+│   ]);                                                                        │
+│                                                                              │
+│ AFTER (background job):                                                     │
+│   await LiveTranslationCache.insertMany([                                   │
+│     {                                                                        │
+│       hashKey: "...",                                                       │
+│       originalText: "...",                                                  │
+│       targetLang: "pt",                                                     │
+│       translatedText: "...",                                                │
+│       entityId: "product_123",      // ← NEW: Product ID                   │
+│       entityType: "product_name"    // ← NEW: Field type                   │
+│     }                                                                        │
+│   ]);                                                                        │
+│   // Now findable by:                                                       │
+│   // LiveTranslationCache.find({entityId, targetLang})                     │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 
 
-T26-T50                            Background Job Step 3:
-                                   Translate all products
-                                   For each product:
-                                   - Fetch from DB
-                                   - Translate via CloudflareAI
-                                   - Store with entityId + entityType
+═══════════════════════════════════════════════════════════════════════════════
+DATABASE SCHEMA CHANGES:
+═══════════════════════════════════════════════════════════════════════════════
+
+Language Collection:
+  {
+    _id: ObjectId,
+    code: "pt",              // Language code
+    name: "Português",
+    isActive: true,          // Dynamic allowlist reads this
+    isSystemDefault: false,
+    createdAt: Date
+  }
+
+StaticTranslation Collection:
+  {
+    _id: ObjectId,
+    code: "pt",                    // After clone
+    namespace: "common",           // (footer, products, etc.)
+    translations: {
+      key1: "value1",
+      key2: "value2",
+      ...
+    },
+    isDeleted: false,
+    createdAt: Date,
+    updatedAt: Date
+  }
+
+LiveTranslationCache Collection:
+  {
+    _id: ObjectId,
+    hashKey: "abc123",             // md5(originalText:targetLang)
+    originalText: "Product Name",
+    targetLang: "pt",
+    translatedText: "Nome do Produto",
+    entityId: "product_123",       // ← NEW: Required for finding
+    entityType: "product_name",    // ← NEW: Identifies field type
+    createdAt: Date,
+    updatedAt: Date
+  }
 
 
-T50+                               Background job COMPLETE
-                                   (No response to frontend)
+═══════════════════════════════════════════════════════════════════════════════
+PERFORMANCE CHARACTERISTICS:
+═══════════════════════════════════════════════════════════════════════════════
+
+Endpoint Calls:
+  /api/translations?lang=pt&ns=common
+    - DB Query: StaticTranslation.findOne({code, namespace})
+    - Cache: HTTP response cache (5min)
+    - Speed: ~5-10ms (single document)
+
+  /api/products/:id/translations?lang=pt
+    - Language check: LanguageService.getActiveLanguageCodes()
+      - First call: Query DB Language collection, cache 5min
+      - Subsequent calls: Memory cache (ultra-fast)
+    - Translation query: LiveTranslationCache.find({entityId, targetLang})
+      - Index on: (entityId, targetLang)
+      - Speed: ~2-5ms (compound index)
+
+Background Job When Language Added:
+  - Clone StaticTranslations: 50-200ms (depends on # of namespaces)
+  - Translate Products: 5-30s (depends on # of products)
+    - Parallel translation (Cloudflare AI calls)
+    - Bulk insert (ordered: false)
+  - Cache Invalidation: <1ms
 
 
-T60+    User changes language
-        to "Português"
-        ↓
-
-T61     GET /api/translations
-        ?lang=pt&ns=common
-        ────────────────────────→
-
-T62                                StaticTranslation.findOne(
-                                   {code: 'pt', namespace: 'common'})
-                                   ────────────────────────────────→ Query DB
-
-T63                                                                ← {pt data}
-                                   Return 200 OK
-                                   ↓
-
-T64     ← 200 OK                    Response with UI strings
-        Displays in Portuguese      (Cloned from 'en')
-
-
-T65     GET /api/products/123
-        /translations?lang=pt
-        ────────────────────────→
-
-T66                                Check language:
-                                   LanguageService.isSupportedLanguage('pt')
-                                   (Reads from cache or DB)
-                                   ✓ 'pt' is supported
-
-
-T67                                LiveTranslationCache.find({
-                                   entityId: '123',
-                                   targetLang: 'pt'
-                                   })
-                                   ────────────────────────────────→ Query DB
-
-T68                                                                ← [translations]
-                                   Return 200 OK
-                                   ↓
-
-T69     ← 200 OK                    Response with products
-        Displays in Portuguese      (From background job)
-
-
-================================================================================
-                            KEY COMPONENTS
-================================================================================
-
-1. LANGUAGE CONTROLLER
-   Path: src/controllers/languageController.js
-   ├─ getSupportedLanguages()    → Returns SUPPORTED_LANGUAGES
-   ├─ getAllLanguages()          → Returns all Language records from DB
-   └─ createLanguage()           → Creates language + background job
-      └─ Calls: TranslationSeederService.cloneStaticTranslations()
-
-2. TRANSLATION CONTROLLER
-   Path: src/controllers/translationController.js
-   ├─ getStaticTranslations()    → Dynamic check via LanguageService ✓
-   ├─ getProductTranslations()   → Dynamic check via LanguageService ✓
-   ├─ getCategoryTranslations()  → Dynamic check via LanguageService ✓
-   └─ getReviewTranslations()    → Dynamic check via LanguageService ✓ FIXED
-
-3. LANGUAGE SERVICE (Cache Manager)
-   Path: src/services/languageService.js
-   ├─ getActiveLanguageCodes()   → Returns active languages [cached 5 min]
-   ├─ isSupportedLanguage()      → Check if language is active
-   └─ invalidateCache()          → Clear cache on language changes
-
-4. TRANSLATION SEEDER SERVICE
-   Path: src/services/translationSeederService.js
-   └─ cloneStaticTranslations()  → Clone UI strings from source to target
-
-5. LANGUAGE MODEL
-   Path: src/models/Language.js
-   {code, name, isActive, nativeName, createdAt, updatedAt}
-
-6. STATIC TRANSLATION MODEL
-   Path: src/models/StaticTranslation.js
-   {code, namespace, translations, isDeleted, createdAt, updatedAt}
-
-7. LIVE TRANSLATION CACHE MODEL
-   Path: src/models/LiveTranslationCache.js
-   {hashKey, originalText, targetLang, translatedText, 
-    entityId, entityType, specKey, createdAt}
-
-
-================================================================================
-                          IMPLEMENTATION CHECKLIST
-================================================================================
-
-[✓] Fix 1: Dynamic check in getReviewTranslations
-    File: src/controllers/translationController.js:315-327
-    Changed: if (!SUPPORTED_LANGUAGES[lang])
-    To:      if (!await LanguageService.isSupportedLanguage(lang))
-
-[✓] Fix 2: Static translation cloning
-    File: src/controllers/languageController.js:124-127
-    Calls: TranslationSeederService.cloneStaticTranslations('en', code)
-    Status: Already implemented & working
-
-[✓] Fix 3: Product translation format
-    File: src/controllers/languageController.js:221-231
-    Adds: entityId and entityType to LiveTranslationCache
-    Status: Already implemented & working
-
-[✓] Cache invalidation
-    File: src/services/languageService.js
-    Called: When language is added/updated/deleted
-    Status: Already implemented & working
-
-[✓] Background job async
-    File: src/controllers/languageController.js:120
-    Uses: setImmediate() to prevent blocking
-    Status: Already implemented & working
-
-
-================================================================================
-                              DEPLOYMENT
-================================================================================
+═══════════════════════════════════════════════════════════════════════════════
+COMPATIBILITY NOTES:
+═══════════════════════════════════════════════════════════════════════════════
 
 ✅ No Frontend Changes Required
-   Frontend already has:
-   - SUPPORTED_LOCALES with all languages
-   - Proper i18n middleware
-   - Dynamic API calls
+   - Frontend already supports pt, fr, de, it, es, nl, sv in UI
+   - No new API contracts
+   - Backward compatible
 
-✅ Backend Ready to Deploy
-   All components implemented and tested
-   Just need to:
-   1. Merge code
-   2. Restart backend
-   3. Test via admin UI or API
+✅ No Database Migration Required
+   - Existing data structures unchanged
+   - New fields (entityId, entityType) optional in cache
+   - Graceful fallback if missing
 
-✅ Database Already Has Indexes
-   - Language: indexed on code, isActive
-   - StaticTranslation: indexed on code, namespace
-   - LiveTranslationCache: indexed on hashKey, targetLang, entityId
+✅ No Breaking Changes
+   - All existing endpoints work as before
+   - Only enhancement: now support dynamic languages
 
-
-================================================================================
-                            PERFORMANCE METRICS
-================================================================================
-
-Operation                    Time
-─────────────────────────────────────
-Language Creation            ~50ms
-Static Translation Clone     ~100ms (4 namespaces)
-Product Translation (100)    ~5-10 seconds
-Cache Lookup                 <1ms
-Total Setup Time             ~10-15 seconds
+⚠️  Seeding Important
+   - Run: npm run seed (before deploying)
+   - Ensures StaticTranslation seeded for 'vi', 'en'
+   - Fallback to JSON files, so not critical but recommended
 
 
-Cache TTL: 5 minutes
-Batch Insert Size: 500+ records
-Duplicate Handling: ordered: false (skip duplicates)
+═══════════════════════════════════════════════════════════════════════════════
+TESTING CHECKLIST:
+═══════════════════════════════════════════════════════════════════════════════
 
+□ Seeding:
+  node check-db-state.js
+  → Verify: vi, en have StaticTranslation records
 
-================================================================================
-                           MONITORING & LOGS
-================================================================================
+□ API Tests:
+  npm run seed && node test-language-sync.js
+  → All 8 tests should PASS
 
-Expected Backend Logs:
-────────────────────
+□ Manual Testing:
+  1. Admin UI: Add Language "Português"
+  2. Wait 10-30s for background job
+  3. Frontend: Switch language to Português
+  4. Verify: All UI strings translated
+  5. Verify: Product details translated
 
-[Language] Starting background setup for language: pt
-[Language] Cloned 4 static translations for pt
-[Language] Language cache invalidated
-[Language] Starting auto-translation of products to language: pt
-[Language] Found 120 products to translate
-[Language] Total fields to translate: 240
-[Language] Cache hit for product_1 product_name to pt
-[Language] Completed setup for pt. Products translated: 235, Errors: 0
-
-
-Check Points:
-─────────────
-
-Backend: Check /api/translations/cache/stats
-Frontend: Check language selector updates
-Database: Query for LiveTranslationCache records with {targetLang: 'pt'}
-
-
-================================================================================
+□ Database Check:
+  mongosh admin-store
+  > db.languages.find()
+  > db.statictranslations.countDocuments({code: 'pt'})
+  > db.livetranslationcaches.countDocuments({targetLang: 'pt'})
