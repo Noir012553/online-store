@@ -28,7 +28,9 @@
     "fix": "node src/fix.js",
     "setup-ghn": "node scripts/setup-ghn.js",
     "create-ghn": "node scripts/create-ghn-provider.js",
-    "fix-indexes": "node scripts/fix-indexes.js"
+    "fix-indexes": "node scripts/fix-indexes.js",
+    "setup-i18n-indexes": "node scripts/setup-production-indexes.js",
+    "test:blueprint": "node test-blueprint-3phase.js"
   },
   "keywords": [],
   "author": "",

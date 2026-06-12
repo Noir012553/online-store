@@ -166,9 +166,15 @@ class TranslationSeederService {
   /**
    * Translate all static UI strings from source language to target language
    * Called after cloneStaticTranslations to actually translate the cloned content
+   *
+   * Tối ưu hóa cho Production:
+   * - Concurrency limit: 5 keys đồng thời
+   * - Throttling: 1000ms nghỉ giữa các batch để tránh rate limit từ Cloudflare
+   * - Fallback: Nếu lỗi, giữ text gốc (English)
+   *
    * @param {string} targetLang - Target language code (e.g., 'pt')
    * @param {string} sourceLang - Source language code (defaults to 'en')
-   * @returns {Promise<number>} Number of records translated
+   * @returns {Promise<number>} Number of keys translated
    */
   static async translateStaticTranslations(targetLang, sourceLang = 'en') {
     if (!targetLang || targetLang === sourceLang) {
@@ -178,7 +184,7 @@ class TranslationSeederService {
     try {
       const cloudflareAiService = require('./cloudflareAiService');
 
-      console.log(`[TranslationSeeder] Starting translation of UI strings from ${sourceLang} to ${targetLang}`);
+      console.log(`[TranslationSeeder] PHASE 1 (Giai đoạn 1): Dịch UI strings từ ${sourceLang} sang ${targetLang}`);
 
       // Get all cloned records in the target language
       const targetRecords = await StaticTranslation.find({
@@ -194,69 +200,100 @@ class TranslationSeederService {
       let totalTranslated = 0;
       let totalErrors = 0;
 
+      const CONCURRENCY_LIMIT = 5;
+      const THROTTLE_MS = 1000;
+
       // Translate each namespace
       for (const record of targetRecords) {
         try {
           const translatedKeys = {};
           const keyCount = Object.keys(record.translations || {}).length;
 
-          console.log(`[TranslationSeeder] Translating namespace '${record.namespace}' (${keyCount} keys) to ${targetLang}`);
+          console.log(`[TranslationSeeder] Namespace '${record.namespace}' (${keyCount} keys) → ${targetLang}`);
 
-          // Translate each key
-          for (const [key, englishValue] of Object.entries(record.translations || {})) {
-            try {
-              // Skip empty values
-              if (!englishValue || typeof englishValue !== 'string') {
-                translatedKeys[key] = englishValue;
-                continue;
+          const keysToTranslate = Object.entries(record.translations || {});
+
+          // Process keys in batches with concurrency limit
+          for (let i = 0; i < keysToTranslate.length; i += CONCURRENCY_LIMIT) {
+            const batch = keysToTranslate.slice(i, i + CONCURRENCY_LIMIT);
+
+            // Translate batch in parallel
+            const promises = batch.map(async ([key, englishValue]) => {
+              try {
+                // Skip empty values
+                if (!englishValue || typeof englishValue !== 'string') {
+                  return { key, value: englishValue, error: null };
+                }
+
+                const translated = await cloudflareAiService.translate(
+                  englishValue,
+                  sourceLang,
+                  targetLang
+                );
+
+                return { key, value: translated, error: null };
+              } catch (err) {
+                console.warn(
+                  `[TranslationSeeder] Lỗi dịch '${key}' (${record.namespace}): ${err.message}`
+                );
+                // Fallback to original value
+                return { key, value: englishValue, error: err.message };
               }
+            });
 
-              const translated = await cloudflareAiService.translate(
-                englishValue,
-                sourceLang,
-                targetLang
-              );
+            const results = await Promise.all(promises);
 
-              translatedKeys[key] = translated;
-              totalTranslated++;
-            } catch (err) {
-              console.error(
-                `[TranslationSeeder] Failed to translate key '${key}' in namespace '${record.namespace}':`,
-                err.message
-              );
-              // Fallback to original (English) value
-              translatedKeys[key] = englishValue;
-              totalErrors++;
+            // Collect results
+            for (const { key, value, error } of results) {
+              translatedKeys[key] = value;
+              if (!error) {
+                totalTranslated++;
+              } else {
+                totalErrors++;
+              }
+            }
+
+            // Throttle: Nghỉ giữa các batch để tránh rate limit từ Cloudflare
+            if (i + CONCURRENCY_LIMIT < keysToTranslate.length) {
+              await this._sleep(THROTTLE_MS);
             }
           }
 
-          // Update record with translated data
+          // Update record with translated data (one-time write per namespace)
           await StaticTranslation.updateOne(
             { _id: record._id },
             { translations: translatedKeys, updatedAt: new Date() }
           );
 
           console.log(
-            `[TranslationSeeder] Namespace '${record.namespace}' translation completed`
+            `[TranslationSeeder] ✓ Namespace '${record.namespace}' hoàn tất`
           );
         } catch (err) {
           console.error(
-            `[TranslationSeeder] Error processing namespace '${record.namespace}':`,
-            err.message
+            `[TranslationSeeder] Lỗi xử lý namespace '${record.namespace}': ${err.message}`
           );
           totalErrors += Object.keys(record.translations || {}).length;
         }
       }
 
       console.log(
-        `[TranslationSeeder] UI translation completed. Total translated: ${totalTranslated}, Errors: ${totalErrors}`
+        `[TranslationSeeder] PHASE 1 hoàn tất: ${totalTranslated} keys dịch, ${totalErrors} lỗi`
       );
 
       return totalTranslated;
     } catch (error) {
-      console.error(`[TranslationSeeder] Error translating static translations:`, error.message);
+      console.error(`[TranslationSeeder] Lỗi dịch UI strings: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Sleep utility for throttling
+   * @param {number} ms - Milliseconds to sleep
+   * @returns {Promise<void>}
+   */
+  static _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
