@@ -119,14 +119,20 @@ exports.createLanguage = async (req, res) => {
     // Background task: Seed static translations + translate all products asynchronously
     setImmediate(async () => {
       try {
-        console.log(`[Language] Starting background setup for language: ${code}`);
+        const langCode = code.toLowerCase();
+        console.log(`[Language] Starting background setup for language: ${langCode}`);
 
         // Step 1: Clone static translations from 'en' to new language
         try {
-          const clonedCount = await TranslationSeederService.cloneStaticTranslations('en', code);
-          console.log(`[Language] Cloned ${clonedCount} static translations for ${code}`);
+          const clonedCount = await TranslationSeederService.cloneStaticTranslations('en', langCode);
+          console.log(`[Language] Cloned ${clonedCount} static translations for ${langCode}`);
+
+          if (clonedCount === 0) {
+            console.warn(`[Language] Warning: No static translations were cloned. UI strings may be missing.`);
+          }
         } catch (seedError) {
           console.error(`[Language] Static translation seeding failed:`, seedError.message);
+          console.error('[Language] Stack:', seedError.stack);
           // Continue even if seeding fails - still translate products
         }
 
@@ -135,7 +141,7 @@ exports.createLanguage = async (req, res) => {
         console.log(`[Language] Language cache invalidated`);
 
         // Step 3: Translate all products
-        console.log(`[Language] Starting auto-translation of products to language: ${code}`);
+        console.log(`[Language] Starting auto-translation of products to language: ${langCode}`);
 
         const allProducts = await Product.find({}).lean();
         console.log(`[Language] Found ${allProducts.length} products to translate`);
@@ -166,7 +172,7 @@ exports.createLanguage = async (req, res) => {
 
         // Batch check cache
         const hashKeysToCheck = fieldsToTranslate.map(field =>
-          crypto.createHash('md5').update(`${field.originalText}:${code}`).digest('hex')
+          crypto.createHash('md5').update(`${field.originalText}:${langCode}`).digest('hex')
         );
 
         const cachedRecords = await LiveTranslationCache.find(
@@ -183,12 +189,12 @@ exports.createLanguage = async (req, res) => {
         for (const field of fieldsToTranslate) {
           const hashKey = crypto
             .createHash('md5')
-            .update(`${field.originalText}:${code}`)
+            .update(`${field.originalText}:${langCode}`)
             .digest('hex');
 
           // Skip if already cached
           if (cachedHashSet.has(hashKey)) {
-            console.log(`[Language] Cache hit for ${field.productId} ${field.entityType} to ${code}`);
+            console.log(`[Language] Cache hit for ${field.productId} ${field.entityType} to ${langCode}`);
             successCount++;
             continue;
           }
@@ -207,11 +213,11 @@ exports.createLanguage = async (req, res) => {
             const translatedText = await cloudflareAiService.translate(
               item.originalText,
               'vi',
-              code
+              langCode
             );
 
             item.translatedText = translatedText;
-            item.targetLang = code;
+            item.targetLang = langCode;
           } catch (err) {
             errorCount++;
             console.error(`[Language] Error translating product ${item.productId}:`, err.message);
@@ -240,7 +246,7 @@ exports.createLanguage = async (req, res) => {
         }
 
         console.log(
-          `[Language] Completed setup for ${code}. Products translated: ${successCount}, Errors: ${errorCount}`
+          `[Language] Completed setup for ${langCode}. Products translated: ${successCount}, Errors: ${errorCount}`
         );
       } catch (error) {
         console.error(`[Language] Background job failed:`, error.message || error);
