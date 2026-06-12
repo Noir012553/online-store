@@ -1,0 +1,7 @@
+{
+  "same_district_free_shipping": "Cùng quận - Miễn phí vận chuyển",
+  "province_id_required": "provinceId là bắt buộc",
+  "weight_must_be_positive": "Cân nặng phải lớn hơn 0",
+  "shipping_address_required": "Địa chỉ giao hàng là bắt buộc",
+  "invalid_shipping_data": "Dữ liệu giao hàng không hợp lệ"
+}

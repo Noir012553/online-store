@@ -1,0 +1,21 @@
+{
+  "title": "Product Feature Translations",
+  "subtitle": "Manage translations for product features across different languages",
+  "search_placeholder": "Search products by name...",
+  "loading": "Loading products...",
+  "no_products": "No products found",
+  "features_count": "features",
+  "translated_percent": "translated",
+  "edit_button": "Edit Translations",
+  "translated_badge": "Translated",
+  "not_translated_badge": "Pending",
+  "english_translation_label": "English Translation",
+  "english_translation_placeholder": "Enter English translation...",
+  "clear_translation_button": "Clear Translation",
+  "cancel_button": "Cancel",
+  "save_button": "Save Translations",
+  "saving_button": "Saving...",
+  "load_failed": "Failed to load products",
+  "save_failed": "Failed to save translations",
+  "save_success": "Translations saved successfully"
+}

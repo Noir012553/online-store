@@ -1,0 +1,10 @@
+tunnel: 51ae956c-209a-4fd5-a6eb-7745b630c2be
+credentials-file: C:\Users\manku\.cloudflared\51ae956c-209a-4fd5-a6eb-7745b630c2be.json
+protocol: http2
+
+ingress:
+  - hostname: manln.online
+    service: http://localhost:3000
+  - hostname: backend.manln.online
+    service: http://localhost:5000
+  - service: http_status:404

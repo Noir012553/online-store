@@ -1,0 +1,12 @@
+{
+  "refresh_token_timeout": "Refresh token timeout",
+  "request_timeout": "Request timeout after {{timeout}}ms",
+  "api_error": "API Error: {{statusText}}",
+  "http_error": "HTTP {{status}}",
+  "product_creation_failed": "Failed to create product",
+  "product_update_failed": "Failed to update product",
+  "product_export_failed": "Failed to export products",
+  "banner_creation_failed": "Failed to create banner",
+  "banner_update_failed": "Failed to update banner",
+  "review_creation_failed": "Failed to create review"
+}

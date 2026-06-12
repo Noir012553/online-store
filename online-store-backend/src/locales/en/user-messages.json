@@ -1,0 +1,10 @@
+{
+  "invalid_user_data": "Invalid user data",
+  "user_not_found": "User not found",
+  "user_already_exists": "User already exists",
+  "user_created_success": "User created successfully",
+  "user_updated_success": "User updated successfully",
+  "user_deleted_success": "User deleted successfully",
+  "profile_updated_success": "Profile updated successfully",
+  "password_changed_success": "Password changed successfully"
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Dịch thuật Tính năng Sản phẩm",
+  "subtitle": "Quản lý dịch thuật cho các tính năng sản phẩm trên các ngôn ngữ khác nhau",
+  "search_placeholder": "Tìm kiếm sản phẩm theo tên...",
+  "loading": "Đang tải sản phẩm...",
+  "no_products": "Không tìm thấy sản phẩm nào",
+  "features_count": "tính năng",
+  "translated_percent": "đã dịch",
+  "edit_button": "Chỉnh sửa Dịch thuật",
+  "translated_badge": "Đã dịch",
+  "not_translated_badge": "Chưa dịch",
+  "english_translation_label": "Dịch thuật Tiếng Anh",
+  "english_translation_placeholder": "Nhập dịch thuật Tiếng Anh...",
+  "clear_translation_button": "Xóa Dịch thuật",
+  "cancel_button": "Hủy",
+  "save_button": "Lưu Dịch thuật",
+  "saving_button": "Đang lưu...",
+  "load_failed": "Lỗi khi tải sản phẩm",
+  "save_failed": "Lỗi khi lưu dịch thuật",
+  "save_success": "Dịch thuật đã được lưu thành công"
+}

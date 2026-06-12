@@ -1,0 +1,10 @@
+{
+  "invalid_user_data": "Dữ liệu người dùng không hợp lệ",
+  "user_not_found": "Người dùng không tìm thấy",
+  "user_already_exists": "Người dùng đã tồn tại",
+  "user_created_success": "Người dùng được tạo thành công",
+  "user_updated_success": "Người dùng được cập nhật thành công",
+  "user_deleted_success": "Người dùng được xóa thành công",
+  "profile_updated_success": "Hồ sơ được cập nhật thành công",
+  "password_changed_success": "Mật khẩu được thay đổi thành công"
+}

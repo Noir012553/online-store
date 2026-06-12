@@ -1,0 +1,12 @@
+{
+  "refresh_token_timeout": "Hết thời gian token làm mới",
+  "request_timeout": "Yêu cầu hết thời gian chờ sau {{timeout}}ms",
+  "api_error": "Lỗi API: {{statusText}}",
+  "http_error": "HTTP {{status}}",
+  "product_creation_failed": "Tạo sản phẩm thất bại",
+  "product_update_failed": "Cập nhật sản phẩm thất bại",
+  "product_export_failed": "Xuất sản phẩm thất bại",
+  "banner_creation_failed": "Tạo banner thất bại",
+  "banner_update_failed": "Cập nhật banner thất bại",
+  "review_creation_failed": "Tạo đánh giá thất bại"
+}

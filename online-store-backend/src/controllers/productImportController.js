@@ -1,0 +1,1037 @@
+/**
+ * Product Import/Export Controller
+ * Xử lý API import/export products từ JSON, CSV, hoặc các format khác
+ *
+ * Sử dụng Adapter Pattern:
+ * - JSONAdapter: Parse JSON format
+ * - CSVAdapter: Parse CSV format
+ * - Dễ add adapters mới (Excel, XML, API, etc.)
+ *
+ * Import Endpoints:
+ * - POST /api/admin/products/import - Import products
+ * - GET /api/admin/products/import-template - Download template
+ * - GET /api/admin/products/import-guide - Hướng dẫn import
+ * - GET /api/admin/products/import-formats - List supported formats
+ *
+ * Export Endpoints:
+ * - GET /api/admin/products/export?format=json|csv&category=...&brand=... - Export products
+ */
+
+const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
+const Product = require('../models/Product');
+const Category = require('../models/Category');
+const Supplier = require('../models/Supplier');
+const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
+const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('../utils/productImportValidator');
+const { normalizeSpecs } = require('../utils/specNormalizer');
+
+const buildCategoryNameQuery = (name) => {
+  if (!name || typeof name !== 'string') return null;
+  return { name: name.trim() };
+};
+
+// Initialize adapter manager
+const adapterManager = new ImportAdapterManager();
+
+// Config: Max new categories/suppliers per import (to prevent abuse)
+const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
+const MAX_NEW_SUPPLIERS_PER_IMPORT = 10;
+
+/**
+ * Import products từ file upload (FormData)
+ * @route POST /api/admin/products/import-file
+ * @access Private/Admin
+ * @body { file: File, format: 'json|csv', mode: 'insert|update|upsert', dryRun: boolean }
+ *
+ * Xử lý: Upload file → parse content → import products
+ * Tương tự importProducts nhưng nhận file từ FormData
+ */
+const importProductsFromFile = asyncHandler(async (req, res) => {
+  const { mode = 'upsert', dryRun = true } = req.body;
+  const adminUserId = req.user._id;
+
+  // Validate file
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vui lòng upload file',
+      error: 'No file provided',
+    });
+  }
+
+  try {
+    const file = req.file;
+
+    if (!file.buffer) {
+      throw new Error('File buffer is missing');
+    }
+
+    const fileContent = file.buffer.toString('utf-8');
+
+    // Detect format from filename
+    let format = 'json';
+    if (file.originalname.endsWith('.csv')) {
+      format = 'csv';
+    }
+
+    // Parse file content sử dụng adapter
+    const adapter = adapterManager.getAdapter(format);
+    if (!adapter) {
+      return res.status(400).json({
+        success: false,
+        message: `Format không được hỗ trợ: ${format}`,
+      });
+    }
+
+    let parsedProducts;
+    try {
+      parsedProducts = await adapter.parse(fileContent);
+    } catch (parseError) {
+      throw new Error(`Lỗi phân tích file: ${parseError.message}`);
+    }
+
+    // Validate format
+    const validation = await adapterManager.validate(parsedProducts, format);
+
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Dữ liệu import không hợp lệ. ${validation.errors.length} lỗi.`,
+        errors: validation.errors,
+        warnings: validation.warnings,
+        invalidProducts: validation.invalidProducts,
+      });
+    }
+
+    // Thông báo warnings
+    if (validation.warnings.length > 0) {
+    }
+
+    const validProducts = validation.validProducts;
+
+    // Map category names → IDs (Filter isDeleted = false)
+    const categoryMap = {};
+    const categories = await Category.find({ isDeleted: false });
+    categories.forEach(cat => {
+      categoryMap[cat.name] = cat._id;
+      categoryMap[cat.name.toLowerCase()] = cat._id;
+    });
+
+    // Map supplier names → IDs (Filter isDeleted = false)
+    const supplierMap = {};
+    const suppliers = await Supplier.find({ isDeleted: false });
+    suppliers.forEach(sup => {
+      supplierMap[sup.name] = sup._id;
+      supplierMap[sup.name.toLowerCase()] = sup._id;
+    });
+
+    // 🚀 OPTIMIZATION: Pre-identify all missing categories/suppliers and create them in BULK
+    // BEFORE: Loop N products × (check + create category + check + create supplier) = N*4 operations
+    // AFTER: Pre-collect → Bulk create categories → Bulk create suppliers = 2 operations
+    console.time('⏱️ Bulk category/supplier creation');
+
+    const createdCategories = [];
+    const createdSuppliers = [];
+
+    // Step 1: Identify missing categories
+    console.log('🔍 [Step 1/4] Scanning for missing categories...');
+    const categoriesToCreate = [];
+    const categoryLookup = new Map();
+
+    for (const product of validProducts) {
+      let categoryId = categoryMap[product.category] || categoryMap[String(product.category).toLowerCase()];
+      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
+        categoryId = product.category;
+      }
+
+      if (!categoryId) {
+        const sanitizedName = sanitizeCategorySupplierName(product.category);
+        if (!categoryLookup.has(sanitizedName)) {
+          const validation = validateCategorySupplierName(product.category);
+          if (!validation.isValid) {
+            throw new Error(`Category name không hợp lệ: "${product.category}" - ${validation.error}`);
+          }
+
+          categoryLookup.set(sanitizedName, null); // Mark for creation
+          categoriesToCreate.push({ name: sanitizedName, isDeleted: false });
+        }
+      }
+    }
+
+    console.log(`📊 Found ${categoriesToCreate.length} categories to create`);
+
+    if (categoriesToCreate.length > MAX_NEW_CATEGORIES_PER_IMPORT) {
+      throw new Error(`Quá nhiều category mới (${categoriesToCreate.length} > ${MAX_NEW_CATEGORIES_PER_IMPORT}). Vui lòng tạo category sẵn trước.`);
+    }
+
+    // Step 2: Bulk create missing categories
+    console.log('💾 [Step 2/4] Bulk creating categories...');
+    if (categoriesToCreate.length > 0) {
+      try {
+        const newCategories = await Category.insertMany(categoriesToCreate, { ordered: false });
+        newCategories.forEach(cat => {
+          categoryLookup.set(cat.name, cat._id);
+          categoryMap[cat.name] = cat._id;
+          categoryMap[cat.name.toLowerCase()] = cat._id;
+          createdCategories.push(cat.name);
+        });
+        console.log(`✅ Created ${newCategories.length} categories`);
+      } catch (err) {
+        if (err.code === 11000) {
+          console.log('⚠️ Some categories already exist, fetching them...');
+          for (const { name } of categoriesToCreate) {
+            const existing = await Category.findOne({ name, isDeleted: false });
+            if (existing) {
+              categoryLookup.set(name, existing._id);
+              categoryMap[name] = existing._id;
+              categoryMap[name.toLowerCase()] = existing._id;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // Step 3: Identify missing suppliers
+    console.log('🔍 [Step 3/4] Scanning for missing suppliers...');
+    const suppliersToCreate = [];
+    const supplierLookup = new Map();
+
+    for (const product of validProducts) {
+      let supplierId = supplierMap[product.supplier] || supplierMap[String(product.supplier).toLowerCase()];
+      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
+        supplierId = product.supplier;
+      }
+
+      if (!supplierId) {
+        const sanitizedName = sanitizeCategorySupplierName(product.supplier);
+        if (!supplierLookup.has(sanitizedName)) {
+          const validation = validateCategorySupplierName(product.supplier);
+          if (!validation.isValid) {
+            throw new Error(`Supplier name không hợp lệ: "${product.supplier}" - ${validation.error}`);
+          }
+
+          supplierLookup.set(sanitizedName, null); // Mark for creation
+          suppliersToCreate.push({ name: sanitizedName, isDeleted: false });
+        }
+      }
+    }
+
+    console.log(`📊 Found ${suppliersToCreate.length} suppliers to create`);
+
+    if (suppliersToCreate.length > MAX_NEW_SUPPLIERS_PER_IMPORT) {
+      throw new Error(`Quá nhiều supplier mới (${suppliersToCreate.length} > ${MAX_NEW_SUPPLIERS_PER_IMPORT}). Vui lòng tạo supplier sẵn trước.`);
+    }
+
+    // Step 4: Bulk create missing suppliers
+    console.log('💾 [Step 4/4] Bulk creating suppliers...');
+    if (suppliersToCreate.length > 0) {
+      try {
+        const newSuppliers = await Supplier.insertMany(suppliersToCreate, { ordered: false });
+        newSuppliers.forEach(sup => {
+          supplierLookup.set(sup.name, sup._id);
+          supplierMap[sup.name] = sup._id;
+          supplierMap[sup.name.toLowerCase()] = sup._id;
+          createdSuppliers.push(sup.name);
+        });
+        console.log(`✅ Created ${newSuppliers.length} suppliers`);
+      } catch (err) {
+        if (err.code === 11000) {
+          console.log('⚠️ Some suppliers already exist, fetching them...');
+          for (const { name } of suppliersToCreate) {
+            const existing = await Supplier.findOne({ name, isDeleted: false });
+            if (existing) {
+              supplierLookup.set(name, existing._id);
+              supplierMap[name] = existing._id;
+              supplierMap[name.toLowerCase()] = existing._id;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    console.timeEnd('⏱️ Bulk category/supplier creation');
+
+    // Now enrich all products in a single pass (category/supplier already resolved)
+    console.log('📝 Enriching products with resolved IDs...');
+    const enrichedProducts = validProducts.map((product, idx) => {
+      const enriched = { ...product, user: adminUserId };
+
+      // Resolve category
+      let categoryId = categoryMap[product.category] || categoryMap[String(product.category).toLowerCase()];
+      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
+        categoryId = product.category;
+      }
+      if (!categoryId) {
+        const sanitizedName = sanitizeCategorySupplierName(product.category);
+        categoryId = categoryLookup.get(sanitizedName);
+      }
+      if (!categoryId) {
+        throw new Error(`Sản phẩm ${idx + 1} "${product.name}": Category "${product.category}" không thể resolve`);
+      }
+      enriched.category = categoryId;
+
+      // Resolve supplier
+      let supplierId = supplierMap[product.supplier] || supplierMap[String(product.supplier).toLowerCase()];
+      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
+        supplierId = product.supplier;
+      }
+      if (!supplierId) {
+        const sanitizedName = sanitizeCategorySupplierName(product.supplier);
+        supplierId = supplierLookup.get(sanitizedName);
+      }
+      if (!supplierId) {
+        throw new Error(`Sản phẩm ${idx + 1} "${product.name}": Supplier "${product.supplier}" không thể resolve`);
+      }
+      enriched.supplier = supplierId;
+
+      return enriched;
+    });
+
+    console.log(`[FILE_UPLOAD] ✅ Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
+
+    // DRY RUN: Return preview mà không save
+    if (dryRun === 'true' || dryRun === true) {
+      return res.json({
+        success: true,
+        message: `DRY RUN: Preview import (chưa save vào database)${createdCategories.length > 0 || createdSuppliers.length > 0 ? ` - sẽ tạo ${createdCategories.length} category, ${createdSuppliers.length} supplier mới` : ''}`,
+        dryRun: true,
+        format,
+        mode,
+        totalProducts: enrichedProducts.length,
+        createdCategories,
+        createdSuppliers,
+        warnings: validation.warnings,
+        preview: enrichedProducts.slice(0, 3),
+      });
+    }
+
+    // Xử lý theo mode
+    let results;
+    switch (mode.toLowerCase()) {
+      case 'insert':
+        results = await handleInsertMode(enrichedProducts);
+        break;
+      case 'update':
+        results = await handleUpdateMode(enrichedProducts);
+        break;
+      case 'upsert':
+      default:
+        results = await handleUpsertMode(enrichedProducts);
+    }
+
+    // Build success message with created categories/suppliers info
+    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật`;
+    if (createdCategories.length > 0) {
+      successMessage += ` | Tạo mới ${createdCategories.length} category: ${createdCategories.join(', ')}`;
+    }
+    if (createdSuppliers.length > 0) {
+      successMessage += ` | Tạo mới ${createdSuppliers.length} supplier: ${createdSuppliers.join(', ')}`;
+    }
+
+    res.json({
+      success: true,
+      message: successMessage,
+      format,
+      mode,
+      results,
+      createdCategories,
+      createdSuppliers,
+      warnings: validation.warnings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi khi import products từ file',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Import products từ JSON, CSV, hoặc các format khác
+ * @route POST /api/admin/products/import
+ * @access Private/Admin
+ * @body { data: String|Object, format: 'json|csv', mode: 'insert|update|upsert' }
+ *
+ * Examples:
+ * 1. JSON: { data: {...}, format: "json", ... }
+ * 2. CSV: { data: "name,price,...\nProduct,1000,...", format: "csv", ... }
+ */
+const importProducts = asyncHandler(async (req, res) => {
+  const { data, products, format = 'json', mode = 'upsert', dryRun = false } = req.body;
+  const adminUserId = req.user._id;
+
+  // Validate input
+  if (!data && !products) {
+    return res.status(400).json({
+      success: false,
+      message: 'Thiếu field "data" hoặc "products" trong request body',
+      supportedFormats: adapterManager.getSupportedFormats(),
+    });
+  }
+
+  // Check format support
+  if (data && !adapterManager.supports(format)) {
+    return res.status(400).json({
+      success: false,
+      message: `Format không được hỗ trợ: ${format}`,
+      supportedFormats: adapterManager.getSupportedFormats(),
+    });
+  }
+
+  try {
+    // Parse data sử dụng adapter
+    let parsedProducts = products;
+    
+    if (data) {
+      const adapter = adapterManager.getAdapter(format);
+      parsedProducts = await adapter.parse(data);
+    }
+
+    // Validate format
+    const validation = await adapterManager.validate(parsedProducts, format);
+    
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Dữ liệu import không hợp lệ. ${validation.errors.length} lỗi.`,
+        errors: validation.errors,
+        warnings: validation.warnings,
+        invalidProducts: validation.invalidProducts,
+      });
+    }
+
+    // Thông báo warnings
+    if (validation.warnings.length > 0) {
+    }
+
+    const validProducts = validation.validProducts;
+
+    // Map category names → IDs (FIX #1: Filter isDeleted = false)
+    const categoryMap = {};
+    const categories = await Category.find({ isDeleted: false });
+    categories.forEach(cat => {
+      const values = [getCategoryText(cat.name)].filter(Boolean);
+      values.forEach((value) => {
+        categoryMap[value] = cat._id;
+        categoryMap[String(value).toLowerCase()] = cat._id;
+      });
+    });
+
+    // Map supplier names → IDs (FIX #1: Filter isDeleted = false)
+    const supplierMap = {};
+    const suppliers = await Supplier.find({ isDeleted: false });
+    suppliers.forEach(sup => {
+      supplierMap[sup.name] = sup._id;
+      supplierMap[sup.name.toLowerCase()] = sup._id;
+    });
+
+    // Enrich products với category/supplier IDs
+    const enrichedProducts = validProducts.map(product => {
+      const enriched = { ...product, user: adminUserId };
+
+      // Resolve category
+      let categoryId = categoryMap[product.category];
+      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
+        categoryId = product.category;
+      }
+      if (!categoryId) {
+        throw new Error(`Product "${product.name}": Category không tìm thấy: ${product.category}`);
+      }
+      enriched.category = categoryId;
+
+      // Resolve supplier
+      let supplierId = supplierMap[product.supplier];
+      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
+        supplierId = product.supplier;
+      }
+      if (!supplierId) {
+        throw new Error(`Product "${product.name}": Supplier không tìm thấy: ${product.supplier}`);
+      }
+      enriched.supplier = supplierId;
+
+      return enriched;
+    });
+
+    // DRY RUN: Return preview mà không save
+    if (dryRun) {
+      return res.json({
+        success: true,
+        message: 'DRY RUN: Preview import (chưa save vào database)',
+        dryRun: true,
+        format,
+        mode,
+        totalProducts: enrichedProducts.length,
+        warnings: validation.warnings,
+        preview: enrichedProducts.slice(0, 3),
+      });
+    }
+
+    // Xử lý theo mode
+    let results;
+    switch (mode.toLowerCase()) {
+      case 'insert':
+        results = await handleInsertMode(enrichedProducts);
+        break;
+      case 'update':
+        results = await handleUpdateMode(enrichedProducts);
+        break;
+      case 'upsert':
+      default:
+        results = await handleUpsertMode(enrichedProducts);
+    }
+
+    res.json({
+      success: true,
+      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật`,
+      format,
+      mode,
+      results,
+      warnings: validation.warnings,
+    });
+  } catch (error) {
+    console.error('[IMPORT_TEXT_ERROR]', error);
+    console.error('[IMPORT_TEXT_ERROR_STACK]', error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi khi import products',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Insert mode: Chỉ thêm mới (skip nếu trùng)
+ * FIX #4: Use bulkWrite instead of loop for better performance
+ */
+async function handleInsertMode(products) {
+  // First, find all existing products to skip
+  const existingNames = await Product.find(
+    {
+      isDeleted: false,
+      $or: products.map(p => ({ name: p.name, brand: p.brand }))
+    },
+    { name: 1, brand: 1 }
+  );
+
+  const existingSet = new Set(
+    existingNames.map(p => `${p.name}|${p.brand}`)
+  );
+
+  // Separate products into insert and skip
+  const toInsert = [];
+  const skipped = [];
+
+  products.forEach(product => {
+    const key = `${product.name}|${product.brand}`;
+    if (existingSet.has(key)) {
+      skipped.push({ name: product.name, brand: product.brand, reason: 'Sản phẩm đã tồn tại' });
+    } else {
+      toInsert.push(product);
+    }
+  });
+
+  // Bulk insert
+  let insertedCount = 0;
+  if (toInsert.length > 0) {
+    const result = await Product.insertMany(toInsert, { ordered: false });
+    insertedCount = result.length;
+  }
+
+  return { inserted: insertedCount, updated: 0, skipped: skipped.length, skipped };
+}
+
+/**
+ * Update mode: Chỉ cập nhật cũ (lỗi nếu không tìm)
+ * OPTIMIZATION: Bulk fetch existing products with $in instead of looping findOne
+ * FIX #2: Enrich category/supplier trước khi update
+ */
+async function handleUpdateMode(productsWithEnrichedIds) {
+  const updated = [];
+  const notFound = [];
+
+  // OPTIMIZATION: Bulk fetch all existing products in ONE query instead of N findOne calls
+  const filters = productsWithEnrichedIds.map(p => ({
+    name: p.name,
+    brand: p.brand,
+    isDeleted: false,
+  }));
+
+  const existingProducts = await Product.find({
+    $or: filters,
+    isDeleted: false,
+  }).lean();
+
+  // Create lookup map: key = "name|brand"
+  const existingMap = new Map();
+  existingProducts.forEach(p => {
+    existingMap.set(`${p.name}|${p.brand}`, p);
+  });
+
+  // Build bulk write operations for all updates
+  const bulkOps = [];
+
+  for (const product of productsWithEnrichedIds) {
+    const key = `${product.name}|${product.brand}`;
+    const existing = existingMap.get(key);
+
+    if (!existing) {
+      notFound.push({ name: product.name, brand: product.brand });
+    } else {
+      // Prepare update document, excluding 'user' field
+      const updateDoc = { ...product };
+      delete updateDoc.user;
+
+      bulkOps.push({
+        updateOne: {
+          filter: {
+            _id: existing._id,
+            isDeleted: false,
+          },
+          update: { $set: updateDoc },
+        },
+      });
+      updated.push(existing._id);
+    }
+  }
+
+  if (notFound.length > 0) {
+    throw new Error(`${notFound.length} sản phẩm không tìm thấy`);
+  }
+
+  // Execute all updates in single bulkWrite (1 DB round-trip instead of N)
+  if (bulkOps.length > 0) {
+    await Product.bulkWrite(bulkOps);
+  }
+
+  return { inserted: 0, updated: updated.length, skipped: 0, notFound };
+}
+
+/**
+ * Upsert mode: Thêm mới hoặc cập nhật
+ * FIX #4: Use bulkWrite for atomic operation and better performance
+ * Single DB operation instead of N queries
+ */
+async function handleUpsertMode(products) {
+  // Build bulk write operations
+  const bulkOps = products.map(product => ({
+    updateOne: {
+      filter: {
+        name: product.name,
+        brand: product.brand,
+        isDeleted: false,
+      },
+      update: { $set: product },
+      upsert: true,
+    },
+  }));
+
+  try {
+    const result = await Product.bulkWrite(bulkOps);
+
+    // Extract stats from bulkWrite result
+    const inserted = result.upsertedCount;
+    const updated = result.modifiedCount;
+
+    return { inserted, updated, skipped: 0 };
+  } catch (error) {
+    // Handle duplicate key errors gracefully
+    if (error.code === 11000) {
+      console.error('Duplicate key error during upsert:', error.message);
+      throw new Error('Lỗi duplicate data - có thể do unique constraint violation');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get import template cho format
+ * @route GET /api/admin/products/import-template?format=json|csv
+ * @access Private/Admin
+ */
+const getImportTemplate = asyncHandler(async (req, res) => {
+  const { format = 'json' } = req.query;
+
+  if (!adapterManager.supports(format)) {
+    return res.status(400).json({
+      success: false,
+      message: `Format không được hỗ trợ: ${format}`,
+      supportedFormats: adapterManager.getSupportedFormats(),
+    });
+  }
+
+  const template = adapterManager.getTemplate(format);
+
+  if (format.toLowerCase() === 'csv') {
+    // Return CSV as plain text
+    res.setHeader('Content-Type', 'text/csv');
+    res.send(template);
+  } else {
+    // Return JSON template
+    res.json({
+      success: true,
+      format,
+      template: JSON.parse(template || '{}'),
+    });
+  }
+});
+
+/**
+ * Get list supported formats
+ * @route GET /api/admin/products/import-formats
+ * @access Private/Admin
+ */
+const getImportFormats = asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    supportedFormats: adapterManager.getSupportedFormats(),
+    adapters: adapterManager.listAdapters(),
+  });
+});
+
+/**
+ * Get import guide
+ * @route GET /api/admin/products/import-guide
+ * @access Private/Admin
+ */
+const getImportGuide = asyncHandler(async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Hướng dẫn import sản phẩm',
+    supportedFormats: adapterManager.getSupportedFormats(),
+    adapters: adapterManager.listAdapters(),
+    guide: {
+      step1: 'Chọn format (JSON hoặc CSV)',
+      step2: 'Chuẩn bị dữ liệu theo format',
+      step3: 'Gọi POST /api/admin/products/import với dryRun=true',
+      step4: 'Review kết quả',
+      step5: 'Gọi lại với dryRun=false để import thực tế',
+    },
+    requiredFields: ['name', 'brand', 'price', 'category', 'supplier', 'description'],
+    optionalFields: [
+      'originalPrice', 'image', 'images', 'countInStock', 'specs',
+      'features', 'rating', 'numReviews', 'featured', 'deal',
+    ],
+    fieldDetails: {
+      specs: {
+        format: 'JSON | In CSV use: specs_fieldName (e.g., specs_weight, specs_connection)',
+        example: '{"weight": "54g", "connection": "Wireless"}',
+      },
+      features: {
+        format: 'Array in JSON | Pipe-separated string in CSV',
+        example: 'In CSV: "Feature1|Feature2|Feature3"',
+      },
+      deal: {
+        format: 'JSON object in JSON | Separate columns in CSV (deal_discount, deal_endTime)',
+        csvFormat: 'Use deal_discount and deal_endTime columns',
+        exampleJson: '{"discount": 15, "endTime": "2026-12-31"}',
+        exampleCsv: 'deal_discount=15, deal_endTime="2026-12-31"',
+        note: 'discount: 0-100 (%), endTime must be future date',
+      },
+      images: {
+        format: 'Array in JSON | Pipe-separated string in CSV',
+        example: 'In CSV: "https://url1.jpg|https://url2.jpg"',
+      },
+    },
+  });
+});
+
+/**
+ * Export products từ database sang JSON/CSV
+ * @route GET /api/admin/products/export
+ * @access Private/Admin
+ * @query { format: 'json|csv', category?: string, brand?: string, limit?: number }
+ *
+ * Examples:
+ * 1. Export all products as JSON: GET /api/admin/products/export?format=json
+ * 2. Export CSV by category: GET /api/admin/products/export?format=csv&category=Keyboard
+ * 3. Export limited products: GET /api/admin/products/export?format=json&limit=100
+ */
+const exportProducts = asyncHandler(async (req, res) => {
+  const { format = 'json', category, brand, limit = 10000 } = req.query;
+
+  // Validate format
+  if (!['json', 'csv'].includes(format.toLowerCase())) {
+    return res.status(400).json({
+      success: false,
+      message: `Format không được hỗ trợ: ${format}`,
+      supportedFormats: ['json', 'csv'],
+    });
+  }
+
+  try {
+    // Build filter
+    const filter = { isDeleted: false };
+
+    // Resolve category name → ID
+    if (category && category !== 'all') {
+      // Try to use category as-is first (it might be an ObjectId)
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        filter.category = category;
+      } else {
+        // If not ObjectId, search by category name
+        const categoryDoc = await Category.findOne({
+          isDeleted: false,
+          name: category,
+        });
+        if (categoryDoc) {
+          filter.category = categoryDoc._id;
+        } else {
+          // Category not found, return empty result
+          return res.json({
+            success: true,
+            exportedAt: new Date().toISOString(),
+            totalProducts: 0,
+            format,
+            filters: { category, brand },
+            products: [],
+            warning: `Category "${category}" not found`,
+          });
+        }
+      }
+    }
+
+    if (brand && brand !== 'all') {
+      filter.brand = brand;
+    }
+
+    // Fetch products với category & supplier info
+    // FIX #3: Only populate non-deleted categories and suppliers
+    const products = await Product.find(filter)
+      .select('-reviews -createdAt -updatedAt -__v')
+      .populate({
+        path: 'category',
+        select: 'name',
+        match: { isDeleted: false }  // FIX #3: Filter deleted categories
+      })
+      .populate({
+        path: 'supplier',
+        select: 'name',
+        match: { isDeleted: false }  // FIX #3: Filter deleted suppliers
+      })
+      .limit(parseInt(limit))
+      .lean();
+
+    // Transform products
+    // FIX #3: Skip products with null category/supplier (they reference deleted documents)
+    const transformedProducts = products
+      .filter(product => product.category && product.supplier)  // FIX #3: Filter out products with null refs
+      .map(product => ({
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        originalPrice: product.originalPrice || product.price,
+        category: product.category?.name || 'Unknown',  // Fallback to avoid null
+        supplier: product.supplier?.name || 'Unknown',  // Fallback to avoid null
+        description: product.description,
+        image: product.image || '',
+        countInStock: product.countInStock || 0,
+        specs: product.specs || {},
+        features: Array.isArray(product.features) ? product.features : [],
+        rating: product.rating || 0,
+        numReviews: product.numReviews || 0,
+        featured: product.featured || false,
+        deal: product.deal || false,
+      }));
+
+    if (format.toLowerCase() === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.json"`);
+      res.json({
+        success: true,
+        exportedAt: new Date().toISOString(),
+        totalProducts: transformedProducts.length,
+        format: 'json',
+        filters: { category, brand },
+        products: transformedProducts,
+      });
+    } else if (format.toLowerCase() === 'csv') {
+      // Convert to CSV
+      const csv = convertProductsToCSV(transformedProducts);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.csv"`);
+      res.send('\uFEFF' + csv); // UTF-8 BOM for proper Vietnamese character encoding
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi export products',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Convert products array to CSV format
+ * Handles nested objects (specs, features) and special characters
+ */
+function convertProductsToCSV(products) {
+  if (!products || products.length === 0) {
+    return 'name,brand,price,originalPrice,category,supplier,description,image,countInStock,features,rating,numReviews,featured,deal_discount,deal_endTime';
+  }
+
+  // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
+  const headers = [
+    'name', 'brand', 'price', 'originalPrice', 'category', 'supplier',
+    'description', 'image', 'countInStock', 'features', 'rating', 'numReviews',
+    'featured', 'deal_discount', 'deal_endTime'
+  ];
+
+  // Add dynamic spec headers
+  const specKeys = new Set();
+  products.forEach(product => {
+    if (product.specs && typeof product.specs === 'object') {
+      Object.keys(product.specs).forEach(key => specKeys.add(key));
+    }
+  });
+
+  const dynamicSpecHeaders = Array.from(specKeys).sort();
+  const allHeaders = [...headers, ...dynamicSpecHeaders];
+
+  // Escape CSV values
+  const escapeCSV = (value) => {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value);
+    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  };
+
+  // Build CSV rows
+  const rows = [allHeaders.join(',')]; // Header row
+
+  products.forEach(product => {
+    const row = allHeaders.map(header => {
+      // Handle standard fields
+      if (headers.includes(header)) {
+        let value;
+
+        // Special handling for deal fields
+        if (header === 'deal_discount' && product.deal) {
+          value = product.deal.discount || '';
+        } else if (header === 'deal_endTime' && product.deal) {
+          value = product.deal.endTime || '';
+        } else {
+          value = product[header];
+
+          // Special handling for arrays
+          if (header === 'features' && Array.isArray(value)) {
+            value = value.join('|');
+          }
+        }
+
+        return escapeCSV(value);
+      }
+
+      // Handle dynamic spec fields (specs_*)
+      if (product.specs && product.specs[header] !== undefined) {
+        return escapeCSV(product.specs[header]);
+      }
+
+      return '';
+    });
+
+    rows.push(row.join(','));
+  });
+
+  return rows.join('\n');
+}
+
+/**
+ * Get export statistics (count by category, brand, etc.)
+ * @route GET /api/admin/products/export-stats
+ * @access Private/Admin
+ */
+const getExportStats = asyncHandler(async (req, res) => {
+  try {
+    const totalProducts = await Product.countDocuments({ isDeleted: false });
+
+    // FIX #5: Add filters for deleted categories/suppliers and add $limit
+    const categoryCounts = await Product.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      // FIX #5: Only lookup non-deleted categories
+      { $lookup: {
+        from: 'categories',
+        localField: '_id',
+        foreignField: '_id',
+        let: { catId: '$_id' },
+        pipeline: [
+          { $match: { isDeleted: false } }
+        ],
+        as: 'categoryInfo'
+      }},
+      // FIX #5: Use $unwind with preserveNullAndEmptyArrays to handle deleted categories
+      { $unwind: { path: '$categoryInfo', preserveNullAndEmptyArrays: false } },
+      { $project: {
+        category: '$categoryInfo.name',
+        count: 1,
+        _id: 0
+      } },
+      { $sort: { count: -1 } },
+      { $limit: 50 }  // FIX #5: Add limit to prevent timeout
+    ]);
+
+    const brandCounts = await Product.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: '$brand', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 20 }
+    ]);
+
+    // FIX #5: Only lookup non-deleted suppliers
+    const supplierCounts = await Product.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: '$supplier', count: { $sum: 1 } } },
+      { $lookup: {
+        from: 'suppliers',
+        localField: '_id',
+        foreignField: '_id',
+        let: { supId: '$_id' },
+        pipeline: [
+          { $match: { isDeleted: false } }
+        ],
+        as: 'supplierInfo'
+      }},
+      // FIX #5: Drop documents with no matching supplier (deleted supplier)
+      { $unwind: { path: '$supplierInfo', preserveNullAndEmptyArrays: false } },
+      { $project: {
+        supplier: '$supplierInfo.name',
+        count: 1,
+        _id: 0
+      } },
+      { $sort: { count: -1 } },
+      { $limit: 50 }  // FIX #5: Add limit
+    ]);
+
+    res.json({
+      success: true,
+      totalProducts,
+      categories: categoryCounts,
+      brands: brandCounts.map(b => ({ brand: b._id, count: b.count })),
+      suppliers: supplierCounts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy export statistics',
+      error: error.message,
+    });
+  }
+});
+
+module.exports = {
+  importProducts,
+  importProductsFromFile,
+  getImportTemplate,
+  getImportGuide,
+  getImportFormats,
+  exportProducts,
+  getExportStats,
+};

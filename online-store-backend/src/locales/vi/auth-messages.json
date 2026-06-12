@@ -1,0 +1,10 @@
+{
+  "invalid_token_type": "Loại token không hợp lệ",
+  "token_revoked": "Token đã bị thu hồi. Vui lòng đăng nhập lại.",
+  "user_not_found": "Người dùng không tìm thấy hoặc tài khoản đã bị xóa",
+  "not_authorized": "Không được phép, token thất bại",
+  "no_token": "Không được phép, không có token",
+  "not_admin_auth": "Không được phép như một quản trị viên",
+  "not_super_admin_auth": "Không được phép như một siêu quản trị viên",
+  "logout_success": "Đã đăng xuất thành công"
+}

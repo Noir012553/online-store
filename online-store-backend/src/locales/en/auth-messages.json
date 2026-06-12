@@ -1,0 +1,10 @@
+{
+  "invalid_token_type": "Invalid token type",
+  "token_revoked": "Token has been revoked. Please login again.",
+  "user_not_found": "User not found or account has been deleted",
+  "not_authorized": "Not authorized, token failed",
+  "no_token": "Not authorized, no token",
+  "not_admin_auth": "Not authorized as an admin",
+  "not_super_admin_auth": "Not authorized as a super admin",
+  "logout_success": "Logged out successfully"
+}
