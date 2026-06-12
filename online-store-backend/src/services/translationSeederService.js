@@ -1,4 +1,6 @@
 const StaticTranslation = require('../models/StaticTranslation');
+const fs = require('fs');
+const path = require('path');
 
 class TranslationSeederService {
   /**
@@ -32,13 +34,20 @@ class TranslationSeederService {
         return existingCount;
       }
 
-      // Fetch all source language translations
-      const sourceTranslations = await StaticTranslation.find({
+      // Fetch all source language translations from DB
+      let sourceTranslations = await StaticTranslation.find({
         code: sourceCode,
         isDeleted: false,
       }).lean();
 
-      console.log(`[TranslationSeeder] Found ${sourceTranslations.length} source records`);
+      console.log(`[TranslationSeeder] Found ${sourceTranslations.length} source records in DB`);
+
+      // If DB doesn't have source translations, load from JSON files
+      if (sourceTranslations.length === 0) {
+        console.log(`[TranslationSeeder] Source language not in DB, loading from JSON files...`);
+        sourceTranslations = await this._loadTranslationsFromJSON(sourceCode);
+        console.log(`[TranslationSeeder] Loaded ${sourceTranslations.length} records from JSON files`);
+      }
 
       if (sourceTranslations.length === 0) {
         console.warn(
@@ -77,6 +86,53 @@ class TranslationSeederService {
       }
       console.error(`[TranslationSeeder] Error cloning translations:`, error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Load translations from JSON files for a language
+   * Fallback method when DB doesn't have data
+   * @param {string} langCode - Language code (e.g., 'en')
+   * @returns {Promise<Object[]>} Array of translation objects
+   */
+  static async _loadTranslationsFromJSON(langCode) {
+    try {
+      const LOCALES_PATH = path.join(__dirname, '../locales');
+      const langPath = path.join(LOCALES_PATH, langCode);
+
+      if (!fs.existsSync(langPath)) {
+        console.warn(`[TranslationSeeder] No locale directory found for ${langCode}`);
+        return [];
+      }
+
+      const files = fs.readdirSync(langPath).filter(f => f.endsWith('.json'));
+      const translations = [];
+
+      for (const file of files) {
+        const filePath = path.join(langPath, file);
+        const namespace = file.replace('.json', '');
+
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const data = JSON.parse(content);
+
+          translations.push({
+            code: langCode,
+            namespace,
+            translations: data,
+            isDeleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        } catch (err) {
+          console.error(`[TranslationSeeder] Error reading ${file}:`, err.message);
+        }
+      }
+
+      return translations;
+    } catch (error) {
+      console.error(`[TranslationSeeder] Error loading translations from JSON:`, error.message);
+      return [];
     }
   }
 
