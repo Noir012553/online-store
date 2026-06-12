@@ -26,6 +26,19 @@ const LanguageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    isReady: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    setupStartedAt: {
+      type: Date,
+      default: null,
+    },
+    setupCompletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

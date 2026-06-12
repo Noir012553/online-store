@@ -68,12 +68,11 @@ exports.getAllLanguages = async (req, res) => {
   }
 };
 
-// Create new language and trigger bulk translation
+// Create new language - 3-Phase Timeline Implementation
 exports.createLanguage = async (req, res) => {
   try {
     const { code, name } = req.body;
 
-    // Validate input
     if (!code || !name) {
       return res.status(400).json({
         success: false,
@@ -81,9 +80,6 @@ exports.createLanguage = async (req, res) => {
       });
     }
 
-    // Validate against supported languages
-    console.log('[DEBUG] SUPPORTED_LANGUAGES:', SUPPORTED_LANGUAGES);
-    console.log('[DEBUG] code:', code, 'type:', typeof code);
     if (!SUPPORTED_LANGUAGES[code.toLowerCase()]) {
       const supportedCodes = Object.keys(SUPPORTED_LANGUAGES).join(', ');
       return res.status(400).json({
@@ -92,7 +88,6 @@ exports.createLanguage = async (req, res) => {
       });
     }
 
-    // Check if language already exists
     const existingLang = await Language.findOne({ code: code.toLowerCase() });
     if (existingLang) {
       return res.status(409).json({
@@ -101,175 +96,161 @@ exports.createLanguage = async (req, res) => {
       });
     }
 
-    // Save language to DB
+    const langCode = code.toLowerCase();
+
+    // ============ T = 0: Create Language Record (< 100ms) ============
     const newLang = await Language.create({
-      code: code.toLowerCase(),
+      code: langCode,
       name,
       isActive: true,
-      nativeName: LANGUAGE_NAMES[code.toLowerCase()]?.native || name,
+      isReady: false,
+      setupStartedAt: new Date(),
+      nativeName: LANGUAGE_NAMES[langCode]?.native || name,
     });
 
-    // Response immediately to prevent gateway timeout
+    console.log(`\n[Language] 🚀 T=0: Language record created for ${langCode}`);
+
     res.status(201).json({
       success: true,
-      message: 'Language added. Static translations and background job started...',
+      message: `Language added. Background setup started (PHASE 1-3). Check setupStatus endpoint to monitor progress.`,
       data: newLang,
     });
 
-    // Background task: Seed static translations + translate all products asynchronously
+    // ============ 3-Phase Background Job ============
     setImmediate(async () => {
       try {
-        const langCode = code.toLowerCase();
-        console.log(`[Language] Starting background setup for language: ${langCode}`);
+        console.log(`\n[Language] ⏱️  Background Setup Timeline for ${langCode}:`);
+        console.log(`  T+0s: Response sent to client`);
+        console.log(`  T+1s: PHASE 1 (Clone + Translate UI strings)`);
+        console.log(`  T+30s: PHASE 2 (Translate all products with chunking)`);
+        console.log(`  T+120s: PHASE 3 (Finalize & activate)\n`);
 
-        // Step 1: Clone static translations from 'en' to new language
+        // ========== PHASE 1: Clone & Translate UI (T+1s to T+30s) ==========
         try {
+          console.log(`[Language] 📍 PHASE 1: Clone UI strings từ English sang ${langCode}`);
           const clonedCount = await TranslationSeederService.cloneStaticTranslations('en', langCode);
-          console.log(`[Language] Cloned ${clonedCount} static translations for ${langCode}`);
+          console.log(`[Language] ✓ Clone hoàn tất: ${clonedCount} namespaces`);
 
-          if (clonedCount === 0) {
-            console.warn(`[Language] Warning: No static translations were cloned. UI strings may be missing.`);
-          }
-        } catch (seedError) {
-          console.error(`[Language] Static translation seeding failed:`, seedError.message);
-          console.error('[Language] Stack:', seedError.stack);
-          // Continue even if seeding fails - still translate products
-        }
-
-        // Step 1.5: Translate all cloned UI strings from 'en' to target language
-        try {
-          const translatedCount = await TranslationSeederService.translateStaticTranslations(langCode, 'en');
-          console.log(`[Language] Translated ${translatedCount} UI strings to ${langCode}`);
-        } catch (translateError) {
-          console.error(`[Language] Static translation failed:`, translateError.message);
-          console.error('[Language] Stack:', translateError.stack);
-          // Continue even if translation fails - products can still be translated
-        }
-
-        // Step 2: Invalidate language cache so endpoints pick up new language
-        LanguageService.invalidateCache();
-        console.log(`[Language] Language cache invalidated`);
-
-        // Step 3: Translate all products
-        console.log(`[Language] Starting auto-translation of products to language: ${langCode}`);
-
-        const allProducts = await Product.find({}).lean();
-        console.log(`[Language] Found ${allProducts.length} products to translate`);
-
-        let successCount = 0;
-        let errorCount = 0;
-
-        // OPTIMIZATION: Bulk collect all product field texts
-        const fieldsToTranslate = [];
-        for (const product of allProducts) {
-          if (product.name && product.name.trim()) {
-            fieldsToTranslate.push({
-              productId: product._id,
-              originalText: product.name,
-              entityType: 'product_name',
-            });
-          }
-          if (product.description && product.description.trim()) {
-            fieldsToTranslate.push({
-              productId: product._id,
-              originalText: product.description,
-              entityType: 'product_description',
-            });
-          }
-        }
-
-        console.log(`[Language] Total fields to translate: ${fieldsToTranslate.length}`);
-
-        // Batch check cache
-        const hashKeysToCheck = fieldsToTranslate.map(field =>
-          crypto.createHash('md5').update(`${field.originalText}:${langCode}`).digest('hex')
-        );
-
-        const cachedRecords = await LiveTranslationCache.find(
-          {
-            hashKey: { $in: hashKeysToCheck },
-          },
-          { hashKey: 1 }
-        ).lean();
-
-        const cachedHashSet = new Set(cachedRecords.map(r => r.hashKey));
-
-        // Prepare translation batch with correct format
-        const translateBatch = [];
-        for (const field of fieldsToTranslate) {
-          const hashKey = crypto
-            .createHash('md5')
-            .update(`${field.originalText}:${langCode}`)
-            .digest('hex');
-
-          // Skip if already cached
-          if (cachedHashSet.has(hashKey)) {
-            console.log(`[Language] Cache hit for ${field.productId} ${field.entityType} to ${langCode}`);
-            successCount++;
-            continue;
-          }
-
-          translateBatch.push({
-            hashKey,
-            originalText: field.originalText,
-            productId: field.productId,
-            entityType: field.entityType,
-          });
-        }
-
-        // Translate all uncached items
-        for (const item of translateBatch) {
-          try {
-            const translatedText = await cloudflareAiService.translate(
-              item.originalText,
-              'vi',
-              langCode
+          if (clonedCount > 0) {
+            console.log(`[Language] 📍 PHASE 1.5: Dịch UI strings (concurrency=5, throttle=1000ms)`);
+            const translatedCount = await TranslationSeederService.translateStaticTranslations(
+              langCode,
+              'en'
             );
-
-            item.translatedText = translatedText;
-            item.targetLang = langCode;
-          } catch (err) {
-            errorCount++;
-            console.error(`[Language] Error translating product ${item.productId}:`, err.message);
+            console.log(`[Language] ✓ Dịch xong: ${translatedCount} UI keys`);
           }
+        } catch (phase1Error) {
+          console.error(`[Language] ❌ PHASE 1 lỗi: ${phase1Error.message}`);
         }
 
-        // Bulk insert with correct format (entityId + entityType)
-        if (translateBatch.filter(t => t.translatedText).length > 0) {
-          try {
-            const validBatch = translateBatch.filter(t => t.translatedText).map(t => ({
-              hashKey: t.hashKey,
-              originalText: t.originalText,
-              targetLang: t.targetLang,
-              translatedText: t.translatedText,
-              entityId: t.productId,      // [NEW] Required for getProductTranslations
-              entityType: t.entityType,   // [NEW] Required for getProductTranslations
-            }));
+        // ========== PHASE 2: Translate Products (T+30s to T+120s) ==========
+        try {
+          console.log(`\n[Language] 📍 PHASE 2: Dịch sản phẩm (chunking=20, concurrency=3, throttle=1500ms)`);
+          const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 
-            await LiveTranslationCache.insertMany(validBatch, { ordered: false });
-            successCount += validBatch.length;
-          } catch (err) {
-            if (err.code !== 11000) {
-              console.error('[Language] Batch insert error:', err.message);
+          const { successCount, errorCount, totalProcessed } =
+            await ProductTranslationSeederService.translateAllProducts(langCode, 'vi');
+
+          console.log(`[Language] ✓ PHASE 2 hoàn tất:`);
+          console.log(`    • Thành công: ${successCount} fields`);
+          console.log(`    • Lỗi: ${errorCount} fields`);
+          console.log(`    • Tổng xử lý: ${totalProcessed} fields`);
+        } catch (phase2Error) {
+          console.error(`[Language] ❌ PHASE 2 lỗi: ${phase2Error.message}`);
+        }
+
+        // ========== PHASE 3: Finalize & Activate (T+120s+) ==========
+        try {
+          console.log(`\n[Language] 📍 PHASE 3: Hoàn tất và kích hoạt`);
+
+          LanguageService.invalidateCache();
+          console.log(`[Language] ✓ Language cache invalidated`);
+
+          await Language.updateOne(
+            { code: langCode },
+            {
+              $set: {
+                isReady: true,
+                setupCompletedAt: new Date(),
+              },
             }
-          }
-        }
+          );
 
-        console.log(
-          `[Language] Completed setup for ${langCode}. Products translated: ${successCount}, Errors: ${errorCount}`
-        );
-      } catch (error) {
-        console.error(`[Language] Background job failed:`, error.message || error);
+          console.log(`[Language] ✓ ${langCode} is READY (isReady=true)`);
+          console.log(`\n[Language] 🎉 SETUP COMPLETE for ${langCode}!\n`);
+        } catch (phase3Error) {
+          console.error(`[Language] ❌ PHASE 3 lỗi: ${phase3Error.message}`);
+          await Language.updateOne(
+            { code: langCode },
+            { $set: { isReady: false, setupCompletedAt: new Date() } }
+          ).catch(err => console.error(`[Language] Cannot update language: ${err.message}`));
+        }
+      } catch (backgroundError) {
+        console.error(`[Language] ❌ Unexpected error in background task: ${backgroundError.message}`);
+        console.error(backgroundError.stack);
+
+        try {
+          await Language.updateOne(
+            { code: langCode },
+            { $set: { isReady: false, setupCompletedAt: new Date() } }
+          );
+        } catch (updateErr) {
+          console.error(`[Language] Cannot update language status: ${updateErr.message}`);
+        }
       }
     });
   } catch (error) {
     console.error('[LanguageController] Error creating language:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Get language setup status
+exports.getLanguageSetupStatus = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) {
+      return res.status(400).json({
         success: false,
-        message: error.message,
+        message: 'Language code is required',
       });
     }
+
+    const language = await Language.findOne({ code: code.toLowerCase() });
+
+    if (!language) {
+      return res.status(404).json({
+        success: false,
+        message: 'Language not found',
+      });
+    }
+
+    const setupDurationSeconds = language.setupCompletedAt && language.setupStartedAt
+      ? (language.setupCompletedAt - language.setupStartedAt) / 1000
+      : null;
+
+    res.json({
+      success: true,
+      data: {
+        code: language.code,
+        name: language.name,
+        isReady: language.isReady,
+        setupStartedAt: language.setupStartedAt,
+        setupCompletedAt: language.setupCompletedAt,
+        setupDurationSeconds,
+        status: language.isReady ? 'READY' : 'SETTING_UP',
+      },
+    });
+  } catch (error) {
+    console.error('[LanguageController] Error getting setup status:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
