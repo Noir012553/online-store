@@ -319,10 +319,12 @@ exports.getReviewTranslations = async (req, res) => {
       });
     }
 
-    if (!SUPPORTED_LANGUAGES[lang]) {
+    // Check language dynamically from DB
+    const isLangSupported = await LanguageService.isSupportedLanguage(lang);
+    if (!isLangSupported) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${lang}`,
+        message: `Unsupported language: ${lang}. Please ensure the language is added and activated in the system.`,
       });
     }
 
