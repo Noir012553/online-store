@@ -34,6 +34,24 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
     specKey: {
       type: String,
     },
+    status: {
+      type: String,
+      enum: ['success', 'failed_rate_limit', 'failed_error', 'pending_retry'],
+      default: 'success',
+      index: true,
+    },
+    retryCount: {
+      type: Number,
+      default: 0,
+    },
+    lastErrorMessage: {
+      type: String,
+      default: null,
+    },
+    lastRetryAt: {
+      type: Date,
+      default: null,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -57,5 +75,35 @@ LiveTranslationCacheSchema.pre('save', function (next) {
     next();
   }
 });
+
+// Helper method: Get failed translations for retry
+LiveTranslationCacheSchema.statics.getFailedTranslations = async function(targetLang, entityType = null, limit = 100) {
+  const query = {
+    status: { $in: ['failed_rate_limit', 'failed_error', 'pending_retry'] },
+    targetLang,
+  };
+
+  if (entityType) {
+    query.entityType = entityType;
+  }
+
+  return this.find(query).limit(limit).lean();
+};
+
+// Helper method: Get error statistics
+LiveTranslationCacheSchema.statics.getErrorStats = async function(targetLang) {
+  return this.aggregate([
+    {
+      $match: { targetLang, status: { $ne: 'success' } }
+    },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+        entityTypes: { $push: '$entityType' }
+      }
+    }
+  ]);
+};
 
 module.exports = mongoose.model('LiveTranslationCache', LiveTranslationCacheSchema);
