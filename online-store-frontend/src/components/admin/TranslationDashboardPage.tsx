@@ -79,7 +79,7 @@ export default function TranslationDashboardPage() {
     setLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE}/translation/admin/status/${selectedLang}`,
+        `${API_BASE}/translations/admin/status/${selectedLang}`,
         {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         }
@@ -99,7 +99,7 @@ export default function TranslationDashboardPage() {
   const fetchFailedItems = async () => {
     try {
       const res = await fetch(
-        `${API_BASE}/translation/admin/failed/${selectedLang}?limit=50`,
+        `${API_BASE}/translations/admin/failed/${selectedLang}?limit=50`,
         {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         }
@@ -121,7 +121,7 @@ export default function TranslationDashboardPage() {
 
     setRetrying(true);
     try {
-      const res = await fetch(`${API_BASE}/translation/admin/retry/${selectedLang}`, {
+      const res = await fetch(`${API_BASE}/translations/admin/retry/${selectedLang}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ export default function TranslationDashboardPage() {
       if (!res.ok) throw new Error('Failed to retry translations');
       const data = await res.json();
       toast.success(`Đã đánh dấu ${data.data.resetCount} items để retry`);
-      
+
       // Refresh status after a delay
       setTimeout(() => {
         fetchStatus();
@@ -152,7 +152,7 @@ export default function TranslationDashboardPage() {
     if (!editingItem) return;
 
     try {
-      const res = await fetch(`${API_BASE}/translation/admin/edit-manual`, {
+      const res = await fetch(`${API_BASE}/translations/admin/edit-manual`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export default function TranslationDashboardPage() {
       });
 
       if (!res.ok) throw new Error('Failed to update translation');
-      
+
       toast.success('Cập nhật bản dịch thành công');
       setEditingItem(null);
       setEditingText('');
