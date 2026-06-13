@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { LanguageContext } from '../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 import { translationService } from '../translationService';
 
 interface UseTranslationResult {
@@ -15,33 +15,23 @@ interface UseTranslationResult {
  *        <p>{t('ui.commandPalette')}</p>
  */
 export function useTranslation(namespace: string = 'common'): UseTranslationResult {
-  const context = useContext(LanguageContext);
-  const [isLoading, setIsLoading] = useState(false);
+  const { locale, isLoadingNamespace } = useLanguage();
   const [error, setError] = useState<Error | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
-
-  if (!context) {
-    throw new Error('useTranslation must be used within LanguageProvider');
-  }
-
-  const { currentLanguage } = context;
 
   useEffect(() => {
     const loadTranslations = async () => {
       try {
-        setIsLoading(true);
         setError(null);
-        const data = await translationService.getStaticTranslations(currentLanguage, namespace);
+        const data = await translationService.getStaticTranslations(locale, namespace);
         setTranslations(data);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to load translations'));
-      } finally {
-        setIsLoading(false);
       }
     };
 
     loadTranslations();
-  }, [currentLanguage, namespace]);
+  }, [locale, namespace]);
 
   const t = (key: string, defaultValue?: string): string => {
     return translations[key] || defaultValue || key;
@@ -49,8 +39,8 @@ export function useTranslation(namespace: string = 'common'): UseTranslationResu
 
   return {
     t,
-    lang: currentLanguage,
-    isLoading,
+    lang: locale,
+    isLoading: isLoadingNamespace(namespace as any),
     error,
   };
 }

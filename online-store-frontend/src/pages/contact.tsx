@@ -266,7 +266,7 @@ export default function Contact() {
           <p className="text-xl mb-6">
             {t('cta_section_subtitle', 'contact')}
           </p>
-          <a href={`tel:${getMessage('VI', 'contact.hotline').replace(/\s/g, '')}`} className="inline-block">
+          <a href={`tel:${t('contact.hotline', '').replace(/\s/g, '')}`} className="inline-block">
             <Button size="lg" variant="secondary" className="bg-white text-red-600 hover:bg-gray-100">
               <Phone className="w-5 h-5 mr-2" />
               {t('contact.hotline')}
