@@ -5,7 +5,6 @@ const StaticTranslationSchema = new mongoose.Schema(
     code: {
       type: String,
       required: true,
-      index: true,
     },
     namespace: {
       type: String,
@@ -19,7 +18,6 @@ const StaticTranslationSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
-      index: true,
     },
     deletedAt: {
       type: Date,
