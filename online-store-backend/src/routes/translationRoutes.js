@@ -15,6 +15,13 @@ router.post(
 );
 
 router.post(
+  '/admin/import-nested-json',
+  protect,
+  admin,
+  translationController.importNestedJSON
+);
+
+router.post(
   '/admin/cache-stats',
   protect,
   admin,
