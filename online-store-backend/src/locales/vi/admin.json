@@ -501,5 +501,11 @@
   "admin_processing": "Đang xử lý...",
   "admin_confirm_and_translate": "Xác nhận & Dịch",
   "admin_order_status_dist": "Phân bố trạng thái đơn hàng",
-  "admin_orders_count": "đơn hàng"
+  "admin_orders_count": "đơn hàng",
+  "coupon_selectAll": "Chọn tất cả",
+  "coupon_clearAll": "Bỏ chọn tất cả",
+  "email_cannot_change": "Email không thể thay đổi",
+  "page_label": "Trang",
+  "of_label": "của",
+  "last_page": "Trang cuối cùng"
 }

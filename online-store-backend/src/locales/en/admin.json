@@ -495,5 +495,11 @@
   "admin_processing": "Processing...",
   "admin_confirm_and_translate": "Confirm & Translate",
   "admin_order_status_dist": "Order status distribution",
-  "admin_orders_count": "orders"
+  "admin_orders_count": "orders",
+  "coupon_selectAll": "Select All",
+  "coupon_clearAll": "Clear All",
+  "email_cannot_change": "Email cannot be changed",
+  "page_label": "Page",
+  "of_label": "of",
+  "last_page": "Last Page"
 }
