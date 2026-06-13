@@ -499,5 +499,7 @@
   "admin_add_language_note": "Lưu ý: Quá trình dịch có thể mất một vài phút. Vui lòng không đóng cửa sổ này cho đến khi quá trình hoàn thành.",
   "admin_cancel": "Hủy",
   "admin_processing": "Đang xử lý...",
-  "admin_confirm_and_translate": "Xác nhận & Dịch"
+  "admin_confirm_and_translate": "Xác nhận & Dịch",
+  "admin_order_status_dist": "Phân bố trạng thái đơn hàng",
+  "admin_orders_count": "đơn hàng"
 }

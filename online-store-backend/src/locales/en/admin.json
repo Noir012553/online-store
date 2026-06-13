@@ -493,5 +493,7 @@
   "admin_add_language_note": "Note: The translation process may take a few minutes. Please do not close this window until the process is complete.",
   "admin_cancel": "Cancel",
   "admin_processing": "Processing...",
-  "admin_confirm_and_translate": "Confirm & Translate"
+  "admin_confirm_and_translate": "Confirm & Translate",
+  "admin_order_status_dist": "Order status distribution",
+  "admin_orders_count": "orders"
 }
