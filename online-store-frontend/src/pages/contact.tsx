@@ -13,7 +13,6 @@ import {
 import { faqKeys } from "../lib/data";
 import { toast } from "sonner";
 import { useTranslation } from "../lib/i18n";
-import { getMessage } from "../lib/i18n/messages";
 
 export const getServerSideProps = async () => {
   return {
@@ -270,7 +269,7 @@ export default function Contact() {
           <a href={`tel:${getMessage('VI', 'contact.hotline').replace(/\s/g, '')}`} className="inline-block">
             <Button size="lg" variant="secondary" className="bg-white text-red-600 hover:bg-gray-100">
               <Phone className="w-5 h-5 mr-2" />
-              {getMessage('VI', 'contact.hotline')}
+              {t('contact.hotline')}
             </Button>
           </a>
         </div>

@@ -5,7 +5,7 @@ interface TranslationResponse {
   data: {
     code: string;
     namespace: string;
-    translations: Record<string, string>;
+    translations: Record<string, string>; // Flat dot-notation keys (e.g., 'ui.commandPalette')
   };
 }
 

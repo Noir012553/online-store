@@ -2,6 +2,7 @@ const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const LanguageService = require('../services/languageService');
+const { flattenJson } = require('../utils/jsonFlattener');
 const crypto = require('crypto');
 const seedTranslations = require('../seeds/translationSeeder');
 const { getMessage } = require('../i18n/messages');
@@ -30,6 +31,9 @@ exports.getStaticTranslations = async (req, res) => {
       });
     }
 
+    // Flatten translations to dot-notation for frontend
+    const flattenedTranslations = flattenJson(translation.translations);
+
     res.set('Cache-Control', 'public, max-age=300');
     res.set('ETag', `"${translation._id}"`);
     res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
@@ -39,7 +43,7 @@ exports.getStaticTranslations = async (req, res) => {
       data: {
         code: translation.code,
         namespace: translation.namespace,
-        translations: translation.translations,
+        translations: flattenedTranslations,
       },
     });
   } catch (error) {
@@ -1280,6 +1284,52 @@ exports.batchManualOverride = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error batch manual override:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.importNestedJSON = async (req, res) => {
+  try {
+    const { code, namespace, translations: nestedTranslations } = req.body;
+
+    if (!code || !namespace || !nestedTranslations || typeof nestedTranslations !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Code, namespace, and translations (object) are required',
+      });
+    }
+
+    // Flatten nested JSON to dot-notation
+    const flatTranslations = flattenJson(nestedTranslations);
+
+    // Upsert into database
+    const result = await StaticTranslation.findOneAndUpdate(
+      { code, namespace },
+      {
+        code,
+        namespace,
+        translations: flatTranslations,
+        isDeleted: false,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Nested JSON imported and flattened successfully',
+      data: {
+        code: result.code,
+        namespace: result.namespace,
+        keysCount: Object.keys(flatTranslations).length,
+        sample: Object.entries(flatTranslations).slice(0, 3),
+      },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error importing nested JSON:', error);
     res.status(500).json({
       success: false,
       message: error.message,

@@ -30,6 +30,7 @@
     "create-ghn": "node scripts/create-ghn-provider.js",
     "fix-indexes": "node scripts/fix-indexes.js",
     "setup-i18n-indexes": "node scripts/setup-production-indexes.js",
+    "seed:i18n": "node scripts/seed-i18n.js",
     "test:blueprint": "node test-blueprint-3phase.js"
   },
   "keywords": [],
