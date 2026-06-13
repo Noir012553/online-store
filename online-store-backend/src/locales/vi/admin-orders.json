@@ -86,5 +86,9 @@
   "orders_loading": "Đang tải...",
   "orders_cancel": "Hủy",
   "orders_not_updated": "Chưa cập nhật",
-  "orders_in_stock": "Còn hàng"
+  "orders_in_stock": "Còn hàng",
+  "payment_method_cod": "Thanh toán khi nhận hàng",
+  "payment_method_vnpay": "VNPay",
+  "payment_method_card": "Thẻ tín dụng",
+  "payment_method_bank_transfer": "Chuyển khoản"
 }

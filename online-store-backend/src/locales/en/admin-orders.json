@@ -75,5 +75,9 @@
   "orders_payment_method_vnpay": "VNPay",
   "orders_payment_method_card": "Credit Card",
   "orders_payment_method_bank_transfer": "Bank Transfer",
-  "orders_product_fallback": "Product"
+  "orders_product_fallback": "Product",
+  "payment_method_cod": "Cash On Delivery",
+  "payment_method_vnpay": "VNPay",
+  "payment_method_card": "Credit Card",
+  "payment_method_bank_transfer": "Bank Transfer"
 }
