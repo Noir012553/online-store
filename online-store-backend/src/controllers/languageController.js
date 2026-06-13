@@ -18,14 +18,14 @@ const SUPPORTED_LANGUAGES = {
 };
 
 const LANGUAGE_NAMES = {
-  en: { display: 'English (Tiếng Anh)', native: 'English' },
-  pt: { display: 'Português (Tiếng Bồ Đào Nha)', native: 'Português' },
-  fr: { display: 'Français (Tiếng Pháp)', native: 'Français' },
-  de: { display: 'Deutsch (Tiếng Đức)', native: 'Deutsch' },
-  it: { display: 'Italiano (Tiếng Ý)', native: 'Italiano' },
-  es: { display: 'Español (Tiếng Tây Ban Nha)', native: 'Español' },
-  nl: { display: 'Nederlands (Tiếng Hà Lan)', native: 'Nederlands' },
-  sv: { display: 'Svenska (Tiếng Thụy Điển)', native: 'Svenska' },
+  en: { display: 'English', native: 'English' },
+  pt: { display: 'Português', native: 'Português' },
+  fr: { display: 'Français', native: 'Français' },
+  de: { display: 'Deutsch', native: 'Deutsch' },
+  it: { display: 'Italiano', native: 'Italiano' },
+  es: { display: 'Español', native: 'Español' },
+  nl: { display: 'Nederlands', native: 'Nederlands' },
+  sv: { display: 'Svenska', native: 'Svenska' },
 };
 
 // Get all supported languages
