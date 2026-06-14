@@ -318,11 +318,11 @@
 | # | Task | Thời gian | Status | Dependencies |
 |---|------|----------|--------|--------------|
 | 11 | Backup LiveTranslationCache | 0.5h | ✅ DONE | #10b |
-| 11b | Drop old table từ DB | 0.5h | ⏳ Pending | #11 |
+| 11b | Drop old table từ DB | 0.5h | ❌ DEFERRED (Still in fallback) | #11 |
 | 11c | Setup monitoring & alerts (Slack/Telegram) | 1h | ✅ DONE (health-check) | #11b |
-| 11d | Write documentation & migration guide | 1h | ⏳ Pending | #11c |
+| 11d | Write documentation & migration guide | 1h | ✅ DONE | #11c |
 
-**Subtotal Phase 4:** 3 giờ
+**Subtotal Phase 4:** 3 giờ (Phase 4b: 2.5h ✅ complete, Phase 4c: 0.5h ⏳ pending)
 
 ---
 
@@ -346,9 +346,9 @@
 | 1: Shadow Writes | 5h | Tuần 1 (T4-T5) | ✅ DONE |
 | 2: Migration | 3.5h | Tuần 2 (T1-T2) | ✅ DONE |
 | 3: Switch Reading | 13.5h | Tuần 2-3 (T3-T5) | ✅ DONE |
-| 4: Cleanup | 3h | Tuần 4 (T1) | ⏳ Next |
-| Testing | 4h | Tuần 4 (T2-T3) | ⏳ Pending |
-| **TỔNG CỘNG** | **~35 giờ** | **~4-5 ngày làm việc (8h/day)** | 28/35h ✅ (80%) |
+| 4: Cleanup & Doc | 3h | Tuần 4 (T1) | ✅ 2.5h DONE + ❌ 0.5h DEFERRED |
+| Testing & QA | 4h | Tuần 4 (T2-T3) | ⏳ Pending |
+| **TỔNG CỘNG** | **~35 giờ** | **~4-5 ngày làm việc (8h/day)** | **30.5/35h ✅ (87%)** |
 
 ---
 
@@ -420,6 +420,42 @@
 - ✅ Monitoring ready: Health check & backup scripts
 - ✅ 80% complete (28/35 hours)
 - ✅ Ready for Phase 4 (Cleanup & finalization)
+
+---
+
+## 📌 PHASE 4 STATUS UPDATE (June 2026 - Current)
+
+**⏳ IN_PROGRESS - Documentation Complete, Cleanup Deferred**
+
+### Deliverables Created:
+1. ✅ **PHASE_4_MIGRATION_GUIDE.md** (587 lines)
+   - Step-by-step cleanup procedure
+   - Pre-flight checklist (11 items)
+   - Data validation steps (3 tests)
+   - Backup procedures (2 methods + git tagging)
+   - Safe drop procedure with conditions
+   - Documentation updates
+   - E2E testing scripts
+   - Post-deployment monitoring setup
+   - Full support & escalation guide
+
+2. ✅ **ARCHITECTURE_I18N.md** (402 lines)
+   - System diagram with 3 layers
+   - 4 detailed data flow examples
+   - Performance comparison (tables)
+   - Reliability & safety mechanisms
+   - Integration points for frontend/backend
+   - Configuration guide (env vars)
+   - Monitoring & observability
+   - Deployment checklist
+
+### Phase 4 Summary:
+- ✅ Documentation complete (2 files, ~1000 lines)
+- ✅ Migration procedures documented with safety checks
+- ✅ Conditions for dropping old table clearly defined
+- ✅ Post-deployment monitoring setup
+- ⏳ LiveTranslationCache drop DEFERRED (waiting for conditions: 2+ weeks production, error rate <1%)
+- ✅ Ready for: Production rollout monitoring (Week 4 onward)
 
 ---
 
@@ -867,23 +903,32 @@ Sau khi hoàn tất, đo lường các metrics:
 
 **Document được tạo:** June 2026
 **Phiên bản:** v1.0
-**Trạng thái:** ✅ Phase 0 COMPLETE - Ready for Phase 1 Execution
+**Trạng thái:** Phase 4 IN PROGRESS (87% - 30.5/35h)
 
 ---
 
 ## 📚 DOCUMENTATION CREATED
 
-**Phase 0 Deliverables (2,688 lines, ~17,100 words):**
+**Complete Documentation Suite (4,905 lines, ~32,000+ words):**
 
-1. ✅ **I18N_ENTERPRISE_PLAN.md** - Master plan with phase tracking
-2. ✅ **PHASE_0_ANALYSIS_REPORT.md** - Detailed architecture analysis (665 lines)
-3. ✅ **PHASE_0_SCHEMA_DESIGN.md** - Schema specifications (813 lines)
-4. ✅ **PHASE_0_SUMMARY.md** - Executive summary (285 lines)
-5. ✅ **PHASE_0_COMPLETION_CHECKLIST.md** - Verification checklist (232 lines)
-6. ✅ **I18N_DOCUMENTATION_INDEX.md** - Navigation guide (347 lines)
+### Master & Navigation
+1. ✅ **I18N_ENTERPRISE_PLAN.md** (795 lines) - Master timeline with all phases
+2. ✅ **I18N_DOCUMENTATION_INDEX.md** (356 lines) - Navigation guide & quick links
+
+### Architecture & Design
+3. ✅ **ARCHITECTURE_I18N.md** (402 lines) - 3-layer system overview
+4. ✅ **PHASE_0_ANALYSIS_REPORT.md** (665 lines) - Problem analysis, 8 bottlenecks
+5. ✅ **PHASE_0_SCHEMA_DESIGN.md** (813 lines) - Database schema specifications
+
+### Implementation & Execution
+6. ✅ **PHASE_3_IMPLEMENTATION_REPORT.md** - Code changes & performance (from Phase 3)
+7. ✅ **PHASE_4_MIGRATION_GUIDE.md** (587 lines) - Step-by-step cleanup procedures
+8. ✅ **PHASE_4_COMPLETION_STATUS.md** (289 lines) - Current progress tracker
 
 **How to navigate:**
-→ Start: `I18N_DOCUMENTATION_INDEX.md` (navigation guide)
-→ Quick overview: `PHASE_0_SUMMARY.md` (5 min)
-→ Full context: `I18N_ENTERPRISE_PLAN.md` (20 min)
-→ Technical details: `PHASE_0_SCHEMA_DESIGN.md` (when coding)
+→ First-time: `I18N_DOCUMENTATION_INDEX.md` (5 min navigation guide)
+→ Overview: `ARCHITECTURE_I18N.md` (15 min system diagram)
+→ Timeline: `I18N_ENTERPRISE_PLAN.md` (20 min full context)
+→ Cleanup: `PHASE_4_MIGRATION_GUIDE.md` (when ready to finalize)
+→ Technical: `PHASE_0_SCHEMA_DESIGN.md` (database reference)
+→ Problems: `PHASE_0_ANALYSIS_REPORT.md` (understand "why")
