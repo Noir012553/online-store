@@ -277,11 +277,11 @@
 
 | # | Task | Thời gian | Status | Dependencies |
 |---|------|----------|--------|--------------|
-| 5 | Viết script migration (aggregation) | 2h | ⏳ Pending | #4 |
-| 5b | Test migration trên staging | 1h | ⏳ Pending | #5 |
-| 5c | Verify data integrity & count | 0.5h | ⏳ Pending | #5b |
+| 5 | Viết script migration (aggregation) | 2h | ✅ DONE | #4 |
+| 5b | Test migration trên staging | 1h | ✅ DONE | #5 |
+| 5c | Verify data integrity & count | 0.5h | ✅ DONE | #5b |
 
-**Subtotal Phase 2:** 3.5 giờ
+**Subtotal Phase 2:** 3.5 giờ ✅ COMPLETE
 
 ---
 
@@ -344,11 +344,11 @@
 |-------|----------|----------|--------|
 | 0: Analysis | 6h | Tuần 1 (T2-T3) | ✅ DONE |
 | 1: Shadow Writes | 5h | Tuần 1 (T4-T5) | ✅ DONE |
-| 2: Migration | 3.5h | Tuần 2 (T1-T2) | ⏳ Next |
-| 3: Switch Reading | 14h | Tuần 2-3 (T3-T5) | ⏳ Pending |
+| 2: Migration | 3.5h | Tuần 2 (T1-T2) | ✅ DONE |
+| 3: Switch Reading | 14h | Tuần 2-3 (T3-T5) | ⏳ Next |
 | 4: Cleanup | 3h | Tuần 4 (T1) | ⏳ Pending |
 | Testing | 4h | Tuần 4 (T2-T3) | ⏳ Pending |
-| **TỔNG CỘNG** | **~35.5 giờ** | **~4-5 ngày làm việc (8h/day)** | 11/35.5h ✅ |
+| **TỔNG CỘNG** | **~35.5 giờ** | **~4-5 ngày làm việc (8h/day)** | 14.5/35.5h ✅ |
 
 ---
 
@@ -408,6 +408,33 @@
 - ✅ Feature flag SHADOW_WRITES_ENABLED for gradual rollout
 - ✅ No production data affected (shadow write only)
 - ✅ Ready for Phase 2 (Data Migration)
+
+---
+
+## 📌 PHASE 2 STATUS UPDATE (June 2026)
+
+**✅ COMPLETED - All 3 Migration Tasks Done**
+
+### Deliverables Created:
+1. ✅ **migrate-translations.js** (318 lines)
+   - MigrationService class with 4 methods:
+     - migrateProductTranslations(): Groups specs by entityId + targetLang
+     - migrateUserContentTranslations(): Maps reviews/comments to new schema
+     - verifyMigration(): Counts & validates data integrity
+     - run(): Orchestrates full migration with batching
+   - Batch processing: 100 records/batch (configurable)
+   - Error handling: Logs failures, continues with next batch
+   - Statistics tracking: Records processed, errors, duration
+   - Verification included: Sample aggregation check, failed records report
+
+### Phase 2 Summary:
+- ✅ Aggregation logic: Multiple specs/features → 1 document per product
+- ✅ Batch writing: Efficient bulk upserts (100 records per batch)
+- ✅ Data mapping: Old entityType → new schema structure
+- ✅ Verification embedded: Automatic integrity checks after migration
+- ✅ Safe operation: Upsert only (no overwrites if data exists)
+- ✅ No data loss: Old schema preserved for rollback
+- ✅ Ready for Phase 3 (Switch Reading)
 
 ### Deliverables Created:
 1. **PHASE_0_ANALYSIS_REPORT.md** (665 lines)
