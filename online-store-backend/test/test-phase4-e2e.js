@@ -28,7 +28,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
   let testProductId;
   let testReviewId;
 
-  beforeAll(async () => {
+  before(async function() {
+    this.timeout(10000);
     // Setup test data
     const product = await Product.create({
       name: 'Test iPhone',
@@ -52,7 +53,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
     testReviewId = review._id.toString();
   });
 
-  afterAll(async () => {
+  after(async function() {
+    this.timeout(10000);
     // Cleanup
     if (testProductId) {
       await Product.deleteOne({ _id: testProductId });
@@ -67,7 +69,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
   // ============ TEST 1: NEW Schema Query ============
   describe('Test 1: Get Product Translation from NEW Schema', () => {
-    beforeEach(async () => {
+    beforeEach(async function() {
       // Seed new schema with test data
       await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -84,7 +86,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       });
     });
 
-    afterEach(async () => {
+    afterEach(async function() {
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
 
