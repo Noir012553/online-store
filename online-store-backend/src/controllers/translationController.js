@@ -209,17 +209,27 @@ exports.getProductTranslations = async (req, res) => {
       features: [],
     };
 
-    // Try to read from NEW schema first (if shadow writes enabled)
-    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
-      const newSchemaData = await TranslationShadowWriteService.getProductTranslationFromNewSchema(productId, lang);
-      if (newSchemaData) {
-        Object.assign(result, newSchemaData);
-        res.set('Cache-Control', 'public, max-age=3600');
-        return res.json({
-          success: true,
-          data: result,
-        });
-      }
+    // Phase 3: Try to read from NEW schema first
+    const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+    const newSchemaData = await ProductCatalogTranslationCache.findOne({
+      entityId: productId,
+      targetLang: lang,
+    }).lean();
+
+    if (newSchemaData) {
+      Object.assign(result, {
+        name: newSchemaData.name,
+        description: newSchemaData.description,
+        brand: newSchemaData.brand,
+        categoryName: newSchemaData.categoryName,
+        specs: newSchemaData.specs || {},
+        features: newSchemaData.features || [],
+      });
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.json({
+        success: true,
+        data: result,
+      });
     }
 
     // Fallback: Read from OLD schema
@@ -378,17 +388,24 @@ exports.getReviewTranslations = async (req, res) => {
       comment: null,
     };
 
-    // Try to read from NEW schema first (if shadow writes enabled)
-    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
-      const reviewTranslation = await TranslationShadowWriteService.getUserContentTranslationFromNewSchema(reviewId, 'review', lang);
-      if (reviewTranslation) {
-        result.comment = reviewTranslation.translatedText;
-        res.set('Cache-Control', 'public, max-age=3600');
-        return res.json({
-          success: true,
-          data: result,
-        });
-      }
+    // Phase 3: Try to read from NEW schema first
+    const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+    const reviewTranslation = await UserContentTranslationCache.findOne({
+      entityId: reviewId,
+      entityType: 'review',
+      targetLang: lang,
+    }).lean();
+
+    if (reviewTranslation) {
+      Object.assign(result, {
+        comment: reviewTranslation.translatedText,
+        name: reviewTranslation.originalText,
+      });
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.json({
+        success: true,
+        data: result,
+      });
     }
 
     // Fallback: Read from OLD schema

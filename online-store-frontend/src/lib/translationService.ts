@@ -1,3 +1,5 @@
+import { indexedDbService } from './services/indexedDbService';
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 interface TranslationResponse {
@@ -36,9 +38,13 @@ class TranslationService {
       });
 
       if (!response.ok) {
-        // If translation not found (404) or other error, return empty object
-        // Frontend will use key names as fallback
         if (response.status === 404 || response.status === 500) {
+          // Try IndexedDB fallback before returning empty
+          const cached = await indexedDbService.get(lang, namespace);
+          if (cached) {
+            console.log(`[TranslationService] Using IndexedDB fallback for ${lang}_${namespace}`);
+            return cached;
+          }
           return {};
         }
         throw new Error(`Failed to fetch translations: ${response.statusText}`);
@@ -47,13 +53,31 @@ class TranslationService {
       const data: TranslationResponse = await response.json();
 
       if (!data.success) {
+        // Try IndexedDB fallback
+        const cached = await indexedDbService.get(lang, namespace);
+        if (cached) {
+          return cached;
+        }
         return {};
       }
 
-      return data.data.translations;
+      const translations = data.data.translations;
+
+      // Cache to IndexedDB for offline support
+      indexedDbService.save(lang, namespace, translations).catch((err) => {
+        console.error('[TranslationService] Failed to cache to IndexedDB:', err);
+      });
+
+      return translations;
     } catch (error) {
-      // Silently fail and return empty translations
-      // Frontend will use key names as fallback
+      // Network error - try IndexedDB
+      if (error instanceof Error) {
+        console.warn('[TranslationService] Network error, trying IndexedDB:', error.message);
+        const cached = await indexedDbService.get(lang, namespace);
+        if (cached) {
+          return cached;
+        }
+      }
       return {};
     }
   }
