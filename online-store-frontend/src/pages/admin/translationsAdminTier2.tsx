@@ -17,6 +17,8 @@ interface CacheRecord {
   targetLang: string;
   translatedText: string;
   createdAt: string;
+  expiresAt?: string;
+  ttlDays?: number;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -215,6 +217,24 @@ const TranslationsAdminTier2 = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('vi-VN');
+  };
+
+  const calculateTTL = (createdAt: string): { daysRemaining: number; expiresAt: Date; percentage: number } => {
+    const created = new Date(createdAt);
+    const ttlMs = 30 * 24 * 60 * 60 * 1000; // 30 days
+    const expiresAt = new Date(created.getTime() + ttlMs);
+    const now = new Date();
+    const remaining = expiresAt.getTime() - now.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
+    const percentage = Math.max(0, Math.min(100, (daysRemaining / 30) * 100));
+    return { daysRemaining, expiresAt, percentage };
+  };
+
+  const getTTLStatus = (daysRemaining: number) => {
+    if (daysRemaining <= 0) return 'expired';
+    if (daysRemaining <= 3) return 'critical';
+    if (daysRemaining <= 7) return 'warning';
+    return 'healthy';
   };
 
   return (
@@ -468,6 +488,46 @@ const TranslationsAdminTier2 = () => {
             white-space: nowrap;
           }
 
+          .tier2-ttl-cell {
+            font-size: 12px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .tier2-ttl-days {
+            font-weight: 600;
+            font-size: 13px;
+          }
+
+          .tier2-ttl-healthy .tier2-ttl-days {
+            color: #28a745;
+          }
+
+          .tier2-ttl-warning .tier2-ttl-days {
+            color: #ffc107;
+          }
+
+          .tier2-ttl-critical .tier2-ttl-days,
+          .tier2-ttl-expired .tier2-ttl-days {
+            color: #dc3545;
+          }
+
+          .tier2-ttl-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+          }
+
+          .tier2-ttl-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+          }
+
           .tier2-actions-cell {
             display: flex;
             gap: 6px;
@@ -697,7 +757,8 @@ const TranslationsAdminTier2 = () => {
                     <th style={{ width: '25%' }}>{t('admin_tier2_table_translated_text', 'admin-translation')}</th>
                     <th style={{ width: '20%' }}>{t('admin_tier2_table_hash_key', 'admin-translation')}</th>
                     <th style={{ width: '10%' }}>{t('admin_tier2_table_language', 'admin-translation')}</th>
-                    <th style={{ width: '20%' }}>{t('admin_tier2_table_created_at', 'admin-translation')}</th>
+                    <th style={{ width: '15%' }}>{t('admin_tier2_table_created_at', 'admin-translation')}</th>
+                    <th style={{ width: '15%' }}>{t('admin_tier2_table_ttl', 'TTL')}</th>
                     <th style={{ width: '10%' }}>{t('admin_tier2_table_actions', 'admin-translation')}</th>
                   </tr>
                 </thead>
@@ -737,6 +798,29 @@ const TranslationsAdminTier2 = () => {
                         </td>
                         <td className="tier2-date-cell">{formatDate(record.createdAt)}</td>
                         <td>
+                          {(() => {
+                            const ttl = calculateTTL(record.createdAt);
+                            const status = getTTLStatus(ttl.daysRemaining);
+                            return (
+                              <div className={`tier2-ttl-cell tier2-ttl-${status}`} title={`Expires: ${ttl.expiresAt.toLocaleString()}`}>
+                                <div className="tier2-ttl-days">{ttl.daysRemaining}d</div>
+                                <div className="tier2-ttl-bar">
+                                  <div
+                                    className="tier2-ttl-fill"
+                                    style={{
+                                      width: `${ttl.percentage}%`,
+                                      backgroundColor:
+                                        status === 'expired' ? '#dc3545' :
+                                        status === 'critical' ? '#dc3545' :
+                                        status === 'warning' ? '#ffc107' : '#28a745'
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td>
                           <div className="tier2-actions-cell">
                             <button
                               className="tier2-icon-btn tier2-icon-btn-view"
@@ -759,7 +843,7 @@ const TranslationsAdminTier2 = () => {
                       </tr>
                       {expandedId === record._id && (
                         <tr className={`tier2-expanded-row show`}>
-                          <td colSpan={6}>
+                          <td colSpan={7}>
                             <div className="tier2-expanded-content">
                               <div className="tier2-expanded-field">
                                 <label>{t('admin_tier2_expanded_original_text', 'admin-translation')}</label>
