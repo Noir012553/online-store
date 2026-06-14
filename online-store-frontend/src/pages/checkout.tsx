@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/context/AuthContext';
 import { useCart } from '../lib/context/CartContext';
 import { useLanguage } from '../lib/i18n';
+import { useNamespaceLoader } from '../hooks/useNamespaceLoader';
 import { CheckoutProvider, useCheckout } from '../context/CheckoutContext';
 import { StepIndicator } from '../components/checkout/StepIndicator';
 import { Step1Combined } from '../components/checkout/Step1Combined';
@@ -23,15 +24,10 @@ function CheckoutContent() {
   const { user, isInitialized } = useAuth();
   const { items } = useCart();
   const { currentStep, formData } = useCheckout();
-  const { loadNamespace, t } = useLanguage();
+  const { t } = useLanguage();
 
-  useEffect(() => {
-    // Lazy load checkout and products translations when user enters checkout
-    loadNamespace('checkout');
-    loadNamespace('products');
-    loadNamespace('orders');
-    loadNamespace('payment');
-  }, [loadNamespace]);
+  // Phase 3: Route-based namespace loading
+  useNamespaceLoader(['checkout', 'products', 'orders', 'payment']);
 
   useEffect(() => {
     if (!isInitialized) return;

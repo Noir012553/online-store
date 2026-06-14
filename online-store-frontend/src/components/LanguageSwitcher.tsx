@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Globe } from 'lucide-react';
+import { Globe, Loader2 } from 'lucide-react';
 import { useLanguage, type Locale, SUPPORTED_LOCALES, AVAILABLE_LOCALES } from '../lib/i18n';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -11,14 +10,12 @@ import {
 import { Button } from './ui/button';
 
 export function LanguageSwitcher() {
-  const { locale, setLocale } = useLanguage();
+  const { locale, setLocale, isChangingLocale } = useLanguage();
   const { t } = useTranslation();
-  const [isChanging, setIsChanging] = useState(false);
 
   const handleLocaleChange = async (newLocale: Locale) => {
-    setIsChanging(true);
+    if (isChangingLocale) return;
     await setLocale(newLocale);
-    setIsChanging(false);
   };
 
   return (
@@ -27,11 +24,15 @@ export function LanguageSwitcher() {
         <Button
           variant="ghost"
           size="icon"
-          className="hover:text-red-600"
+          className="hover:text-red-600 relative"
           aria-label={t('change_language')}
-          disabled={isChanging}
+          disabled={isChangingLocale}
         >
-          <Globe className="w-5 h-5" />
+          {isChangingLocale ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Globe className="w-5 h-5" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-white border-gray-200 z-[150] min-w-[140px]">
@@ -39,7 +40,7 @@ export function LanguageSwitcher() {
           <DropdownMenuItem
             key={loc}
             onClick={() => handleLocaleChange(loc)}
-            disabled={isChanging}
+            disabled={isChangingLocale}
             className={`hover:bg-gray-100 cursor-pointer ${
               locale === loc ? 'bg-gray-100 font-medium' : ''
             }`}

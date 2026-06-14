@@ -20,6 +20,7 @@ interface LanguageContextValue {
   t: (keyPath: string, defaultNamespace?: Namespace) => string;
   loadNamespace: (ns: Namespace) => Promise<void>;
   isLoadingNamespace: (ns: Namespace) => boolean;
+  isChangingLocale: boolean;
   isHydrated: boolean;
 }
 
@@ -77,10 +78,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [loadedTranslations, setLoadedTranslations] = useState<Record<string, any>>({});
   const [loadingNamespaces, setLoadingNamespaces] = useState<Record<string, boolean>>({});
+  const [isChangingLocale, setIsChangingLocale] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const namespacesToLoadRef = useRef<Set<Namespace>>(new Set());
   const pendingLoadRef = useRef(false);
+  const prevLocaleRef = useRef<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
     const storedLocale = getStoredLocale();
@@ -166,25 +169,49 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   const setLocale = useCallback(
     async (newLocale: Locale) => {
-      if (!SUPPORTED_LOCALES.includes(newLocale)) return;
+      if (!SUPPORTED_LOCALES.includes(newLocale) || newLocale === locale) return;
 
-      // Cancel any in-flight requests from previous language
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      setIsChangingLocale(true);
+
+      // Save previous locale for SWR fallback
+      prevLocaleRef.current = locale;
+
+      try {
+        // Update locale immediately (SWR: keep old data, show loading indicator)
+        setLocaleState(newLocale);
+        setStoredLocale(newLocale);
+        document.documentElement.lang = newLocale;
+
+        // Cancel any in-flight requests from previous language
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        // Clear namespace loading states (but KEEP translations from old locale as fallback)
+        setLoadingNamespaces({});
+        loadingRef.current = {};
+        namespacesToLoadRef.current.clear();
+        pendingLoadRef.current = false;
+
+        // Load translations for new locale asynchronously
+        // 'common' is the main namespace loaded on mount
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        const translations = await translationService.getStaticTranslations(newLocale, 'common', controller.signal);
+
+        if (!controller.signal.aborted) {
+          const cacheKey = `${newLocale}_common`;
+          setLoadedTranslations((prev) => ({
+            ...prev,
+            [cacheKey]: translations,
+          }));
+        }
+      } finally {
+        setIsChangingLocale(false);
       }
-
-      setLocaleState(newLocale);
-      setStoredLocale(newLocale);
-      document.documentElement.lang = newLocale;
-      // Clear both caches to prevent stale data from previous language
-      setLoadedTranslations({});
-      setLoadingNamespaces({});
-      // Clear refs to prevent memory leak
-      loadingRef.current = {};
-      namespacesToLoadRef.current.clear();
-      pendingLoadRef.current = false;
     },
-    []
+    [locale]
   );
 
   const t = useCallback(
@@ -237,8 +264,8 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   );
 
   const value = useMemo<LanguageContextValue>(
-    () => ({ locale, setLocale, t, loadNamespace, isLoadingNamespace, isHydrated }),
-    [locale, setLocale, t, loadNamespace, isLoadingNamespace, isHydrated]
+    () => ({ locale, setLocale, t, loadNamespace, isLoadingNamespace, isChangingLocale, isHydrated }),
+    [locale, setLocale, t, loadNamespace, isLoadingNamespace, isChangingLocale, isHydrated]
   );
 
   return (
