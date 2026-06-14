@@ -95,6 +95,10 @@ router.post(
 // Public routes
 router.post('/translate', translationController.translateText);
 
+router.get('/products/:id', translationController.getProductTranslations);
+
+router.get('/categories/:id', translationController.getCategoryTranslations);
+
 router.get('/reviews/:id', translationController.getReviewTranslations);
 
 router.get('/', translationController.getStaticTranslations);
