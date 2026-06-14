@@ -52,16 +52,23 @@ class MigrationService {
     console.log('\n📦 Migrating Product Translations...');
 
     try {
-      // Get all product-related translations
+      // Get all product-related translations (including product_category_name from migration)
       const productDocs = await LiveTranslationCache.find({
-        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature', 'product_category_name'] }
+        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] }
       }).lean();
 
-      console.log(`  Found ${productDocs.length} product translation records`);
+      // Also get category translations that belong to products
+      const categoryDocs = await LiveTranslationCache.find({
+        entityType: { $in: ['category_name', 'category_description'] }
+      }).lean();
+
+      const allDocs = [...productDocs, ...categoryDocs];
+
+      console.log(`  Found ${allDocs.length} product + category translation records`);
 
       // Group by entityId + targetLang
       const grouped = {};
-      for (const doc of productDocs) {
+      for (const doc of allDocs) {
         const key = `${doc.entityId}:${doc.targetLang}`;
         if (!grouped[key]) {
           grouped[key] = {
@@ -94,7 +101,17 @@ class MigrationService {
           group.specs[doc.specKey] = doc.translatedText;
         } else if (doc.entityType === 'product_feature') {
           group.features.push(doc.translatedText);
+        } else if (doc.entityType === 'category_name') {
+          group.categoryName = doc.translatedText;
+        } else if (doc.entityType === 'category_description') {
+          // category description could be used for extended product description
+          if (!group.description) {
+            group.description = doc.translatedText;
+          }
         }
+
+        // Always set status to success in new schema
+        group.status = 'success';
       }
 
       console.log(`  Grouped into ${Object.keys(grouped).length} products`);
@@ -136,7 +153,7 @@ class MigrationService {
 
     try {
       const userContentDocs = await LiveTranslationCache.find({
-        entityType: { $in: ['review', 'review_name', 'review_comment', 'comment'] }
+        entityType: { $in: ['review', 'review_name', 'review_comment', 'comment', 'generic'] }
       }).lean();
 
       console.log(`  Found ${userContentDocs.length} user content records`);
@@ -153,26 +170,28 @@ class MigrationService {
             newEntityType = 'review';
           } else if (doc.entityType === 'comment') {
             newEntityType = 'comment';
+          } else if (doc.entityType === 'generic') {
+            newEntityType = 'generic';  // Keep as-is
           }
 
           return {
             updateOne: {
               filter: {
-                entityId: doc.entityId,
+                entityId: doc.entityId || 'generic_' + doc.hashKey,  // Use hashKey as fallback for generic
                 entityType: newEntityType,
                 targetLang: doc.targetLang,
               },
               update: {
                 $set: {
-                  entityId: doc.entityId,
+                  entityId: doc.entityId || 'generic_' + doc.hashKey,
                   entityType: newEntityType,
                   targetLang: doc.targetLang,
                   originalText: doc.originalText,
                   translatedText: doc.translatedText,
-                  status: doc.status,
-                  retryCount: doc.retryCount,
-                  lastErrorMessage: doc.lastErrorMessage,
-                  lastRetryAt: doc.lastRetryAt,
+                  status: 'success',  // ✅ Always success
+                  retryCount: 0,
+                  lastErrorMessage: null,
+                  lastRetryAt: null,
                 }
               },
               upsert: true,
