@@ -2,6 +2,7 @@ const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const LanguageService = require('../services/languageService');
+const TranslationShadowWriteService = require('../services/translationShadowWriteService');
 const { flattenJson } = require('../utils/jsonFlattener');
 const crypto = require('crypto');
 const seedTranslations = require('../seeds/translationSeeder');
@@ -123,13 +124,27 @@ exports.translateText = async (req, res) => {
     // Translate using Cloudflare AI
     const translatedText = await cloudflareAiService.translate(text, sourceLang, targetLang);
 
-    // Save to cache
+    // Save to cache (OLD schema)
     await LiveTranslationCache.create({
       hashKey,
       originalText: text,
       targetLang,
       translatedText,
     });
+
+    // Shadow write to NEW schema (Phase 1)
+    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
+      await TranslationShadowWriteService.writeShadowUserContentTranslation(
+        hashKey,
+        'generic',
+        targetLang,
+        {
+          originalText: text,
+          translatedText,
+          status: 'success',
+        }
+      );
+    }
 
     res.json({
       success: true,
@@ -185,18 +200,33 @@ exports.getProductTranslations = async (req, res) => {
       });
     }
 
-    // Fetch translations from cache for this product
-    const translations = await LiveTranslationCache.find({
-      entityId: productId,
-      targetLang: lang,
-    }).lean();
-
     const result = {
       name: null,
       description: null,
       brand: null,
       categoryName: null,
+      specs: {},
+      features: [],
     };
+
+    // Try to read from NEW schema first (if shadow writes enabled)
+    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
+      const newSchemaData = await TranslationShadowWriteService.getProductTranslationFromNewSchema(productId, lang);
+      if (newSchemaData) {
+        Object.assign(result, newSchemaData);
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.json({
+          success: true,
+          data: result,
+        });
+      }
+    }
+
+    // Fallback: Read from OLD schema
+    const translations = await LiveTranslationCache.find({
+      entityId: productId,
+      targetLang: lang,
+    }).lean();
 
     const specs = {};
     const features = [];
@@ -343,17 +373,30 @@ exports.getReviewTranslations = async (req, res) => {
       });
     }
 
-    // Fetch translations from cache for this review
+    const result = {
+      name: null,
+      comment: null,
+    };
+
+    // Try to read from NEW schema first (if shadow writes enabled)
+    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
+      const reviewTranslation = await TranslationShadowWriteService.getUserContentTranslationFromNewSchema(reviewId, 'review', lang);
+      if (reviewTranslation) {
+        result.comment = reviewTranslation.translatedText;
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.json({
+          success: true,
+          data: result,
+        });
+      }
+    }
+
+    // Fallback: Read from OLD schema
     const translations = await LiveTranslationCache.find({
       entityId: reviewId,
       entityType: { $in: ['review_name', 'review_comment'] },
       targetLang: lang,
     }).lean();
-
-    const result = {
-      name: null,
-      comment: null,
-    };
 
     // Map translations by entity type
     for (const trans of translations) {
@@ -1211,7 +1254,9 @@ exports.batchEditTranslations = async (req, res) => {
 // Khi dịch tự động bị lỗi hoặc không chuẩn, Admin gõ vào ô này để sửa
 exports.manualOverrideTranslation = async (req, res) => {
   try {
-    const { hashKey, translatedText } = req.body;
+    const { hashKey, translatedText, reason = null } = req.body;
+    const userId = req.user?.id || 'unknown';
+    const userName = req.user?.name || 'Unknown';
 
     if (!hashKey || !translatedText) {
       return res.status(400).json({
@@ -1222,6 +1267,10 @@ exports.manualOverrideTranslation = async (req, res) => {
 
     const RateLimitHandler = require('../services/rateLimitHandler');
 
+    // Get old value before update
+    const oldRecord = await LiveTranslationCache.findOne({ hashKey }).lean();
+    const oldValue = oldRecord?.translatedText || null;
+
     const updated = await RateLimitHandler.manualOverride(hashKey, translatedText);
 
     if (!updated) {
@@ -1230,6 +1279,21 @@ exports.manualOverrideTranslation = async (req, res) => {
         message: 'Translation not found',
       });
     }
+
+    // Log audit trail
+    await TranslationShadowWriteService.logAuditTrail({
+      userId,
+      userName,
+      action: 'manual_override',
+      oldValue,
+      newValue: translatedText,
+      entityId: oldRecord?.entityId,
+      entityType: oldRecord?.entityType,
+      targetLang: oldRecord?.targetLang,
+      reason,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
 
     res.json({
       success: true,
