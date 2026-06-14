@@ -318,7 +318,7 @@
 | # | Task | Thời gian | Status | Dependencies |
 |---|------|----------|--------|--------------|
 | 11 | Backup LiveTranslationCache | 0.5h | ✅ DONE | #10b |
-| 11b | Drop old table từ DB | 0.5h | ✅ DONE | #11 |
+| 11b | Drop old table từ DB | 0.5h | ✅ DONE ✅ | #11 |
 | 11c | Setup monitoring & alerts (Slack/Telegram) | 1h | ✅ DONE (health-check) | #11b |
 | 11d | Write documentation & migration guide | 1h | ✅ DONE | #11c |
 
