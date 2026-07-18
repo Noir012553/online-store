@@ -1,0 +1,200 @@
+{
+  "battery": {
+    "en": "Battery",
+    "de": "Akku",
+    "fr": "Batterie",
+    "it": "Batteria",
+    "pt": "Bateria",
+    "es": "Batería",
+    "sv": "Batteri",
+    "nl": "Batterij",
+    "vi": "Pin"
+  },
+  "brand": {
+    "en": "Brand",
+    "de": "Marke",
+    "fr": "Marque",
+    "it": "Marca",
+    "pt": "Marca",
+    "es": "Marca",
+    "sv": "Märke",
+    "nl": "Merk",
+    "vi": "Thương hiệu"
+  },
+  "capacity": {
+    "en": "Capacity",
+    "de": "Kapazität",
+    "fr": "Capacité",
+    "it": "Capacità",
+    "pt": "Capacidade",
+    "es": "Capacidad",
+    "sv": "Kapacitet",
+    "nl": "Capaciteit",
+    "vi": "Dung lượng"
+  },
+  "color": {
+    "en": "Color",
+    "de": "Farbe",
+    "fr": "Couleur",
+    "it": "Colore",
+    "pt": "Cor",
+    "es": "Color",
+    "sv": "Färg",
+    "nl": "Kleur",
+    "vi": "Màu sắc"
+  },
+  "connection": {
+    "en": "Connection",
+    "de": "Verbindung",
+    "fr": "Connexion",
+    "it": "Connessione",
+    "pt": "Conexão",
+    "es": "Conexión",
+    "sv": "Anslutning",
+    "nl": "Verbinding",
+    "vi": "Kết nối"
+  },
+  "dimensions": {
+    "en": "Dimensions",
+    "de": "Abmessungen",
+    "fr": "Dimensions",
+    "it": "Dimensioni",
+    "pt": "Dimensões",
+    "es": "Dimensiones",
+    "sv": "Dimensioner",
+    "nl": "Afmetingen",
+    "vi": "Kích thước"
+  },
+  "display": {
+    "en": "Display",
+    "de": "Bildschirm",
+    "fr": "Écran",
+    "it": "Display",
+    "pt": "Tela",
+    "es": "Pantalla",
+    "sv": "Display",
+    "nl": "Beeldscherm",
+    "vi": "Màn hình"
+  },
+  "frequency": {
+    "en": "Refresh Rate",
+    "de": "Bildwiederholfrequenz",
+    "fr": "Fréquence de Rafraîchissement",
+    "it": "Frequenza di Aggiornamento",
+    "pt": "Taxa de Atualização",
+    "es": "Velocidad de Actualización",
+    "sv": "Uppdateringsfrekvens",
+    "nl": "Verversingsfrequentie",
+    "vi": "Tần số quét"
+  },
+  "gpu": {
+    "en": "Graphics Card",
+    "de": "Grafikkarte",
+    "fr": "Carte Graphique",
+    "it": "Scheda Grafica",
+    "pt": "Placa Gráfica",
+    "es": "Tarjeta Gráfica",
+    "sv": "Grafikkort",
+    "nl": "Grafische Kaart",
+    "vi": "Card đồ họa"
+  },
+  "material": {
+    "en": "Material",
+    "de": "Material",
+    "fr": "Matériau",
+    "it": "Materiale",
+    "pt": "Material",
+    "es": "Material",
+    "sv": "Material",
+    "nl": "Materiaal",
+    "vi": "Chất liệu"
+  },
+  "origin": {
+    "en": "Origin",
+    "de": "Ursprung",
+    "fr": "Origine",
+    "it": "Origine",
+    "pt": "Origem",
+    "es": "Origen",
+    "sv": "Ursprung",
+    "nl": "Herkomst",
+    "vi": "Xuất xứ"
+  },
+  "processor": {
+    "en": "Processor",
+    "de": "Prozessor",
+    "fr": "Processeur",
+    "it": "Processore",
+    "pt": "Processador",
+    "es": "Procesador",
+    "sv": "Processor",
+    "nl": "Processor",
+    "vi": "Bộ xử lý"
+  },
+  "ram": {
+    "en": "RAM",
+    "de": "RAM",
+    "fr": "RAM",
+    "it": "RAM",
+    "pt": "RAM",
+    "es": "RAM",
+    "sv": "RAM",
+    "nl": "RAM",
+    "vi": "RAM"
+  },
+  "sensor": {
+    "en": "Sensor",
+    "de": "Sensor",
+    "fr": "Capteur",
+    "it": "Sensore",
+    "pt": "Sensor",
+    "es": "Sensor",
+    "sv": "Sensor",
+    "nl": "Sensor",
+    "vi": "Cảm biến"
+  },
+  "size": {
+    "en": "Size",
+    "de": "Größe",
+    "fr": "Taille",
+    "it": "Taglia",
+    "pt": "Tamanho",
+    "es": "Tamaño",
+    "sv": "Storlek",
+    "nl": "Grootte",
+    "vi": "Kích cỡ"
+  },
+  "storage": {
+    "en": "Storage",
+    "de": "Speicher",
+    "fr": "Stockage",
+    "it": "Archiviazione",
+    "pt": "Armazenamento",
+    "es": "Almacenamiento",
+    "sv": "Lagring",
+    "nl": "Opslag",
+    "vi": "Bộ nhớ"
+  },
+  "warranty": {
+    "en": "Warranty",
+    "de": "Garantie",
+    "fr": "Garantie",
+    "it": "Garanzia",
+    "pt": "Garantia",
+    "es": "Garantía",
+    "sv": "Garanti",
+    "nl": "Garantie",
+    "vi": "Bảo hành"
+  },
+  "weight": {
+    "en": "Weight",
+    "de": "Gewicht",
+    "fr": "Poids",
+    "it": "Peso",
+    "pt": "Peso",
+    "es": "Peso",
+    "sv": "Vikt",
+    "nl": "Gewicht",
+    "vi": "Cân nặng"
+  }
+}

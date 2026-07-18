@@ -1,0 +1,22 @@
+{
+  "invalidData": "Dữ liệu người dùng không hợp lệ",
+  "notFound": "Người dùng không tìm thấy",
+  "alreadyExists": "Người dùng đã tồn tại",
+  "registrationSuccess": "Người dùng được đăng ký thành công",
+  "emailVerifiedSuccess": "Email được xác minh thành công",
+  "emailAlreadyVerified": "Email đã được xác minh",
+  "passwordChangedSuccess": "Mật khẩu được thay đổi thành công",
+  "passwordResetEmailSent": "Email đặt lại mật khẩu đã được gửi",
+  "logoutSuccess": "Đã đăng xuất thành công",
+  "verificationEmailResent": "Email xác minh đã được gửi lại",
+  "restoreSuccess": "Người dùng được khôi phục thành công",
+  "notDeleted": "Người dùng không thể bị xóa",
+  "invalid_user_data": "Dữ liệu người dùng không hợp lệ",
+  "user_not_found": "Người dùng không tìm thấy",
+  "user_already_exists": "Người dùng đã tồn tại",
+  "user_created_success": "Người dùng được tạo thành công",
+  "user_updated_success": "Người dùng được cập nhật thành công",
+  "user_deleted_success": "Người dùng được xóa thành công",
+  "profile_updated_success": "Hồ sơ được cập nhật thành công",
+  "password_changed_success": "Mật khẩu được thay đổi thành công"
+}

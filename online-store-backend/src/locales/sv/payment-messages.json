@@ -1,0 +1,13 @@
+{
+  "missing_required_fields": "Obligatoriska fält saknas: {{fields}}",
+  "amount_must_be_positive": "Beloppet måste vara ett positivt tal",
+  "amount_must_be_integer": "Beloppet måste vara ett heltal (ingen decimal)",
+  "order_not_found": "Beställning inte hittad: {{orderId}} - Ange ett giltigt MongoDB ObjectId för en befintlig beställning",
+  "order_already_paid": "Beställning {{orderId}} är redan betald - Kan inte skapa betalning för betald beställning",
+  "cannot_determine_client_ip": "Kan inte bestämma klient-IP från Cloudflare - Kontrollera serverkonfiguration",
+  "payment_initiated": "Betalning initierad",
+  "payment_confirmed": "Betalning bekräftad",
+  "payment_failed": "Betalningen misslyckades",
+  "refund_success": "Återbetalning lyckad",
+  "dev_mode_only": "Den här funktionen är endast tillgänglig i utvecklingsläge"
+}

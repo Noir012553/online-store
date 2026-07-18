@@ -1,0 +1,23 @@
+{
+  "shopping_cart": "Shopping Cart",
+  "your_cart_is_empty": "Your cart is empty",
+  "add_some_items": "Add some items to get started",
+  "cart_continue_shopping": "Continue Shopping",
+  "your_shopping_cart": "My Shopping Cart",
+  "items_count": "items",
+  "product_header": "Product",
+  "unit_price_header": "Unit Price",
+  "quantity_header": "Quantity",
+  "subtotal_header": "Subtotal",
+  "remove_header": "Remove",
+  "label_quantity": "Quantity",
+  "label_subtotal": "Subtotal",
+  "label_remove_item": "Remove Item",
+  "order_summary": "Order Summary",
+  "subtotal_label": "Subtotal",
+  "total": "Total",
+  "confirm_order_button": "Confirm Order",
+  "vnpay_next_step_1": "Proceed to VNPAY payment",
+  "vnpay_next_step_2": "Select payment method",
+  "vnpay_next_step_3": "Complete transaction"
+}

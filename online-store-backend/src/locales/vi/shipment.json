@@ -1,0 +1,14 @@
+{
+  "required_fields": "Thiếu các trường bắt buộc",
+  "already_created": "Đơn hàng này đã được tạo vận đơn",
+  "invalid_provider": "Đơn vị vận chuyển không hợp lệ",
+  "missing_info": "Thiếu thông tin giao hàng",
+  "no_service_available": "Không có dịch vụ vận chuyển khả dụng cho địa chỉ này",
+  "unsupported_carrier": "Đơn vị vận chuyển không được hỗ trợ",
+  "create_success": "Tạo vận đơn thành công",
+  "createSuccess": "Tạo vận đơn thành công",
+  "not_found": "Không tìm thấy vận đơn",
+  "invalid_status": "Trạng thái vận đơn không hợp lệ: {status}",
+  "cancel_success": "Hủy vận đơn thành công",
+  "noServiceAvailable": "Không có dịch vụ nào khả dụng"
+}

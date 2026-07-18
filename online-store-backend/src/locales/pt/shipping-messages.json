@@ -1,0 +1,10 @@
+{
+  "same_district_free_shipping": "Mesmo distrito - Envio gratuito",
+  "province_id_required": "ID da Província é obrigatório",
+  "district_id_required": "ID do distrito é obrigatório",
+  "weight_must_be_positive": "O peso deve ser maior que 0",
+  "shipping_address_required": "Endereço de envio é obrigatório",
+  "invalid_shipping_data": "Dados de envio inválidos",
+  "ghnDistrictError": "Erro ao buscar dados de distrito do GHN: {{error}}",
+  "ghnWardError": "Erro ao buscar dados de bairro do GHN: {{error}}"
+}

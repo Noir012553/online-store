@@ -1,0 +1,22 @@
+{
+  "invalidData": "Ongeldige gebruikersgegevens",
+  "notFound": "Gebruiker niet gevonden",
+  "alreadyExists": "Gebruiker bestaat al",
+  "registrationSuccess": "Gebruiker succesvol geregistreerd",
+  "emailVerifiedSuccess": "E-mail succesvol geverifieerd",
+  "emailAlreadyVerified": "E-mail al geverifieerd",
+  "passwordChangedSuccess": "Wachtwoord succesvol gewijzigd",
+  "passwordResetEmailSent": "Wachtwoord reset e-mail verzonden",
+  "logoutSuccess": "Succesvol afgemeld",
+  "verificationEmailResent": "Verificatie-e-mail opnieuw verzonden",
+  "restoreSuccess": "Gebruiker succesvol hersteld",
+  "notDeleted": "Gebruiker kon niet worden verwijderd",
+  "invalid_user_data": "Ongeldige gebruikersgegevens",
+  "user_not_found": "Gebruiker niet gevonden",
+  "user_already_exists": "Gebruiker bestaat al",
+  "user_created_success": "Gebruiker succesvol aangemaakt",
+  "user_updated_success": "Gebruiker succesvol bijgewerkt",
+  "user_deleted_success": "Gebruiker succesvol verwijderd",
+  "profile_updated_success": "Profiel succesvol bijgewerkt",
+  "password_changed_success": "Wachtwoord succesvol gewijzigd"
+}

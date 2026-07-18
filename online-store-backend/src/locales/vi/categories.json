@@ -1,0 +1,20 @@
+{
+  "keyboard": "Bàn phím",
+  "keyboard_desc": "Bàn phím máy tính chất lượng cao với thiết kế hiện đại và các tính năng nâu cao",
+  "mouse": "Chuột",
+  "mouse_desc": "Chuột máy tính công ergonomic với độ chính xác cao",
+  "headphones": "Tai nghe",
+  "headphones_desc": "Tai nghe máy tính với âm thanh sống động và mic chất lượng",
+  "cooling": "Tản nhiệt",
+  "cooling_desc": "Tản nhiệt máy tính hiệu quả giải quyết vấn đề nhiệt độ",
+  "gaming_laptop": "Laptop Gaming",
+  "gaming_laptop_desc": "Laptop gaming hiệu suất cao với GPU mạnh mẽ",
+  "office_laptop": "Laptop Văn phòng",
+  "office_laptop_desc": "Laptop văn phòng nhẹ nhàng với pin lâu dài",
+  "category_keyboard": "Bàn phím",
+  "category_mouse": "Chuột",
+  "category_headphones": "Tai nghe",
+  "category_cooling": "Tản nhiệt",
+  "category_gaming_laptop": "Laptop Gaming",
+  "category_office_laptop": "Laptop Văn phòng"
+}

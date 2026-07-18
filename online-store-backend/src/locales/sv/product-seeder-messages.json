@@ -1,0 +1,15 @@
+{
+  "out_of_stock_prefix": "[SLUTSÅLD]",
+  "out_of_stock_sample_product": "Exempelprodukt",
+  "out_of_stock_category_label": "Kategori",
+  "out_of_stock_category_keyboard": "Tangentbord",
+  "out_of_stock_category_mouse": "Mus",
+  "out_of_stock_category_headphones": "Headset",
+  "out_of_stock_category_cooling": "Kylning",
+  "out_of_stock_category_gaming_laptop": "Gaming-bärbar dator",
+  "out_of_stock_category_office_laptop": "Kontors-bärbar dator",
+  "out_of_stock_description": "Denna produkt är slutsåld. Kategori: {{category}}",
+  "out_of_stock_feature": "Slutsåld",
+  "out_of_stock_feature_pending": "Väntar på lagerpåfyllning",
+  "test_brand_name": "Testmärke"
+}

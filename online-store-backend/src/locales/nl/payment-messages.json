@@ -1,0 +1,13 @@
+{
+  "missing_required_fields": "Vereiste velden ontbreken: {{fields}}",
+  "amount_must_be_positive": "Het bedrag moet een positief getal zijn",
+  "amount_must_be_integer": "Het bedrag moet een geheel getal zijn (geen decimaal)",
+  "order_not_found": "Bestelling niet gevonden: {{orderId}} - Geef een geldige MongoDB ObjectId op voor een bestaande bestelling",
+  "order_already_paid": "Bestelling {{orderId}} is al betaald - Kan geen betaling voor betaalde bestelling maken",
+  "cannot_determine_client_ip": "Kan client-IP van Cloudflare niet bepalen - Controleer serverconfiguratie",
+  "payment_initiated": "Betaling geïnitieerd",
+  "payment_confirmed": "Betaling bevestigd",
+  "payment_failed": "Betaling mislukt",
+  "refund_success": "Terugbetaling succesvol",
+  "dev_mode_only": "Deze functie is alleen beschikbaar in ontwikkelingsmodus"
+}

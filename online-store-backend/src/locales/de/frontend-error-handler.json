@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Serverfehler",
+  "error_server_desc": "Der Server funktioniert nicht ordnungsgemäß. Bitte versuchen Sie es später erneut.",
+  "error_network_title": "Netzwerkfehler",
+  "error_network_desc": "Es konnte keine Verbindung zum Server hergestellt werden. Überprüfen Sie Ihre Internetverbindung.",
+  "error_too_many_requests_title": "Zu viele Anfragen",
+  "error_too_many_requests_desc": "Bitte warten Sie, bevor Sie die Seite neu laden. Der Server ist überlastet.",
+  "error_server_overloaded_title": "Server ist überlastet",
+  "error_server_overloaded_desc": "Bitte versuchen Sie es in ein paar Sekunden erneut.",
+  "error_request_title": "Anfrage fehlgeschlagen",
+  "error_request_status": "Fehler {{status}}",
+  "error_request_slow": "Die Anfrage dauert länger...",
+  "error_request_processing": "wird verarbeitet",
+  "error_request_timeout": "Die Anfrage hat zu lange gedauert. Überprüfen Sie Ihre Verbindung.",
+  "error_network_fallback": "Es konnte keine Verbindung zum Server hergestellt werden. Überprüfen Sie Ihre Internetverbindung.",
+  "error_auth_required": "Bitte melden Sie sich erneut an.",
+  "error_permission_denied": "Sie haben keine Berechtigung zum Zugriff.",
+  "error_data_not_found": "Daten nicht gefunden.",
+  "error_generic": "Bitte versuchen Sie es später erneut.",
+  "error_generic_fallback": "Bitte versuchen Sie es erneut."
+}

@@ -1,0 +1,13 @@
+{
+  "missing_required_fields": "Campos obrigatórios ausentes: {{fields}}",
+  "amount_must_be_positive": "O valor deve ser um número positivo",
+  "amount_must_be_integer": "O valor deve ser um inteiro (sem decimal)",
+  "order_not_found": "Pedido não encontrado: {{orderId}} - Forneça um ObjectId MongoDB válido para um pedido existente",
+  "order_already_paid": "Pedido {{orderId}} já foi pago - Não é possível criar pagamento para pedido pago",
+  "cannot_determine_client_ip": "Não é possível determinar o IP do cliente do Cloudflare - Verifique a configuração do servidor",
+  "payment_initiated": "Pagamento iniciado",
+  "payment_confirmed": "Pagamento confirmado",
+  "payment_failed": "Falha no pagamento",
+  "refund_success": "Reembolso bem-sucedido",
+  "dev_mode_only": "Este recurso só está disponível em modo de desenvolvimento"
+}

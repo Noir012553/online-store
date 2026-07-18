@@ -1,0 +1,14 @@
+{
+  "missing_required_fields": "Thiếu các trường bắt buộc: {{fields}}",
+  "amount_must_be_positive": "Số tiền phải là số dương",
+  "amount_must_be_integer": "Số tiền phải là số nguyên (không có phần thập phân)",
+  "order_not_found": "Đơn hàng không tìm thấy: {{orderId}} - Vui lòng cung cấp một ObjectId MongoDB hợp lệ cho một đơn hàng hiện có",
+  "order_already_paid": "Đơn hàng {{orderId}} đã được thanh toán - Không thể tạo thanh toán cho đơn hàng đã thanh toán",
+  "cannot_determine_client_ip": "Không thể xác định IP khách từ Cloudflare - Kiểm tra cấu hình máy chủ",
+  "payment_initiated": "Thanh toán được khởi tạo",
+  "payment_confirmed": "Thanh toán được xác nhận",
+  "payment_failed": "Thanh toán thất bại",
+  "refund_success": "Hoàn tiền thành công",
+  "dev_mode_only": "Tính năng này chỉ khả dụng ở chế độ phát triển",
+  "amount_invalid": "Số tiền không hợp lệ"
+}

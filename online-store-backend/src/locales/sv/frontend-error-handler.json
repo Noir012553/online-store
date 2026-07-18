@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Serverfel",
+  "error_server_desc": "Servern har problem. Försök igen senare.",
+  "error_network_title": "Nätverksfel",
+  "error_network_desc": "Kunde inte ansluta till servern. Kontrollera din internetanslutning.",
+  "error_too_many_requests_title": "För många förfrågningar",
+  "error_too_many_requests_desc": "Vänta innan du laddar om sidan. Servern är överbelastad.",
+  "error_server_overloaded_title": "Servern är överbelastad",
+  "error_server_overloaded_desc": "Försök igen om några sekunder.",
+  "error_request_title": "Begäran misslyckades",
+  "error_request_status": "Fel {{status}}",
+  "error_request_slow": "Begäran tar tid...",
+  "error_request_processing": "bearbetas",
+  "error_request_timeout": "Begäran tog för lång tid. Kontrollera din anslutning.",
+  "error_network_fallback": "Kunde inte ansluta till servern. Kontrollera din internetanslutning.",
+  "error_auth_required": "Logga in igen.",
+  "error_permission_denied": "Du har inte behörighet att få åtkomst.",
+  "error_data_not_found": "Data inte funnen.",
+  "error_generic": "Försök igen senare.",
+  "error_generic_fallback": "Försök igen."
+}

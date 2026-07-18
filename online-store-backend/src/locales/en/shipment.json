@@ -1,0 +1,13 @@
+{
+  "required_fields": "Required fields are missing",
+  "already_created": "Shipment has already been created for this order",
+  "invalid_provider": "Invalid shipping provider",
+  "missing_info": "Missing shipping information",
+  "no_service_available": "No shipping service available for this address",
+  "unsupported_carrier": "Unsupported shipping carrier",
+  "create_success": "Shipment created successfully",
+  "createSuccess": "Shipment created successfully",
+  "not_found": "Shipment not found",
+  "invalid_status": "Invalid shipment status: {status}",
+  "cancel_success": "Shipment cancelled successfully"
+}

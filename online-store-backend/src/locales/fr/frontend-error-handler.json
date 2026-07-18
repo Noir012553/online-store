@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Erreur serveur",
+  "error_server_desc": "Le serveur rencontre des problèmes. Veuillez réessayer plus tard.",
+  "error_network_title": "Erreur réseau",
+  "error_network_desc": "Impossible de se connecter au serveur. Vérifiez votre connexion Internet.",
+  "error_too_many_requests_title": "Trop de requêtes",
+  "error_too_many_requests_desc": "Veuillez attendre avant de recharger la page. Le serveur est surchargé.",
+  "error_server_overloaded_title": "Serveur surchargé",
+  "error_server_overloaded_desc": "Veuillez réessayer dans quelques secondes.",
+  "error_request_title": "Échec de la requête",
+  "error_request_status": "Erreur {{status}}",
+  "error_request_slow": "La requête prend du temps...",
+  "error_request_processing": "est en cours de traitement",
+  "error_request_timeout": "La requête a pris trop de temps. Vérifiez votre connexion.",
+  "error_network_fallback": "Impossible de se connecter au serveur. Vérifiez votre connexion Internet.",
+  "error_auth_required": "Veuillez vous reconnecter.",
+  "error_permission_denied": "Vous n'avez pas la permission d'accéder.",
+  "error_data_not_found": "Données non trouvées.",
+  "error_generic": "Veuillez réessayer plus tard.",
+  "error_generic_fallback": "Veuillez réessayer."
+}

@@ -1,0 +1,10 @@
+{
+  "same_district_free_shipping": "Samma distrikt - Gratis frakt",
+  "province_id_required": "Provins-ID krävs",
+  "district_id_required": "Distrikts-ID krävs",
+  "weight_must_be_positive": "Vikten måste vara större än 0",
+  "shipping_address_required": "Leveransadress krävs",
+  "invalid_shipping_data": "Ogiltiga leveransdata",
+  "ghnDistrictError": "Fel vid hämtning av distriktsdata från GHN: {{error}}",
+  "ghnWardError": "Fel vid hämtning av stadsdeldata från GHN: {{error}}"
+}

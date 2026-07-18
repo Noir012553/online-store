@@ -1,0 +1,23 @@
+{
+  "shopping_cart": "Shoppingvagn",
+  "your_cart_is_empty": "Din vagn är tom",
+  "add_some_items": "Lägg till några varor för att komma igång",
+  "cart_continue_shopping": "Fortsätt handla",
+  "your_shopping_cart": "Min shoppingvagn",
+  "items_count": "varor",
+  "product_header": "Produkt",
+  "unit_price_header": "Enhetspris",
+  "quantity_header": "Kvantitet",
+  "subtotal_header": "Delsumma",
+  "remove_header": "Ta bort",
+  "label_quantity": "Kvantitet",
+  "label_subtotal": "Delsumma",
+  "label_remove_item": "Ta bort varan",
+  "order_summary": "Orderöversikt",
+  "subtotal_label": "Delsumma",
+  "total": "Totalt",
+  "confirm_order_button": "Bekräfta beställning",
+  "vnpay_next_step_1": "Gå till VNPAY-betalning",
+  "vnpay_next_step_2": "Välj betalningsmetod",
+  "vnpay_next_step_3": "Slutför transaktion"
+}

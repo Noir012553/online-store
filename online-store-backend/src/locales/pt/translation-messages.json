@@ -1,0 +1,8 @@
+{
+  "product_id_required": "ID do Produto é obrigatório",
+  "cache_not_found": "Registro de cache não encontrado",
+  "translation_updated": "Tradução atualizada",
+  "translation_created": "Tradução criada",
+  "translation_deleted": "Tradução deletada",
+  "invalid_translation_data": "Dados de tradução inválidos"
+}

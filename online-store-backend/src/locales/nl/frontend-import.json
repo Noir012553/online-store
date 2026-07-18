@@ -1,0 +1,17 @@
+{
+  "max_file_size_error": "De maximale bestandsgrootte is 10MB",
+  "invalid_file_error": "Ongeldig bestandsformaat. Alleen JSON en CSV worden ondersteund",
+  "import_success": "Producten succesvol geïmporteerd",
+  "import_failed": "Fout bij het importeren van producten",
+  "upload_failed": "Fout bij het uploaden van bestand",
+  "importing": "Bezig met importeren...",
+  "file_format_json": "JSON",
+  "file_format_csv": "CSV",
+  "mode_insert": "Invoegen",
+  "mode_update": "Bijwerken",
+  "mode_upsert": "Invoegen of Bijwerken",
+  "dry_run_label": "Voorbeeld (geen gegevenswijzigingen)",
+  "download_template": "Sjabloon downloaden",
+  "select_file": "Bestand selecteren",
+  "submit_import": "Producten importeren"
+}

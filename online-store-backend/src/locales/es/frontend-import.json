@@ -1,0 +1,17 @@
+{
+  "max_file_size_error": "El tamaño máximo del archivo es 10MB",
+  "invalid_file_error": "Formato de archivo inválido. Solo se admiten JSON y CSV",
+  "import_success": "Productos importados exitosamente",
+  "import_failed": "Error al importar productos",
+  "upload_failed": "Error al cargar archivo",
+  "importing": "Importando...",
+  "file_format_json": "JSON",
+  "file_format_csv": "CSV",
+  "mode_insert": "Insertar",
+  "mode_update": "Actualizar",
+  "mode_upsert": "Insertar o Actualizar",
+  "dry_run_label": "Vista Previa (sin cambios de datos)",
+  "download_template": "Descargar plantilla",
+  "select_file": "Seleccionar archivo",
+  "submit_import": "Importar productos"
+}

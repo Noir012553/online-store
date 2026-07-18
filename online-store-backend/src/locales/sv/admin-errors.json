@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Misslyckades att spara åsidosättning",
+  "error_saving_override": "Fel vid sparande av åsidosättning",
+  "failed_load_namespace": "Misslyckades att ladda namnrymd",
+  "error_fetching_health_data": "Fel vid hämtning av hälsodata",
+  "error_fetching_logs": "Fel vid hämtning av loggar",
+  "error_fetching_languages": "Fel vid hämtning av språk",
+  "error_fetching_supported_languages": "Fel vid hämtning av stödda språk",
+  "failed_fetch_products": "Misslyckades att hämta produkter",
+  "failed_fetch_deleted_products": "Misslyckades att hämta borttagna produkter",
+  "http_error_status": "HTTP-fel! status: {status}",
+  "failed_create_shipment": "Misslyckades att skapa försändelse",
+  "failed_update_translation": "Misslyckades att uppdatera översättning",
+  "failed_delete_product": "Misslyckades att ta bort produkt",
+  "failed_import_products": "Misslyckades att importera produkter",
+  "network_timeout": "Nätverkstimeout"
+}

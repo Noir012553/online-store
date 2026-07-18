@@ -1,0 +1,15 @@
+{
+  "alreadyExists": "Người dùng đã tồn tại",
+  "invalidData": "Dữ liệu người dùng không hợp lệ",
+  "notFound": "Người dùng không tìm thấy",
+  "registrationSuccess": "Đăng ký thành công",
+  "emailVerifiedSuccess": "Email được xác minh thành công",
+  "emailAlreadyVerified": "Email đã được xác minh",
+  "passwordChangedSuccess": "Mật khẩu được thay đổi thành công",
+  "passwordResetEmailSent": "Email đặt lại mật khẩu đã được gửi",
+  "logoutSuccess": "Đã đăng xuất thành công",
+  "verificationEmailResent": "Email xác minh đã được gửi lại",
+  "restoreSuccess": "Người dùng được khôi phục thành công",
+  "notDeleted": "Người dùng không được xóa",
+  "hardDeleteSuccess": "Người dùng được xóa vĩnh viễn thành công"
+}

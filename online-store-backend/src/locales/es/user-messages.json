@@ -1,0 +1,22 @@
+{
+  "invalidData": "Datos de usuario inválidos",
+  "notFound": "Usuario no encontrado",
+  "alreadyExists": "El usuario ya existe",
+  "registrationSuccess": "Usuario registrado exitosamente",
+  "emailVerifiedSuccess": "Email verificado exitosamente",
+  "emailAlreadyVerified": "Email ya verificado",
+  "passwordChangedSuccess": "Contraseña cambiada exitosamente",
+  "passwordResetEmailSent": "Email de restablecimiento de contraseña enviado",
+  "logoutSuccess": "Cerrado de sesión exitosamente",
+  "verificationEmailResent": "Email de verificación reenviado",
+  "restoreSuccess": "Usuario restaurado exitosamente",
+  "notDeleted": "El usuario no pudo ser eliminado",
+  "invalid_user_data": "Datos de usuario inválidos",
+  "user_not_found": "Usuario no encontrado",
+  "user_already_exists": "El usuario ya existe",
+  "user_created_success": "Usuario creado exitosamente",
+  "user_updated_success": "Usuario actualizado exitosamente",
+  "user_deleted_success": "Usuario eliminado exitosamente",
+  "profile_updated_success": "Perfil actualizado exitosamente",
+  "password_changed_success": "Contraseña cambiada exitosamente"
+}

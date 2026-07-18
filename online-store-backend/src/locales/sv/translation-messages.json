@@ -1,0 +1,8 @@
+{
+  "product_id_required": "Produkt-ID är obligatoriskt",
+  "cache_not_found": "Cache-post inte hittad",
+  "translation_updated": "Översättning uppdaterad",
+  "translation_created": "Översättning skapad",
+  "translation_deleted": "Översättning raderad",
+  "invalid_translation_data": "Ogiltiga översättningsdata"
+}

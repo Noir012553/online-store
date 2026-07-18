@@ -1,0 +1,10 @@
+{
+  "invalid_user_data": "Ogiltiga användaruppgifter",
+  "user_not_found": "Användare inte found",
+  "user_already_exists": "Användaren finns redan",
+  "user_created_success": "Användare skapad framgångsrikt",
+  "user_updated_success": "Användare uppdaterad framgångsrikt",
+  "user_deleted_success": "Användare borttagen framgångsrikt",
+  "profile_updated_success": "Profil uppdaterad framgångsrikt",
+  "password_changed_success": "Lösenord ändrat framgångsrikt"
+}

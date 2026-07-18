@@ -1,0 +1,15 @@
+{
+  "out_of_stock_prefix": "[UITVERKOCHT]",
+  "out_of_stock_sample_product": "Voorbeeldproduct",
+  "out_of_stock_category_label": "Categorie",
+  "out_of_stock_category_keyboard": "Toetsenbord",
+  "out_of_stock_category_mouse": "Muis",
+  "out_of_stock_category_headphones": "Koptelefoon",
+  "out_of_stock_category_cooling": "Koeling",
+  "out_of_stock_category_gaming_laptop": "Gaming-laptop",
+  "out_of_stock_category_office_laptop": "Kantoor-laptop",
+  "out_of_stock_description": "Dit product is uitverkocht. Categorie: {{category}}",
+  "out_of_stock_feature": "Uitverkocht",
+  "out_of_stock_feature_pending": "Wacht op aanvulling",
+  "test_brand_name": "Testmerk"
+}

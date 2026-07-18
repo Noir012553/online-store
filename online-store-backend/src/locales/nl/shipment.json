@@ -1,0 +1,13 @@
+{
+  "required_fields": "Verplichte velden ontbreken",
+  "already_created": "Verzending is al aangemaakt voor deze bestelling",
+  "invalid_provider": "Ongeldige verzendingsprovider",
+  "missing_info": "Verzendingsinformatie ontbreekt",
+  "no_service_available": "Geen verzendservice beschikbaar voor dit adres",
+  "unsupported_carrier": "Niet-ondersteunde verzendmaatschappij",
+  "create_success": "Verzending succesvol aangemaakt",
+  "createSuccess": "Verzending succesvol aangemaakt",
+  "not_found": "Verzending niet gevonden",
+  "invalid_status": "Ongeldige verzendingsstatus: {status}",
+  "cancel_success": "Verzending succesvol geannuleerd"
+}

@@ -1,0 +1,8 @@
+{
+  "product_id_required": "ID sản phẩm là bắt buộc",
+  "cache_not_found": "Bản ghi bộ nhớ cache không tìm thấy",
+  "translation_updated": "Bản dịch được cập nhật",
+  "translation_created": "Bản dịch được tạo",
+  "translation_deleted": "Bản dịch được xóa",
+  "invalid_translation_data": "Dữ liệu bản dịch không hợp lệ"
+}

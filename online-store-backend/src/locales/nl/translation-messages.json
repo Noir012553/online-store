@@ -1,0 +1,8 @@
+{
+  "product_id_required": "Product-ID is vereist",
+  "cache_not_found": "Cache-record niet gevonden",
+  "translation_updated": "Vertaling bijgewerkt",
+  "translation_created": "Vertaling aangemaakt",
+  "translation_deleted": "Vertaling verwijderd",
+  "invalid_translation_data": "Ongeldige vertaalgegevens"
+}

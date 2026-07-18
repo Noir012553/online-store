@@ -1,0 +1,15 @@
+{
+  "missingParametersService": "Thiếu tham số dịch vụ vận chuyển",
+  "noProvidersConfigured": "Không có nhà cung cấp vận chuyển nào được cấu hình",
+  "cannotCalculateFee": "Không thể tính phí vận chuyển",
+  "provinceIdRequired": "Mã tỉnh/thành phố là bắt buộc",
+  "districtIdRequired": "Mã quận/huyện là bắt buộc",
+  "ghnDistrictError": "Lỗi khi lấy dữ liệu quận/huyện từ GHN: {{error}}",
+  "ghnWardError": "Lỗi khi lấy dữ liệu phường/xã từ GHN: {{error}}",
+  "sameDistrictFree": "Cùng quận - Miễn phí vận chuyển",
+  "standardServiceName": "Dịch vụ tiêu chuẩn",
+  "standardServiceDesc": "Giao hàng trong 3-5 ngày",
+  "expressServiceName": "Dịch vụ nhanh",
+  "expressServiceDesc": "Giao hàng trong 1-2 ngày",
+  "calculateFeeFailed": "Không thể tính phí vận chuyển: {{error}}"
+}

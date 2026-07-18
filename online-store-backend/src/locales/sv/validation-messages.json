@@ -1,0 +1,34 @@
+{
+  "address": {
+    "maxLength": "Adressen får inte överskrida 500 tecken"
+  },
+  "cart": {
+    "empty": "Kundvagnen är tom"
+  },
+  "customer": {
+    "nameInvalid": "Kundnamnet är ogiltigt"
+  },
+  "email": {
+    "invalid": "E-post är ogiltig",
+    "required": "E-post är obligatorisk"
+  },
+  "name": {
+    "lengthRange": "Namnet måste vara mellan 2 och 100 tecken"
+  },
+  "password": {
+    "minLength": "Lösenordet måste vara minst 6 tecken långt",
+    "required": "Lösenord är obligatoriskt"
+  },
+  "phone": {
+    "invalid": "Telefonnumret är ogiltigt"
+  },
+  "product": {
+    "idRequired": "Produkt-ID är obligatoriskt"
+  },
+  "quantity": {
+    "invalid": "Mängden är ogiltig"
+  },
+  "shipping": {
+    "addressRequired": "Leveransadress är obligatorisk"
+  }
+}

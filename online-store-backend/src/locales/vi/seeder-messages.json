@@ -1,0 +1,11 @@
+{
+  "no_provinces_found": "Không tìm thấy tỉnh/thành phố nào",
+  "bulk_location_preload": "⏱️ Tải trước vị trí hàng loạt",
+  "locations_loaded": "Đã tải {{districts}} quận/huyện và {{wards}} phường/xã",
+  "generating_addresses": "Đang tạo địa chỉ",
+  "bulk_inserting_addresses": "Đang lưu hàng loạt địa chỉ",
+  "address_seeding_complete": "Hoàn tất tạo địa chỉ: {{count}} địa chỉ",
+  "customers_successfully_created": "👥 ✅ Đã tạo thành công {{count}} khách hàng",
+  "error_in_seed_addresses": "❌ Lỗi khi tạo địa chỉ: {{error}}",
+  "brand_seeding_error": "Lỗi seeding nhãn hiệu: {{error}}"
+}

@@ -1,0 +1,13 @@
+{
+  "required_fields": "Faltan campos requeridos",
+  "already_created": "El envío ya ha sido creado para este pedido",
+  "invalid_provider": "Proveedor de envío inválido",
+  "missing_info": "Falta información de envío",
+  "no_service_available": "No hay servicio de envío disponible para esta dirección",
+  "unsupported_carrier": "Empresa de envío no soportada",
+  "create_success": "Envío creado correctamente",
+  "createSuccess": "Envío creado correctamente",
+  "not_found": "Envío no encontrado",
+  "invalid_status": "Estado de envío inválido: {status}",
+  "cancel_success": "Envío cancelado correctamente"
+}

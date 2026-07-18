@@ -1,0 +1,13 @@
+{
+  "missing_required_fields": "Erforderliche Felder fehlen: {{fields}}",
+  "amount_must_be_positive": "Der Betrag muss eine positive Zahl sein",
+  "amount_must_be_integer": "Der Betrag muss eine ganze Zahl sein (keine Dezimalzahl)",
+  "order_not_found": "Bestellung nicht gefunden: {{orderId}} - Geben Sie eine gültige MongoDB ObjectId für eine vorhandene Bestellung an",
+  "order_already_paid": "Bestellung {{orderId}} wurde bereits bezahlt - Kann kein Zahlungsformular für bezahlte Bestellung erstellen",
+  "cannot_determine_client_ip": "Client-IP von Cloudflare kann nicht ermittelt werden - Überprüfen Sie die Serverkonfiguration",
+  "payment_initiated": "Zahlung eingeleitet",
+  "payment_confirmed": "Zahlung bestätigt",
+  "payment_failed": "Zahlungsausfall",
+  "refund_success": "Rückerstattung erfolgreich",
+  "dev_mode_only": "Diese Funktion ist nur im Entwicklungsmodus verfügbar"
+}
