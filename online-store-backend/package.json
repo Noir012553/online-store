@@ -44,6 +44,8 @@
     "setup-ghn": "node src/scripts/setup-ghn.js",
     "create-ghn": "node src/scripts/create-ghn-provider.js",
     "fix-indexes": "node src/scripts/fix-indexes.js",
+    "repair:product-currencies": "node src/scripts/repair-product-currencies.js",
+    "repair:product-currencies:dry-run": "node src/scripts/repair-product-currencies.js --dry-run",
     "setup-i18n-indexes": "node src/scripts/setup-production-indexes.js",
     "test:blueprint": "node src/test/test-blueprint-3phase.js",
     "test:translation-quality": "node src/scripts/test-translation-quality.js",
