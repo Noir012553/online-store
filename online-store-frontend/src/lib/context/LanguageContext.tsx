@@ -193,11 +193,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     [locale, loadedTranslations]
   );
 
-  useEffect(() => {
-    setApiErrorTranslator(t);
-    return () => setApiErrorTranslator();
-  }, [t]);
-
   const isLoadingNamespace = useCallback(
     (ns: Namespace): boolean => {
       const cacheKey = `${locale}_${ns}`;
@@ -389,6 +384,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     },
     [locale, loadedTranslations, fallbackTranslations, loadingNamespaces]
   );
+
+  useEffect(() => {
+    setApiErrorTranslator(t);
+    return () => setApiErrorTranslator();
+  }, [t]);
 
   const availableLocales = localeConfigs.length
     ? localeConfigs.map((item) => item.code as Locale)
