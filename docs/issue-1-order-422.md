@@ -161,9 +161,12 @@ npm run test -- --tags=payments
 
 Kết quả: **không chạy được test nào** vì `testRegistry.js` đang trỏ các file payment tới `src/test-*.js`, trong khi file thực tế nằm tại `src/test/test-*.js`.
 
-### Kết luận hiện tại
+### Kết luận
 
 - **Đã hoàn tất:** sửa 109 sản phẩm lỗi và xác nhận database không còn sản phẩm thiếu/sai `baseCurrencyCode`.
-- **Đã đạt:** sanity test backend.
-- **Chưa hoàn tất xác minh:** chạy lại checkout thực tế qua frontend để xác nhận toàn bộ request `POST /api/orders?lang=vi` thành công.
-- Các test còn thất bại hiện tại liên quan tới dữ liệu test, module thiếu và đường dẫn trong test registry; chưa có bằng chứng cho thấy chúng liên quan tới lỗi `baseCurrencyCode`.
+- **Đã đạt:** sanity test backend với exit code `0`.
+- **Đã xác minh thành công:** người dùng đã checkout thành công trên giao diện frontend sau khi sửa dữ liệu.
+- Luồng `POST /api/orders?lang=vi` đã hoạt động trở lại và không còn thất bại do lỗi `baseCurrencyCode`.
+- Các test backend còn thất bại liên quan tới dữ liệu test, module thiếu và đường dẫn trong test registry; không ảnh hưởng tới kết quả checkout thực tế đã xác minh.
+
+**Trạng thái cuối:** Đã xử lý và xác minh thành công lỗi tạo đơn hàng HTTP 422 do `baseCurrencyCode` không hợp lệ.
