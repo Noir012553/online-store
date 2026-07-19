@@ -91,6 +91,7 @@ class JSONAdapter extends BaseImportAdapter {
         name: "Keychron K3 Pro Mechanical Keyboard",
         brand: "Keychron",
         price: 3990000,
+        baseCurrencyCode: "VND",
         originalPrice: 4990000,
         category: "Keyboard",
         supplier: "TechCorp",
