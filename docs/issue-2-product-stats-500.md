@@ -187,4 +187,19 @@ Response stats cho cả request có `currency=VND` và request không truyền c
 - **Đã đạt:** currency không hợp lệ trả HTTP `400` thay vì HTTP `500`.
 - **Đã đạt:** static translations `common` cho locale `vi` có đủ sáu khóa toast upload/xác thực ảnh.
 
-**Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng.
+### Kiểm thử dynamic PowerShell
+
+Đã chạy lại tập lệnh PowerShell dynamic trên `http://localhost:5000` với locale `vi`.
+
+Kết quả: **8/8 kiểm tra API đạt**:
+
+- Active currencies: HTTP `200`.
+- Stats với currency động `VND`: HTTP `200`, đủ 5 field thống kê.
+- Stats không truyền currency: HTTP `200`, đủ 5 field thống kê.
+- Stats với currency `ZZZ`: HTTP `400`.
+- Common translations: HTTP `200`.
+- Đủ 6 khóa toast locale `vi`.
+
+Các test npm local chưa chạy trong lần này vì PowerShell không tự tìm thấy thư mục `online-store-backend`; không phải lỗi của API.
+
+**Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng. Dynamic API test đạt 8/8.
