@@ -1,6 +1,6 @@
 ## Trạng thái
 
-- **Loại:** Đã xác minh nguyên nhân HTTP 500 và phát hiện các thông báo toast/Sonner chưa đi qua static i18n; chưa triển khai biện pháp sửa
+- **Loại:** Đã xác minh nguyên nhân HTTP 500 và vấn đề toast/Sonner i18n; đã xác nhận các tiêu chí sửa bằng kiểm thử API trên môi trường dev
 - **Endpoint:** `GET /api/products/stats/overview?lang=vi`
 - **Lỗi quan sát được:** `500 Internal Server Error`
 
@@ -147,12 +147,69 @@ Lỗi HTTP 500 không xuất phát từ tham số `lang=vi` trực tiếp. `lang
 
 Thông báo backend `A reporting currency is required` cũng là chuỗi tiếng Anh. Tuy nhiên với status 500, `handleApiError` hiện ưu tiên nhóm key lỗi server và không truyền hàm dịch, nên người dùng chủ yếu nhận toast rỗng thay vì thông báo này.
 
+## Cập nhật tiến độ và kết quả kiểm thử
+
+Kết quả PowerShell trên môi trường dev tại `http://localhost:5000`, locale `vi`:
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| `GET /api/currencies?isActive=true` | HTTP `200`; currency mặc định được chọn là `VND` |
+| `GET /api/products/stats/overview?lang=vi&currency=VND` | HTTP `200` |
+| `GET /api/products/stats/overview?lang=vi` | HTTP `200`; fallback currency hoạt động |
+| `GET /api/products/stats/overview?lang=vi&currency=ZZZ` | HTTP `400`; currency không hợp lệ được validation đúng |
+| `GET /api/translations?lang=vi&ns=common` | HTTP `200` |
+
+Response stats cho cả request có `currency=VND` và request không truyền currency đều trả về:
+
+```json
+{
+  "totalProducts": 109,
+  "inStockProducts": 109,
+  "totalOrders": 419,
+  "totalRevenue": 11754314200,
+  "totalCustomers": 1
+}
+```
+
+Đã xác nhận đủ sáu khóa toast trong `common` cho locale `vi`:
+
+- `upload_signature_error`: `Không thể lấy chữ ký tải lên`
+- `upload_file_too_large`: `Tệp phải nhỏ hơn 5MB`
+- `upload_file_must_be_image`: `Tệp phải là ảnh`
+- `upload_failed`: `Tải ảnh lên thất bại`
+- `image_validation_failed`: `Xác thực ảnh thất bại`
+- `image_validation_request_failed`: `Không thể xác thực ảnh`
+
 ## Kết luận
 
-- **Đã xác minh:** frontend gọi stats overview không truyền `currency`.
-- **Đã xác minh:** backend bắt buộc `currency`, ném lỗi `A reporting currency is required` và trả về HTTP 500.
-- **Đã xác minh:** một số toast trong `useCloudinaryUpload.ts` đang dùng chuỗi tiếng Anh tĩnh, không qua static i18n.
-- **Đã xác minh:** `api.ts` gọi `handleApiError` không có hàm `t`, làm mất bản dịch cho các toast lỗi API.
-- **Chưa thực hiện:** chưa sửa code, chưa sửa dữ liệu và chưa chạy lại test sau sửa.
+- **Đã đạt:** stats overview với currency hợp lệ trả HTTP `200`.
+- **Đã đạt:** stats overview không truyền currency fallback thành công và trả HTTP `200`.
+- **Đã đạt:** currency không hợp lệ trả HTTP `400` thay vì HTTP `500`.
+- **Đã đạt:** static translations `common` cho locale `vi` có đủ sáu khóa toast upload/xác thực ảnh.
 
-**Trạng thái cuối:** Đã phân tích và ghi nhận đầy đủ lỗi HTTP 500 của product stats overview cùng vấn đề toast/Sonner chưa sử dụng static translation; đang chờ yêu cầu triển khai sửa chữa.
+### Kiểm thử dynamic PowerShell
+
+Đã chạy lại tập lệnh PowerShell dynamic trên `http://localhost:5000` với locale `vi`.
+
+Kết quả: **8/8 kiểm tra API đạt**:
+
+- Active currencies: HTTP `200`.
+- Stats với currency động `VND`: HTTP `200`, đủ 5 field thống kê.
+- Stats không truyền currency: HTTP `200`, đủ 5 field thống kê.
+- Stats với currency `ZZZ`: HTTP `400`.
+- Common translations: HTTP `200`.
+- Đủ 6 khóa toast locale `vi`.
+
+### Kết quả local npm test
+
+Lần này đã chạy tại đúng thư mục backend:
+
+- `npm run test:list`: **Đạt**, registry liệt kê được các suite.
+- `npm run test:simple`: **Đạt**, exit code `0`.
+- Backend suite: **Thất bại**, 2/8 test của `test-backend-endpoints-phase3.js` lỗi do không tìm thấy product/language phù hợp (`Cannot read properties of null`), và `test-phase4-e2e-simplified.js` thiếu module `ProductCatalogTranslationCache`.
+- Payment tag suite: **Thất bại**, `testRegistry.js` resolve các file payment thành `src/test-*.js` thay vì vị trí thực tế `src/test/test-*.js`, dẫn đến không tìm thấy test file.
+- Rollback/shadow writes: **Thất bại ở test runner**, vì truyền suite `shadow-writes` không tồn tại trong registry; runner cố đọc suite không xác định và lỗi tại `test-runner.js:132`.
+
+Tổng kết dynamic test: **8/8 kiểm tra API đạt**, `test:list` và `test:simple` đạt; còn **3 nhóm local test thất bại**. Các lỗi local này không ảnh hưởng đến việc xác minh product stats API, currency fallback hoặc sáu khóa toast.
+
+**Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng. API đạt 8/8, nhưng toàn bộ local test suite chưa đạt do lỗi dữ liệu test, module thiếu và cấu hình test registry/runner.
