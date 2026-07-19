@@ -200,6 +200,16 @@ Kết quả: **8/8 kiểm tra API đạt**:
 - Common translations: HTTP `200`.
 - Đủ 6 khóa toast locale `vi`.
 
-Các test npm local chưa chạy trong lần này vì PowerShell không tự tìm thấy thư mục `online-store-backend`; không phải lỗi của API.
+### Kết quả local npm test
 
-**Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng. Dynamic API test đạt 8/8.
+Lần này đã chạy tại đúng thư mục backend:
+
+- `npm run test:list`: **Đạt**, registry liệt kê được các suite.
+- `npm run test:simple`: **Đạt**, exit code `0`.
+- Backend suite: **Thất bại**, 2/8 test của `test-backend-endpoints-phase3.js` lỗi do không tìm thấy product/language phù hợp (`Cannot read properties of null`), và `test-phase4-e2e-simplified.js` thiếu module `ProductCatalogTranslationCache`.
+- Payment tag suite: **Thất bại**, `testRegistry.js` resolve các file payment thành `src/test-*.js` thay vì vị trí thực tế `src/test/test-*.js`, dẫn đến không tìm thấy test file.
+- Rollback/shadow writes: **Thất bại ở test runner**, vì truyền suite `shadow-writes` không tồn tại trong registry; runner cố đọc suite không xác định và lỗi tại `test-runner.js:132`.
+
+Tổng kết dynamic test: **8/8 kiểm tra API đạt**, `test:list` và `test:simple` đạt; còn **3 nhóm local test thất bại**. Các lỗi local này không ảnh hưởng đến việc xác minh product stats API, currency fallback hoặc sáu khóa toast.
+
+**Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng. API đạt 8/8, nhưng toàn bộ local test suite chưa đạt do lỗi dữ liệu test, module thiếu và cấu hình test registry/runner.
