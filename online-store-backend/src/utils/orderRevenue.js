@@ -8,17 +8,19 @@ const getActiveExchangeRates = async () => ExchangeRate.find(
 ).lean();
 
 const getReportingCurrency = async (requestedCurrencyCode) => {
-  if (typeof requestedCurrencyCode !== 'string' || !/^[A-Za-z]{3}$/.test(requestedCurrencyCode)) {
-    throw new Error('A reporting currency is required');
+  if (requestedCurrencyCode !== undefined && (typeof requestedCurrencyCode !== 'string' || !/^[A-Za-z]{3}$/.test(requestedCurrencyCode))) {
+    throw new Error('Unsupported reporting currency');
   }
 
-  const currency = await Currency.findOne({
-    code: requestedCurrencyCode.toUpperCase(),
+  const currencyQuery = {
     isActive: true,
-  }, { code: 1, _id: 0 }).lean();
+    ...(requestedCurrencyCode === undefined ? { isDefault: true } : { code: requestedCurrencyCode.toUpperCase() }),
+  };
+
+  const currency = await Currency.findOne(currencyQuery, { code: 1, _id: 0 }).lean();
 
   if (!currency) {
-    throw new Error('Unsupported reporting currency');
+    throw new Error(requestedCurrencyCode === undefined ? 'No default reporting currency is configured' : 'Unsupported reporting currency');
   }
 
   return currency.code;
