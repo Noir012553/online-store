@@ -139,5 +139,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Le serveur est en cours d'exécution"
+  "api_backend_running": "Le serveur est en cours d'exécution",
+  "upload_signature_error": "Impossible d'obtenir la signature de téléversement",
+  "upload_file_too_large": "Le fichier doit faire moins de 5 Mo",
+  "upload_file_must_be_image": "Le fichier doit être une image",
+  "upload_failed": "Le téléversement a échoué",
+  "image_validation_failed": "La validation de l'image a échoué",
+  "image_validation_request_failed": "Impossible de valider l'image"
 }

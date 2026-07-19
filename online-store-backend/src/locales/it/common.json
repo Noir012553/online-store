@@ -138,5 +138,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Sistema di back-end è in esecuzione"
+  "api_backend_running": "Sistema di back-end è in esecuzione",
+  "upload_signature_error": "Impossibile ottenere la firma di caricamento",
+  "upload_file_too_large": "Il file deve essere più piccolo di 5 MB",
+  "upload_file_must_be_image": "Il file deve essere un'immagine",
+  "upload_failed": "Caricamento non riuscito",
+  "image_validation_failed": "Convalida dell'immagine non riuscita",
+  "image_validation_request_failed": "Impossibile convalidare l'immagine"
 }

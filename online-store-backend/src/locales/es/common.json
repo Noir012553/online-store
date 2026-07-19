@@ -138,5 +138,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "El servidor está en ejecución"
+  "api_backend_running": "El servidor está en ejecución",
+  "upload_signature_error": "No se pudo obtener la firma de carga",
+  "upload_file_too_large": "El archivo debe ser menor de 5 MB",
+  "upload_file_must_be_image": "El archivo debe ser una imagen",
+  "upload_failed": "La carga falló",
+  "image_validation_failed": "La validación de la imagen falló",
+  "image_validation_request_failed": "No se pudo validar la imagen"
 }

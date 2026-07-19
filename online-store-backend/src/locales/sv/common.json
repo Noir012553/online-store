@@ -138,5 +138,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Back-end-systemet körs"
+  "api_backend_running": "Back-end-systemet körs",
+  "upload_signature_error": "Det gick inte att hämta uppladdningssignaturen",
+  "upload_file_too_large": "Filen måste vara mindre än 5 MB",
+  "upload_file_must_be_image": "Filen måste vara en bild",
+  "upload_failed": "Uppladdningen misslyckades",
+  "image_validation_failed": "Bildvalideringen misslyckades",
+  "image_validation_request_failed": "Det gick inte att validera bilden"
 }

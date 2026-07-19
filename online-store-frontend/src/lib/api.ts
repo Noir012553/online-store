@@ -655,9 +655,10 @@ export const productAPI = {
   /**
    * Lấy thống kê chung của cửa hàng
    */
-  getStatsOverview: async (locale?: string) => {
-    const lang = locale || getCurrentLang();
-    return apiCall(`/products/stats/overview?lang=${lang}`);
+  getStatsOverview: async (locale?: string, currencyCode?: string) => {
+    const params = new URLSearchParams({ lang: locale || getCurrentLang() });
+    if (currencyCode) params.append('currency', currencyCode);
+    return apiCall(`/products/stats/overview?${params.toString()}`);
   },
 
   /**

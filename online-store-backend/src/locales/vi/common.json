@@ -139,5 +139,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Backend đang chạy"
+  "api_backend_running": "Backend đang chạy",
+  "upload_signature_error": "Không thể lấy chữ ký tải lên",
+  "upload_file_too_large": "Tệp phải nhỏ hơn 5MB",
+  "upload_file_must_be_image": "Tệp phải là ảnh",
+  "upload_failed": "Tải ảnh lên thất bại",
+  "image_validation_failed": "Xác thực ảnh thất bại",
+  "image_validation_request_failed": "Không thể xác thực ảnh"
 }
