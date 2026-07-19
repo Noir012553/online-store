@@ -18,7 +18,7 @@ const notFound = (req, res, next) => {
  * Logging được gửi tới stderr để dễ debug trên Cloudflare Tunnel
  */
 const errorHandler = (err, req, res, next) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   let message = err.message || 'Internal Server Error'; // Default message if err.message is empty
   let errorDetails = null;
 
