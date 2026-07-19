@@ -7,6 +7,8 @@ const LanguageService = require('../services/languageService');
 const TranslationShadowWriteService = require('../services/translationShadowWriteService');
 const { flattenJson } = require('../utils/jsonFlattener');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const seedTranslations = require('../seeds/translationSeeder');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
@@ -38,31 +40,47 @@ exports.getStaticTranslations = async (req, res) => {
       ns = 'common';
     }
 
+    if (!/^[a-zA-Z0-9_-]+$/.test(ns)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid translation namespace',
+      });
+    }
+
     const translation = await StaticTranslation.findOne({
       code: lang,
       namespace: ns,
       isDeleted: false,
     });
 
-    if (!translation) {
+    let translations = translation?.translations || null;
+    const localePath = path.join(__dirname, '../locales', lang, `${ns}.json`);
+
+    if (fs.existsSync(localePath)) {
+      const fileTranslations = JSON.parse(fs.readFileSync(localePath, 'utf8'));
+      translations = { ...fileTranslations, ...(translations || {}) };
+    }
+
+    if (!translations) {
       return res.status(404).json({
         success: false,
         message: `Translations not found for language: ${lang}, namespace: ${ns}`,
       });
     }
 
-    // Flatten translations to dot-notation for frontend
-    const flattenedTranslations = flattenJson(translation.translations);
+    const flattenedTranslations = flattenJson(translations);
 
     res.set('Cache-Control', 'public, max-age=300');
-    res.set('ETag', `"${translation._id}"`);
+    if (translation?._id) {
+      res.set('ETag', `"${translation._id}"`);
+    }
     res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
 
     res.json({
       success: true,
       data: {
-        code: translation.code,
-        namespace: translation.namespace,
+        code: lang,
+        namespace: ns,
         translations: flattenedTranslations,
       },
     });

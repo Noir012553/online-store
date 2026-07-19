@@ -4,6 +4,7 @@ import { productAPI } from "../lib/api";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../lib/context/AuthContext";
 import { useLanguage } from "../lib/i18n";
+import { useCurrencyContext } from "../lib/context/CurrencyContext";
 
 export const getServerSideProps = async () => {
   return {
@@ -27,6 +28,7 @@ interface Testimonial {
 function AboutContent() {
   const { isAdmin } = useAuth();
   const { t, loadNamespace, locale } = useLanguage();
+  const { currencyCode } = useCurrencyContext();
   const [stats, setStats] = useState<Stat[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,7 @@ function AboutContent() {
       try {
         setIsLoading(true);
         const [statsRes, testimonialsRes] = await Promise.all([
-          productAPI.getStatsOverview(locale),
+          productAPI.getStatsOverview(locale, currencyCode),
           productAPI.getTestimonials(3, locale),
         ]);
 
@@ -65,7 +67,7 @@ function AboutContent() {
     };
 
     fetchData();
-  }, [t, locale]);
+  }, [t, locale, currencyCode]);
 
   const values = [
     {

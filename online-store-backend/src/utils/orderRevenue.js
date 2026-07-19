@@ -9,18 +9,41 @@ const getActiveExchangeRates = async () => ExchangeRate.find(
 
 const getReportingCurrency = async (requestedCurrencyCode) => {
   if (requestedCurrencyCode !== undefined && (typeof requestedCurrencyCode !== 'string' || !/^[A-Za-z]{3}$/.test(requestedCurrencyCode))) {
-    throw new Error('Unsupported reporting currency');
+    const error = new Error('Unsupported reporting currency');
+    error.statusCode = 400;
+    throw error;
   }
 
-  const currencyQuery = {
-    isActive: true,
-    ...(requestedCurrencyCode === undefined ? { isDefault: true } : { code: requestedCurrencyCode.toUpperCase() }),
-  };
+  const currencyProjection = { code: 1, _id: 0 };
+  let currency;
 
-  const currency = await Currency.findOne(currencyQuery, { code: 1, _id: 0 }).lean();
+  if (requestedCurrencyCode === undefined) {
+    currency = await Currency.findOne(
+      { isActive: true, isDefault: true },
+      currencyProjection
+    ).lean();
+
+    if (!currency) {
+      currency = await Currency.findOne(
+        { isActive: true },
+        currencyProjection
+      ).sort({ code: 1 }).lean();
+    }
+  } else {
+    currency = await Currency.findOne(
+      { isActive: true, code: requestedCurrencyCode.toUpperCase() },
+      currencyProjection
+    ).lean();
+  }
 
   if (!currency) {
-    throw new Error(requestedCurrencyCode === undefined ? 'No default reporting currency is configured' : 'Unsupported reporting currency');
+    const error = new Error(
+      requestedCurrencyCode === undefined
+        ? 'No active reporting currency is configured'
+        : 'Unsupported reporting currency'
+    );
+    error.statusCode = requestedCurrencyCode === undefined ? 503 : 400;
+    throw error;
   }
 
   return currency.code;

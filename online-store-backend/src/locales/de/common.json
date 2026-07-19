@@ -138,5 +138,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Backend-System wird ausgeführt"
+  "api_backend_running": "Backend-System wird ausgeführt",
+  "upload_signature_error": "Upload-Signatur konnte nicht abgerufen werden",
+  "upload_file_too_large": "Die Datei muss kleiner als 5 MB sein",
+  "upload_file_must_be_image": "Die Datei muss ein Bild sein",
+  "upload_failed": "Upload fehlgeschlagen",
+  "image_validation_failed": "Bildvalidierung fehlgeschlagen",
+  "image_validation_request_failed": "Bild konnte nicht validiert werden"
 }

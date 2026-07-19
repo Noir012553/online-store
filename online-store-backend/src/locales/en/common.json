@@ -139,5 +139,11 @@
   "locale_nl_flag": "🇳🇱",
   "locale_sv_label": "Svenska",
   "locale_sv_flag": "🇸🇪",
-  "api_backend_running": "Backend is running"
+  "api_backend_running": "Backend is running",
+  "upload_signature_error": "Failed to get upload signature",
+  "upload_file_too_large": "File must be smaller than 5MB",
+  "upload_file_must_be_image": "File must be an image",
+  "upload_failed": "Upload failed",
+  "image_validation_failed": "Image validation failed",
+  "image_validation_request_failed": "Failed to validate image"
 }
