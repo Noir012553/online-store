@@ -65,6 +65,7 @@ class JSONAdapter extends BaseImportAdapter {
         name: "Razer Viper V3 Pro Gaming Mouse",
         brand: "Razer",
         price: 4990000,
+        baseCurrencyCode: "VND",
         originalPrice: 5990000,
         category: "Mouse",
         supplier: "Digital Store",

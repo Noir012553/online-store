@@ -15,7 +15,7 @@ const mongoose = require('mongoose');
 /**
  * Required fields khi import products
  */
-const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'supplier'];
+const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'supplier', 'baseCurrencyCode'];
 
 /**
  * Optional fields có thể có khi import
@@ -46,6 +46,13 @@ function validateProduct(product, rowIndex = 0) {
     } else {
       cleaned[field] = value;
     }
+  }
+
+  const baseCurrencyCode = String(product.baseCurrencyCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(baseCurrencyCode)) {
+    errors.push(`Row ${rowIndex}: baseCurrencyCode must be a valid 3-letter uppercase currency code`);
+  } else {
+    cleaned.baseCurrencyCode = baseCurrencyCode;
   }
 
   // Validate price

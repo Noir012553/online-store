@@ -147,7 +147,7 @@ class CSVAdapter extends BaseImportAdapter {
    * @returns {String} CSV template
    */
   getTemplate() {
-    return `name,brand,price,originalPrice,category,supplier,countInStock,image,specs_connection,specs_weight,specs_battery,specs_mouseType,description,features,deal_discount,deal_endTime
+    return `name,brand,price,baseCurrencyCode,originalPrice,category,supplier,countInStock,image,specs_connection,specs_weight,specs_battery,specs_mouseType,description,features,deal_discount,deal_endTime
 "Razer Viper V3 Pro Gaming Mouse","Razer",4990000,5990000,"Mouse","Razer Supplier",50,"https://example.com/img.jpg","Wireless","54g","Rechargeable Battery","Gaming","Professional gaming mouse","RGB Lighting|Lightweight|7 Buttons",15,"2026-12-31"
 "Keychron K3 Pro Mechanical Keyboard","Keychron",3990000,4990000,"Keyboard","Keychron Store",30,"https://example.com/img2.jpg","Wireless","445g","168 hours","Mechanical","Wireless mechanical keyboard","Hot-swap|Backlighting|Compact Design",20,"2026-12-25"`;
   }
