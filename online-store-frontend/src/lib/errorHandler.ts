@@ -4,6 +4,7 @@ type TranslationFn = (key: string, namespace?: string, fallback?: string) => str
 
 let tooManyRequestsShown = false;
 let tooManyRequestsTimeout: NodeJS.Timeout | null = null;
+let apiErrorTranslator: TranslationFn | undefined;
 
 const errorTimestamps: { [endpoint: string]: number[] } = {};
 const MAX_ERROR_HISTORY = 10;
@@ -16,7 +17,12 @@ export interface ApiError {
   method?: string;
 }
 
+export function setApiErrorTranslator(translator?: TranslationFn) {
+  apiErrorTranslator = translator;
+}
+
 export function handleApiError(error: ApiError, t?: TranslationFn) {
+  const translate = t ?? apiErrorTranslator;
   const { status, message, endpoint, method } = error;
 
   if (endpoint) {
@@ -31,13 +37,13 @@ export function handleApiError(error: ApiError, t?: TranslationFn) {
   }
 
   if (status === 429) {
-    handleTooManyRequests(endpoint, method, t);
+    handleTooManyRequests(endpoint, method, translate);
     return;
   }
 
   if (status >= 500) {
-    toast.error(t?.('error_server_title', 'common') || '', {
-      description: t?.('error_server_desc', 'common') || '',
+    toast.error(translate?.('error_server_title', 'common') || '', {
+      description: translate?.('error_server_desc', 'common') || '',
       duration: 5000,
     });
     return;
@@ -48,16 +54,16 @@ export function handleApiError(error: ApiError, t?: TranslationFn) {
       return;
     }
 
-    toast.error(t?.('error_request_title', 'common') || '', {
-      description: message || (t?.('error_request_status', 'common', `Error ${status}`) || ''),
+    toast.error(translate?.('error_request_title', 'common') || '', {
+      description: message || (translate?.('error_request_status', 'common', `Error ${status}`) || ''),
       duration: 4000,
     });
     return;
   }
 
   if (status === 0) {
-    toast.error(t?.('error_network_title', 'common') || '', {
-      description: t?.('error_network_desc', 'common') || '',
+    toast.error(translate?.('error_network_title', 'common') || '', {
+      description: translate?.('error_network_desc', 'common') || '',
       duration: 5000,
     });
     return;
@@ -80,6 +86,7 @@ function handleTooManyRequests(endpoint?: string, method?: string, t?: Translati
 }
 
 function showTooManyRequestsWarning(type: 'spam' | 'single', t?: TranslationFn) {
+  const translate = t ?? apiErrorTranslator;
   if (tooManyRequestsShown) return;
 
   tooManyRequestsShown = true;
@@ -89,14 +96,14 @@ function showTooManyRequestsWarning(type: 'spam' | 'single', t?: TranslationFn) 
   }
 
   if (type === 'spam') {
-    toast.warning(t?.('error_too_many_requests_title', 'common') || '', {
-      description: t?.('error_too_many_requests_desc', 'common') || '',
+    toast.warning(translate?.('error_too_many_requests_title', 'common') || '', {
+      description: translate?.('error_too_many_requests_desc', 'common') || '',
       duration: 8000,
       icon: '⏳',
     });
   } else {
-    toast.warning(t?.('error_server_overloaded_title', 'common') || '', {
-      description: t?.('error_server_overloaded_desc', 'common') || '',
+    toast.warning(translate?.('error_server_overloaded_title', 'common') || '', {
+      description: translate?.('error_server_overloaded_desc', 'common') || '',
       duration: 6000,
       icon: '⚠️',
     });
@@ -125,11 +132,12 @@ export function shouldRetryRequest(status: number): boolean {
 }
 
 export function showSlowRequestWarning(endpoint: string, method: string, duration: number, t?: TranslationFn) {
+  const translate = t ?? apiErrorTranslator;
   const slowThreshold = 5000;
 
   if (duration > slowThreshold) {
-    toast.info(t?.('error_request_slow', 'common') || '', {
-      description: `${method} ${endpoint} ${t?.('error_request_processing', 'common') || ''}`,
+    toast.info(translate?.('error_request_slow', 'common') || '', {
+      description: `${method} ${endpoint} ${translate?.('error_request_processing', 'common') || ''}`,
       duration: 4000,
     });
   }
@@ -151,39 +159,39 @@ export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): stri
     ];
 
     if (errorKeyPatterns.some(pattern => message.includes(pattern))) {
-      return t?.(message, 'common') || message;
+      return translate?.(message, 'common') || message;
     }
 
     if (message.includes('429')) {
-      return t?.('error_too_many_requests_desc', 'common') || '';
+      return translate?.('error_too_many_requests_desc', 'common') || '';
     }
 
     if (message.includes('timeout')) {
-      return t?.('error_request_timeout', 'common') || '';
+      return translate?.('error_request_timeout', 'common') || '';
     }
 
     if (message.includes('Failed to fetch') || message.includes('Network')) {
-      return t?.('error_network_fallback', 'common') || '';
+      return translate?.('error_network_fallback', 'common') || '';
     }
 
     if (message.includes('401')) {
-      return t?.('error_auth_required', 'common') || '';
+      return translate?.('error_auth_required', 'common') || '';
     }
 
     if (message.includes('403')) {
-      return t?.('error_permission_denied', 'common') || '';
+      return translate?.('error_permission_denied', 'common') || '';
     }
 
     if (message.includes('404')) {
-      return t?.('error_data_not_found', 'common') || '';
+      return translate?.('error_data_not_found', 'common') || '';
     }
 
     if (message.includes('500')) {
-      return t?.('error_generic', 'common') || '';
+      return translate?.('error_generic', 'common') || '';
     }
 
     return message;
   }
 
-  return t?.('error_generic_fallback', 'common') || '';
+  return translate?.('error_generic_fallback', 'common') || '';
 }

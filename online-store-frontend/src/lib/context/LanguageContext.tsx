@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { type Locale, type Namespace, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../i18n/types';
 import { translationService } from '../translationService';
+import { setApiErrorTranslator } from '../errorHandler';
 import { fetchActiveLocaleConfig, type ActiveLocaleConfig } from '../services/localeConfigService';
 
 interface LanguageContextValue {
@@ -191,6 +192,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     },
     [locale, loadedTranslations]
   );
+
+  useEffect(() => {
+    setApiErrorTranslator(t);
+    return () => setApiErrorTranslator();
+  }, [t]);
 
   const isLoadingNamespace = useCallback(
     (ns: Namespace): boolean => {

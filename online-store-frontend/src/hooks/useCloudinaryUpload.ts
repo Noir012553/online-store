@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useLanguage } from '../lib/context/LanguageContext';
 
 interface CloudinarySignatureResponse {
   timestamp: number;
@@ -26,6 +27,7 @@ interface CloudinaryUploadResult {
 type CloudinaryFolder = 'admins' | 'users' | 'reviewers' | 'banners';
 
 export const useCloudinaryUpload = () => {
+  const { t } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -41,10 +43,10 @@ export const useCloudinaryUpload = () => {
       if (process.env.NODE_ENV === 'development') {
         console.error('[CLOUDINARY_SIGNATURE_ERROR]', error);
       }
-      toast.error('Failed to get upload signature');
+      toast.error(t('upload_signature_error', 'common'));
       return null;
     }
-  }, []);
+  }, [t]);
 
   const uploadToCloudinary = useCallback(
     async (file: File, folder: CloudinaryFolder = 'users'): Promise<CloudinaryUploadResult | null> => {
@@ -54,12 +56,12 @@ export const useCloudinaryUpload = () => {
 
         // Validate file before upload
         if (file.size > 5 * 1024 * 1024) {
-          toast.error('File must be smaller than 5MB');
+          toast.error(t('upload_file_too_large', 'common'));
           return null;
         }
 
         if (!file.type.startsWith('image/')) {
-          toast.error('File must be an image');
+          toast.error(t('upload_file_must_be_image', 'common'));
           return null;
         }
 
@@ -125,14 +127,14 @@ export const useCloudinaryUpload = () => {
         if (process.env.NODE_ENV === 'development') {
           console.error('[CLOUDINARY_UPLOAD_ERROR]', error);
         }
-        toast.error(error instanceof Error ? error.message : 'Upload failed');
+        toast.error(t('upload_failed', 'common'));
         return null;
       } finally {
         setIsUploading(false);
         setUploadProgress(0);
       }
     },
-    [getSignature]
+    [getSignature, t]
   );
 
   const validateUploadedImage = useCallback(
@@ -158,7 +160,7 @@ export const useCloudinaryUpload = () => {
 
         if (!response.ok) {
           const error = await response.json();
-          toast.error(error.message || 'Image validation failed');
+          toast.error(t('image_validation_failed', 'common'));
           return false;
         }
 
@@ -167,11 +169,11 @@ export const useCloudinaryUpload = () => {
         if (process.env.NODE_ENV === 'development') {
           console.error('[CLOUDINARY_VALIDATE_ERROR]', error);
         }
-        toast.error('Failed to validate image');
+        toast.error(t('image_validation_request_failed', 'common'));
         return false;
       }
     },
-    []
+    [t]
   );
 
   return {
