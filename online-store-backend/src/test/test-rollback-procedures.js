@@ -15,9 +15,9 @@ const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
 
-const app = require('../src/app');
-const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
-const LiveTranslationCache = require('../src/models/LiveTranslationCache');
+const app = require('../app');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 describe('ROLLBACK PROCEDURES', () => {
   const testProductId = 'rollback-test-product-123';
