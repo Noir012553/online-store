@@ -4,9 +4,9 @@
  */
 
 const mongoose = require('mongoose');
-const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
-const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
-const LiveTranslationCache = require('../src/models/LiveTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 describe('PHASE 4: E2E Verification Tests', function() {
   this.timeout(30000);

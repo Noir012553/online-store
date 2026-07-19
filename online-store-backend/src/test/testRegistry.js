@@ -21,9 +21,9 @@ const TEST_SUITES = {
     importance: 'CRITICAL',
     tags: ['i18n', 'languages'],
     files: [
-      '../test-language-sync-flow.js',
-      '../test-languages-flow.js',
-      '../test-translation-api.js',
+      'test-language-sync-flow.js',
+      'test-languages-flow.js',
+      'test-translation-api.js',
     ],
   },
 
@@ -34,8 +34,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['products', 'entities'],
     files: [
-      '../test-translation-e2e.js',
-      '../test-phase4-e2e.js',
+      'test-translation-e2e.js',
+      'test-phase4-e2e.js',
     ],
   },
 
@@ -45,9 +45,9 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['orders', 'payments'],
     files: [
-      '../test-with-order.js',
-      '../test-vnpay-quick.js',
-      '../test-vnpay-signature-fix.js',
+      'test-with-order.js',
+      'test-vnpay-quick.js',
+      'test-vnpay-signature-fix.js',
     ],
   },
 
@@ -57,8 +57,8 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['payments', 'vnpay'],
     files: [
-      '../test-vnpay-quick.js',
-      '../test-vnpay-signature-fix.js',
+      'test-vnpay-quick.js',
+      'test-vnpay-signature-fix.js',
     ],
   },
 
@@ -68,8 +68,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['backend', 'endpoints'],
     files: [
-      '../test/test-backend-endpoints-phase3.js',
-      '../test/test-phase4-e2e-simplified.js',
+      'test-backend-endpoints-phase3.js',
+      'test-phase4-e2e-simplified.js',
     ],
   },
 
@@ -79,8 +79,18 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['db', 'recovery'],
     files: [
-      '../test/test-rollback-procedures.js',
-      '../test/test-shadow-writes.js',
+      'test-rollback-procedures.js',
+      'test-shadow-writes.js',
+    ],
+  },
+
+  'shadow-writes': {
+    name: 'Shadow Write Tests',
+    category: 'MAINTENANCE',
+    importance: 'MEDIUM',
+    tags: ['db', 'shadow-writes'],
+    files: [
+      'test-shadow-writes.js',
     ],
   },
 
@@ -90,7 +100,7 @@ const TEST_SUITES = {
     importance: 'LOW',
     tags: ['basic'],
     files: [
-      '../test/test-simple.js',
+      'test-simple.js',
     ],
   },
 };

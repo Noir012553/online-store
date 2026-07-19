@@ -15,14 +15,14 @@
 
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../src/app');
+const app = require('../app');
 
-const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
-const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
-const TranslationAuditLog = require('../src/models/TranslationAuditLog');
-const LiveTranslationCache = require('../src/models/LiveTranslationCache');
-const Product = require('../src/models/Product');
-const Review = require('../src/models/Review');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const TranslationAuditLog = require('../models/TranslationAuditLog');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const Product = require('../models/Product');
+const Review = require('../models/Review');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 
 describe('PHASE 4: E2E Integration Tests', () => {

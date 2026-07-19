@@ -144,6 +144,8 @@ export function showSlowRequestWarning(endpoint: string, method: string, duratio
 }
 
 export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): string {
+  const translate = t ?? apiErrorTranslator;
+
   if (error instanceof Error) {
     const message = error.message;
 

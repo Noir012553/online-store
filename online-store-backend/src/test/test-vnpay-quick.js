@@ -13,7 +13,7 @@
 
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
-const VnpayAdapter = require('../src/adapters/payment/VnpayAdapter');
+const VnpayAdapter = require('../adapters/payment/VnpayAdapter');
 
 // Real config từ .env
 const realConfig = {

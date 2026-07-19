@@ -13,6 +13,7 @@
  */
 
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { 
@@ -71,7 +72,10 @@ function runTestFile(filePath) {
   return new Promise((resolve, reject) => {
     console.log(`▶️  ${path.basename(filePath)}`);
 
-    const test = spawn('node', [filePath], {
+    const isMochaTest = fs.readFileSync(filePath, 'utf8').includes('describe(');
+    const command = isMochaTest ? 'npx' : 'node';
+    const args = isMochaTest ? ['mocha', filePath] : [filePath];
+    const test = spawn(command, args, {
       stdio: 'inherit',
       cwd: process.cwd(),
     });
