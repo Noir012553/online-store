@@ -183,3 +183,44 @@ Chưa có bằng chứng các phát hiện này làm hỏng trực tiếp:
 - **Chưa thực hiện:** Xóa hoặc di chuyển file.
 
 **Trạng thái:** Cần quyết định dọn wiring và xác nhận các file manual/legacy trước khi thực hiện thay đổi filesystem.
+
+## Cập nhật kiểm tra dynamic issue-4 tại workspace `26-4-3 copy 37`
+
+Đã chạy tiếp tập lệnh PowerShell tại thư mục:
+
+- `E:\Dev Camp\26-4-3 copy 37\online-store-backend`
+- Đã sửa logic nhận diện đường dẫn để không nối lặp `online-store-backend\online-store-backend`.
+- Đã xác nhận đúng vị trí backend: `E:\Dev Camp\26-4-3 copy 37\online-store-backend`.
+- Đã xác nhận đúng vị trí frontend: `E:\Dev Camp\26-4-3 copy 37\online-store-frontend`.
+- Đã đọc được `package.json` của cả hai project.
+- Đã đọc được `TEST_SUITES` từ `src/test/testRegistry.js`.
+- Không chạy lại các kiểm thử chức năng đã hoàn tất trong ba báo cáo trước.
+- Không tạo file mới.
+
+### Kết quả cần lưu ý
+
+Các khối kiểm tra `Test-Check` chưa được thực thi trong lần chạy này vì phiên PowerShell hiện tại không còn hàm `Test-Check` từ phiên trước. PowerShell trả về:
+
+```text
+The term 'Test-Check' is not recognized
+```
+
+Vì vậy dòng tổng kết `0 PASS, 0 FAIL` chỉ phản ánh biến đếm vừa được khởi tạo, không phải kết quả kiểm tra issue-4. Không dùng lần chạy này để kết luận các kiểm tra đã đạt hoặc thất bại.
+
+Lệnh đọc registry vẫn chạy thành công và xác nhận các nhóm suite hiện có gồm `i18n`, `products`, `orders`, `vnpay`, `backend`, `rollback`, `shadow-writes` và `simple`.
+
+### Bước tiếp theo
+
+Cần chạy lại các khối kiểm tra sau khi khai báo lại `Test-Check` và `Get-ReferencedFiles` trong cùng phiên PowerShell. Chỉ khi đó mới ghi nhận được số liệu PASS/FAIL hợp lệ cho:
+
+- File được npm script tham chiếu.
+- Cú pháp `testRegistry.js` và `test-runner.js`.
+- File test tồn tại theo registry.
+- Test bị đăng ký trùng giữa các suite.
+- Test backend chưa được registry đăng ký.
+- Script trùng tên giữa `scripts` và `src/scripts`.
+- Frontend chưa có test runner tự động.
+- Tên file trong `offline-manual.js`.
+- Khả năng liệt kê suite bằng `npm run test:list`.
+
+**Trạng thái cập nhật:** Đường dẫn workspace và việc đọc registry đã xác minh đúng; kiểm tra dynamic issue-4 vẫn đang chờ chạy lại với đầy đủ hàm hỗ trợ trong cùng phiên PowerShell.
