@@ -226,7 +226,7 @@ export function CustomersList() {
         {!viewDeletedTab && (
           <Button
             onClick={() => router.push('/admin/customers/create')}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            className="flex w-full items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             {t('admin_add_customer', 'admin')}
@@ -290,7 +290,7 @@ export function CustomersList() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-white">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>

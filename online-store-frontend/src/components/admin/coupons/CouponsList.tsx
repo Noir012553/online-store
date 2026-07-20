@@ -236,7 +236,7 @@ export function CouponsList({ title, description, mode = 'all' }: CouponsListPro
           </div>
         </div>
 
-        <Button onClick={() => router.push('/admin/coupons/create')} className="bg-red-600 hover:bg-red-700">
+        <Button onClick={() => router.push('/admin/coupons/create')} className="w-full bg-red-600 hover:bg-red-700 lg:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           {t('admin_add_coupon', 'admin')}
         </Button>
@@ -299,7 +299,7 @@ export function CouponsList({ title, description, mode = 'all' }: CouponsListPro
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-[900px] divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_code', 'admin')}</th>

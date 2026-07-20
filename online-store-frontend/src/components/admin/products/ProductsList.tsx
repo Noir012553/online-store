@@ -259,10 +259,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
           <h1>{discountMode ? t('admin_product_discounts_management', 'admin') : t('permission_manage_products', 'admin')}</h1>
           {discountMode && <p className="text-sm text-gray-500 mt-1">{t('admin_product_discounts_management_desc', 'admin')}</p>}
         </div>
-        <div className="flex items-center gap-3">
-          {!viewDeletedTab && <span className="text-sm text-gray-600 font-medium">{t('page_indicator', 'common').replace('{page}', String(currentPage)).replace('{items}', String(itemsPerPage))}</span>}
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          {!viewDeletedTab && <span className="text-sm font-medium text-gray-600">{t('page_indicator', 'common').replace('{page}', String(currentPage)).replace('{items}', String(itemsPerPage))}</span>}
           {!viewDeletedTab && (
-            <Button onClick={() => router.push('/admin/products/create')} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={() => router.push('/admin/products/create')} className="w-full bg-red-600 hover:bg-red-700 sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               {t('add_product', 'admin')}
             </Button>
@@ -354,7 +354,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-white">
               <tr>
                 <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_product_name', 'admin')}</th>

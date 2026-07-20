@@ -297,7 +297,7 @@ export function BannerManagementPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
@@ -310,12 +310,12 @@ export function BannerManagementPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="rounded-xl bg-white px-4 py-3 text-sm text-gray-700">
             <div className="font-semibold text-gray-900">{t('banner_total_count', 'admin-banners')}</div>
             <div>{currentTotalCount}</div>
           </div>
-          <Button onClick={handleCreateNew} className="bg-red-600 hover:bg-red-700">
+          <Button onClick={handleCreateNew} className="w-full bg-red-600 hover:bg-red-700 sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             {t('banner_add_new', 'admin-banners')}
           </Button>
@@ -370,7 +370,7 @@ export function BannerManagementPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-[860px] divide-y divide-gray-200">
               <thead className="bg-white">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_image', 'admin-banners')}</th>
