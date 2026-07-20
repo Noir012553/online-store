@@ -300,7 +300,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           {t('basic_info', 'admin')}
         </h3>
         <div className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="product-name" className="text-sm font-medium">
                 {t('admin_product_name', 'admin')} <span className="text-red-500">*</span>
@@ -337,7 +337,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               <Label className="text-sm font-medium">
                 {t('admin_category', 'admin')} <span className="text-red-500">*</span>
               </Label>
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   type="button"
                   variant={categoryChoice === "existing" ? "default" : "outline"}
@@ -658,7 +658,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 flex-row-reverse pt-6 border-t border-slate-200">
+      <div className="flex flex-col gap-2 pt-6 sm:flex-row-reverse border-t border-slate-200">
         <Button
           onClick={handleSave}
           disabled={isSubmitting}

@@ -457,10 +457,10 @@ function DashboardContent() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1>{t('title', 'admin')}</h1>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white rounded-lg border p-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg border p-2">
             <Calendar className="w-5 h-5 text-gray-600" />
             {timeFrameOptions.map((option) => (
               <button
@@ -651,8 +651,8 @@ function DashboardContent() {
           <div className="p-6 border-b">
             <h2>{t('recent_orders', 'admin')}</h2>
           </div>
-          <div className="p-4 border-b bg-gray-50 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-64">
+          <div className="flex flex-col gap-3 border-b bg-gray-50 p-4 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="w-full sm:flex-1 sm:min-w-64">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('search', 'common')}</label>
               <input
                 type="text"
@@ -662,7 +662,7 @@ function DashboardContent() {
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             </div>
-            <div className="min-w-48">
+            <div className="w-full sm:min-w-48 sm:w-auto">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('status', 'common')}</label>
               <select
                 value={recentOrdersStatus}
@@ -777,8 +777,8 @@ function DashboardContent() {
           <div className="p-6 border-b">
             <h2>{t('paid_orders', 'admin')}</h2>
           </div>
-          <div className="p-4 border-b bg-gray-50 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-64">
+          <div className="flex flex-col gap-3 border-b bg-gray-50 p-4 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="w-full sm:flex-1 sm:min-w-64">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('search', 'common')}</label>
               <input
                 type="text"
@@ -788,7 +788,7 @@ function DashboardContent() {
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             </div>
-            <div className="min-w-48">
+            <div className="w-full sm:min-w-48 sm:w-auto">
               <label className="block text-xs font-medium text-gray-600 mb-1">{t('status', 'common')}</label>
               <select
                 value={paidOrdersStatus}
