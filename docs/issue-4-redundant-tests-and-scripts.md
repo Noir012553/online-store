@@ -245,3 +245,59 @@ Không thay đổi các alias suite đang dùng chung file VNPay hoặc shadow-w
 - Không tạo file mới.
 
 **Trạng thái cập nhật mới nhất:** Đã sửa lỗi tên lệnh chạy offline manual và xác nhận cú pháp/wiring registry đạt; các alias suite trùng vẫn được giữ để không làm mất coverage.
+
+## Kết quả tập lệnh dynamic issue-4 mới nhất
+
+Đã chạy tại workspace `26-4-3 copy 37`, thư mục `online-store-backend`, không chạy lại API hoặc test chức năng của issue-1/2/3 và không tạo file mới.
+
+### Kết quả tổng hợp
+
+```text
+8 PASS, 2 FAIL
+```
+
+### PASS
+
+- Các thư mục backend/frontend tồn tại.
+- Registry và runner có cú pháp hợp lệ.
+- Toàn bộ file được `testRegistry.js` tham chiếu đều tồn tại.
+- Phát hiện và báo cáo các test được đăng ký ở nhiều suite.
+- Phân loại các test chưa được registry đăng ký.
+- So sánh script trùng tên giữa `scripts` và `src/scripts`.
+- Frontend chưa có test runner tự động; đây là cảnh báo đúng theo cấu hình hiện tại.
+- `npm run test:list` liệt kê thành công 8 suite.
+
+### FAIL cần xử lý
+
+1. **NPM scripts tham chiếu file không tồn tại**
+
+   Workspace chạy test đang có các tham chiếu sau:
+
+   - `test:tier3` → `src/test/test-tier3.js`
+   - `seed:tier1` → `src/scripts/seedTier1.js`
+   - `seed:tier2` → `src/scripts/seedTier2.js`
+   - `seed:unified` → `src/scripts/seedUnified.js`
+   - `seed:tier1:clear` → `src/scripts/seedTier1.js`
+
+   Đây là lỗi wiring/package script. Chưa tự xóa hoặc tạo file thay thế vì cần xác định các script tier có còn được duy trì hay không.
+
+2. **Kiểm tra lệnh offline manual vẫn phát hiện tên cũ**
+
+   Trong repository hiện tại, `offline-manual.js:3` đã là:
+
+   ```text
+   node src/test/offline-manual.js
+   ```
+
+   Do đó kết quả `FAIL` từ workspace chạy test cho thấy workspace đó vẫn đang dùng nội dung cũ hoặc có thêm chuỗi `node test-offline-manual.js` chưa được đồng bộ. Cần kiểm tra lại đúng file đang chạy trước khi sửa tiếp.
+
+### Wiring trùng được xác nhận
+
+- `test-vnpay-quick.js`: `orders`, `vnpay`.
+- `test-vnpay-signature-fix.js`: `orders`, `vnpay`.
+- `test-phase4-e2e-simplified.js`: `products`, `backend`.
+- `test-shadow-writes.js`: `rollback`, `shadow-writes`.
+
+Đây là cảnh báo trùng registry, không phải lỗi file; runner hiện khử trùng đường dẫn khi resolve các file chạy chung.
+
+**Trạng thái cập nhật mới nhất:** Dynamic issue-4 đạt **8 PASS, 2 FAIL**. Hai lỗi còn lại thuộc package script thiếu file và workspace offline manual chưa đồng bộ với nội dung đã sửa trong repository hiện tại.
