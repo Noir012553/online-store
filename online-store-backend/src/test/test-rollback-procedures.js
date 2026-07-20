@@ -50,7 +50,7 @@ describe('ROLLBACK PROCEDURES', () => {
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ Feature flag enabled (USE_NEW_SCHEMA=true): Query NEW schema first', async () => {
+    it('✅ Feature flag enabled (USE_NEW_SCHEMA=true): Query NEW schema first', async () => {
       process.env.USE_NEW_SCHEMA = 'true';
 
       const res = await request(app)
@@ -66,7 +66,7 @@ describe('ROLLBACK PROCEDURES', () => {
       expect(res.status).toBeLessThan(500);
     });
 
-    test('✅ Feature flag disabled (USE_NEW_SCHEMA=false): Fallback to OLD schema only', async () => {
+    it('✅ Feature flag disabled (USE_NEW_SCHEMA=false): Fallback to OLD schema only', async () => {
       process.env.USE_NEW_SCHEMA = 'false';
 
       const res = await request(app)
@@ -84,7 +84,7 @@ describe('ROLLBACK PROCEDURES', () => {
       process.env.USE_NEW_SCHEMA = 'true';
     });
 
-    test('✅ Disabling flag is instant (no restart required)', async () => {
+    it('✅ Disabling flag is instant (no restart required)', async () => {
       // This tests that feature flag can be toggled without restart
       process.env.USE_NEW_SCHEMA = 'true';
       let res1 = await request(app)
@@ -108,7 +108,7 @@ describe('ROLLBACK PROCEDURES', () => {
 
   // ============ SCENARIO 2: Database Restore ============
   describe('Scenario 2: Database Restore from Backup', () => {
-    test('✅ Backup file exists and is valid JSON', () => {
+    it('✅ Backup file exists and is valid JSON', () => {
       const backupDir = path.join(__dirname, '../backups');
 
       // Should have at least one backup file
@@ -128,7 +128,7 @@ describe('ROLLBACK PROCEDURES', () => {
       }
     });
 
-    test('✅ Backup contains required fields', () => {
+    it('✅ Backup contains required fields', () => {
       const backupDir = path.join(__dirname, '../backups');
 
       if (fs.existsSync(backupDir)) {
@@ -151,7 +151,7 @@ describe('ROLLBACK PROCEDURES', () => {
       }
     });
 
-    test('✅ MongoDB restore command would work', async () => {
+    it('✅ MongoDB restore command would work', async () => {
       // Test that mongorestore can be called (command syntax check)
       const backupDir = path.join(__dirname, '../backups');
 
@@ -168,7 +168,7 @@ describe('ROLLBACK PROCEDURES', () => {
       }
     });
 
-    test('✅ Can verify backup integrity', () => {
+    it('✅ Can verify backup integrity', () => {
       const backupDir = path.join(__dirname, '../backups');
 
       if (fs.existsSync(backupDir)) {
@@ -185,7 +185,7 @@ describe('ROLLBACK PROCEDURES', () => {
 
   // ============ SCENARIO 3: Git Rollback ============
   describe('Scenario 3: Git Rollback (Code Changes)', () => {
-    test('✅ Identify rollback commit hashes', () => {
+    it('✅ Identify rollback commit hashes', () => {
       // In real scenario, this would be:
       // git log --oneline | grep "Phase 3" | head -1
       
@@ -193,7 +193,7 @@ describe('ROLLBACK PROCEDURES', () => {
       expect(hasGit).toBe(true);
     });
 
-    test('✅ Rollback command structure is valid', () => {
+    it('✅ Rollback command structure is valid', () => {
       // git revert <commit-hash>
       // Should be executable without errors
       
@@ -202,7 +202,7 @@ describe('ROLLBACK PROCEDURES', () => {
       expect(hasGitCommand).toBe(true);
     });
 
-    test('✅ No uncommitted changes before rollback', () => {
+    it('✅ No uncommitted changes before rollback', () => {
       // In production, verify working directory is clean
       // git status --porcelain should be empty
       
@@ -216,7 +216,7 @@ describe('ROLLBACK PROCEDURES', () => {
 
   // ============ SCENARIO 4: Graceful Fallback ============
   describe('Scenario 4: Graceful Fallback During Incident', () => {
-    test('✅ If NEW schema query fails → fallback to OLD', async () => {
+    it('✅ If NEW schema query fails → fallback to OLD', async () => {
       // Scenario: NEW schema has error
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
 
@@ -240,7 +240,7 @@ describe('ROLLBACK PROCEDURES', () => {
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ If both schemas fail → graceful error (no crash)', async () => {
+    it('✅ If both schemas fail → graceful error (no crash)', async () => {
       // Both schemas empty
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
@@ -255,7 +255,7 @@ describe('ROLLBACK PROCEDURES', () => {
       }
     });
 
-    test('✅ Error responses have helpful messages', async () => {
+    it('✅ Error responses have helpful messages', async () => {
       const res = await request(app)
         .get('/api/translations/products')
         .query({ productId: 'nonexistent-id', lang: 'en' });
@@ -269,7 +269,7 @@ describe('ROLLBACK PROCEDURES', () => {
 
   // ============ SCENARIO 5: Data Safety ============
   describe('Scenario 5: Data Safety During Rollback', () => {
-    test('✅ No data is lost during rollback', async () => {
+    it('✅ No data is lost during rollback', async () => {
       // Create data in NEW schema
       const testData = {
         entityId: testProductId,
@@ -294,7 +294,7 @@ describe('ROLLBACK PROCEDURES', () => {
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ Audit logs are immutable (not affected by rollback)', async () => {
+    it('✅ Audit logs are immutable (not affected by rollback)', async () => {
       // Even if we rollback code, audit logs should remain
       const TranslationAuditLog = require('../src/models/TranslationAuditLog');
 
@@ -317,7 +317,7 @@ describe('ROLLBACK PROCEDURES', () => {
       await TranslationAuditLog.deleteMany({ userId: 'test-user' });
     });
 
-    test('✅ TTL indexes are preserved after rollback', async () => {
+    it('✅ TTL indexes are preserved after rollback', async () => {
       // Create document with TTL
       const doc = await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -341,7 +341,7 @@ describe('ROLLBACK PROCEDURES', () => {
 
   // ============ SUMMARY ============
   describe('ROLLBACK READINESS CHECKLIST', () => {
-    test('✅ All rollback scenarios covered', () => {
+    it('✅ All rollback scenarios covered', () => {
       console.log(`
         ✅ Scenario 1: Feature flag disable (instant)
         ✅ Scenario 2: Database restore (mongorestore)
