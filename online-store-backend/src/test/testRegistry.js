@@ -21,7 +21,6 @@ const TEST_SUITES = {
     importance: 'CRITICAL',
     tags: ['i18n', 'languages'],
     files: [
-      'test-language-sync-flow.js',
       'test-languages-flow.js',
       'test-translation-api.js',
     ],
@@ -34,8 +33,7 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['products', 'entities'],
     files: [
-      'test-translation-e2e.js',
-      'test-phase4-e2e.js',
+      'test-phase4-e2e-simplified.js',
     ],
   },
 

@@ -219,15 +219,14 @@ describe('ROLLBACK PROCEDURES', function() {
       assert.equal(hasGitCommand, true);
     });
 
-    it('✅ No uncommitted changes before rollback', () => {
-      // In production, verify working directory is clean
-      // git status --porcelain should be empty
-      
+    it('✅ Git status is available before rollback', () => {
       const { spawnSync } = require('child_process');
-      const result = spawnSync('git', ['status', '--porcelain']);
-      
-      // Should either work or git not available
-      assert.ok(result.status === 0 || result.status === 127);
+      const result = spawnSync('git', ['status', '--porcelain'], {
+        encoding: 'utf8',
+      });
+
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, 0);
     });
   });
 
@@ -350,9 +349,9 @@ describe('ROLLBACK PROCEDURES', function() {
         createdAt: new Date()
       });
 
-      // Check TTL index exists
-      const indexes = await ProductCatalogTranslationCache.collection.getIndexes();
-      const hasTTL = Object.values(indexes).some(idx => idx.expireAfterSeconds);
+      await ProductCatalogTranslationCache.createIndexes();
+      const indexes = await ProductCatalogTranslationCache.collection.indexes();
+      const hasTTL = indexes.some(index => Number.isInteger(index.expireAfterSeconds));
 
       assert.equal(hasTTL, true);
 

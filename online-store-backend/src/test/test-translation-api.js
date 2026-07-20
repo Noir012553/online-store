@@ -4,10 +4,10 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const translationController = require('./src/controllers/translationController');
-const LiveTranslationCache = require('./src/models/LiveTranslationCache');
-const Product = require('./src/models/Product');
-const { getActiveLangCodes } = require('./config/languageInventory');
+const translationController = require('../controllers/translationController');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const Product = require('../models/Product');
+const { getActiveLangCodes } = require('../config/languageInventory');
 
 async function testTranslationAPI() {
   try {
