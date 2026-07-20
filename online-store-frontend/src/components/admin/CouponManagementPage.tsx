@@ -110,7 +110,7 @@ function MultiSelectDropdown({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[420px] overflow-hidden rounded-2xl border border-slate-300 bg-white p-0 shadow-2xl ring-1 ring-black/5">
+      <PopoverContent align="start" className="w-[calc(100vw-2rem)] max-w-[420px] overflow-hidden rounded-2xl border border-slate-300 bg-white p-0 shadow-2xl ring-1 ring-black/5">
         <div className="border-b border-slate-200 bg-slate-50/80 p-3">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -662,12 +662,12 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
                 <thead className="bg-white">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_code', 'admin')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_type', 'admin')}</th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 sm:table-cell">{t('admin_coupon_type', 'admin')}</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_value', 'admin')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_uses', 'admin')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_range', 'admin')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_scope', 'admin')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_status', 'admin')}</th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 md:table-cell">{t('admin_coupon_uses', 'admin')}</th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 lg:table-cell">{t('admin_coupon_range', 'admin')}</th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 lg:table-cell">{t('admin_coupon_scope', 'admin')}</th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 md:table-cell">{t('admin_coupon_status', 'admin')}</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_actions', 'admin')}</th>
                   </tr>
                 </thead>
@@ -680,24 +680,24 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
                           <div className="font-mono text-sm font-semibold text-gray-900">{coupon.code}</div>
                           <div className="mt-1 max-w-xs truncate text-xs text-gray-500">{coupon.description || t('empty_value', 'admin')}</div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="hidden px-4 py-4 sm:table-cell">
                           <Badge variant="secondary" className="rounded-full">
                             {coupon.discountType === 'percentage' ? t('admin_discount_percentage', 'admin') : t('admin_discount_fixed', 'admin')}
                           </Badge>
                         </td>
                         <td className="px-4 py-4 text-sm font-medium text-gray-900">{formatCouponValue(coupon)}</td>
-                        <td className="px-4 py-4 text-sm text-gray-700">
+                        <td className="hidden px-4 py-4 text-sm text-gray-700 md:table-cell">
                           {coupon.currentUses || 0}/{coupon.maxUses || 0}
                         </td>
-                        <td className="px-4 py-4 text-sm text-gray-700">
+                        <td className="hidden px-4 py-4 text-sm text-gray-700 lg:table-cell">
                           <div>{coupon.startDate ? formatDate(new Date(coupon.startDate), locale) : t('empty_value', 'admin')}</div>
                           <div className="text-xs text-gray-500">{coupon.endDate ? formatDate(new Date(coupon.endDate), locale) : t('empty_value', 'admin')}</div>
                         </td>
-                        <td className="px-4 py-4 text-sm text-gray-700">
+                        <td className="hidden px-4 py-4 text-sm text-gray-700 lg:table-cell">
                           <div>{getScopeLabel(coupon.applicableProducts)}</div>
                           <div className="text-xs text-gray-500">{getScopeLabel(coupon.applicableCategories)}</div>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="hidden px-4 py-4 md:table-cell">
                           <Badge className={isActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-100'}>
                             {isActive ? (
                               <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />{t('active', 'admin')}</span>
@@ -758,7 +758,7 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl">
           <DialogHeader>
             <DialogTitle>{editingCoupon?._id ? t('admin_edit_coupon', 'admin') : t('admin_add_coupon', 'admin')}</DialogTitle>
             <DialogDescription>{isPercentageOnly ? t('admin_percentage_only_desc', 'admin') : t('admin_coupon_form_desc', 'admin')}</DialogDescription>

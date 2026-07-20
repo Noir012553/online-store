@@ -90,10 +90,10 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
               <th className="px-4 py-3 text-left">{t('admin_currency_code', 'admin')}</th>
               <th className="px-4 py-3 text-left">{t('admin_currency_name', 'admin')}</th>
               <th className="px-4 py-3 text-left">{t('admin_currency_symbol', 'admin')}</th>
-              <th className="px-4 py-3 text-left">{t('admin_currency_position', 'admin')}</th>
-              <th className="px-4 py-3 text-left">{t('admin_currency_decimal', 'admin')}</th>
-              <th className="px-4 py-3 text-center">{t('admin_currency_default', 'admin')}</th>
-              <th className="px-4 py-3 text-center">{t('admin_currency_active', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-left md:table-cell">{t('admin_currency_position', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-left lg:table-cell">{t('admin_currency_decimal', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-center sm:table-cell">{t('admin_currency_default', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-center sm:table-cell">{t('admin_currency_active', 'admin')}</th>
               <th className="px-4 py-3 text-right">{t('admin_actions', 'admin')}</th>
             </tr>
           </thead>
@@ -104,20 +104,20 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
                   <td className="px-4 py-3 font-mono font-semibold">{currency.code}</td>
                   <td className="px-4 py-3">{currency.name}</td>
                   <td className="px-4 py-3 text-lg">{currency.symbol}</td>
-                  <td className="px-4 py-3 text-xs">
+                  <td className="hidden px-4 py-3 text-xs md:table-cell">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       {currency.position === 'before' ? t('admin_currency_position_before', 'admin') : t('admin_currency_position_after', 'admin')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">{currency.decimalPlaces}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="hidden px-4 py-3 text-center lg:table-cell">{currency.decimalPlaces}</td>
+                  <td className="hidden px-4 py-3 text-center sm:table-cell">
                     {currency.isDefault ? (
                       <Check className="w-5 h-5 text-green-600 mx-auto" />
                     ) : (
                       <X className="w-5 h-5 text-gray-300 mx-auto" />
                     )}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="hidden px-4 py-3 text-center sm:table-cell">
                     {currency.isActive ? (
                       <Check className="w-5 h-5 text-green-600 mx-auto" />
                     ) : (

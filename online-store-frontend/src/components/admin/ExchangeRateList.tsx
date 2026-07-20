@@ -94,9 +94,9 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
               <th className="px-4 py-3 text-left"></th>
               <th className="px-4 py-3 text-left">{t('admin_exchange_to', 'admin')}</th>
               <th className="px-4 py-3 text-right">{t('admin_exchange_rate', 'admin')}</th>
-              <th className="px-4 py-3 text-left">{t('admin_exchange_source', 'admin')}</th>
-              <th className="px-4 py-3 text-center">{t('admin_currency_active', 'admin')}</th>
-              <th className="px-4 py-3 text-left">{t('admin_exchange_updated', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-left md:table-cell">{t('admin_exchange_source', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-center sm:table-cell">{t('admin_currency_active', 'admin')}</th>
+              <th className="hidden px-4 py-3 text-left lg:table-cell">{t('admin_exchange_updated', 'admin')}</th>
               <th className="px-4 py-3 text-right">{t('admin_actions', 'admin')}</th>
             </tr>
           </thead>
@@ -112,7 +112,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                   <td className="px-4 py-3 text-right font-mono">
                     {rate.rate.toFixed(8)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 md:table-cell">
                     <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded capitalize">
                       {rate.source === 'manual'
                         ? t('admin_exchange_source_manual', 'admin')
@@ -121,14 +121,14 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                         : t('admin_exchange_source_import', 'admin')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="hidden px-4 py-3 text-center sm:table-cell">
                     {rate.isActive ? (
                       <Check className="w-5 h-5 text-green-600 mx-auto" />
                     ) : (
                       <X className="w-5 h-5 text-red-600 mx-auto" />
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="hidden px-4 py-3 text-xs text-gray-500 lg:table-cell">
                     {rate.rateUpdatedAt
                       ? new Date(rate.rateUpdatedAt).toLocaleDateString(intlLocale)
                       : t('not_available', 'admin')}

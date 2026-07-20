@@ -321,8 +321,8 @@ export function OrdersList() {
       </div>
 
       <div className="bg-white rounded-lg border mb-6">
-        <div className="border-b">
-          <div className="flex gap-0">
+        <div className="overflow-x-auto border-b">
+          <div className="flex min-w-max gap-0">
             <button
               onClick={() => {
                 setViewDeletedTab(false);
@@ -412,10 +412,10 @@ export function OrdersList() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_order_id', 'admin')}</th>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_order_date', 'admin')}</th>
+                    <th className="hidden px-6 py-3 text-left text-xs uppercase sm:table-cell">{t('admin_order_date', 'admin')}</th>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_total_price', 'admin')}</th>
-                    {!viewDeletedTab && <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_status', 'admin')}</th>}
-                    {!viewDeletedTab && <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_payment_method', 'admin')}</th>}
+                    {!viewDeletedTab && <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_status', 'admin')}</th>}
+                    {!viewDeletedTab && <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_payment_method', 'admin')}</th>}
                     <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
                   </tr>
                 </thead>
@@ -429,10 +429,10 @@ export function OrdersList() {
                           <p className="text-sm text-gray-600">{order.customer?.email || order.user?.email || t('not_updated')}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4">{formatDate(new Date(order.createdAt), locale)}</td>
+                      <td className="hidden px-6 py-4 sm:table-cell">{formatDate(new Date(order.createdAt), locale)}</td>
                       <td className="px-6 py-4 font-medium">{formatConvertedPrice(order.totalPrice, order.currencyCode, order.currencyCode)}</td>
-                      {!viewDeletedTab && <td className="px-6 py-4">{getStatusBadge(order)}</td>}
-                      {!viewDeletedTab && <td className="px-6 py-4">{getPaymentMethodBadge(order.paymentMethod)}</td>}
+                      {!viewDeletedTab && <td className="hidden px-6 py-4 md:table-cell">{getStatusBadge(order)}</td>}
+                      {!viewDeletedTab && <td className="hidden px-6 py-4 lg:table-cell">{getPaymentMethodBadge(order.paymentMethod)}</td>}
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -493,7 +493,7 @@ export function OrdersList() {
       </div>
 
       <Dialog open={!!deleteConfirmOrder} onOpenChange={() => setDeleteConfirmOrder(null)}>
-        <DialogContent className="sm:max-w-100 animate-in fade-in zoom-in-95 duration-200">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md animate-in fade-in zoom-in-95 duration-200">
           <DialogHeader className="space-y-3">
             <div className="flex items-center gap-3">
               <div className={`shrink-0 flex items-center justify-center h-10 w-10 rounded-full ${viewDeletedTab ? 'bg-red-100' : 'bg-orange-100'}`}>
