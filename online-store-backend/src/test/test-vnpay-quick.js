@@ -47,6 +47,7 @@ async function testVNPAY() {
     const paymentData = {
       orderId: testOrderId,
       amount: 100000, // 100,000 VND
+      currency: 'VND',
       description: `Test payment ${testOrderId}`,
       customer: {
         name: 'Test Customer',

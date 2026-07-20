@@ -73,11 +73,15 @@ function runTestFile(filePath) {
     console.log(`▶️  ${path.basename(filePath)}`);
 
     const isMochaTest = fs.readFileSync(filePath, 'utf8').includes('describe(');
-    const command = isMochaTest ? 'npx' : 'node';
-    const args = isMochaTest ? ['mocha', filePath] : [filePath];
+    const command = process.execPath;
+    const args = isMochaTest ? [require.resolve('mocha/bin/_mocha'), filePath] : [filePath];
     const test = spawn(command, args, {
       stdio: 'inherit',
       cwd: process.cwd(),
+    });
+
+    test.on('error', error => {
+      reject(error);
     });
 
     test.on('close', code => {

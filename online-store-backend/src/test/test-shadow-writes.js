@@ -13,10 +13,10 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const LiveTranslationCache = require('../src/models/LiveTranslationCache');
-const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
-const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
-const TranslationAuditLog = require('../src/models/TranslationAuditLog');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const TranslationAuditLog = require('../models/TranslationAuditLog');
 const crypto = require('crypto');
 
 const MONGO_URI = process.env.MONGO_URI;
