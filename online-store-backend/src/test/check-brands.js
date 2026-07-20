@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const checkProducts = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    const Product = require('./src/models/Product');
+    const Product = require('../models/Product');
 
     // Check products without brands
     const productsWithoutBrands = await Product.find({ 

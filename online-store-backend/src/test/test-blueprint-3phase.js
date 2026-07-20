@@ -12,9 +12,9 @@ const mongoose = require('mongoose');
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'test-token'; // Set in .env
 
-const Language = require('./src/models/Language');
-const StaticTranslation = require('./src/models/StaticTranslation');
-const LiveTranslationCache = require('./src/models/LiveTranslationCache');
+const Language = require('../models/Language');
+const StaticTranslation = require('../models/StaticTranslation');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 async function test(description, fn) {
   try {
