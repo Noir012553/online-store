@@ -307,7 +307,7 @@ export function OrdersList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1>{t('permission_manage_orders', 'admin')}</h1>
         {!viewDeletedTab && (
           <Button
@@ -355,8 +355,8 @@ export function OrdersList() {
         </div>
 
         <div className="p-6 border-b">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+            <div className="w-full sm:flex-1 sm:min-w-64">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -373,7 +373,7 @@ export function OrdersList() {
             {!viewDeletedTab && (
               <>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder={t('admin_status', 'admin')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -384,7 +384,7 @@ export function OrdersList() {
                   </SelectContent>
                 </Select>
                 <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder={t('admin_payment_method', 'admin')} />
                   </SelectTrigger>
                   <SelectContent>

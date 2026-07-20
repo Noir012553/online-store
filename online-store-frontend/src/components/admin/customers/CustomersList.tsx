@@ -221,7 +221,7 @@ export function CustomersList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1>{t('permission_manage_customers', 'admin')}</h1>
         {!viewDeletedTab && (
           <Button

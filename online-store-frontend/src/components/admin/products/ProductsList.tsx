@@ -254,7 +254,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1>{discountMode ? t('admin_product_discounts_management', 'admin') : t('permission_manage_products', 'admin')}</h1>
           {discountMode && <p className="text-sm text-gray-500 mt-1">{t('admin_product_discounts_management_desc', 'admin')}</p>}
@@ -305,8 +305,8 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         </div>
 
         <div className="p-6 border-b">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+            <div className="w-full sm:flex-1 sm:min-w-64">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -323,7 +323,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
             {!viewDeletedTab && (
               <>
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder={t('admin_category', 'admin')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -336,7 +336,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                   </SelectContent>
                 </Select>
                 <Select value={filterBrand} onValueChange={setFilterBrand}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder={t('brands_title', 'common')} />
                   </SelectTrigger>
                   <SelectContent>

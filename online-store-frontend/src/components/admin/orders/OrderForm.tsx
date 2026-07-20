@@ -324,7 +324,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
           </h2>
 
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <Label htmlFor="product-select" className="text-xs font-medium text-gray-600">
                   {t('product', 'admin')}
@@ -386,7 +386,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
           </div>
 
           {orderItems.length > 0 && (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
@@ -444,7 +444,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
             <Truck className="w-4 h-4 text-blue-600" />
             {`${t('shipping_fee', 'admin')} & ${t('payment_info', 'admin')}`}
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="shipping-fee" className="text-xs font-medium text-gray-600">
                 {t('shipping_fee', 'admin')}
@@ -530,7 +530,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-6 border-t">
+        <div className="flex flex-col gap-3 pt-6 sm:flex-row border-t">
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || orderItems.length === 0}

@@ -80,7 +80,7 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
         placeholder={t('admin_search_currency_placeholder', 'admin')}
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
-        className="max-w-md"
+        className="w-full max-w-md"
       />
 
       <div className="overflow-x-auto border rounded-lg">
