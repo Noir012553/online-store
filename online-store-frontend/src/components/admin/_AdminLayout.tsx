@@ -211,11 +211,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ] : [];
 
   const isChildActive = (path: string) => router.isReady && router.pathname === path;
+  const closeSidebarOnMobile = () => {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-white relative">
       <Header />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
       {isLoadingNamespace('admin-common') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="text-center">
@@ -226,7 +231,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
       )}
-      <aside className={`bg-black text-white flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-label={adminNamespaceLoaded ? t('sidebar_close', 'admin') : ''}
+        />
+      )}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-black text-white transition-all duration-300 ease-in-out md:static md:z-auto ${sidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:translate-x-0 md:w-20'}`}>
         <div className={`p-4 border-b border-gray-700 flex ${sidebarOpen ? 'flex-row items-center justify-between' : 'flex-col items-center gap-4'}`}>
           <div className={`bg-red-600 text-white px-3 py-2 rounded shrink-0 ${!sidebarOpen && 'w-full text-center'}`}>
             <span className="text-xl">{t('logo_text', 'admin')}</span>
@@ -247,7 +260,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
-        <nav className={`flex-1 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
+        <nav className={`flex-1 overflow-y-auto ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           <div className="space-y-2">
             {menuItems.map((entry) => {
               if (entry.type === "link") {
@@ -258,6 +271,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={entry.id}
                     href={entry.item.path}
+                    onClick={closeSidebarOnMobile}
                     className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${sidebarOpen ? 'justify-start' : 'justify-center'} ${isActive
                         ? 'bg-red-600 text-white'
                         : 'text-gray-300 hover:bg-gray-800'
@@ -312,6 +326,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           <li key={child.path}>
                             <Link
                               href={child.path}
+                              onClick={closeSidebarOnMobile}
                               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${isActive
                                   ? 'bg-red-600 text-white'
                                   : 'text-gray-300 hover:bg-gray-800'
@@ -367,12 +382,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-        <main className="flex-1 flex flex-col">
-          <div className="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm">
-            <RoleBadge />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between border-b bg-white px-4 py-4 shadow-sm sm:px-8">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="rounded p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"
+                onClick={() => setSidebarOpen(true)}
+                aria-label={adminNamespaceLoaded ? t('sidebar_open', 'admin') : ''}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <RoleBadge />
+            </div>
             <NotificationBell />
           </div>
-          <div className="p-8 flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8">
             {children}
           </div>
         </main>
