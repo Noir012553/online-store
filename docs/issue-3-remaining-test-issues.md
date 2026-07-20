@@ -105,3 +105,37 @@ Các vấn đề còn tồn tại chỉ ảnh hưởng đến khả năng chạy
 Hai lỗi chức năng chính đã được xử lý và xác minh thành công. Các hạng mục còn lại là test maintenance, fixture hoặc cấu hình runtime; chưa có bằng chứng cho thấy chúng gây lỗi trở lại trong luồng order hoặc product stats.
 
 **Trạng thái tổng thể:** Chức năng chính đã đạt; test rollback/shadow-write và xác minh runtime đầy đủ vẫn còn chờ môi trường phù hợp.
+
+## Cập nhật dynamic PowerShell mới nhất
+
+Đã chạy trực tiếp trong PowerShell tại thư mục `online-store-backend` với:
+
+- `BaseUrl=http://localhost:5000`
+- `Lang=vi`
+- Không tạo file `.ps1`, JSON hoặc log mới
+
+### Kết quả thực tế
+
+- Active currencies: **PASS**, HTTP `200`, chọn được currency động `VND`.
+- Stats không truyền currency: **PASS**, HTTP `200`.
+- Currency không hợp lệ `ZZZ`: **PASS**, HTTP `400`.
+- Common translations: **PASS**, HTTP `200`.
+- Stats với currency động: **FAIL trong script**, nhận HTTP `400`.
+- Kiểm tra 5 trường stats: **FAIL phụ thuộc**, do request trước đó không lấy được response thành công.
+- Stats fallback có đủ 5 trường: **FAIL trong script**, do script đọc sai vị trí dữ liệu response.
+- Kiểm tra 6 khóa toast: **FAIL trong script**, do script đọc sai vị trí `data.translations`.
+
+### Nguyên nhân đã xác định
+
+1. `Test-Case` thực thi scriptblock bằng `&`, khiến các biến gán bên trong như `$currencyCode`, `$statsWithCurrency` và `$translations` không được giữ ở scope bên ngoài.
+2. Endpoint stats trả về 5 trường thống kê trực tiếp ở `response.Body`, không nằm trong `response.Body.data`.
+3. Endpoint translations trả về các khóa dịch tại `response.Body.data.translations`.
+
+### Biện pháp kiểm tra tiếp theo
+
+- Dùng `$script:currencyCode`, `$script:statsWithCurrency`, `$script:statsFallback` và `$script:translations` khi gán biến bên trong `Test-Case`.
+- Đọc fields stats trực tiếp từ `Body`.
+- Đọc khóa toast từ `Body.data.translations`.
+- Reset `$pass = 0` và `$fail = 0` trước khi chạy lại toàn bộ 8 kiểm tra.
+
+**Trạng thái cập nhật:** API đã phản hồi đúng các status chính; lần chạy dynamic chưa đạt 8/8 vì lỗi scope và cách đọc response trong chính script PowerShell. Chưa có cơ sở ghi nhận lỗi mới của endpoint stats hoặc bản dịch.
