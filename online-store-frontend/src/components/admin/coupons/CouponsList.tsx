@@ -269,7 +269,7 @@ export function CouponsList({ title, description, mode = 'all' }: CouponsListPro
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={!viewDeletedTab ? 'default' : 'outline'}
               onClick={() => handleTabChange(false)}

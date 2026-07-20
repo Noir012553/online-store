@@ -489,7 +489,7 @@ function DashboardContent() {
         {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={`stat-${index}-${stat.label}`} className="bg-white rounded-lg border p-6">
+            <div key={`stat-${index}-${stat.label}`} className="bg-white rounded-lg border p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
                   <Icon className="w-6 h-6 text-red-600" />
@@ -508,7 +508,7 @@ function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-8">
+        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('revenue_trend', 'admin')}</h2>
@@ -537,7 +537,7 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-8">
+        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('orders_trend', 'admin')}</h2>
@@ -568,7 +568,7 @@ function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-8">
+        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('order_status_distribution')}</h2>
@@ -604,7 +604,7 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-8">
+        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('top_products')}</h2>
