@@ -227,3 +227,11 @@ Luồng order không phát sinh lại HTTP `422` do `baseCurrencyCode`. Kết qu
 Khi chạy lại test trong workspace hiện tại, các suite chưa thể hoàn tất vì thiếu cấu hình môi trường ngoài: `MONGO_URI`, JWT access secret và Cloudflare AI credentials. Không bổ sung giá trị giả cho các biến này để tránh làm yếu kiểm tra bảo mật hoặc kết nối nhầm database.
 
 **Trạng thái cập nhật:** Các lỗi import test đã được sửa và kiểm tra cú pháp đạt; việc xác minh runtime còn chờ cấu hình MongoDB, JWT và Cloudflare hợp lệ.
+
+## Kết quả tổng hợp sau khi hoàn tất rà soát Markdown
+
+- Lỗi `POST /api/orders?lang=vi` do `baseCurrencyCode` không hợp lệ đã được xử lý và xác minh không tái diễn.
+- Các kiểm tra dynamic liên quan đến order, backend và payment đã đạt theo kết quả ghi nhận trong báo cáo.
+- Issue-4 đã được xác minh lại độc lập với **12 PASS, 0 FAIL**, không tạo file mới.
+
+**Trạng thái cuối:** Issue-1 hoàn tất; các giới hạn còn lại chỉ thuộc nhóm runtime test cần môi trường MongoDB/JWT/Cloudflare hợp lệ.
