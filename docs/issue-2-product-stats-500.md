@@ -278,3 +278,29 @@ Các lỗi suite trên không làm thay đổi kết quả xác minh product sta
 Kết quả chạy lại runtime hiện bị chặn trước khi vào assertion do môi trường thiếu `MONGO_URI`, JWT access secret và Cloudflare AI credentials. Đây là blocker cấu hình, không phải lỗi mới của endpoint stats hoặc các khóa dịch toast; không tự đặt giá trị giả cho các biến nhạy cảm.
 
 **Trạng thái cập nhật:** Các lỗi import đã được xử lý; product stats và bản dịch vẫn giữ trạng thái đã xác minh đạt, còn kiểm thử runtime đầy đủ cần môi trường backend có đủ cấu hình hợp lệ.
+
+## Cập nhật lần chạy PowerShell dynamic tại workspace `26-4-3 copy 37`
+
+Đã chạy trực tiếp trong thư mục `online-store-backend` với:
+
+- `BaseUrl=http://localhost:5000`
+- `Lang=vi`
+- Không tạo file mới
+
+### Kết quả quan sát được
+
+- Active currencies: **PASS**, HTTP `200`, chọn được currency động `VND`.
+- Stats không truyền currency: **PASS**, HTTP `200`.
+- Currency không hợp lệ `ZZZ`: **PASS**, HTTP `400`.
+- Common translations: **PASS**, HTTP `200`.
+- Stats với currency động: **FAIL trong script**, do biến `$currencyCode` được gán bên trong scriptblock truyền qua `& $Action`, sau đó không còn giá trị ở scope bên ngoài. Vì vậy request không được gửi với `currency=VND`.
+- Kiểm tra 5 field stats: **FAIL phụ thuộc**, do `$statsWithCurrency` và `$statsFallback` cũng được gán trong child scope nên không được giữ lại.
+- Kiểm tra 6 khóa toast: **FAIL trong script**, không phải kết luận thiếu bản dịch; biến `$translations` chịu cùng lỗi scope. Endpoint đã trả HTTP `200`.
+
+### Phân tích
+
+Lần chạy này đạt **4 PASS, 4 FAIL**. Bốn lỗi FAIL còn lại là lỗi truyền biến giữa `Test-Case` và các scriptblock con; không thay đổi kết luận trước đó rằng endpoint fallback stats, validation currency và endpoint translations đang phản hồi đúng HTTP.
+
+Để hoàn tất kiểm tra, script cần lưu các biến dùng chung ở scope ngoài, ví dụ `$script:currencyCode`, `$script:statsWithCurrency`, `$script:statsFallback` và `$script:translations`, hoặc thay `& $Action` bằng cách thực thi scriptblock trong cùng scope phù hợp. Sau khi sửa scope, cần chạy lại để xác nhận đủ 8/8 kiểm tra.
+
+**Trạng thái cập nhật:** API đã tiếp tục vượt qua các kiểm tra HTTP độc lập; bộ dynamic test chưa đạt 8/8 vì lỗi scope trong chính tập lệnh PowerShell.
