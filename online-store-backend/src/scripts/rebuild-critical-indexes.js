@@ -19,9 +19,9 @@ async function rebuildCriticalIndexes() {
         console.log('✅ Connected to MongoDB');
 
         // Import models
-        const Order = require('../src/models/Order');
-        const Review = require('../src/models/Review');
-        const Product = require('../src/models/Product');
+        const Order = require('../models/Order');
+        const Review = require('../models/Review');
+        const Product = require('../models/Product');
 
         console.log('\n📊 Rebuilding critical indexes...');
 

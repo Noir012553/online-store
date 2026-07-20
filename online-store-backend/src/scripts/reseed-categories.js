@@ -7,8 +7,8 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Category = require('./src/models/Category');
-const CategoryFactory = require('./src/factories/categoryFactory');
+const Category = require('../models/Category');
+const CategoryFactory = require('../factories/categoryFactory');
 
 async function reseedCategories() {
   try {

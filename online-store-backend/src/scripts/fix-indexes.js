@@ -15,7 +15,7 @@ async function fixIndexes() {
         await mongoose.connect(MONGO_URI);
 
         // Get User model
-        const User = require('../src/models/User');
+        const User = require('../models/User');
 
         // Drop all indexes on User collection
         await User.collection.dropIndexes();

@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const ProductCatalogTranslationCache = require('./src/models/ProductCatalogTranslationCache');
-const { getActiveLangCodes } = require('./src/config/languageInventory');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const { getActiveLangCodes } = require('../config/languageInventory');
 
 (async () => {
   try {
@@ -28,7 +28,7 @@ const { getActiveLangCodes } = require('./src/config/languageInventory');
     console.log(`\n  📈 TỔNG: ${total}`);
     
     // Check if there's any data for non-default languages
-    const { getDefaultLanguage } = require('./src/config/languageInventory');
+    const { getDefaultLanguage } = require('../config/languageInventory');
     const defaultLang = getDefaultLanguage().code;
     const nonDefaultLangs = LANGS.filter(l => l !== defaultLang);
     let anyData = false;

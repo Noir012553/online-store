@@ -198,7 +198,7 @@ describe('PHASE 4: E2E Verification Tests', function() {
       }
 
       // Error rate
-      const oldErrors = await LiveTranslationCache.countDocuments({ status: { $ne: 'success', $ne: null } });
+      const oldErrors = await LiveTranslationCache.countDocuments({ status: { $nin: ['success', null] } });
       const newErrors = await ProductCatalogTranslationCache.countDocuments({ status: { $ne: 'success' } }) +
                         await UserContentTranslationCache.countDocuments({ status: { $ne: 'success' } });
 
