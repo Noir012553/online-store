@@ -301,3 +301,15 @@ Không thay đổi các alias suite đang dùng chung file VNPay hoặc shadow-w
 Đây là cảnh báo trùng registry, không phải lỗi file; runner hiện khử trùng đường dẫn khi resolve các file chạy chung.
 
 **Trạng thái cập nhật mới nhất:** Dynamic issue-4 đạt **8 PASS, 2 FAIL**. Hai lỗi còn lại thuộc package script thiếu file và workspace offline manual chưa đồng bộ với nội dung đã sửa trong repository hiện tại.
+
+### Xác nhận từ console PowerShell
+
+Kết quả tổng kết trực tiếp từ lần chạy mới nhất:
+
+```text
+KẾT QUẢ ISSUE-4: 8 PASS, 2 FAIL
+Không chạy API, không chạy lại test chức năng issue-1/2/3.
+Không tạo file mới.
+```
+
+Các suite được `npm run test:list` liệt kê thành công: `i18n`, `products`, `orders`, `vnpay`, `backend`, `rollback`, `shadow-writes`, `simple`.
