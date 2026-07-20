@@ -279,6 +279,14 @@ Kết quả chạy lại runtime hiện bị chặn trước khi vào assertion 
 
 **Trạng thái cập nhật:** Các lỗi import đã được xử lý; product stats và bản dịch vẫn giữ trạng thái đã xác minh đạt, còn kiểm thử runtime đầy đủ cần môi trường backend có đủ cấu hình hợp lệ.
 
+## Kết quả tổng hợp sau khi hoàn tất rà soát Markdown
+
+- Product stats với currency hợp lệ, fallback currency và validation currency không hợp lệ đã đạt các tiêu chí đã đề ra.
+- Sáu khóa toast tiếng Việt đã được xác minh đầy đủ.
+- Kiểm tra dynamic issue-4 đã đạt **12 PASS, 0 FAIL**, không tạo file mới.
+
+**Trạng thái cuối:** Issue-2 hoàn tất; các giới hạn còn lại chỉ thuộc nhóm runtime test phụ thuộc cấu hình môi trường.
+
 ## Cập nhật lần chạy PowerShell dynamic tại workspace `26-4-3 copy 37`
 
 Đã chạy trực tiếp trong thư mục `online-store-backend` với:

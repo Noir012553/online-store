@@ -166,3 +166,15 @@ Kết quả: 8 PASS, 0 FAIL
 Lần chạy này xác nhận bộ product stats và common translations đạt đầy đủ **8/8**. Các vấn đề còn lại trong phạm vi tổng hợp vẫn chỉ là rollback/shadow-write và runtime test phụ thuộc MongoDB, JWT, Cloudflare credentials; không phát sinh lỗi mới trong product stats hoặc bản dịch.
 
 **Trạng thái cập nhật mới nhất:** PowerShell dynamic sanity test đạt **8/8**, không tạo file mới.
+
+## Kết quả xác minh cuối cùng
+
+Đã chạy lại tập lệnh PowerShell dynamic issue-4 trực tiếp trong workspace `26-4-3 copy 38`, từ thư mục `online-store-backend`, không tạo file mới.
+
+```text
+KẾT QUẢ ISSUE-4: 12 PASS, 0 FAIL
+```
+
+Các kiểm tra backend/frontend, npm script, test registry, test runner, số lượng suite và offline manual đều đạt. Các lỗi trước đó do quoting của `node -e` và workspace cũ chưa đồng bộ đã không còn tái diễn.
+
+**Trạng thái tổng thể:** Issue-1, issue-2, issue-3 và issue-4 đã được rà soát, cập nhật và hoàn tất theo phạm vi kiểm tra hiện tại. Không còn lỗi wiring được xác nhận trong bộ kiểm tra issue-4.
