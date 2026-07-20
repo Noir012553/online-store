@@ -129,6 +129,12 @@ async function main() {
     console.log(`⏭️  Skipped: ${cliArgs.skip.join(', ')}\n`);
   }
 
+  const unknownSuites = suitesToRun.filter(suite => !TEST_SUITES[suite]);
+  if (unknownSuites.length > 0) {
+    console.error(`❌ Unknown test suite(s): ${unknownSuites.join(', ')}`);
+    process.exit(1);
+  }
+
   // Show which tests will run
   console.log('📋 Tests to run:\n');
   suitesToRun.forEach(suite => {

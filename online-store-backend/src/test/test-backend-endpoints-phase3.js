@@ -94,7 +94,7 @@ class EndpointTester {
     }
 
     // If data has specs, should be from new schema (aggregated)
-    if (Object.keys(data.specs).length > 0) {
+    if (data.specs && typeof data.specs === 'object' && Object.keys(data.specs).length > 0) {
       log.info(`  └─ Found ${Object.keys(data.specs).length} specs (aggregated in new schema)`);
     }
   }
@@ -119,7 +119,7 @@ class EndpointTester {
     }
 
     const { data } = response.data;
-    if (data && Object.keys(data.specs).length > 0) {
+    if (data?.specs && typeof data.specs === 'object' && Object.keys(data.specs).length > 0) {
       log.info(`  └─ Fallback to old schema working: ${Object.keys(data.specs).length} specs`);
     }
   }
