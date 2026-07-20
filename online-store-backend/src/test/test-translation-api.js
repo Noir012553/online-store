@@ -12,7 +12,7 @@ const { getActiveLangCodes } = require('../config/languageInventory');
 async function testTranslationAPI() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/laptop-store-dev');
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/laptop-store-dev');
 
     // Get a product ID
     const product = await Product.findOne().lean();

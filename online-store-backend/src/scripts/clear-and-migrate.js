@@ -4,8 +4,8 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
-const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 
 const MigrationService = require('./migrate-translations');
 

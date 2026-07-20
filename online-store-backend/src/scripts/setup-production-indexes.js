@@ -10,9 +10,9 @@
  */
 
 const mongoose = require('mongoose');
-const Language = require('../src/models/Language');
-const StaticTranslation = require('../src/models/StaticTranslation');
-const LiveTranslationCache = require('../src/models/LiveTranslationCache');
+const Language = require('../models/Language');
+const StaticTranslation = require('../models/StaticTranslation');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 async function setupIndexes() {
   try {

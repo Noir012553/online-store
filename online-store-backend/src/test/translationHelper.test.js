@@ -1,120 +1,138 @@
+const assert = require('node:assert/strict');
 const {
-  overlayTranslationBatch,
   overlayTranslationBatchWithFallback,
   getTranslationWithFallback,
   TRANSLATABLE_FIELDS,
   CACHE_MODELS,
-} = require('../src/services/translationHelper');
+  overlayCouponTranslations,
+  overlayOrderTranslations,
+  overlayBannerTranslations,
+  overlayTestimonialTranslations,
+} = require('../services/translationHelper');
+
+function createQueryMock() {
+  const mock = (query) => {
+    mock.calls.push(query);
+    return { lean: () => mock.result };
+  };
+
+  mock.calls = [];
+  mock.result = Promise.resolve(null);
+  return mock;
+}
 
 describe('translationHelper - Entity Type Support', () => {
   describe('CACHE_MODELS and TRANSLATABLE_FIELDS', () => {
     it('should support 8+ entity types', () => {
       const expectedTypes = ['product', 'brand', 'userContent', 'coupon', 'order', 'banner', 'testimonial'];
       expectedTypes.forEach(type => {
-        expect(CACHE_MODELS[type]).toBeDefined();
-        expect(TRANSLATABLE_FIELDS[type]).toBeDefined();
+        assert.notStrictEqual(CACHE_MODELS[type], undefined);
+        assert.notStrictEqual(TRANSLATABLE_FIELDS[type], undefined);
       });
     });
 
     it('should have correct translatable fields for coupon', () => {
-      expect(TRANSLATABLE_FIELDS.coupon).toEqual(
-        expect.arrayContaining(['name', 'description', 'codeDescription', 'termsAndConditions'])
-      );
+      assert.ok(['name', 'description', 'codeDescription', 'termsAndConditions'].every(field =>
+        TRANSLATABLE_FIELDS.coupon.includes(field)
+      ));
     });
 
     it('should have correct translatable fields for order', () => {
-      expect(TRANSLATABLE_FIELDS.order).toEqual(
-        expect.arrayContaining(['customerNotes', 'shippingNotes', 'adminNotes', 'statusMessage'])
-      );
+      assert.ok(['customerNotes', 'shippingNotes', 'adminNotes', 'statusMessage'].every(field =>
+        TRANSLATABLE_FIELDS.order.includes(field)
+      ));
     });
 
     it('should have correct translatable fields for banner', () => {
-      expect(TRANSLATABLE_FIELDS.banner).toEqual(
-        expect.arrayContaining(['title', 'description', 'ctaText', 'altText'])
-      );
+      assert.ok(['title', 'description', 'ctaText', 'altText'].every(field =>
+        TRANSLATABLE_FIELDS.banner.includes(field)
+      ));
     });
 
     it('should have correct translatable fields for testimonial', () => {
-      expect(TRANSLATABLE_FIELDS.testimonial).toEqual(
-        expect.arrayContaining(['content', 'authorName', 'authorTitle', 'authorCompany'])
-      );
+      assert.ok(['content', 'authorName', 'authorTitle', 'authorCompany'].every(field =>
+        TRANSLATABLE_FIELDS.testimonial.includes(field)
+      ));
     });
   });
 });
 
 describe('translationHelper - Exact-language overlays', () => {
   let mockCouponCache;
+  let originalCouponCache;
 
   beforeEach(() => {
+    originalCouponCache = CACHE_MODELS.coupon;
     mockCouponCache = {
-      findOne: jest.fn(),
-      find: jest.fn(),
+      findOne: createQueryMock(),
+      find: createQueryMock(),
     };
     CACHE_MODELS.coupon = mockCouponCache;
   });
 
+  afterEach(() => {
+    CACHE_MODELS.coupon = originalCouponCache;
+  });
+
   describe('getTranslationWithFallback', () => {
     it('should return null when no translation exists for the requested language', async () => {
-      mockCouponCache.findOne.mockReturnValue({ lean: jest.fn().resolves(null) });
+      mockCouponCache.findOne.result = Promise.resolve(null);
 
       const result = await getTranslationWithFallback('123', 'coupon', 'vi');
 
-      expect(mockCouponCache.findOne).toHaveBeenCalledWith({
+      assert.deepStrictEqual(mockCouponCache.findOne.calls, [{
         entityId: '123',
         targetLang: 'vi',
         status: 'success',
-      });
-      expect(result).toBeNull();
+      }]);
+      assert.strictEqual(result, null);
     });
 
     it('should query only the requested language', async () => {
-      mockCouponCache.findOne.mockReturnValue({
-        lean: jest.fn().resolves({
-          entityId: '123',
-          targetLang: 'fr',
-          name: 'Coupon français',
-        }),
+      mockCouponCache.findOne.result = Promise.resolve({
+        entityId: '123',
+        targetLang: 'fr',
+        name: 'Coupon français',
       });
 
       const result = await getTranslationWithFallback('123', 'coupon', 'fr');
 
-      expect(mockCouponCache.findOne).toHaveBeenCalledTimes(1);
-      expect(mockCouponCache.findOne).toHaveBeenCalledWith({
+      assert.deepStrictEqual(mockCouponCache.findOne.calls, [{
         entityId: '123',
         targetLang: 'fr',
         status: 'success',
-      });
-      expect(result.appliedLang).toBe('fr');
-      expect(result.fallbackUsed).toBe(false);
+      }]);
+      assert.strictEqual(result.appliedLang, 'fr');
+      assert.strictEqual(result.fallbackUsed, false);
     });
 
     it('should return null when the requested-language query fails', async () => {
-      mockCouponCache.findOne.mockReturnValue({ lean: jest.fn().rejects(new Error('DB error')) });
+      mockCouponCache.findOne.result = Promise.reject(new Error('DB error'));
 
       const result = await getTranslationWithFallback('123', 'coupon', 'fr');
 
-      expect(result).toBeNull();
+      assert.strictEqual(result, null);
     });
 
     it('should return null for unknown entity type', async () => {
       const result = await getTranslationWithFallback('123', 'unknownType', 'fr');
-      expect(result).toBeNull();
+      assert.strictEqual(result, null);
     });
 
     it('should return null for missing entityId', async () => {
       const result = await getTranslationWithFallback(null, 'coupon', 'fr');
-      expect(result).toBeNull();
+      assert.strictEqual(result, null);
     });
   });
 
   describe('overlayTranslationBatchWithFallback', () => {
     it('should keep source entities when no exact-language translation exists', async () => {
       const entities = [{ _id: '1', name: 'Item' }];
-      mockCouponCache.find.mockReturnValue({ lean: jest.fn().resolves([]) });
+      mockCouponCache.find.result = Promise.resolve([]);
 
       const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'vi');
 
-      expect(result).toEqual(entities);
+      assert.deepStrictEqual(result, entities);
     });
 
     it('should overlay only exact-language translations', async () => {
@@ -122,52 +140,46 @@ describe('translationHelper - Exact-language overlays', () => {
         { _id: '1', name: 'Original Name' },
         { _id: '2', name: 'Original Name 2' },
       ];
-      mockCouponCache.find.mockReturnValue({
-        lean: jest.fn().resolves([
-          { entityId: '1', targetLang: 'fr', name: 'Nom français' },
-        ]),
-      });
+      mockCouponCache.find.result = Promise.resolve([
+        { entityId: '1', targetLang: 'fr', name: 'Nom français' },
+      ]);
 
       const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'fr');
 
-      expect(mockCouponCache.find).toHaveBeenCalledWith({
+      assert.deepStrictEqual(mockCouponCache.find.calls, [{
         entityId: { $in: ['1', '2'] },
         targetLang: 'fr',
         status: 'success',
-      });
-      expect(result[0].name).toBe('Nom français');
-      expect(result[1].name).toBe('Original Name 2');
+      }]);
+      assert.strictEqual(result[0].name, 'Nom français');
+      assert.strictEqual(result[1].name, 'Original Name 2');
     });
 
     it('should return original entities on error', async () => {
       const entities = [{ _id: '1', name: 'Item' }];
-      mockCouponCache.find.mockReturnValue({ lean: jest.fn().rejects(new Error('DB error')) });
+      mockCouponCache.find.result = Promise.reject(new Error('DB error'));
 
       const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'fr');
 
-      expect(result).toEqual(entities);
+      assert.deepStrictEqual(result, entities);
     });
   });
 });
 
 describe('translationHelper - Entity Type Batch Overlays', () => {
   it('should have batch helper for coupon', () => {
-    const { overlayCouponTranslations } = require('../src/services/translationHelper');
-    expect(typeof overlayCouponTranslations).toBe('function');
+    assert.strictEqual(typeof overlayCouponTranslations, 'function');
   });
 
   it('should have batch helper for order', () => {
-    const { overlayOrderTranslations } = require('../src/services/translationHelper');
-    expect(typeof overlayOrderTranslations).toBe('function');
+    assert.strictEqual(typeof overlayOrderTranslations, 'function');
   });
 
   it('should have batch helper for banner', () => {
-    const { overlayBannerTranslations } = require('../src/services/translationHelper');
-    expect(typeof overlayBannerTranslations).toBe('function');
+    assert.strictEqual(typeof overlayBannerTranslations, 'function');
   });
 
   it('should have batch helper for testimonial', () => {
-    const { overlayTestimonialTranslations } = require('../src/services/translationHelper');
-    expect(typeof overlayTestimonialTranslations).toBe('function');
+    assert.strictEqual(typeof overlayTestimonialTranslations, 'function');
   });
 });
