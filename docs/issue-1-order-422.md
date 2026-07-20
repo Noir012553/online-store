@@ -209,3 +209,17 @@ Kết quả mới xác nhận các lỗi dữ liệu/module/registry trước đ
 Luồng order không phát sinh lại HTTP `422` do `baseCurrencyCode`. Kết quả mới tiếp tục xác nhận phần sửa dữ liệu và backend/payment chính đang hoạt động.
 
 **Trạng thái cập nhật mới nhất:** Luồng order, API dynamic, backend suite và payment suite đạt; chỉ các suite i18n/products/rollback còn vấn đề riêng trong test hoặc môi trường.
+
+## Cập nhật tiến độ kiểm tra mã nguồn mới nhất
+
+Đã rà soát và sửa các đường dẫn import tương đối sai trong các script kiểm tra nằm dưới `online-store-backend/src/test`:
+
+- `test-blueprint-3phase.js`: đổi các import model từ `./src/...` sang `../...`.
+- `check-db-state.js`: sửa import model và `languageInventory` về đường dẫn đúng.
+- `check-db-brands.js`, `check-brands.js`, `check-products.js`: sửa import `Product` về `../models/Product`.
+
+Đã chạy `node --check` cho toàn bộ các file trên: **PASS**. Đã cài các dependency backend theo `package.json` với `npm install --package-lock=false`; không tạo lockfile mới.
+
+Khi chạy lại test trong workspace hiện tại, các suite chưa thể hoàn tất vì thiếu cấu hình môi trường ngoài: `MONGO_URI`, JWT access secret và Cloudflare AI credentials. Không bổ sung giá trị giả cho các biến này để tránh làm yếu kiểm tra bảo mật hoặc kết nối nhầm database.
+
+**Trạng thái cập nhật:** Các lỗi import test đã được sửa và kiểm tra cú pháp đạt; việc xác minh runtime còn chờ cấu hình MongoDB, JWT và Cloudflare hợp lệ.

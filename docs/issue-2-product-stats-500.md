@@ -268,3 +268,13 @@ Tổng kết dynamic test: **8/8 kiểm tra API đạt**, `test:list` và `test:
 Các lỗi suite trên không làm thay đổi kết quả xác minh product stats, currency fallback hoặc translations. Script dynamic cũng đã chạy đúng sau khi sửa cú pháp PowerShell và cách truyền lệnh `node -e`.
 
 **Trạng thái cập nhật mới nhất:** Product stats, fallback currency, validation currency, i18n toast, backend suite và payment suite đều đạt; các lỗi còn lại chỉ nằm trong test import, cấu hình môi trường hoặc điều kiện rollback.
+
+## Cập nhật tiến độ kiểm tra mã nguồn mới nhất
+
+Đã sửa các import tương đối sai trong nhóm script kiểm tra backend dưới `online-store-backend/src/test`, gồm `test-blueprint-3phase.js`, `check-db-state.js`, `check-db-brands.js`, `check-brands.js` và `check-products.js`. Các file đều đã vượt qua `node --check`.
+
+Đã cài dependency backend theo `package.json` bằng `npm install --package-lock=false` để chạy test mà không tạo lockfile mới. `npm run test:list` đã chạy thành công và registry hiện nhận đúng các suite.
+
+Kết quả chạy lại runtime hiện bị chặn trước khi vào assertion do môi trường thiếu `MONGO_URI`, JWT access secret và Cloudflare AI credentials. Đây là blocker cấu hình, không phải lỗi mới của endpoint stats hoặc các khóa dịch toast; không tự đặt giá trị giả cho các biến nhạy cảm.
+
+**Trạng thái cập nhật:** Các lỗi import đã được xử lý; product stats và bản dịch vẫn giữ trạng thái đã xác minh đạt, còn kiểm thử runtime đầy đủ cần môi trường backend có đủ cấu hình hợp lệ.
