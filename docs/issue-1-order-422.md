@@ -170,3 +170,18 @@ Kết quả: **không chạy được test nào** vì `testRegistry.js` đang tr
 - Các test backend còn thất bại liên quan tới dữ liệu test, module thiếu và đường dẫn trong test registry; không ảnh hưởng tới kết quả checkout thực tế đã xác minh.
 
 **Trạng thái cuối:** Đã xử lý và xác minh thành công lỗi tạo đơn hàng HTTP 422 do `baseCurrencyCode` không hợp lệ.
+
+## Cập nhật tiến độ lần chạy dynamic test mới
+
+Đã chạy lại tập lệnh PowerShell dynamic tại workspace `26-4-3 copy 35`.
+
+- API dynamic: **8/8 PASS**.
+- `npm run test:list`: **PASS**.
+- `npm run test:simple`: **PASS**.
+- Backend suite: **PASS**, gồm `test-backend-endpoints-phase3.js` đạt 8/8 và `test-phase4-e2e-simplified.js` đạt 10 passing.
+- Payment tag suite: **PASS**, cả `test-vnpay-quick.js` và `test-vnpay-signature-fix.js` đều chạy thành công.
+- Rollback suite: **FAIL**, chỉ còn lỗi trong test rollback/shadow-write; không liên quan đến luồng tạo đơn hàng hay `baseCurrencyCode`.
+
+Kết quả mới xác nhận các lỗi dữ liệu/module/registry trước đây của backend và payment suite đã được khắc phục trong workspace hiện tại. Luồng checkout không phát sinh lỗi `422` do mã tiền tệ trong lần xác minh này.
+
+**Trạng thái cập nhật:** Chức năng order và các test backend/payment chính đã đạt; rollback suite vẫn cần sửa test fixture và dependency.

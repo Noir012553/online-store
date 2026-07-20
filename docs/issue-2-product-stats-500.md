@@ -213,3 +213,31 @@ Lần này đã chạy tại đúng thư mục backend:
 Tổng kết dynamic test: **8/8 kiểm tra API đạt**, `test:list` và `test:simple` đạt; còn **3 nhóm local test thất bại**. Các lỗi local này không ảnh hưởng đến việc xác minh product stats API, currency fallback hoặc sáu khóa toast.
 
 **Trạng thái cuối:** Đã xác minh trên môi trường dev rằng lỗi HTTP 500 của product stats overview đã được khắc phục theo các tiêu chí kiểm thử API; fallback currency, validation currency không hợp lệ và các khóa toast tiếng Việt đều hoạt động đúng. API đạt 8/8, nhưng toàn bộ local test suite chưa đạt do lỗi dữ liệu test, module thiếu và cấu hình test registry/runner.
+
+## Cập nhật tiến độ lần chạy dynamic test mới
+
+Đã chạy lại tập lệnh PowerShell dynamic tại workspace `26-4-3 copy 35`.
+
+### Kết quả mới
+
+- API dynamic: **8/8 PASS**.
+- Currency mặc định được chọn động là `VND`.
+- Stats có currency hợp lệ: HTTP `200`, đủ 5 field.
+- Stats không truyền currency: HTTP `200`, đủ 5 field.
+- Stats với currency `ZZZ`: HTTP `400`.
+- Common translations: HTTP `200`, đủ 6 khóa toast locale `vi`.
+- Backend suite: **PASS**, `test-backend-endpoints-phase3.js` đạt 8/8 và Phase 4 đạt 10 passing.
+- Payment tag suite: **PASS**, cả hai test VNPay đều chạy thành công.
+- Rollback suite: **FAIL**, còn 1 test file thất bại là `test-rollback-procedures.js`; `test-shadow-writes.js` kết thúc process thành công nhưng bên trong vẫn ghi nhận lỗi fixture `entityType=generic`.
+
+### Nguyên nhân rollback còn thất bại
+
+- Fixture `LiveTranslationCache` thiếu trường bắt buộc `originalText` tại `src/test/test-rollback-procedures.js:38` và `:224`.
+- Test dùng `expect` nhưng chưa khai báo assertion library tại các dòng `193`, `202`, `213`, `291`, `356`.
+- Test truyền object app không phải Express instance cho Supertest, gây `app.address is not a function` tại các dòng `249` và `260`.
+- Thiếu module `TranslationAuditLog` tại `src/models/TranslationAuditLog`.
+- Fixture Phase 4 tạo bản ghi trùng khóa `{ entityId: "rollback-test-product-123", targetLang: "en" }` tại dòng `322`.
+- `test-shadow-writes.js` dùng `entityType: "generic"`, nhưng schema `UserContentTranslationCache` không cho phép enum này.
+- Có cảnh báo port `5000` đang được sử dụng khi rollback test khởi tạo app/server phụ.
+
+**Trạng thái cập nhật:** Product stats, currency fallback, i18n toast, backend suite và payment suite đã đạt. Chỉ còn rollback test cần chỉnh fixture, assertion import, app export và model dependency.
