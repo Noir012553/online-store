@@ -271,8 +271,8 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       </div>
 
       <div className="bg-white rounded-lg border mb-6">
-        <div className="border-b">
-          <div className="flex gap-0">
+        <div className="overflow-x-auto border-b">
+          <div className="flex min-w-max gap-0">
             <button
               onClick={() => {
                 setViewDeletedTab(false);
@@ -358,13 +358,13 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
             <thead className="bg-white">
               <tr>
                 <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_product_name', 'admin')}</th>
-                <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_brand', 'admin')}</th>
-                <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_category', 'admin')}</th>
+                <th className="hidden px-6 py-3 text-left text-xs uppercase sm:table-cell">{t('admin_brand', 'admin')}</th>
+                <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_category', 'admin')}</th>
                 <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_price', 'admin')}</th>
                 {!viewDeletedTab && (
                   <>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_stock_status', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('rating', 'common')}</th>
+                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_stock_status', 'admin')}</th>
+                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('rating', 'common')}</th>
                   </>
                 )}
                 <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
@@ -391,8 +391,8 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">{product.brand || t('not_updated', 'admin')}</td>
-                  <td className="px-6 py-4">
+                  <td className="hidden px-6 py-4 sm:table-cell">{product.brand || t('not_updated', 'admin')}</td>
+                  <td className="hidden px-6 py-4 md:table-cell">
                     {product.category ? getCategoryName(product.category) : (product.categoryName || product.category || t('not_updated', 'common'))}
                   </td>
                   <td className="px-6 py-4 font-medium">
@@ -410,7 +410,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                   </td>
                   {!viewDeletedTab && (
                     <>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-6 py-4 lg:table-cell">
                         {product.countInStock === null || product.countInStock === undefined ? (
                           <Badge variant="secondary">{t('not_updated', 'common')}</Badge>
                         ) : (
@@ -419,7 +419,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-6 py-4 lg:table-cell">
                         <div className="flex items-center gap-1 whitespace-nowrap">
                           <span className="font-medium">{(product.rating || 0).toFixed(1)}</span>
                           <span>⭐</span>
@@ -488,7 +488,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       </div>
 
       <Dialog open={!!deleteConfirmProduct} onOpenChange={() => setDeleteConfirmProduct(null)}>
-        <DialogContent className="sm:max-w-100 animate-in fade-in zoom-in-95 duration-200">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md animate-in fade-in zoom-in-95 duration-200">
           <DialogHeader className="space-y-3">
             <div className="flex items-center gap-3">
               <div className={`shrink-0 flex items-center justify-center h-10 w-10 rounded-full ${viewDeletedTab ? 'bg-red-100' : 'bg-orange-100'}`}>

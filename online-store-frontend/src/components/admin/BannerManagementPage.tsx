@@ -375,9 +375,9 @@ export function BannerManagementPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_image', 'admin-banners')}</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_content', 'admin-banners')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_position', 'admin-banners')}</th>
+                  <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 md:table-cell">{t('banner_table_position', 'admin-banners')}</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_status', 'admin-banners')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_time', 'admin-banners')}</th>
+                  <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 lg:table-cell">{t('banner_table_time', 'admin-banners')}</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_actions', 'admin-banners')}</th>
                 </tr>
               </thead>
@@ -402,14 +402,14 @@ export function BannerManagementPage() {
                         {banner.targetUrl && <div className="text-xs text-gray-500">{t('banner_linkPrefix', 'admin-banners')}{banner.targetUrl}</div>}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden px-6 py-4 md:table-cell">
                       <div className="space-y-1">
                         <div className="text-sm font-medium text-gray-900">{getSlotLabel(banner.slot, slotOptions)}</div>
                         <div className="text-xs text-gray-500">{t('banner_form_sort_order', 'admin-banners')}: {banner.sortOrder ?? 0}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">{renderStatusBadge(banner)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
+                    <td className="hidden px-6 py-4 text-sm text-gray-700 lg:table-cell">
                       <div className="space-y-1">
                         <div>{t('banner_date_start', 'admin-banners')}{formatDate(banner.startDate, locale)}</div>
                         <div>{t('banner_date_end', 'admin-banners')}{formatDate(banner.endDate, locale)}</div>
@@ -495,7 +495,7 @@ export function BannerManagementPage() {
 
 
       <Dialog open={Boolean(confirmTarget)} onOpenChange={(open: boolean) => !open && setConfirmTarget(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md">
           <DialogHeader>
             <DialogTitle>
               {confirmTarget?.action === 'delete'

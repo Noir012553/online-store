@@ -235,8 +235,8 @@ export function CustomersList() {
       </div>
 
       <div className="bg-white rounded-lg border mb-6">
-        <div className="border-b">
-          <div className="flex gap-0">
+        <div className="overflow-x-auto border-b">
+          <div className="flex min-w-max gap-0">
             <button
               onClick={() => {
                 setViewDeletedTab(false);
@@ -295,8 +295,8 @@ export function CustomersList() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
                     <th className="px-6 py-3 text-left text-xs uppercase">{t('contact', 'common')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer_address', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_join_date', 'admin')}</th>
+                    <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_customer_address', 'admin')}</th>
+                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_join_date', 'admin')}</th>
                     <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
                   </tr>
                 </thead>
@@ -326,10 +326,10 @@ export function CustomersList() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm max-w-xs">{customer.address || t('not_updated', 'common')}</p>
+                      <td className="hidden px-6 py-4 md:table-cell">
+                        <p className="max-w-xs text-sm">{customer.address || t('not_updated', 'common')}</p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-6 py-4 lg:table-cell">
                         {customer.createdAt ? formatDate(new Date(customer.createdAt), locale) : t('not_updated', 'common')}
                       </td>
                       <td className="px-6 py-4">
@@ -402,7 +402,7 @@ export function CustomersList() {
       </div>
 
       <Dialog open={!!deleteConfirmCustomer} onOpenChange={() => setDeleteConfirmCustomer(null)}>
-        <DialogContent className="sm:max-w-100 animate-in fade-in zoom-in-95 duration-200">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md animate-in fade-in zoom-in-95 duration-200">
           <DialogHeader className="space-y-3">
             <div className="flex items-center gap-3">
               <div className={`shrink-0 flex items-center justify-center h-10 w-10 rounded-full ${viewDeletedTab ? 'bg-red-100' : 'bg-orange-100'}`}>
