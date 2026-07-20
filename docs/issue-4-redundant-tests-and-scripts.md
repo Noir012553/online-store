@@ -224,3 +224,24 @@ Cần chạy lại các khối kiểm tra sau khi khai báo lại `Test-Check` v
 - Khả năng liệt kê suite bằng `npm run test:list`.
 
 **Trạng thái cập nhật:** Đường dẫn workspace và việc đọc registry đã xác minh đúng; kiểm tra dynamic issue-4 vẫn đang chờ chạy lại với đầy đủ hàm hỗ trợ trong cùng phiên PowerShell.
+
+## Cập nhật xử lý issue-4
+
+Đã sửa lỗi chắc chắn trong script manual frontend:
+
+- `online-store-frontend/src/test/offline-manual.js:3`
+- Đổi hướng dẫn từ `node test-offline-manual.js` thành `node src/test/offline-manual.js`, đúng với vị trí thực tế của file khi chạy từ thư mục frontend.
+
+Không thay đổi các alias suite đang dùng chung file VNPay hoặc shadow-write. Đây là wiring trùng có chủ đích để cùng một test có thể được gọi theo nhóm chức năng khác nhau; `testRegistry.js` vẫn khử trùng file khi resolve danh sách chạy chung.
+
+### Kết quả kiểm tra sau khi sửa
+
+Đã kiểm tra mà không chạy lại API hoặc các test chức năng trong ba báo cáo trước:
+
+- `offline-manual.js`: `node --check` **PASS**.
+- `testRegistry.js`: `node --check` **PASS**.
+- `test-runner.js`: `node --check` **PASS**.
+- Registry: **8 suite**, toàn bộ file được registry tham chiếu đều tồn tại.
+- Không tạo file mới.
+
+**Trạng thái cập nhật mới nhất:** Đã sửa lỗi tên lệnh chạy offline manual và xác nhận cú pháp/wiring registry đạt; các alias suite trùng vẫn được giữ để không làm mất coverage.
