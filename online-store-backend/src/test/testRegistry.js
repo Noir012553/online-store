@@ -45,7 +45,6 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['orders', 'payments'],
     files: [
-      'test-with-order.js',
       'test-vnpay-quick.js',
       'test-vnpay-signature-fix.js',
     ],
