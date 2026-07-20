@@ -7,11 +7,12 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Language = require('./src/models/Language');
-const LiveTranslationCache = require('./src/models/LiveTranslationCache');
-const Product = require('./src/models/Product');
+const Language = require('../models/Language');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const Product = require('../models/Product');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/online-store';
+const { getActiveLangCodes } = require('../config/languageInventory');
 
 async function testLanguagesFlow() {
   try {
@@ -46,7 +47,6 @@ async function testLanguagesFlow() {
     }
 
     // 6. Test supported languages list
-    const { getActiveLangCodes } = require('../../config/languageInventory');
     const activeLangs = getActiveLangCodes();
     activeLangs.forEach((code) => {
       const isAdded = existingLanguages.some(l => l.code === code);
