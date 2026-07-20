@@ -95,24 +95,22 @@ class TranslationHelper {
       if (!entityId) return entity;
 
       // Fetch dynamic translation from backend
-      const cacheKey = `${lang}:${entityType}`;
+      const cacheKey = `${lang}:${entityType}:${entityId}`;
       let translations = this.dynamicCache.get(cacheKey);
+      const params = new URLSearchParams({ lang, entityType });
 
       if (!translations) {
-        const response = await fetch(
-          `/api/translations/dynamic?lang=${lang}&entityType=${entityType}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([
-              {
-                entityId,
-                entityType,
-                originalValue: entity.name || entity.title,
-              },
-            ]),
-          }
-        );
+        const response = await fetch(`/api/translations/dynamic?${params.toString()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([
+            {
+              entityId,
+              entityType,
+              originalValue: entity.name || entity.title,
+            },
+          ]),
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -122,7 +120,6 @@ class TranslationHelper {
           translations = {} as DynamicTranslationResponse;
         }
       } else {
-        // translations is guaranteed to be non-undefined here (from cache.get)
         translations = translations as DynamicTranslationResponse;
       }
 
@@ -171,14 +168,12 @@ class TranslationHelper {
       }));
 
       // Fetch all translations at once
-      const response = await fetch(
-        `/api/translations/dynamic?lang=${lang}&entityType=${entityType}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(batchItems),
-        }
-      );
+      const params = new URLSearchParams({ lang, entityType });
+      const response = await fetch(`/api/translations/dynamic?${params.toString()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batchItems),
+      });
 
       if (!response.ok) {
         return entities;
@@ -239,12 +234,10 @@ class TranslationHelper {
    */
   async verifyTranslationConsistency(entityId: string, lang: string): Promise<boolean> {
     try {
-      const response = await fetch(
-        `/api/translations/verify?entityId=${entityId}&lang=${lang}`,
-        {
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      const params = new URLSearchParams({ entityId, lang });
+      const response = await fetch(`/api/translations/verify?${params.toString()}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       if (!response.ok) return false;
 
