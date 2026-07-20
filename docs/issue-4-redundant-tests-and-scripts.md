@@ -313,3 +313,56 @@ Không tạo file mới.
 ```
 
 Các suite được `npm run test:list` liệt kê thành công: `i18n`, `products`, `orders`, `vnpay`, `backend`, `rollback`, `shadow-writes`, `simple`.
+
+## Cập nhật xác minh sau khi sửa wiring
+
+Đã cập nhật `online-store-backend/package.json` để loại bỏ các npm script seed trỏ tới file không tồn tại:
+
+- `seed:tier1`
+- `seed:tier2`
+- `seed:unified`
+- `seed:tier1:clear`
+
+Không tạo file seed thay thế và không chạy seed, vì các lệnh này có thể ghi dữ liệu vào database. Các script seed hợp lệ dùng `src/seeds/index.js` vẫn được giữ nguyên.
+
+Tập lệnh PowerShell dynamic mới được chạy trực tiếp tại workspace `26-4-3 copy 37`, không tạo file mới, không chạy API và không chạy lại test chức năng của issue-1/2/3.
+
+### Kết quả lần chạy mới nhất
+
+```text
+13 PASS, 1 FAIL, 0 WARN
+```
+
+Các kiểm tra đạt:
+
+- Required files tồn tại.
+- `testRegistry.js`, `test-runner.js`, `offline-manual.js` vượt qua `node --check`.
+- Không còn npm script backend trỏ tới file thiếu.
+- Các npm seed script hỏng đã được loại bỏ.
+- Frontend `npm test` trỏ tới `node src/test/offline-manual.js`.
+- Registry tham chiếu các file test tồn tại.
+- `npm run test:list` kết thúc với exit code `0`.
+- Registry hiện có 8 suite và 9 file test được tham chiếu.
+
+### FAIL còn lại
+
+```text
+offline-manual.js không còn lệnh cũ
+```
+
+FAIL này xuất hiện trong workspace chạy test vì file `online-store-frontend/src/test/offline-manual.js` tại workspace đó vẫn chưa chứa dòng:
+
+```text
+node src/test/offline-manual.js
+```
+
+Bản file hiện tại trong repository đã có đúng hướng dẫn này tại dòng 3. Vì vậy cần đồng bộ workspace chạy test với repository trước khi kết luận còn lỗi code. Không nên sửa bằng cách tạo file mới.
+
+### Kết luận cập nhật
+
+- **Đã xử lý:** toàn bộ npm script backend trỏ tới file seed không tồn tại.
+- **Đã đạt:** kiểm tra required files, syntax, registry, frontend npm command và `npm run test:list`.
+- **Còn chờ đồng bộ workspace:** nội dung cũ của `offline-manual.js`.
+- **Không phát sinh:** lỗi mới trong API hoặc các test chức năng của issue-1/2/3.
+
+**Trạng thái cập nhật mới nhất:** Issue-4 đạt **13 PASS, 1 FAIL, 0 WARN**; FAIL còn lại là khác biệt workspace frontend, trong khi bản repository đã có lệnh chạy offline đúng.
