@@ -1,5 +1,9 @@
 # Vấn đề 1: API tạo đơn trả về 422
 
+## Quy tắc đặt tên báo cáo
+
+Tên file Markdown phải theo định dạng `issue-N-<mô-tả>.md`, trong đó `N` là số thứ tự của issue.
+
 ## Trạng thái
 
 - **Loại:** Đã xác minh nguyên nhân, đã triển khai biện pháp sửa dữ liệu và chặn import lỗi
