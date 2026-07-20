@@ -183,3 +183,133 @@ Chưa có bằng chứng các phát hiện này làm hỏng trực tiếp:
 - **Chưa thực hiện:** Xóa hoặc di chuyển file.
 
 **Trạng thái:** Cần quyết định dọn wiring và xác nhận các file manual/legacy trước khi thực hiện thay đổi filesystem.
+
+## Cập nhật kiểm tra dynamic issue-4 tại workspace `26-4-3 copy 37`
+
+Đã chạy tiếp tập lệnh PowerShell tại thư mục:
+
+- `E:\Dev Camp\26-4-3 copy 37\online-store-backend`
+- Đã sửa logic nhận diện đường dẫn để không nối lặp `online-store-backend\online-store-backend`.
+- Đã xác nhận đúng vị trí backend: `E:\Dev Camp\26-4-3 copy 37\online-store-backend`.
+- Đã xác nhận đúng vị trí frontend: `E:\Dev Camp\26-4-3 copy 37\online-store-frontend`.
+- Đã đọc được `package.json` của cả hai project.
+- Đã đọc được `TEST_SUITES` từ `src/test/testRegistry.js`.
+- Không chạy lại các kiểm thử chức năng đã hoàn tất trong ba báo cáo trước.
+- Không tạo file mới.
+
+### Kết quả cần lưu ý
+
+Các khối kiểm tra `Test-Check` chưa được thực thi trong lần chạy này vì phiên PowerShell hiện tại không còn hàm `Test-Check` từ phiên trước. PowerShell trả về:
+
+```text
+The term 'Test-Check' is not recognized
+```
+
+Vì vậy dòng tổng kết `0 PASS, 0 FAIL` chỉ phản ánh biến đếm vừa được khởi tạo, không phải kết quả kiểm tra issue-4. Không dùng lần chạy này để kết luận các kiểm tra đã đạt hoặc thất bại.
+
+Lệnh đọc registry vẫn chạy thành công và xác nhận các nhóm suite hiện có gồm `i18n`, `products`, `orders`, `vnpay`, `backend`, `rollback`, `shadow-writes` và `simple`.
+
+### Bước tiếp theo
+
+Cần chạy lại các khối kiểm tra sau khi khai báo lại `Test-Check` và `Get-ReferencedFiles` trong cùng phiên PowerShell. Chỉ khi đó mới ghi nhận được số liệu PASS/FAIL hợp lệ cho:
+
+- File được npm script tham chiếu.
+- Cú pháp `testRegistry.js` và `test-runner.js`.
+- File test tồn tại theo registry.
+- Test bị đăng ký trùng giữa các suite.
+- Test backend chưa được registry đăng ký.
+- Script trùng tên giữa `scripts` và `src/scripts`.
+- Frontend chưa có test runner tự động.
+- Tên file trong `offline-manual.js`.
+- Khả năng liệt kê suite bằng `npm run test:list`.
+
+**Trạng thái cập nhật:** Đường dẫn workspace và việc đọc registry đã xác minh đúng; kiểm tra dynamic issue-4 vẫn đang chờ chạy lại với đầy đủ hàm hỗ trợ trong cùng phiên PowerShell.
+
+## Cập nhật xử lý issue-4
+
+Đã sửa lỗi chắc chắn trong script manual frontend:
+
+- `online-store-frontend/src/test/offline-manual.js:3`
+- Đổi hướng dẫn từ `node test-offline-manual.js` thành `node src/test/offline-manual.js`, đúng với vị trí thực tế của file khi chạy từ thư mục frontend.
+
+Không thay đổi các alias suite đang dùng chung file VNPay hoặc shadow-write. Đây là wiring trùng có chủ đích để cùng một test có thể được gọi theo nhóm chức năng khác nhau; `testRegistry.js` vẫn khử trùng file khi resolve danh sách chạy chung.
+
+### Kết quả kiểm tra sau khi sửa
+
+Đã kiểm tra mà không chạy lại API hoặc các test chức năng trong ba báo cáo trước:
+
+- `offline-manual.js`: `node --check` **PASS**.
+- `testRegistry.js`: `node --check` **PASS**.
+- `test-runner.js`: `node --check` **PASS**.
+- Registry: **8 suite**, toàn bộ file được registry tham chiếu đều tồn tại.
+- Không tạo file mới.
+
+**Trạng thái cập nhật mới nhất:** Đã sửa lỗi tên lệnh chạy offline manual và xác nhận cú pháp/wiring registry đạt; các alias suite trùng vẫn được giữ để không làm mất coverage.
+
+## Kết quả tập lệnh dynamic issue-4 mới nhất
+
+Đã chạy tại workspace `26-4-3 copy 37`, thư mục `online-store-backend`, không chạy lại API hoặc test chức năng của issue-1/2/3 và không tạo file mới.
+
+### Kết quả tổng hợp
+
+```text
+8 PASS, 2 FAIL
+```
+
+### PASS
+
+- Các thư mục backend/frontend tồn tại.
+- Registry và runner có cú pháp hợp lệ.
+- Toàn bộ file được `testRegistry.js` tham chiếu đều tồn tại.
+- Phát hiện và báo cáo các test được đăng ký ở nhiều suite.
+- Phân loại các test chưa được registry đăng ký.
+- So sánh script trùng tên giữa `scripts` và `src/scripts`.
+- Frontend chưa có test runner tự động; đây là cảnh báo đúng theo cấu hình hiện tại.
+- `npm run test:list` liệt kê thành công 8 suite.
+
+### FAIL cần xử lý
+
+1. **NPM scripts tham chiếu file không tồn tại**
+
+   Workspace chạy test đang có các tham chiếu sau:
+
+   - `test:tier3` → `src/test/test-tier3.js`
+   - `seed:tier1` → `src/scripts/seedTier1.js`
+   - `seed:tier2` → `src/scripts/seedTier2.js`
+   - `seed:unified` → `src/scripts/seedUnified.js`
+   - `seed:tier1:clear` → `src/scripts/seedTier1.js`
+
+   Đây là lỗi wiring/package script. Chưa tự xóa hoặc tạo file thay thế vì cần xác định các script tier có còn được duy trì hay không.
+
+2. **Kiểm tra lệnh offline manual vẫn phát hiện tên cũ**
+
+   Trong repository hiện tại, `offline-manual.js:3` đã là:
+
+   ```text
+   node src/test/offline-manual.js
+   ```
+
+   Do đó kết quả `FAIL` từ workspace chạy test cho thấy workspace đó vẫn đang dùng nội dung cũ hoặc có thêm chuỗi `node test-offline-manual.js` chưa được đồng bộ. Cần kiểm tra lại đúng file đang chạy trước khi sửa tiếp.
+
+### Wiring trùng được xác nhận
+
+- `test-vnpay-quick.js`: `orders`, `vnpay`.
+- `test-vnpay-signature-fix.js`: `orders`, `vnpay`.
+- `test-phase4-e2e-simplified.js`: `products`, `backend`.
+- `test-shadow-writes.js`: `rollback`, `shadow-writes`.
+
+Đây là cảnh báo trùng registry, không phải lỗi file; runner hiện khử trùng đường dẫn khi resolve các file chạy chung.
+
+**Trạng thái cập nhật mới nhất:** Dynamic issue-4 đạt **8 PASS, 2 FAIL**. Hai lỗi còn lại thuộc package script thiếu file và workspace offline manual chưa đồng bộ với nội dung đã sửa trong repository hiện tại.
+
+### Xác nhận từ console PowerShell
+
+Kết quả tổng kết trực tiếp từ lần chạy mới nhất:
+
+```text
+KẾT QUẢ ISSUE-4: 8 PASS, 2 FAIL
+Không chạy API, không chạy lại test chức năng issue-1/2/3.
+Không tạo file mới.
+```
+
+Các suite được `npm run test:list` liệt kê thành công: `i18n`, `products`, `orders`, `vnpay`, `backend`, `rollback`, `shadow-writes`, `simple`.
