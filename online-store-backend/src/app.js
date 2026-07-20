@@ -360,9 +360,14 @@ const connectDB = async () => {
   }
 };
 
-connectDB();
+if (require.main === module) {
+  connectDB();
+}
 
 mongoose.connection.on('disconnected', () => {
+  if (require.main !== module) {
+    return;
+  }
   if (process.env.NODE_ENV === 'development') {
     console.warn('[DB_WARN] MongoDB disconnected, attempting reconnect...');
   }

@@ -10,21 +10,37 @@
  * Usage: npm test -- test/test-rollback-procedures.js
  */
 
+const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
 
-const app = require('../app');
+const { app } = require('../app');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const TranslationAuditLog = require('../models/TranslationAuditLog');
 
-describe('ROLLBACK PROCEDURES', () => {
+describe('ROLLBACK PROCEDURES', function() {
   const testProductId = 'rollback-test-product-123';
+
+  before(async function() {
+    await mongoose.connect(process.env.MONGO_URI);
+  });
+
+  after(async function() {
+    await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
+    await LiveTranslationCache.deleteMany({ entityId: testProductId });
+    await TranslationAuditLog.deleteMany({ userId: 'test-user' });
+    await mongoose.disconnect();
+  });
 
   // ============ SCENARIO 1: Feature Flag Disable ============
   describe('Scenario 1: Feature Flag Disable (USE_NEW_SCHEMA=false)', () => {
     beforeEach(async () => {
+      await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
+      await LiveTranslationCache.deleteMany({ entityId: testProductId });
+
       // Seed both new and old schema
       await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -39,6 +55,7 @@ describe('ROLLBACK PROCEDURES', () => {
         entityId: testProductId,
         targetLang: 'en',
         entityType: 'product_name',
+        originalText: 'Original Schema Data',
         translatedText: 'Old Schema Data',
         hashKey: `${testProductId}_old`,
         status: 'success'
@@ -54,31 +71,31 @@ describe('ROLLBACK PROCEDURES', () => {
       process.env.USE_NEW_SCHEMA = 'true';
 
       const res = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Should query new schema (returns new schema data)
       if (res.status === 200) {
-        expect(res.body.data).toBeDefined();
+        assert.ok(res.body.data);
         // Note: Actual implementation checks which schema was hit
       }
 
-      expect(res.status).toBeLessThan(500);
+      assert.ok(res.status < 500);
     });
 
     it('✅ Feature flag disabled (USE_NEW_SCHEMA=false): Fallback to OLD schema only', async () => {
       process.env.USE_NEW_SCHEMA = 'false';
 
       const res = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Should query old schema only (returns old schema data)
       if (res.status === 200) {
-        expect(res.body.data).toBeDefined();
+        assert.ok(res.body.data);
       }
 
-      expect(res.status).toBeLessThan(500);
+      assert.ok(res.status < 500);
 
       // Reset flag
       process.env.USE_NEW_SCHEMA = 'true';
@@ -88,18 +105,18 @@ describe('ROLLBACK PROCEDURES', () => {
       // This tests that feature flag can be toggled without restart
       process.env.USE_NEW_SCHEMA = 'true';
       let res1 = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Flip flag
       process.env.USE_NEW_SCHEMA = 'false';
       let res2 = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Both should work (toggle works)
-      expect(res1.status).toBeLessThan(500);
-      expect(res2.status).toBeLessThan(500);
+      assert.ok(res1.status < 500);
+      assert.ok(res2.status < 500);
 
       // Reset
       process.env.USE_NEW_SCHEMA = 'true';
@@ -122,8 +139,8 @@ describe('ROLLBACK PROCEDURES', () => {
           const content = fs.readFileSync(backupFile, 'utf-8');
           const data = JSON.parse(content);
 
-          expect(data).toBeDefined();
-          expect(Array.isArray(data) || typeof data === 'object').toBe(true);
+          assert.ok(data);
+          assert.ok(Array.isArray(data) || typeof data === 'object');
         }
       }
     });
@@ -145,7 +162,7 @@ describe('ROLLBACK PROCEDURES', () => {
           if (Array.isArray(data) && data.length > 0) {
             const sample = data[0];
             // Should have at least _id or hashKey
-            expect(sample._id || sample.hashKey).toBeDefined();
+            assert.ok(sample._id || sample.hashKey);
           }
         }
       }
@@ -163,7 +180,7 @@ describe('ROLLBACK PROCEDURES', () => {
         if (files.length > 0) {
           // Backup exists, restore command would be valid
           const backupPath = path.join(backupDir, files[0]);
-          expect(fs.existsSync(backupPath) || true).toBe(true);
+          assert.ok(fs.existsSync(backupPath) || true);
         }
       }
     });
@@ -177,7 +194,7 @@ describe('ROLLBACK PROCEDURES', () => {
         // Should have manifest
         if (fs.existsSync(manifestFile)) {
           const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf-8'));
-          expect(manifest.backups || manifest.backup).toBeDefined();
+          assert.ok(manifest.backups || manifest.backup);
         }
       }
     });
@@ -190,7 +207,7 @@ describe('ROLLBACK PROCEDURES', () => {
       // git log --oneline | grep "Phase 3" | head -1
       
       const hasGit = require('child_process').spawnSync('git', ['--version']).status === 0;
-      expect(hasGit).toBe(true);
+      assert.equal(hasGit, true);
     });
 
     it('✅ Rollback command structure is valid', () => {
@@ -199,7 +216,7 @@ describe('ROLLBACK PROCEDURES', () => {
       
       const example = 'git revert abc123def456';
       const hasGitCommand = example.includes('git revert');
-      expect(hasGitCommand).toBe(true);
+      assert.equal(hasGitCommand, true);
     });
 
     it('✅ No uncommitted changes before rollback', () => {
@@ -210,7 +227,7 @@ describe('ROLLBACK PROCEDURES', () => {
       const result = spawnSync('git', ['status', '--porcelain']);
       
       // Should either work or git not available
-      expect(result.status === 0 || result.status === 127).toBe(true);
+      assert.ok(result.status === 0 || result.status === 127);
     });
   });
 
@@ -225,17 +242,18 @@ describe('ROLLBACK PROCEDURES', () => {
         entityId: testProductId,
         targetLang: 'en',
         entityType: 'product_name',
+        originalText: 'Fallback Source Data',
         translatedText: 'Fallback Data',
         hashKey: `${testProductId}_fallback`,
         status: 'success'
       });
 
       const res = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Should not crash, either returns data or graceful error
-      expect(res.status).toBeLessThan(500);
+      assert.ok(res.status < 500);
 
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
     });
@@ -246,23 +264,23 @@ describe('ROLLBACK PROCEDURES', () => {
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
 
       const res = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: testProductId, lang: 'en' });
+        .get(`/api/translations/products/${testProductId}`)
+        .query({ lang: 'en' });
 
       // Should return graceful error (404 not 500)
       if (res.status >= 400) {
-        expect(res.status).toBeLessThan(500);
+        assert.ok(res.status < 500);
       }
     });
 
     it('✅ Error responses have helpful messages', async () => {
       const res = await request(app)
-        .get('/api/translations/products')
-        .query({ productId: 'nonexistent-id', lang: 'en' });
+        .get('/api/translations/products/nonexistent-id')
+        .query({ lang: 'en' });
 
       // Should have message field
       if (res.status >= 400) {
-        expect(res.body.message || res.body.error).toBeDefined();
+        assert.ok(res.body.message || res.body.error);
       }
     });
   });
@@ -288,7 +306,7 @@ describe('ROLLBACK PROCEDURES', () => {
       });
 
       // Data should still exist until explicitly deleted
-      expect(count).toBeGreaterThan(0);
+      assert.ok(count > 0);
 
       // Cleanup
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
@@ -296,14 +314,15 @@ describe('ROLLBACK PROCEDURES', () => {
 
     it('✅ Audit logs are immutable (not affected by rollback)', async () => {
       // Even if we rollback code, audit logs should remain
-      const TranslationAuditLog = require('../src/models/TranslationAuditLog');
-
       const auditEntry = await TranslationAuditLog.create({
         hashKey: `${testProductId}_audit`,
         userId: 'test-user',
         action: 'manual_override',
         oldValue: 'old',
         newValue: 'new',
+        entityId: testProductId,
+        entityType: 'product_name',
+        targetLang: 'en',
         timestamp: new Date()
       });
 
@@ -311,15 +330,17 @@ describe('ROLLBACK PROCEDURES', () => {
       const found = await TranslationAuditLog.findById(auditEntry._id);
 
       // Should still exist
-      expect(found).toBeDefined();
+      assert.ok(found);
 
       // Cleanup
       await TranslationAuditLog.deleteMany({ userId: 'test-user' });
     });
 
     it('✅ TTL indexes are preserved after rollback', async () => {
+      await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
+
       // Create document with TTL
-      const doc = await ProductCatalogTranslationCache.create({
+      await ProductCatalogTranslationCache.create({
         entityId: testProductId,
         targetLang: 'en',
         name: 'TTL Test',
@@ -333,7 +354,7 @@ describe('ROLLBACK PROCEDURES', () => {
       const indexes = await ProductCatalogTranslationCache.collection.getIndexes();
       const hasTTL = Object.values(indexes).some(idx => idx.expireAfterSeconds);
 
-      expect(hasTTL).toBe(true);
+      assert.equal(hasTTL, true);
 
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
@@ -353,7 +374,7 @@ describe('ROLLBACK PROCEDURES', () => {
         ⏱️  Estimated rollback time: <30 minutes
         🛡️  Data loss risk: MINIMAL
       `);
-      expect(true).toBe(true);
+      assert.equal(true, true);
     });
   });
 });
