@@ -54,7 +54,7 @@ async function testShadowWrites() {
     // Shadow write
     const newCache = await UserContentTranslationCache.create({
       entityId: hashKey,
-      entityType: 'generic',
+      entityType: 'comment',
       targetLang: 'en',
       originalText: testText,
       translatedText: 'test shadow write API (translated)',
