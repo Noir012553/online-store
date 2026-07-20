@@ -241,3 +241,30 @@ Tổng kết dynamic test: **8/8 kiểm tra API đạt**, `test:list` và `test:
 - Có cảnh báo port `5000` đang được sử dụng khi rollback test khởi tạo app/server phụ.
 
 **Trạng thái cập nhật:** Product stats, currency fallback, i18n toast, backend suite và payment suite đã đạt. Chỉ còn rollback test cần chỉnh fixture, assertion import, app export và model dependency.
+
+## Cập nhật kết quả dynamic test mới nhất
+
+Đã chạy tập lệnh PowerShell dynamic hợp nhất tại workspace `26-4-3 copy 36` với `BaseUrl=http://localhost:5000`, `Lang=vi` và `-RunLocalSuites`.
+
+### Kết quả đạt
+
+- API dynamic: **8/8 PASS**.
+- `GET /api/currencies?isActive=true`: HTTP `200`, chọn được currency mặc định `VND`.
+- Stats với currency hợp lệ: HTTP `200`, đủ 5 field.
+- Stats không truyền currency: HTTP `200`, đủ 5 field.
+- Stats với currency `ZZZ`: HTTP `400`.
+- Common translations: HTTP `200`, đủ 6 khóa toast locale `vi`.
+- `npm run test:list`: **PASS**.
+- `npm run test:simple`: **PASS**.
+- Suite `backend`: **PASS**; Phase 3 đạt `8/8`, Phase 4 simplified đạt `10 passing`.
+- Suite `orders` và `vnpay`: **PASS**.
+
+### Các suite còn lỗi
+
+- Suite `i18n`: 2 file lỗi do test import sai đường dẫn tương đối; một file khác ghi nhận HTTP `401` nhưng vẫn thoát với exit code `0`.
+- Suite `products`: thiếu `ADMIN_TOKEN`; test Phase 4 cũ dùng cú pháp Jest (`test(...)`) nhưng chạy qua Mocha.
+- Suite `rollback`: `15 passing`, `2 failing`; lỗi còn lại liên quan đến kiểm tra Git chưa clean và TTL index.
+
+Các lỗi suite trên không làm thay đổi kết quả xác minh product stats, currency fallback hoặc translations. Script dynamic cũng đã chạy đúng sau khi sửa cú pháp PowerShell và cách truyền lệnh `node -e`.
+
+**Trạng thái cập nhật mới nhất:** Product stats, fallback currency, validation currency, i18n toast, backend suite và payment suite đều đạt; các lỗi còn lại chỉ nằm trong test import, cấu hình môi trường hoặc điều kiện rollback.

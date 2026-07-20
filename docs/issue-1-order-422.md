@@ -185,3 +185,27 @@ Kết quả: **không chạy được test nào** vì `testRegistry.js` đang tr
 Kết quả mới xác nhận các lỗi dữ liệu/module/registry trước đây của backend và payment suite đã được khắc phục trong workspace hiện tại. Luồng checkout không phát sinh lỗi `422` do mã tiền tệ trong lần xác minh này.
 
 **Trạng thái cập nhật:** Chức năng order và các test backend/payment chính đã đạt; rollback suite vẫn cần sửa test fixture và dependency.
+
+## Cập nhật kết quả dynamic test mới nhất
+
+Đã chạy tập lệnh PowerShell dynamic hợp nhất tại workspace `26-4-3 copy 36` với `BaseUrl=http://localhost:5000`, `Lang=vi` và `-RunLocalSuites`.
+
+### Kết quả đạt
+
+- API dynamic: **8/8 PASS**.
+- `npm run test:list`: **PASS**.
+- `npm run test:simple`: **PASS**.
+- Suite `orders`: **PASS**; cả hai test VNPay đều chạy thành công.
+- Suite `vnpay`: **PASS**; cả hai test VNPay đều chạy thành công.
+- Suite `backend`: **PASS**; Phase 3 đạt `8/8`, Phase 4 simplified đạt `10 passing`.
+- Stats có currency, stats fallback, currency không hợp lệ và translations đều đúng tiêu chí.
+
+### Các suite còn lỗi
+
+- Suite `i18n`: thất bại 2 file do test dùng đường dẫn tương đối sai (`./src/models/Language` và `./src/controllers/translationController`). Đây là lỗi trong test import, không phải lỗi endpoint order.
+- Suite `products`: thiếu biến môi trường `ADMIN_TOKEN`; test Phase 4 cũ dùng `test(...)` nhưng đang chạy bằng Mocha nên phát sinh `ReferenceError: test is not defined`.
+- Suite `rollback`: `15 passing`, `2 failing`; hai kiểm tra còn lại phụ thuộc trạng thái Git chưa clean và TTL index của database.
+
+Luồng order không phát sinh lại HTTP `422` do `baseCurrencyCode`. Kết quả mới tiếp tục xác nhận phần sửa dữ liệu và backend/payment chính đang hoạt động.
+
+**Trạng thái cập nhật mới nhất:** Luồng order, API dynamic, backend suite và payment suite đạt; chỉ các suite i18n/products/rollback còn vấn đề riêng trong test hoặc môi trường.
