@@ -127,7 +127,7 @@ export function CustomerForm({ mode, customerId, onSuccess, onCancel }: Customer
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="max-w-2xl mx-auto py-4 sm:py-6">
       <div className="mb-8">
         <Button
           variant="ghost"
@@ -147,7 +147,7 @@ export function CustomerForm({ mode, customerId, onSuccess, onCancel }: Customer
         </p>
       </div>
 
-      <div className="bg-white rounded-lg border space-y-6 p-6">
+      <div className="bg-white rounded-lg border space-y-6 p-4 sm:p-6">
         {/* Customer Info Section */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -220,7 +220,7 @@ export function CustomerForm({ mode, customerId, onSuccess, onCancel }: Customer
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-6 border-t">
+        <div className="flex flex-col gap-3 pt-6 border-t sm:flex-row">
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}

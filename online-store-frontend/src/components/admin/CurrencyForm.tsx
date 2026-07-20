@@ -112,7 +112,7 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
   };
 
   return (
-    <div className="bg-white rounded-lg border p-6 space-y-4">
+    <div className="bg-white rounded-lg border p-4 space-y-4 sm:p-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">
           {currency ? t('admin_edit_currency', 'admin') : t('admin_add_currency', 'admin')}
@@ -191,7 +191,7 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
           </div>
 
           <div className="flex items-end">
-            <div className="flex gap-4 w-full">
+            <div className="flex flex-col gap-3 w-full sm:flex-row sm:gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -229,7 +229,7 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel}>
             {t('form_cancel', 'admin')}
           </Button>

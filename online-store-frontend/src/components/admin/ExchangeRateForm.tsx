@@ -138,7 +138,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
   }));
 
   return (
-    <div className="bg-white rounded-lg border p-6 space-y-4">
+    <div className="bg-white rounded-lg border p-4 space-y-4 sm:p-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">
           {rate ? t('admin_edit_exchange_rate', 'admin') : t('admin_add_exchange_rate', 'admin')}
@@ -169,8 +169,8 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
             </Select>
           </div>
 
-          <div className="flex justify-center">
-            <ArrowRight className="w-5 h-5 text-gray-400 mt-6" />
+          <div className="flex justify-center md:pt-6">
+            <ArrowRight className="w-5 h-5 text-gray-400 md:mt-6" />
           </div>
 
           <div>
@@ -241,7 +241,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
           </label>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel}>
             {t('form_cancel', 'admin')}
           </Button>

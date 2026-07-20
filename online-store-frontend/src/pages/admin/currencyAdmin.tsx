@@ -93,7 +93,7 @@ export function CurrencyAdminContent() {
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             <button
               onClick={() => setActiveTab('currencies')}
               className={`px-4 py-3 font-medium border-b-2 transition ${
@@ -121,10 +121,10 @@ export function CurrencyAdminContent() {
         <div className="space-y-6">
           {activeTab === 'currencies' && (
             <>
-              <div className="flex justify-end">
+              <div className="flex justify-stretch sm:justify-end">
                 <Button
                   onClick={handleAddCurrency}
-                  className="flex items-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 sm:w-auto"
                 >
                   <Plus className="w-4 h-4" />
                   {t('admin_add_currency')}
@@ -149,10 +149,10 @@ export function CurrencyAdminContent() {
 
           {activeTab === 'rates' && (
             <>
-              <div className="flex justify-end">
+              <div className="flex justify-stretch sm:justify-end">
                 <Button
                   onClick={handleAddRate}
-                  className="flex items-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 sm:w-auto"
                 >
                   <Plus className="w-4 h-4" />
                   {t('admin_add_exchange_rate')}

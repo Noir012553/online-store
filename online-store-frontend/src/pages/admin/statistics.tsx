@@ -389,7 +389,7 @@ function StatisticsContent() {
 
   const sectionCard = (title: string, icon: React.ReactNode, children: React.ReactNode, action?: React.ReactNode) => (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-5 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">{icon}</div>
           <div>
@@ -398,7 +398,7 @@ function StatisticsContent() {
           </div>
         </div>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-4 sm:p-6">{children}</div>
     </section>
   );
 
@@ -620,7 +620,7 @@ function StatisticsContent() {
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-3xl border border-red-100 bg-linear-to-br from-white via-white to-red-50 shadow-sm">
-        <div className="flex flex-col gap-6 px-8 py-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Badge className="bg-red-600 px-3 py-1 text-white">{t('admin_statistics_title')}</Badge>
@@ -1084,7 +1084,7 @@ function StatisticsContent() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-gray-100">
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
               <table className="w-full">
                 <thead className="bg-white text-xs uppercase tracking-wider text-gray-500">
                   <tr>
@@ -1128,7 +1128,7 @@ function StatisticsContent() {
 
       {/* ===== NEGATIVE INSIGHTS SECTION ===== */}
       <section className="overflow-hidden rounded-3xl border border-amber-100 bg-linear-to-br from-white via-white to-amber-50 shadow-sm">
-        <div className="flex flex-col gap-6 px-8 py-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Badge className="bg-amber-600 px-3 py-1 text-white">{t('admin_statistics_title')}</Badge>
@@ -1458,7 +1458,7 @@ function StatisticsContent() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-dashed border-red-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
+      <section className="rounded-2xl border border-dashed border-red-200 bg-white p-4 text-sm text-gray-600 shadow-sm sm:p-6">
         <div className="flex items-start gap-3">
           <Sparkles className="mt-0.5 h-5 w-5 text-red-600" />
           <div>
@@ -1472,7 +1472,7 @@ function StatisticsContent() {
       </section>
 
       <Dialog open={!!selectedDetail} onOpenChange={(open: boolean) => !open && closeDetail()}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl">
           {selectedDetail && (
             <div className="space-y-6">
               <DialogHeader className="space-y-1">
