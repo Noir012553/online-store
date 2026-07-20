@@ -362,3 +362,31 @@ Kết quả: 8 PASS, 0 FAIL
 Lần chạy này xác nhận lại trên workspace `26-4-3 copy 37` rằng currency fallback, stats overview, validation currency `ZZZ` và sáu khóa toast tiếng Việt đều hoạt động đúng. Lệnh PowerShell cũng kết thúc mà không phát sinh file mới.
 
 **Trạng thái xác minh mới nhất:** Product stats và nhóm bản dịch common đạt **8/8** bằng kiểm thử dynamic thực tế.
+
+## Kết quả chạy PowerShell dynamic sau khi sửa cú pháp
+
+Đã chạy lại trực tiếp tại workspace `26-4-3 copy 37`, trong thư mục `online-store-backend`, với:
+
+- `BaseUrl=http://localhost:5000`
+- `Lang=vi`
+- Currency được chọn động: `VND`
+- Không tạo file `.ps1`, JSON hoặc log mới
+
+Lần chạy mới đã sửa khối điều kiện chọn currency để `if`, `elseif` và `else` nằm trong cùng một câu lệnh PowerShell. Kết quả thực tế:
+
+```text
+PASS  Active currencies trả HTTP 200
+PASS  Stats với currency động trả HTTP 200
+PASS  Stats với currency có đủ 5 trường
+PASS  Stats không truyền currency trả HTTP 200
+PASS  Stats fallback có đủ 5 trường
+PASS  Currency không hợp lệ trả HTTP 400
+PASS  Common translations trả HTTP 200
+PASS  Có đủ 6 khóa toast tiếng Việt
+
+Kết quả: 8 PASS, 0 FAIL
+```
+
+Kết quả này xác nhận lại currency fallback, stats overview, validation currency `ZZZ` và sáu khóa toast tiếng Việt đều hoạt động đúng. Tập lệnh kết thúc thành công và không phát sinh file mới.
+
+**Trạng thái cập nhật mới nhất:** Product stats và nhóm bản dịch common đạt **8/8** sau khi sửa cú pháp PowerShell dynamic.
