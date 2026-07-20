@@ -139,3 +139,30 @@ Hai lỗi chức năng chính đã được xử lý và xác minh thành công.
 - Reset `$pass = 0` và `$fail = 0` trước khi chạy lại toàn bộ 8 kiểm tra.
 
 **Trạng thái cập nhật:** API đã phản hồi đúng các status chính; lần chạy dynamic chưa đạt 8/8 vì lỗi scope và cách đọc response trong chính script PowerShell. Chưa có cơ sở ghi nhận lỗi mới của endpoint stats hoặc bản dịch.
+
+## Kết quả xác minh sau khi sửa tập lệnh
+
+Đã chạy lại tập lệnh PowerShell dynamic trực tiếp tại workspace `26-4-3 copy 37`, trong thư mục `online-store-backend`, với `BaseUrl=http://localhost:5000` và `Lang=vi`.
+
+- Đã sửa cú pháp khối chọn currency để `if`, `elseif` và `else` được thực thi liền nhau.
+- Currency được chọn động là `VND`.
+- Không tạo file `.ps1`, JSON hoặc log mới.
+
+Kết quả thực tế:
+
+```text
+PASS  Active currencies trả HTTP 200
+PASS  Stats với currency động trả HTTP 200
+PASS  Stats với currency có đủ 5 trường
+PASS  Stats không truyền currency trả HTTP 200
+PASS  Stats fallback có đủ 5 trường
+PASS  Currency không hợp lệ trả HTTP 400
+PASS  Common translations trả HTTP 200
+PASS  Có đủ 6 khóa toast tiếng Việt
+
+Kết quả: 8 PASS, 0 FAIL
+```
+
+Lần chạy này xác nhận bộ product stats và common translations đạt đầy đủ **8/8**. Các vấn đề còn lại trong phạm vi tổng hợp vẫn chỉ là rollback/shadow-write và runtime test phụ thuộc MongoDB, JWT, Cloudflare credentials; không phát sinh lỗi mới trong product stats hoặc bản dịch.
+
+**Trạng thái cập nhật mới nhất:** PowerShell dynamic sanity test đạt **8/8**, không tạo file mới.
