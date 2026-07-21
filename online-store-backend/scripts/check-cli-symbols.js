@@ -78,6 +78,7 @@ const checkedFiles = [
   'src/test/test-language-sync.js',
   'src/scripts/fix-product-prices.js',
   'src/scripts/quick-generate-translations.js',
+  'src/test/test-phase4-e2e-simplified.js',
 ];
 const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;

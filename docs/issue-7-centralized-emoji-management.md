@@ -352,3 +352,6 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành thêm:** chuẩn hóa output terminal của `src/scripts/health-check-i18n.js` và `src/scripts/diagnose-old-schema.js` qua `CLI_SYMBOLS`; giữ nguyên thông tin health check và chẩn đoán schema.
 - **Đã hoàn thành thêm:** chuẩn hóa ký hiệu thống kê trong `src/scripts/quick-generate-translations.js` và đưa script quét cấu trúc bản dịch chỉ đọc này vào allowlist `check-cli-symbols.js`.
 - **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp bốn file liên quan và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa ký hiệu trong test chỉ đọc `src/test/test-phase4-e2e-simplified.js` qua `CLI_SYMBOLS`, gồm tên test, trạng thái kiểm tra và summary health check.
+- **Đã hoàn thành thêm:** đưa test phase 4 giản lược vào allowlist `check-cli-symbols.js`; không thay đổi truy vấn hoặc dữ liệu kiểm thử.
+- **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp test/checker và `git diff --check` đều thành công.
