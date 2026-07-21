@@ -9,6 +9,7 @@
  */
 
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 class RateLimitHandler {
   /**
@@ -56,7 +57,7 @@ class RateLimitHandler {
       );
 
       console.log(
-        `[RateLimitHandler] 📌 Ghi nhận 429 error: ${entityType} (${entityId})`
+        `[RateLimitHandler] ${CLI_SYMBOLS.pin} Ghi nhận 429 error: ${entityType} (${entityId})`
       );
 
       return cacheEntry;
@@ -195,7 +196,7 @@ class RateLimitHandler {
       );
 
       console.log(
-        `[RateLimitHandler] 🔄 Reset ${result.modifiedCount} translations để retry`
+        `[RateLimitHandler] ${CLI_SYMBOLS.progress} Reset ${result.modifiedCount} translations để retry`
       );
 
       return result;
@@ -233,7 +234,7 @@ class RateLimitHandler {
       }
 
       console.log(
-        `[RateLimitHandler] ✏️ Admin sửa tay: ${hashKey}`
+        `[RateLimitHandler] ${CLI_SYMBOLS.pencil} Admin sửa tay: ${hashKey}`
       );
 
       return updated;
@@ -268,7 +269,7 @@ class RateLimitHandler {
       const result = await LiveTranslationCache.bulkWrite(operations);
 
       console.log(
-        `[RateLimitHandler] 📝 Batch sửa tay: ${result.modifiedCount} entries`
+        `[RateLimitHandler] ${CLI_SYMBOLS.edit} Batch sửa tay: ${result.modifiedCount} entries`
       );
 
       return result;

@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { getDefaultLanguage, getActiveLangCodes, getLanguageNames } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LOCALES_DIR = path.join(__dirname, '../locales');
 const defaultLang = getDefaultLanguage().code;
@@ -91,7 +92,7 @@ let apiKeyAvailable = false;
 function initializeAPI() {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    console.warn('⚠️  GEMINI_API_KEY not found in environment. Using demo mode with placeholder translations.');
+    console.warn(`${CLI_SYMBOLS.warning}  GEMINI_API_KEY not found in environment. Using demo mode with placeholder translations.`);
     return false;
   }
   genAI = new GoogleGenerativeAI(apiKey);
@@ -135,7 +136,7 @@ ${JSON.stringify(jsonObject, null, 2)}`;
     const translatedJSON = JSON.parse(jsonStr);
     return translatedJSON;
   } catch (error) {
-    console.error(`   ❌ Error translating ${filename} to ${langName}:`, error.message);
+    console.error(`   ${CLI_SYMBOLS.error} Error translating ${filename} to ${langName}:`, error.message);
     return null;
   }
 }
@@ -164,12 +165,12 @@ async function translateFile(filename, priority) {
   const enFilePath = path.join(EN_DIR, filename);
 
   if (!fs.existsSync(enFilePath)) {
-    console.log(`   ❌ File not found: ${filename}`);
+    console.log(`   ${CLI_SYMBOLS.error} File not found: ${filename}`);
     return false;
   }
 
   const enContent = JSON.parse(fs.readFileSync(enFilePath, 'utf8'));
-  console.log(`\n📄 Processing [${priority}] ${filename}`);
+  console.log(`\n${CLI_SYMBOLS.report} Processing [${priority}] ${filename}`);
 
   let allSuccess = true;
 
@@ -182,7 +183,7 @@ async function translateFile(filename, priority) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    process.stdout.write(`   → ${langCode.toUpperCase()} (${langName})... `);
+    process.stdout.write(`   ${CLI_SYMBOLS.arrowRight} ${langCode.toUpperCase()} (${langName})... `);
 
     let translatedContent = null;
 
@@ -190,7 +191,7 @@ async function translateFile(filename, priority) {
     if (apiKeyAvailable) {
       translatedContent = await translateWithAI(enContent, langCode, langName, filename);
       if (translatedContent) {
-        console.log('✓');
+        console.log(CLI_SYMBOLS.check);
       }
     }
 
@@ -211,7 +212,7 @@ async function translateFile(filename, priority) {
     try {
       fs.writeFileSync(targetFilePath, JSON.stringify(translatedContent, null, 2) + '\n', 'utf8');
     } catch (error) {
-      console.error(`\n   ❌ Error writing ${targetFilePath}:`, error.message);
+      console.error(`\n   ${CLI_SYMBOLS.error} Error writing ${targetFilePath}:`, error.message);
       allSuccess = false;
     }
 
@@ -227,21 +228,21 @@ async function translateFile(filename, priority) {
 async function main() {
   const hasAPI = initializeAPI();
   
-  console.log('╔════════════════════════════════════════════════════════╗');
-  console.log('║  📚 JSON Locale Batch Translation (EN → IT, ES, NL, SV) ║');
-  console.log('╚════════════════════════════════════════════════════════╝\n');
+  console.log(`${CLI_SYMBOLS.boxTopLeft}${CLI_SYMBOLS.divider.repeat(56)}${CLI_SYMBOLS.boxTopRight}`);
+  console.log(`${CLI_SYMBOLS.boxVertical}  ${CLI_SYMBOLS.books} JSON Locale Batch Translation (EN ${CLI_SYMBOLS.arrowRight} IT, ES, NL, SV) ${CLI_SYMBOLS.boxVertical}`);
+  console.log(`${CLI_SYMBOLS.boxBottomLeft}${CLI_SYMBOLS.divider.repeat(56)}${CLI_SYMBOLS.boxBottomRight}\n`);
 
   const totalFiles = HIGH_PRIORITY.length + MEDIUM_PRIORITY.length + LOW_PRIORITY.length;
-  console.log(`📊 Configuration:`);
-  console.log(`   • HIGH Priority: ${HIGH_PRIORITY.length} files`);
-  console.log(`   • MEDIUM Priority: ${MEDIUM_PRIORITY.length} files`);
-  console.log(`   • LOW Priority: ${LOW_PRIORITY.length} files`);
-  console.log(`   • Total: ${totalFiles} files`);
-  console.log(`   • Target Languages: ${Object.values(TARGET_LANGS).join(', ')}`);
-  console.log(`   • API Available: ${hasAPI ? '✓ Yes (Gemini)' : '✗ No (using placeholders)'}\n`);
+  console.log(`${CLI_SYMBOLS.chart} Configuration:`);
+  console.log(`   ${CLI_SYMBOLS.bullet} HIGH Priority: ${HIGH_PRIORITY.length} files`);
+  console.log(`   ${CLI_SYMBOLS.bullet} MEDIUM Priority: ${MEDIUM_PRIORITY.length} files`);
+  console.log(`   ${CLI_SYMBOLS.bullet} LOW Priority: ${LOW_PRIORITY.length} files`);
+  console.log(`   ${CLI_SYMBOLS.bullet} Total: ${totalFiles} files`);
+  console.log(`   ${CLI_SYMBOLS.bullet} Target Languages: ${Object.values(TARGET_LANGS).join(', ')}`);
+  console.log(`   ${CLI_SYMBOLS.bullet} API Available: ${hasAPI ? `${CLI_SYMBOLS.check} Yes (Gemini)` : `${CLI_SYMBOLS.cross} No (using placeholders)`}\n`);
 
   if (!hasAPI) {
-    console.log('⚠️  NOTE: No API key found. Generating placeholder translations for structure testing.');
+    console.log(`${CLI_SYMBOLS.warning}  NOTE: No API key found. Generating placeholder translations for structure testing.`);
     console.log('   For production, set GEMINI_API_KEY environment variable.\n');
   }
 
@@ -250,9 +251,9 @@ async function main() {
   let failed = 0;
 
   // HIGH PRIORITY
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('🔴 HIGH PRIORITY FILES');
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log(CLI_SYMBOLS.divider.repeat(59));
+  console.log(`${CLI_SYMBOLS.importanceCritical} HIGH PRIORITY FILES`);
+  console.log(CLI_SYMBOLS.divider.repeat(59));
   for (const file of HIGH_PRIORITY) {
     const success = await translateFile(file, 'HIGH');
     processed++;
@@ -261,9 +262,9 @@ async function main() {
   }
 
   // MEDIUM PRIORITY
-  console.log('\n═══════════════════════════════════════════════════════════');
-  console.log('🟡 MEDIUM PRIORITY FILES');
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+  console.log(`${CLI_SYMBOLS.importanceMedium} MEDIUM PRIORITY FILES`);
+  console.log(CLI_SYMBOLS.divider.repeat(59));
   for (const file of MEDIUM_PRIORITY) {
     const success = await translateFile(file, 'MEDIUM');
     processed++;
@@ -272,9 +273,9 @@ async function main() {
   }
 
   // LOW PRIORITY
-  console.log('\n═══════════════════════════════════════════════════════════');
-  console.log('🟢 LOW PRIORITY FILES');
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+  console.log(`${CLI_SYMBOLS.importanceLow} LOW PRIORITY FILES`);
+  console.log(CLI_SYMBOLS.divider.repeat(59));
   for (const file of LOW_PRIORITY) {
     const success = await translateFile(file, 'LOW');
     processed++;
@@ -283,21 +284,21 @@ async function main() {
   }
 
   // Summary
-  console.log('\n═══════════════════════════════════════════════════════════');
-  console.log('📊 TRANSLATION SUMMARY');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log(`✓ Files Successfully Processed: ${succeeded}`);
-  console.log(`✗ Files with Errors: ${failed}`);
-  console.log(`📁 Total Files Processed: ${processed}`);
-  console.log(`🌍 Total Translation Files Created: ${processed * 4}`);
+  console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+  console.log(`${CLI_SYMBOLS.chart} TRANSLATION SUMMARY`);
+  console.log(CLI_SYMBOLS.divider.repeat(59));
+  console.log(`${CLI_SYMBOLS.check} Files Successfully Processed: ${succeeded}`);
+  console.log(`${CLI_SYMBOLS.cross} Files with Errors: ${failed}`);
+  console.log(`${CLI_SYMBOLS.folder} Total Files Processed: ${processed}`);
+  console.log(`${CLI_SYMBOLS.globe} Total Translation Files Created: ${processed * 4}`);
   
   if (!hasAPI) {
-    console.log(`\n⚠️  IMPORTANT: These are PLACEHOLDER translations!`);
+    console.log(`\n${CLI_SYMBOLS.warning}  IMPORTANT: These are PLACEHOLDER translations!`);
     console.log(`   They have the correct structure but contain "[IT]/[ES]/[NL]/[SV]" prefixes.`);
     console.log(`   To generate real translations, set the GEMINI_API_KEY environment variable.`);
   }
   
-  console.log('\n🎉 Translation batch complete!\n');
+  console.log(`\n${CLI_SYMBOLS.celebration} Translation batch complete!\n`);
 }
 
 main().catch(console.error);

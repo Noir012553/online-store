@@ -37,6 +37,8 @@ const CLI_SYMBOLS = {
   microscope: '🔬',
   save: '💾',
   edit: '📝',
+  pencil: '✏️',
+  pause: '⏸️',
   email: '📧',
   location: '📍',
   celebration: '🎉',
