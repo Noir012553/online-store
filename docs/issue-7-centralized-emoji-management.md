@@ -356,3 +356,12 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành thêm:** chuẩn hóa ký hiệu trong test chỉ đọc `src/test/test-phase4-e2e-simplified.js` qua `CLI_SYMBOLS`, gồm tên test, trạng thái kiểm tra và summary health check.
 - **Đã hoàn thành thêm:** đưa test phase 4 giản lược vào allowlist `check-cli-symbols.js`; không thay đổi truy vấn hoặc dữ liệu kiểm thử.
 - **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp test/checker và `git diff --check` đều thành công.
+- **Cập nhật tiến độ:** xác thực lại toàn bộ tiêu chí chính; frontend `npm run check:emoji` và `npm run build` thành công, backend `npm run check:emoji` thành công, working tree sạch và không còn bước triển khai kỹ thuật bắt buộc trong issue này.
+
+## Đối soát các phát hiện
+
+- **Đã xử lý:** lỗi duyệt emoji ngoài BMP trong `ProductDescriptionFormatter`, đường dẫn entry point bị lệch trong checker, các ký hiệu CLI lấy gián tiếp qua biến trong benchmark và các runtime entry point được expose qua `package.json`.
+- **Đã xử lý:** các nhóm script, seeder, diagnostic và test CLI an toàn đã được chuyển sang `CLI_SYMBOLS`, đưa vào allowlist kiểm tra và xác thực lại bằng `npm run check:emoji`.
+- **Đã phân loại và giữ nguyên:** emoji trong response debug của payment, email marketing, locale và metadata cờ ngôn ngữ vì đây là contract API hoặc nội dung đã biên tập, không phải ký hiệu CLI/UI dùng chung.
+- **Đã phân loại và giữ nguyên:** report lưu file, test có side effect, script legacy và các log debug ngoài entry point được expose; không tự động thay đổi để tránh ảnh hưởng artifact, dữ liệu kiểm thử hoặc quy trình vận hành.
+- **Trạng thái cuối của các phát hiện:** không còn phát hiện nào trong phạm vi runtime an toàn cần triển khai thêm cho issue 7. Các mục được giữ nguyên đã có lý do và phạm vi xử lý riêng, không bị coi là lỗi checker.
