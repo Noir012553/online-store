@@ -752,7 +752,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                   disabled={page === 1}
                   className="px-3"
                 >
-                  ← {t('filter_prev', 'products')}
+                  {UI_EMOJI.arrowLeft} {t('filter_prev', 'products')}
                 </Button>
 
                 {(() => {
