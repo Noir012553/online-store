@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LOCALES_DIR = path.join(__dirname, '../locales');
 const defaultLang = getDefaultLanguage().code;
@@ -51,8 +52,8 @@ function compareTranslations(defaultValues, langValues, lang, filename) {
 }
 
 function main() {
-  console.log('\n🔍 TRANSLATION FALLBACK ANALYSIS\n');
-  console.log('═══════════════════════════════════════════════════════════\n');
+  console.log(`\n${CLI_SYMBOLS.search} TRANSLATION FALLBACK ANALYSIS\n`);
+  console.log(`${CLI_SYMBOLS.divider.repeat(59)}\n`);
 
   const defaultFiles = fs.readdirSync(DEFAULT_DIR)
     .filter(f => f.endsWith('.json'))
@@ -97,13 +98,13 @@ function main() {
   
   // Print results
   if (results.length === 0) {
-    console.log('✅ EXCELLENT! All translations are complete!');
+    console.log(`${CLI_SYMBOLS.success} EXCELLENT! All translations are complete!`);
     console.log('   No English fallbacks detected.\n');
   } else {
-    console.log(`⚠️  FOUND ${results.length} FILES WITH ENGLISH FALLBACKS\n`);
+    console.log(`${CLI_SYMBOLS.warning}  FOUND ${results.length} FILES WITH ENGLISH FALLBACKS\n`);
     
     for (const result of results) {
-      console.log(`📄 ${result.file}`);
+      console.log(`${CLI_SYMBOLS.report} ${result.file}`);
       for (const [lang, keys] of Object.entries(result.fallbacks)) {
         console.log(`   ${lang.toUpperCase()}: ${keys.length} keys still in English`);
         if (keys.length <= 5) {
@@ -117,30 +118,30 @@ function main() {
   }
   
   // Summary by language
-  console.log('\n═══════════════════════════════════════════════════════════');
-  console.log('📊 SUMMARY BY LANGUAGE\n');
+  console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+  console.log(`${CLI_SYMBOLS.chart} SUMMARY BY LANGUAGE\n`);
   
   for (const lang of LANGUAGES) {
     const { files, keys } = langStats[lang];
     const percent = ((60 - files) / 60 * 100).toFixed(1);
-    const status = files === 0 ? '✅ COMPLETE' : `🔄 ${files} files remaining`;
+    const status = files === 0 ? `${CLI_SYMBOLS.success} COMPLETE` : `${CLI_SYMBOLS.progress} ${files} files remaining`;
     console.log(`${lang.toUpperCase()}: ${60 - files}/60 files translated (${percent}%) ${status}`);
     if (keys > 0) {
-      console.log(`        → ${keys} keys still using English\n`);
+      console.log(`        ${CLI_SYMBOLS.arrowRight} ${keys} keys still using English\n`);
     }
   }
   
-  console.log('\n═══════════════════════════════════════════════════════════');
-  console.log('📈 OVERALL STATISTICS\n');
+  console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+  console.log(`${CLI_SYMBOLS.chartUp} OVERALL STATISTICS\n`);
   console.log(`Files with fallbacks:    ${totalFallbackFiles}/60 (${(totalFallbackFiles/60*100).toFixed(1)}%)`);
   console.log(`Keys with fallbacks:     ${totalFallbackKeys} out of ~5,500+ total`);
   console.log(`Completion rate:         ${(((5500 - totalFallbackKeys) / 5500) * 100).toFixed(1)}%\n`);
   
   if (results.length === 0) {
-    console.log('🎉 ALL TRANSLATIONS COMPLETE! Ready for production.\n');
+    console.log(`${CLI_SYMBOLS.celebration} ALL TRANSLATIONS COMPLETE! Ready for production.\n`);
     process.exit(0);
   } else {
-    console.log(`⏳ ${totalFallbackFiles} files still need translation\n`);
+    console.log(`${CLI_SYMBOLS.wait} ${totalFallbackFiles} files still need translation\n`);
     process.exit(1);
   }
 }
