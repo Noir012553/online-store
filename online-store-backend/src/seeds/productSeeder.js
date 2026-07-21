@@ -5,6 +5,7 @@
  */
 
 const Product = require('../models/Product');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const translationSeederHelper = require('../services/translationSeederHelper');
 
@@ -394,9 +395,9 @@ const seedProducts = async (userId, categoryIds, supplierIds) => {
         const allLanguages = getActiveLangCodes();
         console.log(`[Seeder] Translating ${createdProducts.length} products to ${allLanguages.length} languages...`);
         await translationSeederHelper.translateProductsBatch(createdProducts, allLanguages);
-        console.log(`[Seeder] ✅ Product translations completed`);
+        console.log(`[Seeder] ${CLI_SYMBOLS.success} Product translations completed`);
       } catch (translationError) {
-        console.error(`[Seeder] ⚠️ Product translation warning: ${translationError.message}`);
+        console.error(`[Seeder] ${CLI_SYMBOLS.warning} Product translation warning: ${translationError.message}`);
       }
 
       return createdProducts;

@@ -7,6 +7,7 @@
 const Product = require('../models/Product');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const { getActiveLangCodes: getActiveLangCodesHelper, getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Translate features one by one to avoid separator parsing issues
 async function translateFeaturesDirectly(features, fromLang, toLang) {
@@ -38,13 +39,13 @@ async function translateFeaturesDirectly(features, fromLang, toLang) {
       const isNetworkError = error.code === 'ENETUNREACH' || error.message?.includes('ENETUNREACH');
 
       if (isDnsError || isNetworkError) {
-        console.error(`\n❌ FATAL: Cloudflare API không accessible - ${error.message}`);
-        console.error('💡 Kiểm tra: Network connection, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN\n');
+        console.error(`\n${CLI_SYMBOLS.error} FATAL: Cloudflare API không accessible - ${error.message}`);
+        console.error(`${CLI_SYMBOLS.idea} Kiểm tra: Network connection, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN\n`);
         throw new Error(`API unavailable: ${error.message}`);
       }
 
       // Skip failed translation for this feature, continue with next ones
-      console.warn(`      ⚠️ Skipping failed feature "${feature.substring(0, 40)}..." → ${toLang}: ${error.message}`);
+      console.warn(`      ${CLI_SYMBOLS.warning} Skipping failed feature "${feature.substring(0, 40)}..." ${CLI_SYMBOLS.arrowRight} ${toLang}: ${error.message}`);
       translations.push(feature); // Fallback to Vietnamese
     }
   }
@@ -53,14 +54,14 @@ async function translateFeaturesDirectly(features, fromLang, toLang) {
 }
 
 async function seedFeaturesTranslations() {
-  console.time('⏱️ seedFeaturesTranslations - Total Time');
+  console.time(`${CLI_SYMBOLS.duration} seedFeaturesTranslations - Total Time`);
 
   try {
-    console.log('🌱 Starting features translations seeding...');
+    console.log(`${CLI_SYMBOLS.seed} Starting features translations seeding...`);
 
     // Find all products with features
     let products = await Product.find({ features: { $exists: true, $ne: [] } }).lean();
-    console.log(`📦 Found ${products.length} products with features`);
+    console.log(`${CLI_SYMBOLS.package} Found ${products.length} products with features`);
 
     // Filter: Skip already translated products
     const productsToTranslate = products.filter(
@@ -69,19 +70,19 @@ async function seedFeaturesTranslations() {
     const skipped = products.length - productsToTranslate.length;
 
     if (productsToTranslate.length === 0) {
-      console.log('⏭️  All products already translated');
-      console.timeEnd('⏱️ seedFeaturesTranslations - Total Time');
+      console.log(`${CLI_SYMBOLS.skip}  All products already translated`);
+      console.timeEnd(`${CLI_SYMBOLS.duration} seedFeaturesTranslations - Total Time`);
       return { updated: 0, skipped, failed: 0, total: products.length };
     }
 
-    console.log(`📚 Need to translate: ${productsToTranslate.length} products (~${productsToTranslate.reduce((sum, p) => sum + p.features.length, 0)} features)`);
+    console.log(`${CLI_SYMBOLS.books} Need to translate: ${productsToTranslate.length} products (~${productsToTranslate.reduce((sum, p) => sum + p.features.length, 0)} features)`);
 
     const sourceLang = getDefaultLanguage().code;
     const allLangs = getActiveLangCodesHelper();
     const targetLanguages = allLangs.filter(lang => lang !== sourceLang);
 
-    console.log(`🔄 [Step 1/2] Translating features from ${sourceLang.toUpperCase()} to ${targetLanguages.length} languages (${targetLanguages.join(', ').toUpperCase()})...`);
-    console.time('  ⏱️ Feature translation');
+    console.log(`${CLI_SYMBOLS.progress} [Step 1/2] Translating features from ${sourceLang.toUpperCase()} to ${targetLanguages.length} languages (${targetLanguages.join(', ').toUpperCase()})...`);
+    console.time(`  ${CLI_SYMBOLS.duration} Feature translation`);
 
     let totalTranslated = 0;
     let failed = 0;
@@ -119,49 +120,49 @@ async function seedFeaturesTranslations() {
               update: { $set: { featuresTranslations: translations } },
             },
           });
-          console.log(`    ✅ ${product.name} (${Object.keys(translations).length}/${viFeatures.length} features × 8 languages)`);
+          console.log(`    ${CLI_SYMBOLS.success} ${product.name} (${Object.keys(translations).length}/${viFeatures.length} features ${CLI_SYMBOLS.multiplication} 8 languages)`);
         } else {
           failed++;
-          console.warn(`    ⚠️ Failed to translate any feature for ${product.name}`);
+          console.warn(`    ${CLI_SYMBOLS.warning} Failed to translate any feature for ${product.name}`);
         }
       } catch (error) {
         failed++;
-        console.error(`  ❌ Failed for ${product.name}: ${error.message}`);
+        console.error(`  ${CLI_SYMBOLS.error} Failed for ${product.name}: ${error.message}`);
         // Continue seeding instead of failing entire process
         // This allows other products to be translated successfully
       }
     }
 
-    console.timeEnd('  ⏱️ Feature translation');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Feature translation`);
 
     // 2️⃣ Bulk update all products at once
-    console.log('💾 [Step 2/2] Bulk updating products...');
-    console.time('  ⏱️ Bulk write update');
+    console.log(`${CLI_SYMBOLS.save} [Step 2/2] Bulk updating products...`);
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk write update`);
 
     let bulkUpdateCount = 0;
     if (bulkOps.length > 0) {
       const result = await Product.bulkWrite(bulkOps);
       bulkUpdateCount = result.modifiedCount;
-      console.log(`✅ Updated ${bulkUpdateCount} products in 1 bulkWrite operation`);
+      console.log(`${CLI_SYMBOLS.success} Updated ${bulkUpdateCount} products in 1 bulkWrite operation`);
     }
 
-    console.timeEnd('  ⏱️ Bulk write update');
-    console.timeEnd('⏱️ seedFeaturesTranslations - Total Time');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk write update`);
+    console.timeEnd(`${CLI_SYMBOLS.duration} seedFeaturesTranslations - Total Time`);
 
     const activeLangs = getActiveLangCodesHelper();
 
-    console.log(`\n📈 FEATURES TRANSLATION COMPLETE:`);
-    console.log(`   ✅ Successfully translated: ${totalTranslated} features × ${activeLangs.length} languages`);
-    console.log(`   ✅ Products updated: ${bulkUpdateCount}`);
-    console.log(`   ⏭️  Already translated: ${skipped}`);
-    console.log(`   ❌ Failed products: ${failed}`);
-    console.log(`   📝 Total products: ${products.length}`);
-    console.log(`   🌐 Languages: ${activeLangs.join(', ')}`);
-    console.log(`   💡 Method: 1-by-1 translation (100% accuracy, no separator issues)`);
+    console.log(`\n${CLI_SYMBOLS.chartUp} FEATURES TRANSLATION COMPLETE:`);
+    console.log(`   ${CLI_SYMBOLS.success} Successfully translated: ${totalTranslated} features ${CLI_SYMBOLS.multiplication} ${activeLangs.length} languages`);
+    console.log(`   ${CLI_SYMBOLS.success} Products updated: ${bulkUpdateCount}`);
+    console.log(`   ${CLI_SYMBOLS.skip}  Already translated: ${skipped}`);
+    console.log(`   ${CLI_SYMBOLS.error} Failed products: ${failed}`);
+    console.log(`   ${CLI_SYMBOLS.edit} Total products: ${products.length}`);
+    console.log(`   ${CLI_SYMBOLS.globe} Languages: ${activeLangs.join(', ')}`);
+    console.log(`   ${CLI_SYMBOLS.idea} Method: 1-by-1 translation (100% accuracy, no separator issues)`);
 
     return { updated: bulkUpdateCount, skipped, failed, total: products.length };
   } catch (error) {
-    console.error('❌ Seeder error:', error);
+    console.error(`${CLI_SYMBOLS.error} Seeder error:`, error);
     throw error;
   }
 }

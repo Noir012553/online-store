@@ -146,7 +146,7 @@ async function main() {
     const s = TEST_SUITES[suite];
     console.log(`  - ${suite}: ${s.name}`);
     s.files.forEach(file => {
-      console.log(`    └─ ${path.basename(file)}`);
+      console.log(`    ${CLI_SYMBOLS.lastBranch} ${path.basename(file)}`);
     });
   });
   console.log();

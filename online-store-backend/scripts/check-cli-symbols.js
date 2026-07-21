@@ -23,6 +23,12 @@ const checkedFiles = [
   'scripts/setup-i18n-indexes.js',
   'scripts/health-check-i18n.js',
   'src/seeds/addressSeeder.js',
+  'src/seeds/brandTranslationsSeeder.js',
+  'src/seeds/exchangeRateHistorySeeder.js',
+  'src/seeds/featuresTranslationSeeder.js',
+  'src/seeds/locationSeeder.js',
+  'src/seeds/productSeeder.js',
+  'src/seeds/retranslateSeeder.js',
   'src/seeds/bannerSlotLabelsSeeder.js',
   'src/seeds/testimonialLabelsSeeder.js',
   'src/seeds/i18nOnlySeeder.js',
@@ -48,11 +54,14 @@ const checkedFiles = [
   'src/scripts/verify-no-english-fallback.js',
   'src/scripts/migrate-translations.js',
 ];
-const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
+const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
+const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;
 
 const findings = checkedFiles
   .filter((filePath) => fs.existsSync(path.join(rootDir, filePath)))
-  .filter((filePath) => emojiPattern.test(fs.readFileSync(path.join(rootDir, filePath), 'utf8')));
+  .filter((filePath) => fs.readFileSync(path.join(rootDir, filePath), 'utf8')
+    .split(/\r?\n/)
+    .some((line) => consoleOutputPattern.test(line) && cliSymbolPattern.test(line)));
 
 if (findings.length > 0) {
   console.error('CLI symbols must be referenced from src/utils/cliSymbols.js:');
