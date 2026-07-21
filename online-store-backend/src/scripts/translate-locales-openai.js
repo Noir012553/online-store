@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { getDefaultLanguage, getActiveLangCodes, getLanguageNames } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const LOCALES_DIR = path.join(__dirname, '../locales');
@@ -96,7 +97,7 @@ ${JSON.stringify(srcObj, null, 2)}`;
           }
 
           const translatedObj = JSON.parse(jsonText);
-          console.log(`✅ Translated ${filename} to ${langName}`);
+          console.log(`${CLI_SYMBOLS.success} Translated ${filename} to ${langName}`);
           resolve(translatedObj);
         } catch (error) {
           reject(error);
@@ -114,12 +115,12 @@ ${JSON.stringify(srcObj, null, 2)}`;
 // Main translation process
 async function main() {
   if (!OPENAI_API_KEY) {
-    console.error('❌ Error: OPENAI_API_KEY is not set');
+    console.error(`${CLI_SYMBOLS.error} Error: OPENAI_API_KEY is not set`);
     console.error('Please set the OPENAI_API_KEY environment variable');
     process.exit(1);
   }
 
-  console.log('🚀 Starting translation of JSON locale files using OpenAI...\n');
+  console.log(`${CLI_SYMBOLS.rocket} Starting translation of JSON locale files using OpenAI...\n`);
 
   // Get all JSON files from en directory
   const enFiles = fs
@@ -127,7 +128,7 @@ async function main() {
     .filter((file) => file.endsWith('.json'))
     .sort();
 
-  console.log(`📁 Found ${enFiles.length} files to translate\n`);
+  console.log(`${CLI_SYMBOLS.folder} Found ${enFiles.length} files to translate\n`);
 
   let successCount = 0;
   let errorCount = 0;
@@ -136,7 +137,7 @@ async function main() {
     const enFilePath = path.join(EN_DIR, filename);
     const enContent = JSON.parse(fs.readFileSync(enFilePath, 'utf8'));
 
-    console.log(`\n📄 Processing: ${filename}`);
+    console.log(`\n${CLI_SYMBOLS.report} Processing: ${filename}`);
 
     for (const [langCode, langName] of Object.entries(TARGET_LANGS)) {
       const targetDir = path.join(LOCALES_DIR, langCode);
@@ -154,7 +155,7 @@ async function main() {
         const isFullyTranslated = JSON.stringify(existingContent) !== JSON.stringify(enContent);
 
         if (isFullyTranslated) {
-          console.log(`   ⏭️  ${langCode}: Already translated, skipping`);
+          console.log(`   ${CLI_SYMBOLS.skip}  ${langCode}: Already translated, skipping`);
           continue;
         }
       }
@@ -169,13 +170,13 @@ async function main() {
 
         // Write translated file
         fs.writeFileSync(targetFilePath, JSON.stringify(translatedContent, null, 2) + '\n', 'utf8');
-        console.log(`   ✅ ${langCode}: Translated and saved`);
+        console.log(`   ${CLI_SYMBOLS.success} ${langCode}: Translated and saved`);
         successCount++;
 
         // Add delay to avoid rate limiting (2 seconds)
         await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (error) {
-        console.log(`   ❌ ${langCode}: Translation failed - ${error.message}`);
+        console.log(`   ${CLI_SYMBOLS.error} ${langCode}: Translation failed - ${error.message}`);
         errorCount++;
 
         // Wait longer on error (rate limit or quota)
@@ -185,7 +186,7 @@ async function main() {
   }
 
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`✅ Translation Complete!`);
+  console.log(`${CLI_SYMBOLS.success} Translation Complete!`);
   console.log(`   Success: ${successCount}`);
   console.log(`   Errors: ${errorCount}`);
   console.log(`${'='.repeat(60)}\n`);
