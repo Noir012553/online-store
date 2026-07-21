@@ -95,20 +95,27 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   // Tìm tất cả break positions
   const breakPositions: number[] = [];
   
-  for (let i = 0; i < processedText.length; i++) {
+  let previousChar = '';
+
+  for (let i = 0; i < processedText.length;) {
+    const char = String.fromCodePoint(processedText.codePointAt(i)!);
+
     // Break sau dấu "."
-    if (processedText[i] === '.' && i < processedText.length - 1) {
+    if (char === '.' && i < processedText.length - 1) {
       if (processedText[i + 1] === ' ') {
         breakPositions.push(i + 2);
       } else {
         breakPositions.push(i + 1);
       }
     }
-    
+
     // Break trước emoji
-    if (isEmoji(processedText[i]) && i > 0 && !isEmoji(processedText[i - 1])) {
+    if (isEmoji(char) && i > 0 && !isEmoji(previousChar)) {
       breakPositions.push(i);
     }
+
+    previousChar = char;
+    i += char.length;
   }
 
   // Nếu không có break points, hiển thị text bình thường
