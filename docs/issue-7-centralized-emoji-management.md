@@ -313,3 +313,13 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Thấp — `online-store-backend/src/test/check-db-brands.js:10-52`:** utility kiểm tra thương hiệu trong cơ sở dữ liệu vẫn hard-code `📊`, `✅`, `📝`, `⚠️`, `🔍`, `📦`, `📈`, `•` và `❌` trong `console.*`. File không nằm trong allowlist checker và cũng không được expose qua package script hiện tại, nên phù hợp để ghi nhận là script chạy tay/diagnostic ngoài enforcement trước khi quyết định nó còn được vận hành hay là legacy.
 
 **Cập nhật bước tiếp theo:** rà soát các entry point được khai báo trong `package.json` trước để ưu tiên phạm vi runtime thực sự được gọi. Với utility không được package expose, cần xác minh tình trạng sử dụng trước khi thêm vào enforcement, tránh mở rộng quy ước sang file legacy không còn chạy.
+
+### Tiến độ xử lý mới
+
+- **Đã hoàn thành:** chuẩn hóa `online-store-backend/src/scripts/test-translation-quality.js` để dùng `CLI_SYMBOLS` cho toàn bộ ký hiệu output CLI, giữ nguyên text và format hiển thị.
+- **Đã hoàn thành:** bổ sung `bookOpen` vào `online-store-backend/src/utils/cliSymbols.js` để quản lý ký hiệu `📖`.
+- **Đã hoàn thành:** chuẩn hóa `online-store-backend/src/test/check-db-brands.js` bằng `CLI_SYMBOLS`, bao gồm các ký hiệu báo cáo, cảnh báo, tìm kiếm, danh sách và lỗi; loại bỏ import không sử dụng.
+- **Đã hoàn thành:** thêm hai entry point vào allowlist của `online-store-backend/scripts/check-cli-symbols.js`.
+- **Đã xác thực:** `online-store-backend npm run check:emoji`, kiểm tra cú pháp JavaScript cho bốn file thay đổi và `git diff --check` đều thành công.
+
+**Bước tiếp theo:** tiếp tục xử lý các entry point package/runtime còn hard-code đã được liệt kê trong các mục trước; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.

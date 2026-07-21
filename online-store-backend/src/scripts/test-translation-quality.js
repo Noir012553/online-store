@@ -3,6 +3,7 @@ require('dotenv').config();
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const translationValidator = require('../utils/translationValidator');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 /**
  * Test Translation Quality System
@@ -11,42 +12,42 @@ const translationValidator = require('../utils/translationValidator');
 
 async function runTests() {
   try {
-    console.log('\n🧪 TRANSLATION QUALITY SYSTEM - TEST SUITE');
-    console.log('═'.repeat(60));
+    console.log(`\n${CLI_SYMBOLS.test} TRANSLATION QUALITY SYSTEM - TEST SUITE`);
+    console.log(CLI_SYMBOLS.divider.repeat(60));
 
     // Connect to MongoDB
     console.log('\n[1/5] Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected');
+    console.log(`${CLI_SYMBOLS.success} Connected`);
 
     // Test 1: Validator - Check Missing Brand
     console.log('\n[2/5] Testing Validator - Missing Brand Check');
     const test1Result = await testMissingBrandValidation();
-    console.log(`✅ ${test1Result}`);
+    console.log(`${CLI_SYMBOLS.success} ${test1Result}`);
 
     // Test 2: Validator - Check Empty Translation
     console.log('\n[3/5] Testing Validator - Empty Translation Check');
     const test2Result = await testEmptyTranslationValidation();
-    console.log(`✅ ${test2Result}`);
+    console.log(`${CLI_SYMBOLS.success} ${test2Result}`);
 
     // Test 3: Validator - Check Length Ratio
     console.log('\n[4/5] Testing Validator - Length Ratio Check');
     const test3Result = await testLengthRatioValidation();
-    console.log(`✅ ${test3Result}`);
+    console.log(`${CLI_SYMBOLS.success} ${test3Result}`);
 
     // Test 4: Database Schema
     console.log('\n[5/5] Checking Database Schema');
     const test4Result = await testDatabaseSchema();
-    console.log(`✅ ${test4Result}`);
+    console.log(`${CLI_SYMBOLS.success} ${test4Result}`);
 
-    console.log('\n═'.repeat(60));
-    console.log('\n✅ ALL TESTS PASSED!\n');
-    console.log('📚 System Components:');
-    console.log('   ✅ TranslationValidator - All checks working');
-    console.log('   ✅ LiveTranslationCache - Schema correct');
-    console.log('   ✅ TranslationQualityLog - Audit trail ready');
-    console.log('   ✅ Translation Reporter - Reporting ready');
-    console.log('\n📖 Next Steps:');
+    console.log(`\n${CLI_SYMBOLS.divider}`.repeat(60));
+    console.log(`\n${CLI_SYMBOLS.success} ALL TESTS PASSED!\n`);
+    console.log(`${CLI_SYMBOLS.books} System Components:`);
+    console.log(`   ${CLI_SYMBOLS.success} TranslationValidator - All checks working`);
+    console.log(`   ${CLI_SYMBOLS.success} LiveTranslationCache - Schema correct`);
+    console.log(`   ${CLI_SYMBOLS.success} TranslationQualityLog - Audit trail ready`);
+    console.log(`   ${CLI_SYMBOLS.success} Translation Reporter - Reporting ready`);
+    console.log(`\n${CLI_SYMBOLS.bookOpen} Next Steps:`);
     console.log('   1. npm run seed (seed + auto-validate)');
     console.log('   2. npm run translate:report (view issues)');
     console.log('   3. npm run retranslate (fix issues)');
@@ -54,7 +55,7 @@ async function runTests() {
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ TESTS FAILED:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} TESTS FAILED:`, error.message);
     console.error(error.stack);
     process.exit(1);
   } finally {

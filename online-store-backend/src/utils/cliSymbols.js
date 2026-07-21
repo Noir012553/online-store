@@ -19,6 +19,7 @@ const CLI_SYMBOLS = {
   wrench: '🔧',
   truck: '🚚',
   books: '📚',
+  bookOpen: '📖',
   building: '🏢',
   idea: '💡',
   progress: '🔄',
