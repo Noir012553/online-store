@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { getDefaultLanguage, getActiveLangCodes, getLanguageNames } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -129,12 +130,12 @@ async function processFile(filename, priority) {
   );
 
   if (!fs.existsSync(sourceFile)) {
-    console.log(`❌ File not found: ${filename}`);
+    console.log(`${CLI_SYMBOLS.error} File not found: ${filename}`);
     return false;
   }
 
   const sourceJSON = JSON.parse(fs.readFileSync(sourceFile, 'utf8'));
-  console.log(`\n📄 Processing [${priority}] ${filename}`);
+  console.log(`\n${CLI_SYMBOLS.report} Processing [${priority}] ${filename}`);
 
   let allSuccess = true;
 
@@ -147,15 +148,15 @@ async function processFile(filename, priority) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    process.stdout.write(`  → Translating to ${langName}...`);
+    process.stdout.write(`  ${CLI_SYMBOLS.arrowRight} Translating to ${langName}...`);
 
     const translatedJSON = await translateJSON(sourceJSON, langCode, filename);
 
     if (translatedJSON) {
       fs.writeFileSync(targetFile, JSON.stringify(translatedJSON, null, 2) + '\n');
-      console.log(' ✓');
+      console.log(` ${CLI_SYMBOLS.check}`);
     } else {
-      console.log(' ❌');
+      console.log(` ${CLI_SYMBOLS.error}`);
       allSuccess = false;
     }
 
@@ -167,9 +168,9 @@ async function processFile(filename, priority) {
 }
 
 async function main() {
-  console.log('🚀 Starting batch translation of locale files');
-  console.log(`📊 Total files to process: ${HIGH_PRIORITY_FILES.length + MEDIUM_PRIORITY_FILES.length + LOW_PRIORITY_FILES.length}`);
-  console.log(`📍 Languages: ${Object.values(LANGUAGES).join(', ')}\n`);
+  console.log(`${CLI_SYMBOLS.rocket} Starting batch translation of locale files`);
+  console.log(`${CLI_SYMBOLS.chart} Total files to process: ${HIGH_PRIORITY_FILES.length + MEDIUM_PRIORITY_FILES.length + LOW_PRIORITY_FILES.length}`);
+  console.log(`${CLI_SYMBOLS.location} Languages: ${Object.values(LANGUAGES).join(', ')}\n`);
 
   let processed = 0;
   let failed = 0;
@@ -199,9 +200,9 @@ async function main() {
   }
 
   console.log('\n========== SUMMARY ==========');
-  console.log(`✓ Files processed: ${processed}`);
-  console.log(`❌ Files with errors: ${failed}`);
-  console.log('🎉 Translation batch complete!');
+  console.log(`${CLI_SYMBOLS.check} Files processed: ${processed}`);
+  console.log(`${CLI_SYMBOLS.error} Files with errors: ${failed}`);
+  console.log(`${CLI_SYMBOLS.celebration} Translation batch complete!`);
 }
 
 main().catch(console.error);

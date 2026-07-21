@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { getDefaultLanguage, getActiveLangCodes, getLanguageNames } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const client = new Anthropic();
 
@@ -67,10 +68,10 @@ ${JSON.stringify(srcObj, null, 2)}`;
     }
 
     const translatedObj = JSON.parse(jsonText);
-    console.log(`✅ Translated ${filename} to ${langName}`);
+    console.log(`${CLI_SYMBOLS.success} Translated ${filename} to ${langName}`);
     return translatedObj;
   } catch (error) {
-    console.error(`❌ Error translating ${filename} to ${langName}:`, error.message);
+    console.error(`${CLI_SYMBOLS.error} Error translating ${filename} to ${langName}:`, error.message);
     throw error;
   }
 }
@@ -79,9 +80,9 @@ ${JSON.stringify(srcObj, null, 2)}`;
  * Main translation process
  */
 async function main() {
-  console.log('🚀 Starting translation of JSON locale files...\n');
-  console.log(`📍 Default Language: ${defaultLang}`);
-  console.log(`📍 Target Languages: ${TARGET_LANGS_CODES.join(', ')}\n`);
+  console.log(`${CLI_SYMBOLS.rocket} Starting translation of JSON locale files...\n`);
+  console.log(`${CLI_SYMBOLS.location} Default Language: ${defaultLang}`);
+  console.log(`${CLI_SYMBOLS.location} Target Languages: ${TARGET_LANGS_CODES.join(', ')}\n`);
 
   // Get all JSON files from default language directory
   const defaultFiles = fs
@@ -89,7 +90,7 @@ async function main() {
     .filter((file) => file.endsWith('.json'))
     .sort();
 
-  console.log(`📁 Found ${defaultFiles.length} files to translate\n`);
+  console.log(`${CLI_SYMBOLS.folder} Found ${defaultFiles.length} files to translate\n`);
 
   let successCount = 0;
   let errorCount = 0;
@@ -98,7 +99,7 @@ async function main() {
     const defaultFilePath = path.join(DEFAULT_DIR, filename);
     const defaultContent = JSON.parse(fs.readFileSync(defaultFilePath, 'utf8'));
 
-    console.log(`\n📄 Processing: ${filename}`);
+    console.log(`\n${CLI_SYMBOLS.report} Processing: ${filename}`);
 
     for (const [langCode, langName] of Object.entries(TARGET_LANGS)) {
       const targetDir = path.join(LOCALES_DIR, langCode);
@@ -117,7 +118,7 @@ async function main() {
         const isFullyTranslated = JSON.stringify(existingContent) !== JSON.stringify(defaultContent);
 
         if (isFullyTranslated) {
-          console.log(`   ⏭️  ${langCode}: Already translated, skipping`);
+          console.log(`   ${CLI_SYMBOLS.skip}  ${langCode}: Already translated, skipping`);
           continue;
         }
       }
@@ -127,20 +128,20 @@ async function main() {
 
         // Write translated file
         fs.writeFileSync(targetFilePath, JSON.stringify(translatedContent, null, 2) + '\n', 'utf8');
-        console.log(`   ✅ ${langCode}: Translated and saved`);
+        console.log(`   ${CLI_SYMBOLS.success} ${langCode}: Translated and saved`);
         successCount++;
 
         // Add delay to avoid rate limiting
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
-        console.log(`   ❌ ${langCode}: Translation failed`);
+        console.log(`   ${CLI_SYMBOLS.error} ${langCode}: Translation failed`);
         errorCount++;
       }
     }
   }
 
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`✅ Translation Complete!`);
+  console.log(`${CLI_SYMBOLS.success} Translation Complete!`);
   console.log(`   Success: ${successCount}`);
   console.log(`   Errors: ${errorCount}`);
   console.log(`${'='.repeat(60)}\n`);
