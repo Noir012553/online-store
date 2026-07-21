@@ -1,18 +1,18 @@
-const mongoose = require('mongoose');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
 async function main() {
   try {
     // Connect to MongoDB
-    console.log('🔌 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Build filter
     const filter = {};
@@ -47,13 +47,13 @@ async function main() {
     console.log(`Found ${count} translations to reject\n`);
 
     if (count === 0) {
-      console.log('✅ Nothing to reject\n');
+      console.log(`${CLI_SYMBOLS.success} Nothing to reject\n`);
       process.exit(0);
     }
 
     // Confirm
     if (!args.includes('--force')) {
-      console.log('⚠️ Use --force to confirm bulk rejection');
+      console.log(`${CLI_SYMBOLS.warning} Use --force to confirm bulk rejection`);
       process.exit(1);
     }
 
@@ -88,10 +88,10 @@ async function main() {
     }
 
     // Print result
-    console.log('\n❌ Bulk Rejection Completed');
-    console.log('═'.repeat(55));
+    console.log(`\n${CLI_SYMBOLS.error} Bulk Rejection Completed`);
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`Rejected:       ${result.modifiedCount} translations`);
-    console.log(`Status changed: ${statusArg ? statusArg.split('=')[1] : 'pending'} → rejected`);
+    console.log(`Status changed: ${statusArg ? statusArg.split('=')[1] : 'pending'} ${CLI_SYMBOLS.arrowRight} rejected`);
     console.log(`Reason:         ${reason}`);
     console.log(`Reviewed By:    ${adminName}`);
     const defaultLang = getDefaultLanguage().code;
@@ -104,11 +104,11 @@ async function main() {
       second: '2-digit',
     });
     console.log(`Time:           ${dateFormatter.format(new Date())}`);
-    console.log(`\n💡 Next: npm run retranslate to fix rejected translations\n`);
+    console.log(`\n${CLI_SYMBOLS.idea} Next: npm run retranslate to fix rejected translations\n`);
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Bulk rejection failed:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} Bulk rejection failed:`, error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();

@@ -23,6 +23,7 @@ const fs = require('fs');
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
+const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
 
 const MONGO_URI = process.env.MONGO_URI;
 const BATCH_SIZE = 100;
@@ -58,7 +59,7 @@ class MigrationService {
    * }
    */
   async migrateProductTranslations() {
-    console.log('\n📦 Migrating Product Translations...');
+    console.log(`\n${CLI_SYMBOLS.package} Migrating Product Translations...`);
 
     try {
       // Get all product-related translations (including product_category_name from migration)
@@ -145,12 +146,12 @@ class MigrationService {
         batchCount++;
         this.stats.productMigrated += batch.length;
 
-        console.log(`  ✅ Batch ${batchCount}: ${batch.length} products migrated`);
+        console.log(`  ${CLI_SYMBOLS.success} Batch ${batchCount}: ${batch.length} products migrated`);
       }
 
-      console.log(`  ✅ Total products migrated: ${this.stats.productMigrated}`);
+      console.log(`  ${CLI_SYMBOLS.success} Total products migrated: ${this.stats.productMigrated}`);
     } catch (error) {
-      console.error('  ❌ Error migrating products:', error.message);
+      console.error(`  ${CLI_SYMBOLS.error} Error migrating products:`, error.message);
       this.stats.errors++;
       throw error;
     }
@@ -160,7 +161,7 @@ class MigrationService {
    * Migrate user content (reviews, comments)
    */
   async migrateUserContentTranslations() {
-    console.log('\n💬 Migrating User Content Translations...');
+    console.log(`\n${CLI_SYMBOLS.speech} Migrating User Content Translations...`);
 
     try {
       const userContentDocs = await LiveTranslationCache.find({
@@ -199,7 +200,7 @@ class MigrationService {
                   targetLang: doc.targetLang,
                   originalText: doc.originalText,
                   translatedText: doc.translatedText,
-                  status: 'success',  // ✅ Always success
+                  status: 'success',
                   retryCount: 0,
                   lastErrorMessage: null,
                   lastRetryAt: null,
@@ -214,12 +215,12 @@ class MigrationService {
         batchCount++;
         this.stats.userContentMigrated += batch.length;
 
-        console.log(`  ✅ Batch ${batchCount}: ${batch.length} user content migrated`);
+        console.log(`  ${CLI_SYMBOLS.success} Batch ${batchCount}: ${batch.length} user content migrated`);
       }
 
-      console.log(`  ✅ Total user content migrated: ${this.stats.userContentMigrated}`);
+      console.log(`  ${CLI_SYMBOLS.success} Total user content migrated: ${this.stats.userContentMigrated}`);
     } catch (error) {
-      console.error('  ❌ Error migrating user content:', error.message);
+      console.error(`  ${CLI_SYMBOLS.error} Error migrating user content:`, error.message);
       this.stats.errors++;
       throw error;
     }
@@ -229,7 +230,7 @@ class MigrationService {
    * Verify migration integrity
    */
   async verifyMigration() {
-    console.log('\n🔍 Verifying Migration...');
+    console.log(`\n${CLI_SYMBOLS.search} Verifying Migration...`);
 
     try {
       // Count old schema
@@ -246,7 +247,7 @@ class MigrationService {
       if (sampleProduct) {
         const specsCount = Object.keys(sampleProduct.specs || {}).length;
         const featuresCount = (sampleProduct.features || []).length;
-        console.log(`  ✅ Sample product aggregation: specs=${specsCount}, features=${featuresCount}`);
+        console.log(`  ${CLI_SYMBOLS.success} Sample product aggregation: specs=${specsCount}, features=${featuresCount}`);
       }
 
       // Check for any failed records
@@ -254,10 +255,10 @@ class MigrationService {
         status: { $ne: 'success' }
       });
       if (failedRecords > 0) {
-        console.log(`  ⚠️  Failed records in new schema: ${failedRecords}`);
+        console.log(`  ${CLI_SYMBOLS.warning}  Failed records in new schema: ${failedRecords}`);
       }
 
-      console.log('  ✅ Verification complete');
+      console.log(`  ${CLI_SYMBOLS.success} Verification complete`);
       return {
         oldSchemaCount: oldCount,
         newSchemaCount: productCount + userContentCount,
@@ -266,7 +267,7 @@ class MigrationService {
         failedRecords,
       };
     } catch (error) {
-      console.error('  ❌ Verification failed:', error.message);
+      console.error(`  ${CLI_SYMBOLS.error} Verification failed:`, error.message);
       throw error;
     }
   }
@@ -278,7 +279,7 @@ class MigrationService {
     this.stats.startTime = new Date();
 
     try {
-      console.log('🚀 Starting Data Migration (Phase 2)...');
+      console.log(`${CLI_SYMBOLS.rocket} Starting Data Migration (Phase 2)...`);
       console.log(`   Database: ${MONGO_URI.substring(0, 50)}...`);
       console.log(`   Batch size: ${BATCH_SIZE}`);
 
@@ -294,8 +295,8 @@ class MigrationService {
       this.stats.endTime = new Date();
       const duration = (this.stats.endTime - this.stats.startTime) / 1000;
 
-      console.log('\n✅ Migration Complete!');
-      console.log('📊 Summary:');
+      console.log(`\n${CLI_SYMBOLS.success} Migration Complete!`);
+      console.log(`${CLI_SYMBOLS.chart} Summary:`);
       console.log(`   - Products migrated: ${this.stats.productMigrated}`);
       console.log(`   - User content migrated: ${this.stats.userContentMigrated}`);
       console.log(`   - Errors: ${this.stats.errors}`);
@@ -309,7 +310,7 @@ class MigrationService {
         verification: verificationResults,
       };
     } catch (error) {
-      console.error('\n❌ Migration failed:', error);
+      console.error(`\n${CLI_SYMBOLS.error} Migration failed:`, error);
       this.stats.endTime = new Date();
       return {
         success: false,
@@ -323,9 +324,9 @@ class MigrationService {
 // Main
 async function main() {
   try {
-    console.log('📡 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.antenna} Connecting to MongoDB...`);
     await mongoose.connect(MONGO_URI);
-    console.log('✅ Connected');
+    console.log(`${CLI_SYMBOLS.success} Connected`);
 
     const service = new MigrationService();
     const result = await service.run();
@@ -334,13 +335,13 @@ async function main() {
       process.exit(1);
     }
 
-    console.log('\n✅ Ready for Phase 3 (Switch Reading)');
+    console.log(`\n${CLI_SYMBOLS.success} Ready for Phase 3 (Switch Reading)`);
   } catch (error) {
     console.error('Fatal error:', error);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('\n🔌 Disconnected');
+    console.log(`\n${CLI_SYMBOLS.connection} Disconnected`);
   }
 }
 

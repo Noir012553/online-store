@@ -42,6 +42,11 @@ const checkedFiles = [
   'src/scripts/check-live-cache.js',
   'src/scripts/check-translation-names.js',
   'src/scripts/find-missing-en-keys.js',
+  'src/scripts/translateApprove.js',
+  'src/scripts/translateRejectAll.js',
+  'src/scripts/fixCategoryNames.js',
+  'src/scripts/verify-no-english-fallback.js',
+  'src/scripts/migrate-translations.js',
 ];
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 

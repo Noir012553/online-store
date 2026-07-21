@@ -10,6 +10,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const CATEGORY_NAME_FIXES = {
   'category_keyboard': 'Keyboard',
@@ -28,7 +29,7 @@ const CATEGORY_NAME_FIXES = {
 
     await mongoose.connect(process.env.MONGO_URI);
 
-    console.log('\n📝 Fixing category names...\n');
+    console.log(`\n${CLI_SYMBOLS.edit} Fixing category names...\n`);
 
     let updated = 0;
     let failed = 0;
@@ -42,13 +43,13 @@ const CATEGORY_NAME_FIXES = {
         );
 
         if (result) {
-          console.log(`✅ ${oldName} → ${newName}`);
+          console.log(`${CLI_SYMBOLS.success} ${oldName} ${CLI_SYMBOLS.arrowRight} ${newName}`);
           updated++;
         } else {
-          console.log(`⏭️  ${oldName} not found (already fixed or doesn't exist)`);
+          console.log(`${CLI_SYMBOLS.skip}  ${oldName} not found (already fixed or doesn't exist)`);
         }
       } catch (error) {
-        console.error(`❌ Failed to update ${oldName}:`, error.message);
+        console.error(`${CLI_SYMBOLS.error} Failed to update ${oldName}:`, error.message);
         failed++;
       }
     }
@@ -56,8 +57,8 @@ const CATEGORY_NAME_FIXES = {
     // Verify all categories
     const allCategories = await Category.find({ isDeleted: false }).select('name translationKey');
     
-    console.log(`\n✅ Migration complete: ${updated} updated, ${failed} failed\n`);
-    console.log('📋 Current categories:');
+    console.log(`\n${CLI_SYMBOLS.success} Migration complete: ${updated} updated, ${failed} failed\n`);
+    console.log(`${CLI_SYMBOLS.list} Current categories:`);
     allCategories.forEach(cat => {
       console.log(`  - ${cat.name} (translationKey: ${cat.translationKey})`);
     });
@@ -65,7 +66,7 @@ const CATEGORY_NAME_FIXES = {
     await mongoose.disconnect();
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
     process.exit(1);
   }
 })();
