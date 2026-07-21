@@ -1,5 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const checkProducts = async () => {
   try {
@@ -15,23 +16,23 @@ const checkProducts = async () => {
       ]
     }).select('name brand category');
 
-    console.log(`\n📊 KIỂM TRA BRANDS:`);
-    console.log(`✅ Sản phẩm KHÔNG có brands: ${productsWithoutBrands.length}`);
+    console.log(`\n${CLI_SYMBOLS.chart} KIỂM TRA BRANDS:`);
+    console.log(`${CLI_SYMBOLS.success} Sản phẩm KHÔNG có brands: ${productsWithoutBrands.length}`);
     
     if (productsWithoutBrands.length > 0) {
-      console.log(`\n📝 Chi tiết (10 sản phẩm đầu):`);
+      console.log(`\n${CLI_SYMBOLS.edit} Chi tiết (10 sản phẩm đầu):`);
       productsWithoutBrands.slice(0, 10).forEach(p => {
-        console.log(`  • ${p.name} (Category: ${p.category?.name || 'N/A'})`);
+        console.log(`  ${CLI_SYMBOLS.bullet} ${p.name} (Category: ${p.category?.name || 'N/A'})`);
       });
     }
 
     const totalProducts = await Product.countDocuments();
-    console.log(`\n📦 Tổng sản phẩm: ${totalProducts}`);
+    console.log(`\n${CLI_SYMBOLS.package} Tổng sản phẩm: ${totalProducts}`);
 
     await mongoose.connection.close();
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
     process.exit(1);
   }
 };

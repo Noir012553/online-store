@@ -16,7 +16,8 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const { getDefaultLanguage } = require('../src/config/languageInventory');
+const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
@@ -35,11 +36,11 @@ class PerformanceBenchmark {
 
   log(message, level = 'info') {
     const prefix = {
-      info: '📊',
-      success: '✅',
-      warning: '⚠️',
-      error: '❌'
-    }[level] || '•';
+      info: CLI_SYMBOLS.chart,
+      success: CLI_SYMBOLS.success,
+      warning: CLI_SYMBOLS.warning,
+      error: CLI_SYMBOLS.error
+    }[level] || CLI_SYMBOLS.bullet;
 
     console.log(`${prefix} ${message}`);
   }
@@ -380,25 +381,25 @@ class PerformanceBenchmark {
 
   printComparison(metric, oldValue, newValue, unit) {
     const improvement = ((oldValue - newValue) / oldValue * 100).toFixed(2);
-    const direction = improvement > 0 ? '↓' : '↑';
-    const emoji = improvement > 0 ? '🎉' : '⚠️';
+    const direction = improvement > 0 ? CLI_SYMBOLS.arrowDown : CLI_SYMBOLS.arrowUp;
+    const symbol = improvement > 0 ? CLI_SYMBOLS.celebration : CLI_SYMBOLS.warning;
 
-    console.log(`${emoji} ${metric}:`);
+    console.log(`${symbol} ${metric}:`);
     console.log(`   OLD: ${oldValue} ${unit}`);
     console.log(`   NEW: ${newValue} ${unit}`);
     console.log(`   ${direction} ${Math.abs(improvement)}% ${improvement > 0 ? 'faster' : 'slower'}\n`);
   }
 
   printSummary() {
-    console.log('📈 Overall Performance Gains (Phase 3):');
-    console.log('✅ Query Latency: 2-5x faster (aggregated schema)');
-    console.log('✅ Throughput: Increased requests/sec');
-    console.log('✅ Cache Hit Rate: Improved from 70% → 95%');
-    console.log('✅ Error Rate: Reduced from 5-10% → <1%');
-    console.log('✅ Memory Efficiency: Better indexing = less memory\n');
+    console.log(`${CLI_SYMBOLS.chartUp} Overall Performance Gains (Phase 3):`);
+    console.log(`${CLI_SYMBOLS.success} Query Latency: 2-5x faster (aggregated schema)`);
+    console.log(`${CLI_SYMBOLS.success} Throughput: Increased requests/sec`);
+    console.log(`${CLI_SYMBOLS.success} Cache Hit Rate: Improved from 70% ${CLI_SYMBOLS.arrowRight} 95%`);
+    console.log(`${CLI_SYMBOLS.success} Error Rate: Reduced from 5-10% ${CLI_SYMBOLS.arrowRight} <1%`);
+    console.log(`${CLI_SYMBOLS.success} Memory Efficiency: Better indexing = less memory\n`);
 
-    console.log('🎯 Benchmarking Complete!');
-    console.log('📊 Check benchmarks/performance_*.json for detailed results\n');
+    console.log(`${CLI_SYMBOLS.target} Benchmarking Complete!`);
+    console.log(`${CLI_SYMBOLS.chart} Check benchmarks/performance_*.json for detailed results\n`);
   }
 }
 

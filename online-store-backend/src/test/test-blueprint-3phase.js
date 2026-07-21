@@ -15,15 +15,16 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'test-token'; // Set in .env
 const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 async function test(description, fn) {
   try {
-    console.log(`\n📝 Test: ${description}`);
+    console.log(`\n${CLI_SYMBOLS.edit} Test: ${description}`);
     await fn();
-    console.log(`✅ PASS: ${description}`);
+    console.log(`${CLI_SYMBOLS.success} PASS: ${description}`);
     return true;
   } catch (error) {
-    console.error(`❌ FAIL: ${description}`);
+    console.error(`${CLI_SYMBOLS.error} FAIL: ${description}`);
     console.error(`   Error: ${error.message}`);
     return false;
   }
@@ -33,18 +34,18 @@ async function main() {
   try {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     const testLanguageCode = 'ja'; // Test with Japanese
     let testPassed = 0;
     let testFailed = 0;
 
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('🚀 3-PHASE LANGUAGE SETUP BLUEPRINT TEST');
-    console.log('═══════════════════════════════════════════════════════════\n');
+    console.log(CLI_SYMBOLS.divider.repeat(59));
+    console.log(`${CLI_SYMBOLS.rocket} 3-PHASE LANGUAGE SETUP BLUEPRINT TEST`);
+    console.log(`${CLI_SYMBOLS.divider.repeat(59)}\n`);
 
     // ========== PHASE 0: Setup Validation ==========
-    console.log('📍 PHASE 0: Pre-setup Validation\n');
+    console.log(`${CLI_SYMBOLS.location} PHASE 0: Pre-setup Validation\n`);
 
     if (await test('Check if test language already exists', async () => {
       const existing = await Language.findOne({ code: testLanguageCode });
@@ -58,7 +59,7 @@ async function main() {
     else testFailed++;
 
     // ========== PHASE 1: Trigger Setup ==========
-    console.log('\n📍 PHASE 1: Trigger 3-Phase Setup via API\n');
+    console.log(`\n${CLI_SYMBOLS.location} PHASE 1: Trigger 3-Phase Setup via API\n`);
 
     let setupResponseTime = 0;
 
@@ -91,7 +92,7 @@ async function main() {
 
       console.log(`   Response time: ${setupResponseTime}ms (target: < 100ms)`);
       if (setupResponseTime > 100) {
-        console.warn(`   ⚠️  Warning: Response time exceeds 100ms target`);
+        console.warn(`   ${CLI_SYMBOLS.warning}  Warning: Response time exceeds 100ms target`);
       }
 
       if (response.data.data.isReady !== false) {
@@ -105,7 +106,7 @@ async function main() {
     else testFailed++;
 
     // ========== PHASE 2: Monitor Setup Progress ==========
-    console.log('\n📍 PHASE 2: Monitor Setup Progress (10 second samples)\n');
+    console.log(`\n${CLI_SYMBOLS.location} PHASE 2: Monitor Setup Progress (10 second samples)\n`);
 
     const maxWaitTime = 180000; // 3 minutes max
     const startSetupTime = Date.now();
@@ -129,7 +130,7 @@ async function main() {
         console.log(`   [Check ${statusCheckCount}] Status: ${status}, isReady: ${isReady}`);
 
         if (isReady) {
-          console.log(`   ✓ Setup completed in ${setupDurationSeconds} seconds`);
+          console.log(`   ${CLI_SYMBOLS.check} Setup completed in ${setupDurationSeconds} seconds`);
           isSetupComplete = true;
         }
       }
@@ -153,7 +154,7 @@ async function main() {
     else testFailed++;
 
     // ========== PHASE 3: Verify Data ==========
-    console.log('\n📍 PHASE 3: Verify Setup Data\n');
+    console.log(`\n${CLI_SYMBOLS.location} PHASE 3: Verify Setup Data\n`);
 
     let uiTranslationCount = 0;
     if (await test('Verify StaticTranslation records created', async () => {
@@ -196,7 +197,7 @@ async function main() {
       console.log(`   Found ${productTranslationCount} LiveTranslationCache records`);
 
       if (productTranslationCount === 0) {
-        console.warn(`   ⚠️  Warning: No product translations found (products may be empty)`);
+        console.warn(`   ${CLI_SYMBOLS.warning}  Warning: No product translations found (products may be empty)`);
       } else {
         // Check cache entries
         const byType = await LiveTranslationCache.aggregate([
@@ -206,7 +207,7 @@ async function main() {
 
         console.log(`   Translation breakdown:`);
         for (const item of byType) {
-          console.log(`     • ${item._id}: ${item.count}`);
+          console.log(`     ${CLI_SYMBOLS.bullet} ${item._id}: ${item.count}`);
         }
       }
     })) testPassed++;
@@ -229,7 +230,7 @@ async function main() {
     else testFailed++;
 
     // ========== PHASE 4: API Verification ==========
-    console.log('\n📍 PHASE 4: API Verification\n');
+    console.log(`\n${CLI_SYMBOLS.location} PHASE 4: API Verification\n`);
 
     if (await test('GET /api/languages returns setup data', async () => {
       const response = await axios.get(
@@ -257,25 +258,25 @@ async function main() {
     else testFailed++;
 
     // ========== Summary ==========
-    console.log('\n═══════════════════════════════════════════════════════════');
-    console.log('📊 TEST SUMMARY');
-    console.log('═══════════════════════════════════════════════════════════\n');
+    console.log(`\n${CLI_SYMBOLS.divider.repeat(59)}`);
+    console.log(`${CLI_SYMBOLS.chart} TEST SUMMARY`);
+    console.log(`${CLI_SYMBOLS.divider.repeat(59)}\n`);
 
-    console.log(`✅ Passed: ${testPassed}`);
-    console.log(`❌ Failed: ${testFailed}`);
+    console.log(`${CLI_SYMBOLS.success} Passed: ${testPassed}`);
+    console.log(`${CLI_SYMBOLS.error} Failed: ${testFailed}`);
     console.log(`\nUI Translations: ${uiTranslationCount} namespaces`);
     console.log(`Product Translations: ${productTranslationCount} cache entries`);
     console.log(`API Response Time: ${setupResponseTime}ms\n`);
 
     if (testFailed === 0) {
-      console.log('🎉 ALL TESTS PASSED! Blueprint is working correctly.\n');
+      console.log(`${CLI_SYMBOLS.celebration} ALL TESTS PASSED! Blueprint is working correctly.\n`);
     } else {
-      console.log('⚠️  SOME TESTS FAILED. Check the logs above.\n');
+      console.log(`${CLI_SYMBOLS.warning}  SOME TESTS FAILED. Check the logs above.\n`);
     }
 
     process.exit(testFailed === 0 ? 0 : 1);
   } catch (error) {
-    console.error('❌ Fatal error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Fatal error:`, error.message);
     console.error(error.stack);
     process.exit(1);
   }

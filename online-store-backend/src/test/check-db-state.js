@@ -12,17 +12,18 @@ const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 async function main() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Check Languages
-    console.log('📍 Languages in DB:');
+    console.log(`${CLI_SYMBOLS.location} Languages in DB:`);
     const languages = await Language.find().lean();
     if (languages.length === 0) {
-      console.log('   ❌ No languages found!');
+      console.log(`   ${CLI_SYMBOLS.error} No languages found!`);
     } else {
       languages.forEach(lang => {
         console.log(`   ${lang.code}: ${lang.name} (active: ${lang.isActive})`);
@@ -30,7 +31,7 @@ async function main() {
     }
 
     // Check StaticTranslation by language
-    console.log('\n📚 StaticTranslation records:');
+    console.log(`\n${CLI_SYMBOLS.books} StaticTranslation records:`);
     const langCodes = getActiveLangCodes();
     for (const code of langCodes) {
       const count = await StaticTranslation.countDocuments({ code, isDeleted: false });
@@ -43,7 +44,7 @@ async function main() {
     }
 
     // Check LiveTranslationCache by language
-    console.log('\n🔄 LiveTranslationCache records:');
+    console.log(`\n${CLI_SYMBOLS.progress} LiveTranslationCache records:`);
     for (const code of langCodes) {
       const count = await LiveTranslationCache.countDocuments({ targetLang: code });
       console.log(`   ${code}: ${count} cached translations`);
@@ -56,10 +57,10 @@ async function main() {
       }
     }
 
-    console.log('\n✅ Database check completed');
+    console.log(`\n${CLI_SYMBOLS.success} Database check completed`);
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
     process.exit(1);
   }
 }

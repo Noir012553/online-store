@@ -12,6 +12,7 @@
  */
 
 const axios = require('axios');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:5000/api';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ''; // Set your admin token
@@ -36,18 +37,18 @@ function sleep(ms) {
 
 async function runTest() {
   try {
-    log(colors.cyan, '\n🚀 START: End-to-End Translation System Test\n');
+    log(colors.cyan, `\n${CLI_SYMBOLS.rocket} START: End-to-End Translation System Test\n`);
 
     // ============ TEST 1: Check admin token ============
-    log(colors.blue, '📝 TEST 1: Verify Admin Token');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 1: Verify Admin Token`);
     if (!ADMIN_TOKEN) {
-      log(colors.red, '❌ ERROR: ADMIN_TOKEN not set. Export it: export ADMIN_TOKEN="your_token"');
+      log(colors.red, `${CLI_SYMBOLS.error} ERROR: ADMIN_TOKEN not set. Export it: export ADMIN_TOKEN="your_token"`);
       process.exit(1);
     }
-    log(colors.green, '✅ Admin token configured\n');
+    log(colors.green, `${CLI_SYMBOLS.success} Admin token configured\n`);
 
     // ============ TEST 2: Create new language ============
-    log(colors.blue, '📝 TEST 2: Create new language (Português)');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 2: Create new language (Português)`);
     const langCode = 'pt-test-' + Date.now(); // Unique code for testing
     const createLangRes = await axios.post(
       `${API_BASE}/language`,
@@ -59,12 +60,12 @@ async function runTest() {
         headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       }
     );
-    log(colors.green, `✅ Language created: ${createLangRes.data.data.code}`);
+    log(colors.green, `${CLI_SYMBOLS.success} Language created: ${createLangRes.data.data.code}`);
     log(colors.cyan, `   isReady: ${createLangRes.data.data.isReady}`);
     log(colors.cyan, `   setupStartedAt: ${createLangRes.data.data.setupStartedAt}\n`);
 
     // ============ TEST 3: Monitor Phase 1-3 progress ============
-    log(colors.blue, '📝 TEST 3: Monitor background Phase 1-3 progress');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 3: Monitor background Phase 1-3 progress`);
     let isReady = false;
     let attempts = 0;
     const maxAttempts = 60; // 5 minutes max (60 attempts × 5s)
@@ -83,24 +84,24 @@ async function runTest() {
       const { isReady: setupReady, setupCompletedAt } = statusRes.data.data;
       isReady = setupReady;
 
-      const status = isReady ? '✅ READY' : '⏳ SETTING_UP';
+      const status = isReady ? `${CLI_SYMBOLS.success} READY` : `${CLI_SYMBOLS.wait} SETTING_UP`;
       log(colors.cyan, `   [Attempt ${attempts}/${maxAttempts}] Status: ${status}`);
 
       if (isReady) {
-        log(colors.green, `✅ Language setup completed in ${(attempts * 5)}s`);
+        log(colors.green, `${CLI_SYMBOLS.success} Language setup completed in ${(attempts * 5)}s`);
         log(colors.cyan, `   setupCompletedAt: ${setupCompletedAt}\n`);
       }
     }
 
     if (!isReady) {
-      log(colors.red, '❌ ERROR: Language setup timeout (5 minutes exceeded)');
+      log(colors.red, `${CLI_SYMBOLS.error} ERROR: Language setup timeout (5 minutes exceeded)`);
       process.exit(1);
     }
 
     const langCode2 = createLangRes.data.data.code;
 
     // ============ TEST 4: Test new API endpoints ============
-    log(colors.blue, '📝 TEST 4: Test translation status endpoint');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 4: Test translation status endpoint`);
     const statusRes = await axios.get(
       `${API_BASE}/translation/admin/status/${langCode2}`,
       {
@@ -109,7 +110,7 @@ async function runTest() {
     );
 
     const { layer1, layer2, errors, totalErrors } = statusRes.data.data;
-    log(colors.green, `✅ Translation status retrieved:`);
+    log(colors.green, `${CLI_SYMBOLS.success} Translation status retrieved:`);
     log(colors.cyan, `   Layer 1 (UI):`);
     log(colors.cyan, `     - Progress: ${layer1.progress}%`);
     log(colors.cyan, `     - Completed: ${layer1.completedNamespaces}/${layer1.totalNamespaces} namespaces`);
@@ -123,7 +124,7 @@ async function runTest() {
     log(colors.cyan, `     - Total: ${totalErrors}\n`);
 
     // ============ TEST 5: Verify DB data ============
-    log(colors.blue, '📝 TEST 5: Verify DB - StaticTranslation records');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 5: Verify DB - StaticTranslation records`);
     const staticTransRes = await axios.get(
       `${API_BASE}/translation/lang/${langCode2}`,
       {
@@ -131,9 +132,9 @@ async function runTest() {
       }
     );
     const staticCount = staticTransRes.data.data.length;
-    log(colors.green, `✅ Found ${staticCount} StaticTranslation records for ${langCode2}`);
+    log(colors.green, `${CLI_SYMBOLS.success} Found ${staticCount} StaticTranslation records for ${langCode2}`);
     if (staticCount === 0) {
-      log(colors.red, '⚠️  WARNING: No static translations found! Layer 1 may have failed.');
+      log(colors.red, `${CLI_SYMBOLS.warning}  WARNING: No static translations found! Layer 1 may have failed.`);
     } else {
       log(colors.cyan, `   Sample namespace: ${staticTransRes.data.data[0].namespace}`);
     }
@@ -141,7 +142,7 @@ async function runTest() {
 
     // ============ TEST 6: Test failed translations endpoint (if any errors) ============
     if (totalErrors > 0) {
-      log(colors.blue, '📝 TEST 6: Retrieve failed translations');
+      log(colors.blue, `${CLI_SYMBOLS.edit} TEST 6: Retrieve failed translations`);
       const failedRes = await axios.get(
         `${API_BASE}/translation/admin/failed/${langCode2}?limit=10`,
         {
@@ -149,7 +150,7 @@ async function runTest() {
         }
       );
       const failedItems = failedRes.data.data.items;
-      log(colors.green, `✅ Retrieved ${failedItems.length} failed items:`);
+      log(colors.green, `${CLI_SYMBOLS.success} Retrieved ${failedItems.length} failed items:`);
       for (const item of failedItems.slice(0, 3)) {
         log(colors.cyan, `   - ${item.entityType}: "${item.originalText.substring(0, 50)}..."`);
         log(colors.cyan, `     Status: ${item.status}, Retries: ${item.retryCount}/3`);
@@ -157,7 +158,7 @@ async function runTest() {
       log('');
 
       // ============ TEST 7: Test retry endpoint ============
-      log(colors.blue, '📝 TEST 7: Trigger retry for failed translations');
+      log(colors.blue, `${CLI_SYMBOLS.edit} TEST 7: Trigger retry for failed translations`);
       const retryRes = await axios.post(
         `${API_BASE}/translation/admin/retry/${langCode2}`,
         {},
@@ -165,7 +166,7 @@ async function runTest() {
           headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
         }
       );
-      log(colors.green, `✅ ${retryRes.data.message}`);
+      log(colors.green, `${CLI_SYMBOLS.success} ${retryRes.data.message}`);
       log(colors.cyan, `   Reset count: ${retryRes.data.data.resetCount}\n`);
 
       // Wait a bit for background job
@@ -180,31 +181,31 @@ async function runTest() {
       );
       log(colors.cyan, `   Updated error count: ${updatedStatusRes.data.data.totalErrors}\n`);
     } else {
-      log(colors.green, '✅ No errors found - All translations completed successfully!\n');
+      log(colors.green, `${CLI_SYMBOLS.success} No errors found - All translations completed successfully!\n`);
     }
 
     // ============ TEST 8: Verify language in supported list ============
-    log(colors.blue, '📝 TEST 8: Verify language appears in active languages');
+    log(colors.blue, `${CLI_SYMBOLS.edit} TEST 8: Verify language appears in active languages`);
     const langsRes = await axios.get(`${API_BASE}/language`, {
       headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const foundLang = langsRes.data.data.find(l => l.code === langCode2 && l.isReady);
     if (foundLang) {
-      log(colors.green, `✅ Language ${langCode2} is active and ready`);
+      log(colors.green, `${CLI_SYMBOLS.success} Language ${langCode2} is active and ready`);
     } else {
-      log(colors.red, `❌ Language ${langCode2} not found or not ready`);
+      log(colors.red, `${CLI_SYMBOLS.error} Language ${langCode2} not found or not ready`);
     }
     log('');
 
     // ============ TEST 9: Summary ============
-    log(colors.green, '\n✅ ============ ALL TESTS PASSED ============\n');
+    log(colors.green, `\n${CLI_SYMBOLS.success} ============ ALL TESTS PASSED ============\n`);
     log(colors.cyan, 'Summary:');
-    log(colors.cyan, `  ✓ Language created: ${langCode2}`);
-    log(colors.cyan, `  ✓ Phase 1-3 completed in ${(attempts * 5)}s`);
-    log(colors.cyan, `  ✓ Layer 1 (UI): ${layer1.progress}%`);
-    log(colors.cyan, `  ✓ Layer 2 (Products): ${layer2.progress}%`);
-    log(colors.cyan, `  ✓ Admin API endpoints working`);
-    log(colors.cyan, `  ✓ Translation status & retry functional\n`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Language created: ${langCode2}`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Phase 1-3 completed in ${(attempts * 5)}s`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Layer 1 (UI): ${layer1.progress}%`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Layer 2 (Products): ${layer2.progress}%`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Admin API endpoints working`);
+    log(colors.cyan, `  ${CLI_SYMBOLS.check} Translation status & retry functional\n`);
 
     log(colors.yellow, 'Next steps:');
     log(colors.yellow, '  1. Go to Admin > Translations > Bảng điều khiển dịch');
@@ -214,7 +215,7 @@ async function runTest() {
 
     process.exit(0);
   } catch (error) {
-    log(colors.red, `\n❌ ERROR: ${error.message}`);
+    log(colors.red, `\n${CLI_SYMBOLS.error} ERROR: ${error.message}`);
     if (error.response?.data) {
       log(colors.red, `Response: ${JSON.stringify(error.response.data, null, 2)}`);
     }
