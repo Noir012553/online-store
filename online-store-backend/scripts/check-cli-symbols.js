@@ -3,11 +3,15 @@ const path = require('path');
 
 const rootDir = path.join(__dirname, '..');
 const checkedFiles = [
+  'src/controllers/languageController.js',
+  'src/controllers/productImportController.js',
+  'src/controllers/shippingProviderController.js',
   'src/i18n/messages.js',
   'src/seeds/seedRegistry.js',
   'src/test/test-runner.js',
   'src/test/testRegistry.js',
   'src/utils/fileCleanup.js',
+  'src/utils/translationReporter.js',
 ];
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
 

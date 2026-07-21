@@ -27,6 +27,7 @@ const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const buildCategoryNameQuery = (name) => {
   if (!name || typeof name !== 'string') return null;
@@ -128,11 +129,11 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       supplierMap[sup.name.toLowerCase()] = sup._id;
     });
 
-    // 🚀 OPTIMIZATION: Pre-identify all missing categories/suppliers and create them in BULK
+    // Pre-identify all missing categories/suppliers and create them in bulk.
     // BEFORE: Loop N products × (check + create category + check + create supplier) = N*4 operations
     // AFTER: Pre-collect → Bulk create categories → Bulk create suppliers = 2 operations
     if (process.env.NODE_ENV === 'development') {
-      console.time('⏱️ Bulk category/supplier creation');
+      console.time(`${CLI_SYMBOLS.duration} Bulk category/supplier creation`);
     }
 
     const createdCategories = [];
@@ -140,7 +141,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     // Step 1: Identify missing categories
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 [Step 1/4] Scanning for missing categories...');
+      console.log(`${CLI_SYMBOLS.search} [Step 1/4] Scanning for missing categories...`);
     }
     const categoriesToCreate = [];
     const categoryLookup = new Map();
@@ -166,7 +167,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 Found ${categoriesToCreate.length} categories to create`);
+      console.log(`${CLI_SYMBOLS.chart} Found ${categoriesToCreate.length} categories to create`);
     }
 
     if (categoriesToCreate.length > MAX_NEW_CATEGORIES_PER_IMPORT) {
@@ -175,7 +176,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     // Step 2: Bulk create missing categories
     if (process.env.NODE_ENV === 'development') {
-      console.log('💾 [Step 2/4] Bulk creating categories...');
+      console.log(`${CLI_SYMBOLS.save} [Step 2/4] Bulk creating categories...`);
     }
     if (categoriesToCreate.length > 0) {
       try {
@@ -187,12 +188,12 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
           createdCategories.push(cat.name);
         });
         if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Created ${newCategories.length} categories`);
+          console.log(`${CLI_SYMBOLS.success} Created ${newCategories.length} categories`);
         }
       } catch (err) {
         if (err.code === 11000) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('⚠️ Some categories already exist, fetching them...');
+            console.log(`${CLI_SYMBOLS.warning} Some categories already exist, fetching them...`);
           }
           for (const { name } of categoriesToCreate) {
             const existing = await Category.findOne({ name, isDeleted: false });
@@ -210,7 +211,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     // Step 3: Identify missing suppliers
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 [Step 3/4] Scanning for missing suppliers...');
+      console.log(`${CLI_SYMBOLS.search} [Step 3/4] Scanning for missing suppliers...`);
     }
     const suppliersToCreate = [];
     const supplierLookup = new Map();
@@ -236,7 +237,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 Found ${suppliersToCreate.length} suppliers to create`);
+      console.log(`${CLI_SYMBOLS.chart} Found ${suppliersToCreate.length} suppliers to create`);
     }
 
     if (suppliersToCreate.length > MAX_NEW_SUPPLIERS_PER_IMPORT) {
@@ -245,7 +246,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     // Step 4: Bulk create missing suppliers
     if (process.env.NODE_ENV === 'development') {
-      console.log('💾 [Step 4/4] Bulk creating suppliers...');
+      console.log(`${CLI_SYMBOLS.save} [Step 4/4] Bulk creating suppliers...`);
     }
     if (suppliersToCreate.length > 0) {
       try {
@@ -257,12 +258,12 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
           createdSuppliers.push(sup.name);
         });
         if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Created ${newSuppliers.length} suppliers`);
+          console.log(`${CLI_SYMBOLS.success} Created ${newSuppliers.length} suppliers`);
         }
       } catch (err) {
         if (err.code === 11000) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('⚠️ Some suppliers already exist, fetching them...');
+            console.log(`${CLI_SYMBOLS.warning} Some suppliers already exist, fetching them...`);
           }
           for (const { name } of suppliersToCreate) {
             const existing = await Supplier.findOne({ name, isDeleted: false });
@@ -279,12 +280,12 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.timeEnd('⏱️ Bulk category/supplier creation');
+      console.timeEnd(`${CLI_SYMBOLS.duration} Bulk category/supplier creation`);
     }
 
     // Now enrich all products in a single pass (category/supplier already resolved)
     if (process.env.NODE_ENV === 'development') {
-      console.log('📝 Enriching products with resolved IDs...');
+      console.log(`${CLI_SYMBOLS.edit} Enriching products with resolved IDs...`);
     }
     const enrichedProducts = validProducts.map((product, idx) => {
       const enriched = { ...product, user: adminUserId };

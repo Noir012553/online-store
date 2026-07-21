@@ -194,7 +194,7 @@ class TranslationReporter {
 
   printSeedReport(report) {
     console.log(`\n${CLI_SYMBOLS.success} SEED TRANSLATION REPORT`);
-    console.log('═'.repeat(55));
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`\n${CLI_SYMBOLS.chart} OVERALL STATISTICS:`);
     console.log(`   Total translations: ${report.statistics.totalTranslations}`);
     console.log(`   ${CLI_SYMBOLS.success} Approved: ${report.statistics.approved} (${((report.statistics.approved / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
@@ -205,12 +205,12 @@ class TranslationReporter {
     if (Object.keys(report.issuesBreakdown).length > 0) {
       console.log(`\n${CLI_SYMBOLS.error} ISSUES BREAKDOWN:`);
       Object.entries(report.issuesBreakdown).forEach(([error, stat]) => {
-        console.log(`   • ${error}: ${stat.count} (${stat.percentage})`);
+        console.log(`   ${CLI_SYMBOLS.bullet} ${error}: ${stat.count} (${stat.percentage})`);
       });
     }
 
     console.log(`\n${CLI_SYMBOLS.list} NEXT STEPS:`);
-    report.recommendations.forEach(rec => console.log(`   • ${rec}`));
+    report.recommendations.forEach(rec => console.log(`   ${CLI_SYMBOLS.bullet} ${rec}`));
 
     if (config.SAVE_REPORTS) {
       console.log(`\n${CLI_SYMBOLS.report} Full report saved to: ./translation-reports`);
@@ -220,7 +220,7 @@ class TranslationReporter {
 
   printRetranslateReport(report) {
     console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION REPORT`);
-    console.log('═'.repeat(55));
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`\n${CLI_SYMBOLS.list} INPUT:`);
     console.log(`   Total to retranslate: ${report.input.totalToRetranslate}`);
     console.log(`\n${CLI_SYMBOLS.chart} RESULTS:`);
