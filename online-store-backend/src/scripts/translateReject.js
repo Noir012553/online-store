@@ -1,30 +1,30 @@
-const mongoose = require('mongoose');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
 async function main() {
   try {
     // Connect to MongoDB
-    console.log('🔌 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Get translation ID
     const translationId = args[0];
     if (!translationId) {
-      console.log('❌ Usage: npm run translate:reject <translationId> [--reason="..."] [--note="..."]');
+      console.log(`${CLI_SYMBOLS.error} Usage: npm run translate:reject <translationId> [--reason="..."] [--note="..."]`);
       process.exit(1);
     }
 
     // Find translation
     const translation = await LiveTranslationCache.findById(translationId);
     if (!translation) {
-      console.log('❌ Translation not found');
+      console.log(`${CLI_SYMBOLS.error} Translation not found`);
       process.exit(1);
     }
 
@@ -57,12 +57,12 @@ async function main() {
     });
 
     // Print result
-    console.log('\n❌ Translation Rejected');
-    console.log('═'.repeat(55));
+    console.log(`\n${CLI_SYMBOLS.error} Translation Rejected`);
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`ID:          ${translation._id}`);
     console.log(`Original:    "${translation.originalText}"`);
     console.log(`Translated:  "${translation.translatedText}"`);
-    console.log(`Status:      ${translation.qualityStatus} ❌`);
+    console.log(`Status:      ${translation.qualityStatus} ${CLI_SYMBOLS.error}`);
     console.log(`Quality:     ${translation.qualityScore}/100`);
     console.log(`Reason:      ${reason}`);
     console.log(`Reviewed By: ${adminName}`);
@@ -77,11 +77,11 @@ async function main() {
     });
     console.log(`Reviewed At: ${dateFormatter.format(new Date())}`);
     if (note) console.log(`Note:        ${note}`);
-    console.log('\n💡 Next: npm run retranslate to fix this translation\n');
+    console.log(`\n${CLI_SYMBOLS.idea} Next: npm run retranslate to fix this translation\n`);
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Rejection failed:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} Rejection failed:`, error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
