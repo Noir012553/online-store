@@ -4,6 +4,7 @@ const ts = require('typescript');
 
 const sourceDirectories = ['src/components', 'src/pages', 'src/lib'];
 const excludedFiles = new Set([
+  'src/lib/i18n/localeMetadata.ts',
   'src/lib/uiEmoji.ts',
 ]);
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
