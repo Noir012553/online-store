@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 
 const LOCALES_DIR = path.join(__dirname, '../locales');
@@ -28,7 +29,7 @@ const allActiveLangs = getActiveLangCodes();
 const LANGS = allActiveLangs.filter(l => l !== defaultLang);
 
 function main() {
-  console.log('📊 Checking translation file structure...\n');
+  console.log(`${CLI_SYMBOLS.chart} Checking translation file structure...\n`);
 
   let total = 0;
   let exists = 0;

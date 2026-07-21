@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 require('dotenv').config();
 
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
@@ -18,7 +19,7 @@ async function checkHealth() {
     await mongoose.connect(process.env.MONGO_URI);
 
     // Check 1: Old schema (LiveTranslationCache)
-    console.log('📊 OLD SCHEMA: LiveTranslationCache');
+    console.log(`${CLI_SYMBOLS.chart} OLD SCHEMA: LiveTranslationCache`);
     const oldTotal = await LiveTranslationCache.countDocuments();
     const oldByLang = await LiveTranslationCache.aggregate([
       { $group: { _id: '$targetLang', count: { $sum: 1 } } },
@@ -33,7 +34,7 @@ async function checkHealth() {
     console.log('');
 
     // Check 2: New schema - ProductCatalog
-    console.log('📊 NEW SCHEMA: ProductCatalogTranslationCache');
+    console.log(`${CLI_SYMBOLS.chart} NEW SCHEMA: ProductCatalogTranslationCache`);
     const newProdTotal = await ProductCatalogTranslationCache.countDocuments();
     const newProdByLang = await ProductCatalogTranslationCache.aggregate([
       { $group: { _id: '$targetLang', count: { $sum: 1 } } },
@@ -48,7 +49,7 @@ async function checkHealth() {
     console.log('');
 
     // Check 3: New schema - UserContent
-    console.log('📊 NEW SCHEMA: UserContentTranslationCache');
+    console.log(`${CLI_SYMBOLS.chart} NEW SCHEMA: UserContentTranslationCache`);
     const newUserTotal = await UserContentTranslationCache.countDocuments();
     const newUserByLang = await UserContentTranslationCache.aggregate([
       { $group: { _id: '$targetLang', count: { $sum: 1 } } },
@@ -63,35 +64,35 @@ async function checkHealth() {
     console.log('');
 
     // Check 4: Alert thresholds
-    console.log('⚠️  ALERTS');
+    console.log(`${CLI_SYMBOLS.warning}  ALERTS`);
     const alerts = [];
 
     if (oldErrorRate > 5) {
-      alerts.push(`  ❌ HIGH ERROR RATE in OLD schema: ${oldErrorRate}% (threshold: 5%)`);
+      alerts.push(`  ${CLI_SYMBOLS.error} HIGH ERROR RATE in OLD schema: ${oldErrorRate}% (threshold: 5%)`);
     }
 
     if (newProdErrorRate > 5) {
-      alerts.push(`  ❌ HIGH ERROR RATE in ProductCatalog: ${newProdErrorRate}% (threshold: 5%)`);
+      alerts.push(`  ${CLI_SYMBOLS.error} HIGH ERROR RATE in ProductCatalog: ${newProdErrorRate}% (threshold: 5%)`);
     }
 
     if (newUserErrorRate > 5) {
-      alerts.push(`  ❌ HIGH ERROR RATE in UserContent: ${newUserErrorRate}% (threshold: 5%)`);
+      alerts.push(`  ${CLI_SYMBOLS.error} HIGH ERROR RATE in UserContent: ${newUserErrorRate}% (threshold: 5%)`);
     }
 
     // Cache hit rate heuristic: if new schema has decent coverage, old is not needed
     const migrationProgress = newProdTotal > 0 ? ((newProdTotal / oldTotal) * 100).toFixed(2) : 0;
     if (migrationProgress < 70) {
-      alerts.push(`  ⚠️  Migration incomplete: ${migrationProgress}% of data in new schema`);
+      alerts.push(`  ${CLI_SYMBOLS.warning}  Migration incomplete: ${migrationProgress}% of data in new schema`);
     }
 
     if (alerts.length > 0) {
       alerts.forEach(a => console.log(a));
     } else {
-      console.log('  ✅ All systems healthy');
+      console.log(`  ${CLI_SYMBOLS.success} All systems healthy`);
     }
 
     console.log('');
-    console.log('📈 SUMMARY');
+    console.log(`${CLI_SYMBOLS.chartUp} SUMMARY`);
     console.log(`  Total cache size (OLD): ${oldTotal} documents`);
     console.log(`  Total cache size (NEW): ${newProdTotal + newUserTotal} documents`);
     console.log(`  Migration progress: ${migrationProgress}%`);

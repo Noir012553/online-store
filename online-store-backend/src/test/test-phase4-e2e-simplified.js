@@ -4,6 +4,7 @@
  */
 
 const mongoose = require('mongoose');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
@@ -21,7 +22,7 @@ describe('PHASE 4: E2E Verification Tests', function() {
 
   // ============ TEST 1: Migration Data Integrity ============
   describe('Test 1: Migration Data Integrity', () => {
-    it('✅ New schemas have data (migration executed)', async function() {
+    it(`${CLI_SYMBOLS.success} New schemas have data (migration executed)`, async function() {
       const productCount = await ProductCatalogTranslationCache.countDocuments();
       const userContentCount = await UserContentTranslationCache.countDocuments();
       
@@ -30,30 +31,30 @@ describe('PHASE 4: E2E Verification Tests', function() {
       
       // At least some data migrated
       if (productCount > 0 || userContentCount > 0) {
-        console.log('  ✅ Migration data present');
+        console.log(`  ${CLI_SYMBOLS.success} Migration data present`);
       }
     });
 
-    it('✅ Products have aggregated specs (O(1) query)', async function() {
+    it(`${CLI_SYMBOLS.success} Products have aggregated specs (O(1) query)`, async function() {
       const product = await ProductCatalogTranslationCache.findOne({});
       
       if (!product) {
-        console.log('  ⚠️  No product translations found (will create during seeding)');
+        console.log(`  ${CLI_SYMBOLS.warning}  No product translations found (will create during seeding)`);
         return;
       }
 
       // Verify aggregation
       if (product.specs && typeof product.specs === 'object') {
-        console.log('  ✅ Specs correctly aggregated into single object');
+        console.log(`  ${CLI_SYMBOLS.success} Specs correctly aggregated into single object`);
         console.log(`     Keys: ${Object.keys(product.specs).join(', ')}`);
       }
 
       if (Array.isArray(product.features)) {
-        console.log('  ✅ Features correctly aggregated into array');
+        console.log(`  ${CLI_SYMBOLS.success} Features correctly aggregated into array`);
       }
     });
 
-    it('✅ All new schema documents have success status', async function() {
+    it(`${CLI_SYMBOLS.success} All new schema documents have success status`, async function() {
       const failedProducts = await ProductCatalogTranslationCache.countDocuments({
         status: { $ne: 'success' }
       });
@@ -67,14 +68,14 @@ describe('PHASE 4: E2E Verification Tests', function() {
       
       // Should be 0
       if (failedProducts === 0 && failedUserContent === 0) {
-        console.log('  ✅ All documents have success status');
+        console.log(`  ${CLI_SYMBOLS.success} All documents have success status`);
       }
     });
   });
 
   // ============ TEST 2: Query Performance ============
   describe('Test 2: Query Performance (O(1) vs O(N))', () => {
-    it('✅ New schema: 1 query for product specs (O(1))', async function() {
+    it(`${CLI_SYMBOLS.success} New schema: 1 query for product specs (O(1))`, async function() {
       const startTime = Date.now();
       
       const product = await ProductCatalogTranslationCache.findOne({
@@ -87,11 +88,11 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  Docs returned: 1 (all specs aggregated)`);
       
       if (duration < 100) {
-        console.log('  ✅ O(1) query performance achieved');
+        console.log(`  ${CLI_SYMBOLS.success} O(1) query performance achieved`);
       }
     });
 
-    it('✅ Old schema: N queries for product specs (O(N) demo)', async function() {
+    it(`${CLI_SYMBOLS.success} Old schema: N queries for product specs (O(N) demo)`, async function() {
       const startTime = Date.now();
       
       // Simulate N queries for specs
@@ -104,14 +105,14 @@ describe('PHASE 4: E2E Verification Tests', function() {
 
       console.log(`  Query time: ${duration}ms`);
       console.log(`  Docs returned: ${specs.length} (each spec is separate row)`);
-      console.log(`  ⚠️  Would need ${specs.length} queries to get 1 product's specs`);
-      console.log(`  ✅ Demonstrates why new schema (O(1)) is better`);
+      console.log(`  ${CLI_SYMBOLS.warning}  Would need ${specs.length} queries to get 1 product's specs`);
+      console.log(`  ${CLI_SYMBOLS.success} Demonstrates why new schema (O(1)) is better`);
     });
   });
 
   // ============ TEST 3: Language Coverage ============
   describe('Test 3: Multi-language Support', () => {
-    it('✅ Check language distribution in new schemas', async function() {
+    it(`${CLI_SYMBOLS.success} Check language distribution in new schemas`, async function() {
       const langDist = await ProductCatalogTranslationCache.aggregate([
         { $group: { _id: '$targetLang', count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
@@ -123,14 +124,14 @@ describe('PHASE 4: E2E Verification Tests', function() {
       });
 
       if (langDist.length > 0) {
-        console.log('  ✅ Multi-language support verified');
+        console.log(`  ${CLI_SYMBOLS.success} Multi-language support verified`);
       }
     });
   });
 
   // ============ TEST 4: TTL Index Verification ============
   describe('Test 4: TTL Indexes (Auto-cleanup)', () => {
-    it('✅ ProductCatalogTranslationCache has TTL (90 days)', async function() {
+    it(`${CLI_SYMBOLS.success} ProductCatalogTranslationCache has TTL (90 days)`, async function() {
       const indexes = await ProductCatalogTranslationCache.collection.getIndexes();
       
       const hasTTL = Object.keys(indexes).some(key => 
@@ -139,13 +140,13 @@ describe('PHASE 4: E2E Verification Tests', function() {
 
       console.log('  Indexes:', Object.keys(indexes));
       if (hasTTL) {
-        console.log('  ✅ TTL index found (auto-cleanup enabled)');
+        console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
       } else {
-        console.log('  ⚠️  TTL index not yet created (will create on first insert)');
+        console.log(`  ${CLI_SYMBOLS.warning}  TTL index not yet created (will create on first insert)`);
       }
     });
 
-    it('✅ UserContentTranslationCache has TTL (30 days)', async function() {
+    it(`${CLI_SYMBOLS.success} UserContentTranslationCache has TTL (30 days)`, async function() {
       const indexes = await UserContentTranslationCache.collection.getIndexes();
       
       const hasTTL = Object.keys(indexes).some(key => 
@@ -154,16 +155,16 @@ describe('PHASE 4: E2E Verification Tests', function() {
 
       console.log('  Indexes:', Object.keys(indexes));
       if (hasTTL) {
-        console.log('  ✅ TTL index found (auto-cleanup enabled)');
+        console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
       } else {
-        console.log('  ⚠️  TTL index not yet created (will create on first insert)');
+        console.log(`  ${CLI_SYMBOLS.warning}  TTL index not yet created (will create on first insert)`);
       }
     });
   });
 
   // ============ TEST 5: Fallback Logic ============
   describe('Test 5: Query Fallback (NEW → OLD schema)', () => {
-    it('✅ If NEW schema empty, should fallback to OLD', async function() {
+    it(`${CLI_SYMBOLS.success} If NEW schema empty, should fallback to OLD`, async function() {
       // This would be tested in actual API endpoint
       const newCount = await ProductCatalogTranslationCache.countDocuments();
       const oldCount = await LiveTranslationCache.countDocuments();
@@ -172,29 +173,29 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  OLD schema: ${oldCount} documents`);
 
       if (oldCount > newCount) {
-        console.log('  ✅ Fallback needed: API will check NEW first, then OLD');
+        console.log(`  ${CLI_SYMBOLS.success} Fallback needed: API will check NEW first, then OLD`);
       } else {
-        console.log('  ✅ NEW schema has sufficient data');
+        console.log(`  ${CLI_SYMBOLS.success} NEW schema has sufficient data`);
       }
     });
   });
 
   // ============ TEST 6: Health Check Status ============
   describe('Test 6: Overall System Health', () => {
-    it('✅ Health Check Summary', async function() {
+    it(`${CLI_SYMBOLS.success} Health Check Summary`, async function() {
       const oldTotal = await LiveTranslationCache.countDocuments();
       const newTotal = await ProductCatalogTranslationCache.countDocuments() + 
                        await UserContentTranslationCache.countDocuments();
 
       const migrationProgress = oldTotal > 0 ? ((newTotal / oldTotal) * 100).toFixed(2) : 0;
 
-      console.log('\n📊 HEALTH CHECK SUMMARY');
+      console.log(`\n${CLI_SYMBOLS.chart} HEALTH CHECK SUMMARY`);
       console.log(`  OLD schema (LiveTranslationCache): ${oldTotal} documents`);
       console.log(`  NEW schemas total: ${newTotal} documents`);
       console.log(`  Migration progress: ${migrationProgress}%`);
 
       if (migrationProgress > 30) {
-        console.log('  ✅ Migration progress is healthy (>30%)');
+        console.log(`  ${CLI_SYMBOLS.success} Migration progress is healthy (>30%)`);
       }
 
       // Error rate
@@ -206,11 +207,11 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  NEW schema error rate: ${newTotal > 0 ? ((newErrors / newTotal) * 100).toFixed(2) : 0}%`);
 
       if (newErrors === 0 || newTotal === 0) {
-        console.log('  ✅ NEW schemas have 0% error rate');
+        console.log(`  ${CLI_SYMBOLS.success} NEW schemas have 0% error rate`);
       }
 
-      console.log('\n✅ PHASE 2 MIGRATION: COMPLETE');
-      console.log('✅ Ready for Phase 3: Switch Reading\n');
+      console.log(`\n${CLI_SYMBOLS.success} PHASE 2 MIGRATION: COMPLETE`);
+      console.log(`${CLI_SYMBOLS.success} Ready for Phase 3: Switch Reading\n`);
     });
   });
 });
