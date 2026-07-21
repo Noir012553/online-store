@@ -12,17 +12,18 @@ require('dotenv').config({ path: './config/.env' });
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/online-store';
 const DEFAULT_PRICE = 100000; // 100,000 VND fallback
 
 async function fixProductPrices() {
   try {
-    console.log('🔍 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.search} Connecting to MongoDB...`);
     await mongoose.connect(MONGO_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB`);
 
-    console.log('\n📊 Analyzing products with missing prices...');
+    console.log(`\n${CLI_SYMBOLS.chart} Analyzing products with missing prices...`);
     
     // Find all products with null or undefined or 0 price
     const productsWithoutPrice = await Product.find({
@@ -35,14 +36,14 @@ async function fixProductPrices() {
       isDeleted: false
     }).select('_id name brand price countInStock createdAt');
 
-    console.log(`\n❌ Found ${productsWithoutPrice.length} products with invalid prices:`);
+    console.log(`\n${CLI_SYMBOLS.error} Found ${productsWithoutPrice.length} products with invalid prices:`);
     
     if (productsWithoutPrice.length > 0) {
       productsWithoutPrice.forEach((p, idx) => {
         console.log(`  ${idx + 1}. ${p.name} (${p.brand}) - Price: ${p.price || 'NULL'} - Stock: ${p.countInStock}`);
       });
 
-      console.log(`\n🔧 Setting default price (${DEFAULT_PRICE.toLocaleString()} VND) for all invalid products...`);
+      console.log(`\n${CLI_SYMBOLS.wrench} Setting default price (${DEFAULT_PRICE.toLocaleString()} VND) for all invalid products...`);
       
       const result = await Product.updateMany(
         {
@@ -59,14 +60,14 @@ async function fixProductPrices() {
         }
       );
 
-      console.log(`✅ Updated ${result.modifiedCount} products`);
+      console.log(`${CLI_SYMBOLS.success} Updated ${result.modifiedCount} products`);
       console.log(`   Matched: ${result.matchedCount}`);
     } else {
-      console.log('✅ All products have valid prices!');
+      console.log(`${CLI_SYMBOLS.success} All products have valid prices!`);
     }
 
     // Verify fix
-    console.log('\n📋 Verifying fix...');
+    console.log(`\n${CLI_SYMBOLS.list} Verifying fix...`);
     const stillInvalid = await Product.countDocuments({
       $or: [
         { price: null },
@@ -78,9 +79,9 @@ async function fixProductPrices() {
     });
 
     if (stillInvalid === 0) {
-      console.log('✅ All products now have valid prices!');
+      console.log(`${CLI_SYMBOLS.success} All products now have valid prices!`);
     } else {
-      console.log(`⚠️  Still ${stillInvalid} products with invalid prices`);
+      console.log(`${CLI_SYMBOLS.warning}  Still ${stillInvalid} products with invalid prices`);
     }
 
     // Summary stats
@@ -106,7 +107,7 @@ async function fixProductPrices() {
       }
     ]);
 
-    console.log('\n📈 Product Price Statistics:');
+    console.log(`\n${CLI_SYMBOLS.chartUp} Product Price Statistics:`);
     if (stats.length > 0) {
       const s = stats[0];
       console.log(`   Total Active Products: ${s.totalProducts}`);
@@ -116,10 +117,10 @@ async function fixProductPrices() {
       console.log(`   Invalid Prices (null/0): ${s.nullPriceCount}`);
     }
 
-    console.log('\n✅ Fix complete!');
+    console.log(`\n${CLI_SYMBOLS.success} Fix complete!`);
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
     process.exit(1);
   }
 }
