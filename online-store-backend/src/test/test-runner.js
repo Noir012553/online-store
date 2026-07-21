@@ -16,6 +16,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { 
   TEST_SUITES, 
   listSuites, 
@@ -44,7 +45,7 @@ function parseArgs() {
  */
 async function runSeeder(seedMode) {
   return new Promise((resolve, reject) => {
-    console.log(`\n🌱 Seeding database (mode: ${seedMode || 'all'})...\n`);
+    console.log(`\n${CLI_SYMBOLS.seed} Seeding database (mode: ${seedMode || 'all'})...\n`);
 
     const args = seedMode ? [`--${seedMode}`] : [];
     const seedPath = path.resolve(__dirname, '../seeds/index.js');
@@ -55,10 +56,10 @@ async function runSeeder(seedMode) {
 
     seeder.on('close', code => {
       if (code === 0) {
-        console.log('\n✅ Seeding completed!\n');
+        console.log(`\n${CLI_SYMBOLS.success} Seeding completed!\n`);
         resolve();
       } else {
-        console.error('\n❌ Seeding failed!\n');
+        console.error(`\n${CLI_SYMBOLS.error} Seeding failed!\n`);
         reject(new Error('Seed failed'));
       }
     });
@@ -70,7 +71,7 @@ async function runSeeder(seedMode) {
  */
 function runTestFile(filePath) {
   return new Promise((resolve, reject) => {
-    console.log(`▶️  ${path.basename(filePath)}`);
+    console.log(`${CLI_SYMBOLS.run}  ${path.basename(filePath)}`);
 
     const isMochaTest = fs.readFileSync(filePath, 'utf8').includes('describe(');
     const command = process.execPath;
@@ -86,10 +87,10 @@ function runTestFile(filePath) {
 
     test.on('close', code => {
       if (code === 0) {
-        console.log(`✅ ${path.basename(filePath)}\n`);
+        console.log(`${CLI_SYMBOLS.success} ${path.basename(filePath)}\n`);
         resolve();
       } else {
-        console.error(`❌ ${path.basename(filePath)} failed\n`);
+        console.error(`${CLI_SYMBOLS.error} ${path.basename(filePath)} failed\n`);
         reject(new Error(`Test failed: ${filePath}`));
       }
     });
@@ -108,39 +109,39 @@ async function main() {
     process.exit(0);
   }
 
-  console.log('\n🧪 Unified Test Runner\n');
+  console.log(`\n${CLI_SYMBOLS.test} Unified Test Runner\n`);
 
   // Resolve which suites to run
   let suitesToRun = [];
 
   if (cliArgs.suite) {
     suitesToRun = [cliArgs.suite];
-    console.log(`📦 Running suite: ${cliArgs.suite}\n`);
+    console.log(`${CLI_SYMBOLS.package} Running suite: ${cliArgs.suite}\n`);
   } else if (cliArgs.suites) {
     suitesToRun = cliArgs.suites;
-    console.log(`📦 Running suites: ${suitesToRun.join(', ')}\n`);
+    console.log(`${CLI_SYMBOLS.package} Running suites: ${suitesToRun.join(', ')}\n`);
   } else if (cliArgs.tags) {
     suitesToRun = filterByTags(cliArgs.tags);
-    console.log(`🏷️  Running suites with tags [${cliArgs.tags.join(', ')}]: ${suitesToRun.join(', ')}\n`);
+    console.log(`${CLI_SYMBOLS.tag}  Running suites with tags [${cliArgs.tags.join(', ')}]: ${suitesToRun.join(', ')}\n`);
   } else {
     suitesToRun = Object.keys(TEST_SUITES);
-    console.log(`📦 Running ALL test suites\n`);
+    console.log(`${CLI_SYMBOLS.package} Running ALL test suites\n`);
   }
 
   // Filter out skipped suites
   if (cliArgs.skip) {
     suitesToRun = suitesToRun.filter(s => !cliArgs.skip.includes(s));
-    console.log(`⏭️  Skipped: ${cliArgs.skip.join(', ')}\n`);
+    console.log(`${CLI_SYMBOLS.skip}  Skipped: ${cliArgs.skip.join(', ')}\n`);
   }
 
   const unknownSuites = suitesToRun.filter(suite => !TEST_SUITES[suite]);
   if (unknownSuites.length > 0) {
-    console.error(`❌ Unknown test suite(s): ${unknownSuites.join(', ')}`);
+    console.error(`${CLI_SYMBOLS.error} Unknown test suite(s): ${unknownSuites.join(', ')}`);
     process.exit(1);
   }
 
   // Show which tests will run
-  console.log('📋 Tests to run:\n');
+  console.log(`${CLI_SYMBOLS.list} Tests to run:\n`);
   suitesToRun.forEach(suite => {
     const s = TEST_SUITES[suite];
     console.log(`  - ${suite}: ${s.name}`);
@@ -160,11 +161,11 @@ async function main() {
     const testFiles = resolveTestFiles(suitesToRun);
 
     if (testFiles.length === 0) {
-      console.warn('⚠️ No test files found');
+      console.warn(`${CLI_SYMBOLS.warning} No test files found`);
       process.exit(1);
     }
 
-    console.log(`\n🧪 Running ${testFiles.length} test file(s)...\n`);
+    console.log(`\n${CLI_SYMBOLS.test} Running ${testFiles.length} test file(s)...\n`);
 
     // Run tests sequentially
     let failedTests = [];
@@ -179,10 +180,10 @@ async function main() {
     // Summary
     console.log('\n' + '='.repeat(60));
     if (failedTests.length === 0) {
-      console.log('✅ All tests passed!\n');
+      console.log(`${CLI_SYMBOLS.success} All tests passed!\n`);
       process.exit(0);
     } else {
-      console.log(`❌ ${failedTests.length} test file(s) failed:\n`);
+      console.log(`${CLI_SYMBOLS.error} ${failedTests.length} test file(s) failed:\n`);
       failedTests.forEach(file => {
         console.log(`  - ${path.basename(file)}`);
       });
@@ -190,7 +191,7 @@ async function main() {
       process.exit(1);
     }
   } catch (error) {
-    console.error('\n❌ Test runner error:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} Test runner error:`, error.message);
     process.exit(1);
   }
 }

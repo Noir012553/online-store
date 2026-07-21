@@ -12,6 +12,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 const TEST_TIMEOUT = 30000;
@@ -27,10 +28,10 @@ const colors = {
 };
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  success: (msg) => console.log(`${colors.green}${CLI_SYMBOLS.check}${colors.reset} ${msg}`),
+  error: (msg) => console.log(`${colors.red}${CLI_SYMBOLS.cross}${colors.reset} ${msg}`),
+  info: (msg) => console.log(`${colors.blue}${CLI_SYMBOLS.info}${colors.reset} ${msg}`),
+  warn: (msg) => console.log(`${colors.yellow}${CLI_SYMBOLS.warning.replace('️', '')}${colors.reset} ${msg}`),
 };
 
 class EndpointTester {
