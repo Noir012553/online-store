@@ -32,7 +32,7 @@ async function main() {
 
     if (liveRecordCount === 0) {
       console.log(`${CLI_SYMBOLS.warning}  No translations found in LiveTranslationCache`);
-      console.log('  → You may need to run: npm run seed -- --modules=products');
+      console.log(`  ${CLI_SYMBOLS.arrowRight} You may need to run: npm run seed -- --modules=products`);
       process.exit(1);
     }
 
