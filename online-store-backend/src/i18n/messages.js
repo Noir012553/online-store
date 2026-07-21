@@ -13,6 +13,7 @@
 const path = require('path');
 const fs = require('fs');
 const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const SUPPORTED_LANGS = getActiveLangCodes();
 const translations = {};
@@ -43,26 +44,26 @@ const loadTranslationsCache = () => {
             translations[lang][namespace] = JSON.parse(content);
             totalFiles++;
           } catch (err) {
-            console.warn(`⚠️  Failed to load ${lang}/${file}:`, err.message);
+            console.warn(`${CLI_SYMBOLS.warning}  Failed to load ${lang}/${file}:`, err.message);
             failedFiles++;
           }
         });
 
         if (files.length > 0) {
           loadedLanguages.add(lang);
-          console.log(`✅ Loaded ${files.length} translation files for ${lang.toUpperCase()}`);
+          console.log(`${CLI_SYMBOLS.success} Loaded ${files.length} translation files for ${lang.toUpperCase()}`);
         }
       } else {
-        console.warn(`⚠️  Language directory not found: ${langDir}`);
+        console.warn(`${CLI_SYMBOLS.warning}  Language directory not found: ${langDir}`);
       }
     });
 
     const loadTime = Date.now() - startTime;
-    console.log(`\n📊 Translation System Status:`);
-    console.log(`   ✅ Total files loaded: ${totalFiles}`);
-    console.log(`   ⚠️  Failed files: ${failedFiles}`);
-    console.log(`   🗣️  Languages available: ${Array.from(loadedLanguages).join(', ').toUpperCase()}`);
-    console.log(`   ⏱️  Load time: ${loadTime}ms\n`);
+    console.log(`\n${CLI_SYMBOLS.chart} Translation System Status:`);
+    console.log(`   ${CLI_SYMBOLS.success} Total files loaded: ${totalFiles}`);
+    console.log(`   ${CLI_SYMBOLS.warning}  Failed files: ${failedFiles}`);
+    console.log(`   ${CLI_SYMBOLS.languages}  Languages available: ${Array.from(loadedLanguages).join(', ').toUpperCase()}`);
+    console.log(`   ${CLI_SYMBOLS.duration}  Load time: ${loadTime}ms\n`);
   }
   return translations;
 };
@@ -104,7 +105,7 @@ const substituteMessage = (message, values = {}) => {
  */
 const getMessage = (lang, path, values = {}) => {
   if (!path) {
-    console.warn(`⚠️  getMessage called with empty path for language: ${lang}`);
+    console.warn(`${CLI_SYMBOLS.warning}  getMessage called with empty path for language: ${lang}`);
     return path;
   }
 
@@ -151,7 +152,7 @@ const getMessage = (lang, path, values = {}) => {
       if (fallbackTrans[namespace]) {
         const value = getValueByPath(fallbackTrans[namespace], subPath);
         if (value) {
-          console.warn(`⚠️  Fallback from ${validLang} to ${fallbackLang} for: ${path}`);
+          console.warn(`${CLI_SYMBOLS.warning}  Fallback from ${validLang} to ${fallbackLang} for: ${path}`);
           result = value;
           break;
         }
@@ -161,7 +162,7 @@ const getMessage = (lang, path, values = {}) => {
 
   // No translation found - return original path as is
   if (!result) {
-    console.error(`❌ Translation not found: ${validLang}/${path}`);
+    console.error(`${CLI_SYMBOLS.error} Translation not found: ${validLang}/${path}`);
     result = path;
   }
 

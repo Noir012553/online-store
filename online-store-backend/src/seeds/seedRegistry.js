@@ -9,6 +9,8 @@
  * npm run seed -- --all                      # Seed toàn bộ (default)
  */
 
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
 // Module registry: định nghĩa thứ tự & dependencies
 const SEED_MODULES = {
   // LAYER 1: i18n (LUÔN chạy đầu tiên, không có dependencies)
@@ -214,23 +216,23 @@ function resolveModules(moduleNames) {
  * List all available modules
  */
 function listModules() {
-  console.log('\n📋 Available Seed Modules:\n');
+  console.log(`\n${CLI_SYMBOLS.list} Available Seed Modules:\n`);
   
   const layer1 = Object.entries(SEED_MODULES).filter(([_, m]) => m.layer === 1);
   const layer2 = Object.entries(SEED_MODULES).filter(([_, m]) => m.layer === 2);
 
-  console.log('🌐 LAYER 1 (i18n - Always First):');
+  console.log(`${CLI_SYMBOLS.globe} LAYER 1 (i18n - Always First):`);
   layer1.forEach(([key, mod]) => {
     console.log(`  ${key.padEnd(25)} - ${mod.name} [${mod.importance}]`);
   });
 
-  console.log('\n🏢 LAYER 2 (Core Entities):');
+  console.log(`\n${CLI_SYMBOLS.building} LAYER 2 (Core Entities):`);
   layer2.forEach(([key, mod]) => {
     const deps = mod.depends.length > 0 ? ` → depends: ${mod.depends.join(', ')}` : '';
     console.log(`  ${key.padEnd(25)} - ${mod.name} [${mod.importance}]${deps}`);
   });
 
-  console.log('\n💡 Examples:');
+  console.log(`\n${CLI_SYMBOLS.idea} Examples:`);
   console.log('  npm run seed -- --modules=languages,translations');
   console.log('  npm run seed -- --modules=products,orders');
   console.log('  npm run seed -- --only-module=products  (skip dependencies)');

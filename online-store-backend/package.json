@@ -8,6 +8,7 @@
     "dev": "nodemon src/app.js",
     "tunnel": "tunnel.bat",
     "test": "node src/test/test-runner.js",
+    "check:emoji": "node scripts/check-cli-symbols.js",
     "test:list": "node src/test/test-runner.js -- --list",
     "test:simple": "node src/test/test-simple.js",
     "test:vnpay": "node src/test/test-vnpay-quick.js",
