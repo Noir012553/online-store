@@ -21,6 +21,8 @@ const CLI_SYMBOLS = {
   target: '🎯',
   cleanup: '🧹',
   chart: '📊',
+  languages: '🗣️',
+  duration: '⏱️',
   importanceCritical: '🔴',
   importanceHigh: '🟠',
   importanceMedium: '🟡',

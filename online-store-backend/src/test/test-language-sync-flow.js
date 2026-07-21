@@ -31,7 +31,7 @@ const log = {
   info: (msg) => console.log(`${colors.blue}${CLI_SYMBOLS.info}${colors.reset} ${msg}`),
   success: (msg) => console.log(`${colors.green}${CLI_SYMBOLS.check}${colors.reset} ${msg}`),
   error: (msg) => console.log(`${colors.red}${CLI_SYMBOLS.cross}${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}${CLI_SYMBOLS.warning.replace('️', '')}${colors.reset} ${msg}`),
+  warn: (msg) => console.log(`${colors.yellow}${CLI_SYMBOLS.warning}${colors.reset} ${msg}`),
   test: (msg) => console.log(`\n${colors.blue}═══ ${msg} ═══${colors.reset}`),
 };
 

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { CLI_SYMBOLS } = require('./cliSymbols');
 
 /**
  * Delete old file safely
@@ -17,20 +18,20 @@ const deleteOldFile = (filePath) => {
     // Security check: ensure file is within uploads directory
     const uploadsDir = path.join(process.cwd(), 'uploads');
     if (!absolutePath.startsWith(uploadsDir)) {
-      console.warn(`⚠️ File deletion blocked: ${filePath} is outside uploads directory`);
+      console.warn(`${CLI_SYMBOLS.warning} File deletion blocked: ${filePath} is outside uploads directory`);
       return false;
     }
 
     // Check if file exists before attempting delete
     if (fs.existsSync(absolutePath)) {
       fs.unlinkSync(absolutePath);
-      console.log(`✓ Deleted old file: ${filePath}`);
+      console.log(`${CLI_SYMBOLS.check} Deleted old file: ${filePath}`);
       return true;
     }
 
     return true; // File doesn't exist, that's fine
   } catch (error) {
-    console.error(`❌ Error deleting file ${filePath}:`, error.message);
+    console.error(`${CLI_SYMBOLS.error} Error deleting file ${filePath}:`, error.message);
     return false;
   }
 };

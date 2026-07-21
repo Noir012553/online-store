@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types'
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { PermissionDenied } from '../../components/admin/PermissionDenied';
@@ -481,13 +482,13 @@ const TranslationBatchOverride = () => {
                           </td>
                           <td>
                             {row.status === 'success' && (
-                              <span className="batch-status-success">✓ {t('admin_batch_status_success', 'admin-translation-batch')}</span>
+                              <span className="batch-status-success">{UI_EMOJI.statusSuccessText} {t('admin_batch_status_success', 'admin-translation-batch')}</span>
                             )}
                             {row.status === 'error' && (
-                              <span className="batch-status-error" title={row.error}>✗ {t('admin_batch_status_error', 'admin-translation-batch')}</span>
+                              <span className="batch-status-error" title={row.error}>{UI_EMOJI.statusErrorText} {t('admin_batch_status_error', 'admin-translation-batch')}</span>
                             )}
                             {row.status === 'pending' && (
-                              <span className="batch-status-pending">○ {t('admin_batch_status_pending', 'admin-translation-batch')}</span>
+                              <span className="batch-status-pending">{UI_EMOJI.statusPendingText} {t('admin_batch_status_pending', 'admin-translation-batch')}</span>
                             )}
                           </td>
                           <td>
