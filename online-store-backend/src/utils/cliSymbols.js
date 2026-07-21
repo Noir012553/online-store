@@ -1,0 +1,27 @@
+const CLI_SYMBOLS = {
+  success: '✅',
+  error: '❌',
+  warning: '⚠️',
+  report: '📄',
+  seed: '🌱',
+  test: '🧪',
+  run: '▶️',
+  package: '📦',
+  tag: '🏷️',
+  skip: '⏭️',
+  list: '📋',
+  globe: '🌐',
+  building: '🏢',
+  idea: '💡',
+  progress: '🔄',
+  products: '🛍️',
+  target: '🎯',
+  cleanup: '🧹',
+  chart: '📊',
+  importanceCritical: '🔴',
+  importanceHigh: '🟠',
+  importanceMedium: '🟡',
+  importanceLow: '🟢',
+};
+
+module.exports = { CLI_SYMBOLS };

@@ -15,6 +15,7 @@ import { BannerSlot } from "../components/BannerSlot";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { EmojiSvg } from "../components/EmojiSvg";
+import { UI_EMOJI } from "../lib/uiEmoji";
 import { ProductSkeleton } from "../components/ProductSkeleton";
 
 
@@ -583,7 +584,7 @@ export default function Home() {
               <div className="bg-cyan-100 rounded-lg sm:rounded-2xl p-4 sm:p-8 border-2 border-red-500">
                 <div className="text-center mb-6 sm:mb-8">
                   <h2 className="text-black mb-3 sm:mb-4 flex items-center justify-center gap-2 font-bold text-xl sm:text-2xl">
-                    <EmojiSvg emoji="⚡" className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <EmojiSvg emoji={UI_EMOJI.flashDeal} className="w-5 h-5 sm:w-6 sm:h-6" />
                     {t('flash_deal_title', 'home')}
                   </h2>
                   <p className="text-lg sm:text-xl mb-3 sm:mb-4 text-black font-bold">{t('limited_time_offer', 'home')}</p>

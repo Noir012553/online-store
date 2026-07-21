@@ -12,6 +12,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
 import { useState, useMemo, useEffect } from "react";
 import { EmojiSvg } from "./EmojiSvg";
+import { UI_EMOJI } from "../lib/uiEmoji";
 import { BackendProduct } from "../lib/api";
 import { useProductTranslation } from "../hooks/useProductTranslation";
 import { useCurrencyConversion } from "../hooks/useCurrencyConversion";
@@ -143,7 +144,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 }`}
               >
                 <EmojiSvg
-                  emoji="🔥"
+                  emoji={UI_EMOJI.hotDeal}
                   className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
                 />
                 {t('hot_deal_badge', 'products')}
@@ -151,7 +152,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
             )}
             {convertedLaptop.featured && !convertedLaptop.deal && (
               <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
-                <EmojiSvg emoji="⭐" className="w-4 h-4" />
+                <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
                 {t('featured_badge', 'products')}
               </Badge>
             )}

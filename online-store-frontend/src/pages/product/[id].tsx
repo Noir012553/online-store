@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { ProductCard } from "../../components/ProductCard";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { EmojiSvg } from "../../components/EmojiSvg";
+import { UI_EMOJI } from "../../lib/uiEmoji";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { BannerSlot } from "../../components/BannerSlot";
 import { ProductDescriptionFormatter } from "../../components/ProductDescriptionFormatter";
@@ -331,7 +332,7 @@ export default function ProductDetail() {
             )}
             {laptop.deal && (
               <Badge className="absolute top-4 left-4 bg-black text-white text-lg px-4 py-2 animate-in zoom-in duration-300 flex items-center gap-1">
-                <EmojiSvg emoji="🔥" className="w-5 h-5" />
+                <EmojiSvg emoji={UI_EMOJI.hotDeal} className="w-5 h-5" />
                 {t('badge_flash_deal', 'products')}
               </Badge>
             )}
@@ -503,13 +504,13 @@ export default function ProductDetail() {
               return features.length > 0 ? (
                 <div className="bg-linear-to-br from-red-50 to-orange-50 p-6 rounded-lg border border-red-100">
                   <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-                    <span>⭐</span>
+                    <span>{UI_EMOJI.featured}</span>
                     {t('section_featured_features', 'products')}
                   </h3>
                   <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {features.map((feature: string, index: number) => (
                       <li key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100 hover:shadow-md transition-shadow">
-                        <span className="text-red-600 mt-0.5 font-bold text-lg shrink-0">✓</span>
+                        <span className="text-red-600 mt-0.5 font-bold text-lg shrink-0">{UI_EMOJI.feature}</span>
                         <span className="text-gray-800 font-medium">{feature}</span>
                       </li>
                     ))}
