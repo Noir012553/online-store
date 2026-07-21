@@ -390,7 +390,7 @@ const syncLocationData = asyncHandler(async (req, res) => {
     // AFTER: Fetch M in parallel → collect → 1 insertMany = 1 DB operation
     if (process.env.NODE_ENV === 'development') {
       console.log(`${CLI_SYMBOLS.progress} [Step 2/3] Fetching wards for all districts...`);
-      console.time('  ⏱️ Bulk fetch & insert wards');
+      console.time(`  ${CLI_SYMBOLS.duration} Bulk fetch & insert wards`);
     }
 
     let totalWards = 0;

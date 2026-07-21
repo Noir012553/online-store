@@ -228,7 +228,7 @@ function listModules() {
 
   console.log(`\n${CLI_SYMBOLS.building} LAYER 2 (Core Entities):`);
   layer2.forEach(([key, mod]) => {
-    const deps = mod.depends.length > 0 ? ` → depends: ${mod.depends.join(', ')}` : '';
+    const deps = mod.depends.length > 0 ? ` ${CLI_SYMBOLS.arrowRight} depends: ${mod.depends.join(', ')}` : '';
     console.log(`  ${key.padEnd(25)} - ${mod.name} [${mod.importance}]${deps}`);
   });
 

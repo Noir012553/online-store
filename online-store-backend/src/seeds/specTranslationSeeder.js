@@ -147,7 +147,7 @@ async function seedSpecTranslations() {
     console.log('  Total records per language:');
     SUPPORTED_LANGUAGES.forEach(lang => {
       const total = verifyByLang[lang];
-      console.log(`    ${lang.padEnd(4)} → ${total} products`);
+      console.log(`    ${lang.padEnd(4)} ${CLI_SYMBOLS.arrowRight} ${total} products`);
     });
 
     // Sample verification: pick 1 random product and display
