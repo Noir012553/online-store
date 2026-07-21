@@ -62,6 +62,8 @@ Một số khu vực đã dùng trực tiếp phần tử HTML `<select>`, gồm
 6. Giữ nguyên màu sắc, hình dạng, typography, tên biến style và breakpoint hiện tại nếu không có lý do kỹ thuật rõ ràng.
 7. Kiểm tra nội dung dịch dài, danh sách nhiều lựa chọn, viewport mobile, tablet và desktop.
 8. Không xóa package hoặc wrapper dùng chung trước khi xác nhận không còn nơi nào sử dụng.
+9. Sau khi thay thế hoàn tất, phải rà soát và dọn sạch thư viện dropdown thừa, wrapper không còn dùng, import không còn cần thiết và các dependency liên quan trong `package.json`.
+10. Chỉ xóa dependency sau khi đã kiểm tra toàn bộ frontend, build thành công và xác nhận không còn import trực tiếp hoặc gián tiếp.
 
 ## Phạm vi ưu tiên
 
@@ -87,6 +89,7 @@ Một số khu vực đã dùng trực tiếp phần tử HTML `<select>`, gồm
 - Dropdown có nội dung dài và bản dịch dài vẫn thao tác được.
 - Giao diện desktop giữ nguyên màu sắc, hình dạng, typography và bố cục hiện có.
 - Không còn import không sử dụng từ wrapper dropdown sau khi thay thế.
+- Không còn package, wrapper hoặc dependency dropdown thừa trong frontend sau khi rà soát.
 - Build frontend thành công.
 - Golden path của Products, Orders, Customers và Dashboard được kiểm tra trên desktop, tablet và mobile.
 
