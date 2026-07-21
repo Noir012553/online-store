@@ -4,11 +4,12 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
 
 async function diagnose() {
   try {
-    console.log('🔍 Analyzing old schema...\n');
+    console.log(`${CLI_SYMBOLS.search} Analyzing old schema...\n`);
     await mongoose.connect(process.env.MONGO_URI);
 
     // Get entity type distribution
@@ -17,7 +18,7 @@ async function diagnose() {
       { $sort: { _id: 1 } }
     ]);
 
-    console.log('📊 Entity Type Distribution:');
+    console.log(`${CLI_SYMBOLS.chart} Entity Type Distribution:`);
     distribution.forEach(d => {
       console.log(`  ${d._id}: ${d.count} documents`);
     });
@@ -28,7 +29,7 @@ async function diagnose() {
       { $sort: { _id: 1 } }
     ]);
 
-    console.log('\n📊 Status Distribution:');
+    console.log(`\n${CLI_SYMBOLS.chart} Status Distribution:`);
     statusDist.forEach(d => {
       console.log(`  ${d._id}: ${d.count} documents`);
     });
@@ -38,7 +39,7 @@ async function diagnose() {
       entityType: { $nin: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature', 'product_category_name'] }
     }).select({ entityType: 1 }).distinct('entityType');
 
-    console.log('\n📊 Non-product entity types found:');
+    console.log(`\n${CLI_SYMBOLS.chart} Non-product entity types found:`);
     console.log(nonProduct);
 
     await mongoose.disconnect();

@@ -349,3 +349,6 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành thêm:** chuẩn hóa toàn bộ ký hiệu output terminal của `src/scripts/fix-product-prices.js` qua `CLI_SYMBOLS`, gồm kết nối, phân tích, cập nhật, xác thực và thống kê; không thay đổi truy vấn hoặc thao tác cập nhật dữ liệu.
 - **Đã hoàn thành thêm:** đưa script chẩn đoán/sửa giá này vào allowlist `scripts/check-cli-symbols.js`.
 - **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp hai file cập nhật và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa output terminal của `src/scripts/health-check-i18n.js` và `src/scripts/diagnose-old-schema.js` qua `CLI_SYMBOLS`; giữ nguyên thông tin health check và chẩn đoán schema.
+- **Đã hoàn thành thêm:** chuẩn hóa ký hiệu thống kê trong `src/scripts/quick-generate-translations.js` và đưa script quét cấu trúc bản dịch chỉ đọc này vào allowlist `check-cli-symbols.js`.
+- **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp bốn file liên quan và `git diff --check` đều thành công.
