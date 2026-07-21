@@ -351,6 +351,20 @@ const TranslationsAdminTier1Content = () => {
             align-items: flex-end;
           }
 
+          .tier1-search-group {
+            flex: 1;
+            min-width: 200px;
+          }
+
+          .tier1-search-input {
+            margin: 0;
+          }
+
+          .tier1-add-actions {
+            display: flex;
+            gap: 5px;
+          }
+
           .tier1-btn {
             padding: 10px 16px;
             border: none;
@@ -373,6 +387,11 @@ const TranslationsAdminTier1Content = () => {
             background: #0056b3;
           }
 
+          .tier1-btn-secondary {
+            background: #ddd;
+            color: #333;
+          }
+
           .tier1-btn-success {
             background: #28a745;
             color: white;
@@ -385,6 +404,36 @@ const TranslationsAdminTier1Content = () => {
           .tier1-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+          }
+
+          .tier1-pagination {
+            margin-top: 20px;
+            text-align: center;
+          }
+
+          .tier1-pagination-btn {
+            background: #007bff;
+            color: white;
+          }
+
+          .tier1-pagination-btn:disabled {
+            background: #ddd;
+          }
+
+          .tier1-pagination-status {
+            margin: 0 15px;
+          }
+
+          .tier1-table th:nth-child(1) {
+            width: 25%;
+          }
+
+          .tier1-table th:nth-child(2) {
+            width: 60%;
+          }
+
+          .tier1-table th:nth-child(3) {
+            width: 15%;
           }
 
           .tier1-message {
@@ -633,7 +682,7 @@ const TranslationsAdminTier1Content = () => {
             </select>
           </div>
 
-          <div className="tier1-select-group" style={{ flex: 1, minWidth: 200 }}>
+          <div className="tier1-select-group tier1-search-group">
             <label htmlFor="search-input">{t('search_label', 'admin')}</label>
             <input
               id="search-input"
@@ -644,8 +693,7 @@ const TranslationsAdminTier1Content = () => {
                 setSearchText(e.target.value);
                 setPageIndex(0);
               }}
-              className="tier1-add-input"
-              style={{ margin: 0 }}
+              className="tier1-add-input tier1-search-input"
             />
           </div>
 
@@ -684,7 +732,7 @@ const TranslationsAdminTier1Content = () => {
                 onChange={(e) => setNewKeyValue(e.target.value)}
                 className="tier1-add-input"
               />
-              <div style={{ display: 'flex', gap: '5px' }}>
+              <div className="tier1-add-actions">
                 <button
                   className="tier1-btn tier1-btn-primary"
                   onClick={handleAddNewKey}
@@ -692,8 +740,7 @@ const TranslationsAdminTier1Content = () => {
                   <Check size={16} /> {t('tier1_save_btn', 'admin')}
                 </button>
                 <button
-                  className="tier1-btn"
-                  style={{ background: '#ddd', color: '#333' }}
+                  className="tier1-btn tier1-btn-secondary"
                   onClick={() => {
                     setIsAddingNew(false);
                     setNewKeyName('');
@@ -715,9 +762,9 @@ const TranslationsAdminTier1Content = () => {
               <table className="tier1-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '25%' }}>{t('tier1_key_column', 'admin')}</th>
-                    <th style={{ width: '60%' }}>{t('tier1_value_column', 'admin').replace('{lang}', selectedLang.toUpperCase())}</th>
-                    <th style={{ width: '15%' }}>{t('tier1_action_column', 'admin')}</th>
+                    <th>{t('tier1_key_column', 'admin')}</th>
+                    <th>{t('tier1_value_column', 'admin').replace('{lang}', selectedLang.toUpperCase())}</th>
+                    <th>{t('tier1_action_column', 'admin')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -789,21 +836,19 @@ const TranslationsAdminTier1Content = () => {
             </div>
 
             {totalPages > 1 && (
-              <div className="tier1-pagination" style={{ marginTop: 20, textAlign: 'center' }}>
+              <div className="tier1-pagination">
                 <button
                   onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
                   disabled={pageIndex === 0}
-                  className="tier1-btn"
-                  style={{ background: pageIndex === 0 ? '#ddd' : '#007bff', color: 'white' }}
+                  className="tier1-btn tier1-pagination-btn"
                 >
-                  ← {t('tier1_prev_page', 'admin')}
+                  {UI_EMOJI.arrowLeft} {t('tier1_prev_page', 'admin')}
                 </button>
-                <span style={{ margin: '0 15px' }}>{t('tier1_page_info', 'admin').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
+                <span className="tier1-pagination-status">{t('tier1_page_info', 'admin').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
                 <button
                   onClick={() => setPageIndex(pageIndex + 1)}
                   disabled={pageIndex === totalPages - 1}
-                  className="tier1-btn"
-                  style={{ background: pageIndex === totalPages - 1 ? '#ddd' : '#007bff', color: 'white' }}
+                  className="tier1-btn tier1-pagination-btn"
                 >
                   {t('tier1_next_page', 'admin')} {UI_EMOJI.arrowRight}
                 </button>

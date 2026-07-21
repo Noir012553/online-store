@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "../ui/popover";
 import { Button } from "../ui/button";
+import { UI_EMOJI } from "../../lib/uiEmoji";
 import {
   Dialog,
   DialogContent,
@@ -260,7 +261,7 @@ export function NotificationBell() {
               size="sm"
               className="w-full text-xs font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700"
             >
-              ↻ {t('refresh', 'notifications')}
+              {UI_EMOJI.refresh} {t('refresh', 'notifications')}
             </Button>
           </div>
         </div>

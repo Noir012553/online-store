@@ -11,7 +11,10 @@ export const UI_EMOJI = {
   statusPending: '⏳',
   statusWarning: '⚠️',
   bullet: '•',
+  arrowLeft: '←',
   arrowRight: '→',
+  refresh: '↻',
+  ellipsis: '⋯',
   preview: '👁️',
   run: '▶️',
   tip: '💡',
@@ -26,7 +29,7 @@ export const UI_EMOJI = {
   bamboo: '🎋',
 } as const;
 
-export const DESCRIPTION_EMOJI = new Set([
+export const DESCRIPTION_EMOJI = new Set<string>([
   UI_EMOJI.descriptionCheck,
   UI_EMOJI.feature,
   UI_EMOJI.statusSuccess,
