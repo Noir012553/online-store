@@ -10,32 +10,33 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
 const User = require('../models/User');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 /**
  * Fix orders missing customer data
  * Tìm tất cả orders không có customer, và cố gắng tìm/tạo customer data
  */
 const fixOrdersWithoutCustomers = async () => {
-  console.time('⏱️ fixOrdersWithoutCustomers - Total Time');
+  console.time(`${CLI_SYMBOLS.duration} fixOrdersWithoutCustomers - Total Time`);
 
   try {
     const startTime = Date.now();
 
     // 1️⃣ BULK FETCH: Find all orders without customer
-    console.log('🔍 [Step 1/5] Fetching orders without customer...');
+    console.log(`${CLI_SYMBOLS.search} [Step 1/5] Fetching orders without customer...`);
     const ordersWithoutCustomer = await Order.find({ customer: null, isDeleted: false })
       .populate('user', '_id username email name')
       .lean();
 
     if (ordersWithoutCustomer.length === 0) {
-      console.log('✅ No orders need fixing');
+      console.log(`${CLI_SYMBOLS.success} No orders need fixing`);
       return { fixed: 0, created: 0, failed: 0 };
     }
 
-    console.log(`📊 Found ${ordersWithoutCustomer.length} orders without customer`);
+    console.log(`${CLI_SYMBOLS.chart} Found ${ordersWithoutCustomer.length} orders without customer`);
 
     // 2️⃣ EXTRACT EMAILS: Get all unique emails that need customer lookup
-    console.log('🔄 [Step 2/5] Extracting email list...');
+    console.log(`${CLI_SYMBOLS.progress} [Step 2/5] Extracting email list...`);
     const emailsWithOrders = new Map();
     const genericOrders = [];
 
@@ -53,11 +54,11 @@ const fixOrdersWithoutCustomers = async () => {
       }
     });
 
-    console.log(`📧 ${emailsWithOrders.size} unique emails to look up`);
-    console.log(`🔧 ${genericOrders.length} orders without user data (need generic customer)`);
+    console.log(`${CLI_SYMBOLS.email} ${emailsWithOrders.size} unique emails to look up`);
+    console.log(`${CLI_SYMBOLS.wrench} ${genericOrders.length} orders without user data (need generic customer)`);
 
     // 3️⃣ BULK LOOKUP: Find ALL existing customers in ONE query using $in operator
-    console.time('  ⏱️ Bulk customer lookup');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk customer lookup`);
     const emails = Array.from(emailsWithOrders.keys());
     const existingCustomers = await Customer.find({
       email: { $in: emails },
@@ -69,11 +70,11 @@ const fixOrdersWithoutCustomers = async () => {
       customerByEmail.set(c.email, c._id);
     });
 
-    console.timeEnd('  ⏱️ Bulk customer lookup');
-    console.log(`✅ Found ${existingCustomers.length}/${emails.length} existing customers`);
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk customer lookup`);
+    console.log(`${CLI_SYMBOLS.success} Found ${existingCustomers.length}/${emails.length} existing customers`);
 
     // 4️⃣ BULK CREATE: Identify missing customers and create them ALL at once
-    console.time('  ⏱️ Bulk create missing customers');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk create missing customers`);
     const toCreate = [];
 
     for (const [email, { userData }] of emailsWithOrders) {
@@ -94,12 +95,12 @@ const fixOrdersWithoutCustomers = async () => {
       newCustomers.forEach(c => {
         customerByEmail.set(c.email, c._id);
       });
-      console.log(`✅ Created ${newCustomers.length} new customers`);
+      console.log(`${CLI_SYMBOLS.success} Created ${newCustomers.length} new customers`);
     }
-    console.timeEnd('  ⏱️ Bulk create missing customers');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk create missing customers`);
 
     // 5️⃣ BULK CREATE GENERIC: Create generic customers for orders without user
-    console.time('  ⏱️ Bulk create generic customers');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk create generic customers`);
     const genericsToCreate = genericOrders.map(order => ({
       name: `Customer ${order._id.toString().slice(-6)}`,
       email: `order-${order._id.toString().slice(-6)}@generated.com`,
@@ -112,12 +113,12 @@ const fixOrdersWithoutCustomers = async () => {
       genericCustomers.forEach((c, idx) => {
         genericCustomerMap.set(genericOrders[idx]._id.toString(), c._id);
       });
-      console.log(`✅ Created ${genericCustomers.length} generic customers`);
+      console.log(`${CLI_SYMBOLS.success} Created ${genericCustomers.length} generic customers`);
     }
-    console.timeEnd('  ⏱️ Bulk create generic customers');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk create generic customers`);
 
     // 6️⃣ BULK UPDATE: Use bulkWrite to update ALL orders in ONE operation
-    console.time('  ⏱️ Bulk update orders');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk update orders`);
     const bulkOps = [];
 
     // Update orders with email-based customers
@@ -152,18 +153,18 @@ const fixOrdersWithoutCustomers = async () => {
     if (bulkOps.length > 0) {
       const result = await Order.bulkWrite(bulkOps);
       updateCount = result.modifiedCount;
-      console.log(`✅ Updated ${updateCount} orders`);
+      console.log(`${CLI_SYMBOLS.success} Updated ${updateCount} orders`);
     }
-    console.timeEnd('  ⏱️ Bulk update orders');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk update orders`);
 
     const elapsed = Date.now() - startTime;
-    console.timeEnd('⏱️ fixOrdersWithoutCustomers - Total Time');
-    console.log(`\n📈 PERFORMANCE SUMMARY:`);
-    console.log(`   • Orders processed: ${ordersWithoutCustomer.length}`);
-    console.log(`   • Customers created: ${toCreate.length}`);
-    console.log(`   • Generic customers: ${genericsToCreate.length}`);
-    console.log(`   • Orders updated: ${updateCount}`);
-    console.log(`   • Total time: ${(elapsed / 1000).toFixed(2)}s`);
+    console.timeEnd(`${CLI_SYMBOLS.duration} fixOrdersWithoutCustomers - Total Time`);
+    console.log(`\n${CLI_SYMBOLS.chartUp} PERFORMANCE SUMMARY:`);
+    console.log(`   ${CLI_SYMBOLS.bullet} Orders processed: ${ordersWithoutCustomer.length}`);
+    console.log(`   ${CLI_SYMBOLS.bullet} Customers created: ${toCreate.length}`);
+    console.log(`   ${CLI_SYMBOLS.bullet} Generic customers: ${genericsToCreate.length}`);
+    console.log(`   ${CLI_SYMBOLS.bullet} Orders updated: ${updateCount}`);
+    console.log(`   ${CLI_SYMBOLS.bullet} Total time: ${(elapsed / 1000).toFixed(2)}s`);
 
     return {
       fixed: updateCount - toCreate.length - genericsToCreate.length,
@@ -171,7 +172,7 @@ const fixOrdersWithoutCustomers = async () => {
       failed: 0,
     };
   } catch (error) {
-    console.error('❌ Error in fixOrdersWithoutCustomers:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error in fixOrdersWithoutCustomers:`, error.message);
     throw error;
   }
 };

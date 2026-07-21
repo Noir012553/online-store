@@ -9,6 +9,7 @@ const Product = require('../models/Product');
 const translationSeederHelper = require('../services/translationSeederHelper');
 const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 /**
  * Seed dữ liệu đánh giá
@@ -92,7 +93,7 @@ const seedReviews = async (products, users) => {
   // BEFORE: Loop N products × 1 find = N DB queries + N save = 2N operations
   // AFTER: 1 Aggregation + 1 bulkWrite = 2 operations total
   console.log(`\n[Step 1/2] Updating product ratings using Aggregation Pipeline...`);
-  console.time('⏱️ Bulk rating update');
+  console.time(`${CLI_SYMBOLS.duration} Bulk rating update`);
 
   let ratingStats = [];
   try {
@@ -106,7 +107,7 @@ const seedReviews = async (products, users) => {
       }},
     ]);
 
-    console.log(`📊 Calculated ratings for ${ratingStats.length} products`);
+    console.log(`${CLI_SYMBOLS.chart} Calculated ratings for ${ratingStats.length} products`);
 
     // Bulk update products with their ratings (1 DB operation for all)
     if (ratingStats.length > 0) {
@@ -123,18 +124,18 @@ const seedReviews = async (products, users) => {
       }));
 
       const updateResult = await Product.bulkWrite(bulkOps);
-      console.log(`✅ Updated ${updateResult.modifiedCount} products with ratings`);
+      console.log(`${CLI_SYMBOLS.success} Updated ${updateResult.modifiedCount} products with ratings`);
     }
 
-    console.timeEnd('⏱️ Bulk rating update');
+    console.timeEnd(`${CLI_SYMBOLS.duration} Bulk rating update`);
   } catch (error) {
-    console.error('❌ Error during aggregation-based rating update:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error during aggregation-based rating update:`, error.message);
     // Continue with translation even if rating update fails (non-blocking)
   }
 
   // Tầng 2: Translate reviews to other supported languages
   console.log(`\n[Step 2/2] Starting automatic translation of ${createdReviews.length} reviews to supported languages...`);
-  console.time('⏱️ Batch review translation');
+  console.time(`${CLI_SYMBOLS.duration} Batch review translation`);
 
   try {
     const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
@@ -143,13 +144,13 @@ const seedReviews = async (products, users) => {
     await translationSeederHelper.translateReviewsBatch(createdReviews, targetLangs);
   } catch (translationError) {
     console.warn(
-      `⚠️ Review translation failed (non-blocking): ${translationError.message}`
+      `${CLI_SYMBOLS.warning} Review translation failed (non-blocking): ${translationError.message}`
     );
-    console.log(`💡 Translations can be added manually later via translation API`);
+    console.log(`${CLI_SYMBOLS.idea} Translations can be added manually later via translation API`);
   }
 
-  console.timeEnd('⏱️ Batch review translation');
-  console.log(`\n📈 REVIEW SEEDING COMPLETE:\n   • Reviews created: ${createdReviews.length}\n   • Products rated: ${ratingStats.length}`);
+  console.timeEnd(`${CLI_SYMBOLS.duration} Batch review translation`);
+  console.log(`\n${CLI_SYMBOLS.chartUp} REVIEW SEEDING COMPLETE:\n   ${CLI_SYMBOLS.bullet} Reviews created: ${createdReviews.length}\n   ${CLI_SYMBOLS.bullet} Products rated: ${ratingStats.length}`);
 
   return createdReviews;
 };
