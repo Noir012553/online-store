@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckoutStep } from '../../context/CheckoutContext';
 import { useTranslation } from '../../lib/i18n';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 
 interface StepIndicatorProps {
   currentStep: CheckoutStep;
@@ -45,7 +46,7 @@ export function StepIndicator({ currentStep, totalSteps = 4 }: StepIndicatorProp
                 }`}
               >
                 {currentStep > step.number ? (
-                  <span className="text-lg">✓</span>
+                  <span className="text-lg">{UI_EMOJI.feature}</span>
                 ) : (
                   step.number
                 )}

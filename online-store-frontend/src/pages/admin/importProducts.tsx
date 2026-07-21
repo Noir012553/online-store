@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { apiCall, getAuthToken } from '../../lib/api';
 import { useTranslation } from '@/lib/i18n';
+import { UI_EMOJI } from '@/lib/uiEmoji';
 
 export const getServerSideProps = async () => {
   return {
@@ -256,7 +257,7 @@ function ImportProductsContent() {
       {/* Hướng dẫn */}
       {guide && formats && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4">📖 {t('guide_title')}</h2>
+          <h2 className="text-xl font-bold mb-4">{UI_EMOJI.guide} {t('guide_title')}</h2>
           <div className="space-y-2 text-sm">
             <p>
               <strong>{t('supported_formats')}</strong> {formats.supportedFormats.join(', ').toUpperCase()}
@@ -301,7 +302,7 @@ function ImportProductsContent() {
         {/* Tải lên tệp */}
         <div className="lg:col-span-1 space-y-4">
           <div className="border rounded-lg p-4 bg-blue-50">
-            <h3 className="font-bold mb-4">📁 1. {t('step_upload')}</h3>
+            <h3 className="font-bold mb-4">{UI_EMOJI.folder} 1. {t('step_upload')}</h3>
 
             {/* File input with better styling */}
             <label htmlFor="file-upload" className="mb-4 p-3 border-2 border-dashed border-blue-300 rounded bg-white hover:bg-blue-50 transition block text-center cursor-pointer">
@@ -314,7 +315,7 @@ function ImportProductsContent() {
                 disabled={isLoading}
               />
               <p className="text-sm text-blue-600 font-medium">
-                {isLoading ? t('exporting') : `📁 ${t('choose_file')}`}
+                {isLoading ? t('exporting') : `${UI_EMOJI.folder} ${t('choose_file')}`}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {isLoading ? '' : t('max_size_label')}
@@ -326,7 +327,7 @@ function ImportProductsContent() {
               variant="outline"
               className="w-full mb-3"
             >
-              📥 {t('download_template')}
+              {UI_EMOJI.download} {t('download_template')}
             </Button>
 
             <div className="bg-white p-3 rounded text-xs text-gray-600 space-y-1">
@@ -373,7 +374,7 @@ function ImportProductsContent() {
                   onChange={(e) => setDryRun(e.target.checked)}
                 />
                 <span className="text-sm">
-                  🔍 {t('dry_run_label')}
+                  {UI_EMOJI.search} {t('dry_run_label')}
                 </span>
               </label>
             </div>

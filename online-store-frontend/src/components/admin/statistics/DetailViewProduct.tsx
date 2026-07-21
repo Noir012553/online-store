@@ -2,6 +2,7 @@ import { useLanguage, useTranslation } from '../../../lib/i18n';
 import { formatCurrencyByCode } from '../../../lib/utils';
 import { getProductCategoryName, getProductName } from '../../../lib/data';
 import { useProductTranslation } from '../../../hooks/useProductTranslation';
+import { UI_EMOJI } from '../../../lib/uiEmoji';
 
 function StatisticsCategoryName({ product }: { product: any }) {
   return <>{getProductCategoryName(product)}</>;
@@ -53,7 +54,7 @@ export function DetailViewProduct({ detail }: DetailViewProductProps) {
             {t('detail_rating_label')}
           </div>
           <div className="mt-1 font-semibold text-gray-900">
-            {Number(detail.item.rating || 0).toFixed(1)} ★
+            {Number(detail.item.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}
           </div>
         </div>
         <div className="rounded-xl border border-gray-100 p-4">

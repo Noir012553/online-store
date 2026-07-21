@@ -1,5 +1,7 @@
 import { toast } from 'sonner';
 
+import { UI_EMOJI } from './uiEmoji';
+
 type TranslationFn = (key: string, namespace?: string, fallback?: string) => string;
 
 let tooManyRequestsShown = false;
@@ -99,13 +101,13 @@ function showTooManyRequestsWarning(type: 'spam' | 'single', t?: TranslationFn) 
     toast.warning(translate?.('error_too_many_requests_title', 'common') || '', {
       description: translate?.('error_too_many_requests_desc', 'common') || '',
       duration: 8000,
-      icon: '⏳',
+      icon: UI_EMOJI.statusPending,
     });
   } else {
     toast.warning(translate?.('error_server_overloaded_title', 'common') || '', {
       description: translate?.('error_server_overloaded_desc', 'common') || '',
       duration: 6000,
-      icon: '⚠️',
+      icon: UI_EMOJI.statusWarning,
     });
   }
 

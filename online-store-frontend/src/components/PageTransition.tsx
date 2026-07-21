@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/lib/i18n';
+import { UI_EMOJI } from '@/lib/uiEmoji';
 
 export const PandaRolling = () => {
   const [isClient, setIsClient] = useState(false);
@@ -30,7 +31,7 @@ export const PandaRolling = () => {
           }}
           className="text-6xl absolute"
         >
-          🐼
+          {UI_EMOJI.panda}
         </motion.div>
       </div>
       <div className="flex items-center gap-3 mt-6">
@@ -39,7 +40,7 @@ export const PandaRolling = () => {
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
           className="text-2xl origin-bottom"
         >
-          🎋
+          {UI_EMOJI.bamboo}
         </motion.span>
         <motion.p
           initial={{ opacity: 0 }}
@@ -54,7 +55,7 @@ export const PandaRolling = () => {
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
           className="text-2xl origin-bottom"
         >
-          🎋
+          {UI_EMOJI.bamboo}
         </motion.span>
       </div>
     </div>

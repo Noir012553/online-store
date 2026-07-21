@@ -79,12 +79,9 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   }
 
   // Thay thế "##" bằng emoji 📌
-  let processedText = sanitizedText.replace(/##/g, '📌');
+  let processedText = sanitizedText.replace(/##/g, UI_EMOJI.descriptionMarker);
 
-  // Danh sách ký hiệu/emoji
-  const symbols = new Set([
-    '✔', '✓', '✅', '❌', '⚠️', '🔥', '💡', '📱', '💻', '🎁', '📌',
-  ]);
+  const symbols = DESCRIPTION_EMOJI;
 
   const isEmoji = (char: string): boolean => {
     if (symbols.has(char)) return true;

@@ -15,6 +15,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useCloudinaryUpload } from "@/hooks/useCloudinaryUpload";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
+import { UI_EMOJI } from "@/lib/uiEmoji";
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -340,7 +341,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                   }}
                   className="flex-1"
                 >
-                  ✓ {t('existing_category', 'admin')}
+                  {UI_EMOJI.feature} {t('existing_category', 'admin')}
                 </Button>
                 <Button
                   type="button"
