@@ -17,6 +17,10 @@ const checkedFiles = [
   'scripts/fix-fallback-translations.js',
   'scripts/init-uploads.js',
   'scripts/rebuild-critical-indexes.js',
+  'scripts/force-regenerate-translations.js',
+  'src/seeds/addressSeeder.js',
+  'src/seeds/bannerSlotLabelsSeeder.js',
+  'src/seeds/testimonialLabelsSeeder.js',
   'src/services/cloudflareAiService.js',
   'src/services/distributedLockService.js',
 ];

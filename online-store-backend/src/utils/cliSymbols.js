@@ -23,6 +23,7 @@ const CLI_SYMBOLS = {
   chart: '📊',
   languages: '🗣️',
   duration: '⏱️',
+  wait: '⏳',
   search: '🔍',
   save: '💾',
   edit: '📝',

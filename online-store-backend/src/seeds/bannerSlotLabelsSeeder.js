@@ -1,5 +1,6 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Base translations - only seed these if language is active
 const bannerSlotLabelsBase = {
@@ -118,7 +119,7 @@ const bannerSlotLabelsTranslations = getActiveTranslations();
 
 const seedBannerSlotLabels = async () => {
   try {
-    console.log('🌱 Seeding banner slot labels translations...');
+    console.log(`${CLI_SYMBOLS.seed} Seeding banner slot labels translations...`);
 
     // Dynamically build langMap from active languages
     const activeLangs = getActiveLangCodes();
@@ -137,10 +138,10 @@ const seedBannerSlotLabels = async () => {
         },
         { upsert: true, returnDocument: 'after' }
       );
-      console.log(`✅ ${langKey} banner slot labels created/updated`);
+      console.log(`${CLI_SYMBOLS.success} ${langKey} banner slot labels created/updated`);
     }
   } catch (error) {
-    console.error('❌ Error seeding banner slot labels:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error seeding banner slot labels:`, error.message);
     throw error;
   }
 };
