@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const StaticTranslation = require('../src/models/StaticTranslation');
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
 const Language = require('../src/models/Language');
+const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
 
 require('dotenv').config();
 
@@ -20,12 +21,12 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/online
 
 async function setupIndexes() {
   try {
-    console.log('\n📍 Connecting to MongoDB...');
+    console.log(`\n${CLI_SYMBOLS.location} Connecting to MongoDB...`);
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB`);
 
     // ============ StaticTranslation Indexes ============
-    console.log('\n📍 Setting up StaticTranslation indexes...');
+    console.log(`\n${CLI_SYMBOLS.location} Setting up StaticTranslation indexes...`);
     
     // 1. Compound unique index: (code, namespace)
     // Purpose: Ensure one document per language+namespace
@@ -34,24 +35,24 @@ async function setupIndexes() {
       { code: 1, namespace: 1 },
       { unique: true, name: 'unique_code_namespace' }
     );
-    console.log('  ✓ Index: unique_code_namespace (code, namespace)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: unique_code_namespace (code, namespace)`);
 
     // 2. Index for soft-delete filter
     await StaticTranslation.collection.createIndex(
       { isDeleted: 1 },
       { name: 'index_isDeleted' }
     );
-    console.log('  ✓ Index: index_isDeleted (isDeleted)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: index_isDeleted (isDeleted)`);
 
     // 3. Index for quick language lookup
     await StaticTranslation.collection.createIndex(
       { code: 1 },
       { name: 'index_code' }
     );
-    console.log('  ✓ Index: index_code (code)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: index_code (code)`);
 
     // ============ LiveTranslationCache Indexes ============
-    console.log('\n📍 Setting up LiveTranslationCache indexes...');
+    console.log(`\n${CLI_SYMBOLS.location} Setting up LiveTranslationCache indexes...`);
 
     // 1. Unique hashKey index
     // Purpose: Cache key for deduplication
@@ -59,7 +60,7 @@ async function setupIndexes() {
       { hashKey: 1 },
       { unique: true, name: 'unique_hashKey' }
     );
-    console.log('  ✓ Index: unique_hashKey (hashKey)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: unique_hashKey (hashKey)`);
 
     // 2. Compound index: (entityId, targetLang, entityType)
     // Purpose: Find all translations of a product in a language
@@ -68,7 +69,7 @@ async function setupIndexes() {
       { entityId: 1, targetLang: 1, entityType: 1 },
       { name: 'index_entity_lang_type' }
     );
-    console.log('  ✓ Index: index_entity_lang_type (entityId, targetLang, entityType)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: index_entity_lang_type (entityId, targetLang, entityType)`);
 
     // 3. Compound index: (status, targetLang)
     // Purpose: Filter failed translations for Admin Dashboard
@@ -77,7 +78,7 @@ async function setupIndexes() {
       { status: 1, targetLang: 1 },
       { name: 'index_status_lang' }
     );
-    console.log('  ✓ Index: index_status_lang (status, targetLang)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: index_status_lang (status, targetLang)`);
 
     // 4. TTL Index for auto-cleanup
     // Purpose: Automatically delete old cache entries after 30 days
@@ -90,17 +91,17 @@ async function setupIndexes() {
         name: 'ttl_createdAt_30days'
       }
     );
-    console.log(`  ✓ Index: ttl_createdAt_30days (createdAt) - auto-delete after ${TTL_SECONDS}s`);
+    console.log(`  ${CLI_SYMBOLS.check} Index: ttl_createdAt_30days (createdAt) - auto-delete after ${TTL_SECONDS}s`);
 
     // ============ Language Indexes ============
-    console.log('\n📍 Setting up Language indexes...');
+    console.log(`\n${CLI_SYMBOLS.location} Setting up Language indexes...`);
 
     // 1. Unique code index
     await Language.collection.createIndex(
       { code: 1 },
       { unique: true, name: 'unique_code' }
     );
-    console.log('  ✓ Index: unique_code (code)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: unique_code (code)`);
 
     // 2. Index for isReady checks
     // Purpose: Find languages that are ready to use
@@ -109,19 +110,19 @@ async function setupIndexes() {
       { isReady: 1 },
       { name: 'index_isReady' }
     );
-    console.log('  ✓ Index: index_isReady (isReady)');
+    console.log(`  ${CLI_SYMBOLS.check} Index: index_isReady (isReady)`);
 
     // ============ Summary ============
-    console.log('\n✅ All indexes created successfully!\n');
-    console.log('📊 Index Summary:');
+    console.log(`\n${CLI_SYMBOLS.success} All indexes created successfully!\n`);
+    console.log(`${CLI_SYMBOLS.chart} Index Summary:`);
     console.log('  StaticTranslation:       3 indexes');
     console.log('  LiveTranslationCache:    4 indexes (including TTL)');
     console.log('  Language:                2 indexes');
     console.log('  ─────────────────────────────────');
     console.log('  Total:                   9 indexes\n');
 
-    console.log('🚀 Production i18n setup is ready!');
-    console.log('💡 Next steps:');
+    console.log(`${CLI_SYMBOLS.progress} Production i18n setup is ready!`);
+    console.log(`${CLI_SYMBOLS.idea} Next steps:`);
     console.log('   1. Verify indexes: db.collection.getIndexes()');
     console.log('   2. Create a language: POST /api/languages');
     console.log('   3. Monitor progress: GET /api/languages/:code/setup-status');
@@ -129,7 +130,7 @@ async function setupIndexes() {
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Error setting up indexes:');
+    console.error(`\n${CLI_SYMBOLS.error} Error setting up indexes:`);
     console.error(error);
     process.exit(1);
   } finally {
@@ -141,7 +142,7 @@ async function setupIndexes() {
 
 async function verifyIndexes() {
   try {
-    console.log('\n📋 Verifying existing indexes...\n');
+    console.log(`\n${CLI_SYMBOLS.list} Verifying existing indexes...\n`);
 
     const staticTranslationIndexes = await StaticTranslation.collection.getIndexes();
     console.log('StaticTranslation indexes:');

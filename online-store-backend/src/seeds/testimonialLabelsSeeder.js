@@ -1,5 +1,6 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const testimonialLabelsBase = {
   VI: {
@@ -53,7 +54,7 @@ const testimonialLabelsTranslations = getActiveTranslations();
 
 const seedTestimonialLabels = async () => {
   try {
-    console.log('🌱 Seeding testimonial labels translations...');
+    console.log(`${CLI_SYMBOLS.seed} Seeding testimonial labels translations...`);
 
     // Dynamically build langMap from active languages
     const activeLangs = getActiveLangCodes();
@@ -72,10 +73,10 @@ const seedTestimonialLabels = async () => {
         },
         { upsert: true, returnDocument: 'after' }
       );
-      console.log(`✅ ${langKey} testimonial labels created/updated`);
+      console.log(`${CLI_SYMBOLS.success} ${langKey} testimonial labels created/updated`);
     }
   } catch (error) {
-    console.error('❌ Error seeding testimonial labels:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error seeding testimonial labels:`, error.message);
     throw error;
   }
 };

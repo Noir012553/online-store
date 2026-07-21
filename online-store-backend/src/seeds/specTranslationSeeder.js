@@ -19,6 +19,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const Product = require('../models/Product');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -35,13 +36,13 @@ const SUPPORTED_LANGUAGES = getActiveLangCodes();
  * thành 1 ProductCatalogTranslationCache document
  */
 async function seedSpecTranslations() {
-  console.time('⏱️ seedSpecTranslations - Total Time');
+  console.time(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time`);
 
   try {
-    console.log('🌱 Starting spec translation aggregation...\n');
+    console.log(`${CLI_SYMBOLS.seed} Starting spec translation aggregation...\n`);
 
     // Step 1: Get all product_spec + product_feature records from LiveTranslationCache
-    console.log('📚 Step 1: Querying LiveTranslationCache for product translations...');
+    console.log(`${CLI_SYMBOLS.books} Step 1: Querying LiveTranslationCache for product translations...`);
 
     const allRecords = await LiveTranslationCache.find({
       entityType: { $in: ['product_spec', 'product_feature', 'product_name', 'product_description', 'product_brand'] }
@@ -50,13 +51,13 @@ async function seedSpecTranslations() {
     console.log(`  Found ${allRecords.length} translation records\n`);
 
     if (allRecords.length === 0) {
-      console.log('⏭️  No translations found in LiveTranslationCache');
-      console.timeEnd('⏱️ seedSpecTranslations - Total Time');
+      console.log(`${CLI_SYMBOLS.skip}  No translations found in LiveTranslationCache`);
+      console.timeEnd(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time`);
       return { aggregated: 0, skipped: 0, failed: 0, total: 0 };
     }
 
     // Step 2: Group by entityId + targetLang
-    console.log('📦 Step 2: Grouping records by entityId + targetLang...');
+    console.log(`${CLI_SYMBOLS.package} Step 2: Grouping records by entityId + targetLang...`);
 
     const grouped = {};
     for (const doc of allRecords) {
@@ -87,7 +88,7 @@ async function seedSpecTranslations() {
       } else if (doc.entityType === 'product_brand') {
         group.brand = doc.translatedText;
       } else if (doc.entityType === 'product_spec' && doc.specKey) {
-        // ✅ KEY LOGIC: Lookup translated key from specKeyTranslations
+        // Lookup translated key from specKeyTranslations
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
         group.specs[translatedKey] = doc.translatedText;
       } else if (doc.entityType === 'product_feature') {
@@ -99,8 +100,8 @@ async function seedSpecTranslations() {
     console.log(`  Grouped into ${groupedCount} product-language combinations\n`);
 
     // Step 3: Batch insert into ProductCatalogTranslationCache
-    console.log('💾 Step 3: Writing to ProductCatalogTranslationCache (batch mode)...');
-    console.time('  ⏱️ Batch insertion');
+    console.log(`${CLI_SYMBOLS.save} Step 3: Writing to ProductCatalogTranslationCache (batch mode)...`);
+    console.time(`  ${CLI_SYMBOLS.duration} Batch insertion`);
 
     let batchCount = 0;
     let aggregatedCount = 0;
@@ -121,17 +122,17 @@ async function seedSpecTranslations() {
         batchCount++;
         aggregatedCount += result.upsertedCount + result.modifiedCount;
 
-        console.log(`  ✅ Batch ${batchCount}: ${batch.length} documents written`);
+        console.log(`  ${CLI_SYMBOLS.success} Batch ${batchCount}: ${batch.length} documents written`);
       } catch (error) {
-        console.error(`  ❌ Batch ${batchCount} failed: ${error.message}`);
+        console.error(`  ${CLI_SYMBOLS.error} Batch ${batchCount} failed: ${error.message}`);
         throw error;
       }
     }
 
-    console.timeEnd('  ⏱️ Batch insertion');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Batch insertion`);
 
     // Step 5: Verify aggregation
-    console.log('\n✅ Step 5: Verification...');
+    console.log(`\n${CLI_SYMBOLS.success} Step 5: Verification...`);
 
     const verifyByLang = {};
     const verifyWithCategoryName = {};
@@ -155,7 +156,7 @@ async function seedSpecTranslations() {
     }).lean();
 
     if (sampleProduct) {
-      console.log('\n📋 Sample Product (English):');
+      console.log(`\n${CLI_SYMBOLS.list} Sample Product (English):`);
       console.log(`  ID: ${sampleProduct.entityId}`);
       console.log(`  Name: ${sampleProduct.name}`);
       console.log(`  Specs: ${JSON.stringify(sampleProduct.specs)}`);
@@ -164,8 +165,8 @@ async function seedSpecTranslations() {
       }
     }
 
-    console.log('\n✅ Seeding completed successfully!\n');
-    console.timeEnd('⏱️ seedSpecTranslations - Total Time');
+    console.log(`\n${CLI_SYMBOLS.success} Seeding completed successfully!\n`);
+    console.timeEnd(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time`);
 
     return {
       aggregated: aggregatedCount,
@@ -173,8 +174,8 @@ async function seedSpecTranslations() {
       byLanguage: verifyByLang,
     };
   } catch (error) {
-    console.error('\n❌ Fatal Error:', error.message);
-    console.timeEnd('⏱️ seedSpecTranslations - Total Time');
+    console.error(`\n${CLI_SYMBOLS.error} Fatal Error:`, error.message);
+    console.timeEnd(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time`);
     throw error;
   }
 }

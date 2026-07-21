@@ -8,10 +8,11 @@
 
 const Language = require('../models/Language');
 const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const seedLanguages = async () => {
   try {
-    console.log('\n🌍 Initializing all 9 system languages...');
+    console.log(`\n${CLI_SYMBOLS.world} Initializing all 9 system languages...`);
 
     // Clear any unsupported languages (keep only what's in SUPPORTED_LANGUAGES)
     const supportedCodes = SUPPORTED_LANGUAGES.map(l => l.code);
@@ -20,7 +21,7 @@ const seedLanguages = async () => {
     });
 
     if (deletedCount.deletedCount > 0) {
-      console.log(`  ✓ Removed ${deletedCount.deletedCount} unsupported language(s)`);
+      console.log(`  ${CLI_SYMBOLS.check} Removed ${deletedCount.deletedCount} unsupported language(s)`);
     }
 
     let createdCount = 0;
@@ -63,21 +64,21 @@ const seedLanguages = async () => {
     }
 
     if (createdCount > 0) {
-      console.log(`  ✓ Created ${createdCount} language(s)`);
+      console.log(`  ${CLI_SYMBOLS.check} Created ${createdCount} language(s)`);
     }
     if (updatedCount > 0) {
-      console.log(`  ✓ Updated ${updatedCount} language(s)`);
+      console.log(`  ${CLI_SYMBOLS.check} Updated ${updatedCount} language(s)`);
     }
 
     const allLanguages = await Language.find().lean();
     const summary = allLanguages
       .map(l => `${l.code} (${l.isSystemDefault ? 'DEFAULT' : 'secondary'})`)
       .join(', ');
-    console.log(`  📍 All 9 languages ready: ${summary}`);
+    console.log(`  ${CLI_SYMBOLS.location} All 9 languages ready: ${summary}`);
 
     return allLanguages;
   } catch (error) {
-    console.error('❌ Language seeding failed:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Language seeding failed:`, error.message);
     throw error;
   }
 };

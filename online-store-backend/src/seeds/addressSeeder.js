@@ -4,9 +4,10 @@ const { Province, District, Ward } = require('../models/Location');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const Location = require('../models/Location');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const seedAddresses = async () => {
-  console.time('⏱️ seedAddresses - Total Time');
+  console.time(`${CLI_SYMBOLS.duration} seedAddresses - Total Time`);
 
   const seedLang = getDefaultLanguage().code.toUpperCase();
 
@@ -15,7 +16,7 @@ const seedAddresses = async () => {
 
     const customers = await Customer.find({ isDeleted: false });
     if (customers.length === 0) {
-      console.log('⚠️ No customers found');
+      console.log(`${CLI_SYMBOLS.warning} No customers found`);
       return [];
     }
 
@@ -24,7 +25,7 @@ const seedAddresses = async () => {
       throw new Error(getMessage(seedLang, 'seeder-messages.no_provinces_found'));
     }
     console.log(getMessage(seedLang, 'seeder-messages.bulk_location_preload'));
-    console.time('  ⏱️ Bulk location pre-load');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk location pre-load`);
 
     const provinceIds = provinces.map(p => p.provinceId);
 
@@ -37,7 +38,7 @@ const seedAddresses = async () => {
     // Load all GHN wards, then associate them with districts in memory.
     const allWards = await Ward.find({ provider: 'ghn' }).lean();
 
-    console.timeEnd('  ⏱️ Bulk location pre-load');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk location pre-load`);
     console.log(getMessage(seedLang, 'seeder-messages.locations_loaded', {
       districts: allDistricts.length,
       wards: allWards.length
@@ -61,7 +62,7 @@ const seedAddresses = async () => {
     });
 
     console.log(getMessage(seedLang, 'seeder-messages.generating_addresses'));
-    console.time('  ⏱️ Address generation');
+    console.time(`  ${CLI_SYMBOLS.duration} Address generation`);
 
     const addresses = [];
 
@@ -128,20 +129,20 @@ const seedAddresses = async () => {
       }
     }
 
-    console.timeEnd('  ⏱️ Address generation');
-    console.log(`✅ Generated ${addresses.length} addresses from RAM`);
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Address generation`);
+    console.log(`${CLI_SYMBOLS.success} Generated ${addresses.length} addresses from RAM`);
 
     if (addresses.length === 0) {
       throw new Error('No addresses could be created. Check Location data.');
     }
 
     console.log(getMessage(seedLang, 'seeder-messages.bulk_inserting_addresses'));
-    console.time('  ⏱️ Bulk insert');
+    console.time(`  ${CLI_SYMBOLS.duration} Bulk insert`);
 
     const createdAddresses = await Address.insertMany(addresses, { ordered: false });
 
-    console.timeEnd('  ⏱️ Bulk insert');
-    console.timeEnd('⏱️ seedAddresses - Total Time');
+    console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk insert`);
+    console.timeEnd(`${CLI_SYMBOLS.duration} seedAddresses - Total Time`);
 
     console.log(getMessage(seedLang, 'seeder-messages.address_seeding_complete', {
       count: createdAddresses.length,
