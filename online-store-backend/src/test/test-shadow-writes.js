@@ -18,27 +18,28 @@ const UserContentTranslationCache = require('../models/UserContentTranslationCac
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const TranslationAuditLog = require('../models/TranslationAuditLog');
 const crypto = require('crypto');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const MONGO_URI = process.env.MONGO_URI;
 
 async function testShadowWrites() {
   try {
-    console.log('🔄 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.progress} Connecting to MongoDB...`);
     await mongoose.connect(MONGO_URI);
-    console.log('✅ Connected');
+    console.log(`${CLI_SYMBOLS.success} Connected`);
 
     // Enable shadow writes for testing
     process.env.SHADOW_WRITES_ENABLED = 'true';
 
     // Clean up before test
-    console.log('\n🧹 Cleaning up test data...');
+    console.log(`\n${CLI_SYMBOLS.cleanup} Cleaning up test data...`);
     await LiveTranslationCache.deleteMany({ originalText: { $regex: 'test.*shadow' } });
     await UserContentTranslationCache.deleteMany({ originalText: { $regex: 'test.*shadow' } });
     await ProductCatalogTranslationCache.deleteMany({ entityId: 'test_prod_shadow' });
     await TranslationAuditLog.deleteMany({ entityId: 'test_prod_shadow' });
 
     // Test 1: Write text translation & verify shadow write
-    console.log('\n📝 Test 1: Text Translation with Shadow Write');
+    console.log(`\n${CLI_SYMBOLS.edit} Test 1: Text Translation with Shadow Write`);
     const testText = 'test shadow write API';
     const hashKey = crypto.createHash('md5').update(`${testText}:en`).digest('hex');
 
@@ -49,7 +50,7 @@ async function testShadowWrites() {
       targetLang: 'en',
       translatedText: 'test shadow write API (translated)',
     });
-    console.log('  ✅ Created in OLD schema:', oldCache._id);
+    console.log(`  ${CLI_SYMBOLS.success} Created in OLD schema:`, oldCache._id);
 
     // Shadow write
     const newCache = await UserContentTranslationCache.create({
@@ -60,21 +61,21 @@ async function testShadowWrites() {
       translatedText: 'test shadow write API (translated)',
       status: 'success',
     });
-    console.log('  ✅ Created in NEW schema:', newCache._id);
+    console.log(`  ${CLI_SYMBOLS.success} Created in NEW schema:`, newCache._id);
 
     // Verify both exist
     const oldFetch = await LiveTranslationCache.findOne({ hashKey }).lean();
     const newFetch = await UserContentTranslationCache.findOne({ entityId: hashKey }).lean();
 
     if (oldFetch && newFetch) {
-      console.log('  ✅ Both schemas have data');
+      console.log(`  ${CLI_SYMBOLS.success} Both schemas have data`);
     } else {
-      console.log('  ❌ Missing data in schemas');
+      console.log(`  ${CLI_SYMBOLS.error} Missing data in schemas`);
       return;
     }
 
     // Test 2: Product Translation
-    console.log('\n📦 Test 2: Product Translation with Specs Aggregation');
+    console.log(`\n${CLI_SYMBOLS.package} Test 2: Product Translation with Specs Aggregation`);
     const productId = 'test_prod_shadow';
     const productData = {
       entityId: productId,
@@ -93,7 +94,7 @@ async function testShadowWrites() {
     };
 
     const productCache = await ProductCatalogTranslationCache.create(productData);
-    console.log('  ✅ Created product in NEW schema:', productCache._id);
+    console.log(`  ${CLI_SYMBOLS.success} Created product in NEW schema:`, productCache._id);
 
     // Fetch and verify specs are aggregated
     const fetchedProduct = await ProductCatalogTranslationCache.findOne({
@@ -102,19 +103,19 @@ async function testShadowWrites() {
     }).lean();
 
     if (fetchedProduct.specs && Object.keys(fetchedProduct.specs).length === 3) {
-      console.log('  ✅ Specs aggregated correctly:', Object.keys(fetchedProduct.specs));
+      console.log(`  ${CLI_SYMBOLS.success} Specs aggregated correctly:`, Object.keys(fetchedProduct.specs));
     } else {
-      console.log('  ❌ Specs not aggregated');
+      console.log(`  ${CLI_SYMBOLS.error} Specs not aggregated`);
     }
 
     if (fetchedProduct.features.length === 3) {
-      console.log('  ✅ Features stored correctly:', fetchedProduct.features.length);
+      console.log(`  ${CLI_SYMBOLS.success} Features stored correctly:`, fetchedProduct.features.length);
     } else {
-      console.log('  ❌ Features not stored correctly');
+      console.log(`  ${CLI_SYMBOLS.error} Features not stored correctly`);
     }
 
     // Test 3: Audit Log
-    console.log('\n📋 Test 3: Audit Trail Logging');
+    console.log(`\n${CLI_SYMBOLS.list} Test 3: Audit Trail Logging`);
     const auditLog = await TranslationAuditLog.create({
       hashKey: crypto.createHash('md5').update(`test:en`).digest('hex'),
       userId: 'admin_user_1',
@@ -128,14 +129,14 @@ async function testShadowWrites() {
       reason: 'Translation quality issue',
       timestamp: new Date(),
     });
-    console.log('  ✅ Created audit log:', auditLog._id);
+    console.log(`  ${CLI_SYMBOLS.success} Created audit log:`, auditLog._id);
 
     // Fetch audit logs
     const logs = await TranslationAuditLog.find({ entityId: productId }).lean();
-    console.log(`  ✅ Found ${logs.length} audit log(s) for product`);
+    console.log(`  ${CLI_SYMBOLS.success} Found ${logs.length} audit log(s) for product`);
 
     // Test 4: Query Performance Comparison
-    console.log('\n⚡ Test 4: Query Performance (Old vs New)');
+    console.log(`\n${CLI_SYMBOLS.lightning} Test 4: Query Performance (Old vs New)`);
 
     // Old schema: N queries for N specs
     console.time('OLD_SCHEMA_QUERY');
@@ -153,10 +154,10 @@ async function testShadowWrites() {
       targetLang: 'en',
     }).lean();
     console.timeEnd('NEW_SCHEMA_QUERY');
-    console.log(`  ✅ NEW schema: 1 document with aggregated specs (specs count: ${Object.keys(newQuery.specs).length})`);
+    console.log(`  ${CLI_SYMBOLS.success} NEW schema: 1 document with aggregated specs (specs count: ${Object.keys(newQuery.specs).length})`);
 
     // Test 5: TTL Indexes
-    console.log('\n🕐 Test 5: TTL Index Verification');
+    console.log(`\n${CLI_SYMBOLS.clock} Test 5: TTL Index Verification`);
     const productCatalogIndexes = await ProductCatalogTranslationCache.collection.getIndexes();
     const userContentIndexes = await UserContentTranslationCache.collection.getIndexes();
 
@@ -164,22 +165,22 @@ async function testShadowWrites() {
       return Object.values(indexes).some(idx => idx.expireAfterSeconds);
     };
 
-    console.log(`  ✅ ProductCatalog TTL Index: ${hasTTL(productCatalogIndexes) ? 'YES' : 'NO'}`);
-    console.log(`  ✅ UserContent TTL Index: ${hasTTL(userContentIndexes) ? 'YES' : 'NO'}`);
+    console.log(`  ${CLI_SYMBOLS.success} ProductCatalog TTL Index: ${hasTTL(productCatalogIndexes) ? 'YES' : 'NO'}`);
+    console.log(`  ${CLI_SYMBOLS.success} UserContent TTL Index: ${hasTTL(userContentIndexes) ? 'YES' : 'NO'}`);
 
-    console.log('\n✅ All tests passed!');
-    console.log('\n📊 Summary:');
-    console.log('  - Shadow writes working: ✅');
-    console.log('  - Specs aggregation: ✅');
-    console.log('  - Audit logging: ✅');
-    console.log('  - TTL indexes: ✅');
+    console.log(`\n${CLI_SYMBOLS.success} All tests passed!`);
+    console.log(`\n${CLI_SYMBOLS.chart} Summary:`);
+    console.log(`  - Shadow writes working: ${CLI_SYMBOLS.success}`);
+    console.log(`  - Specs aggregation: ${CLI_SYMBOLS.success}`);
+    console.log(`  - Audit logging: ${CLI_SYMBOLS.success}`);
+    console.log(`  - TTL indexes: ${CLI_SYMBOLS.success}`);
     console.log('  - Ready for Phase 2 (Data Migration)');
 
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error(`${CLI_SYMBOLS.error} Test failed:`, error);
   } finally {
     await mongoose.disconnect();
-    console.log('\n🔌 Disconnected from MongoDB');
+    console.log(`\n${CLI_SYMBOLS.connection} Disconnected from MongoDB`);
   }
 }
 
