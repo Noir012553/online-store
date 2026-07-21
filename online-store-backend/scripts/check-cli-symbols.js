@@ -38,6 +38,10 @@ const checkedFiles = [
   'src/scripts/batch-translate-locales.js',
   'src/scripts/translate-locales.js',
   'src/scripts/seedWithVersionControl.js',
+  'src/scripts/check-translation-cache.js',
+  'src/scripts/check-live-cache.js',
+  'src/scripts/check-translation-names.js',
+  'src/scripts/find-missing-en-keys.js',
 ];
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 

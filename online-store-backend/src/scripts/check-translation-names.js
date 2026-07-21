@@ -1,9 +1,10 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 mongoose.connect(process.env.MONGO_URI).then(async () => {
-  console.log('📊 Checking translation names...\n');
+  console.log(`${CLI_SYMBOLS.chart} Checking translation names...\n`);
   
   const shorts = await ProductCatalogTranslationCache.find({ name: { $lt: 'AAA' } }).limit(20).lean();
   console.log(`Found ${shorts.length} records with names < 'AAA':`);
