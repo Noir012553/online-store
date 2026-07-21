@@ -149,19 +149,12 @@ export function LanguageManagementPanel() {
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">{t('language_management_add_language', 'admin')}</h3>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={selectedLang} onValueChange={(value) => setSelectedLang(value as Locale)}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder={t('language_management_select_placeholder', 'admin')} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableLangs.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    <span className="mr-2">{AVAILABLE_LOCALES[lang].flag}</span>
-                    {t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select value={selectedLang} onChange={(event) => setSelectedLang(event.target.value as Locale)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 flex-1">
+              <option value="" disabled>{t('language_management_select_placeholder', 'admin')}</option>
+              {availableLangs.map((lang) => (
+                <option key={lang} value={lang}>{AVAILABLE_LOCALES[lang].flag + ' ' + t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}</option>
+              ))}
+            </select>
             <Button
               onClick={handleAddLanguage}
               disabled={!selectedLang || isLoading}

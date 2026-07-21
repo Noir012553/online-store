@@ -322,32 +322,22 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
             </div>
             {!viewDeletedTab && (
               <>
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder={t('admin_category', 'admin')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('view_all', 'admin')}</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {getCategoryName(cat)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterBrand} onValueChange={setFilterBrand}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder={t('brands_title', 'common')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('view_all', 'common')}</SelectItem>
-                    {brandNames.map((brand) => (
-                      <SelectItem key={brand} value={brand}>
-                        {brand}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select value={filterCategory} onChange={(event) => setFilterCategory(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                  <option value="all">{t('view_all', 'admin')}</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {getCategoryName(cat)}
+                    </option>
+                  ))}
+                </select>
+                <select value={filterBrand} onChange={(event) => setFilterBrand(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                  <option value="all">{t('view_all', 'common')}</option>
+                  {brandNames.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                </select>
               </>
             )}
           </div>

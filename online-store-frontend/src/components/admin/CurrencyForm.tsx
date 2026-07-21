@@ -166,15 +166,10 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
 
           <div>
             <Label htmlFor="position">{t('admin_currency_position', 'admin')}</Label>
-            <Select value={formData.position} onValueChange={handleSelectChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="before">{t('admin_currency_position_before', 'admin')}</SelectItem>
-                <SelectItem value="after">{t('admin_currency_position_after', 'admin')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <select value={formData.position} onChange={(event) => handleSelectChange(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <option value="before">{t('admin_currency_position_before', 'admin')}</option>
+              <option value="after">{t('admin_currency_position_after', 'admin')}</option>
+            </select>
           </div>
 
           <div>

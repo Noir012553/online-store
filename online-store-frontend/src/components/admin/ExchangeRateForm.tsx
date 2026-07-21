@@ -152,21 +152,10 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
         <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="fromCode">{t('admin_exchange_from', 'admin')} *</Label>
-            <Select
-              value={formData.fromCode}
-              onValueChange={value => handleSelectChange('fromCode', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('admin_currency_list', 'admin')} />
-              </SelectTrigger>
-              <SelectContent>
-                {currencyOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select value={formData.fromCode} onChange={(event) => handleSelectChange('fromCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <option value="" disabled>{t('admin_currency_list', 'admin')}</option>
+              {currencyOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
           </div>
 
           <div className="flex justify-center md:pt-6">
@@ -175,21 +164,10 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
           <div>
             <Label htmlFor="toCode">{t('admin_exchange_to', 'admin')} *</Label>
-            <Select
-              value={formData.toCode}
-              onValueChange={value => handleSelectChange('toCode', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('admin_currency_list', 'admin')} />
-              </SelectTrigger>
-              <SelectContent>
-                {currencyOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select value={formData.toCode} onChange={(event) => handleSelectChange('toCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <option value="" disabled>{t('admin_currency_list', 'admin')}</option>
+              {currencyOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
           </div>
         </div>
 
@@ -212,19 +190,11 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
           <div>
             <Label htmlFor="source">{t('admin_exchange_source', 'admin')}</Label>
-            <Select
-              value={formData.source}
-              onValueChange={value => handleSelectChange('source', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manual">{t('admin_exchange_source_manual', 'admin')}</SelectItem>
-                <SelectItem value="api">{t('admin_exchange_source_api', 'admin')}</SelectItem>
-                <SelectItem value="import">{t('admin_exchange_source_import', 'admin')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <select value={formData.source} onChange={(event) => handleSelectChange('source', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <option value="manual">{t('admin_exchange_source_manual', 'admin')}</option>
+              <option value="api">{t('admin_exchange_source_api', 'admin')}</option>
+              <option value="import">{t('admin_exchange_source_import', 'admin')}</option>
+            </select>
           </div>
         </div>
 

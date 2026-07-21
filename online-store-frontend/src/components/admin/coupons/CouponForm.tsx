@@ -449,18 +449,10 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>{t('admin_discount_type', 'admin')}</Label>
-                <Select
-                  value={editingCoupon.discountType}
-                  onValueChange={(value) => setEditingCoupon({ ...editingCoupon, discountType: value as 'percentage' | 'fixed' })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('admin_discount_type', 'admin')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">{t('admin_discount_percentage', 'admin')}</SelectItem>
-                    <SelectItem value="fixed">{t('admin_discount_fixed', 'admin')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select value={editingCoupon.discountType} onChange={(event) => setEditingCoupon({ ...editingCoupon, discountType: event.target.value as 'percentage' | 'fixed' })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                  <option value="percentage">{t('admin_discount_percentage', 'admin')}</option>
+                  <option value="fixed">{t('admin_discount_fixed', 'admin')}</option>
+                </select>
               </div>
 
               <div className="space-y-2">
