@@ -321,7 +321,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       return enriched;
     });
 
-    console.log(`[FILE_UPLOAD] ✅ Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
+    console.log(`[FILE_UPLOAD] ${CLI_SYMBOLS.success} Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
 
     // DRY RUN: Return preview mà không save
     if (dryRun === 'true' || dryRun === true) {
