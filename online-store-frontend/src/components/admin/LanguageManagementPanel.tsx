@@ -2,13 +2,6 @@ import { useState } from 'react';
 import { Loader2, Plus, Trash2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import { AVAILABLE_LOCALES, SUPPORTED_LOCALES, useLanguage, type Locale, useTranslation } from '../../lib/i18n';
 
 interface LanguageStatus {

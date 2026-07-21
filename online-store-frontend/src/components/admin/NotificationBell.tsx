@@ -20,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import { Select } from "../ui/select";
 
 interface PendingOrder {
   _id: string;

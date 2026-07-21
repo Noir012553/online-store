@@ -11,13 +11,6 @@ import { EmptyState } from "./EmptyState";
 import { Slider } from "./ui/slider";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
