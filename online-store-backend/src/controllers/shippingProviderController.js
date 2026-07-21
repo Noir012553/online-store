@@ -5,6 +5,7 @@ const { Province, District, Ward } = require('../models/Location');
 const ghnService = require('../services/ghnService');
 const { getMessage } = require('../i18n/messages');
 const { getActiveLangCodes, getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const getShippingProviders = asyncHandler(async (req, res) => {
   const pageSize = parseInt(req.query.pageSize) || 10;
@@ -335,12 +336,12 @@ const syncLocationData = asyncHandler(async (req, res) => {
     await Province.insertMany(provinceDocs);
     provinceCount = provinceDocs.length;
 
-    // 🚀 OPTIMIZATION: Fetch all districts, collect docs, then batch insert once
+    // Fetch all districts, collect docs, then batch insert once.
     // BEFORE: Loop N provinces × 1 insertMany = N DB operations
     // AFTER: Fetch N in parallel → collect → 1 insertMany = 1 DB operation
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 [Step 1/3] Fetching districts for all provinces...');
-      console.time('  ⏱️ Bulk fetch & insert districts');
+      console.log(`${CLI_SYMBOLS.progress} [Step 1/3] Fetching districts for all provinces...`);
+      console.time(`  ${CLI_SYMBOLS.duration} Bulk fetch & insert districts`);
     }
 
     let totalDistricts = 0;
@@ -362,7 +363,7 @@ const syncLocationData = asyncHandler(async (req, res) => {
         return [];
       } catch (err) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn(`⚠️ Failed to fetch districts for province ${province.ProvinceID}: ${err.message}`);
+          console.warn(`${CLI_SYMBOLS.warning} Failed to fetch districts for province ${province.ProvinceID}: ${err.message}`);
         }
         return [];
       }
@@ -377,18 +378,18 @@ const syncLocationData = asyncHandler(async (req, res) => {
       await District.insertMany(allDistrictDocs, { ordered: false });
       totalDistricts = allDistrictDocs.length;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ Inserted ${totalDistricts} districts in 1 operation`);
+        console.log(`${CLI_SYMBOLS.success} Inserted ${totalDistricts} districts in 1 operation`);
       }
     }
     if (process.env.NODE_ENV === 'development') {
-      console.timeEnd('  ⏱️ Bulk fetch & insert districts');
+      console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk fetch & insert districts`);
     }
 
-    // 🚀 OPTIMIZATION: Fetch all wards, collect docs, then batch insert once
+    // Fetch all wards, collect docs, then batch insert once.
     // BEFORE: Loop M districts × 1 insertMany = M DB operations
     // AFTER: Fetch M in parallel → collect → 1 insertMany = 1 DB operation
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 [Step 2/3] Fetching wards for all districts...');
+      console.log(`${CLI_SYMBOLS.progress} [Step 2/3] Fetching wards for all districts...`);
       console.time('  ⏱️ Bulk fetch & insert wards');
     }
 
@@ -412,7 +413,7 @@ const syncLocationData = asyncHandler(async (req, res) => {
         return [];
       } catch (err) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn(`⚠️ Failed to fetch wards for district ${district.districtId}: ${err.message}`);
+          console.warn(`${CLI_SYMBOLS.warning} Failed to fetch wards for district ${district.districtId}: ${err.message}`);
         }
         return [];
       }
@@ -427,12 +428,12 @@ const syncLocationData = asyncHandler(async (req, res) => {
       await Ward.insertMany(allWardDocs, { ordered: false });
       totalWards = allWardDocs.length;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ Inserted ${totalWards} wards in 1 operation`);
+        console.log(`${CLI_SYMBOLS.success} Inserted ${totalWards} wards in 1 operation`);
       }
     }
     if (process.env.NODE_ENV === 'development') {
       console.timeEnd('  ⏱️ Bulk fetch & insert wards');
-      console.log(`\n📈 LOCATION SYNC COMPLETE:\n   • Provinces: ${provinceCount}\n   • Districts: ${totalDistricts}\n   • Wards: ${totalWards}`);
+      console.log(`\n${CLI_SYMBOLS.chart} LOCATION SYNC COMPLETE:\n   ${CLI_SYMBOLS.bullet} Provinces: ${provinceCount}\n   ${CLI_SYMBOLS.bullet} Districts: ${totalDistricts}\n   ${CLI_SYMBOLS.bullet} Wards: ${totalWards}`);
     }
 
     res.json({

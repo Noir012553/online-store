@@ -7,6 +7,7 @@ const LanguageService = require('../services/languageService');
 const TranslationSeederService = require('../services/translationSeederService');
 const crypto = require('crypto');
 const { getMessage } = require('../i18n/messages');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // SSOT: Import from languageInventory.js (unified source)
 const { SUPPORTED_LANGUAGES, getLanguageByCode, getDefaultLanguage } = require('../config/languageInventory');
@@ -156,7 +157,7 @@ exports.createLanguage = async (req, res) => {
     });
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`\n[Language] 🚀 T=0: Language record created for ${langCode}`);
+      console.log(`\n[Language] ${CLI_SYMBOLS.run} T=0: Language record created for ${langCode}`);
     }
 
     res.status(201).json({
@@ -169,7 +170,7 @@ exports.createLanguage = async (req, res) => {
     setImmediate(async () => {
       try {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`\n[Language] ⏱️  Background Setup Timeline for ${langCode}:`);
+          console.log(`\n[Language] ${CLI_SYMBOLS.duration}  Background Setup Timeline for ${langCode}:`);
           console.log(`  T+0s: Response sent to client`);
           console.log(`  T+1s: PHASE 1 (Clone + Translate UI strings)`);
           console.log(`  T+30s: PHASE 2 (Translate all products with chunking)`);
@@ -181,35 +182,35 @@ exports.createLanguage = async (req, res) => {
           const { getDefaultLanguage } = require('../config/languageInventory');
           const defaultLang = getDefaultLanguage().code;
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Language] 📍 PHASE 1: Clone UI strings từ ${defaultLang.toUpperCase()} sang ${langCode}`);
+            console.log(`[Language] ${CLI_SYMBOLS.location} PHASE 1: Clone UI strings từ ${defaultLang.toUpperCase()} sang ${langCode}`);
           }
           const clonedCount = await TranslationSeederService.cloneStaticTranslations(defaultLang, langCode);
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Language] ✓ Clone hoàn tất: ${clonedCount} namespaces`);
+            console.log(`[Language] ${CLI_SYMBOLS.check} Clone hoàn tất: ${clonedCount} namespaces`);
           }
 
           if (clonedCount > 0) {
             if (process.env.NODE_ENV === 'development') {
-              console.log(`[Language] 📍 PHASE 1.5: Dịch UI strings (concurrency=5, throttle=1000ms)`);
+              console.log(`[Language] ${CLI_SYMBOLS.location} PHASE 1.5: Dịch UI strings (concurrency=5, throttle=1000ms)`);
             }
             const translatedCount = await TranslationSeederService.translateStaticTranslations(
               langCode,
               defaultLang
             );
             if (process.env.NODE_ENV === 'development') {
-              console.log(`[Language] ✓ Dịch xong: ${translatedCount} UI keys`);
+              console.log(`[Language] ${CLI_SYMBOLS.check} Dịch xong: ${translatedCount} UI keys`);
             }
           }
         } catch (phase1Error) {
           if (process.env.NODE_ENV === 'development') {
-            console.error(`[Language] ❌ PHASE 1 lỗi: ${phase1Error.message}`);
+            console.error(`[Language] ${CLI_SYMBOLS.error} PHASE 1 lỗi: ${phase1Error.message}`);
           }
         }
 
         // ========== PHASE 2: Translate Products (T+30s to T+120s) ==========
         try {
           if (process.env.NODE_ENV === 'development') {
-            console.log(`\n[Language] 📍 PHASE 2: Dịch sản phẩm (chunking=20, concurrency=3, throttle=1500ms)`);
+            console.log(`\n[Language] ${CLI_SYMBOLS.location} PHASE 2: Dịch sản phẩm (chunking=20, concurrency=3, throttle=1500ms)`);
           }
           const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 
@@ -219,26 +220,26 @@ exports.createLanguage = async (req, res) => {
             await ProductTranslationSeederService.translateAllProducts(langCode, defaultSourceLang);
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Language] ✓ PHASE 2 hoàn tất:`);
-            console.log(`    • Thành công: ${successCount} fields`);
-            console.log(`    • Lỗi: ${errorCount} fields`);
-            console.log(`    • Tổng xử lý: ${totalProcessed} fields`);
+            console.log(`[Language] ${CLI_SYMBOLS.check} PHASE 2 hoàn tất:`);
+            console.log(`    ${CLI_SYMBOLS.bullet} Thành công: ${successCount} fields`);
+            console.log(`    ${CLI_SYMBOLS.bullet} Lỗi: ${errorCount} fields`);
+            console.log(`    ${CLI_SYMBOLS.bullet} Tổng xử lý: ${totalProcessed} fields`);
           }
         } catch (phase2Error) {
           if (process.env.NODE_ENV === 'development') {
-            console.error(`[Language] ❌ PHASE 2 lỗi: ${phase2Error.message}`);
+            console.error(`[Language] ${CLI_SYMBOLS.error} PHASE 2 lỗi: ${phase2Error.message}`);
           }
         }
 
         // ========== PHASE 3: Finalize & Activate (T+120s+) ==========
         try {
           if (process.env.NODE_ENV === 'development') {
-            console.log(`\n[Language] 📍 PHASE 3: Hoàn tất và kích hoạt`);
+            console.log(`\n[Language] ${CLI_SYMBOLS.location} PHASE 3: Hoàn tất và kích hoạt`);
           }
 
           LanguageService.invalidateCache();
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Language] ✓ Language cache invalidated`);
+            console.log(`[Language] ${CLI_SYMBOLS.check} Language cache invalidated`);
           }
 
           await Language.updateOne(
@@ -252,12 +253,12 @@ exports.createLanguage = async (req, res) => {
           );
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Language] ✓ ${langCode} is READY (isReady=true)`);
-            console.log(`\n[Language] 🎉 SETUP COMPLETE for ${langCode}!\n`);
+            console.log(`[Language] ${CLI_SYMBOLS.check} ${langCode} is READY (isReady=true)`);
+            console.log(`\n[Language] ${CLI_SYMBOLS.celebration} SETUP COMPLETE for ${langCode}!\n`);
           }
         } catch (phase3Error) {
           if (process.env.NODE_ENV === 'development') {
-            console.error(`[Language] ❌ PHASE 3 lỗi: ${phase3Error.message}`);
+            console.error(`[Language] ${CLI_SYMBOLS.error} PHASE 3 lỗi: ${phase3Error.message}`);
           }
           await Language.updateOne(
             { code: langCode },
@@ -270,7 +271,7 @@ exports.createLanguage = async (req, res) => {
         }
       } catch (backgroundError) {
         if (process.env.NODE_ENV === 'development') {
-          console.error(`[Language] ❌ Unexpected error in background task: ${backgroundError.message}`);
+          console.error(`[Language] ${CLI_SYMBOLS.error} Unexpected error in background task: ${backgroundError.message}`);
           console.error(backgroundError.stack);
         }
 
