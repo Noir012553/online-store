@@ -422,7 +422,7 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
         <p className="mt-2 text-sm text-gray-600">{t('admin_coupon_form_desc', 'admin')}</p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6">
+      <div className="rounded-2xl border bg-white p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <div className="space-y-2">

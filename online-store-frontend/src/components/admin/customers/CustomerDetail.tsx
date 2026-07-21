@@ -76,7 +76,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
 
   if (!customer) {
     return (
-      <div className="max-w-2xl mx-auto py-6">
+      <div className="mx-auto max-w-2xl py-4 sm:py-6">
         <div className="bg-white rounded-lg border p-6 text-center">
           <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
           <p className="text-gray-600 mb-4">{t('error_customer_not_found', 'admin')}</p>
@@ -104,14 +104,14 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t('back', 'common')}
         </Button>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">{fullName || t('not_updated', 'admin')}</h1>
             <p className="text-gray-600">{customer.email || t('not_updated', 'admin')}</p>
           </div>
           <Button
             onClick={() => router.push(`/admin/customers/${customerId}/edit`)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
           >
             {t('edit', 'common')}
           </Button>
@@ -120,7 +120,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Contact Info */}
-        <div className="bg-white rounded-lg border p-6 space-y-4">
+        <div className="space-y-4 rounded-lg border bg-white p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <MapPin className="w-4 h-4 text-blue-600" />
             {t('contact_information', 'admin')}
@@ -163,7 +163,7 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
         </div>
 
         {/* Customer Stats */}
-        <div className="bg-white rounded-lg border p-6 space-y-4">
+        <div className="space-y-4 rounded-lg border bg-white p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-gray-700">
             {t('order_info', 'admin')}
           </h2>

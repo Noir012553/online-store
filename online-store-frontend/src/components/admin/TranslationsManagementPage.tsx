@@ -251,15 +251,15 @@ const TranslationsManagementPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{t('admin_translations_title', 'common')}</h1>
           <p className="mt-1 text-gray-600">{t('admin_translations_description', 'common')}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="rounded-lg bg-white p-4 shadow sm:p-6">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -287,7 +287,7 @@ const TranslationsManagementPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">

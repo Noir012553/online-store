@@ -677,7 +677,7 @@ function DashboardContent() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[560px]">
               <thead className="bg-white text-xs uppercase">
                 <tr>
                   <th className="px-6 py-3 text-left">{t('order_id', 'orders')}</th>
@@ -803,7 +803,7 @@ function DashboardContent() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[560px]">
               <thead className="bg-white text-xs uppercase">
                 <tr>
                   <th className="px-6 py-3 text-left">{t('order_id', 'orders')}</th>

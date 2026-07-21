@@ -246,13 +246,13 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
   const totals = calculateTotals();
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="mx-auto max-w-2xl py-4 sm:py-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">{t('create_order_title', 'admin')}</h1>
         <p className="text-gray-600">{t('create_order_description', 'admin')}</p>
       </div>
 
-      <div className="bg-white rounded-lg border space-y-6 p-6">
+      <div className="space-y-6 rounded-lg border bg-white p-4 sm:p-6">
         {/* Customer Info Section */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -387,7 +387,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
           {orderItems.length > 0 && (
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[620px] text-sm">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left font-semibold text-gray-700">

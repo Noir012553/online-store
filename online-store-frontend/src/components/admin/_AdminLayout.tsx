@@ -98,7 +98,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
 
-    if (savedSidebarState !== null) {
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setSidebarOpen(false);
+    } else if (savedSidebarState !== null) {
       setSidebarOpen(savedSidebarState === 'true');
     }
 

@@ -103,7 +103,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
 
   if (!order) {
     return (
-      <div className="max-w-2xl mx-auto py-6">
+      <div className="mx-auto max-w-2xl py-4 sm:py-6">
         <div className="bg-white rounded-lg border p-6 text-center">
           <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
           <p className="text-gray-600 mb-4">{t('error_order_not_found', 'admin')}</p>
@@ -135,7 +135,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         </h1>
       </div>
 
-      <div className="bg-white rounded-lg border space-y-6 p-6">
+      <div className="space-y-6 rounded-lg border bg-white p-4 sm:p-6">
         {/* Customer Info */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -148,7 +148,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
               <span className="font-medium">{order.customer?.name || order.user?.username || t('not_updated', 'admin')}</span>
             </div>
             {(order.customer?.email || order.user?.email) && (
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                 <span className="text-sm text-gray-600">{t('email_label', 'admin')}:</span>
                 <a href={`mailto:${order.customer?.email || order.user?.email}`} className="font-medium text-blue-600 hover:underline">
                   {order.customer?.email || order.user?.email}
@@ -156,7 +156,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
               </div>
             )}
             {order.customer?.phone && (
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                 <span className="text-sm text-gray-600">{t('phone_placeholder', 'admin')}:</span>
                 <a href={`tel:${order.customer.phone}`} className="font-medium text-blue-600 hover:underline">
                   {order.customer.phone}
@@ -179,7 +179,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             {t('product_list', 'admin')}
           </h2>
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
+            <table className="w-full min-w-[560px]">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">{t('product', 'admin')}</th>

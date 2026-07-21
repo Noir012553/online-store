@@ -111,11 +111,11 @@ export function LanguageManagementPanel() {
           {languages.map((lang) => (
             <div
               key={lang.lang}
-              className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
+              className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <span className="text-2xl">{AVAILABLE_LOCALES[lang.lang].flag}</span>
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">{t(AVAILABLE_LOCALES[lang.lang].labelKey, 'admin-translation')}</p>
                 </div>
               </div>
@@ -148,7 +148,7 @@ export function LanguageManagementPanel() {
       {availableLangs.length > 0 && (
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">{t('language_management_add_language', 'admin')}</h3>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Select value={selectedLang} onValueChange={(value) => setSelectedLang(value as Locale)}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder={t('language_management_select_placeholder', 'admin')} />
@@ -165,7 +165,7 @@ export function LanguageManagementPanel() {
             <Button
               onClick={handleAddLanguage}
               disabled={!selectedLang || isLoading}
-              className="gap-2"
+              className="w-full gap-2 sm:w-auto"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
