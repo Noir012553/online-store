@@ -3,6 +3,7 @@ const ShippingProvider = require('../models/ShippingProvider');
 const { formatDateVietnamISO } = require('../utils/dateUtils');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const GHN_BASE_URL = 'https://dev-online-gateway.ghn.vn/shiip/public-api';
 const GHN_TIMEOUT = 10000;
@@ -57,12 +58,12 @@ async function validateDistrictIds({ from_district_id, to_district_id }) {
 
     if (!fromExists) {
       console.warn(
-        `⚠️ [validateDistrictIds] from_district_id: ${from_district_id} KHÔNG TỒN TẠI trong GHN`
+        `${CLI_SYMBOLS.warning} [validateDistrictIds] from_district_id: ${from_district_id} KHÔNG TỒN TẠI trong GHN`
       );
     }
     if (!toExists) {
       console.warn(
-        `⚠️ [validateDistrictIds] to_district_id: ${to_district_id} KHÔNG TỒN TẠI trong GHN`
+        `${CLI_SYMBOLS.warning} [validateDistrictIds] to_district_id: ${to_district_id} KHÔNG TỒN TẠI trong GHN`
       );
     }
 
@@ -384,7 +385,7 @@ async function getAvailableServices({ from_district_id, to_district_id, lang }) 
     throw new Error(`GHN API error: ${response.data.message}`);
   } catch (error) {
     // Detailed error logging for debugging
-    console.error('❌ [getAvailableServices] ERROR DETAILS:');
+    console.error(`${CLI_SYMBOLS.error} [getAvailableServices] ERROR DETAILS:`);
     console.error('   Status Code:', error.response?.status);
     console.error('   Error Message:', error.message);
     console.error('   Response Data:', JSON.stringify(error.response?.data, null, 2));
@@ -511,7 +512,7 @@ async function createShipment(params) {
         errorMessage.includes('route not found')
       ) {
         console.warn(
-          '⚠️ [createShipment] Service ID not supported for this route. Trying fallback with service_type_id: 2...'
+          `${CLI_SYMBOLS.warning} [createShipment] Service ID not supported for this route. Trying fallback with service_type_id: 2...`
         );
 
         // Xóa service_id và dùng service_type_id thay thế
@@ -550,8 +551,8 @@ async function createShipment(params) {
     throw new Error(response.data.message || 'Unknown error from GHN');
   } catch (error) {
     const detailedError = error.response?.data?.message || error.message;
-    console.error('❌ [createShipment] Error creating order:', detailedError);
-    console.error('❌ [createShipment] Full error:', error.response?.data || error);
+    console.error(`${CLI_SYMBOLS.error} [createShipment] Error creating order:`, detailedError);
+    console.error(`${CLI_SYMBOLS.error} [createShipment] Full error:`, error.response?.data || error);
     return {
       success: false,
       error: detailedError,
