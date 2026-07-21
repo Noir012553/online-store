@@ -321,5 +321,12 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành:** chuẩn hóa `online-store-backend/src/test/check-db-brands.js` bằng `CLI_SYMBOLS`, bao gồm các ký hiệu báo cáo, cảnh báo, tìm kiếm, danh sách và lỗi; loại bỏ import không sử dụng.
 - **Đã hoàn thành:** thêm hai entry point vào allowlist của `online-store-backend/scripts/check-cli-symbols.js`.
 - **Đã xác thực:** `online-store-backend npm run check:emoji`, kiểm tra cú pháp JavaScript cho bốn file thay đổi và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa ký hiệu CLI cho `src/scripts/fix-category-translations.js`, `retranslate.js`, `translateReject.js` và `setup-production-indexes.js` qua `CLI_SYMBOLS`; output terminal được giữ nguyên.
+- **Đã hoàn thành thêm:** mở rộng allowlist `check-cli-symbols.js` cho bốn entry point runtime trên.
+- **Đã sửa:** bổ sung import `mongoose` duy nhất cho `src/scripts/translateHistory.js` và `translateReport.js`, tránh lỗi runtime khi các lệnh này đóng kết nối trong `finally`.
+- **Đã xác thực:** checker emoji, kiểm tra cú pháp toàn bộ nhóm translation CLI và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa toàn bộ ký hiệu output trong `src/test/test-shadow-writes.js` qua `CLI_SYMBOLS`, bao gồm kết nối, dọn dẹp, kết quả schema, hiệu năng, TTL và tổng kết.
+- **Đã hoàn thành thêm:** bổ sung `lightning` vào `src/utils/cliSymbols.js` và đưa test shadow writes vào allowlist kiểm tra tĩnh.
+- **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp test/registry/checker và `git diff --check` đều thành công.
 
 **Bước tiếp theo:** tiếp tục xử lý các entry point package/runtime còn hard-code đã được liệt kê trong các mục trước; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.

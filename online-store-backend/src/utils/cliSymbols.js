@@ -55,6 +55,7 @@ const CLI_SYMBOLS = {
   speech: '💬',
   antenna: '📡',
   alert: '🚨',
+  lightning: '⚡',
   arrowRight: '→',
   arrowDown: '↓',
   arrowUp: '↑',

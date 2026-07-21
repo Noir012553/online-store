@@ -16,6 +16,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Bản dịch chuẩn cho 6 category × 9 locale
 const TRANSLATIONS = {
@@ -261,16 +262,16 @@ async function run() {
   const dryRun = process.argv.includes('--dry-run');
 
   if (!process.env.MONGO_URI) {
-    console.error('❌ MONGO_URI chưa được set trong biến môi trường');
+    console.error(`${CLI_SYMBOLS.error} MONGO_URI chưa được set trong biến môi trường`);
     process.exit(1);
   }
 
-  console.log('🔌 Đang kết nối MongoDB...');
+  console.log(`${CLI_SYMBOLS.connection} Đang kết nối MongoDB...`);
   await mongoose.connect(process.env.MONGO_URI);
-  console.log('✅ Đã kết nối MongoDB\n');
+  console.log(`${CLI_SYMBOLS.success} Đã kết nối MongoDB\n`);
 
   if (dryRun) {
-    console.log('🧪 DRY RUN: chỉ kiểm tra dữ liệu, không ghi vào database\n');
+    console.log(`${CLI_SYMBOLS.test} DRY RUN: chỉ kiểm tra dữ liệu, không ghi vào database\n`);
   }
 
   const categories = await Category.find({
@@ -285,16 +286,16 @@ async function run() {
 
   if (missingKeys.length > 0 || duplicateKeys.length > 0) {
     if (missingKeys.length > 0) {
-      console.error(`❌ Thiếu category: ${missingKeys.join(', ')}`);
+      console.error(`${CLI_SYMBOLS.error} Thiếu category: ${missingKeys.join(', ')}`);
     }
     if (duplicateKeys.length > 0) {
-      console.error(`❌ Trùng category key: ${[...new Set(duplicateKeys)].join(', ')}`);
+      console.error(`${CLI_SYMBOLS.error} Trùng category key: ${[...new Set(duplicateKeys)].join(', ')}`);
     }
     await mongoose.disconnect();
     process.exit(1);
   }
 
-  console.log(`📂 Tìm thấy ${categories.length} category mục tiêu:`);
+  console.log(`${CLI_SYMBOLS.openFolder} Tìm thấy ${categories.length} category mục tiêu:`);
   categories.forEach(category => console.log(`   - ${category.key} (id: ${category._id})`));
   console.log();
 
@@ -306,7 +307,7 @@ async function run() {
     const translations = TRANSLATIONS[categoryKey];
 
     if (!translations) {
-      console.warn(`⚠️  Không có bản dịch cho category key="${categoryKey}" — bỏ qua`);
+      console.warn(`${CLI_SYMBOLS.warning}  Không có bản dịch cho category key="${categoryKey}" — bỏ qua`);
       stats.skipped++;
       continue;
     }
@@ -314,7 +315,7 @@ async function run() {
     for (const lang of SUPPORTED_LANGS) {
       const t = translations[lang];
       if (!t) {
-        console.warn(`⚠️  Thiếu bản dịch ${lang} cho ${categoryKey}`);
+        console.warn(`${CLI_SYMBOLS.warning}  Thiếu bản dịch ${lang} cho ${categoryKey}`);
         stats.skipped++;
         continue;
       }
@@ -342,32 +343,32 @@ async function run() {
   }
 
   if (ops.length === 0) {
-    console.log('⏭️  Không có operation nào để thực hiện');
+    console.log(`${CLI_SYMBOLS.skip}  Không có operation nào để thực hiện`);
     await mongoose.disconnect();
     return;
   }
 
   if (dryRun) {
-    console.log(`✅ Kiểm tra thành công: sẽ upsert ${ops.length} bản dịch cho ${categories.length} category.`);
+    console.log(`${CLI_SYMBOLS.success} Kiểm tra thành công: sẽ upsert ${ops.length} bản dịch cho ${categories.length} category.`);
     await mongoose.disconnect();
     return;
   }
 
-  console.log(`📝 Đang upsert ${ops.length} bản dịch...`);
+  console.log(`${CLI_SYMBOLS.edit} Đang upsert ${ops.length} bản dịch...`);
 
   try {
     const result = await CategoryCatalogTranslationCache.bulkWrite(ops);
     stats.upserted = result.upsertedCount + result.modifiedCount;
-    console.log(`✅ Đã upsert ${stats.upserted} bản dịch (${result.upsertedCount} mới, ${result.modifiedCount} cập nhật)\n`);
+    console.log(`${CLI_SYMBOLS.success} Đã upsert ${stats.upserted} bản dịch (${result.upsertedCount} mới, ${result.modifiedCount} cập nhật)\n`);
   } catch (err) {
-    console.error('❌ bulkWrite thất bại:', err.message);
+    console.error(`${CLI_SYMBOLS.error} bulkWrite thất bại:`, err.message);
     stats.failed = ops.length;
   }
 
   const categoryIds = categories.map(category => String(category._id));
   let verificationFailed = false;
 
-  console.log('🔍 Xác minh sau migration:');
+  console.log(`${CLI_SYMBOLS.search} Xác minh sau migration:`);
   for (const lang of SUPPORTED_LANGS) {
     const docs = await CategoryCatalogTranslationCache.find({
       entityId: { $in: categoryIds },
@@ -377,25 +378,25 @@ async function run() {
     const names = docs.map(doc => doc.name).join(', ');
     const ok = docs.length === CATEGORY_KEYS.length;
     verificationFailed ||= !ok;
-    console.log(`   ${ok ? '✅' : '❌'} [${lang}] ${docs.length}/${CATEGORY_KEYS.length} categories → ${names}`);
+    console.log(`   ${ok ? CLI_SYMBOLS.success : CLI_SYMBOLS.error} [${lang}] ${docs.length}/${CATEGORY_KEYS.length} categories ${CLI_SYMBOLS.arrowRight} ${names}`);
   }
 
-  console.log('\n📊 Tổng kết:');
+  console.log(`\n${CLI_SYMBOLS.chart} Tổng kết:`);
   console.log(`   Đã upsert: ${stats.upserted}`);
   console.log(`   Bỏ qua:    ${stats.skipped}`);
   console.log(`   Lỗi:       ${stats.failed}`);
 
   await mongoose.disconnect();
   if (stats.failed > 0 || verificationFailed) {
-    console.error('\n❌ Migration chưa hoàn tất.');
+    console.error(`\n${CLI_SYMBOLS.error} Migration chưa hoàn tất.`);
     process.exit(1);
   }
 
-  console.log('\n✅ Migration hoàn tất!');
+  console.log(`\n${CLI_SYMBOLS.success} Migration hoàn tất!`);
   process.exit(0);
 }
 
 run().catch(err => {
-  console.error('❌ Lỗi nghiêm trọng:', err.message);
+  console.error(`${CLI_SYMBOLS.error} Lỗi nghiêm trọng:`, err.message);
   process.exit(1);
 });
