@@ -204,8 +204,7 @@ Các điểm cần kiểm tra:
 
 ### Chưa hoàn thành / cần kiểm thử
 
-- Chưa chạy được build frontend vì môi trường hiện thiếu dependencies (`next: not found`).
-- Chưa kiểm thử trực tiếp golden path trên preview ở các kích thước desktop, tablet và mobile.
-- Cần chạy lại build/type check sau khi dependencies frontend được cài đặt.
+- Build frontend và TypeScript đã chạy thành công sau khi cài dependencies.
+- Chưa kiểm thử trực tiếp golden path trên preview ở các kích thước desktop, tablet và mobile vì môi trường chưa cấu hình tiến trình dev server.
 
 **Trạng thái:** Đã hoàn thành phần rà soát và điều chỉnh responsive trọng tâm; còn chờ xác minh build và kiểm thử trực tiếp trên preview.

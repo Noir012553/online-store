@@ -28,7 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Pagination } from './Pagination';
