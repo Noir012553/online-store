@@ -14,6 +14,7 @@
 
 require('dotenv').config();
 const axios = require('axios');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const API_BASE = process.env.API_URL || 'http://localhost:5000/api';
 
@@ -25,20 +26,20 @@ const tests = {
 
 async function test(name, fn) {
   try {
-    console.log(`\n📝 Test: ${name}`);
+    console.log(`\n${CLI_SYMBOLS.edit} Test: ${name}`);
     await fn();
     tests.passed++;
-    tests.results.push({ name, status: '✅ PASS' });
-    console.log(`   ✅ PASS`);
+    tests.results.push({ name, status: `${CLI_SYMBOLS.success} PASS` });
+    console.log(`   ${CLI_SYMBOLS.success} PASS`);
   } catch (error) {
     tests.failed++;
-    tests.results.push({ name, status: '❌ FAIL', error: error.message });
-    console.log(`   ❌ FAIL: ${error.message}`);
+    tests.results.push({ name, status: `${CLI_SYMBOLS.error} FAIL`, error: error.message });
+    console.log(`   ${CLI_SYMBOLS.error} FAIL: ${error.message}`);
   }
 }
 
 async function main() {
-  console.log('🚀 Language Synchronization Test Suite\n');
+  console.log(`${CLI_SYMBOLS.rocket} Language Synchronization Test Suite\n`);
 
   // Test 1: Get supported languages
   let supportedLangs = [];
@@ -64,7 +65,7 @@ async function main() {
     initialActiveLangs = res.data.data.map(l => l.code);
     console.log(`   Active: ${initialActiveLangs.join(', ')}`);
     if (initialActiveLangs.includes('pt')) {
-      console.log('   ⚠️ PT already active, skipping create test');
+      console.log(`   ${CLI_SYMBOLS.warning} PT already active, skipping create test`);
     }
   });
 
@@ -86,8 +87,8 @@ async function main() {
       await new Promise(r => setTimeout(r, 10000));
     });
   } else {
-    console.log('\n📝 Test: POST /api/languages {code: "pt"}');
-    console.log('   ⚠️ SKIPPED (PT already exists)');
+    console.log(`\n${CLI_SYMBOLS.edit} Test: POST /api/languages {code: "pt"}`);
+    console.log(`   ${CLI_SYMBOLS.warning} SKIPPED (PT already exists)`);
   }
 
   // Test 4: Check static translations for PT (common namespace)
@@ -163,7 +164,7 @@ async function main() {
 
   // Summary
   console.log('\n' + '='.repeat(60));
-  console.log('📊 Test Summary');
+  console.log(`${CLI_SYMBOLS.chart} Test Summary`);
   console.log('='.repeat(60));
   tests.results.forEach(r => {
     console.log(`${r.status}: ${r.name}`);
@@ -171,9 +172,9 @@ async function main() {
       console.log(`         Error: ${r.error}`);
     }
   });
-  console.log(`\n✅ Passed: ${tests.passed}`);
-  console.log(`❌ Failed: ${tests.failed}`);
-  console.log(`📈 Total: ${tests.passed + tests.failed}\n`);
+  console.log(`\n${CLI_SYMBOLS.success} Passed: ${tests.passed}`);
+  console.log(`${CLI_SYMBOLS.error} Failed: ${tests.failed}`);
+  console.log(`${CLI_SYMBOLS.chartUp} Total: ${tests.passed + tests.failed}\n`);
 
   process.exit(tests.failed > 0 ? 1 : 0);
 }

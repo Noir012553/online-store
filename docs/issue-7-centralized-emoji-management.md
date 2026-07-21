@@ -335,5 +335,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã sửa:** cập nhật import cấu hình ngôn ngữ của benchmark theo vị trí thực tế trong `src/config`, tránh tham chiếu sai `src/src/config` khi script được chạy.
 - **Đã sửa:** allowlist `check-cli-symbols.js` kiểm tra đúng `src/scripts/performance-benchmark.js` thay vì đường dẫn legacy không được script package sử dụng.
 - **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp benchmark/checker và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa output CLI của `src/test/check-db-state.js` và `src/test/check-brands.js` qua `CLI_SYMBOLS`, giữ nguyên nội dung chẩn đoán.
+- **Đã hoàn thành thêm:** chuẩn hóa output CLI của `src/test/test-translation-e2e.js` và `src/test/test-language-sync.js`, bao gồm trạng thái test, cảnh báo, summary và kết quả retry.
+- **Đã hoàn thành thêm:** đưa bốn test/diagnostic entry point vào allowlist `check-cli-symbols.js`; không thay đổi payload API hoặc dữ liệu test.
+- **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp cả bốn file và checker, cùng `git diff --check` đều thành công.
 
 **Bước tiếp theo:** tiếp tục xử lý các entry point package/runtime còn hard-code đã được liệt kê trong các mục trước; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.
