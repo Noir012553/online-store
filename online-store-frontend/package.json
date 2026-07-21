@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node src/test/offline-manual.js"
+    "test": "node src/test/offline-manual.js",
+    "check:emoji": "node scripts/check-ui-emoji.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
