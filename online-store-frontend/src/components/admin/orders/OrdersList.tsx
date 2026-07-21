@@ -10,13 +10,6 @@ import { useAuth } from "../../../lib/context/AuthContext";
 import { useTranslation, useLanguage } from "../../../lib/i18n";
 import { useCurrencyConversion } from "../../../hooks/useCurrencyConversion";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,

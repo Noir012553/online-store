@@ -7,13 +7,6 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { withAdminLayout } from "../../../components/admin/withAdminLayout";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,

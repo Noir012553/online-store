@@ -9,14 +9,7 @@ import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategoryName } from "../lib/data";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronDown, LogOut, Menu, User } from "lucide-react";
 import { Input } from "./ui/input";
 import { ShoppingCartIcon } from "./icons/SocialIcons";
@@ -37,6 +30,7 @@ function HeaderComponent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   // Handle navigation safely after router is ready
   const handleNavigate = (path: string) => {
@@ -136,38 +130,74 @@ function HeaderComponent() {
             <LanguageSwitcher />
 
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hover:text-red-600 p-1">
-                    <User className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white border-gray-200 z-[150]">
-                  <div className="px-4 py-3 bg-white border-b border-gray-200">
-                    <p className="font-semibold text-gray-900">{user.name || t('user_unnamed', 'common')}</p>
-                    <p className="text-sm text-gray-600">{user.email || ''}</p>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:text-red-600 p-1"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
+                >
+                  <User className="w-5 h-5" />
+                </Button>
+                {accountMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-[150] min-w-32 rounded-md border bg-white border-gray-200 p-1 shadow-md" role="menu">
+                    <div className="px-4 py-3 bg-white border-b border-gray-200">
+                      <p className="font-semibold text-gray-900">{user.name || t('user_unnamed', 'common')}</p>
+                      <p className="text-sm text-gray-600">{user.email || ''}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleNavigate("/profile");
+                        setAccountMenuOpen(false);
+                      }}
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      {t('profile', 'common')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleNavigate("/my-orders");
+                        setAccountMenuOpen(false);
+                      }}
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      {t('myOrders', 'common')}
+                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleNavigate("/admin");
+                          setAccountMenuOpen(false);
+                        }}
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                        role="menuitem"
+                      >
+                        {t('admin', 'common')}
+                      </button>
+                    )}
+                    <div className="-mx-1 my-1 h-px bg-border" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleLogoutClick();
+                        setAccountMenuOpen(false);
+                      }}
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      role="menuitem"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {t('logout', 'common')}
+                    </button>
                   </div>
-                  <DropdownMenuItem onClick={() => handleNavigate("/profile")} className="hover:bg-gray-100">
-                    {t('profile', 'common')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNavigate("/my-orders")} className="hover:bg-gray-100">
-                    {t('myOrders', 'common')}
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => handleNavigate("/admin")} className="hover:bg-gray-100">
-                      {t('admin', 'common')}
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogoutClick}
-                    className="text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    {t('logout', 'common')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                )}
+              </div>
             ) : (
               <Link href="/login">
                 <Button variant="ghost" size="icon" className="hover:text-red-600 p-1">

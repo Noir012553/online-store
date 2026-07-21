@@ -2,13 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import currencyService, { ExchangeRate, Currency } from '../../lib/services/currencyService';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from 'sonner';
