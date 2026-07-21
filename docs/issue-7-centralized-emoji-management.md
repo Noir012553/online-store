@@ -343,7 +343,8 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã rà soát:** các entry point được khai báo trong `online-store-backend/package.json` không còn ký hiệu Unicode hard-code trong output runtime; các ký hiệu còn lại thuộc comment hoặc script chưa được package expose.
 - **Đã sửa:** `online-store-frontend/src/components/ProductDescriptionFormatter.tsx` duyệt theo Unicode code point thay vì UTF-16 code unit, nên nhận diện đúng emoji surrogate pair như `📌` và `🔥` khi chèn ngắt dòng.
 - **Đã xác thực:** frontend `npm run check:emoji`, `npm run build` và `git diff --check` đều thành công.
-- **Đã xác định:** frontend `npm test` vẫn thất bại một kiểm tra có sẵn do không tìm thấy `../lib/i18n/types` từ `src/test/offline-manual.js`; lỗi này không liên quan formatter hoặc emoji.
+- **Đã khắc phục môi trường:** cài lại dependencies frontend không tạo lockfile mới; lỗi thiếu module `typescript` không còn tái diễn.
+- **Đã xác thực lại:** frontend `npm run check:emoji`, `npm test` (10/10 test) và `npm run build` đều thành công; backend `npm run check:emoji` cũng thành công.
 
 **Kết luận phạm vi:** không còn bước triển khai kỹ thuật bắt buộc trong issue này. Các script diagnostic chỉ đọc đã được rà soát; API response, email template, locale, report lưu file và script legacy còn lại đã được phân loại là ngoại lệ cần quy trình nội dung hoặc vận hành riêng, nên không thay đổi.
 
@@ -367,3 +368,5 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Trạng thái cuối của các phát hiện:** không còn phát hiện nào trong phạm vi runtime an toàn cần triển khai thêm cho issue 7. Các mục được giữ nguyên đã có lý do và phạm vi xử lý riêng, không bị coi là lỗi checker.
 - **Đã hoàn thành thêm:** tạo `online-store-frontend/src/test/cliSymbols.js` làm registry cho ký hiệu terminal của offline manual test, chuyển `offline-manual.js` sang dùng registry này và mở rộng `check-ui-emoji.js` để kiểm tra cả JavaScript trong `src/test`.
 - **Đã xác thực:** frontend `npm run check:emoji`, `npm test` (10/10 test) và `npm run build` đều thành công. Test đa ngôn ngữ đọc locale metadata từ nguồn TypeScript thay vì require trực tiếp bằng CommonJS, không tạo bản sao danh sách locale.
+- **Đã hoàn thành thêm:** chuẩn hóa ký hiệu CLI trong `src/services/translationSeederService.js` và `src/services/translationSeederHelper.js` qua `CLI_SYMBOLS`, bao gồm log retry, incremental, skip, lỗi dịch và hoàn tất namespace; mở rộng allowlist checker cho hai service này.
+- **Đã xác thực:** backend `npm run check:emoji`, kiểm tra cú pháp hai service và `git diff --check` đều thành công.

@@ -19,6 +19,7 @@ const TranslationQualityLog = require('../models/TranslationQualityLog');
 const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const crypto = require('crypto');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const DEFAULT_CONFIG = {
   BATCH_SIZE: 5,
@@ -70,7 +71,7 @@ class TranslationSeederHelper {
     } catch (error) {
       if (retries < this.config.MAX_RETRIES) {
         console.warn(
-          `  ⚠️ Translation retry ${retries + 1}/${this.config.MAX_RETRIES} for: "${text.substring(0, 30)}..." (${error.message})`
+          `  ${CLI_SYMBOLS.warning} Translation retry ${retries + 1}/${this.config.MAX_RETRIES} for: "${text.substring(0, 30)}..." (${error.message})`
         );
         await new Promise(resolve => setTimeout(resolve, this.config.RETRY_DELAY));
         return this.translateWithRetry(text, targetLang, retries + 1, sourceLang);
@@ -350,7 +351,7 @@ class TranslationSeederHelper {
       await LiveTranslationCache.insertMany(records, { ordered: false });
     } catch (error) {
       if (error.code !== 11000) {
-        console.warn(`  ⚠️ Failed to flush cache batch: ${error.message}`);
+        console.warn(`  ${CLI_SYMBOLS.warning} Failed to flush cache batch: ${error.message}`);
       }
       // 11000 = duplicate key, expected for some records
     }
@@ -417,7 +418,7 @@ class TranslationSeederHelper {
 
     // OPTIMIZATION: Bulk fetch all product translations in one query instead of N findById
     if (this.config.INCREMENTAL) {
-      console.log(`  🔄 INCREMENTAL MODE: Checking existing translations...`);
+      console.log(`  ${CLI_SYMBOLS.progress} INCREMENTAL MODE: Checking existing translations...`);
 
       const productIds = products.map(p => p._id);
       const translatedProducts = await Product.find(
@@ -440,7 +441,7 @@ class TranslationSeederHelper {
           }
         }
       }
-      console.log(`  ⏭️ Skipping ${stats.skipped} already-translated items`);
+      console.log(`  ${CLI_SYMBOLS.skip} Skipping ${stats.skipped} already-translated items`);
     } else {
       for (const product of products) {
         for (const targetLang of targetLanguages) {
@@ -464,7 +465,7 @@ class TranslationSeederHelper {
       } catch (error) {
         stats.failed += 3;
         console.error(
-          `  ❌ Failed to translate ${product.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
+          `  ${CLI_SYMBOLS.error} Failed to translate ${product.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
         );
       }
 
@@ -497,7 +498,7 @@ class TranslationSeederHelper {
 
       return Boolean(translation);
     } catch (error) {
-      console.warn(`  ⚠️ Failed to check category translation status: ${error.message}`);
+      console.warn(`  ${CLI_SYMBOLS.warning} Failed to check category translation status: ${error.message}`);
       return false;
     }
   }
@@ -523,7 +524,7 @@ class TranslationSeederHelper {
 
     // OPTIMIZATION: Bulk fetch all category translations in one query instead of N findById
     if (this.config.INCREMENTAL) {
-      console.log(`  🔄 INCREMENTAL MODE: Checking existing category translations...`);
+      console.log(`  ${CLI_SYMBOLS.progress} INCREMENTAL MODE: Checking existing category translations...`);
 
       const categoryIds = categories.map(category => String(category._id));
       const existingTranslations = await CategoryCatalogTranslationCache.find({
@@ -544,7 +545,7 @@ class TranslationSeederHelper {
           }
         }
       }
-      console.log(`  ⏭️ Skipping ${stats.skipped} already-translated categories`);
+      console.log(`  ${CLI_SYMBOLS.skip} Skipping ${stats.skipped} already-translated categories`);
     } else {
       for (const category of categories) {
         for (const targetLang of targetLangs) {
@@ -577,7 +578,7 @@ class TranslationSeederHelper {
       } catch (error) {
         stats.failed += 2;
         console.error(
-          `  ❌ Failed to translate category ${category.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
+          `  ${CLI_SYMBOLS.error} Failed to translate category ${category.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
         );
       }
 
@@ -625,7 +626,7 @@ class TranslationSeederHelper {
         } catch (error) {
           stats.failed += 2; // name + comment
           console.error(
-            `  ❌ Failed to translate review by ${review.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
+            `  ${CLI_SYMBOLS.error} Failed to translate review by ${review.name.substring(0, 30)}... to ${targetLang}: ${error.message}`
           );
         }
       }

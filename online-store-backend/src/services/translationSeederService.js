@@ -1,6 +1,7 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const fs = require('fs');
 const path = require('path');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 class TranslationSeederService {
   /**
@@ -209,7 +210,7 @@ class TranslationSeederService {
           const translatedKeys = {};
           const keyCount = Object.keys(record.translations || {}).length;
 
-          console.log(`[TranslationSeeder] Namespace '${record.namespace}' (${keyCount} keys) → ${targetLang}`);
+          console.log(`[TranslationSeeder] Namespace '${record.namespace}' (${keyCount} keys) ${CLI_SYMBOLS.arrowRight} ${targetLang}`);
 
           const keysToTranslate = Object.entries(record.translations || {});
 
@@ -266,7 +267,7 @@ class TranslationSeederService {
           );
 
           console.log(
-            `[TranslationSeeder] ✓ Namespace '${record.namespace}' hoàn tất`
+            `[TranslationSeeder] ${CLI_SYMBOLS.check} Namespace '${record.namespace}' hoàn tất`
           );
         } catch (err) {
           console.error(
