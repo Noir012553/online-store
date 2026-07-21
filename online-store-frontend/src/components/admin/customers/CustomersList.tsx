@@ -243,7 +243,7 @@ export function CustomersList() {
                 setCurrentPage(1);
                 setSearchQuery('');
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 !viewDeletedTab
                   ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -257,7 +257,7 @@ export function CustomersList() {
                 setDeletedCurrentPage(1);
                 setSearchQuery('');
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 viewDeletedTab
                   ? 'border-red-600 text-red-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -290,23 +290,23 @@ export function CustomersList() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-[560px]">
                 <thead className="bg-white">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('contact', 'common')}</th>
-                    <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_customer_address', 'admin')}</th>
-                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_join_date', 'admin')}</th>
-                    <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('contact', 'common')}</th>
+                    <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase md:table-cell">{t('admin_customer_address', 'admin')}</th>
+                    <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase lg:table-cell">{t('admin_join_date', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {paginatedCustomers.map((customer) => (
                     <tr key={customer._id}>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <p className="font-medium">{getCustomerName(customer)}</p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <div className="space-y-1">
                           {customer.email && (
                             <div className="flex items-center gap-2 text-sm">
@@ -326,13 +326,13 @@ export function CustomersList() {
                           )}
                         </div>
                       </td>
-                      <td className="hidden px-6 py-4 md:table-cell">
+                      <td className="hidden px-4 py-4 sm:px-6 md:table-cell">
                         <p className="max-w-xs text-sm">{customer.address || t('not_updated', 'common')}</p>
                       </td>
-                      <td className="hidden px-6 py-4 lg:table-cell">
+                      <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         {customer.createdAt ? formatDate(new Date(customer.createdAt), locale) : t('not_updated', 'common')}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-end gap-2">
                           {viewDeletedTab ? (
                             <>

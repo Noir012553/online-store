@@ -370,7 +370,7 @@ export function BannerManagementPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[860px] divide-y divide-gray-200">
+            <table className="min-w-[600px] divide-y divide-gray-200">
               <thead className="bg-white">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_image', 'admin-banners')}</th>
@@ -425,8 +425,8 @@ export function BannerManagementPage() {
                             onClick={() => askConfirm(banner, 'restore')}
                             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                           >
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            {t('action_restore', 'admin-banners')}
+                            <RotateCcw className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">{t('action_restore', 'admin-banners')}</span>
                           </Button>
                           <Button
                             type="button"
@@ -435,8 +435,8 @@ export function BannerManagementPage() {
                             onClick={() => askConfirm(banner, 'hardDelete')}
                             className="border-red-200 text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t('action_hard_delete', 'admin-banners')}
+                            <Trash2 className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">{t('action_hard_delete', 'admin-banners')}</span>
                           </Button>
                         </div>
                       ) : (
@@ -447,8 +447,8 @@ export function BannerManagementPage() {
                             size="sm"
                             onClick={() => router.push(`/admin/bannersAdmin/${banner._id}/edit`)}
                           >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            {t('action_edit', 'admin-banners')}
+                            <Pencil className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">{t('action_edit', 'admin-banners')}</span>
                           </Button>
                           <Button
                             type="button"
@@ -457,8 +457,8 @@ export function BannerManagementPage() {
                             onClick={() => router.push(`/admin/bannerTranslations/${banner._id}`)}
                             className="border-blue-200 text-blue-700 hover:bg-blue-50"
                           >
-                            <Globe className="mr-2 h-4 w-4" />
-                            {t('manage_translations', 'admin-banners')}
+                            <Globe className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">{t('manage_translations', 'admin-banners')}</span>
                           </Button>
                           <Button
                             type="button"
@@ -467,8 +467,8 @@ export function BannerManagementPage() {
                             onClick={() => askConfirm(banner, 'delete')}
                             className="border-red-200 text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t('action_delete', 'admin-banners')}
+                            <Trash2 className="h-4 w-4 lg:mr-2" />
+                            <span className="hidden lg:inline">{t('action_delete', 'admin-banners')}</span>
                           </Button>
                         </div>
                       )}

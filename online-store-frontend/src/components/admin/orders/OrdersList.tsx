@@ -329,7 +329,7 @@ export function OrdersList() {
                 setCurrentPage(1);
                 setSearchQuery("");
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 !viewDeletedTab
                   ? "border-red-600 text-red-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -343,7 +343,7 @@ export function OrdersList() {
                 setDeletedCurrentPage(1);
                 setSearchQuery("");
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 viewDeletedTab
                   ? "border-red-600 text-red-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -407,33 +407,33 @@ export function OrdersList() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px]">
+              <table className="w-full min-w-[560px]">
                 <thead className="bg-white">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_order_id', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
-                    <th className="hidden px-6 py-3 text-left text-xs uppercase sm:table-cell">{t('admin_order_date', 'admin')}</th>
-                    <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_total_price', 'admin')}</th>
-                    {!viewDeletedTab && <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_status', 'admin')}</th>}
-                    {!viewDeletedTab && <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_payment_method', 'admin')}</th>}
-                    <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_order_id', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_customer', 'admin')}</th>
+                    <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase sm:table-cell">{t('admin_order_date', 'admin')}</th>
+                    <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_total_price', 'admin')}</th>
+                    {!viewDeletedTab && <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase md:table-cell">{t('admin_status', 'admin')}</th>}
+                    {!viewDeletedTab && <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase lg:table-cell">{t('admin_payment_method', 'admin')}</th>}
+                    <th className="px-4 py-3 sm:px-6 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredOrders.map((order) => (
                     <tr key={order._id}>
-                      <td className="px-6 py-4 font-mono text-sm">{order._id.slice(-8).toUpperCase()}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6 font-mono text-sm">{order._id.slice(-8).toUpperCase()}</td>
+                      <td className="px-4 py-4 sm:px-6">
                         <div>
                           <p className="font-medium">{order.customer?.name || order.user?.username || t('not_updated')}</p>
                           <p className="text-sm text-gray-600">{order.customer?.email || order.user?.email || t('not_updated')}</p>
                         </div>
                       </td>
-                      <td className="hidden px-6 py-4 sm:table-cell">{formatDate(new Date(order.createdAt), locale)}</td>
-                      <td className="px-6 py-4 font-medium">{formatConvertedPrice(order.totalPrice, order.currencyCode, order.currencyCode)}</td>
-                      {!viewDeletedTab && <td className="hidden px-6 py-4 md:table-cell">{getStatusBadge(order)}</td>}
-                      {!viewDeletedTab && <td className="hidden px-6 py-4 lg:table-cell">{getPaymentMethodBadge(order.paymentMethod)}</td>}
-                      <td className="px-6 py-4">
+                      <td className="hidden px-4 py-4 sm:px-6 sm:table-cell">{formatDate(new Date(order.createdAt), locale)}</td>
+                      <td className="px-4 py-4 sm:px-6 font-medium">{formatConvertedPrice(order.totalPrice, order.currencyCode, order.currencyCode)}</td>
+                      {!viewDeletedTab && <td className="hidden px-4 py-4 sm:px-6 md:table-cell">{getStatusBadge(order)}</td>}
+                      {!viewDeletedTab && <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">{getPaymentMethodBadge(order.paymentMethod)}</td>}
+                      <td className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"

@@ -628,7 +628,7 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant={!viewDeletedTab ? 'default' : 'outline'}
               onClick={() => handleTabChange(false)}
@@ -959,7 +959,7 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-0">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               {t('cancel', 'admin')}
             </Button>

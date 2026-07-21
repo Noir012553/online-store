@@ -279,7 +279,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                 setCurrentPage(1);
                 setSearchQuery("");
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 !viewDeletedTab
                   ? "border-red-600 text-red-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -293,7 +293,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                 setDeletedCurrentPage(1);
                 setSearchQuery("");
               }}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              className={`px-4 py-3 sm:px-6 font-medium text-sm border-b-2 transition-colors ${
                 viewDeletedTab
                   ? "border-red-600 text-red-600"
                   : "border-transparent text-gray-600 hover:text-gray-900"
@@ -354,26 +354,26 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[560px]">
             <thead className="bg-white">
               <tr>
-                <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_product_name', 'admin')}</th>
-                <th className="hidden px-6 py-3 text-left text-xs uppercase sm:table-cell">{t('admin_brand', 'admin')}</th>
-                <th className="hidden px-6 py-3 text-left text-xs uppercase md:table-cell">{t('admin_category', 'admin')}</th>
-                <th className="px-6 py-3 text-left text-xs uppercase">{t('admin_price', 'admin')}</th>
+                <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_product_name', 'admin')}</th>
+                <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase sm:table-cell">{t('admin_brand', 'admin')}</th>
+                <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase md:table-cell">{t('admin_category', 'admin')}</th>
+                <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_price', 'admin')}</th>
                 {!viewDeletedTab && (
                   <>
-                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('admin_stock_status', 'admin')}</th>
-                    <th className="hidden px-6 py-3 text-left text-xs uppercase lg:table-cell">{t('rating', 'common')}</th>
+                    <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase lg:table-cell">{t('admin_stock_status', 'admin')}</th>
+                    <th className="hidden px-4 py-3 sm:px-6 text-left text-xs uppercase lg:table-cell">{t('rating', 'common')}</th>
                   </>
                 )}
-                <th className="px-6 py-3 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
+                <th className="px-4 py-3 sm:px-6 text-right text-xs uppercase">{t('admin_actions', 'admin')}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {displayedProducts.map((product) => (
                 <tr key={product._id}>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 sm:px-6">
                     <div className="flex items-center gap-3">
                       {product.image && (
                         <img
@@ -391,11 +391,11 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-6 py-4 sm:table-cell">{product.brand || t('not_updated', 'admin')}</td>
-                  <td className="hidden px-6 py-4 md:table-cell">
+                  <td className="hidden px-4 py-4 sm:px-6 sm:table-cell">{product.brand || t('not_updated', 'admin')}</td>
+                  <td className="hidden px-4 py-4 sm:px-6 md:table-cell">
                     {product.category ? getCategoryName(product.category) : (product.categoryName || product.category || t('not_updated', 'common'))}
                   </td>
-                  <td className="px-6 py-4 font-medium">
+                  <td className="px-4 py-4 sm:px-6 font-medium">
                     <div>
                       {formatConvertedPrice(product.price, product.baseCurrencyCode)}
                     </div>
@@ -410,7 +410,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                   </td>
                   {!viewDeletedTab && (
                     <>
-                      <td className="hidden px-6 py-4 lg:table-cell">
+                      <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         {product.countInStock === null || product.countInStock === undefined ? (
                           <Badge variant="secondary">{t('not_updated', 'common')}</Badge>
                         ) : (
@@ -419,7 +419,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                           </Badge>
                         )}
                       </td>
-                      <td className="hidden px-6 py-4 lg:table-cell">
+                      <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         <div className="flex items-center gap-1 whitespace-nowrap">
                           <span className="font-medium">{(product.rating || 0).toFixed(1)}</span>
                           <span>⭐</span>
@@ -430,7 +430,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       </td>
                     </>
                   )}
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-end gap-2">
                       {viewDeletedTab ? (
                         <>
