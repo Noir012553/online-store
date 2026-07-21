@@ -71,6 +71,7 @@ const checkedFiles = [
   'src/scripts/setup-production-indexes.js',
   'src/test/check-db-brands.js',
   'src/test/test-shadow-writes.js',
+  'src/test/test-blueprint-3phase.js',
 ];
 const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;

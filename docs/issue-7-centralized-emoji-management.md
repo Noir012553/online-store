@@ -328,5 +328,8 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành thêm:** chuẩn hóa toàn bộ ký hiệu output trong `src/test/test-shadow-writes.js` qua `CLI_SYMBOLS`, bao gồm kết nối, dọn dẹp, kết quả schema, hiệu năng, TTL và tổng kết.
 - **Đã hoàn thành thêm:** bổ sung `lightning` vào `src/utils/cliSymbols.js` và đưa test shadow writes vào allowlist kiểm tra tĩnh.
 - **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp test/registry/checker và `git diff --check` đều thành công.
+- **Đã hoàn thành thêm:** chuẩn hóa toàn bộ ký hiệu output của `src/test/test-blueprint-3phase.js` qua `CLI_SYMBOLS`, bao gồm nhãn phase, kết quả test, cảnh báo, summary và đường phân cách; output terminal được giữ nguyên.
+- **Đã hoàn thành thêm:** đưa `test:blueprint`, là entry point được khai báo trong `package.json`, vào allowlist `check-cli-symbols.js`.
+- **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp blueprint test/checker và `git diff --check` đều thành công.
 
 **Bước tiếp theo:** tiếp tục xử lý các entry point package/runtime còn hard-code đã được liệt kê trong các mục trước; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.
