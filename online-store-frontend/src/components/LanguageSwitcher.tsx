@@ -1,4 +1,3 @@
-import { Globe, Loader2 } from 'lucide-react';
 import { useLanguage, type Locale } from '../lib/i18n';
 import { useTranslation } from '../lib/i18n';
 import { useState } from 'react';
