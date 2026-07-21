@@ -13,6 +13,7 @@ const { GHNAdapter } = require('../adapters/carrierAdapters');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { getMessage } = require('../i18n/messages');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 /**
  * Tạo vận đơn cho một đơn hàng
@@ -183,7 +184,7 @@ const createShipment = asyncHandler(async (req, res) => {
     // Lấy service ID đầu tiên từ hardcoded fallback list (từ line 109-112)
     selectedServiceId = availableServices[0]?.service_id;
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️ Using fallback service from empty availableServices: ${selectedServiceId}`);
+      console.warn(`${CLI_SYMBOLS.warning} Using fallback service from empty availableServices: ${selectedServiceId}`);
     }
   }
 

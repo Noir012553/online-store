@@ -17,6 +17,7 @@
  */
 
 const BasePaymentGateway = require('./BasePaymentGateway');
+const { CLI_SYMBOLS } = require('../../utils/cliSymbols');
 
 class VnpayAdapter extends BasePaymentGateway {
   constructor(config) {
@@ -259,7 +260,7 @@ class VnpayAdapter extends BasePaymentGateway {
       // Thêm signature vào cuối (KHÔNG encode, giữ nguyên hex string)
       const redirectUrl = `${this.config.endpoint}?${queryParams}&vnp_SecureHash=${vnp_SecureHash}`;
 
-      console.log(`✅ VNPAY payment URL created - Order: ${sortedData.vnp_TxnRef}`);
+      console.log(`${CLI_SYMBOLS.success} VNPAY payment URL created - Order: ${sortedData.vnp_TxnRef}`);
       console.log(`   Endpoint: ${this.config.endpoint}`);
       console.log(`   TmnCode: ${sortedData.vnp_TmnCode}`);
       console.log(`   Amount: ${sortedData.vnp_Amount} (${amount} VND)`);
@@ -348,7 +349,7 @@ class VnpayAdapter extends BasePaymentGateway {
       );
 
       if (!isValidSignature) {
-        console.error(`❌ VNPAY signature verification failed`);
+        console.error(`${CLI_SYMBOLS.error} VNPAY signature verification failed`);
         return {
           valid: false,
           error: 'Invalid signature - Webhook verification failed. Check secret key and parameter sorting.',

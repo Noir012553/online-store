@@ -432,7 +432,7 @@ const syncLocationData = asyncHandler(async (req, res) => {
       }
     }
     if (process.env.NODE_ENV === 'development') {
-      console.timeEnd('  ⏱️ Bulk fetch & insert wards');
+      console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk fetch & insert wards`);
       console.log(`\n${CLI_SYMBOLS.chart} LOCATION SYNC COMPLETE:\n   ${CLI_SYMBOLS.bullet} Provinces: ${provinceCount}\n   ${CLI_SYMBOLS.bullet} Districts: ${totalDistricts}\n   ${CLI_SYMBOLS.bullet} Wards: ${totalWards}`);
     }
 
