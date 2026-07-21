@@ -5,6 +5,8 @@
  * Tests IndexedDB service for offline translation caching
  */
 
+const cliSymbols = require('./cliSymbols');
+
 const colors = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -14,10 +16,10 @@ const colors = {
 };
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  success: (msg) => console.log(`${colors.green}${cliSymbols.success}${colors.reset} ${msg}`),
+  error: (msg) => console.log(`${colors.red}${cliSymbols.error}${colors.reset} ${msg}`),
+  info: (msg) => console.log(`${colors.blue}${cliSymbols.info}${colors.reset} ${msg}`),
+  warn: (msg) => console.log(`${colors.yellow}${cliSymbols.warning}${colors.reset} ${msg}`),
 };
 
 class OfflineTestSuite {
@@ -114,8 +116,13 @@ class OfflineTestSuite {
 
   async test6_MultiLanguageSupport() {
     // Verify support for multiple languages in cache
-    const { SUPPORTED_LOCALES } = require('../lib/i18n/types');
-    const languages = SUPPORTED_LOCALES;
+    const fs = require('fs');
+    const path = require('path');
+    const localeMetadata = fs.readFileSync(
+      path.join(__dirname, '../lib/i18n/localeMetadata.ts'),
+      'utf8'
+    );
+    const languages = [...localeMetadata.matchAll(/^  ([a-z]{2}): \{/gm)].map(([, locale]) => locale);
     const namespaces = ['common', 'checkout', 'footer'];
 
     log.info(`  └─ Cache supports ${languages.length} languages: ${languages.join(', ')}`);
