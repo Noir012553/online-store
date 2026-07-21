@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { useTranslation } from '../../lib/i18n';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage, useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
