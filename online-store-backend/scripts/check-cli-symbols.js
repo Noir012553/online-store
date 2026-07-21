@@ -21,6 +21,7 @@ const checkedFiles = [
   'scripts/clear-and-migrate.js',
   'scripts/setup-production-indexes.js',
   'scripts/setup-i18n-indexes.js',
+  'scripts/health-check-i18n.js',
   'src/seeds/addressSeeder.js',
   'src/seeds/bannerSlotLabelsSeeder.js',
   'src/seeds/testimonialLabelsSeeder.js',
@@ -30,8 +31,12 @@ const checkedFiles = [
   'src/seeds/specTranslationSeeder.js',
   'src/services/cloudflareAiService.js',
   'src/services/distributedLockService.js',
+  'src/scripts/check-sync-status.js',
+  'src/scripts/verify-language-inventory.js',
+  'src/scripts/verify-translations-loaded.js',
+  'src/scripts/translateHistory.js',
 ];
-const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
+const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 
 const findings = checkedFiles
   .filter((filePath) => fs.existsSync(path.join(rootDir, filePath)))
