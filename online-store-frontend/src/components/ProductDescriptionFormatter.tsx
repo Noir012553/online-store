@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { UI_EMOJI, DESCRIPTION_EMOJI } from '@/lib/uiEmoji';
 
 interface Props {
   text?: string;
