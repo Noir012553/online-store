@@ -9,6 +9,7 @@ import { getAuthToken } from '../../lib/api';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 
 interface StaticTranslation {
   _id: string;
@@ -804,7 +805,7 @@ const TranslationsAdminTier1Content = () => {
                   className="tier1-btn"
                   style={{ background: pageIndex === totalPages - 1 ? '#ddd' : '#007bff', color: 'white' }}
                 >
-                  {t('tier1_next_page', 'admin')} →
+                  {t('tier1_next_page', 'admin')} {UI_EMOJI.arrowRight}
                 </button>
               </div>
             )}

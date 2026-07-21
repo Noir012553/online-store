@@ -5,12 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-
-const SEED_LOG_EMOJI = {
-  warning: '⚠️',
-  error: '❌',
-  report: '📄',
-};
+const { CLI_SYMBOLS } = require('./cliSymbols');
 
 class SeedLogger {
   constructor() {
@@ -41,13 +36,13 @@ class SeedLogger {
 
     console.warn = (...args) => {
       const message = args.join(' ');
-      this.addLog(`${SEED_LOG_EMOJI.warning} ${message}`);
+      this.addLog(`${CLI_SYMBOLS.warning} ${message}`);
       this.originalConsole.warn(...args);
     };
 
     console.error = (...args) => {
       const message = args.join(' ');
-      this.addLog(`${SEED_LOG_EMOJI.error} ${message}`);
+      this.addLog(`${CLI_SYMBOLS.error} ${message}`);
       this.originalConsole.error(...args);
     };
   }
@@ -64,13 +59,13 @@ class SeedLogger {
   }
 
   warn(message) {
-    this.addLog(`${SEED_LOG_EMOJI.warning} ${message}`);
-    this.originalConsole.warn(`${SEED_LOG_EMOJI.warning} ${message}`);
+    this.addLog(`${CLI_SYMBOLS.warning} ${message}`);
+    this.originalConsole.warn(`${CLI_SYMBOLS.warning} ${message}`);
   }
 
   error(message) {
-    this.addLog(`${SEED_LOG_EMOJI.error} ${message}`);
-    this.originalConsole.error(`${SEED_LOG_EMOJI.error} ${message}`);
+    this.addLog(`${CLI_SYMBOLS.error} ${message}`);
+    this.originalConsole.error(`${CLI_SYMBOLS.error} ${message}`);
   }
 
   generateReports() {
@@ -81,13 +76,13 @@ class SeedLogger {
     const mdContent = this.generateMarkdown();
     const mdPath = path.join(this.reportDir, `${baseName}.md`);
     fs.writeFileSync(mdPath, mdContent);
-    this.originalConsole.log(`\n${SEED_LOG_EMOJI.report} Markdown report saved: ${mdPath}`);
+    this.originalConsole.log(`\n${CLI_SYMBOLS.report} Markdown report saved: ${mdPath}`);
 
     // Generate Text report
     const txtContent = this.generateText();
     const txtPath = path.join(this.reportDir, `${baseName}.txt`);
     fs.writeFileSync(txtPath, txtContent);
-    this.originalConsole.log(`${SEED_LOG_EMOJI.report} Text report saved: ${txtPath}`);
+    this.originalConsole.log(`${CLI_SYMBOLS.report} Text report saved: ${txtPath}`);
 
     return { mdPath, txtPath };
   }

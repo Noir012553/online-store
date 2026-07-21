@@ -3,6 +3,7 @@ const path = require('path');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const config = require('../config/translationValidation');
+const { CLI_SYMBOLS } = require('./cliSymbols');
 
 class TranslationReporter {
   constructor() {
@@ -192,42 +193,42 @@ class TranslationReporter {
   }
 
   printSeedReport(report) {
-    console.log('\n✅ SEED TRANSLATION REPORT');
+    console.log(`\n${CLI_SYMBOLS.success} SEED TRANSLATION REPORT`);
     console.log('═'.repeat(55));
-    console.log('\n📊 OVERALL STATISTICS:');
+    console.log(`\n${CLI_SYMBOLS.chart} OVERALL STATISTICS:`);
     console.log(`   Total translations: ${report.statistics.totalTranslations}`);
-    console.log(`   ✅ Approved: ${report.statistics.approved} (${((report.statistics.approved / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
-    console.log(`   ⚠️ Pending: ${report.statistics.pending} (${((report.statistics.pending / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
-    console.log(`   ❌ Needs retranslate: ${report.statistics.needsRetranslate} (${((report.statistics.needsRetranslate / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
+    console.log(`   ${CLI_SYMBOLS.success} Approved: ${report.statistics.approved} (${((report.statistics.approved / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
+    console.log(`   ${CLI_SYMBOLS.warning} Pending: ${report.statistics.pending} (${((report.statistics.pending / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
+    console.log(`   ${CLI_SYMBOLS.error} Needs retranslate: ${report.statistics.needsRetranslate} (${((report.statistics.needsRetranslate / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
     console.log(`   Rejected: ${report.statistics.rejected}`);
 
     if (Object.keys(report.issuesBreakdown).length > 0) {
-      console.log('\n❌ ISSUES BREAKDOWN:');
+      console.log(`\n${CLI_SYMBOLS.error} ISSUES BREAKDOWN:`);
       Object.entries(report.issuesBreakdown).forEach(([error, stat]) => {
         console.log(`   • ${error}: ${stat.count} (${stat.percentage})`);
       });
     }
 
-    console.log('\n📝 NEXT STEPS:');
+    console.log(`\n${CLI_SYMBOLS.list} NEXT STEPS:`);
     report.recommendations.forEach(rec => console.log(`   • ${rec}`));
 
     if (config.SAVE_REPORTS) {
-      console.log(`\n📄 Full report saved to: ./translation-reports`);
+      console.log(`\n${CLI_SYMBOLS.report} Full report saved to: ./translation-reports`);
     }
     console.log('\n');
   }
 
   printRetranslateReport(report) {
-    console.log('\n🔄 RETRANSLATION REPORT');
+    console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION REPORT`);
     console.log('═'.repeat(55));
-    console.log(`\n📋 INPUT:`);
+    console.log(`\n${CLI_SYMBOLS.list} INPUT:`);
     console.log(`   Total to retranslate: ${report.input.totalToRetranslate}`);
-    console.log(`\n📊 RESULTS:`);
-    console.log(`   ✅ Fixed successfully: ${report.results.fixedSuccessfully}`);
-    console.log(`   ❌ Still has issues: ${report.results.stillHasIssues}`);
+    console.log(`\n${CLI_SYMBOLS.chart} RESULTS:`);
+    console.log(`   ${CLI_SYMBOLS.success} Fixed successfully: ${report.results.fixedSuccessfully}`);
+    console.log(`   ${CLI_SYMBOLS.error} Still has issues: ${report.results.stillHasIssues}`);
 
     if (report.stillNeedsAttention.length > 0) {
-      console.log('\n⚠️ STILL NEEDS ATTENTION:');
+      console.log(`\n${CLI_SYMBOLS.warning} STILL NEEDS ATTENTION:`);
       report.stillNeedsAttention.slice(0, 5).forEach((item, idx) => {
         console.log(`   [${idx + 1}] "${item.original}"`);
         console.log(`       Current: "${item.current}"`);
