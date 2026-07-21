@@ -283,3 +283,10 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Thấp — `online-store-backend/src/services/translationSeederService.js:268-270` và `online-store-backend/src/seeds/translationSeeder.js:118-120`:** hai entry point translation seed còn dùng lần lượt `✓` và `❌` trong console/error output. Cả hai không có trong `checkedFiles`, cho thấy enforcement hiện chỉ bao phủ một phần các workflow seed.
 
 **Kết luận rà soát:** `check-cli-symbols.js` hiện chỉ quét danh sách allowlist tĩnh và chỉ dò ký hiệu trên cùng dòng với `console.log`, `console.warn`, `console.error`, `console.time` hoặc `console.timeEnd` (`online-store-backend/scripts/check-cli-symbols.js:5-75`). Vì vậy kết quả pass không thể được diễn giải là không còn ký hiệu Unicode hard-code trên toàn bộ runtime backend. Trước khi mở rộng checker, cần phân loại service payment, shipping và translation job để tránh áp dụng `CLI_SYMBOLS` máy móc lên log có yêu cầu vận hành hay bảo mật riêng.
+
+### Phát hiện rà soát bổ sung — controller backend
+
+- **Thấp — `online-store-backend/src/controllers/shippingProviderController.js:430-436`:** flow đồng bộ địa điểm đã dùng `CLI_SYMBOLS` cho các log khác nhưng vẫn hard-code `⏱️` trong `console.timeEnd` khi chạy môi trường development. Controller không nằm trong `checkedFiles`, nên checker không phát hiện điểm không nhất quán này. Cần quyết định có đưa nhãn timer vào registry hay ghi nhận đây là ký hiệu debug chỉ dành cho development.
+- **Thấp — `online-store-backend/src/controllers/shipmentController.js:181-186`:** nhánh fallback khi danh sách dịch vụ GHN rỗng ghi trực tiếp `⚠️` trong `console.warn`; log chỉ chạy ở development và không đi vào response API. Controller ngoài phạm vi enforcement hiện tại, vì vậy cần phân loại cùng nhóm log vận hành/debug shipping trước khi chuẩn hóa.
+
+**Cập nhật bước tiếp theo:** rà soát các controller và adapter đã dùng một phần `CLI_SYMBOLS` để tìm ký hiệu còn sót trong timer, wrapper logger hoặc nhánh development; không coi các ký hiệu debug này là nội dung API nếu chưa kiểm tra đường đi của response.
