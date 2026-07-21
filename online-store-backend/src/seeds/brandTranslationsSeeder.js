@@ -3,13 +3,14 @@ const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 const { getActiveLangCodes } = require('./src/config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const seedBrandTranslations = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     const StaticTranslation = require('./src/models/StaticTranslation');
 
-    console.log('\n📝 SEEDING BRAND TRANSLATIONS...\n');
+    console.log(`\n${CLI_SYMBOLS.edit} SEEDING BRAND TRANSLATIONS...\n`);
 
     // All supported languages from config
     const languages = getActiveLangCodes();
@@ -19,7 +20,7 @@ const seedBrandTranslations = async () => {
       const productsPath = path.join(__dirname, `src/locales/${lang}/products.json`);
 
       if (!fs.existsSync(productsPath)) {
-        console.warn(`⚠️  File not found: ${productsPath}`);
+        console.warn(`${CLI_SYMBOLS.warning}  File not found: ${productsPath}`);
         continue;
       }
 
@@ -29,7 +30,7 @@ const seedBrandTranslations = async () => {
       const brandKeys = Object.keys(products).filter(key => key === 'brand_unknown');
 
       if (brandKeys.length === 0) {
-        console.warn(`⚠️  No brand_unknown found in ${lang}`);
+        console.warn(`${CLI_SYMBOLS.warning}  No brand_unknown found in ${lang}`);
         continue;
       }
 
@@ -44,26 +45,26 @@ const seedBrandTranslations = async () => {
       if (existing) {
         existing.translations = { ...existing.translations, ...translations };
         await existing.save();
-        console.log(`✅ Updated ${lang.toUpperCase()} translations`);
+        console.log(`${CLI_SYMBOLS.success} Updated ${lang.toUpperCase()} translations`);
       } else {
         await StaticTranslation.create({
           code: lang,
           namespace: 'products',
           translations
         });
-        console.log(`✅ Created ${lang.toUpperCase()} translations`);
+        console.log(`${CLI_SYMBOLS.success} Created ${lang.toUpperCase()} translations`);
       }
 
       totalUpserted += brandKeys.length;
     }
 
-    console.log(`\n✨ SEEDING COMPLETE:`);
-    console.log(`  • Total translations upserted: ${totalUpserted}`);
-    console.log(`  • Languages processed: ${languages.length}\n`);
+    console.log(`\n${CLI_SYMBOLS.sparkles} SEEDING COMPLETE:`);
+    console.log(`  ${CLI_SYMBOLS.bullet} Total translations upserted: ${totalUpserted}`);
+    console.log(`  ${CLI_SYMBOLS.bullet} Languages processed: ${languages.length}\n`);
 
     await mongoose.connection.close();
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
     process.exit(1);
   }
 };

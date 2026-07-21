@@ -4,6 +4,7 @@ const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 class RetranslateSeeder {
   constructor() {
@@ -57,9 +58,9 @@ class RetranslateSeeder {
     this.stats.totalToRetranslate = toRetranslate.length;
 
     if (verbose) {
-      console.log(`\n🔄 RETRANSLATION PROCESS`);
-      console.log('═'.repeat(55));
-      console.log(`\n🔍 Found ${toRetranslate.length} translations to retranslate`);
+      console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION PROCESS`);
+      console.log(CLI_SYMBOLS.divider.repeat(55));
+      console.log(`\n${CLI_SYMBOLS.search} Found ${toRetranslate.length} translations to retranslate`);
     }
 
     const results = [];
@@ -68,7 +69,7 @@ class RetranslateSeeder {
 
       if (verbose) {
         const progress = Math.round((i / toRetranslate.length) * 100);
-        process.stdout.write(`\r📚 Processing: [${progress}%] ${i + 1}/${toRetranslate.length}`);
+        process.stdout.write(`\r${CLI_SYMBOLS.books} Processing: [${progress}%] ${i + 1}/${toRetranslate.length}`);
       }
 
       try {
@@ -209,7 +210,7 @@ class RetranslateSeeder {
           validationErrors: newValidationErrors,
         });
       } catch (error) {
-        console.error(`\n❌ Retranslation failed for "${translation.originalText}": ${error.message}`);
+        console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${translation.originalText}": ${error.message}`);
         results.push({
           status: 'error',
           originalId: translation._id,

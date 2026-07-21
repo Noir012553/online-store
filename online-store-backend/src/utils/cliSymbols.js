@@ -25,6 +25,8 @@ const CLI_SYMBOLS = {
   products: '🛍️',
   target: '🎯',
   cleanup: '🧹',
+  trash: '🗑️',
+  download: '📥',
   chart: '📊',
   languages: '🗣️',
   duration: '⏱️',

@@ -7,6 +7,7 @@
 const mongoose = require('mongoose');
 const ExchangeRateHistory = require('../models/ExchangeRateHistory');
 const SeedStatus = require('../models/SeedStatus');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const DEMO_HISTORY = [
   // VND <-> USD history (10 entries, 3 days back)
@@ -235,9 +236,9 @@ async function seedExchangeRateHistory() {
       { upsert: true }
     );
 
-    console.log('[ExchangeRateHistorySeeder] ✅ Hoàn thành');
+    console.log(`[ExchangeRateHistorySeeder] ${CLI_SYMBOLS.success} Hoàn thành`);
   } catch (error) {
-    console.error('[ExchangeRateHistorySeeder] ❌ Lỗi:', error);
+    console.error(`[ExchangeRateHistorySeeder] ${CLI_SYMBOLS.error} Lỗi:`, error);
     throw error;
   }
 }
