@@ -372,29 +372,19 @@ export function OrdersList() {
             </div>
             {!viewDeletedTab && (
               <>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder={t('admin_status', 'admin')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('view_all', 'common')}</SelectItem>
-                    <SelectItem value="pending">{t('order_status_pending', 'admin')}</SelectItem>
-                    <SelectItem value="paid">{t('order_status_paid', 'admin')}</SelectItem>
-                    <SelectItem value="delivered">{t('order_status_delivered', 'admin')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder={t('admin_payment_method', 'admin')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('view_all', 'common')}</SelectItem>
-                    <SelectItem value="cod">{t('payment_method_cod', 'admin')}</SelectItem>
-                    <SelectItem value="vnpay">{t('payment_method_vnpay', 'admin')}</SelectItem>
-                    <SelectItem value="card">{t('payment_method_card', 'admin')}</SelectItem>
-                    <SelectItem value="bank_transfer">{t('payment_method_bank_transfer', 'admin')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                  <option value="all">{t('view_all', 'common')}</option>
+                  <option value="pending">{t('order_status_pending', 'admin')}</option>
+                  <option value="paid">{t('order_status_paid', 'admin')}</option>
+                  <option value="delivered">{t('order_status_delivered', 'admin')}</option>
+                </select>
+                <select value={filterPaymentMethod} onChange={(event) => setFilterPaymentMethod(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                  <option value="all">{t('view_all', 'common')}</option>
+                  <option value="cod">{t('payment_method_cod', 'admin')}</option>
+                  <option value="vnpay">{t('payment_method_vnpay', 'admin')}</option>
+                  <option value="card">{t('payment_method_card', 'admin')}</option>
+                  <option value="bank_transfer">{t('payment_method_bank_transfer', 'admin')}</option>
+                </select>
               </>
             )}
           </div>

@@ -633,18 +633,13 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           <p className="text-sm text-gray-600">
             {isLoading ? t('filter_loading_wait', 'products') : `${sortedProducts.length} ${t('filter_items_count', 'products')}`}
           </p>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder={t('filter_sort_by', 'products')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="featured">{t('badge_featured', 'products')}</SelectItem>
-              <SelectItem value="name">{t('filter_popular', 'products')}</SelectItem>
-              <SelectItem value="price-asc">{t('sort_price_low_to_high', 'products')}</SelectItem>
-              <SelectItem value="price-desc">{t('sort_price_high_to_low', 'products')}</SelectItem>
-              <SelectItem value="rating">{t('filter_stat_rating', 'products')}</SelectItem>
-            </SelectContent>
-          </Select>
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 w-40">
+            <option value="featured">{t('badge_featured', 'products')}</option>
+            <option value="name">{t('filter_popular', 'products')}</option>
+            <option value="price-asc">{t('sort_price_low_to_high', 'products')}</option>
+            <option value="price-desc">{t('sort_price_high_to_low', 'products')}</option>
+            <option value="rating">{t('filter_stat_rating', 'products')}</option>
+          </select>
         </div>
 
         {/* Active filters badges */}

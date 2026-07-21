@@ -264,20 +264,15 @@ function UsersAdminContent() {
         </div>
 
         {!viewDeletedTab && (
-          <Select value={filterRole} onValueChange={(value) => {
-            setFilterRole(value);
+          <select value={filterRole} onChange={(event) => {
+            setFilterRole(event.target.value);
             setCurrentPage(1);
-          }}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('filter_by_role')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('all_roles')}</SelectItem>
-              <SelectItem value="user">{t('role_user')}</SelectItem>
-              <SelectItem value="admin">{t('role_admin')}</SelectItem>
-              <SelectItem value="super-admin">{t('role_super_admin')}</SelectItem>
-            </SelectContent>
-          </Select>
+          }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+            <option value="all">{t('all_roles')}</option>
+            <option value="user">{t('role_user')}</option>
+            <option value="admin">{t('role_admin')}</option>
+            <option value="super-admin">{t('role_super_admin')}</option>
+          </select>
         )}
       </div>
 

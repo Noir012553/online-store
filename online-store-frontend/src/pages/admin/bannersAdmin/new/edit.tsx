@@ -353,26 +353,13 @@ function BannerCreatePageContent() {
             <div className="rounded-xl border border-gray-200 bg-white p-4">
               <div className="space-y-2">
                 <Label>{t('banner_form_position_required', 'admin-banners')}</Label>
-                <Select
-                  value={banner.slot}
-                  onValueChange={(value) =>
-                    setBanner({
-                      ...banner,
-                      slot: value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {slotOptions.map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value}>
-                        {slot.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select value={banner.slot} onChange={(event) => setBanner({ ...banner, slot: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                  {slotOptions.map((slot) => (
+                    <option key={slot.value} value={slot.value}>
+                      {slot.label}
+                    </option>
+                  ))}
+                </select>
                 <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
                   <div className="font-medium">{t('banner_form_quick_tips', 'admin-banners')}</div>
                   <div>{selectedSlotGuidance?.size}</div>

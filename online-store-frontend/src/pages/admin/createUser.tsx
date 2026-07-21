@@ -228,16 +228,11 @@ function CreateUserContent() {
             <Label htmlFor="role" className="text-gray-700 font-medium">
               {t('role_label')} <span className="text-red-600">*</span>
             </Label>
-            <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value as any })}>
-              <SelectTrigger className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user">{t('user_role')}</SelectItem>
-                <SelectItem value="admin">{t('admin_role')}</SelectItem>
-                <SelectItem value="super-admin">{t('super_admin_role')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <select value={formData.role} onChange={(event) => setFormData({ ...formData, role: event.target.value as FormData['role'] })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 mt-2">
+              <option value="user">{t('user_role')}</option>
+              <option value="admin">{t('admin_role')}</option>
+              <option value="super-admin">{t('super_admin_role')}</option>
+            </select>
             {formData.role !== 'user' && (
               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-3">
                 <p className="text-sm text-blue-800">

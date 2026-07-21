@@ -363,24 +363,17 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               </div>
 
               {categoryChoice === "existing" && (
-                <Select
-                  value={product.category?._id || ""}
-                  onValueChange={(selectedId) => {
-                    const selectedCategory = categories.find((cat) => cat._id === selectedId);
-                    setProduct({ ...product, category: selectedCategory });
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t('select_category_placeholder', 'admin')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {getCategoryName(category)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select value={product.category?._id || ""} onChange={(event) => {
+                  const selectedCategory = categories.find((cat) => cat._id === event.target.value);
+                  setProduct({ ...product, category: selectedCategory });
+                }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                  <option value="" disabled>{t('select_category_placeholder', 'admin')}</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {getCategoryName(category)}
+                    </option>
+                  ))}
+                </select>
               )}
 
               {categoryChoice === "new" && (
@@ -455,21 +448,14 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               <Label htmlFor="product-base-currency" className="text-sm font-medium">
                 Currency gốc <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={product.baseCurrencyCode || undefined}
-                onValueChange={(baseCurrencyCode) => setProduct({ ...product, baseCurrencyCode })}
-              >
-                <SelectTrigger id="product-base-currency" className="w-full">
-                  <SelectValue placeholder="Chọn currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeCurrencies.map((currency) => (
-                    <SelectItem key={currency.code} value={currency.code}>
-                      {currency.code} ({currency.symbol})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select id="product-base-currency" value={product.baseCurrencyCode || ""} onChange={(event) => setProduct({ ...product, baseCurrencyCode: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="" disabled>Chọn currency</option>
+                {activeCurrencies.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} ({currency.symbol})
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-original-price" className="text-sm font-medium">
