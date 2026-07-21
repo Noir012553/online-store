@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { useTranslation } from '../../lib/i18n';
-import { useLanguage } from '../../lib/i18n';
+import { useLanguage, useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -28,6 +27,7 @@ import {
   onProductUpdated,
 } from '../../lib/socket';
 import { formatCurrencyByCode, formatDate } from '../../lib/utils';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 import { useCurrencyConversion } from '../../hooks/useCurrencyConversion';
 import { getCategoryName, getProductCategoryName, getTranslatedValue, getProductName } from '../../lib/data';
 import { useProductTranslation } from '../../hooks/useProductTranslation';
@@ -859,7 +859,7 @@ function StatisticsContent() {
                     <p className="text-sm text-gray-500"><StatisticsCategoryName product={product} /></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-amber-600">{Number(product.rating || 0).toFixed(1)} ★</p>
+                    <p className="text-sm font-semibold text-amber-600">{Number(product.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}</p>
                     <p className="text-xs text-gray-500">{product.numReviews || 0} {t('admin_statistics_reviews')}</p>
                   </div>
                 </button>
@@ -1653,7 +1653,7 @@ function StatisticsContent() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_price_label')}</div><div className="mt-1 font-semibold text-gray-900">{formatCurrency(selectedDetail.item.price, locale)}</div></div>
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_stock_label')}</div><div className="mt-1 font-semibold text-gray-900">{selectedDetail.item.countInStock ?? 0}</div></div>
-                    <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_rating_label')}</div><div className="mt-1 font-semibold text-gray-900">{Number(selectedDetail.item.rating || 0).toFixed(1)} ★</div></div>
+                    <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_rating_label')}</div><div className="mt-1 font-semibold text-gray-900">{Number(selectedDetail.item.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}</div></div>
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_reviews_label')}</div><div className="mt-1 font-semibold text-gray-900">{selectedDetail.item.numReviews || 0}</div></div>
                     <div className="rounded-xl border border-gray-100 p-4 sm:col-span-2"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_category_label')}</div><div className="mt-1 font-semibold text-gray-900"><StatisticsCategoryName product={selectedDetail.item} /> {!selectedDetail.item.categoryId && !selectedDetail.item.category?._id && t('not_available')}</div></div>
                     {selectedDetail.item.image && (
