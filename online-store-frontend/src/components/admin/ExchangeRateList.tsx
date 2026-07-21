@@ -75,7 +75,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold">{t('admin_exchange_rate_list', 'admin')}</h3>
       </div>
 
@@ -83,11 +83,11 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
         placeholder={t('admin_search_exchange_placeholder', 'admin')}
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
-        className="max-w-md"
+        className="w-full max-w-md"
       />
 
       <div className="overflow-x-auto border rounded-lg">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-gray-100 border-b">
             <tr>
               <th className="px-4 py-3 text-left">{t('admin_exchange_from', 'admin')}</th>

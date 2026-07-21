@@ -138,8 +138,8 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
   }));
 
   return (
-    <div className="bg-white rounded-lg border p-4 space-y-4 sm:p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 rounded-lg border bg-white p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-semibold">
           {rate ? t('admin_edit_exchange_rate', 'admin') : t('admin_add_exchange_rate', 'admin')}
         </h3>
@@ -149,7 +149,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="fromCode">{t('admin_exchange_from', 'admin')} *</Label>
             <Select
@@ -193,7 +193,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="rate">
               {t('admin_exchange_rate', 'admin')} (1 {formData.fromCode || '?'} = ? {formData.toCode || '?'}) *
@@ -242,10 +242,10 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
         </div>
 
         <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             {t('form_cancel', 'admin')}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? t('saving', 'admin') : t('form_update', 'admin')}
           </Button>
         </div>
