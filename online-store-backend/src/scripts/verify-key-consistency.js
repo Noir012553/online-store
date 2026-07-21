@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LOCALES_DIR = path.join(__dirname, '../locales');
 const LANGUAGES = getActiveLangCodes();
@@ -11,7 +12,7 @@ const defaultLang = getDefaultLanguage().code;
 const defaultDir = path.join(LOCALES_DIR, defaultLang);
 const defaultFiles = fs.readdirSync(defaultDir).filter(f => f.endsWith('.json'));
 
-console.log(`\n🔍 KEY STRUCTURE CONSISTENCY VERIFICATION\n`);
+console.log(`\n${CLI_SYMBOLS.search} KEY STRUCTURE CONSISTENCY VERIFICATION\n`);
 console.log(`Files to Check: ${defaultFiles.length}`);
 console.log(`Reference Language: ${defaultLang}`);
 console.log(`Languages: ${LANGUAGES.join(', ')}\n`);
@@ -88,18 +89,18 @@ defaultFiles.forEach((filename) => {
 
 // Report results
 if (totalIssues === 0) {
-  console.log(`✅ PERFECT! All ${defaultFiles.length} files have consistent key structure across all ${LANGUAGES.length} languages\n`);
+  console.log(`${CLI_SYMBOLS.success} PERFECT! All ${defaultFiles.length} files have consistent key structure across all ${LANGUAGES.length} languages\n`);
   console.log(`Verification Results:`);
   console.log(`  - Total files checked: ${defaultFiles.length}`);
   console.log(`  - Total language checks: ${defaultFiles.length * (LANGUAGES.length - 1)} (${defaultFiles.length} files * ${LANGUAGES.length - 1} languages)`);
   console.log(`  - Consistency issues found: 0`);
-  console.log(`  - Flat key structure: ✓ Confirmed`);
-  console.log(`  - Key synchronization: ✓ Perfect`);
+  console.log(`  - Flat key structure: ${CLI_SYMBOLS.check} Confirmed`);
+  console.log(`  - Key synchronization: ${CLI_SYMBOLS.check} Perfect`);
 } else {
-  console.log(`⚠️ ISSUES FOUND: ${totalIssues} consistency problems\n`);
+  console.log(`${CLI_SYMBOLS.warning} ISSUES FOUND: ${totalIssues} consistency problems\n`);
   
   Object.entries(issuesByFile).forEach(([filename, issues]) => {
-    console.log(`\n📄 ${filename}`);
+    console.log(`\n${CLI_SYMBOLS.report} ${filename}`);
     issues.forEach((issue) => {
       console.log(`  [${issue.issue}] ${issue.language}: ${issue.details}`);
     });
@@ -107,13 +108,13 @@ if (totalIssues === 0) {
 }
 
 // Summary statistics
-console.log(`\n📊 SUMMARY STATISTICS\n`);
+console.log(`\n${CLI_SYMBOLS.chart} SUMMARY STATISTICS\n`);
 console.log(`Files with consistency issues: ${Object.keys(issuesByFile).length}/${defaultFiles.length}`);
 console.log(`Files with perfect consistency: ${defaultFiles.length - Object.keys(issuesByFile).length}/${defaultFiles.length}`);
 console.log(`Total issues identified: ${totalIssues}`);
 
 // Sample verification
-console.log(`\n🔬 SAMPLE VERIFICATION (First 3 Files)\n`);
+console.log(`\n${CLI_SYMBOLS.microscope} SAMPLE VERIFICATION (First 3 Files)\n`);
 defaultFiles.slice(0, 3).forEach((filename) => {
   const defaultPath = path.join(LOCALES_DIR, defaultLang, filename);
   const defaultContent = JSON.parse(fs.readFileSync(defaultPath, 'utf8'));
@@ -129,11 +130,11 @@ defaultFiles.slice(0, 3).forEach((filename) => {
     }
   });
 
-  const status = allMatch ? '✓' : '✗';
+  const status = allMatch ? CLI_SYMBOLS.check : CLI_SYMBOLS.cross;
   console.log(`${status} ${filename}: ${keyCount} keys in all ${LANGUAGES.length} languages`);
 });
 
-console.log(`\n✓ Consistency verification complete!`);
+console.log(`\n${CLI_SYMBOLS.check} Consistency verification complete!`);
 
 // Export results
 const results = {
