@@ -16,6 +16,7 @@ const Category = require('../models/Category');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LANGUAGES = getActiveLangCodes();
 
@@ -25,20 +26,20 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
+    console.error(`${CLI_SYMBOLS.error} MongoDB connection failed:`, error.message);
     process.exit(1);
   }
 };
 
 const checkProducts = async () => {
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('📦 PRODUCTS TRANSLATION STATUS');
-  console.log('═══════════════════════════════════════════════════════\n');
+  console.log(CLI_SYMBOLS.divider.repeat(55));
+  console.log(`${CLI_SYMBOLS.package} PRODUCTS TRANSLATION STATUS`);
+  console.log(`${CLI_SYMBOLS.divider.repeat(55)}\n`);
 
   const totalProducts = await Product.countDocuments({ isDeleted: false });
-  console.log(`📊 Total products in DB: ${totalProducts}`);
+  console.log(`${CLI_SYMBOLS.chart} Total products in DB: ${totalProducts}`);
 
   const stats = {
     byLanguage: {},
@@ -74,30 +75,30 @@ const checkProducts = async () => {
     .lean();
 
   // Display results
-  console.log('\n📈 Coverage per language:');
+  console.log(`\n${CLI_SYMBOLS.chartUp} Coverage per language:`);
   LANGUAGES.forEach(lang => {
     const stat = stats.byLanguage[lang];
     const coverage = stat.coverage;
     const bar =
-      '█'.repeat(Math.floor(coverage / 5)) + '░'.repeat(20 - Math.floor(coverage / 5));
+      CLI_SYMBOLS.progressComplete.repeat(Math.floor(coverage / 5)) + CLI_SYMBOLS.progressRemaining.repeat(20 - Math.floor(coverage / 5));
     console.log(`  ${lang.toUpperCase().padEnd(3)} [${bar}] ${coverage}% (${stat.cached}/${totalProducts})`);
   });
 
-  console.log('\n📋 Status breakdown per language:');
+  console.log(`\n${CLI_SYMBOLS.list} Status breakdown per language:`);
   LANGUAGES.forEach(lang => {
     const stat = stats.byLanguage[lang];
     console.log(`  ${lang.toUpperCase()}:`);
     Object.entries(stat.byStatus).forEach(([status, count]) => {
       const icon =
-        status === 'success' ? '✅' : status === 'pending_retry' ? '⏳' : '❌';
+        status === 'success' ? CLI_SYMBOLS.success : status === 'pending_retry' ? CLI_SYMBOLS.wait : CLI_SYMBOLS.error;
       console.log(`    ${icon} ${status}: ${count}`);
     });
   });
 
   if (errors.length > 0) {
-    console.log('\n⚠️ Top errors:');
+    console.log(`\n${CLI_SYMBOLS.warning} Top errors:`);
     errors.forEach(err => {
-      console.log(`  • [${err.targetLang.toUpperCase()}] ${err.status}`);
+      console.log(`  ${CLI_SYMBOLS.bullet} [${err.targetLang.toUpperCase()}] ${err.status}`);
       if (err.lastErrorMessage) {
         console.log(`    ${err.lastErrorMessage.substring(0, 80)}...`);
       }
@@ -105,17 +106,17 @@ const checkProducts = async () => {
   }
 
   console.log(
-    `\n📊 Total cached: ${stats.totalCached}/${totalProducts * LANGUAGES.length} (${totalProducts > 0 ? ((stats.totalCached / (totalProducts * LANGUAGES.length)) * 100).toFixed(1) : 0}%)\n`
+    `\n${CLI_SYMBOLS.chart} Total cached: ${stats.totalCached}/${totalProducts * LANGUAGES.length} (${totalProducts > 0 ? ((stats.totalCached / (totalProducts * LANGUAGES.length)) * 100).toFixed(1) : 0}%)\n`
   );
 };
 
 const checkCategories = async () => {
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('🏷️  CATEGORIES TRANSLATION STATUS');
-  console.log('═══════════════════════════════════════════════════════\n');
+  console.log(CLI_SYMBOLS.divider.repeat(55));
+  console.log(`${CLI_SYMBOLS.tag}  CATEGORIES TRANSLATION STATUS`);
+  console.log(`${CLI_SYMBOLS.divider.repeat(55)}\n`);
 
   const totalCategories = await Category.countDocuments({ isDeleted: false });
-  console.log(`📊 Total categories in DB: ${totalCategories}`);
+  console.log(`${CLI_SYMBOLS.chart} Total categories in DB: ${totalCategories}`);
 
   const stats = {
     byLanguage: {},
@@ -151,30 +152,30 @@ const checkCategories = async () => {
     .lean();
 
   // Display results
-  console.log('\n📈 Coverage per language:');
+  console.log(`\n${CLI_SYMBOLS.chartUp} Coverage per language:`);
   LANGUAGES.forEach(lang => {
     const stat = stats.byLanguage[lang];
     const coverage = stat.coverage;
     const bar =
-      '█'.repeat(Math.floor(coverage / 5)) + '░'.repeat(20 - Math.floor(coverage / 5));
+      CLI_SYMBOLS.progressComplete.repeat(Math.floor(coverage / 5)) + CLI_SYMBOLS.progressRemaining.repeat(20 - Math.floor(coverage / 5));
     console.log(`  ${lang.toUpperCase().padEnd(3)} [${bar}] ${coverage}% (${stat.cached}/${totalCategories})`);
   });
 
-  console.log('\n📋 Status breakdown per language:');
+  console.log(`\n${CLI_SYMBOLS.list} Status breakdown per language:`);
   LANGUAGES.forEach(lang => {
     const stat = stats.byLanguage[lang];
     console.log(`  ${lang.toUpperCase()}:`);
     Object.entries(stat.byStatus).forEach(([status, count]) => {
       const icon =
-        status === 'success' ? '✅' : status === 'pending_retry' ? '⏳' : '❌';
+        status === 'success' ? CLI_SYMBOLS.success : status === 'pending_retry' ? CLI_SYMBOLS.wait : CLI_SYMBOLS.error;
       console.log(`    ${icon} ${status}: ${count}`);
     });
   });
 
   if (errors.length > 0) {
-    console.log('\n⚠️ Top errors:');
+    console.log(`\n${CLI_SYMBOLS.warning} Top errors:`);
     errors.forEach(err => {
-      console.log(`  • [${err.targetLang.toUpperCase()}] ${err.status}`);
+      console.log(`  ${CLI_SYMBOLS.bullet} [${err.targetLang.toUpperCase()}] ${err.status}`);
       if (err.lastErrorMessage) {
         console.log(`    ${err.lastErrorMessage.substring(0, 80)}...`);
       }
@@ -182,7 +183,7 @@ const checkCategories = async () => {
   }
 
   console.log(
-    `\n📊 Total cached: ${stats.totalCached}/${totalCategories * LANGUAGES.length} (${totalCategories > 0 ? ((stats.totalCached / (totalCategories * LANGUAGES.length)) * 100).toFixed(1) : 0}%)\n`
+    `\n${CLI_SYMBOLS.chart} Total cached: ${stats.totalCached}/${totalCategories * LANGUAGES.length} (${totalCategories > 0 ? ((stats.totalCached / (totalCategories * LANGUAGES.length)) * 100).toFixed(1) : 0}%)\n`
   );
 };
 
@@ -193,12 +194,12 @@ const main = async () => {
     await checkProducts();
     await checkCategories();
 
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('✅ Status check complete!');
-    console.log('═══════════════════════════════════════════════════════');
+    console.log(CLI_SYMBOLS.divider.repeat(55));
+    console.log(`${CLI_SYMBOLS.success} Status check complete!`);
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log('\nNext: Run "npm run seed" to generate/translate data\n');
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

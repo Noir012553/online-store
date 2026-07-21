@@ -118,7 +118,7 @@ async function setupIndexes() {
     console.log('  StaticTranslation:       3 indexes');
     console.log('  LiveTranslationCache:    4 indexes (including TTL)');
     console.log('  Language:                2 indexes');
-    console.log('  ─────────────────────────────────');
+    console.log(`  ${CLI_SYMBOLS.lightDivider.repeat(33)}`);
     console.log('  Total:                   9 indexes\n');
 
     console.log(`${CLI_SYMBOLS.progress} Production i18n setup is ready!`);

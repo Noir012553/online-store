@@ -2,27 +2,28 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
 async function main() {
   try {
     // Connect to MongoDB
-    console.log('🔌 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Get translation ID
     const translationId = args[0];
     if (!translationId) {
-      console.log('❌ Usage: npm run translate:history <translationId>');
+      console.log(`${CLI_SYMBOLS.error} Usage: npm run translate:history <translationId>`);
       process.exit(1);
     }
 
     // Get current version
     const currentTranslation = await LiveTranslationCache.findById(translationId).lean();
     if (!currentTranslation) {
-      console.log('❌ Translation not found');
+      console.log(`${CLI_SYMBOLS.error} Translation not found`);
       process.exit(1);
     }
 
@@ -50,8 +51,8 @@ async function main() {
       .lean();
 
     // Print version history
-    console.log('\n📜 Translation Version History');
-    console.log('═'.repeat(70));
+    console.log(`\n${CLI_SYMBOLS.history} Translation Version History`);
+    console.log(CLI_SYMBOLS.divider.repeat(70));
     console.log(`Original Text: "${currentTranslation.originalText}"`);
     console.log(`Language:      ${currentTranslation.targetLang}`);
     console.log(`Entity Type:   ${currentTranslation.entityType || 'generic'}`);
@@ -60,33 +61,33 @@ async function main() {
     versions.forEach((v, idx) => {
       const versionNumber = versions.length - idx;
       const isCurrent = idx === 0;
-      const marker = isCurrent ? '📍' : '📌';
+      const marker = isCurrent ? CLI_SYMBOLS.location : CLI_SYMBOLS.pin;
 
       console.log(`${marker} VERSION ${versionNumber}${isCurrent ? ' (CURRENT)' : ''}`);
-      console.log(`├─ ID:          ${v._id}`);
-      console.log(`├─ Text:        "${v.translatedText}"`);
-      console.log(`├─ Status:      ${v.qualityStatus}`);
-      console.log(`├─ Score:       ${v.qualityScore || 'N/A'}/100`);
-      console.log(`├─ Errors:      ${v.validationErrors?.length > 0 ? v.validationErrors.join(', ') : 'None'}`);
-      console.log(`├─ Version:     ${v.version}`);
-      console.log(`├─ Created:     ${new Date(v.createdAt).toLocaleString()}`);
+      console.log(`${CLI_SYMBOLS.branch} ID:          ${v._id}`);
+      console.log(`${CLI_SYMBOLS.branch} Text:        "${v.translatedText}"`);
+      console.log(`${CLI_SYMBOLS.branch} Status:      ${v.qualityStatus}`);
+      console.log(`${CLI_SYMBOLS.branch} Score:       ${v.qualityScore || 'N/A'}/100`);
+      console.log(`${CLI_SYMBOLS.branch} Errors:      ${v.validationErrors?.length > 0 ? v.validationErrors.join(', ') : 'None'}`);
+      console.log(`${CLI_SYMBOLS.branch} Version:     ${v.version}`);
+      console.log(`${CLI_SYMBOLS.branch} Created:     ${new Date(v.createdAt).toLocaleString()}`);
 
       if (v.reviewedAt) {
-        console.log(`├─ Reviewed:    ${new Date(v.reviewedAt).toLocaleString()} by ${v.reviewedBy}`);
+        console.log(`${CLI_SYMBOLS.branch} Reviewed:    ${new Date(v.reviewedAt).toLocaleString()} by ${v.reviewedBy}`);
       }
 
       if (v.retranslateReason) {
-        console.log(`├─ Reason:      ${v.retranslateReason}`);
+        console.log(`${CLI_SYMBOLS.branch} Reason:      ${v.retranslateReason}`);
       }
 
       if (v.reviewNotes) {
-        console.log(`└─ Notes:       ${v.reviewNotes}`);
+        console.log(`${CLI_SYMBOLS.lastBranch} Notes:       ${v.reviewNotes}`);
       } else {
-        console.log(`└─ Notes:       -`);
+        console.log(`${CLI_SYMBOLS.lastBranch} Notes:       -`);
       }
 
       if (idx < versions.length - 1) {
-        console.log(`   ↓\n`);
+        console.log(`   ${CLI_SYMBOLS.arrowDown}\n`);
       } else {
         console.log('');
       }
@@ -94,8 +95,8 @@ async function main() {
 
     // Print action logs
     if (logs.length > 0) {
-      console.log('\n📋 Action Logs');
-      console.log('═'.repeat(70));
+      console.log(`\n${CLI_SYMBOLS.list} Action Logs`);
+      console.log(CLI_SYMBOLS.divider.repeat(70));
 
       logs.forEach((log, idx) => {
         console.log(`${idx + 1}. [${log.action.toUpperCase()}]`);
@@ -121,7 +122,7 @@ async function main() {
     console.log('\n');
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ History retrieval failed:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} History retrieval failed:`, error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();

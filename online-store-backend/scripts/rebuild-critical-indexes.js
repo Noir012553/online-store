@@ -43,7 +43,7 @@ async function rebuildCriticalIndexes() {
 
         console.log(`\n${CLI_SYMBOLS.sparkles} Critical indexes rebuilt successfully!`);
         console.log(`\n${CLI_SYMBOLS.chart} Performance Improvements:`);
-        console.log('  1. Order {customer, isDeleted}: COLLSCAN → IXSCAN for getMyOrders');
+        console.log(`  1. Order {customer, isDeleted}: COLLSCAN ${CLI_SYMBOLS.arrowRight} IXSCAN for getMyOrders`);
         console.log('  2. Review {product, user, isDeleted}: Faster alreadyReviewed checks');
         console.log('  3. Review $avg aggregation: Database-level calculation (no N+1)');
 
