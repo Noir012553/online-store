@@ -116,8 +116,13 @@ class OfflineTestSuite {
 
   async test6_MultiLanguageSupport() {
     // Verify support for multiple languages in cache
-    const { SUPPORTED_LOCALES } = require('../lib/i18n/types');
-    const languages = SUPPORTED_LOCALES;
+    const fs = require('fs');
+    const path = require('path');
+    const localeMetadata = fs.readFileSync(
+      path.join(__dirname, '../lib/i18n/localeMetadata.ts'),
+      'utf8'
+    );
+    const languages = [...localeMetadata.matchAll(/^  ([a-z]{2}): \{/gm)].map(([, locale]) => locale);
     const namespaces = ['common', 'checkout', 'footer'];
 
     log.info(`  └─ Cache supports ${languages.length} languages: ${languages.join(', ')}`);
