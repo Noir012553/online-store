@@ -2,15 +2,16 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const translationReporter = require('../utils/translationReporter');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
 async function main() {
   try {
     // Connect to MongoDB
-    console.log('🔌 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Parse options
     const options = {
@@ -65,12 +66,12 @@ async function main() {
       const translation = await LiveTranslationCache.findById(translationId).lean();
 
       if (!translation) {
-        console.log('❌ Translation not found');
+        console.log(`${CLI_SYMBOLS.error} Translation not found`);
         process.exit(1);
       }
 
-      console.log('\n📋 Translation Detail');
-      console.log('═'.repeat(55));
+      console.log(`\n${CLI_SYMBOLS.list} Translation Detail`);
+      console.log(CLI_SYMBOLS.divider.repeat(55));
       console.log(`ID:           ${translation._id}`);
       console.log(`Original:     "${translation.originalText}"`);
       console.log(`Translated:   "${translation.translatedText}"`);
@@ -98,7 +99,7 @@ async function main() {
     if (options.export === 'json') {
       const filename = `${Date.now()}-translations.json`;
       translationReporter.saveReport(report, filename);
-      console.log(`✅ Report exported to: ./translation-reports/${filename}\n`);
+      console.log(`${CLI_SYMBOLS.success} Report exported to: ./translation-reports/${filename}\n`);
     } else if (options.export === 'csv') {
       const csv = convertToCSV(report.translations);
       console.log(csv);
@@ -109,7 +110,7 @@ async function main() {
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Report generation failed:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} Report generation failed:`, error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
@@ -117,26 +118,26 @@ async function main() {
 }
 
 function printReport(report) {
-  console.log('\n📋 Translation Report');
-  console.log('═'.repeat(55));
+  console.log(`\n${CLI_SYMBOLS.list} Translation Report`);
+  console.log(CLI_SYMBOLS.divider.repeat(55));
   console.log(`Status:  ${report.filter.qualityStatus || 'all'}`);
   console.log(`Limit:   ${report.pagination.limit} results`);
   console.log(`Total:   ${report.pagination.total} | Page: ${report.pagination.offset / report.pagination.limit + 1}/${report.pagination.pages}\n`);
 
   if (report.translations.length === 0) {
-    console.log('✅ No translations found matching criteria.\n');
+    console.log(`${CLI_SYMBOLS.success} No translations found matching criteria.\n`);
     return;
   }
 
   report.translations.forEach((t, idx) => {
-    console.log(`┌─ #${idx + 1}. ${t.original.substring(0, 40)}${t.original.length > 40 ? '...' : ''}`);
-    console.log(`├─ Original:  "${t.original}"`);
-    console.log(`├─ Translated: "${t.translated}"`);
-    console.log(`├─ Language:   ${t.language}`);
-    console.log(`├─ Status:     ${t.qualityStatus}`);
-    console.log(`├─ Score:      ${t.qualityScore}/100`);
-    console.log(`├─ Errors:     ${t.validationErrors?.length > 0 ? t.validationErrors.join(', ') : 'None'}`);
-    console.log(`└─ Created:    ${new Date(t.createdAt).toLocaleDateString()}\n`);
+    console.log(`${CLI_SYMBOLS.firstBranch} #${idx + 1}. ${t.original.substring(0, 40)}${t.original.length > 40 ? '...' : ''}`);
+    console.log(`${CLI_SYMBOLS.branch} Original:  "${t.original}"`);
+    console.log(`${CLI_SYMBOLS.branch} Translated: "${t.translated}"`);
+    console.log(`${CLI_SYMBOLS.branch} Language:   ${t.language}`);
+    console.log(`${CLI_SYMBOLS.branch} Status:     ${t.qualityStatus}`);
+    console.log(`${CLI_SYMBOLS.branch} Score:      ${t.qualityScore}/100`);
+    console.log(`${CLI_SYMBOLS.branch} Errors:     ${t.validationErrors?.length > 0 ? t.validationErrors.join(', ') : 'None'}`);
+    console.log(`${CLI_SYMBOLS.lastBranch} Created:    ${new Date(t.createdAt).toLocaleDateString()}\n`);
   });
 
   console.log('');
