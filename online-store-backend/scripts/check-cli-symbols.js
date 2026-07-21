@@ -22,7 +22,7 @@ const checkedFiles = [
   'scripts/setup-production-indexes.js',
   'scripts/setup-i18n-indexes.js',
   'scripts/health-check-i18n.js',
-  'scripts/performance-benchmark.js',
+  'src/scripts/performance-benchmark.js',
   'src/scripts/rebuild-critical-indexes.js',
   'src/seeds/verifyLanguageCompleteness.js',
   'src/seeds/addressSeeder.js',
