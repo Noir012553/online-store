@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
 
 function walkDir(dir, callback) {
   const files = fs.readdirSync(dir);
@@ -35,9 +36,9 @@ walkDir(adminDir, (filePath) => {
   
   if (content !== originalContent) {
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`✓ Fixed: ${path.relative(process.cwd(), filePath)}`);
+    console.log(`${CLI_SYMBOLS.check} Fixed: ${path.relative(process.cwd(), filePath)}`);
     fixedCount++;
   }
 });
 
-console.log(`\n✓ Fixed ${fixedCount} files!`);
+console.log(`\n${CLI_SYMBOLS.check} Fixed ${fixedCount} files!`);

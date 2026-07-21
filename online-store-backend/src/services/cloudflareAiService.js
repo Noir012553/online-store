@@ -1,6 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { isSupportedLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LOCALIZATION_SYSTEM_PROMPT = `You are a translator for e-commerce products.
 
@@ -71,7 +72,7 @@ class CloudflareAiService {
     setInterval(() => {
       const stats = this.getStats();
       const health = this.getHealth();
-      console.log('[CloudflareAI] 📊 Periodic Health Check:', {
+      console.log(`[CloudflareAI] ${CLI_SYMBOLS.chart} Periodic Health Check:`, {
         status: health.status,
         totalConfigs: stats.totalConfigs,
         currentConfig: stats.currentConfig,
@@ -153,7 +154,7 @@ class CloudflareAiService {
 
     this.configIndex = (this.configIndex + 1) % this.configs.length;
     this.updateCurrentConfig();
-    console.log(`[CloudflareAI] 🔄 Rotated to config #${this.currentConfig.index}`);
+    console.log(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rotated to config #${this.currentConfig.index}`);
   }
 
   validate() {
@@ -275,7 +276,7 @@ class CloudflareAiService {
       }
 
       this.currentConfig.requestCount++;
-      console.log(`[CloudflareAI] ✅ Translation success: { textLength: ${text.length}, sourceLang: '${sourceLang}', targetLang: '${targetLang}', duration: '${duration}ms', config: '#${this.currentConfig.index}/${this.configs.length}', totalRequests: ${this.currentConfig.requestCount} }`);
+      console.log(`[CloudflareAI] ${CLI_SYMBOLS.success} Translation success: { textLength: ${text.length}, sourceLang: '${sourceLang}', targetLang: '${targetLang}', duration: '${duration}ms', config: '#${this.currentConfig.index}/${this.configs.length}', totalRequests: ${this.currentConfig.requestCount} }`);
 
       return translatedText.trim();
     } catch (error) {
@@ -308,7 +309,7 @@ class CloudflareAiService {
         this.currentConfig.lastError = 'Rate limited (429)';
         this.currentConfig.lastErrorTime = new Date();
         this.rotateConfig();
-        console.warn(`[CloudflareAI] 🔄 Rate limit hit - switched to config #${this.currentConfig.index}`);
+        console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rate limit hit - switched to config #${this.currentConfig.index}`);
         // Retry with new config immediately
         return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay);
       }
@@ -332,7 +333,7 @@ class CloudflareAiService {
         const serverErrorMultiplier = isServerError ? 2 : 1;
         const exponentialDelay = baseDelay * Math.pow(2, retriesUsed) * serverErrorMultiplier;
 
-        console.warn(`[CloudflareAI] ⚠️ Retry (${retries} left) - waiting ${exponentialDelay}ms`, {
+        console.warn(`[CloudflareAI] ${CLI_SYMBOLS.warning} Retry (${retries} left) - waiting ${exponentialDelay}ms`, {
           status: error.response?.status,
           statusText: error.response?.statusText,
           retryCount: retriesUsed,
@@ -342,7 +343,7 @@ class CloudflareAiService {
         return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay);
       }
 
-      console.error('[CloudflareAI] ❌ Translation failed (exhausted retries):', {
+      console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Translation failed (exhausted retries):`, {
         textLength: text.length,
         targetLang,
         error: error.message,
@@ -396,7 +397,7 @@ class CloudflareAiService {
       config.lastError = null;
       config.lastErrorTime = null;
     });
-    console.log('[CloudflareAI] 🔄 Stats reset');
+    console.log(`[CloudflareAI] ${CLI_SYMBOLS.progress} Stats reset`);
   }
 
   getConfigInfo() {

@@ -12,6 +12,13 @@ const checkedFiles = [
   'src/test/testRegistry.js',
   'src/utils/fileCleanup.js',
   'src/utils/translationReporter.js',
+  'scripts/backup-livetranslationcache.js',
+  'scripts/diagnose-old-schema.js',
+  'scripts/fix-fallback-translations.js',
+  'scripts/init-uploads.js',
+  'scripts/rebuild-critical-indexes.js',
+  'src/services/cloudflareAiService.js',
+  'src/services/distributedLockService.js',
 ];
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
 
