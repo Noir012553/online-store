@@ -289,7 +289,7 @@ export function NotificationBell() {
               </DialogHeader>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-gray-200 p-3">
                     <p className="text-xs uppercase tracking-wider text-gray-500">{t('admin_total_price', 'admin')}</p>
                     <p className="mt-1 font-semibold text-gray-900">
