@@ -5,6 +5,8 @@
  * Tests IndexedDB service for offline translation caching
  */
 
+const cliSymbols = require('./cliSymbols');
+
 const colors = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -14,10 +16,10 @@ const colors = {
 };
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  success: (msg) => console.log(`${colors.green}${cliSymbols.success}${colors.reset} ${msg}`),
+  error: (msg) => console.log(`${colors.red}${cliSymbols.error}${colors.reset} ${msg}`),
+  info: (msg) => console.log(`${colors.blue}${cliSymbols.info}${colors.reset} ${msg}`),
+  warn: (msg) => console.log(`${colors.yellow}${cliSymbols.warning}${colors.reset} ${msg}`),
 };
 
 class OfflineTestSuite {

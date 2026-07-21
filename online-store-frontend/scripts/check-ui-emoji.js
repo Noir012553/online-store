@@ -2,10 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
 
-const sourceDirectories = ['src/components', 'src/pages', 'src/lib'];
+const sourceDirectories = ['src/components', 'src/pages', 'src/lib', 'src/test'];
 const excludedFiles = new Set([
   'src/lib/i18n/localeMetadata.ts',
   'src/lib/uiEmoji.ts',
+  'src/test/cliSymbols.js',
 ]);
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
 
@@ -14,10 +15,10 @@ function collectSourceFiles(directory) {
     const entryPath = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      return entry.name === 'test' ? [] : collectSourceFiles(entryPath);
+      return collectSourceFiles(entryPath);
     }
 
-    return /\.tsx?$/.test(entry.name) ? [entryPath] : [];
+    return /\.(?:[jt]sx?)$/.test(entry.name) ? [entryPath] : [];
   });
 }
 
@@ -49,9 +50,9 @@ const findings = sourceDirectories
   .flatMap(findEmojiLiterals);
 
 if (findings.length > 0) {
-  console.error('Emoji UI phải được tham chiếu từ src/lib/uiEmoji.ts:');
+  console.error('Emoji phải được tham chiếu từ registry được phép:');
   findings.forEach((finding) => console.error(`- ${finding}`));
   process.exit(1);
 }
 
-console.log('Không tìm thấy emoji UI hard-code ngoài src/lib/uiEmoji.ts.');
+console.log('Không tìm thấy emoji hard-code ngoài các registry được phép.');
