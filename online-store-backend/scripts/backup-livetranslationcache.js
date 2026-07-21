@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
+const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
 
 async function backupCache() {
   try {
@@ -38,7 +39,7 @@ async function backupCache() {
 
     fs.writeFileSync(filepath, JSON.stringify(backupData, null, 2));
 
-    console.log(`[Backup] ✅ Backup saved to: ${filepath}`);
+    console.log(`[Backup] ${CLI_SYMBOLS.success} Backup saved to: ${filepath}`);
     console.log(`[Backup] Size: ${fs.statSync(filepath).size} bytes`);
 
     // Also save metadata

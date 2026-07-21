@@ -1,5 +1,7 @@
 const redis = require('redis');
 
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
 class DistributedLockService {
   constructor() {
     this.client = null;
@@ -26,9 +28,9 @@ class DistributedLockService {
 
       await this.client.connect();
       this.initialized = true;
-      console.log('[DistributedLock] ✅ Redis connected');
+      console.log(`[DistributedLock] ${CLI_SYMBOLS.success} Redis connected`);
     } catch (error) {
-      console.warn('[DistributedLock] ⚠️ Redis not available, using in-memory fallback');
+      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available, using in-memory fallback`);
       this.useMemoryFallback = true;
     }
   }
@@ -59,7 +61,7 @@ class DistributedLockService {
       );
 
       if (isLocked) {
-        console.log(`[DistributedLock] 🔒 Acquired lock: ${key}`);
+        console.log(`[DistributedLock] ${CLI_SYMBOLS.lock} Acquired lock: ${key}`);
         return lockId;
       }
 
@@ -100,7 +102,7 @@ class DistributedLockService {
 
       if (result === 1) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[DistributedLock] 🔓 Released lock: ${key}`);
+          console.log(`[DistributedLock] ${CLI_SYMBOLS.unlock} Released lock: ${key}`);
         }
         return true;
       }
