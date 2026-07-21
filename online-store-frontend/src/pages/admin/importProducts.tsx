@@ -331,7 +331,7 @@ function ImportProductsContent() {
             </Button>
 
             <div className="bg-white p-3 rounded text-xs text-gray-600 space-y-1">
-              <p className="font-medium text-gray-700">✅ {t('supports_label')}</p>
+              <p className="font-medium text-gray-700">{UI_EMOJI.statusSuccess} {t('supports_label')}</p>
               <ul className="list-disc ml-4">
                 <li>{t('format_label')} {t('format_json_extension')}</li>
                 <li>{t('format_label')} {t('format_csv_extension')}</li>
@@ -401,7 +401,7 @@ function ImportProductsContent() {
               disabled={isLoading || !fileData.trim()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
             >
-              {isLoading ? t('processing') : (dryRun ? `👁️ ${t('preview_label').replace(':', '')}` : `▶️ ${t('start')}`)}
+              {isLoading ? t('processing') : (dryRun ? `${UI_EMOJI.preview} ${t('preview_label').replace(':', '')}` : `${UI_EMOJI.run} ${t('start')}`)}
             </Button>
             <Link href="/admin/dashboard">
               <Button variant="outline">{t('back')}</Button>
@@ -414,7 +414,7 @@ function ImportProductsContent() {
       {result && (
         <div className={`border rounded-lg p-6 ${result.errors?.length > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
           <h2 className="text-xl font-bold mb-4">
-            {result.errors?.length > 0 ? `❌ ${t('errors_title')}` : `✅ ${t('results_title')}`}
+            {result.errors?.length > 0 ? `${UI_EMOJI.statusError} ${t('errors_title')}` : `${UI_EMOJI.statusSuccess} ${t('results_title')}`}
           </h2>
 
           {result.message && (
@@ -470,7 +470,7 @@ function ImportProductsContent() {
                       errorText = parts.join(', ');
                     }
                   }
-                  return <li key={i}>• {errorText || t('review_error')}</li>;
+                  return <li key={i}>{UI_EMOJI.bullet} {errorText || t('review_error')}</li>;
                 })}
               </ul>
             </div>
@@ -495,7 +495,7 @@ function ImportProductsContent() {
                       warnText = parts.join(', ');
                     }
                   }
-                  return <li key={i}>• {warnText || t('review_error')}</li>;
+                  return <li key={i}>{UI_EMOJI.bullet} {warnText || t('review_error')}</li>;
                 })}
               </ul>
             </div>

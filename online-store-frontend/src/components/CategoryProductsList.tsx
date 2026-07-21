@@ -18,6 +18,7 @@ import {
 } from "./ui/accordion";
 import { useTranslation, useLanguage } from "../lib/i18n";
 import { useCurrencyConversion } from "../hooks/useCurrencyConversion";
+import { UI_EMOJI } from "../lib/uiEmoji";
 
 interface CategoryProductsListProps {
   categoryId: string;
@@ -830,7 +831,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                   disabled={page === totalPages}
                   className="px-3"
                 >
-                  {t('filter_next', 'products')} →
+                  {t('filter_next', 'products')} {UI_EMOJI.arrowRight}
                 </Button>
               </div>
             )}

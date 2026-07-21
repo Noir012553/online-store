@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, Locale } from '../../lib/i18n/types';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 
 interface AuditLogRecord {
   _id: string;
@@ -417,7 +418,7 @@ const AuditLogViewerContent = () => {
                           {log.oldValue || log.newValue ? (
                             <div className="audit-log-change-preview">
                               <div className="audit-log-old">{log.oldValue?.substring(0, 30)}...</div>
-                              <div className="audit-log-arrow">→</div>
+                              <div className="audit-log-arrow">{UI_EMOJI.arrowRight}</div>
                               <div className="audit-log-new">{log.newValue?.substring(0, 30)}...</div>
                             </div>
                           ) : (

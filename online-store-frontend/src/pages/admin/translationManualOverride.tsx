@@ -4,6 +4,7 @@ import { Save, X, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
+import { UI_EMOJI } from '../../lib/uiEmoji';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, AVAILABLE_LOCALES, Locale } from '../../lib/i18n/types';
 
 interface OverrideForm {
@@ -348,7 +349,7 @@ const TranslationManualOverride = () => {
                   <h4>{t('admin_override_old_value', 'admin-translation-override')}</h4>
                   <pre>{form.oldValue || t('admin_override_empty', 'admin-translation-override')}</pre>
                 </div>
-                <div className="override-preview-arrow">→</div>
+                <div className="override-preview-arrow">{UI_EMOJI.arrowRight}</div>
                 <div className="override-preview-new">
                   <h4>{t('admin_override_new_value', 'admin-translation-override')}</h4>
                   <pre>{form.newValue || t('admin_override_empty', 'admin-translation-override')}</pre>

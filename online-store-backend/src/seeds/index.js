@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
@@ -98,21 +99,21 @@ const seed = async () => {
     // ==================== Validate Modes ====================
 
     if (cliArgs.dryRun) {
-      seedLogger.log('🧪 DRY RUN MODE: Using mock data, skipping AI translations\n');
+      seedLogger.log(`${CLI_SYMBOLS.test} DRY RUN MODE: Using mock data, skipping AI translations\n`);
       process.env.DRY_RUN = 'true';
     }
 
     if (cliArgs.incremental) {
-      seedLogger.log('🔄 INCREMENTAL MODE: Only translating missing items\n');
+      seedLogger.log(`${CLI_SYMBOLS.progress} INCREMENTAL MODE: Only translating missing items\n`);
       process.env.INCREMENTAL_SEED = 'true';
     }
 
     if (cliArgs.productsOnly) {
-      seedLogger.log('🛍️ PRODUCTS ONLY: Reseeding products and translations only\n');
+      seedLogger.log(`${CLI_SYMBOLS.products} PRODUCTS ONLY: Reseeding products and translations only\n`);
     }
 
     if (cliArgs.i18nOnly) {
-      seedLogger.log('🌐 i18n ONLY (LAYER 1): Seeding only i18n (languages + translations)\n');
+      seedLogger.log(`${CLI_SYMBOLS.globe} i18n ONLY (LAYER 1): Seeding only i18n (languages + translations)\n`);
     }
 
     // ==================== Resolve modules to run ====================
@@ -121,11 +122,11 @@ const seed = async () => {
     if (cliArgs.onlyModule) {
       // --only-module=foo: Run ONLY foo, skip dependencies
       modulesToRun = [cliArgs.onlyModule];
-      seedLogger.log(`🎯 ONLY-MODULE mode: Running ${cliArgs.onlyModule} (no dependencies)\n`);
+      seedLogger.log(`${CLI_SYMBOLS.target} ONLY-MODULE mode: Running ${cliArgs.onlyModule} (no dependencies)\n`);
     } else if (cliArgs.modules) {
       // --modules=foo,bar: Run foo and bar WITH dependencies
       modulesToRun = resolveModules(cliArgs.modules);
-      seedLogger.log(`📦 MODULES mode: Running [${modulesToRun.join(', ')}]\n`);
+      seedLogger.log(`${CLI_SYMBOLS.package} MODULES mode: Running [${modulesToRun.join(', ')}]\n`);
     } else if (cliArgs.i18nOnly) {
       modulesToRun = resolveModules(['languages', 'translations']);
     } else if (cliArgs.productsOnly) {
@@ -133,7 +134,7 @@ const seed = async () => {
     } else {
       // Default: run ALL modules with proper dependency resolution
       modulesToRun = resolveModules(Object.keys(SEED_MODULES));
-      seedLogger.log('📦 FULL SEED MODE: Running all modules\n');
+      seedLogger.log(`${CLI_SYMBOLS.package} FULL SEED MODE: Running all modules\n`);
     }
 
     // ==================== Database Connection ====================
@@ -147,7 +148,7 @@ const seed = async () => {
     // ==================== Start Seeding ====================
 
     // ==================== Modular Seeding ====================
-    seedLogger.log(`\n📦 Executing ${modulesToRun.length} modules...\n`);
+    seedLogger.log(`\n${CLI_SYMBOLS.package} Executing ${modulesToRun.length} modules...\n`);
 
     // Cache context for passing data between seeders
     const seedContext = {
@@ -167,7 +168,7 @@ const seed = async () => {
       }
 
       try {
-        seedLogger.log(`▶️  Running: ${module.name}`);
+        seedLogger.log(`${CLI_SYMBOLS.run}  Running: ${module.name}`);
 
         // Call seeder with context (for accessing previous results)
         const seederFn = module.seeder;
@@ -246,7 +247,7 @@ const seed = async () => {
         if (moduleName === 'customers' && Array.isArray(result)) seedContext.customers = result;
         if (moduleName === 'locations' && Array.isArray(result)) seedContext.locations = result;
 
-        seedLogger.log(`✅ ${module.name}`);
+        seedLogger.log(`${CLI_SYMBOLS.success} ${module.name}`);
       } catch (error) {
         if (module.importance === 'CRITICAL') {
           seedLogger.error(`CRITICAL module failed: ${moduleName}`);
@@ -267,10 +268,10 @@ const seed = async () => {
     clearCache('topProducts');
     clearCache('revenueTimeline');
     clearCache('orderStatus');
-    seedLogger.log('🧹 Cleared analytics cache for fresh data\n');
+    seedLogger.log(`${CLI_SYMBOLS.cleanup} Cleared analytics cache for fresh data\n`);
 
-    seedLogger.log('\n✅ Seeding completed successfully!\n');
-    seedLogger.log(`📊 Modules executed: ${modulesToRun.join(', ')}\n`);
+    seedLogger.log(`\n${CLI_SYMBOLS.success} Seeding completed successfully!\n`);
+    seedLogger.log(`${CLI_SYMBOLS.chart} Modules executed: ${modulesToRun.join(', ')}\n`);
 
     // Generate translation quality report
     try {
@@ -315,7 +316,7 @@ const seed = async () => {
         });
         translationReporter.printSeedReport(report);
         translationReporter.saveReport(report);
-        seedLogger.log(`📄 Translation Quality Report saved to ./translation-reports/\n`);
+        seedLogger.log(`${CLI_SYMBOLS.report} Translation Quality Report saved to ./translation-reports/\n`);
       }
     } catch (reportError) {
       seedLogger.warn(`Failed to generate translation report: ${reportError.message}`);
@@ -329,7 +330,7 @@ const seed = async () => {
       clearCache('orderStatus');
       clearCache('topProducts');
       clearCache('dashboardData');
-      seedLogger.log(`🧹 ✅ Cleared analytics cache for fresh dashboard data\n`);
+      seedLogger.log(`${CLI_SYMBOLS.cleanup} ${CLI_SYMBOLS.success} Cleared analytics cache for fresh dashboard data\n`);
     } catch (cacheError) {
       seedLogger.warn(`Failed to clear analytics cache: ${cacheError.message}`);
     }
