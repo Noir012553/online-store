@@ -1,18 +1,18 @@
-const mongoose = require('mongoose');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
 async function main() {
   try {
     // Connect to MongoDB
-    console.log('🔌 Connecting to MongoDB...');
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB\n');
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Build filter
     const filter = {};
@@ -43,13 +43,13 @@ async function main() {
     console.log(`Found ${count} translations to approve\n`);
 
     if (count === 0) {
-      console.log('✅ Nothing to approve\n');
+      console.log(`${CLI_SYMBOLS.success} Nothing to approve\n`);
       process.exit(0);
     }
 
     // Confirm
     if (!args.includes('--force')) {
-      console.log('⚠️ Use --force to confirm bulk approval');
+      console.log(`${CLI_SYMBOLS.warning} Use --force to confirm bulk approval`);
       process.exit(1);
     }
 
@@ -83,10 +83,10 @@ async function main() {
     }
 
     // Print result
-    console.log('\n✅ Bulk Approval Completed');
-    console.log('═'.repeat(55));
+    console.log(`\n${CLI_SYMBOLS.success} Bulk Approval Completed`);
+    console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`Approved:       ${result.modifiedCount} translations`);
-    console.log(`Status changed: pending → approved`);
+    console.log(`Status changed: pending ${CLI_SYMBOLS.arrowRight} approved`);
     console.log(`Reviewed By:    ${adminName}`);
     const defaultLang = getDefaultLanguage().code;
     const dateFormatter = new Intl.DateTimeFormat(`${defaultLang}-${defaultLang.toUpperCase()}`, {
@@ -101,7 +101,7 @@ async function main() {
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Bulk approval failed:', error.message);
+    console.error(`\n${CLI_SYMBOLS.error} Bulk approval failed:`, error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
