@@ -339,5 +339,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành thêm:** chuẩn hóa output CLI của `src/test/test-translation-e2e.js` và `src/test/test-language-sync.js`, bao gồm trạng thái test, cảnh báo, summary và kết quả retry.
 - **Đã hoàn thành thêm:** đưa bốn test/diagnostic entry point vào allowlist `check-cli-symbols.js`; không thay đổi payload API hoặc dữ liệu test.
 - **Đã xác thực:** `npm run check:emoji`, kiểm tra cú pháp cả bốn file và checker, cùng `git diff --check` đều thành công.
+- **Đã rà soát:** các entry point được khai báo trong `online-store-backend/package.json` không còn ký hiệu Unicode hard-code trong output runtime; các ký hiệu còn lại thuộc comment hoặc script chưa được package expose.
+- **Đã sửa:** `online-store-frontend/src/components/ProductDescriptionFormatter.tsx` duyệt theo Unicode code point thay vì UTF-16 code unit, nên nhận diện đúng emoji surrogate pair như `📌` và `🔥` khi chèn ngắt dòng.
+- **Đã xác thực:** frontend `npm run check:emoji`, `npm run build` và `git diff --check` đều thành công.
+- **Đã xác định:** frontend `npm test` vẫn thất bại một kiểm tra có sẵn do không tìm thấy `../lib/i18n/types` từ `src/test/offline-manual.js`; lỗi này không liên quan formatter hoặc emoji.
 
-**Bước tiếp theo:** tiếp tục xử lý các entry point package/runtime còn hard-code đã được liệt kê trong các mục trước; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.
+**Bước tiếp theo:** rà soát các script diagnostic chưa được package expose trước khi thêm vào enforcement; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.
