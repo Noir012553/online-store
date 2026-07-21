@@ -55,6 +55,9 @@ const checkedFiles = [
   'src/scripts/migrate-translations.js',
   'src/scripts/translateReport.js',
   'src/scripts/find-english-fallbacks.js',
+  'src/scripts/analyze-files.js',
+  'src/scripts/analyze-translation-status.js',
+  'src/scripts/verify-key-consistency.js',
 ];
 const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;

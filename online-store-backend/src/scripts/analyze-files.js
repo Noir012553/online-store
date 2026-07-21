@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const DEFAULT_LANG_DIR = path.join(__dirname, `../locales/${DEFAULT_LANG}`);
@@ -15,7 +16,7 @@ const report = toTranslate.map(filename => {
   return { filename, keyCount };
 }).sort((a, b) => b.keyCount - a.keyCount);
 
-console.log('\n📊 Files needing translation (sorted by key count):\n');
+console.log(`\n${CLI_SYMBOLS.chart} Files needing translation (sorted by key count):\n`);
 console.log('CRITICAL (100+ keys):');
 report.filter(f => f.keyCount >= 100).forEach(f => {
   console.log(`  - ${f.filename} (${f.keyCount} keys)`);
@@ -37,8 +38,8 @@ report.filter(f => f.keyCount < 20).forEach(f => {
 });
 
 const totalKeys = report.reduce((sum, f) => sum + f.keyCount, 0);
-console.log(`\n═══════════════════════════════════════════`);
+console.log(`\n${CLI_SYMBOLS.divider.repeat(43)}`);
 console.log(`Total files to translate: ${toTranslate.length}`);
 console.log(`Total keys: ${totalKeys}`);
 console.log(`For 7 languages: ${totalKeys * 7} translations needed`);
-console.log(`═══════════════════════════════════════════\n`);
+console.log(`${CLI_SYMBOLS.divider.repeat(43)}\n`);

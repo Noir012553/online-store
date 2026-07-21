@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const LOCALES_DIR = path.join(__dirname, '../locales');
 const LANGUAGES = getActiveLangCodes();
@@ -11,7 +12,7 @@ const defaultLang = getDefaultLanguage().code;
 const defaultDir = path.join(LOCALES_DIR, defaultLang);
 const defaultFiles = fs.readdirSync(defaultDir).filter(f => f.endsWith('.json'));
 
-console.log(`\n📊 TRANSLATION STATUS ANALYSIS\n`);
+console.log(`\n${CLI_SYMBOLS.chart} TRANSLATION STATUS ANALYSIS\n`);
 console.log(`Total Files to Analyze: ${defaultFiles.length}`);
 console.log(`Reference Language: ${defaultLang}`);
 console.log(`Languages: ${LANGUAGES.join(', ')}\n`);
@@ -108,30 +109,30 @@ fileStats.forEach((stat) => {
 });
 
 // Print results
-console.log(`\n✅ FULLY TRANSLATED (${fullyTranslated.length}/${defaultFiles.length} files)\n`);
+console.log(`\n${CLI_SYMBOLS.success} FULLY TRANSLATED (${fullyTranslated.length}/${defaultFiles.length} files)\n`);
 fullyTranslated.forEach((stat) => {
   const keyCount = stat[`${defaultLang}_keys`];
-  console.log(`  ✓ ${stat.file} (${keyCount} keys)`);
+  console.log(`  ${CLI_SYMBOLS.check} ${stat.file} (${keyCount} keys)`);
 });
 
-console.log(`\n🔄 PARTIALLY TRANSLATED (${partiallyTranslated.length}/${defaultFiles.length} files)\n`);
+console.log(`\n${CLI_SYMBOLS.progress} PARTIALLY TRANSLATED (${partiallyTranslated.length}/${defaultFiles.length} files)\n`);
 partiallyTranslated.slice(0, 10).forEach((stat) => {
   const keyCount = stat[`${defaultLang}_keys`];
   const ptStat = stat.languages['pt'];
-  console.log(`  ◐ ${stat.file} (${keyCount} keys) - PT: ${ptStat.localized}/${ptStat.keys} localized`);
+  console.log(`  ${CLI_SYMBOLS.partial} ${stat.file} (${keyCount} keys) - PT: ${ptStat.localized}/${ptStat.keys} localized`);
 });
 if (partiallyTranslated.length > 10) {
   console.log(`  ... and ${partiallyTranslated.length - 10} more`);
 }
 
-console.log(`\n❌ NOT STARTED (${notStarted.length}/${defaultFiles.length} files)\n`);
+console.log(`\n${CLI_SYMBOLS.error} NOT STARTED (${notStarted.length}/${defaultFiles.length} files)\n`);
 notStarted.forEach((stat) => {
   const keyCount = stat[`${defaultLang}_keys`];
-  console.log(`  ✗ ${stat.file} (${keyCount} keys)`);
+  console.log(`  ${CLI_SYMBOLS.cross} ${stat.file} (${keyCount} keys)`);
 });
 
 // Summary statistics
-console.log(`\n📈 SUMMARY\n`);
+console.log(`\n${CLI_SYMBOLS.chartUp} SUMMARY\n`);
 console.log(`Total Translation Progress: ${fullyTranslated.length + partiallyTranslated.length}/${defaultFiles.length} files (${((fullyTranslated.length + partiallyTranslated.length) / defaultFiles.length * 100).toFixed(1)}%)`);
 console.log(`Fully Translated: ${fullyTranslated.length}/${defaultFiles.length} (${(fullyTranslated.length / defaultFiles.length * 100).toFixed(1)}%)`);
 console.log(`Partially Translated: ${partiallyTranslated.length}/${defaultFiles.length} (${(partiallyTranslated.length / defaultFiles.length * 100).toFixed(1)}%)`);
@@ -151,4 +152,4 @@ const exportData = {
 };
 
 fs.writeFileSync(path.join(__dirname, '../i18n/translation-analysis.json'), JSON.stringify(exportData, null, 2));
-console.log(`\n✓ Detailed analysis saved to src/i18n/translation-analysis.json`);
+console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to src/i18n/translation-analysis.json`);
