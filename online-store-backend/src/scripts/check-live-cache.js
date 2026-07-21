@@ -1,10 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 mongoose.connect(process.env.MONGO_URI).then(async () => {
   const count = await LiveTranslationCache.countDocuments();
-  console.log('📊 LiveTranslationCache records:', count);
+  console.log(`${CLI_SYMBOLS.chart} LiveTranslationCache records:`, count);
   
   const productNameCount = await LiveTranslationCache.countDocuments({ entityType: 'product_name' });
   console.log('   Product names:', productNameCount);
