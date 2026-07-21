@@ -11,6 +11,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Test registry: định nghĩa tất cả test suites
 const TEST_SUITES = {
@@ -106,7 +107,7 @@ const TEST_SUITES = {
  * List all available test suites
  */
 function listSuites() {
-  console.log('\n📋 Available Test Suites:\n');
+  console.log(`\n${CLI_SYMBOLS.list} Available Test Suites:\n`);
 
   const categories = [...new Set(Object.values(TEST_SUITES).map(s => s.category))];
 
@@ -115,13 +116,13 @@ function listSuites() {
     Object.entries(TEST_SUITES)
       .filter(([_, s]) => s.category === category)
       .forEach(([key, suite]) => {
-        const tag = suite.importance === 'CRITICAL' ? '🔴' : suite.importance === 'HIGH' ? '🟠' : suite.importance === 'MEDIUM' ? '🟡' : '🟢';
+        const tag = suite.importance === 'CRITICAL' ? CLI_SYMBOLS.importanceCritical : suite.importance === 'HIGH' ? CLI_SYMBOLS.importanceHigh : suite.importance === 'MEDIUM' ? CLI_SYMBOLS.importanceMedium : CLI_SYMBOLS.importanceLow;
         console.log(`  ${tag} ${key.padEnd(15)} - ${suite.name}`);
         console.log(`      Files: ${suite.files.join(', ')}`);
       });
   });
 
-  console.log('\n💡 Examples:');
+  console.log(`\n${CLI_SYMBOLS.idea} Examples:`);
   console.log('  npm run test -- --suite=i18n');
   console.log('  npm run test -- --suites=i18n,products');
   console.log('  npm run test -- --skip=slow');
@@ -140,7 +141,7 @@ function resolveTestFiles(suiteNames) {
 
   suiteNames.forEach(name => {
     if (!TEST_SUITES[name]) {
-      console.warn(`⚠️ Unknown test suite: ${name}`);
+      console.warn(`${CLI_SYMBOLS.warning} Unknown test suite: ${name}`);
       return;
     }
 
@@ -149,7 +150,7 @@ function resolveTestFiles(suiteNames) {
       if (fs.existsSync(fullPath)) {
         files.push(fullPath);
       } else {
-        console.warn(`⚠️ Test file not found: ${fullPath}`);
+        console.warn(`${CLI_SYMBOLS.warning} Test file not found: ${fullPath}`);
       }
     });
   });

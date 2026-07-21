@@ -12,6 +12,7 @@
  */
 
 const http = require('http');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const BASE_URL = 'http://localhost:5000';
 const TEST_LANG = process.argv[2] || 'fr'; // Default to French if not specified
@@ -27,10 +28,10 @@ const colors = {
 };
 
 const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  info: (msg) => console.log(`${colors.blue}${CLI_SYMBOLS.info}${colors.reset} ${msg}`),
+  success: (msg) => console.log(`${colors.green}${CLI_SYMBOLS.check}${colors.reset} ${msg}`),
+  error: (msg) => console.log(`${colors.red}${CLI_SYMBOLS.cross}${colors.reset} ${msg}`),
+  warn: (msg) => console.log(`${colors.yellow}${CLI_SYMBOLS.warning.replace('️', '')}${colors.reset} ${msg}`),
   test: (msg) => console.log(`\n${colors.blue}═══ ${msg} ═══${colors.reset}`),
 };
 
