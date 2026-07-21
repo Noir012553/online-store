@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLanguage } from "../lib/i18n";
 import { CheckCircle, Clock, AlertCircle, PhoneCall } from "lucide-react";
+import { UI_EMOJI } from '../lib/uiEmoji';
 
 export const getServerSideProps = async () => {
   return { props: {} };
@@ -111,7 +112,7 @@ export default function WarrantyPolicy() {
                     {detail.contentKeys.map((itemKey, itemIndex) => (
                       <li key={itemIndex} className="flex items-start gap-3 bg-white rounded-lg p-4">
                         <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-white text-xs">✓</span>
+                          <span className="text-white text-xs">{UI_EMOJI.feature}</span>
                         </div>
                         <span className="text-gray-700">{t(itemKey, 'policies')}</span>
                       </li>

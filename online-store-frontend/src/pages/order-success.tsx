@@ -10,6 +10,7 @@ import { useTranslation, useLanguage } from '../lib/i18n';
 import { toast } from 'sonner';
 import { formatDate } from '../lib/utils';
 import { useCurrencyConversion } from '../hooks/useCurrencyConversion';
+import { UI_EMOJI } from '../lib/uiEmoji';
 
 export const getServerSideProps = async () => {
   return {
@@ -313,15 +314,15 @@ export default function OrderSuccess() {
           <h3 className="font-semibold text-blue-900 mb-3">{t('next_steps_title', 'order-success')}</h3>
           <ul className="space-y-2 text-blue-800 text-sm">
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">✓</span>
+              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
               <span>{t('next_steps_email_confirmation', 'order-success')}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">✓</span>
+              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
               <span>{t('next_steps_complete_payment', 'order-success')}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">✓</span>
+              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
               <span>{t('next_steps_track_orders', 'order-success')}</span>
             </li>
           </ul>

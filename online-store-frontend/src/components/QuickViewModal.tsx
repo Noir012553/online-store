@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useCurrencyConversion } from "../hooks/useCurrencyConversion";
+import { UI_EMOJI } from "../lib/uiEmoji";
 
 interface QuickViewModalProps {
   laptop: Laptop;
@@ -93,13 +94,13 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                       : 'bg-black'
                   }`}
                 >
-                  <span className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce' : ''}`}>🔥</span>
+                  <span className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce' : ''}`}>{UI_EMOJI.hotDeal}</span>
                   {t('hot_deal_badge', 'products')}
                 </Badge>
               )}
               {laptop.featured && !laptop.deal && (
                 <Badge className="absolute top-3 left-3 bg-red-600 text-white flex items-center gap-1">
-                  <span className="w-4 h-4">⭐</span>
+                  <span className="w-4 h-4">{UI_EMOJI.featured}</span>
                   {t('featured_badge', 'products')}
                 </Badge>
               )}

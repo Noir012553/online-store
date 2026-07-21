@@ -17,6 +17,7 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
+import { UI_EMOJI } from '../../lib/uiEmoji';
 import { Pagination } from "../../components/admin/Pagination";
 import { PermissionDenied } from "../../components/admin/PermissionDenied";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -445,7 +446,7 @@ function UsersAdminContent() {
               <strong>{hardDeleteConfirmUser?.email}</strong>?
             </p>
             <p className="text-sm text-red-600 font-medium">
-              ⚠️ {t('hard_delete_warning')}
+              {UI_EMOJI.statusWarning} {t('hard_delete_warning')}
             </p>
           </div>
 

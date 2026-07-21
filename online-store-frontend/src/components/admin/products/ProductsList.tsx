@@ -22,6 +22,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/router';
 import { getAuthToken } from "../../../lib/api";
+import { UI_EMOJI } from "../../../lib/uiEmoji";
 
 interface ProductsListProps {
   discountMode?: boolean;
@@ -405,7 +406,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         <div className="flex items-center gap-1 whitespace-nowrap">
                           <span className="font-medium">{(product.rating || 0).toFixed(1)}</span>
-                          <span>⭐</span>
+                          <span>{UI_EMOJI.featured}</span>
                           {product.numReviews > 0 && (
                             <span className="text-sm text-gray-500">({product.numReviews})</span>
                           )}

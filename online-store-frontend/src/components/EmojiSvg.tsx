@@ -22,7 +22,6 @@ export function EmojiSvg({ emoji, className = '' }: EmojiSvgProps) {
     <span
       ref={containerRef}
       className={`inline-flex items-center justify-center ${className}`}
-      style={{ display: 'inline-flex' }}
     >
       {emoji}
     </span>

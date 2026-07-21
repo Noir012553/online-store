@@ -16,6 +16,7 @@ import {
 } from "../../components/ui/dialog";
 import { toast } from "sonner";
 import { useTranslation } from '@/lib/i18n';
+import { UI_EMOJI } from '@/lib/uiEmoji';
 
 interface FormData {
   email: string;
@@ -229,7 +230,7 @@ function CreateUserContent() {
             {formData.role !== 'user' && (
               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-3">
                 <p className="text-sm text-blue-800">
-                  ⚠️ {t('admin_role_access_warning')}
+                  {UI_EMOJI.statusWarning} {t('admin_role_access_warning')}
                 </p>
               </div>
             )}

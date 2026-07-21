@@ -9,6 +9,7 @@ import { Mail, Phone, MapPin, Lock, Edit2, Check, X, ArrowLeft, Camera } from 'l
 import { authAPI, getAuthToken } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { useTranslation } from '../lib/i18n';
+import { UI_EMOJI } from '../lib/uiEmoji';
 
 export const getServerSideProps = async () => {
   return {
@@ -446,7 +447,7 @@ export default function Profile() {
                           { key: 'permission_view_dashboard' },
                         ].map((permission) => (
                           <div key={permission.key} className="flex items-center gap-3 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg hover:shadow-md transition-shadow">
-                            <span className="text-green-600 font-bold">✓</span>
+                            <span className="text-green-600 font-bold">{UI_EMOJI.feature}</span>
                             <p className="text-green-800 font-medium text-sm sm:text-base">{t(permission.key, 'profile')}</p>
                           </div>
                         ))}
