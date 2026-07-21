@@ -100,4 +100,5 @@ Một số khu vực đã dùng trực tiếp phần tử HTML `<select>`, gồm
 - Xác nhận các trường coupon đang dùng `<select>` native; giữ lại Popover cho multi-select vì có tìm kiếm, checkbox và thao tác chọn/xóa nhiều mục.
 - Đã xóa hai import `Select` cũ không dùng trong `CouponManagementPage.tsx` và `coupons/CouponForm.tsx`.
 - Build frontend và TypeScript đã chạy thành công sau khi cài dependencies.
+- `npm run check:emoji` và `npm test` đạt lần lượt không có lỗi và 10/10 bài kiểm tra.
 - Chưa kiểm thử trực tiếp trên preview vì môi trường chưa cấu hình tiến trình dev server.

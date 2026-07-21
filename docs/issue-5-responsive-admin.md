@@ -202,9 +202,11 @@ Các điểm cần kiểm tra:
 - Chuyển vùng nhập bản dịch sản phẩm và các thẻ thông tin trong modal thông báo đơn hàng sang một cột trên mobile, khôi phục hai cột từ breakpoint `sm`.
 - Rà soát các trang Dashboard, Statistics, Banners, Currency, Translations và các bảng admin phụ; giữ nguyên màu sắc, kiểu dáng, logic và breakpoint hiện có.
 
-### Chưa hoàn thành / cần kiểm thử
+### Kết quả xác minh
 
-- Build frontend và TypeScript đã chạy thành công sau khi cài dependencies.
-- Chưa kiểm thử trực tiếp golden path trên preview ở các kích thước desktop, tablet và mobile vì môi trường chưa cấu hình tiến trình dev server.
+- Frontend production build và TypeScript đã chạy thành công.
+- `npm run check:emoji` đạt, không phát hiện emoji hard-code ngoài registry được phép.
+- `npm test` đạt 10/10 bài kiểm tra offline.
+- Các điều chỉnh responsive trọng tâm đã được rà soát trong mã nguồn; chưa thực hiện kiểm thử tương tác trực tiếp trên preview do môi trường hiện không có tiến trình dev server được cấu hình.
 
-**Trạng thái:** Đã hoàn thành phần rà soát và điều chỉnh responsive trọng tâm; còn chờ xác minh build và kiểm thử trực tiếp trên preview.
+**Trạng thái:** Đã hoàn thành phần triển khai và xác minh tự động; kiểm thử trực tiếp trên preview vẫn là bước vận hành tùy thuộc cấu hình môi trường.

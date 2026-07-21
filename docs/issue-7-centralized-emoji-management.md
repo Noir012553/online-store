@@ -343,7 +343,8 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã rà soát:** các entry point được khai báo trong `online-store-backend/package.json` không còn ký hiệu Unicode hard-code trong output runtime; các ký hiệu còn lại thuộc comment hoặc script chưa được package expose.
 - **Đã sửa:** `online-store-frontend/src/components/ProductDescriptionFormatter.tsx` duyệt theo Unicode code point thay vì UTF-16 code unit, nên nhận diện đúng emoji surrogate pair như `📌` và `🔥` khi chèn ngắt dòng.
 - **Đã xác thực:** frontend `npm run check:emoji`, `npm run build` và `git diff --check` đều thành công.
-- **Đã xác định:** frontend `npm test` vẫn thất bại một kiểm tra có sẵn do không tìm thấy `../lib/i18n/types` từ `src/test/offline-manual.js`; lỗi này không liên quan formatter hoặc emoji.
+- **Đã khắc phục môi trường:** cài lại dependencies frontend không tạo lockfile mới; lỗi thiếu module `typescript` không còn tái diễn.
+- **Đã xác thực lại:** frontend `npm run check:emoji`, `npm test` (10/10 test) và `npm run build` đều thành công; backend `npm run check:emoji` cũng thành công.
 
 **Kết luận phạm vi:** không còn bước triển khai kỹ thuật bắt buộc trong issue này. Các script diagnostic chỉ đọc đã được rà soát; API response, email template, locale, report lưu file và script legacy còn lại đã được phân loại là ngoại lệ cần quy trình nội dung hoặc vận hành riêng, nên không thay đổi.
 
