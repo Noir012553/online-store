@@ -6,6 +6,7 @@
 const ShippingProvider = require('../models/ShippingProvider');
 const { getMessage } = require('../i18n/messages');
 const { getActiveLangCodes } = require('../config/languageInventory');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const SUPPORTED_LANGS = getActiveLangCodes();
 
@@ -14,7 +15,7 @@ const seedShippingProviders = async () => {
 
   if (!ghnToken) {
     console.warn(
-      '⚠️ GHN_API_TOKEN not found in .env file. Skipping GHN seeding.\n' +
+      `${CLI_SYMBOLS.warning} GHN_API_TOKEN not found in .env file. Skipping GHN seeding.\n` +
       '   Please add GHN_API_TOKEN to your .env file to enable shipping integration.'
     );
     return [];
@@ -27,7 +28,7 @@ const seedShippingProviders = async () => {
       existingGhn.currencyCode = 'VND';
       await existingGhn.save();
     }
-    console.log(`ℹ️  GHN provider already configured. Skipping creation.`);
+    console.log(`${CLI_SYMBOLS.info}  GHN provider already configured. Skipping creation.`);
     return [existingGhn];
   }
 
@@ -99,9 +100,9 @@ const seedShippingProviders = async () => {
   try {
     const savedGhn = await ghnProvider.save();
     createdProviders.push(savedGhn);
-    console.log(`🚚 ✅ Successfully created GHN shipping provider`);
+    console.log(`${CLI_SYMBOLS.truck} ${CLI_SYMBOLS.success} Successfully created GHN shipping provider`);
   } catch (error) {
-    console.error(`❌ Failed to create GHN provider: ${error.message}`);
+    console.error(`${CLI_SYMBOLS.error} Failed to create GHN provider: ${error.message}`);
   }
 
   return createdProviders;
