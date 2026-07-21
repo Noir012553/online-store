@@ -345,3 +345,7 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã xác định:** frontend `npm test` vẫn thất bại một kiểm tra có sẵn do không tìm thấy `../lib/i18n/types` từ `src/test/offline-manual.js`; lỗi này không liên quan formatter hoặc emoji.
 
 **Bước tiếp theo:** rà soát các script diagnostic chưa được package expose trước khi thêm vào enforcement; chưa xử lý các nhóm API response, email template, locale, report lưu file và script legacy nếu chưa xác nhận phạm vi nội dung.
+
+- **Đã hoàn thành thêm:** chuẩn hóa toàn bộ ký hiệu output terminal của `src/scripts/fix-product-prices.js` qua `CLI_SYMBOLS`, gồm kết nối, phân tích, cập nhật, xác thực và thống kê; không thay đổi truy vấn hoặc thao tác cập nhật dữ liệu.
+- **Đã hoàn thành thêm:** đưa script chẩn đoán/sửa giá này vào allowlist `scripts/check-cli-symbols.js`.
+- **Đã xác thực:** `online-store-backend` `npm run check:emoji`, kiểm tra cú pháp hai file cập nhật và `git diff --check` đều thành công.
