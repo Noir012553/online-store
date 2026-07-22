@@ -996,7 +996,7 @@ const TranslationsAdminTier2Content = () => {
 export async function getServerSideProps() {
   return {
     redirect: {
-      destination: '/admin/translationsAdminTier1',
+      destination: '/admin/translationsStatic',
       permanent: false,
     },
   };

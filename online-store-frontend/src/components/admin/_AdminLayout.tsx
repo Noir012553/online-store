@@ -203,8 +203,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           icon: Languages,
           children: [
             { path: "/admin/languagesConfig", icon: Languages, label: t('admin_languages_config', 'admin-common') },
-            { path: "/admin/translationsAdminTier1", icon: Languages, label: t('admin_translations_tier1', 'admin-common') },
-            { path: "/admin/productsTranslationsAdmin", icon: Globe, label: t('admin_products_translations', 'admin-common') },
+            { path: "/admin/translationsStatic", icon: Languages, label: t('admin_translations_tier1', 'admin-common') },
+            { path: "/admin/translationsDynamic", icon: Globe, label: t('admin_products_translations', 'admin-common') },
           ],
         },
       },
