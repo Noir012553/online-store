@@ -360,10 +360,6 @@ const connectDB = async () => {
   }
 };
 
-if (require.main === module) {
-  connectDB();
-}
-
 mongoose.connection.on('disconnected', () => {
   if (require.main !== module) {
     return;
@@ -650,8 +646,6 @@ socketHandler(io);
 app.set('io', io);
 
 const startServer = async () => {
-  if (serverStarted) return;
-
   const schedulerService = require('./services/exchangeRateSchedulerService');
   if (!schedulerService.isRunning) {
     await schedulerService.startScheduler({
@@ -660,8 +654,10 @@ const startServer = async () => {
     });
   }
 
-  serverStarted = true;
-  server.listen(PORT, '0.0.0.0');
+  if (!serverStarted) {
+    serverStarted = true;
+    server.listen(PORT, '0.0.0.0');
+  }
 };
 
 // Graceful shutdown handler
@@ -696,5 +692,11 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+if (require.main === module) {
+  serverStarted = true;
+  server.listen(PORT, '0.0.0.0');
+  connectDB();
+}
 
 module.exports = { app, io, server };
