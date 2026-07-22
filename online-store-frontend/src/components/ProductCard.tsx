@@ -6,7 +6,6 @@ import { getImageUrl, capitalizeSpecKey } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
-import { useTranslation } from "../lib/hooks/useTranslation";
 import { useLanguage } from "../lib/i18n";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
@@ -36,8 +35,7 @@ const RouterOrDiv = ({ href, children, className, isValidId, ...rest }: { href?:
 
 export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { t } = useTranslation();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const { translation } = useProductTranslation(laptop._id);
   const { formatConvertedPrice } = useCurrencyConversion();
   const [showQuickView, setShowQuickView] = useState(false);
@@ -55,14 +53,10 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       Object.assign(specs, translation.specs);
     }
 
-    const features = Array.isArray(laptop.features) ? [...laptop.features] : [];
-    if (translation?.features && Array.isArray(translation.features)) {
-      for (let i = 0; i < features.length && i < translation.features.length; i++) {
-        if (translation.features[i]) {
-          features[i] = translation.features[i];
-        }
-      }
-    }
+    const features = (Array.isArray(laptop.features) ? laptop.features : []).map((feature, index) => {
+      const translatedFeature = translation?.features?.[index] || feature;
+      return t(translatedFeature, 'products');
+    });
 
     return {
       id: laptop._id || laptop.id || '',

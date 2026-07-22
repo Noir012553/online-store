@@ -227,7 +227,10 @@ export default function ProductDetail() {
   const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() ?? '';
   const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() ?? '';
   const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? {};
-  const localizedFeatures = isSourceLocale ? laptop.features ?? [] : translation?.features ?? [];
+  const localizedFeatures = (laptop.features ?? []).map((feature: string, index: number) => {
+    const translatedFeature = isSourceLocale ? feature : translation?.features?.[index] || feature;
+    return t(translatedFeature, 'products');
+  });
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
     ? category._id ?? category.id
