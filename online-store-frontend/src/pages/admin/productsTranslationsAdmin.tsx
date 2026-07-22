@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
-import { Search, Globe, Save, ChevronDown } from "lucide-react";
+import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
 import { getAuthToken } from "../../lib/api";
 import { Button } from "../../components/ui/button";
@@ -32,6 +32,13 @@ interface ProductTranslation {
   specs?: Record<string, string>;
 }
 
+interface TranslationStatus {
+  status: 'missing' | 'pending' | 'approved' | 'needs_retranslate' | 'rejected';
+  manualFields: string[];
+  updatedAt: string | null;
+  validationErrors: string[];
+}
+
 export function ProductsTranslationsAdminContent() {
   const { isAdmin } = useAuth();
   const { t, loadNamespace, locale } = useTranslation();
@@ -53,6 +60,9 @@ export function ProductsTranslationsAdminContent() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Locale>(DEFAULT_LOCALE);
   const [isLanguageSelectorOpen, setIsLanguageSelectorOpen] = useState(false);
+  const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
+  const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
+  const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   // Fetch products with app locale language (left side follows global language)
@@ -93,12 +103,41 @@ export function ProductsTranslationsAdminContent() {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, currentPage, locale]);
 
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (products.length === 0) {
+        setTranslationStatuses({});
+        return;
+      }
+
+      try {
+        const productIds = products.map((product) => product._id).join(',');
+        const response = await fetch(
+          `/api/translations/admin/products/status?lang=${selectedLanguage}&productIds=${encodeURIComponent(productIds)}`,
+          {
+            headers: { Authorization: `Bearer ${getAuthToken()}` },
+            credentials: 'include',
+          }
+        );
+        if (!response.ok) throw new Error('Failed to fetch translation statuses');
+        const data = await response.json();
+        setTranslationStatuses(Object.fromEntries(
+          (data.data || []).map((status: TranslationStatus & { productId: string }) => [status.productId, status])
+        ));
+      } catch {
+        toast.error(t('status_load_failed', 'productsTranslations'));
+      }
+    };
+
+    fetchStatuses();
+  }, [products, selectedLanguage, t]);
+
   const handleSaveTranslations = async (productId: string, translations: ProductTranslation) => {
     try {
       setIsSubmitting(true);
       const token = getAuthToken();
 
-      const response = await fetch(`/api/products/${productId}?lang=${selectedLanguage}`, {
+      const response = await fetch(`/api/translations/admin/products/${productId}?lang=${selectedLanguage}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -119,6 +158,46 @@ export function ProductsTranslationsAdminContent() {
       toast.error(error instanceof Error ? error.message : t('save_failed', 'productsTranslations'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const visibleProducts = statusFilter === 'all'
+    ? products
+    : products.filter((product) => translationStatuses[product._id]?.status === statusFilter);
+
+  const handleRetranslate = async (product: any) => {
+    const status = translationStatuses[product._id];
+    if (status?.status === 'approved' && !window.confirm(t('retranslate_approved_confirm', 'productsTranslations'))) return;
+    if (!window.confirm(t('retranslate_confirm', 'productsTranslations').replace('{name}', product.name))) return;
+
+    try {
+      setRetranslatingProductId(product._id);
+      const response = await fetch(`/api/translations/admin/products/${product._id}/retranslate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ lang: selectedLanguage }),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || t('retranslate_failed', 'productsTranslations'));
+
+      setTranslationStatuses((current) => ({
+        ...current,
+        [product._id]: {
+          status: data.data.status,
+          manualFields: data.data.skippedManualFields || [],
+          updatedAt: new Date().toISOString(),
+          validationErrors: [],
+        },
+      }));
+      toast.success(t('retranslate_success', 'productsTranslations'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('retranslate_failed', 'productsTranslations'));
+    } finally {
+      setRetranslatingProductId(null);
     }
   };
 
@@ -147,6 +226,32 @@ export function ProductsTranslationsAdminContent() {
             className="pl-10 transition-colors focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <select
+          value={selectedLanguage}
+          onChange={(event) => {
+            setSelectedLanguage(event.target.value as Locale);
+            setCurrentPage(1);
+          }}
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
+          aria-label={t('translation_language_label', 'productsTranslations')}
+        >
+          {getLanguages(t).map((language) => (
+            <option key={language.code} value={language.code}>{language.name}</option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as 'all' | TranslationStatus['status'])}
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
+          aria-label={t('status_filter_label', 'productsTranslations')}
+        >
+          <option value="all">{t('status_all', 'productsTranslations')}</option>
+          <option value="missing">{t('status_missing', 'productsTranslations')}</option>
+          <option value="pending">{t('status_pending', 'productsTranslations')}</option>
+          <option value="approved">{t('status_approved', 'productsTranslations')}</option>
+          <option value="needs_retranslate">{t('status_needs_retranslate', 'productsTranslations')}</option>
+          <option value="rejected">{t('status_rejected', 'productsTranslations')}</option>
+        </select>
       </div>
 
       {/* Products List */}
@@ -155,12 +260,12 @@ export function ProductsTranslationsAdminContent() {
           <div className="flex justify-center py-12">
             <div className="text-gray-500">{t('loading', 'productsTranslations')}</div>
           </div>
-        ) : products.length === 0 ? (
+        ) : visibleProducts.length === 0 ? (
           <div className="flex justify-center py-12">
             <div className="text-gray-500">{t('no_products', 'productsTranslations')}</div>
           </div>
         ) : (
-          products.map((product) => (
+          visibleProducts.map((product) => (
             <ProductTranslationCard
               key={product._id}
               product={product}
@@ -171,6 +276,9 @@ export function ProductsTranslationsAdminContent() {
               onCancel={() => setEditingProductId(null)}
               onSave={(translations) => handleSaveTranslations(product._id, translations)}
               isSubmitting={isSubmitting}
+              translationStatus={translationStatuses[product._id]}
+              isRetranslating={retranslatingProductId === product._id}
+              onRetranslate={() => handleRetranslate(product)}
             />
           ))
         )}
@@ -197,6 +305,9 @@ interface ProductTranslationCardProps {
   onCancel: () => void;
   onSave: (translations: ProductTranslation) => void;
   isSubmitting: boolean;
+  translationStatus?: TranslationStatus;
+  isRetranslating: boolean;
+  onRetranslate: () => void;
 }
 
 function ProductTranslationCard({
@@ -208,6 +319,9 @@ function ProductTranslationCard({
   onCancel,
   onSave,
   isSubmitting,
+  translationStatus,
+  isRetranslating,
+  onRetranslate,
 }: ProductTranslationCardProps) {
   const { t } = useTranslation();
   const [translations, setTranslations] = useState<ProductTranslation>({});
@@ -229,7 +343,7 @@ function ProductTranslationCard({
         setLoadingTranslation(true);
 
         const response = await fetch(
-          `/api/products/${product._id}?lang=${selectedLanguage}`,
+          `/api/products/${product._id}/translations?lang=${selectedLanguage}`,
           {
             headers: {
               'Authorization': `Bearer ${getAuthToken()}`,
@@ -246,11 +360,11 @@ function ProductTranslationCard({
         const data = await response.json();
 
         setTranslations({
-          name: data.name || '',
-          description: data.description || '',
-          brand: data.brand || '',
-          features: Array.isArray(data.features) ? data.features : [],
-          specs: data.specs || {},
+          name: data.data?.name || '',
+          description: data.data?.description || '',
+          brand: data.data?.brand || '',
+          features: Array.isArray(data.data?.features) ? data.data.features : [],
+          specs: data.data?.specs || {},
         });
       } catch (error) {
         toast.error(t('load_failed', 'productsTranslations'));
@@ -301,6 +415,7 @@ function ProductTranslationCard({
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900">{product.name}</h3>
               <p className="text-sm text-gray-600 mt-1">{product.brand}</p>
+              <TranslationStatusBadge status={translationStatus} />
             </div>
           </div>
 
@@ -313,14 +428,26 @@ function ProductTranslationCard({
               />
             )}
             {!isEditing && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onEdit}
-                className="w-full"
-              >
-                {t('edit_button', 'productsTranslations')}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRetranslate}
+                  disabled={isRetranslating || selectedLanguage === DEFAULT_LOCALE}
+                  className="w-full"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {isRetranslating ? t('retranslating', 'productsTranslations') : t('retranslate_button', 'productsTranslations')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEdit}
+                  className="w-full"
+                >
+                  {t('edit_button', 'productsTranslations')}
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -350,6 +477,29 @@ function ProductTranslationCard({
 interface LanguageSelectorProps {
   selectedLanguage: string;
   onLanguageChange: (lang: string) => void;
+}
+
+function TranslationStatusBadge({ status }: { status?: TranslationStatus }) {
+  const { t } = useTranslation();
+  const statusName = status?.status || 'missing';
+  const statusClasses = {
+    missing: 'bg-gray-100 text-gray-700',
+    pending: 'bg-yellow-100 text-yellow-800',
+    approved: 'bg-green-100 text-green-800',
+    needs_retranslate: 'bg-orange-100 text-orange-800',
+    rejected: 'bg-red-100 text-red-800',
+  };
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[statusName]}`}>
+        {t(`status_${statusName}`, 'productsTranslations')}
+      </span>
+      {(status?.manualFields.length || 0) > 0 && (
+        <span className="text-xs text-gray-500">{t('manual_translation', 'productsTranslations')}</span>
+      )}
+    </div>
+  );
 }
 
 function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {

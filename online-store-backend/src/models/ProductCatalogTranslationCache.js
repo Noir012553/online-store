@@ -44,6 +44,30 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       default: 'success',
       index: true,
     },
+    qualityStatus: {
+      type: String,
+      enum: ['approved', 'pending', 'needs_retranslate', 'rejected'],
+      default: 'pending',
+      index: true,
+    },
+    qualityScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: null,
+    },
+    validationErrors: {
+      type: [String],
+      default: [],
+    },
+    manualFields: {
+      type: [String],
+      default: [],
+    },
+    lastTranslatedAt: {
+      type: Date,
+      default: null,
+    },
     retryCount: {
       type: Number,
       default: 0,
@@ -82,6 +106,7 @@ ProductCatalogTranslationCacheSchema.index(
 
 // Index for filtering by status
 ProductCatalogTranslationCacheSchema.index({ status: 1, targetLang: 1 });
+ProductCatalogTranslationCacheSchema.index({ qualityStatus: 1, targetLang: 1 });
 
 // TTL Index: Auto-delete after 90 days
 ProductCatalogTranslationCacheSchema.index(

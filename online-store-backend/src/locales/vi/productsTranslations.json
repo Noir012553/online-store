@@ -49,5 +49,20 @@
   "debug_status_yes": "Có",
   "debug_status_no": "Không",
   "source_language_vietnamese": "Tiếng Việt",
-  "translation_placeholder": "{source} → {target}"
+  "translation_placeholder": "{source} → {target}",
+  "status_load_failed": "Không thể tải trạng thái bản dịch",
+  "status_filter_label": "Lọc theo trạng thái dịch",
+  "status_all": "Tất cả trạng thái",
+  "status_missing": "Chưa có bản dịch",
+  "status_pending": "Đang chờ xử lý",
+  "status_approved": "Đạt yêu cầu",
+  "status_needs_retranslate": "Cần dịch lại",
+  "status_rejected": "Bị từ chối hoặc lỗi",
+  "manual_translation": "Có nội dung chỉnh sửa thủ công",
+  "retranslate_button": "Dịch lại",
+  "retranslating": "Đang dịch lại...",
+  "retranslate_confirm": "Bạn có chắc muốn dịch lại sản phẩm \"{name}\"? Các trường chỉnh sửa thủ công sẽ được giữ nguyên.",
+  "retranslate_approved_confirm": "Bản dịch này đã đạt yêu cầu. Bạn vẫn muốn tiếp tục dịch lại?",
+  "retranslate_success": "Đã dịch lại sản phẩm thành công",
+  "retranslate_failed": "Không thể dịch lại sản phẩm"
 }
