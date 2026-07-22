@@ -63,13 +63,14 @@ export function ProductsTranslationsAdminContent() {
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
   const itemsPerPage = 10;
 
-  if (!isAdmin) {
-    return <PermissionDenied feature="Products Translations" />;
-  }
-
   // Fetch products with app locale language (left side follows global language)
   useEffect(() => {
     const fetchProducts = async () => {
+      if (!isAdmin) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         const params = new URLSearchParams();
@@ -103,11 +104,11 @@ export function ProductsTranslationsAdminContent() {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, currentPage, locale]);
+  }, [searchQuery, currentPage, locale, isAdmin]);
 
   useEffect(() => {
     const fetchStatuses = async () => {
-      if (products.length === 0) {
+      if (!isAdmin || products.length === 0) {
         setTranslationStatuses({});
         return;
       }
@@ -132,7 +133,11 @@ export function ProductsTranslationsAdminContent() {
     };
 
     fetchStatuses();
-  }, [products, selectedLanguage, t]);
+  }, [products, selectedLanguage, t, isAdmin]);
+
+  if (!isAdmin) {
+    return <PermissionDenied feature="Products Translations" />;
+  }
 
   const handleSaveTranslations = async (productId: string, translations: ProductTranslation) => {
     try {
@@ -205,6 +210,7 @@ export function ProductsTranslationsAdminContent() {
           validationErrors: [],
         },
       }));
+      setProducts((current) => [...current]);
       toast.success(t('retranslate_success', 'productsTranslations'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('retranslate_failed', 'productsTranslations'));
