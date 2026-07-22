@@ -261,6 +261,40 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - Tuy nhiên, không có bằng chứng cùng trạng thái này tồn tại trong `ProductCatalogTranslationCache`, là nguồn được controller dùng để trả bản dịch sản phẩm. Vì vậy chưa thể kết luận backend hiện đã cung cấp trạng thái chất lượng theo từng sản phẩm/ngôn ngữ cho giao diện sản phẩm.
 - Endpoint re-translate được bảo vệ bằng `protect` và `admin` (`online-store-backend/src/routes/translationRoutes.js:31-36`), nhưng request hiện không hỗ trợ phạm vi từng product và không bảo đảm đồng bộ dữ liệu product cache như nêu trên.
 
+## Đánh giá khả năng hoạt động và độ trễ của nút re-translate
+
+### Nút hiện tại có hoạt động không?
+
+- Nút ở `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:182-227` có gửi `POST /api/translations/admin/retranslate-dynamic` và khóa nút bằng `isRetranslating` trong lúc chờ response.
+- Backend route được đăng ký và bảo vệ bằng admin ở `online-store-backend/src/routes/translationRoutes.js:31-36`.
+- Vì vậy, về mặt kết nối request, nút có thể hoạt động nếu có bản ghi `LiveTranslationCache` đúng `qualityStatus: 'needs_retranslate'` và cấu hình Cloudflare AI hợp lệ.
+- Tuy nhiên, đây chưa phải nút re-translate theo sản phẩm: request không truyền `productId`, danh sách bản ghi hoặc `entityType`, đồng thời kết quả được ghi vào `LiveTranslationCache` chứ chưa đồng bộ chắc chắn sang `ProductCatalogTranslationCache`.
+
+### Độ trễ hiện tại
+
+- `retranslateSeeder.retranslate` xử lý tuần tự từng bản ghi tại `online-store-backend/src/seeds/retranslateSeeder.js:66-103`; mỗi bản ghi gồm một lần gọi AI và bước validation.
+- Cloudflare AI đặt timeout mỗi request là 120 giây tại `online-store-backend/src/services/cloudflareAiService.js:237-258`.
+- Khi gặp lỗi tạm thời, service có thể retry tối đa 3 lần với thời gian chờ tăng dần 2, 4 và 8 giây tại `online-store-backend/src/services/cloudflareAiService.js:317-343`.
+- Frontend dùng `fetch` không có `AbortController` hoặc timeout riêng tại `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:199-207`, nên trình duyệt có thể giữ trạng thái loading cho đến khi server/proxy đóng request.
+
+**Kết luận về thời gian:** Không thể cam kết một con số cố định từ mã nguồn hiện tại. Trường hợp bình thường phụ thuộc latency Cloudflare AI và số bản ghi; với `limit: 100`, tổng thời gian tăng gần tuyến tính vì xử lý tuần tự. Trường hợp lỗi/retry có thể kéo dài nhiều phút; riêng lý thuyết timeout AI tối đa cho một bản ghi đã là khoảng 494 giây nếu cả 4 lần thử đều chạm timeout và cộng backoff, chưa tính 99 bản ghi còn lại.
+
+### Ngưỡng chấp nhận đề xuất
+
+- **0-2 giây:** có thể xem là phản hồi tức thời.
+- **2-10 giây:** chấp nhận được nếu có loading rõ ràng và không cho bấm trùng.
+- **Trên 10 giây:** không nên giữ request HTTP đồng bộ cho thao tác quản trị; cần chuyển sang job bất đồng bộ, trả `jobId`, hiển thị tiến trình và cho phép tải lại trạng thái.
+- Với re-translate một sản phẩm/một ngôn ngữ, mục tiêu nên là phản hồi kết quả trong **10 giây ở điều kiện bình thường** và có timeout hiển thị khoảng **30 giây** cho request đồng bộ.
+- Với batch, không nên coi việc chờ đến khi 100 bản ghi hoàn tất là UX chấp nhận được. Cần giới hạn batch nhỏ hoặc tạo job nền; request khởi tạo nên trả trạng thái trong khoảng **2 giây**, còn tiến trình/kết quả được truy vấn riêng.
+
+### Vấn đề cần bổ sung vào tiêu chí nghiệm thu
+
+- Đo p50/p95 thời gian xử lý cho 1 bản ghi và batch nhỏ trước khi chốt SLA.
+- Có timeout rõ ràng ở frontend và trạng thái lỗi có thể thử lại, không để spinner vô hạn.
+- Có progress theo số bản ghi, phân biệt đang xử lý, thành công, bỏ qua và thất bại.
+- Có cơ chế idempotency/chặn job trùng phía backend; chỉ khóa nút ở frontend là chưa đủ.
+- Nếu request bị ngắt giữa chừng, phải xác định rõ các bản ghi đã xử lý và chưa xử lý để tránh admin chạy lại mù toàn bộ batch.
+
 ## Trạng thái và bước tiếp theo (cập nhật)
 
 - **Đã ghi nhận:** Có mismatch giữa `LiveTranslationCache` (quality/retranslate) và `ProductCatalogTranslationCache` (nguồn trả bản dịch sản phẩm); đây là blocker contract cần giải quyết trước khi triển khai UI re-translate theo sản phẩm.
