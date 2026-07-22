@@ -1,7 +1,7 @@
 {
   "tier1_language_label": "Langue",
-  "title": "Traductions des fonctionnalités des produits",
-  "subtitle": "Gérer les traductions pour les fonctionnalités des produits dans différentes langues",
+  "title": "Traductions de produits",
+  "subtitle": "Gérer les traductions de produits par langue",
   "search_placeholder": "Rechercher des produits par nom...",
   "loading": "Chargement des produits...",
   "no_products": "Aucun produit trouvé",

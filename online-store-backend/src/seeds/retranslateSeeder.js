@@ -1,5 +1,6 @@
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');

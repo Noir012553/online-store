@@ -107,7 +107,7 @@
   "admin_languages_config": "Languages",
   "admin_translations_tier1": "Tier 1",
   "admin_translations_tier2": "Tier 2",
-  "admin_products_translations": "Translate Features",
+  "admin_products_translations": "Tier 2",
   "admin_price_currency": "(VND)",
   "admin_price_placeholder": "0",
   "admin_price_invalid": "Product price must be greater than 0",
