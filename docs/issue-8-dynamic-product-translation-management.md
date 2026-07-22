@@ -205,4 +205,68 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Bước tiếp theo:** lập bản đồ màn hình/menu hiện tại để hợp nhất đúng hai tầng trùng chức năng và đổi tên mà không làm mất quyền truy cập.
 - **Bước tiếp theo:** sau khi chốt yêu cầu mới triển khai frontend/backend và kiểm thử theo tiêu chí nghiệm thu.
 
-**Trạng thái cuối của tài liệu:** Đã ghi nhận Issue 8 và chưa thay đổi mã nguồn.
+## Phát hiện bổ sung từ rà soát mã nguồn
+
+> Các phát hiện dưới đây chỉ ghi nhận hiện trạng mã nguồn tại thời điểm rà soát; chưa có thay đổi mã ứng dụng.
+
+### 1. Endpoint re-translate không cập nhật nguồn dữ liệu bản dịch sản phẩm đang được frontend sử dụng
+
+- `online-store-backend/src/controllers/translationController.js:101-135` lấy bản dịch sản phẩm từ `ProductCatalogTranslationCache` theo `entityId`, `targetLang` và `status: 'success'`.
+- `online-store-backend/src/controllers/translationController.js:717-743` lại chuyển endpoint `POST /api/translations/admin/retranslate-dynamic` sang `retranslateSeeder.retranslate` mà không truyền phạm vi sản phẩm cụ thể.
+- `online-store-backend/src/seeds/retranslateSeeder.js:40-56` chỉ tìm bản ghi trong `LiveTranslationCache` có `qualityStatus: 'needs_retranslate'`.
+- `online-store-backend/src/seeds/retranslateSeeder.js:109-139` chỉ tạo phiên bản mới và cập nhật trạng thái trong `LiveTranslationCache`; không có bước đồng bộ sang `ProductCatalogTranslationCache`.
+- `online-store-backend/src/models/ProductCatalogTranslationCache.js:3-84` không có các trường `qualityStatus`, `qualityScore`, `validationErrors`, `entityType` hoặc liên kết version với `LiveTranslationCache`.
+
+**Tác động:** Re-translate thành công theo response API vẫn có thể không làm thay đổi dữ liệu mà `GET /api/products/:id/translations` trả về. Không thể hiển thị chính xác trạng thái `approved`, `needs_retranslate` hoặc lịch sử chất lượng theo sản phẩm từ schema hiện dùng.
+
+**Cần chốt trước khi triển khai:** Chọn một nguồn dữ liệu chuẩn cho dynamic product translation, hoặc thiết kế mapping/sync có định danh theo sản phẩm, ngôn ngữ và trường dữ liệu trước khi nối nút re-translate vào màn hình sản phẩm.
+
+### 2. Contract re-translate hiện quá rộng, không bảo đảm phạm vi sản phẩm
+
+- `online-store-backend/src/controllers/translationController.js:705-739` cho phép `entityType` là tùy chọn; khi không truyền, endpoint chỉ lọc theo `lang` và `limit`.
+- `online-store-backend/src/models/LiveTranslationCache.js:25-32` cho thấy cache này chứa cả product, category, review và `generic`.
+- `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:188-206` đang gọi endpoint với `{ lang: selectedLang, limit: 100 }`, không truyền `entityType`, `productId` hay danh sách sản phẩm.
+
+**Tác động:** Một thao tác từ khu vực quản trị có thể dịch lại tối đa 100 bản ghi cần xử lý của mọi loại entity trong cùng ngôn ngữ, thay vì chỉ các bản ghi sản phẩm được admin chọn.
+
+**Cần chốt trước khi triển khai:** Contract phải xác định rõ phạm vi entity sản phẩm và định danh product/field; giới hạn batch cần được áp dụng sau khi đã xác định filter, không thay thế filter bằng `limit`.
+
+### 3. Màn hình Dịch sản phẩm không có dữ liệu trạng thái hoặc thao tác re-translate
+
+- `online-store-frontend/src/pages/admin/productsTranslationsAdmin.tsx:76-94` chỉ tải danh sách từ `GET /api/products`.
+- `online-store-frontend/src/pages/admin/productsTranslationsAdmin.tsx:96-123` chỉ lưu nội dung chỉnh sửa thủ công bằng `PUT /api/products/:id?lang=...`.
+- `online-store-frontend/src/pages/admin/productsTranslationsAdmin.tsx:125-187` chỉ render tìm kiếm, danh sách thẻ sản phẩm và phân trang; không có filter/trạng thái translation, lựa chọn bản ghi hoặc request tới endpoint re-translate.
+
+**Tác động:** Các tiêu chí phân biệt bản dịch thiếu, chờ xử lý, đạt yêu cầu, cần dịch lại, bị từ chối/lỗi và thao tác re-translate tại sản phẩm đều chưa có dữ liệu hay giao diện tương ứng.
+
+### 4. Tên gọi và cấu trúc ba màn hình quản trị translation vẫn là cấu trúc cũ
+
+- `online-store-frontend/src/components/admin/_AdminLayout.tsx:197-210` vẫn hiển thị đồng thời menu Tầng 1, Tầng 2 và Dịch Features.
+- `online-store-frontend/src/pages/admin/translationsAdminTier1.tsx:889-892` và `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:1002-1005` vẫn khai báo hai `featureName` riêng.
+- `online-store-backend/src/locales/vi/admin-common.json:108-112` và `online-store-backend/src/locales/en/admin-common.json:106-110` vẫn dịch mục sản phẩm là Dịch Features/Translate Features.
+- `online-store-backend/src/locales/vi/productsTranslations.json:2-4` và `online-store-backend/src/locales/en/productsTranslations.json:2-4` vẫn mô tả trang là Dịch thuật Tính năng Sản phẩm/Product Feature Translations.
+
+**Tác động:** Yêu cầu đổi tên thành Dịch sản phẩm trong nội dung trang, đổi mục cũ thành Tầng 2 và hợp nhất/loại bỏ một trong hai trang Tầng 1/Tầng 2 chưa được phản ánh xuyên suốt trong menu, page metadata và locale.
+
+### 5. Tìm kiếm cache ở Tầng 2 chỉ lọc trong trang dữ liệu đang tải
+
+- `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:94-120` chỉ tải một trang cache-records bằng `skip` và `limit`.
+- `online-store-frontend/src/pages/admin/translationsAdminTier2.tsx:128-143` lọc `searchText` trên mảng `cacheRecords` hiện có trong bộ nhớ, rồi đặt lại `pageIndex` về 0 mà không gửi từ khóa tới API.
+
+**Tác động:** Kết quả tìm kiếm không bao phủ toàn bộ cache theo ngôn ngữ. Admin có thể không tìm được bản ghi cần xử lý nếu bản ghi đó nằm ngoài trang đã tải.
+
+### Điều chỉnh nhận định hiện trạng
+
+- Có cơ chế `qualityStatus` với `approved`, `pending`, `needs_retranslate`, `rejected`, `retranslated` trong `LiveTranslationCache` (`online-store-backend/src/models/LiveTranslationCache.js:55-70`).
+- Tuy nhiên, không có bằng chứng cùng trạng thái này tồn tại trong `ProductCatalogTranslationCache`, là nguồn được controller dùng để trả bản dịch sản phẩm. Vì vậy chưa thể kết luận backend hiện đã cung cấp trạng thái chất lượng theo từng sản phẩm/ngôn ngữ cho giao diện sản phẩm.
+- Endpoint re-translate được bảo vệ bằng `protect` và `admin` (`online-store-backend/src/routes/translationRoutes.js:31-36`), nhưng request hiện không hỗ trợ phạm vi từng product và không bảo đảm đồng bộ dữ liệu product cache như nêu trên.
+
+## Trạng thái và bước tiếp theo (cập nhật)
+
+- **Đã ghi nhận:** Có mismatch giữa `LiveTranslationCache` (quality/retranslate) và `ProductCatalogTranslationCache` (nguồn trả bản dịch sản phẩm); đây là blocker contract cần giải quyết trước khi triển khai UI re-translate theo sản phẩm.
+- **Đã ghi nhận:** Contract API hiện có thể tác động các entity không phải sản phẩm nếu caller không truyền `entityType`.
+- **Đã ghi nhận:** Chức năng tìm kiếm cache ở Tầng 2 chỉ hoạt động trên trang dữ liệu đang tải.
+- **Bước tiếp theo:** Xác minh luồng tạo và đồng bộ `ProductCatalogTranslationCache`, sau đó chốt schema/API trả trạng thái theo `productId`, ngôn ngữ và trường sản phẩm.
+- **Bước tiếp theo:** Quy định rõ thao tác re-translate phải bảo toàn bản dịch chỉnh sửa thủ công và có phạm vi product/field xác định.
+
+**Trạng thái cuối của tài liệu:** Đã bổ sung các phát hiện từ rà soát mã nguồn; chưa thay đổi mã nguồn.
