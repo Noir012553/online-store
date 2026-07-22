@@ -63,6 +63,21 @@ Backend cũng đã có cơ chế xác định bản dịch cần xử lý lại 
 5. Quy trình phải chạy seed lại gây khó xác định phạm vi, khó theo dõi kết quả và không phù hợp với thao tác quản trị từng sản phẩm.
 6. Chưa có thông tin tiến trình, kết quả thành công/thất bại và lỗi theo sản phẩm/ngôn ngữ sau khi re-translate.
 
+## Yêu cầu về tên trang và cấu trúc tầng
+
+Trang `/admin/productsTranslationsAdmin` hiện được hiển thị với tên **Dịch Features**. Tên này chưa phản ánh đầy đủ phạm vi vì Features chỉ là một phần của dữ liệu sản phẩm. Tên hiển thị của trang cần được đổi thành **Dịch sản phẩm**.
+
+Cấu trúc menu/tầng hiện tại cũng đang có các mục **Tầng 1**, **Tầng 2** và **Dịch Features** với chức năng bị trùng lặp hoặc chồng lấn. Yêu cầu mới:
+
+- Hợp nhất hai mục **Tầng 1** và **Tầng 2** đang có chung mục đích thành một mục duy nhất tên **Tầng 1**.
+- Mục đang được gọi là **Dịch Features** cần được đổi tên thành **Tầng 2** trong cấu trúc quản lý mới.
+- Trong phạm vi nội dung của trang sản phẩm, tên mô tả chức năng phải là **Dịch sản phẩm**, không dùng **Dịch Features** để tránh hiểu nhầm chỉ dịch trường Features.
+- Giữ URL `/admin/productsTranslationsAdmin` ổn định trong giai đoạn này, trừ khi có yêu cầu riêng về route.
+- Sau khi hợp nhất, không hiển thị đồng thời các mục cũ bị trùng chức năng.
+- Các tiêu đề, mô tả, menu, breadcrumb, quyền hiển thị và bản dịch liên quan phải dùng cùng một quy ước tên mới.
+
+Cần đối chiếu chính xác vai trò của từng màn hình trước khi triển khai để bảo đảm việc đổi tên không làm mất chức năng quản lý static translation, dynamic translation hoặc cache translation.
+
 ## Mục tiêu chức năng
 
 ### Hiển thị trạng thái
@@ -117,6 +132,9 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 
 ## Tiêu chí nghiệm thu dự kiến
 
+- Trang `/admin/productsTranslationsAdmin` hiển thị được tên chức năng **Dịch sản phẩm**, không còn dùng tên **Dịch Features** làm tiêu đề mô tả phạm vi.
+- Hai mục có chức năng trùng lặp **Tầng 1** và **Tầng 2** được hợp nhất thành một mục duy nhất tên **Tầng 1**.
+- Mục **Dịch Features** được đổi tên thành **Tầng 2** trong cấu trúc menu mới và không còn xuất hiện với tên cũ.
 - Trang `/admin/productsTranslationsAdmin` hiển thị được trạng thái dịch dynamic của sản phẩm theo ngôn ngữ.
 - Admin phân biệt được sản phẩm cần re-translate và sản phẩm không cần re-translate.
 - Có nút re-translate với phạm vi thao tác rõ ràng.
@@ -167,9 +185,12 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Đã ghi nhận:** static translation đã hoàn thiện theo yêu cầu hiện tại.
 - **Đã ghi nhận:** dynamic translation trong khu vực admin sản phẩm chưa cung cấp bảng trạng thái cần re-translate.
 - **Đã ghi nhận:** trang admin hiện có luồng xem/sửa/lưu bản dịch sản phẩm nhưng chưa có nút re-translate.
+- **Đã ghi nhận:** tên **Dịch Features** không phản ánh đầy đủ phạm vi dịch sản phẩm.
+- **Đã ghi nhận:** **Tầng 1** và **Tầng 2** hiện có chức năng chồng lấn cần hợp nhất; mục **Dịch Features** cần chuyển thành tên **Tầng 2** theo cấu trúc mới.
 - **Đã ghi nhận:** backend đã có endpoint admin `POST /api/translations/admin/retranslate-dynamic` cần được đối chiếu contract trước khi tích hợp.
 - **Bước tiếp theo:** rà soát contract endpoint, model/schema trạng thái dynamic translation và dữ liệu trả về cho từng sản phẩm/ngôn ngữ.
 - **Bước tiếp theo:** thống nhất UX cho trạng thái, filter, phạm vi nút re-translate và cảnh báo ghi đè bản dịch thủ công.
+- **Bước tiếp theo:** lập bản đồ màn hình/menu hiện tại để hợp nhất đúng hai tầng trùng chức năng và đổi tên mà không làm mất quyền truy cập.
 - **Bước tiếp theo:** sau khi chốt yêu cầu mới triển khai frontend/backend và kiểm thử theo tiêu chí nghiệm thu.
 
 **Trạng thái cuối của tài liệu:** Đã ghi nhận Issue 8 và chưa thay đổi mã nguồn.
