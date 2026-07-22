@@ -469,3 +469,13 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 3. Sửa luồng import/export để round-trip dữ liệu nguồn, nhận diện sản phẩm bằng khóa ổn định và chỉ đánh dấu stale với trường có thể dịch thay đổi.
 4. Triển khai backend đồng bộ job re-translate vào đúng cache API sản phẩm đang dùng; bổ sung kiểm thử tích hợp.
 5. Triển khai UI Dịch sản phẩm, hợp nhất cấu trúc Tầng 1/Tầng 2, sau đó kiểm thử luồng quản trị đầu cuối.
+
+### Cập nhật triển khai
+
+- **Đã triển khai:** Màn `/admin/productsTranslationsAdmin` đã có tải trạng thái theo sản phẩm/ngôn ngữ, lọc theo `missing`, `pending`, `approved`, `needs_retranslate`, `rejected` và xác nhận trước khi re-translate.
+- **Đã triển khai:** Re-translate sản phẩm gọi endpoint theo `productId` và `lang`, giữ lại các trường chỉnh sửa thủ công theo response backend.
+- **Đã triển khai:** Đổi nhãn menu và metadata của màn sản phẩm từ **Tầng 2** thành **Dịch sản phẩm/Product translations**; URL `/admin/productsTranslationsAdmin` được giữ nguyên.
+- **Đã xác nhận:** `/admin/translationsAdminTier2` đang là route legacy chuyển hướng về `/admin/translationsAdminTier1` và không xuất hiện trong menu chính.
+- **Kiểm thử đạt:** `online-store-frontend/npm test` hoàn tất 10/10 kiểm tra offline thủ công.
+- **Kiểm thử bị chặn bởi môi trường:** `online-store-frontend/npm run build` chưa chạy được vì thiếu module `next`; `online-store-backend/npm run test:list -- --suite=i18n` chưa chạy được vì thiếu module `dotenv`. Chưa có bằng chứng các lỗi này xuất phát từ thay đổi issue-8.
+- **Còn lại:** Kiểm thử build/frontend và kiểm thử tích hợp endpoint sau khi cài đủ dependency; chưa triển khai thay đổi schema, import/export hoặc job batch.

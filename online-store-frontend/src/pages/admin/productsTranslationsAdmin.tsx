@@ -834,5 +834,5 @@ export const getServerSideProps = async () => {
 
 export default withAdminLayout(ProductsTranslationsAdminContent, {
   permission: 'manage:translations',
-  featureName: 'Tầng 2'
+  featureName: 'Dịch sản phẩm'
 });
