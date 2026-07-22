@@ -401,3 +401,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Trung bình — `online-store-frontend/scripts/check-ui-emoji.js:3`, môi trường rà soát hiện tại:** `npm run check:emoji` frontend không chạy được do `Error: Cannot find module 'typescript'`, mặc dù checker dùng `require('typescript')` để phân tích AST. `typescript` đã được khai báo trong `devDependencies` ở `online-store-frontend/package.json:67`; cần bảo đảm dependencies phát triển được cài trước khi dùng checker như tiêu chí xác thực. Không thay đổi checker hoặc dependency trong đợt rà soát này.
 
 **Cập nhật bước tiếp theo:** trước khi khẳng định lại trạng thái hoàn tất, cần quyết định có đưa `src/seeds/translationSeeder.js` vào registry/allowlist hay ghi nhận nó là ngoại lệ. Khi báo cáo kết quả checker, cần nêu rõ phạm vi allowlist và điều kiện dependencies frontend đã sẵn sàng, thay vì diễn giải pass là không còn ký hiệu hard-code trên toàn repository.
+
+### Phát hiện rà soát bổ sung — test language sync ngoài enforcement
+
+- **Thấp — `online-store-backend/src/test/test-language-sync-flow.js:30-36`:** logger `log.test` vẫn hard-code box-drawing `═══` ở hai đầu tiêu đề test, trong khi các logger `info`, `success`, `error` và `warn` đã dùng `CLI_SYMBOLS`. File không nằm trong `checkedFiles` của `online-store-backend/scripts/check-cli-symbols.js` và không được expose trong `online-store-backend/package.json`, nên `npm run check:emoji` không phát hiện điểm không nhất quán này. Cần xác minh file còn được chạy thủ công hay đã là test legacy trước khi đưa divider vào registry hoặc ghi nhận là format riêng của test.
+
+**Cập nhật bước tiếp theo:** ngoài `translationSeeder.js`, cần phân loại `test-language-sync-flow.js` theo tình trạng vận hành trước khi mở rộng allowlist; không nên đưa mọi test chạy thủ công/legacy vào enforcement khi chưa xác định chúng còn được sử dụng.
