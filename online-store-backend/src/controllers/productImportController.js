@@ -846,7 +846,7 @@ const getImportGuide = asyncHandler(async (req, res) => {
         csvFormat: 'Use deal_discount and deal_endTime columns',
         exampleJson: '{"discount": 15, "endTime": "2026-12-31"}',
         exampleCsv: 'deal_discount=15, deal_endTime="2026-12-31"',
-        note: 'discount: 0-100 (%), endTime must be future date',
+        note: 'discount: 0-100 (%), endTime must be a valid date',
       },
       images: {
         format: 'Array in JSON | Pipe-separated string in CSV',

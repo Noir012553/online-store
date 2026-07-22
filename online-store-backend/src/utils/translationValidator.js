@@ -37,13 +37,12 @@ class TranslationValidator {
     if (!config.ENABLE_LANGUAGE_CHECK) return null;
     try {
       const detected = await this.detectLanguage(translated);
-      if (detected !== expectedLang) {
-        return {
-          error: 'wrong_language',
-          expected: expectedLang,
-          detected,
-        };
-      }
+      if (!detected || detected === 'unknown' || detected === expectedLang) return null;
+      return {
+        error: 'wrong_language',
+        expected: expectedLang,
+        detected,
+      };
     } catch (err) {
       // Silent fail, skip language check if detection fails
       console.warn('Language detection failed:', err.message);
@@ -136,7 +135,6 @@ class TranslationValidator {
       }
     } catch (err) {
       // Fallback: simple detection based on characters
-      if (/[\u0100-\u017F\u0180-\u024F]/.test(text)) return 'la';
       if (/[\u0400-\u04FF]/.test(text)) return 'ru';
       if (/[\u4E00-\u9FFF]/.test(text)) return 'zh';
       if (/[\uAC00-\uD7AF]/.test(text)) return 'ko';
