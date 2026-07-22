@@ -851,7 +851,12 @@ exports.retranslateProduct = async (req, res) => {
       if (manualFields.includes(field) || !source) return existing?.[field];
       const translated = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
       const validation = await translationValidator.validateTranslation(source, translated, targetLang, entityType);
-      if (validation.validationErrors?.length) throw new Error(validation.validationErrors.join(', '));
+      if (validation.validationErrors?.length) {
+        const error = new Error('Translation validation failed');
+        error.statusCode = 422;
+        error.validationErrors = validation.validationErrors;
+        throw error;
+      }
       return translated;
     };
 
@@ -892,6 +897,14 @@ exports.retranslateProduct = async (req, res) => {
       data: { productId, lang: targetLang, status: translation.qualityStatus, skippedManualFields: manualFields },
     });
   } catch (error) {
+    if (error.statusCode === 422) {
+      return res.status(422).json({
+        success: false,
+        message: 'The translation did not pass validation',
+        validationErrors: error.validationErrors,
+      });
+    }
+
     console.error('[TranslationController] Error retranslating product:', error);
     return res.status(500).json({ success: false, message: 'Product retranslation failed' });
   }
