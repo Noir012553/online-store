@@ -483,3 +483,11 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Kiểm thử đạt:** `online-store-frontend/npm test` hoàn tất 10/10 kiểm tra offline thủ công; kiểm tra cú pháp hai tệp backend đã sửa và `git diff --check` đều đạt.
 - **Kiểm thử bị chặn bởi môi trường:** Kiểm thử parser CSV thực tế không chạy được vì backend thiếu module `mongoose`; các kiểm thử build/frontend và tích hợp endpoint vẫn cần dependency đầy đủ. Chưa có bằng chứng các lỗi môi trường này xuất phát từ thay đổi issue-8.
 - **Còn lại:** Kiểm thử round-trip CSV/JSON bằng endpoint thực tế, kiểm thử tích hợp endpoint re-translate, build frontend, backup translation đa ngôn ngữ và schema/job batch.
+
+## Yêu cầu cập nhật tên trang quản trị
+
+- **Đã yêu cầu:** Gộp hai trang `/admin/translationsAdminTier1` và `/admin/translationsAdminTier2` thành một trang duy nhất có route mới `/admin/translationsStatic`.
+- **Đã yêu cầu:** Đổi route `/admin/productsTranslationsAdmin` thành `/admin/translationsDynamic` để phản ánh đúng phạm vi quản lý dynamic translation của sản phẩm.
+- **Định hướng tương thích:** Các URL cũ nên chuyển hướng an toàn về route mới, không tiếp tục hiển thị hai giao diện có cùng chức năng.
+- **Trạng thái triển khai:** Chưa áp dụng được việc đổi tên tệp/route trong phiên rà soát này vì môi trường đã chặn thao tác đổi tên tệp cục bộ; cần thực hiện lại bằng công cụ hoặc phiên có quyền phù hợp.
+- **Lưu ý:** Việc cập nhật này thay đổi quyết định trước đó trong tài liệu về giữ ổn định `/admin/productsTranslationsAdmin`; tên route mới được ưu tiên theo yêu cầu hiện tại.
