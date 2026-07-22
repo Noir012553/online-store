@@ -23,7 +23,7 @@ function ImportProductsContent() {
   const [fileData, setFileData] = useState('');
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [mode, setMode] = useState<'insert' | 'update' | 'upsert'>('upsert');
-  const [dryRun, setDryRun] = useState(true);
+  const [dryRun, setDryRun] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [guide, setGuide] = useState<any>(null);
