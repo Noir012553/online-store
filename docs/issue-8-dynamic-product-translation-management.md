@@ -453,3 +453,19 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - Quy trình tối ưu là: import xác định product bằng khóa ổn định; diff riêng các trường có thể dịch; chỉ đánh dấu stale/tạo job cho đúng `productId` + ngôn ngữ + field bị đổi; không đụng vào dữ liệu `manual`; sau đó job cập nhật chính nguồn cache API sản phẩm đang overlay. Backup/migration đa ngôn ngữ phải là JSON có schema version riêng, không phải export CSV vận hành.
 
 **Trạng thái cuối của tài liệu (cập nhật tiếp):** Đã bổ sung các blocker runtime, nguồn dữ liệu bản dịch thủ công, export bị cắt ngầm và thiếu định danh ổn định khi import; chưa thay đổi mã nguồn.
+
+## Tiến độ thực hiện
+
+- **Hoàn thành:** Rà soát hiện trạng frontend, backend, cache dynamic translation, endpoint re-translate và luồng export/import liên quan.
+- **Hoàn thành:** Xác định các blocker bắt buộc trước khi triển khai giao diện re-translate theo sản phẩm: nguồn dữ liệu translation không thống nhất, API chưa khoanh vùng theo sản phẩm/trường, dữ liệu thủ công chưa có nguồn hiển thị chuẩn và job hiện tại chưa được xác minh hoạt động đầu cuối.
+- **Hoàn thành:** Ghi nhận các vấn đề độc lập của export/import: file export chưa round-trip được, thiếu khóa định danh ổn định và chưa invalidate translation khi trường nguồn thay đổi.
+- **Chưa bắt đầu:** Thay đổi mã frontend/backend, hợp nhất các trang Tầng 1/Tầng 2, đổi tên hiển thị, bổ sung API/schema/job và kiểm thử tích hợp.
+- **Trạng thái hiện tại:** Chờ chốt contract dữ liệu và phạm vi re-translate trước khi triển khai để tránh gọi dịch lại sai entity, ghi đè bản dịch thủ công hoặc cập nhật sai cache hiển thị.
+
+### Thứ tự triển khai đề xuất
+
+1. Chốt nguồn dữ liệu chuẩn và quy tắc ưu tiên bản dịch thủ công cho `productId`, ngôn ngữ và trường sản phẩm.
+2. Thiết kế contract re-translate có phạm vi bắt buộc theo sản phẩm/ngôn ngữ/trường, giới hạn batch, idempotency và kết quả theo từng bản ghi.
+3. Sửa luồng import/export để round-trip dữ liệu nguồn, nhận diện sản phẩm bằng khóa ổn định và chỉ đánh dấu stale với trường có thể dịch thay đổi.
+4. Triển khai backend đồng bộ job re-translate vào đúng cache API sản phẩm đang dùng; bổ sung kiểm thử tích hợp.
+5. Triển khai UI Dịch sản phẩm, hợp nhất cấu trúc Tầng 1/Tầng 2, sau đó kiểm thử luồng quản trị đầu cuối.
