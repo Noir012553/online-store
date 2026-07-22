@@ -22,6 +22,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Supplier = require('../models/Supplier');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -40,6 +41,78 @@ const adapterManager = new ImportAdapterManager();
 // Config: Max new categories/suppliers per import (to prevent abuse)
 const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
 const MAX_NEW_SUPPLIERS_PER_IMPORT = 10;
+const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'features', 'specs'];
+
+const getImportProductId = (product) => (
+  mongoose.Types.ObjectId.isValid(product.productId) ? product.productId.toString() : null
+);
+
+const getProductLookupFilter = (product) => {
+  const productId = getImportProductId(product);
+  return productId
+    ? { _id: productId, isDeleted: false }
+    : { name: product.name, brand: product.brand, isDeleted: false };
+};
+
+const getChangedTranslatableFields = (existing, product) => (
+  TRANSLATABLE_PRODUCT_FIELDS.filter((field) => (
+    JSON.stringify(existing[field] ?? null) !== JSON.stringify(product[field] ?? null)
+  ))
+);
+
+const withoutImportProductId = (product) => {
+  const { productId, ...productData } = product;
+  return productData;
+};
+
+const findExistingProduct = (byId, byNameAndBrand, product) => {
+  const productId = getImportProductId(product);
+  return productId
+    ? byId.get(productId)
+    : byNameAndBrand.get(`${product.name}|${product.brand}`);
+};
+
+async function invalidateChangedProductTranslations(affectedProducts = []) {
+  if (affectedProducts.length === 0) {
+    return { markedForRetranslation: 0, preservedManualTranslations: 0 };
+  }
+
+  const affectedFieldsByProduct = new Map(
+    affectedProducts.map(({ productId, fields }) => [productId.toString(), fields])
+  );
+  const caches = await ProductCatalogTranslationCache.find({
+    entityId: { $in: [...affectedFieldsByProduct.keys()] },
+  }).lean();
+  const operations = [];
+  let preservedManualTranslations = 0;
+
+  for (const cache of caches) {
+    const changedFields = affectedFieldsByProduct.get(cache.entityId) || [];
+    const hasMachineManagedChange = changedFields.some((field) => !cache.manualFields?.includes(field));
+    if (!hasMachineManagedChange) {
+      preservedManualTranslations++;
+      continue;
+    }
+
+    operations.push({
+      updateOne: {
+        filter: { _id: cache._id },
+        update: {
+          $set: {
+            qualityStatus: 'needs_retranslate',
+            validationErrors: ['source_content_changed'],
+          },
+        },
+      },
+    });
+  }
+
+  if (operations.length > 0) {
+    await ProductCatalogTranslationCache.bulkWrite(operations);
+  }
+
+  return { markedForRetranslation: operations.length, preservedManualTranslations };
+}
 
 /**
  * Import products từ file upload (FormData)
@@ -362,12 +435,17 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       successMessage += ` | Tạo mới ${createdSuppliers.length} supplier: ${createdSuppliers.join(', ')}`;
     }
 
+    const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
       message: successMessage,
       format,
       mode,
-      results,
+      results: {
+        ...results,
+        affectedTranslations: undefined,
+      },
+      translationSummary,
       createdCategories,
       createdSuppliers,
       warnings: validation.warnings,
@@ -445,11 +523,8 @@ const importProducts = asyncHandler(async (req, res) => {
     const categoryMap = {};
     const categories = await Category.find({ isDeleted: false });
     categories.forEach(cat => {
-      const values = [getCategoryText(cat.name)].filter(Boolean);
-      values.forEach((value) => {
-        categoryMap[value] = cat._id;
-        categoryMap[String(value).toLowerCase()] = cat._id;
-      });
+      categoryMap[cat.name] = cat._id;
+      categoryMap[cat.name.toLowerCase()] = cat._id;
     });
 
     // Map supplier names → IDs (FIX #1: Filter isDeleted = false)
@@ -515,12 +590,17 @@ const importProducts = asyncHandler(async (req, res) => {
         results = await handleUpsertMode(enrichedProducts);
     }
 
+    const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
       message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật`,
       format,
       mode,
-      results,
+      results: {
+        ...results,
+        affectedTranslations: undefined,
+      },
+      translationSummary,
       warnings: validation.warnings,
     });
   } catch (error) {
@@ -563,7 +643,7 @@ async function handleInsertMode(products) {
     if (existingSet.has(key)) {
       skipped.push({ name: product.name, brand: product.brand, reason: 'Sản phẩm đã tồn tại' });
     } else {
-      toInsert.push(product);
+      toInsert.push(withoutImportProductId(product));
     }
   });
 
@@ -574,7 +654,7 @@ async function handleInsertMode(products) {
     insertedCount = result.length;
   }
 
-  return { inserted: insertedCount, updated: 0, skipped: skipped.length, skipped };
+  return { inserted: insertedCount, updated: 0, skipped: skipped.length, skipped, affectedTranslations: [] };
 }
 
 /**
@@ -585,49 +665,32 @@ async function handleInsertMode(products) {
 async function handleUpdateMode(productsWithEnrichedIds) {
   const updated = [];
   const notFound = [];
-
-  // OPTIMIZATION: Bulk fetch all existing products in ONE query instead of N findOne calls
-  const filters = productsWithEnrichedIds.map(p => ({
-    name: p.name,
-    brand: p.brand,
-    isDeleted: false,
-  }));
-
-  const existingProducts = await Product.find({
-    $or: filters,
-    isDeleted: false,
-  }).lean();
-
-  // Create lookup map: key = "name|brand"
-  const existingMap = new Map();
-  existingProducts.forEach(p => {
-    existingMap.set(`${p.name}|${p.brand}`, p);
-  });
-
-  // Build bulk write operations for all updates
+  const filters = productsWithEnrichedIds.map(getProductLookupFilter);
+  const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
+  const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
+  const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
   const bulkOps = [];
+  const affectedTranslations = [];
 
   for (const product of productsWithEnrichedIds) {
-    const key = `${product.name}|${product.brand}`;
-    const existing = existingMap.get(key);
-
+    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
     if (!existing) {
       notFound.push({ name: product.name, brand: product.brand });
-    } else {
-      // Prepare update document, excluding 'user' field
-      const updateDoc = { ...product };
-      delete updateDoc.user;
+      continue;
+    }
 
-      bulkOps.push({
-        updateOne: {
-          filter: {
-            _id: existing._id,
-            isDeleted: false,
-          },
-          update: { $set: updateDoc },
-        },
-      });
-      updated.push(existing._id);
+    const changedFields = getChangedTranslatableFields(existing, product);
+    const updateDoc = withoutImportProductId(product);
+    delete updateDoc.user;
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: existing._id, isDeleted: false },
+        update: { $set: updateDoc },
+      },
+    });
+    updated.push(existing._id);
+    if (changedFields.length > 0) {
+      affectedTranslations.push({ productId: existing._id, fields: changedFields });
     }
   }
 
@@ -635,12 +698,11 @@ async function handleUpdateMode(productsWithEnrichedIds) {
     throw new Error(`${notFound.length} sản phẩm không tìm thấy`);
   }
 
-  // Execute all updates in single bulkWrite (1 DB round-trip instead of N)
   if (bulkOps.length > 0) {
     await Product.bulkWrite(bulkOps);
   }
 
-  return { inserted: 0, updated: updated.length, skipped: 0, notFound };
+  return { inserted: 0, updated: updated.length, skipped: 0, notFound, affectedTranslations };
 }
 
 /**
@@ -649,29 +711,40 @@ async function handleUpdateMode(productsWithEnrichedIds) {
  * Single DB operation instead of N queries
  */
 async function handleUpsertMode(products) {
-  // Build bulk write operations
-  const bulkOps = products.map(product => ({
-    updateOne: {
-      filter: {
-        name: product.name,
-        brand: product.brand,
-        isDeleted: false,
+  const filters = products.map(getProductLookupFilter);
+  const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
+  const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
+  const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
+  const affectedTranslations = [];
+  const bulkOps = products.map((product) => {
+    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
+    if (existing) {
+      const changedFields = getChangedTranslatableFields(existing, product);
+      if (changedFields.length > 0) {
+        affectedTranslations.push({ productId: existing._id, fields: changedFields });
+      }
+    }
+
+    return {
+      updateOne: {
+        filter: existing
+          ? { _id: existing._id, isDeleted: false }
+          : { name: product.name, brand: product.brand, isDeleted: false },
+        update: { $set: withoutImportProductId(product) },
+        upsert: true,
       },
-      update: { $set: product },
-      upsert: true,
-    },
-  }));
+    };
+  });
 
   try {
     const result = await Product.bulkWrite(bulkOps);
-
-    // Extract stats from bulkWrite result
-    const inserted = result.upsertedCount;
-    const updated = result.modifiedCount;
-
-    return { inserted, updated, skipped: 0 };
+    return {
+      inserted: result.upsertedCount,
+      updated: result.modifiedCount,
+      skipped: 0,
+      affectedTranslations,
+    };
   } catch (error) {
-    // Handle duplicate key errors gracefully
     if (error.code === 11000) {
       console.error('Duplicate key error during upsert:', error.message);
       throw new Error('Lỗi duplicate data - có thể do unique constraint violation');
@@ -853,9 +926,11 @@ const exportProducts = asyncHandler(async (req, res) => {
     const transformedProducts = products
       .filter(product => product.category && product.supplier)  // FIX #3: Filter out products with null refs
       .map(product => ({
+        productId: product._id.toString(),
         name: product.name,
         brand: product.brand,
         price: product.price,
+        baseCurrencyCode: product.baseCurrencyCode,
         originalPrice: product.originalPrice,
         category: product.category?.name || 'Unknown',  // Fallback to avoid null
         supplier: product.supplier?.name || 'Unknown',  // Fallback to avoid null
@@ -903,12 +978,12 @@ const exportProducts = asyncHandler(async (req, res) => {
  */
 function convertProductsToCSV(products) {
   if (!products || products.length === 0) {
-    return 'name,brand,price,originalPrice,category,supplier,description,image,countInStock,features,rating,numReviews,featured,deal_discount,deal_endTime';
+    return 'productId,name,brand,price,baseCurrencyCode,originalPrice,category,supplier,description,image,countInStock,features,rating,numReviews,featured,deal_discount,deal_endTime';
   }
 
   // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
   const headers = [
-    'name', 'brand', 'price', 'originalPrice', 'category', 'supplier',
+    'productId', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category', 'supplier',
     'description', 'image', 'countInStock', 'features', 'rating', 'numReviews',
     'featured', 'deal_discount', 'deal_endTime'
   ];

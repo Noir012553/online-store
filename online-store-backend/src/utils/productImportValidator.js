@@ -21,7 +21,7 @@ const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'supplier', 'base
  * Optional fields có thể có khi import
  */
 const OPTIONAL_FIELDS = [
-  'originalPrice', 'image', 'images', 'countInStock', 'specs', 
+  'productId', 'originalPrice', 'image', 'images', 'countInStock', 'specs',
   'features', 'rating', 'numReviews', 'featured', 'deal'
 ];
 
@@ -53,6 +53,15 @@ function validateProduct(product, rowIndex = 0) {
     errors.push(`Row ${rowIndex}: baseCurrencyCode must be a valid 3-letter uppercase currency code`);
   } else {
     cleaned.baseCurrencyCode = baseCurrencyCode;
+  }
+
+  if (product.productId !== undefined && product.productId !== null && String(product.productId).trim()) {
+    const productId = String(product.productId).trim();
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      errors.push(`Row ${rowIndex}: productId must be a valid product ID`);
+    } else {
+      cleaned.productId = productId;
+    }
   }
 
   // Validate price
