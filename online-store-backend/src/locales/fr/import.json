@@ -29,6 +29,7 @@
   "dry_run_note": "Ceci est un mode d'aperçu. Aucune donnée ne sera sauvegardée",
   "inserted_label": "Ajouté",
   "updated_label": "Mis à Jour",
+  "unchanged_label": "Inchangé",
   "skipped_label": "Ignoré",
   "warnings_title": "Avertissements",
   "reason_label": "Raison:",

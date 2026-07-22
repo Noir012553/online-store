@@ -29,6 +29,7 @@
   "dry_run_note": "Đây là chế độ xem trước. Không có dữ liệu nào được lưu",
   "inserted_label": "Đã thêm",
   "updated_label": "Đã cập nhật",
+  "unchanged_label": "Không thay đổi",
   "skipped_label": "Bỏ qua",
   "warnings_title": "Cảnh báo",
   "reason_label": "Lý do:",

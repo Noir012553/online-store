@@ -428,7 +428,7 @@ function ImportProductsContent() {
           )}
 
           {result.results && (
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div className="p-3 bg-white rounded border">
                 <div className="text-sm text-gray-600">{t('inserted_label')}</div>
                 <div className="text-2xl font-bold text-green-600">
@@ -439,6 +439,12 @@ function ImportProductsContent() {
                 <div className="text-sm text-gray-600">{t('updated_label')}</div>
                 <div className="text-2xl font-bold text-blue-600">
                   {result.results.updated}
+                </div>
+              </div>
+              <div className="p-3 bg-white rounded border">
+                <div className="text-sm text-gray-600">{t('unchanged_label')}</div>
+                <div className="text-2xl font-bold text-gray-600">
+                  {result.results.unchanged || 0}
                 </div>
               </div>
               <div className="p-3 bg-white rounded border">

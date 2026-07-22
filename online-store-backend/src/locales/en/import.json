@@ -29,6 +29,7 @@
   "dry_run_note": "This is a preview mode. No data will be saved",
   "inserted_label": "Added",
   "updated_label": "Updated",
+  "unchanged_label": "Unchanged",
   "skipped_label": "Skipped",
   "warnings_title": "Warnings",
   "reason_label": "Reason:",

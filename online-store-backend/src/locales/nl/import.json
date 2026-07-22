@@ -29,6 +29,7 @@
   "dry_run_note": "Dit is een voorbeeldmodus. Geen gegevens worden opgeslagen",
   "inserted_label": "Toegevoegd",
   "updated_label": "Bijgewerkt",
+  "unchanged_label": "Ongewijzigd",
   "skipped_label": "Overgeslagen",
   "warnings_title": "Waarschuwingen",
   "reason_label": "Reden:",
