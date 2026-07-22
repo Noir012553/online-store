@@ -478,8 +478,9 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 
 - **Đã triển khai:** Màn `/admin/productsTranslationsAdmin` đã có tải trạng thái theo sản phẩm/ngôn ngữ, lọc theo `missing`, `pending`, `approved`, `needs_retranslate`, `rejected` và xác nhận trước khi re-translate.
 - **Đã triển khai:** Re-translate sản phẩm gọi endpoint theo `productId` và `lang`, giữ lại các trường chỉnh sửa thủ công theo response backend.
-- **Đã triển khai:** Đổi nhãn menu và metadata của màn sản phẩm từ **Tầng 2** thành **Dịch sản phẩm/Product translations**; URL `/admin/productsTranslationsAdmin` được giữ nguyên.
-- **Đã xác nhận:** `/admin/translationsAdminTier2` đang là route legacy chuyển hướng về `/admin/translationsAdminTier1` và không xuất hiện trong menu chính.
+- **Đã triển khai:** Chức năng dịch tĩnh được phục vụ tại `/admin/translationsStatic`; chức năng dịch động sản phẩm được phục vụ tại `/admin/translationsDynamic`.
+- **Đã triển khai:** Menu admin đã bỏ hai mục route cũ và trỏ trực tiếp tới hai route mới.
+- **Đã triển khai:** `/admin/translationsAdminTier1`, `/admin/translationsAdminTier2` và `/admin/productsTranslationsAdmin` được giữ làm route legacy redirect tới route mới, không còn render giao diện trùng chức năng.
 - **Kiểm thử đạt:** `online-store-frontend/npm test` hoàn tất 10/10 kiểm tra offline thủ công; kiểm tra cú pháp hai tệp backend đã sửa và `git diff --check` đều đạt.
 - **Kiểm thử bị chặn bởi môi trường:** Kiểm thử parser CSV thực tế không chạy được vì backend thiếu module `mongoose`; các kiểm thử build/frontend và tích hợp endpoint vẫn cần dependency đầy đủ. Chưa có bằng chứng các lỗi môi trường này xuất phát từ thay đổi issue-8.
 - **Còn lại:** Kiểm thử round-trip CSV/JSON bằng endpoint thực tế, kiểm thử tích hợp endpoint re-translate, build frontend, backup translation đa ngôn ngữ và schema/job batch.
