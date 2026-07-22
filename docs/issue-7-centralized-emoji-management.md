@@ -370,3 +370,10 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã xác thực:** frontend `npm run check:emoji`, `npm test` (10/10 test) và `npm run build` đều thành công. Test đa ngôn ngữ đọc locale metadata từ nguồn TypeScript thay vì require trực tiếp bằng CommonJS, không tạo bản sao danh sách locale.
 - **Đã hoàn thành thêm:** chuẩn hóa ký hiệu CLI trong `src/services/translationSeederService.js` và `src/services/translationSeederHelper.js` qua `CLI_SYMBOLS`, bao gồm log retry, incremental, skip, lỗi dịch và hoàn tất namespace; mở rộng allowlist checker cho hai service này.
 - **Đã xác thực:** backend `npm run check:emoji`, kiểm tra cú pháp hai service và `git diff --check` đều thành công.
+
+### Phát hiện rà soát bổ sung — ký hiệu tiền tệ
+
+- **Thấp — `online-store-frontend/src/components/admin/CurrencyForm.tsx:156`:** placeholder nhập ký hiệu tiền tệ hard-code `₫, $, €...`. Các ký hiệu này là ví dụ dữ liệu đầu vào hợp lệ, không phải emoji UI hoặc ký hiệu trạng thái; `check-ui-emoji.js` chỉ dò các dải Unicode emoji nên không phát hiện. Giữ nguyên để không làm thay đổi hướng dẫn nhập liệu, đồng thời ghi nhận rõ đây là ngoại lệ theo ngữ cảnh dữ liệu tiền tệ.
+- **Thấp — `online-store-backend/src/seeds/currencySeeder.js:18, 38`:** currency seeder hard-code `₫` và `€` trong trường `symbol`. Đây là dữ liệu nghiệp vụ của mệnh giá, không phải output CLI, nên không thuộc `CLI_SYMBOLS` hay phạm vi `check-cli-symbols.js`; file cũng không nằm trong allowlist và checker chỉ dò ký hiệu trên dòng `console.*`. Không chuẩn hóa qua registry emoji/CLI để tránh biến dữ liệu seed thành nội dung trình bày.
+
+**Kết luận:** hai ký hiệu trên là ngoại lệ có chủ đích của dữ liệu tiền tệ. Không mở rộng regex/checker chỉ để bắt chúng, vì sẽ làm lẫn lộn biểu tượng dữ liệu với emoji UI và ký hiệu terminal cần quản lý tập trung.
