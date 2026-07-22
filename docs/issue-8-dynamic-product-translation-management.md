@@ -78,6 +78,8 @@ Các yêu cầu cụ thể:
 
 - Hợp nhất hai màn hình `translationsAdminTier1` và `translationsAdminTier2` đang có chung mục đích thành một màn hình duy nhất tên **Tầng 1**.
 - Nếu không thể gộp ngay trong cùng một màn hình, phải chọn một URL làm URL chính và loại bỏ hoặc chuyển hướng URL còn lại; không duy trì hai giao diện trùng chức năng.
+- URL/trang được giữ lại trong hai URL trên cũng phải được sửa tên hiển thị và tên page/route nội bộ theo chức năng mới, không chỉ đổi nhãn trên menu.
+- URL/trang bị bỏ không được tiếp tục hiển thị tên cũ hoặc dẫn tới một giao diện trùng chức năng; cần chuyển hướng an toàn hoặc thông báo trang đã được hợp nhất.
 - Mục đang được gọi là **Dịch Features** cần được đổi tên thành **Tầng 2** trong cấu trúc quản lý mới.
 - Trong phạm vi nội dung của trang sản phẩm, tên mô tả chức năng phải là **Dịch sản phẩm**, không dùng **Dịch Features** để tránh hiểu nhầm chỉ dịch trường Features.
 - Giữ URL `/admin/productsTranslationsAdmin` ổn định trong giai đoạn này, trừ khi có yêu cầu riêng về route.
@@ -143,6 +145,7 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - Trang `/admin/productsTranslationsAdmin` hiển thị được tên chức năng **Dịch sản phẩm**, không còn dùng tên **Dịch Features** làm tiêu đề mô tả phạm vi.
 - Hai URL `/admin/translationsAdminTier1` và `/admin/translationsAdminTier2` không còn cùng tồn tại với chức năng trùng lặp.
 - Hai URL trên được gộp thành một trang duy nhất tên **Tầng 1**, hoặc một URL được chọn làm chính và URL còn lại được loại bỏ/chuyển hướng an toàn.
+- URL/trang được giữ lại phải được sửa tên page/route và tên hiển thị theo chức năng **Tầng 1**, không chỉ đổi nhãn menu.
 - Mục **Dịch Features** được đổi tên thành **Tầng 2** trong cấu trúc menu mới và không còn xuất hiện với tên cũ.
 - Trang `/admin/productsTranslationsAdmin` hiển thị được trạng thái dịch dynamic của sản phẩm theo ngôn ngữ.
 - Admin phân biệt được sản phẩm cần re-translate và sản phẩm không cần re-translate.
