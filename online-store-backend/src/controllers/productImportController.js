@@ -408,7 +408,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         createdCategories,
         createdSuppliers,
         warnings: validation.warnings,
-        preview: enrichedProducts.slice(0, 3),
+        preview: validProducts.slice(0, 3),
       });
     }
 
@@ -570,9 +570,9 @@ const importProducts = asyncHandler(async (req, res) => {
         dryRun: true,
         format,
         mode,
-        totalProducts: enrichedProducts.length,
+        totalProducts: validProducts.length,
         warnings: validation.warnings,
-        preview: enrichedProducts.slice(0, 3),
+        preview: validProducts.slice(0, 3),
       });
     }
 

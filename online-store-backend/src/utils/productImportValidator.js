@@ -307,6 +307,16 @@ function validateProductArray(products) {
     };
   }
 
+  if (products.length === 0) {
+    return {
+      isValid: false,
+      errors: ['Import data phải chứa ít nhất một sản phẩm'],
+      warnings: [],
+      validProducts: [],
+      invalidProducts: [],
+    };
+  }
+
   const validProducts = [];
   const invalidProducts = [];
   const allErrors = [];
