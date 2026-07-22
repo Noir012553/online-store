@@ -37,7 +37,9 @@ class TranslationValidator {
     if (!config.ENABLE_LANGUAGE_CHECK) return null;
     try {
       const detected = await this.detectLanguage(translated);
-      if (!detected || detected === 'unknown' || detected === expectedLang) return null;
+      const detectedCode = this.normalizeLanguageCode(detected);
+      const expectedCode = this.normalizeLanguageCode(expectedLang);
+      if (!detectedCode || detectedCode === 'unknown' || detectedCode === expectedCode) return null;
       return {
         error: 'wrong_language',
         expected: expectedLang,
@@ -124,6 +126,22 @@ class TranslationValidator {
       qualityStatus,
       hasCriticalErrors: errors.some(e => config.CRITICAL_ERRORS.includes(e)),
     };
+  }
+
+  normalizeLanguageCode(language) {
+    const codes = {
+      vietnamese: 'vi', vie: 'vi',
+      english: 'en', eng: 'en',
+      portuguese: 'pt', por: 'pt',
+      french: 'fr', fra: 'fr', fre: 'fr',
+      german: 'de', deu: 'de', ger: 'de',
+      italian: 'it', ita: 'it',
+      spanish: 'es', spa: 'es',
+      dutch: 'nl', nld: 'nl', dut: 'nl',
+      swedish: 'sv', swe: 'sv',
+    };
+    const normalized = String(language || '').trim().toLowerCase();
+    return codes[normalized] || normalized.split(/[-_]/)[0];
   }
 
   async detectLanguage(text) {
