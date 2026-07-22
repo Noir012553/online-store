@@ -43,6 +43,12 @@ const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
 const MAX_NEW_SUPPLIERS_PER_IMPORT = 10;
 const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'features', 'specs'];
 
+const getFeatureLabel = (feature, lang) => {
+  if (typeof feature !== 'string') return feature;
+  const translated = getMessage(lang, `products.${feature}`);
+  return translated === `products.${feature}` ? feature : translated;
+};
+
 const getImportProductId = (product) => (
   mongoose.Types.ObjectId.isValid(product.productId) ? product.productId.toString() : null
 );
@@ -862,7 +868,8 @@ const getImportGuide = asyncHandler(async (req, res) => {
  * 3. Export limited products: GET /api/admin/products/export?format=json&limit=100
  */
 const exportProducts = asyncHandler(async (req, res) => {
-  const { format = 'json', category, brand, limit = 10000 } = req.query;
+  const { format = 'json', category, brand, limit = 10000, lang } = req.query;
+  const exportLanguage = isSupportedLanguage(lang) ? lang : (req.lang || getDefaultLanguage().code);
 
   // Validate format
   if (!['json', 'csv'].includes(format.toLowerCase())) {
@@ -944,6 +951,9 @@ const exportProducts = asyncHandler(async (req, res) => {
         countInStock: product.countInStock || 0,
         specs: product.specs || {},
         features: Array.isArray(product.features) ? product.features : [],
+        featureLabels: Array.isArray(product.features)
+          ? product.features.map((feature) => getFeatureLabel(feature, exportLanguage))
+          : [],
         rating: product.rating || 0,
         numReviews: product.numReviews || 0,
         featured: product.featured || false,
@@ -983,13 +993,13 @@ const exportProducts = asyncHandler(async (req, res) => {
  */
 function convertProductsToCSV(products) {
   if (!products || products.length === 0) {
-    return 'productId,name,brand,price,baseCurrencyCode,originalPrice,category,supplier,description,image,countInStock,features,rating,numReviews,featured,deal_discount,deal_endTime';
+    return 'productId,name,brand,price,baseCurrencyCode,originalPrice,category,supplier,description,image,countInStock,features,featureLabels,rating,numReviews,featured,deal_discount,deal_endTime';
   }
 
   // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
   const headers = [
     'productId', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category', 'supplier',
-    'description', 'image', 'countInStock', 'features', 'rating', 'numReviews',
+    'description', 'image', 'countInStock', 'features', 'featureLabels', 'rating', 'numReviews',
     'featured', 'deal_discount', 'deal_endTime'
   ];
 
@@ -1032,7 +1042,7 @@ function convertProductsToCSV(products) {
           value = product[header];
 
           // Special handling for arrays
-          if (header === 'features' && Array.isArray(value)) {
+          if (['features', 'featureLabels'].includes(header) && Array.isArray(value)) {
             value = value.join('|');
           }
         }
