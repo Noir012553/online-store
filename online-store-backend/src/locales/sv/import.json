@@ -29,6 +29,7 @@
   "dry_run_note": "Detta är ett förhandsvisningsläge. Inga data sparas",
   "inserted_label": "Tillagd",
   "updated_label": "Uppdaterad",
+  "unchanged_label": "Oförändrad",
   "skipped_label": "Överhoppad",
   "warnings_title": "Varningar",
   "reason_label": "Anledning:",

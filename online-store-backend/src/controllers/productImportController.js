@@ -427,7 +427,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     // Build success message with created categories/suppliers info
-    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật`;
+    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi`;
     if (createdCategories.length > 0) {
       successMessage += ` | Tạo mới ${createdCategories.length} category: ${createdCategories.join(', ')}`;
     }
@@ -593,7 +593,7 @@ const importProducts = asyncHandler(async (req, res) => {
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
-      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật`,
+      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi`,
       format,
       mode,
       results: {
@@ -741,6 +741,7 @@ async function handleUpsertMode(products) {
     return {
       inserted: result.upsertedCount,
       updated: result.modifiedCount,
+      unchanged: result.matchedCount - result.modifiedCount,
       skipped: 0,
       affectedTranslations,
     };

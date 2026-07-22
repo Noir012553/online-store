@@ -29,6 +29,7 @@
   "dry_run_note": "Dies ist ein Vorschaumodus. Keine Daten werden gespeichert",
   "inserted_label": "Hinzugefügt",
   "updated_label": "Aktualisiert",
+  "unchanged_label": "Unverändert",
   "skipped_label": "Übersprungen",
   "warnings_title": "Warnungen",
   "reason_label": "Grund:",

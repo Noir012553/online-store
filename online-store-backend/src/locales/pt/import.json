@@ -29,6 +29,7 @@
   "dry_run_note": "Este é um modo de pré-visualização. Nenhum dado será salvo",
   "inserted_label": "Adicionado",
   "updated_label": "Atualizado",
+  "unchanged_label": "Sem alterações",
   "skipped_label": "Ignorado",
   "warnings_title": "Aviso",
   "reason_label": "Motivo:",
