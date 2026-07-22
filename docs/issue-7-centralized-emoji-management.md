@@ -385,3 +385,11 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Thấp — `online-store-frontend/src/test/offline-support.test.ts:99, 111`:** fixture test chứa `© 2024` trong dữ liệu `footer.copyright`. Đây là nội dung fixture bản quyền, không phải emoji UI hoặc ký hiệu CLI; checker không dò và không nên mở rộng để bắt ký hiệu này. Giữ nguyên, đồng thời phân loại rõ cùng nhóm test fixture hợp lệ.
 
 **Cập nhật bước tiếp theo:** xử lý riêng các ký hiệu `└─`, `→`, `════════` còn sót trong `offline-manual.js`, rồi xác minh việc `test-backend-endpoints-phase3.js` có phải entry point được vận hành trước khi đưa vào enforcement. Không thay đổi fixture `© 2024`.
+
+### Phát hiện rà soát bổ sung — script CLI ngoài enforcement
+
+- **Trung bình — `online-store-backend/src/scripts/setup-i18n-indexes.js:23-25, 28-29, 37-44, 51-62, 71-80, 93, 96-124, 132`:** bản trong `src/scripts` vẫn hard-code `📍`, `✅`, `✓`, `📊`, `─`, `🚀`, `💡` và `❌` trong `console.*`. Checker chỉ enforce `scripts/setup-i18n-indexes.js` ở thư mục gốc; file đó đã dùng `CLI_SYMBOLS`, còn bản `src/scripts` không có trong allowlist. `package.json:42` hiện chạy `src/scripts/setup-production-indexes.js`, không phải file này. Cần xác minh bản `src/scripts` còn được vận hành hay là bản legacy trước khi chuẩn hóa hoặc xóa; kết quả `npm run check:emoji` không bao phủ nó.
+- **Thấp — `online-store-backend/src/scripts/translate.js:594-607, 614-618`:** utility dịch cũ hard-code `✓` và `✗` trong output kết quả từng file. File không import `CLI_SYMBOLS`, không nằm trong `checkedFiles` và không được expose bằng script trong `package.json`. Cần xác minh tình trạng sử dụng trước khi đưa vào registry/checker, tránh chuẩn hóa một entry point legacy không còn chạy.
+- **Thấp — `online-store-backend/src/scripts/create-missing-locales.js:41-42, 66-74`:** utility tạo locale hard-code `✓`, `✗` và `✅` trong output terminal. File không dùng `CLI_SYMBOLS`, không nằm trong allowlist checker và không được gọi trực tiếp từ `package.json`. Đây là CLI runtime ngoài enforcement; cần phân loại trạng thái legacy/vận hành trước khi áp dụng chuẩn hóa.
+
+**Đối soát phát hiện bị loại:** `online-store-backend/scripts/backup-livetranslationcache.js:42` không phải lỗi còn sót. Dù output hiển thị thành công có `✅`, giá trị được lấy từ `CLI_SYMBOLS.success`, nên đã tuân thủ registry và checker.
