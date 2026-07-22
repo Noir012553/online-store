@@ -452,17 +452,19 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Không nên yêu cầu admin bấm re-translate sau import**: nút hiện chưa có phạm vi product/field, có thể lỗi runtime và không bảo đảm cập nhật cache mà API sản phẩm dùng.
 - Quy trình tối ưu là: import xác định product bằng khóa ổn định; diff riêng các trường có thể dịch; chỉ đánh dấu stale/tạo job cho đúng `productId` + ngôn ngữ + field bị đổi; không đụng vào dữ liệu `manual`; sau đó job cập nhật chính nguồn cache API sản phẩm đang overlay. Backup/migration đa ngôn ngữ phải là JSON có schema version riêng, không phải export CSV vận hành.
 
-**Trạng thái cuối của tài liệu (cập nhật tiếp):** Đã bổ sung các blocker runtime, nguồn dữ liệu bản dịch thủ công, export bị cắt ngầm và thiếu định danh ổn định khi import; chưa thay đổi mã nguồn.
+**Trạng thái cuối của tài liệu (cập nhật tiếp):** Đã bổ sung các blocker runtime, nguồn dữ liệu bản dịch thủ công, export bị cắt ngầm và thiếu định danh ổn định khi import; các điểm round-trip CSV liên quan đến `productId`, BOM và `specs_*` đã được cập nhật trong mã nguồn.
 
 ## Tiến độ thực hiện
 
 - **Hoàn thành:** Rà soát hiện trạng frontend, backend, cache dynamic translation, endpoint re-translate và luồng export/import liên quan.
 - **Hoàn thành:** Xác định các blocker bắt buộc trước khi triển khai giao diện re-translate theo sản phẩm: nguồn dữ liệu translation không thống nhất, API chưa khoanh vùng theo sản phẩm/trường, dữ liệu thủ công chưa có nguồn hiển thị chuẩn và job hiện tại chưa được xác minh hoạt động đầu cuối.
 - **Hoàn thành:** Ghi nhận các vấn đề độc lập của export/import: file export chưa round-trip được, thiếu khóa định danh ổn định và chưa invalidate translation khi trường nguồn thay đổi.
+- **Đã triển khai:** Cập nhật CSV export/import để giữ `productId`, xử lý BOM UTF-8 và round-trip các trường `specs_*`.
+- **Đã triển khai:** Cập nhật template CSV và import guide để phản ánh `productId` cùng `baseCurrencyCode` trong contract vận hành.
 - **Đã triển khai một phần:** Bổ sung UI trạng thái dynamic translation, lọc theo trạng thái, xác nhận re-translate theo sản phẩm/ngôn ngữ và bảo toàn các trường chỉnh sửa thủ công.
 - **Đã triển khai một phần:** Bổ sung API status/save/re-translate theo `productId`, validation ngôn ngữ, đồng bộ dữ liệu với `ProductCatalogTranslationCache` và sửa lỗi khai báo trùng trong seeder re-translate.
 - **Đã triển khai:** Hợp nhất điều hướng Tầng 1/Tầng 2 bằng cách chuyển hướng `/admin/translationsAdminTier2` về `/admin/translationsAdminTier1`; đổi metadata và nhãn menu sản phẩm thành **Dịch sản phẩm**.
-- **Trạng thái hiện tại:** Luồng quản trị sản phẩm đã có nền tảng hoạt động; còn kiểm thử tích hợp endpoint, build frontend và các hạng mục import/export, schema/job batch ngoài phạm vi thay đổi hiện tại.
+- **Trạng thái hiện tại:** Luồng quản trị sản phẩm và round-trip CSV đã có nền tảng hoạt động; còn kiểm thử tích hợp endpoint, build frontend, backup translation đa ngôn ngữ, schema/job batch và kiểm thử import thực tế sau khi cài đủ dependency.
 
 ### Thứ tự triển khai đề xuất
 
@@ -478,6 +480,6 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Đã triển khai:** Re-translate sản phẩm gọi endpoint theo `productId` và `lang`, giữ lại các trường chỉnh sửa thủ công theo response backend.
 - **Đã triển khai:** Đổi nhãn menu và metadata của màn sản phẩm từ **Tầng 2** thành **Dịch sản phẩm/Product translations**; URL `/admin/productsTranslationsAdmin` được giữ nguyên.
 - **Đã xác nhận:** `/admin/translationsAdminTier2` đang là route legacy chuyển hướng về `/admin/translationsAdminTier1` và không xuất hiện trong menu chính.
-- **Kiểm thử đạt:** `online-store-frontend/npm test` hoàn tất 10/10 kiểm tra offline thủ công; kiểm tra cú pháp backend, JSON locale và `git diff --check` đều đạt.
-- **Kiểm thử bị chặn bởi môi trường:** `online-store-frontend/npm run build` chưa chạy được vì thiếu module `next`; `online-store-backend/npm run test:list -- --suite=i18n` chưa chạy được vì thiếu module `dotenv`. Chưa có bằng chứng các lỗi này xuất phát từ thay đổi issue-8.
-- **Còn lại:** Kiểm thử build/frontend và kiểm thử tích hợp endpoint sau khi cài đủ dependency; chưa triển khai thay đổi schema, import/export hoặc job batch.
+- **Kiểm thử đạt:** `online-store-frontend/npm test` hoàn tất 10/10 kiểm tra offline thủ công; kiểm tra cú pháp hai tệp backend đã sửa và `git diff --check` đều đạt.
+- **Kiểm thử bị chặn bởi môi trường:** Kiểm thử parser CSV thực tế không chạy được vì backend thiếu module `mongoose`; các kiểm thử build/frontend và tích hợp endpoint vẫn cần dependency đầy đủ. Chưa có bằng chứng các lỗi môi trường này xuất phát từ thay đổi issue-8.
+- **Còn lại:** Kiểm thử round-trip CSV/JSON bằng endpoint thực tế, kiểm thử tích hợp endpoint re-translate, build frontend, backup translation đa ngôn ngữ và schema/job batch.

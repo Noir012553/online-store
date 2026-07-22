@@ -816,12 +816,16 @@ const getImportGuide = asyncHandler(async (req, res) => {
       step4: 'Review kết quả',
       step5: 'Gọi lại với dryRun=false để import thực tế',
     },
-    requiredFields: ['name', 'brand', 'price', 'category', 'supplier', 'description'],
+    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'supplier'],
     optionalFields: [
-      'originalPrice', 'image', 'images', 'countInStock', 'specs',
+      'productId', 'originalPrice', 'image', 'images', 'countInStock', 'specs',
       'features', 'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {
+      productId: {
+        format: 'MongoDB ObjectId from a product export',
+        note: 'Keep this value when updating exported products so their existing translations can be refreshed correctly.',
+      },
       specs: {
         format: 'JSON | In CSV use: specs_fieldName (e.g., specs_weight, specs_connection)',
         example: '{"weight": "54g", "connection": "Wireless"}',
@@ -996,7 +1000,7 @@ function convertProductsToCSV(products) {
     }
   });
 
-  const dynamicSpecHeaders = Array.from(specKeys).sort();
+  const dynamicSpecHeaders = Array.from(specKeys).sort().map((key) => `specs_${key}`);
   const allHeaders = [...headers, ...dynamicSpecHeaders];
 
   // Escape CSV values
@@ -1036,8 +1040,9 @@ function convertProductsToCSV(products) {
       }
 
       // Handle dynamic spec fields (specs_*)
-      if (product.specs && product.specs[header] !== undefined) {
-        return escapeCSV(product.specs[header]);
+      const specKey = header.slice('specs_'.length);
+      if (product.specs && product.specs[specKey] !== undefined) {
+        return escapeCSV(product.specs[specKey]);
       }
 
       return '';
