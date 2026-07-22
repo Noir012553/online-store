@@ -7,7 +7,7 @@
 const Order = require('../models/Order');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
-const { getReportingCurrency } = require('../utils/orderRevenue');
+const { getActiveExchangeRates, getReportingCurrency } = require('../utils/orderRevenue');
 
 const getProductNameAsString = (name) => {
   if (typeof name === 'string') return name;
@@ -95,7 +95,10 @@ const seedOrdersEnhanced = async (products, users, customers) => {
     throw new Error('❌ No products provided');
   }
 
-  const currencyCode = await getReportingCurrency();
+  const [currencyCode, exchangeRates] = await Promise.all([
+    getReportingCurrency(),
+    getActiveExchangeRates(),
+  ]);
 
   // ========== CLEAR EXISTING ORDERS ==========
   const deletedCount = await Order.deleteMany({});
@@ -133,7 +136,7 @@ const seedOrdersEnhanced = async (products, users, customers) => {
     const taxPrice = Math.floor(basePrice * qty * 0.1);
     const totalPrice = basePrice * qty + taxPrice;
 
-    // Create order object
+    const createdAt = getRecentDate(daysAgo);
     const order = {
       customer: customer._id,
       user: users && users[0] ? users[0]._id : null,
@@ -150,7 +153,14 @@ const seedOrdersEnhanced = async (products, users, customers) => {
       taxPrice,
       totalPrice,
       currencyCode,
-      createdAt: getRecentDate(daysAgo),
+      baseCurrencyCode: currencyCode,
+      baseItemsPrice: basePrice * qty,
+      baseDiscount: 0,
+      baseTotalPrice: totalPrice,
+      baseShippingFee: 0,
+      exchangeRateCapturedAt: createdAt,
+      exchangeRates,
+      createdAt,
     };
 
     orders.push(order);
@@ -182,7 +192,7 @@ const seedOrdersEnhanced = async (products, users, customers) => {
       const taxPrice = Math.floor(basePrice * qty * 0.1);
       const totalPrice = basePrice * qty + taxPrice;
 
-      // Create order object
+      const createdAt = getRandomDateInMonth(month);
       const order = {
         customer: customer._id,
         user: users && users[0] ? users[0]._id : null,
@@ -199,7 +209,14 @@ const seedOrdersEnhanced = async (products, users, customers) => {
         taxPrice,
         totalPrice,
         currencyCode,
-        createdAt: getRandomDateInMonth(month),
+        baseCurrencyCode: currencyCode,
+        baseItemsPrice: basePrice * qty,
+        baseDiscount: 0,
+        baseTotalPrice: totalPrice,
+        baseShippingFee: 0,
+        exchangeRateCapturedAt: createdAt,
+        exchangeRates,
+        createdAt,
       };
 
       orders.push(order);

@@ -3,7 +3,6 @@ const Customer = require('../models/Customer');
 const { Province, District, Ward } = require('../models/Location');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
-const Location = require('../models/Location');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const seedAddresses = async () => {
@@ -35,8 +34,7 @@ const seedAddresses = async () => {
       provinceId: { $in: provinceIds },
     }).lean();
 
-    // Load all GHN wards, then associate them with districts in memory.
-    const allWards = await Ward.find({ provider: 'ghn' }).lean();
+    const allWards = await Ward.find({}).lean();
 
     console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk location pre-load`);
     console.log(getMessage(seedLang, 'seeder-messages.locations_loaded', {
@@ -47,18 +45,20 @@ const seedAddresses = async () => {
     // Create lookup maps for O(1) access (province → districts, district → wards)
     const districtsByProvince = new Map();
     allDistricts.forEach(d => {
-      if (!districtsByProvince.has(d.provinceId)) {
-        districtsByProvince.set(d.provinceId, []);
+      const provinceKey = String(d.provinceId);
+      if (!districtsByProvince.has(provinceKey)) {
+        districtsByProvince.set(provinceKey, []);
       }
-      districtsByProvince.get(d.provinceId).push(d);
+      districtsByProvince.get(provinceKey).push(d);
     });
 
     const wardsByDistrict = new Map();
     allWards.forEach(w => {
-      if (!wardsByDistrict.has(w.districtId)) {
-        wardsByDistrict.set(w.districtId, []);
+      const districtKey = String(w.districtId);
+      if (!wardsByDistrict.has(districtKey)) {
+        wardsByDistrict.set(districtKey, []);
       }
-      wardsByDistrict.get(w.districtId).push(w);
+      wardsByDistrict.get(districtKey).push(w);
     });
 
     console.log(getMessage(seedLang, 'seeder-messages.generating_addresses'));
@@ -71,7 +71,7 @@ const seedAddresses = async () => {
       const province = provinces[customerIndex % provinces.length];
 
       // Use pre-loaded districts (O(1) map lookup instead of DB query)
-      const districts = districtsByProvince.get(province.provinceId) || [];
+      const districts = districtsByProvince.get(String(province.provinceId)) || [];
       if (districts.length === 0) {
         continue;
       }
@@ -79,7 +79,7 @@ const seedAddresses = async () => {
       const district = districts[customerIndex % districts.length];
 
       // Use pre-loaded wards (O(1) map lookup instead of DB query)
-      const wards = wardsByDistrict.get(district.districtId) || [];
+      const wards = wardsByDistrict.get(String(district.districtId)) || [];
       if (wards.length === 0) {
         continue;
       }
@@ -106,7 +106,7 @@ const seedAddresses = async () => {
       // Office address (for every 2nd customer)
       if (customerIndex % 2 === 1) {
         const officeDistrict = districts[(customerIndex + 1) % districts.length];
-        const officeWards = wardsByDistrict.get(officeDistrict.districtId) || [];
+        const officeWards = wardsByDistrict.get(String(officeDistrict.districtId)) || [];
 
         if (officeWards.length > 0) {
           const officeWard = officeWards[customerIndex % officeWards.length];
