@@ -419,3 +419,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Trung bình — `online-store-backend/src/test/test-phase4-e2e-simplified.js:166`:** tiêu đề Mocha `describe('Test 5: Query Fallback (NEW → OLD schema)', ...)` vẫn hard-code mũi tên `→`. File này được `TEST_SUITES` đăng ký cho cả suite `products` và `backend` tại `online-store-backend/src/test/testRegistry.js:36-39, 68-71`, đồng thời đã nằm trong allowlist `online-store-backend/scripts/check-cli-symbols.js:84`. Tuy nhiên checker chỉ dò Unicode trên dòng có `console.log`, `console.warn`, `console.error`, `console.time` hoặc `console.timeEnd` (`check-cli-symbols.js:93-100`), nên không phát hiện ký hiệu trong `describe(...)`. Cần quyết định đưa mũi tên trong tiêu đề test vào `CLI_SYMBOLS` hoặc ghi nhận rõ tiêu đề test là ngoại lệ; không nên diễn giải kết quả `npm run check:emoji` pass là không còn Unicode hard-code trong toàn bộ entry point đã enforcement.
 
 **Cập nhật bước tiếp theo:** khi mở rộng chính sách checker, cần kiểm tra riêng string literal trong tiêu đề `describe(...)`/`it(...)` của các file đã được registry đăng ký, thay vì chỉ quét output `console.*`. Không mở rộng máy móc sang comment hoặc fixture vì các ngữ cảnh đó không phải output runtime.
+
+### Tiến độ xử lý phát hiện tiêu đề test
+
+- **Đã hoàn thành:** thay mũi tên hard-code trong `online-store-backend/src/test/test-phase4-e2e-simplified.js:166-167` bằng `CLI_SYMBOLS.arrowRight`, giữ nguyên text hiển thị `NEW → OLD schema`.
+- **Đã hoàn thành:** mở rộng `online-store-backend/scripts/check-cli-symbols.js:93-101` để kiểm tra ký hiệu trong lời gọi `describe(...)` và `it(...)` của các file thuộc allowlist, bên cạnh output `console.*`.
+- **Đã xác thực:** `online-store-backend npm run check:emoji`, kiểm tra cú pháp hai file JavaScript và `git diff --check` đều thành công.

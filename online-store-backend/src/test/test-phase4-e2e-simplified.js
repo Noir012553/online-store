@@ -163,7 +163,7 @@ describe('PHASE 4: E2E Verification Tests', function() {
   });
 
   // ============ TEST 5: Fallback Logic ============
-  describe('Test 5: Query Fallback (NEW → OLD schema)', () => {
+  describe(`Test 5: Query Fallback (NEW ${CLI_SYMBOLS.arrowRight} OLD schema)`, () => {
     it(`${CLI_SYMBOLS.success} If NEW schema empty, should fallback to OLD`, async function() {
       // This would be tested in actual API endpoint
       const newCount = await ProductCatalogTranslationCache.countDocuments();

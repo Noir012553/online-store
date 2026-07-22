@@ -92,12 +92,14 @@ const checkedFiles = [
 ];
 const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
 const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;
+const testTitlePattern = /(?:describe|it)\s*\(/;
 
 const findings = checkedFiles
   .filter((filePath) => fs.existsSync(path.join(rootDir, filePath)))
   .filter((filePath) => fs.readFileSync(path.join(rootDir, filePath), 'utf8')
     .split(/\r?\n/)
-    .some((line) => consoleOutputPattern.test(line) && cliSymbolPattern.test(line)));
+    .some((line) => cliSymbolPattern.test(line)
+      && (consoleOutputPattern.test(line) || testTitlePattern.test(line))));
 
 if (findings.length > 0) {
   console.error('CLI symbols must be referenced from src/utils/cliSymbols.js:');
