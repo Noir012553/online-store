@@ -43,6 +43,8 @@ const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
 const MAX_NEW_SUPPLIERS_PER_IMPORT = 10;
 const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'features', 'specs'];
 
+const isDryRun = (value) => value === true || value === 'true';
+
 const getFeatureLabel = (feature, lang) => {
   if (typeof feature !== 'string') return feature;
   const translated = getMessage(lang, `products.${feature}`);
@@ -191,6 +193,21 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     const validProducts = validation.validProducts;
+
+    if (isDryRun(dryRun)) {
+      return res.json({
+        success: true,
+        message: 'DRY RUN: Preview import (chưa save vào database)',
+        dryRun: true,
+        format,
+        mode,
+        totalProducts: validProducts.length,
+        createdCategories: [],
+        createdSuppliers: [],
+        warnings: validation.warnings,
+        preview: validProducts.slice(0, 3),
+      });
+    }
 
     // Map category names → IDs (Filter isDeleted = false)
     const categoryMap = {};
@@ -402,22 +419,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     console.log(`[FILE_UPLOAD] ${CLI_SYMBOLS.success} Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
 
-    // DRY RUN: Return preview mà không save
-    if (dryRun === 'true' || dryRun === true) {
-      return res.json({
-        success: true,
-        message: `DRY RUN: Preview import (chưa save vào database)${createdCategories.length > 0 || createdSuppliers.length > 0 ? ` - sẽ tạo ${createdCategories.length} category, ${createdSuppliers.length} supplier mới` : ''}`,
-        dryRun: true,
-        format,
-        mode,
-        totalProducts: enrichedProducts.length,
-        createdCategories,
-        createdSuppliers,
-        warnings: validation.warnings,
-        preview: validProducts.slice(0, 3),
-      });
-    }
-
     // Xử lý theo mode
     let results;
     switch (mode.toLowerCase()) {
@@ -569,7 +570,7 @@ const importProducts = asyncHandler(async (req, res) => {
     });
 
     // DRY RUN: Return preview mà không save
-    if (dryRun) {
+    if (isDryRun(dryRun)) {
       return res.json({
         success: true,
         message: 'DRY RUN: Preview import (chưa save vào database)',
