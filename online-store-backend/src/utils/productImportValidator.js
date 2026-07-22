@@ -205,14 +205,11 @@ function validateProduct(product, rowIndex = 0) {
           }
         }
 
-        // Validate endTime (must be future date)
         // Skip empty string from CSV (deal_endTime column is empty)
         if (dealObj.endTime !== undefined && dealObj.endTime !== '' && dealObj.endTime !== null) {
           const endTime = new Date(dealObj.endTime);
           if (isNaN(endTime.getTime())) {
             warnings.push(`Row ${rowIndex}: Invalid endTime, must be a valid date`);
-          } else if (endTime <= new Date()) {
-            warnings.push(`Row ${rowIndex}: endTime must be a future date, not past`);
           } else {
             deal.endTime = endTime;
           }
