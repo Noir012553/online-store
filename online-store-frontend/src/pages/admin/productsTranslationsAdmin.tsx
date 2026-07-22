@@ -45,10 +45,6 @@ export function ProductsTranslationsAdminContent() {
   const { isAdmin } = useAuth();
   const { t, loadNamespace, locale } = useTranslation();
 
-  if (!isAdmin) {
-    return <PermissionDenied feature="Products Translations" />;
-  }
-
   useEffect(() => {
     loadNamespace('productsTranslations');
   }, [loadNamespace]);
@@ -66,6 +62,10 @@ export function ProductsTranslationsAdminContent() {
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
   const itemsPerPage = 10;
+
+  if (!isAdmin) {
+    return <PermissionDenied feature="Products Translations" />;
+  }
 
   // Fetch products with app locale language (left side follows global language)
   useEffect(() => {
@@ -360,10 +360,6 @@ function ProductTranslationCard({
   const [translations, setTranslations] = useState<ProductTranslation>({});
   const [loadingTranslation, setLoadingTranslation] = useState(false);
 
-  useEffect(() => {
-    // Component state tracking
-  }, [product, isEditing, selectedLanguage]);
-
   // Load translations for selected language when editing
   useEffect(() => {
     if (!isEditing) {
@@ -501,7 +497,7 @@ function ProductTranslationCard({
           isSubmitting={isSubmitting}
         />
       ) : (
-        <ViewMode product={product} />
+        <ViewMode />
       )}
     </div>
   );
@@ -817,7 +813,7 @@ function TranslationField({
   );
 }
 
-function ViewMode({ product }: { product: any }) {
+function ViewMode() {
   const { t } = useTranslation();
   return (
     <div className="p-5 space-y-3 text-gray-600">
