@@ -35,6 +35,27 @@ router.post(
   translationController.retranslateDynamic
 );
 
+router.get(
+  '/admin/products/status',
+  protect,
+  admin,
+  translationController.getProductTranslationStatuses
+);
+
+router.put(
+  '/admin/products/:id',
+  protect,
+  admin,
+  translationController.saveProductTranslation
+);
+
+router.post(
+  '/admin/products/:id/retranslate',
+  protect,
+  admin,
+  translationController.retranslateProduct
+);
+
 router.post(
   '/admin/clear-cache',
   protect,

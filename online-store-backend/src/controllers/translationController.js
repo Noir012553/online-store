@@ -2,6 +2,8 @@ const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+const Product = require('../models/Product');
+const translationValidator = require('../utils/translationValidator');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const LanguageService = require('../services/languageService');
 const TranslationShadowWriteService = require('../services/translationShadowWriteService');
@@ -699,6 +701,193 @@ exports.syncTranslationsFromJSON = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+const PRODUCT_TRANSLATION_ENTITY_TYPES = [
+  'product_name',
+  'product_description',
+  'product_brand',
+  'product_spec',
+  'product_feature',
+];
+
+const productTranslationStatus = (translation) => {
+  if (!translation) return 'missing';
+  if (translation.status !== 'success') return 'rejected';
+  return translation.qualityStatus || 'pending';
+};
+
+const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
+
+exports.getProductTranslationStatuses = async (req, res) => {
+  try {
+    const lang = getLanguageParam(req.query);
+    const productIds = (req.query.productIds || '').split(',').filter(isProductId);
+
+    if (productIds.length === 0 || productIds.length > 50) {
+      return res.status(400).json({ success: false, message: 'productIds must include between 1 and 50 product IDs' });
+    }
+
+    const [catalogTranslations, legacyTranslations] = await Promise.all([
+      ProductCatalogTranslationCache.find({ entityId: { $in: productIds }, targetLang: lang }).lean(),
+      LiveTranslationCache.find({
+        entityId: { $in: productIds },
+        targetLang: lang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      }).lean(),
+    ]);
+    const catalogByProductId = new Map(catalogTranslations.map((translation) => [translation.entityId, translation]));
+    const legacyByProductId = new Map();
+
+    legacyTranslations.forEach((translation) => {
+      const current = legacyByProductId.get(translation.entityId) || [];
+      current.push(translation);
+      legacyByProductId.set(translation.entityId, current);
+    });
+
+    const data = productIds.map((productId) => {
+      const catalogTranslation = catalogByProductId.get(productId);
+      if (catalogTranslation) {
+        return {
+          productId,
+          status: productTranslationStatus(catalogTranslation),
+          manualFields: catalogTranslation.manualFields || [],
+          updatedAt: catalogTranslation.updatedAt || catalogTranslation.lastTranslatedAt || null,
+          validationErrors: catalogTranslation.validationErrors || [],
+        };
+      }
+
+      const legacyRecords = legacyByProductId.get(productId) || [];
+      const legacyStatus = legacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
+        ? 'needs_retranslate'
+        : legacyRecords.some((record) => record.qualityStatus === 'rejected' || record.status !== 'success')
+          ? 'rejected'
+          : legacyRecords.some((record) => record.qualityStatus === 'pending')
+            ? 'pending'
+            : legacyRecords.length > 0 ? 'approved' : 'missing';
+
+      return { productId, status: legacyStatus, manualFields: [], updatedAt: null, validationErrors: [] };
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('[TranslationController] Error fetching product translation statuses:', error);
+    return res.status(500).json({ success: false, message: 'Unable to fetch product translation statuses' });
+  }
+};
+
+exports.saveProductTranslation = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const lang = getLanguageParam(req.query);
+    const translations = req.body || {};
+    const allowedFields = ['name', 'description', 'brand', 'features', 'specs'];
+    const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
+
+    if (!isProductId(productId) || fields.length === 0) {
+      return res.status(400).json({ success: false, message: 'A product ID and at least one translation field are required' });
+    }
+    if (fields.some((field) => ['name', 'description', 'brand'].includes(field) && typeof translations[field] !== 'string')
+      || ('features' in translations && (!Array.isArray(translations.features) || translations.features.some((value) => typeof value !== 'string')))
+      || ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs)))) {
+      return res.status(400).json({ success: false, message: 'Invalid translation payload' });
+    }
+
+    const [product, existing] = await Promise.all([
+      Product.findById(productId).lean(),
+      ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang: lang }).lean(),
+    ]);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
+    const update = {
+      ...translations,
+      name: translations.name ?? existing?.name ?? product.name,
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: [],
+      manualFields,
+      lastTranslatedAt: existing?.lastTranslatedAt || new Date(),
+    };
+    const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
+      { entityId: productId, targetLang: lang },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return res.json({ success: true, data: translation });
+  } catch (error) {
+    console.error('[TranslationController] Error saving product translation:', error);
+    return res.status(500).json({ success: false, message: 'Unable to save product translation' });
+  }
+};
+
+exports.retranslateProduct = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const { lang } = req.body || {};
+    const targetLang = getLanguageParam({ lang });
+
+    if (!isProductId(productId)) return res.status(400).json({ success: false, message: 'Invalid product ID' });
+    if (targetLang === getDefaultLanguage().code) {
+      return res.status(400).json({ success: false, message: 'The source language cannot be retranslated' });
+    }
+
+    const [product, existing] = await Promise.all([
+      Product.findById(productId).lean(),
+      ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
+    ]);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const manualFields = existing?.manualFields || [];
+    const translateField = async (field, source, entityType) => {
+      if (manualFields.includes(field) || !source) return existing?.[field];
+      const translated = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
+      const validation = await translationValidator.validateTranslation(source, translated, targetLang, entityType);
+      if (validation.validationErrors?.length) throw new Error(validation.validationErrors.join(', '));
+      return translated;
+    };
+
+    const specs = {};
+    for (const [key, value] of Object.entries(product.specs || {})) {
+      specs[key] = manualFields.includes('specs')
+        ? existing?.specs?.[key] || String(value)
+        : await translateField('specs', String(value), 'product_spec');
+    }
+    const features = [];
+    for (const feature of product.features || []) {
+      features.push(manualFields.includes('features')
+        ? existing?.features?.[features.length] || feature
+        : await translateField('features', feature, 'product_feature'));
+    }
+
+    const translated = {
+      name: await translateField('name', product.name, 'product_name'),
+      description: await translateField('description', product.description, 'product_description'),
+      brand: await translateField('brand', product.brand, 'product_brand'),
+      specs,
+      features,
+      status: 'success',
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+      manualFields,
+      lastTranslatedAt: new Date(),
+    };
+    const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
+      { entityId: productId, targetLang },
+      { $set: translated },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return res.json({
+      success: true,
+      data: { productId, lang: targetLang, status: translation.qualityStatus, skippedManualFields: manualFields },
+    });
+  } catch (error) {
+    console.error('[TranslationController] Error retranslating product:', error);
+    return res.status(500).json({ success: false, message: 'Product retranslation failed' });
   }
 };
 
