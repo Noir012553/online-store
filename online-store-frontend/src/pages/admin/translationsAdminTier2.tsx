@@ -993,9 +993,12 @@ const TranslationsAdminTier2Content = () => {
   );
 };
 
-export async function getServerSideProps(context: any) {
+export async function getServerSideProps() {
   return {
-    props: {},
+    redirect: {
+      destination: '/admin/translationsAdminTier1',
+      permanent: false,
+    },
   };
 }
 

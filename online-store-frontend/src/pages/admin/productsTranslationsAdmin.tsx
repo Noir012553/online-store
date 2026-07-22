@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
@@ -8,6 +9,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { toast } from "sonner";
 import { PermissionDenied } from "../../components/admin/PermissionDenied";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Pagination } from "../../components/admin/Pagination";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useTranslation } from "@/lib/i18n";
@@ -63,6 +65,7 @@ export function ProductsTranslationsAdminContent() {
   const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
+  const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
   const itemsPerPage = 10;
 
   // Fetch products with app locale language (left side follows global language)
@@ -152,6 +155,16 @@ export function ProductsTranslationsAdminContent() {
         throw new Error(error.error || t('save_failed', 'productsTranslations'));
       }
 
+      const data = await response.json();
+      setTranslationStatuses((current) => ({
+        ...current,
+        [productId]: {
+          status: data.data.qualityStatus,
+          manualFields: data.data.manualFields || [],
+          updatedAt: data.data.updatedAt || data.data.lastTranslatedAt || null,
+          validationErrors: data.data.validationErrors || [],
+        },
+      }));
       toast.success(t('save_success', 'productsTranslations'));
       setEditingProductId(null);
     } catch (error) {
@@ -165,10 +178,10 @@ export function ProductsTranslationsAdminContent() {
     ? products
     : products.filter((product) => translationStatuses[product._id]?.status === statusFilter);
 
-  const handleRetranslate = async (product: any) => {
-    const status = translationStatuses[product._id];
-    if (status?.status === 'approved' && !window.confirm(t('retranslate_approved_confirm', 'productsTranslations'))) return;
-    if (!window.confirm(t('retranslate_confirm', 'productsTranslations').replace('{name}', product.name))) return;
+  const handleRetranslate = async () => {
+    if (!productToRetranslate) return;
+    const product = productToRetranslate;
+    setProductToRetranslate(null);
 
     try {
       setRetranslatingProductId(product._id);
@@ -278,11 +291,32 @@ export function ProductsTranslationsAdminContent() {
               isSubmitting={isSubmitting}
               translationStatus={translationStatuses[product._id]}
               isRetranslating={retranslatingProductId === product._id}
-              onRetranslate={() => handleRetranslate(product)}
+              onRetranslate={() => setProductToRetranslate(product)}
             />
           ))
         )}
       </div>
+
+      <Dialog open={Boolean(productToRetranslate)} onOpenChange={(open) => !open && setProductToRetranslate(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('retranslate_button', 'productsTranslations')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            {translationStatuses[productToRetranslate?._id]?.status === 'approved'
+              ? t('retranslate_approved_confirm', 'productsTranslations')
+              : t('retranslate_confirm', 'productsTranslations').replace('{name}', productToRetranslate?.name || '')}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductToRetranslate(null)}>
+              {t('cancel_button', 'productsTranslations')}
+            </Button>
+            <Button onClick={handleRetranslate}>
+              {t('retranslate_button', 'productsTranslations')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -798,5 +832,5 @@ export const getServerSideProps = async () => {
 
 export default withAdminLayout(ProductsTranslationsAdminContent, {
   permission: 'manage:translations',
-  featureName: 'Products Translations'
+  featureName: 'Product Translations'
 });
