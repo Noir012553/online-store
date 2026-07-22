@@ -433,7 +433,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     // Build success message with created categories/suppliers info
-    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi`;
+    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi, ${results.skipped || 0} bỏ qua`;
     if (createdCategories.length > 0) {
       successMessage += ` | Tạo mới ${createdCategories.length} category: ${createdCategories.join(', ')}`;
     }
@@ -599,7 +599,7 @@ const importProducts = asyncHandler(async (req, res) => {
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
-      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi`,
+      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi, ${results.skipped || 0} bỏ qua`,
       format,
       mode,
       results: {
