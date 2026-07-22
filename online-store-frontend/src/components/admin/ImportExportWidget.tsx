@@ -51,7 +51,7 @@ export default function ImportExportWidget() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const data = await productAPI.exportProducts(selectedFormat, selectedCategory, locale);
+      const data = await productAPI.exportProducts(selectedFormat, selectedCategory, undefined, undefined, locale);
 
       if (selectedFormat === 'csv') {
         // Handle CSV export

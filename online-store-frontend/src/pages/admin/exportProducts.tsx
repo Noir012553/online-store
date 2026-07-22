@@ -70,7 +70,7 @@ function ExportProductsContent() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const data = await productAPI.exportProducts(selectedFormat, selectedCategory, locale);
+      const data = await productAPI.exportProducts(selectedFormat, selectedCategory, undefined, undefined, locale);
 
       if (selectedFormat === 'csv') {
         const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
