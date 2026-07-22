@@ -780,7 +780,11 @@ exports.getProductTranslationStatuses = async (req, res) => {
 exports.saveProductTranslation = async (req, res) => {
   try {
     const { id: productId } = req.params;
-    const lang = getLanguageParam(req.query);
+    const requestedLang = req.query.lang;
+    if (typeof requestedLang !== 'string' || !getActiveLangCodes().includes(requestedLang)) {
+      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+    }
+    const lang = requestedLang;
     const translations = req.body || {};
     const allowedFields = ['name', 'description', 'brand', 'features', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
@@ -826,10 +830,12 @@ exports.saveProductTranslation = async (req, res) => {
 exports.retranslateProduct = async (req, res) => {
   try {
     const { id: productId } = req.params;
-    const { lang } = req.body || {};
-    const targetLang = getLanguageParam({ lang });
+    const { lang: targetLang } = req.body || {};
 
     if (!isProductId(productId)) return res.status(400).json({ success: false, message: 'Invalid product ID' });
+    if (typeof targetLang !== 'string' || !getActiveLangCodes().includes(targetLang)) {
+      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+    }
     if (targetLang === getDefaultLanguage().code) {
       return res.status(400).json({ success: false, message: 'The source language cannot be retranslated' });
     }

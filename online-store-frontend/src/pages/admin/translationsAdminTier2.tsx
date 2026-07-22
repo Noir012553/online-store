@@ -1004,5 +1004,5 @@ export async function getServerSideProps() {
 
 export default withAdminLayout(TranslationsAdminTier2Content, {
   permission: 'manage:translations',
-  featureName: 'Tier 2 Translations',
+  featureName: 'Tầng 1',
 });

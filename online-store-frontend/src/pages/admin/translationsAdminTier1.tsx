@@ -888,5 +888,5 @@ export async function getServerSideProps(context: any) {
 
 export default withAdminLayout(TranslationsAdminTier1Content, {
   permission: 'manage:translations',
-  featureName: 'Tier 1 Translations',
+  featureName: 'Tầng 1',
 });
