@@ -304,3 +304,100 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Bước tiếp theo:** Quy định rõ thao tác re-translate phải bảo toàn bản dịch chỉnh sửa thủ công và có phạm vi product/field xác định.
 
 **Trạng thái cuối của tài liệu:** Đã bổ sung các phát hiện từ rà soát mã nguồn; chưa thay đổi mã nguồn.
+
+## Rà soát bổ sung: đồng bộ Export / Import với bản dịch sản phẩm
+
+> Phạm vi rà soát: `/admin/importExport`, `/admin/importProducts`, endpoint export/import sản phẩm, `Product`, `ProductCatalogTranslationCache`, `LiveTranslationCache` và luồng re-translate. Phần này chỉ ghi nhận vấn đề và đề xuất; chưa thay đổi mã nguồn.
+
+### Kết luận trả lời trực tiếp
+
+1. **File export hiện không chứa bản dịch của từng sản phẩm.**
+   - JSON/CSV chỉ xuất dữ liệu nguồn của `Product`: `name`, `brand`, `price`, `originalPrice`, `category`, `supplier`, `description`, `image`, `countInStock`, `specs`, `features`, `rating`, `numReviews`, `featured` và `deal`.
+   - Không xuất `featuresTranslations` (bản dịch thủ công trong `Product`) và không xuất dữ liệu dynamic translation trong `ProductCatalogTranslationCache` hoặc `LiveTranslationCache`.
+
+2. **Import lại hiện không tạo, không cập nhật và không đồng bộ bản dịch.**
+   - Import chỉ ghi vào collection `Product`.
+   - Bản dịch đang nằm trong cache sẽ không bị xóa hay ghi đè trực tiếp, nhưng cũng không được cập nhật theo nội dung nguồn mới. Vì vậy sau khi thay đổi `name`, `description`, `brand`, `specs` hoặc `features`, bản dịch hiển thị có thể là nội dung cũ và không còn khớp sản phẩm.
+   - Các trường bản dịch được chèn thêm vào file import hiện sẽ bị validator loại bỏ, nên không thể dùng file export/import hiện tại để bảo toàn hoặc khôi phục bản dịch.
+
+3. **Không nên yêu cầu admin bấm `re-translate` sau mọi lần import.**
+   - Không cần dịch lại khi chỉ thay đổi các trường không có nội dung cần dịch: giá, tiền tệ, tồn kho, ảnh, rating, số review, cờ nổi bật, khuyến mãi, supplier hoặc category ID.
+   - Cần đưa vào hàng chờ invalidate/re-translate khi một trong các trường nguồn có thể dịch thay đổi: `name`, `description`, `brand`, `features`, `specs`.
+   - Bản dịch thủ công phải được bảo toàn, không tự động ghi đè. Chỉ bản dịch AI/cache bị stale mới được tạo lại; nếu admin muốn thay thế bản dịch thủ công, phải có phạm vi và xác nhận tường minh.
+
+### 6. File export không round-trip được với import
+
+- `online-store-backend/src/controllers/productImportController.js:853-871` tạo dữ liệu export nhưng không bao gồm `baseCurrencyCode`.
+- `online-store-backend/src/controllers/productImportController.js:904-914` tạo CSV cũng không có cột `baseCurrencyCode`.
+- `online-store-backend/src/utils/productImportValidator.js:18-56` lại yêu cầu `baseCurrencyCode` và từ chối dòng không có mã tiền tệ ba ký tự hợp lệ.
+
+**Tác động:** Xuất sản phẩm rồi nhập nguyên file đó lại sẽ không qua validation, dù không chỉnh sửa gì. Đây là blocker riêng cho luồng export/import, đồng thời không liên quan đến việc dịch lại.
+
+**Cần đánh dấu nghiệm thu:** JSON và CSV export phải chứa đủ mọi trường bắt buộc của import; cần có kiểm thử round-trip bằng chính file do export tạo ra.
+
+### 7. Export/import hoàn toàn bỏ qua hai nguồn bản dịch sản phẩm
+
+- `online-store-backend/src/models/Product.js:151-159` có `featuresTranslations` trong document `Product`.
+- `online-store-backend/src/controllers/productController.js:603-608` chỉ hỗ trợ ghi `featuresTranslations` khi cập nhật sản phẩm trực tiếp.
+- `online-store-backend/src/controllers/productImportController.js:853-871` không export `featuresTranslations`.
+- `online-store-backend/src/utils/productImportValidator.js:18-232` chỉ trả về các trường nguồn được allowlist; không có `featuresTranslations` hoặc metadata bản dịch.
+- `online-store-backend/src/models/ProductCatalogTranslationCache.js:3-84` lưu bản dịch dynamic theo `entityId` và `targetLang` ở collection riêng.
+- `online-store-backend/src/controllers/productImportController.js:543-680` chỉ `insertMany` hoặc `bulkWrite` vào `Product`; không đọc, ghi, invalidate hay đồng bộ `ProductCatalogTranslationCache`/`LiveTranslationCache`.
+
+**Tác động:**
+
+- File xuất hiện tại không phải bản sao lưu đầy đủ dữ liệu đa ngôn ngữ.
+- Nhập lại file không thể phục hồi bản dịch thủ công hoặc dynamic translation sang môi trường khác.
+- Cập nhật nội dung nguồn qua import có thể để lại cache bản dịch cũ, trong khi `GET /api/products` vẫn overlay dữ liệu cache lên sản phẩm tại `online-store-backend/src/controllers/productController.js:282-295`.
+
+### 8. Nút re-translate hiện không phải cơ chế đồng bộ an toàn sau import
+
+- `online-store-backend/src/controllers/translationController.js:717-743` chỉ nhận `lang`, `limit`, `entityType`; không nhận `productId`, danh sách sản phẩm hay danh sách trường vừa thay đổi.
+- `online-store-backend/src/seeds/retranslateSeeder.js:40-56` chỉ chọn `LiveTranslationCache` có `qualityStatus: 'needs_retranslate'`.
+- `online-store-backend/src/seeds/retranslateSeeder.js:109-139` tạo version mới trong `LiveTranslationCache`, không cập nhật `ProductCatalogTranslationCache`.
+- `online-store-backend/src/controllers/translationController.js:101-135` đọc bản dịch hiển thị từ `ProductCatalogTranslationCache` với `status: 'success'`.
+
+**Tác động:** Bấm re-translate sau import không bảo đảm chọn đúng các sản phẩm vừa thay đổi, và ngay cả khi API báo thành công thì dữ liệu người dùng thấy có thể chưa thay đổi. Không nên dùng nút hiện có như bước bắt buộc để hoàn tất import.
+
+### 9. Rủi ro runtime trong import text
+
+- `online-store-backend/src/controllers/productImportController.js:448` gọi `getCategoryText(cat.name)`.
+- Phần import của file này tại `online-store-backend/src/controllers/productImportController.js:20-30` không import hoặc định nghĩa `getCategoryText`.
+
+**Tác động:** Luồng `POST /api/products/admin/import` có thể dừng với `ReferenceError` trước khi ghi sản phẩm. Cần xác minh bằng kiểm thử import thực tế trước khi dùng như luồng vận hành.
+
+### Hướng xử lý tối ưu cần chốt trước khi triển khai
+
+1. **Tách hai mục đích file rõ ràng.**
+   - **Export/Import dữ liệu sản phẩm nguồn:** dùng cho chỉnh sửa hàng loạt; chỉ round-trip các field của `Product`, phải gồm `baseCurrencyCode`.
+   - **Backup/Migration đa ngôn ngữ:** chỉ thêm khi thực sự cần chuyển dữ liệu giữa môi trường; file JSON có version schema và gồm rõ bản dịch thủ công, dynamic translation theo `productId` + `language`, nguồn tạo, trạng thái và thời điểm cập nhật. Không nên cố nhét bản dịch đa ngôn ngữ vào CSV.
+
+2. **Tính thay đổi theo field khi import.**
+   - Trước khi `bulkWrite`, so sánh bản ghi cũ với `name`, `description`, `brand`, `features`, `specs`.
+   - Nếu không có thay đổi ở các field này: giữ cache/bản dịch hiện có, không re-translate.
+   - Nếu có thay đổi: đánh dấu bản dịch AI/cache của đúng `productId` và từng ngôn ngữ là stale/pending; lưu danh sách affected products để trả về kết quả import.
+
+3. **Bảo toàn bản dịch thủ công.**
+   - Xác định nguồn/provenance cho từng bản dịch (`manual` hoặc `machine`) trước khi invalidate.
+   - Không xóa hoặc ghi đè bản dịch `manual`; báo rõ sản phẩm/ngôn ngữ nào cần admin xem lại.
+
+4. **Thay re-translate tổng quát bằng job theo sản phẩm.**
+   - Request phải có `productIds`, `languages`, `fields` hoặc một `importJobId`; backend chỉ xử lý các bản dịch stale thuộc phạm vi này.
+   - Job cập nhật cùng nguồn cache mà API sản phẩm đọc, trả tiến trình và kết quả theo sản phẩm/ngôn ngữ/trường.
+   - UI `/admin/importExport` nên hiển thị sau import: số sản phẩm không cần dịch lại, số sản phẩm đã đưa vào hàng chờ, số bản dịch thủ công được giữ nguyên và link lọc sang trang Dịch sản phẩm.
+
+5. **Không chạy seed lại toàn bộ và không yêu cầu thao tác thủ công mặc định.**
+   - Với import nhỏ, có thể tạo job ngay sau import và cho phép admin chủ động chạy đối với bản dịch AI stale.
+   - Với import lớn, phải chạy nền theo batch có idempotency, tiến trình và retry; không giữ HTTP request đồng bộ cho toàn bộ dịch vụ AI.
+
+### Tiêu chí nghiệm thu bổ sung
+
+- Xuất JSON hoặc CSV rồi nhập lại nguyên trạng thành công, không thiếu `baseCurrencyCode` hay field bắt buộc khác.
+- File export sản phẩm nguồn không được quảng bá là có chứa bản dịch khi thực tế không có.
+- Import có thay đổi field dịch được phải trả về danh sách product/language translation bị stale hoặc job đã tạo.
+- Import chỉ thay đổi field không dịch được không tạo job re-translate.
+- Bản dịch thủ công không bị xóa/ghi đè bởi import hoặc re-translate tự động.
+- Re-translate sau import chỉ xử lý đúng product/language/field đã bị ảnh hưởng và cập nhật đúng nguồn dữ liệu API sản phẩm đang đọc.
+- Có kiểm thử cho JSON/CSV round-trip, thay đổi field cần dịch, thay đổi field không cần dịch, bản dịch thủ công và lỗi một phần của job.
+
+**Trạng thái cuối của tài liệu (cập nhật):** Đã đánh dấu các blocker về round-trip export/import, thiếu đồng bộ translation và phạm vi re-translate; chưa thay đổi mã nguồn.
