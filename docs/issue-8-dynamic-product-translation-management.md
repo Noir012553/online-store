@@ -401,3 +401,55 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - Có kiểm thử cho JSON/CSV round-trip, thay đổi field cần dịch, thay đổi field không cần dịch, bản dịch thủ công và lỗi một phần của job.
 
 **Trạng thái cuối của tài liệu (cập nhật):** Đã đánh dấu các blocker về round-trip export/import, thiếu đồng bộ translation và phạm vi re-translate; chưa thay đổi mã nguồn.
+
+## Rà soát tiếp: các blocker bổ sung cho đồng bộ Export / Import / Translation
+
+> Các điểm dưới đây được đối chiếu trực tiếp với mã hiện tại; chỉ cập nhật tài liệu, không thay đổi mã ứng dụng.
+
+### 10. Job re-translate có thể lỗi trước khi xử lý bất kỳ bản dịch nào
+
+- `online-store-backend/src/seeds/retranslateSeeder.js:2-7` không import `LiveTranslationCache`.
+- Cùng file tại `online-store-backend/src/seeds/retranslateSeeder.js:54-56`, `128` và `131` lại gọi trực tiếp `LiveTranslationCache.find`, `.create` và `.updateOne`.
+
+**Tác động:** Khi endpoint `POST /api/translations/admin/retranslate-dynamic` thực thi luồng này, runtime có thể phát sinh `ReferenceError: LiveTranslationCache is not defined`. Do đó nút re-translate không thể được xem là bước đồng bộ đáng tin cậy sau import cho đến khi có kiểm thử thực tế và sửa lỗi này.
+
+**Cần đánh dấu nghiệm thu:** Có kiểm thử tích hợp gọi endpoint với một bản ghi `needs_retranslate`, xác minh job thực sự chạy và dữ liệu hiển thị trong API sản phẩm được cập nhật.
+
+### 11. `featuresTranslations` lưu trong Product có nguy cơ không bao giờ hiển thị cho người dùng
+
+- `online-store-backend/src/models/Product.js:156-159` khai báo `featuresTranslations` trong document sản phẩm.
+- `online-store-backend/src/controllers/productController.js:603-608` cho phép cập nhật trường này khi sửa sản phẩm trực tiếp.
+- Nhưng `online-store-backend/src/services/translationHelper.js:38-45` chỉ overlay các trường `name`, `description`, `brand`, `specs`, `features` từ `ProductCatalogTranslationCache`; không đọc `featuresTranslations`.
+- `online-store-backend/src/controllers/productController.js:293-295` và `324-325` trả sản phẩm sau khi áp dụng helper này.
+
+**Tác động:** Bản dịch feature được lưu thủ công trong `Product.featuresTranslations` có thể thành dữ liệu mồ côi: export/import không mang theo, và response API sản phẩm cũng không dùng để hiển thị. Điều này làm yêu cầu “bảo toàn bản dịch thủ công” không đủ nếu chưa xác định nguồn dữ liệu hiển thị chuẩn.
+
+**Cần chốt trước khi triển khai:** Chọn duy nhất một nguồn hiển thị cho feature translation. Hoặc API phải merge `featuresTranslations` theo ngôn ngữ với quy tắc ưu tiên thủ công, hoặc chuyển dữ liệu thủ công vào cache/schema chuẩn có provenance `manual`; không duy trì hai nguồn độc lập.
+
+### 12. Export có thể tạo bản sao không đầy đủ khi catalog vượt 10.000 sản phẩm
+
+- `online-store-backend/src/controllers/productImportController.js:787` đặt `limit = 10000` mặc định.
+- `online-store-backend/src/controllers/productImportController.js:836-849` áp dụng `.limit(parseInt(limit))` nhưng response chỉ trả `totalProducts` là số item đã transform tại `:879`, không trả tổng khớp filter hoặc cờ báo bị cắt.
+
+**Tác động:** Với catalog lớn hơn giới hạn, admin có thể hiểu nhầm file export là bản sao đầy đủ rồi import lại, dẫn đến mất các sản phẩm không nằm trong file. Nếu sau này export có translation backup, lỗi này cũng làm backup bản dịch không đầy đủ.
+
+**Hướng xử lý tối ưu:** Export theo stream/phân trang có cursor, hoặc bắt buộc `limit` tường minh kèm `matchedTotal`, `exportedTotal`, `hasMore`; không dùng file export bị cắt ngầm cho mục đích backup/migration.
+
+### 13. Import đối chiếu sản phẩm bằng tên + brand, không có định danh ổn định để đồng bộ cache dịch
+
+- File export tại `online-store-backend/src/controllers/productImportController.js:855-871` không bao gồm `_id` hoặc mã sản phẩm ổn định.
+- Update/import upsert xác định bản ghi bằng `{ name, brand, isDeleted: false }` tại `online-store-backend/src/controllers/productImportController.js:590-605` và `651-663`.
+- Cache dynamic lại liên kết theo `entityId` là Product ID tại `online-store-backend/src/models/ProductCatalogTranslationCache.js:5-10` và có unique key theo `entityId + targetLang` tại `:77-81`.
+
+**Tác động:** Admin không thể đổi `name` hoặc `brand` của một sản phẩm qua file import theo cách được nhận diện là update. Với upsert, hệ thống sẽ tạo product mới; translation cache của product cũ vẫn gắn với ID cũ, còn product mới không có bản dịch. Điều này làm đồng bộ translation sau import không thể chính xác chỉ bằng việc so sánh text.
+
+**Hướng xử lý tối ưu:** Thêm khóa bất biến chỉ dành cho round-trip/migration, ưu tiên `productId` hoặc SKU duy nhất, vào định dạng JSON và CSV. Import phải tra cứu theo khóa này trước, rồi mới diff các trường dịch được để invalidate/job đúng `entityId`; không dùng tên/brand làm khóa đồng bộ.
+
+### Tổng hợp quyết định vận hành hiện tại
+
+- **Xuất danh sách sản phẩm hiện không có bản dịch**, cả bản dịch cache dynamic lẫn `featuresTranslations` thủ công.
+- **Nhập lại hiện không đảm bảo giữ hoặc làm mới bản dịch**; trong một số trường hợp file export còn không qua validation vì thiếu `baseCurrencyCode`, hoặc tạo product mới khi đổi tên/brand.
+- **Không nên yêu cầu admin bấm re-translate sau import**: nút hiện chưa có phạm vi product/field, có thể lỗi runtime và không bảo đảm cập nhật cache mà API sản phẩm dùng.
+- Quy trình tối ưu là: import xác định product bằng khóa ổn định; diff riêng các trường có thể dịch; chỉ đánh dấu stale/tạo job cho đúng `productId` + ngôn ngữ + field bị đổi; không đụng vào dữ liệu `manual`; sau đó job cập nhật chính nguồn cache API sản phẩm đang overlay. Backup/migration đa ngôn ngữ phải là JSON có schema version riêng, không phải export CSV vận hành.
+
+**Trạng thái cuối của tài liệu (cập nhật tiếp):** Đã bổ sung các blocker runtime, nguồn dữ liệu bản dịch thủ công, export bị cắt ngầm và thiếu định danh ổn định khi import; chưa thay đổi mã nguồn.
