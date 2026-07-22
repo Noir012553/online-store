@@ -1,7 +1,7 @@
 {
   "tier1_language_label": "Ngôn ngữ",
-  "title": "Dịch thuật Tính năng Sản phẩm",
-  "subtitle": "Quản lý dịch thuật cho các tính năng sản phẩm trên các ngôn ngữ khác nhau",
+  "title": "Dịch sản phẩm",
+  "subtitle": "Quản lý bản dịch sản phẩm theo từng ngôn ngữ",
   "search_placeholder": "Tìm kiếm sản phẩm theo tên...",
   "loading": "Đang tải sản phẩm...",
   "no_products": "Không tìm thấy sản phẩm nào",
@@ -58,6 +58,8 @@
   "status_approved": "Đạt yêu cầu",
   "status_needs_retranslate": "Cần dịch lại",
   "status_rejected": "Bị từ chối hoặc lỗi",
+  "status_checked_at": "Cập nhật: {date}",
+  "status_errors": "Có lỗi kiểm tra",
   "manual_translation": "Có nội dung chỉnh sửa thủ công",
   "retranslate_button": "Dịch lại",
   "retranslating": "Đang dịch lại...",

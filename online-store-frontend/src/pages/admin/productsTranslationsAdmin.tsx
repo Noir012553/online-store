@@ -61,7 +61,6 @@ export function ProductsTranslationsAdminContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Locale>(DEFAULT_LOCALE);
-  const [isLanguageSelectorOpen, setIsLanguageSelectorOpen] = useState(false);
   const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
@@ -532,6 +531,16 @@ function TranslationStatusBadge({ status }: { status?: TranslationStatus }) {
       {(status?.manualFields.length || 0) > 0 && (
         <span className="text-xs text-gray-500">{t('manual_translation', 'productsTranslations')}</span>
       )}
+      {status?.updatedAt && (
+        <span className="text-xs text-gray-500">
+          {t('status_checked_at', 'productsTranslations').replace('{date}', new Date(status.updatedAt).toLocaleString())}
+        </span>
+      )}
+      {(status?.validationErrors.length || 0) > 0 && (
+        <span className="text-xs text-red-600" title={status?.validationErrors.join('\n')}>
+          {t('status_errors', 'productsTranslations')}
+        </span>
+      )}
     </div>
   );
 }
@@ -615,13 +624,6 @@ function EditView({
           <p className="text-blue-600">{t('loading_translation', 'productsTranslations').replace('{language}', selectedLang?.name || selectedLanguage)}</p>
         </div>
       )}
-
-      {/* Debug Info */}
-      <div className="p-4 bg-gray-50 text-xs text-gray-600 border-b border-gray-200">
-        <p>{t('debug_product_id', 'productsTranslations').replace('{id}', product?._id || 'N/A')}</p>
-        <p>{t('debug_language', 'productsTranslations').replace('{code}', selectedLanguage).replace('{name}', selectedLang?.name || selectedLanguage)}</p>
-        <p>{t('debug_data_loaded', 'productsTranslations').replace('{status}', Object.keys(translations).length > 0 ? t('debug_status_yes', 'productsTranslations') : t('debug_status_no', 'productsTranslations'))}</p>
-      </div>
 
       {/* Simple Fields */}
       <TranslationField
@@ -832,5 +834,5 @@ export const getServerSideProps = async () => {
 
 export default withAdminLayout(ProductsTranslationsAdminContent, {
   permission: 'manage:translations',
-  featureName: 'Product Translations'
+  featureName: 'Tầng 2'
 });
