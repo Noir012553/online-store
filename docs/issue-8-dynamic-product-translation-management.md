@@ -492,3 +492,39 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Định hướng tương thích:** Các URL cũ nên chuyển hướng an toàn về route mới, không tiếp tục hiển thị hai giao diện có cùng chức năng.
 - **Trạng thái triển khai:** Chưa áp dụng được việc đổi tên tệp/route trong phiên rà soát này vì môi trường đã chặn thao tác đổi tên tệp cục bộ; cần thực hiện lại bằng công cụ hoặc phiên có quyền phù hợp.
 - **Lưu ý:** Việc cập nhật này thay đổi quyết định trước đó trong tài liệu về giữ ổn định `/admin/productsTranslationsAdmin`; tên route mới được ưu tiên theo yêu cầu hiện tại.
+
+## Cập nhật: Export bị lọc nhầm theo ngôn ngữ
+
+### Hiện tượng
+
+Khi giao diện đang ở ngôn ngữ `vi`, Export trả về kết quả tương tự:
+
+```json
+{
+  "success": true,
+  "totalProducts": 0,
+  "filters": { "brand": "vi" },
+  "products": []
+}
+```
+
+File export rỗng dẫn đến khi import lại hệ thống thông báo `0 sản phẩm mới, 0 cập nhật`. Đây không phải lỗi dữ liệu import; nguyên nhân nằm ở request Export.
+
+### Nguyên nhân
+
+`productAPI.exportProducts` nhận tham số theo thứ tự `format, category, brand, limit, locale`, nhưng hai màn hình Export chỉ truyền `format, category, locale`. Vì vậy locale `vi` bị gán nhầm vào tham số `brand`, khiến backend áp dụng bộ lọc `brand=vi`.
+
+### Đã triển khai
+
+- Sửa lời gọi API tại `online-store-frontend/src/components/admin/ImportExportWidget.tsx`.
+- Sửa lời gọi API tại `online-store-frontend/src/pages/admin/exportProducts.tsx`.
+- Truyền `locale` vào đúng vị trí cuối cùng, để request gửi `lang=vi` thay vì `brand=vi`.
+- Giữ nguyên bộ lọc danh mục, bộ lọc thương hiệu và giao diện hiện có.
+
+### Kiểm thử
+
+- `online-store-frontend/npm test`: đạt 10/10.
+- `online-store-frontend/npm run build`: thành công.
+- `git diff --check`: đạt.
+
+Sau bản sửa, Export không còn dùng mã ngôn ngữ hiện tại làm bộ lọc thương hiệu. Nếu kết quả vẫn là `totalProducts: 0`, cần kiểm tra riêng dữ liệu sản phẩm có `isDeleted: false` hay không.
