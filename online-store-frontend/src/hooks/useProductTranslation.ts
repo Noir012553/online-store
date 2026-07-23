@@ -5,6 +5,7 @@ import { useLanguage } from '../lib/context/LanguageContext';
 interface TranslatedProduct {
   name: string;
   description: string;
+  brand?: string;
   specs?: Record<string, string>;
   features?: string[];
 }

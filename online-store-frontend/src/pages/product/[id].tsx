@@ -226,10 +226,11 @@ export default function ProductDetail() {
   const isSourceLocale = locale === 'vi';
   const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() || laptop.name;
   const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description;
+  const localizedBrand = isSourceLocale ? laptop.brand : translation?.brand?.trim() || laptop.brand;
   const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? laptop.specs ?? {};
   const localizedFeatures = (laptop.features ?? []).map((feature: string, index: number) => {
     const translatedFeature = isSourceLocale ? feature : translation?.features?.[index] || feature;
-    return t(translatedFeature, 'products');
+    return translatedFeature;
   });
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
@@ -240,7 +241,7 @@ export default function ProductDetail() {
   const convertedLaptop: Laptop = {
     id: laptop._id,
     name: localizedName,
-    brand: laptop.brand ?? t('no_brand', 'products'),
+    brand: localizedBrand ?? t('no_brand', 'products'),
     category: categoryId ?? t('no_category', 'admin'),
     price: laptop.price,
     baseCurrencyCode: laptop.baseCurrencyCode,

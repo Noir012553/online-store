@@ -48,20 +48,22 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     const displayCategoryName = categoryObj ? getCategoryName(categoryObj) : '';
     const displayBrand = !laptop.brand ? t('no_brand', 'products') : laptop.brand;
 
+    const isSourceLocale = locale === 'vi';
     const specs = { ...laptop.specs };
-    if (translation?.specs) {
+    if (!isSourceLocale && translation?.specs) {
       Object.assign(specs, translation.specs);
     }
 
-    const features = (Array.isArray(laptop.features) ? laptop.features : []).map((feature, index) => {
-      const translatedFeature = translation?.features?.[index] || feature;
-      return t(translatedFeature, 'products');
-    });
+    const features = (Array.isArray(laptop.features) ? laptop.features : []).map((feature, index) => (
+      isSourceLocale ? feature : translation?.features?.[index] || feature
+    ));
 
     return {
       id: laptop._id || laptop.id || '',
-      name: getTranslatedValue(typeof laptop.name === 'object' ? laptop.name : translation?.name || laptop.name, locale),
-      brand: displayBrand,
+      name: isSourceLocale
+        ? getTranslatedValue(typeof laptop.name === 'object' ? laptop.name : laptop.name, locale)
+        : translation?.name || getTranslatedValue(laptop.name, locale),
+      brand: isSourceLocale ? displayBrand : translation?.brand || displayBrand,
       category: categoryId || t('no_category', 'admin'),
       categoryName: displayCategoryName || t('no_category', 'admin'),
       price: laptop.price,
@@ -73,7 +75,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       reviews: laptop.numReviews || 0,
       inStock: (laptop.countInStock || 0) > 0,
       specs,
-      description: laptop.description || '',
+      description: isSourceLocale ? laptop.description || '' : translation?.description || laptop.description || '',
       features,
       featured: laptop.featured || false,
       deal: laptop.deal,
