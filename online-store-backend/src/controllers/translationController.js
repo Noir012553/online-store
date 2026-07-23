@@ -816,6 +816,9 @@ exports.saveProductTranslation = async (req, res) => {
       return res.status(400).json({ success: false, message: 'A valid target language is required' });
     }
     const lang = requestedLang;
+    if (lang === getDefaultLanguage().code) {
+      return res.status(400).json({ success: false, message: 'The source language cannot be saved as a translation' });
+    }
     const translations = req.body || {};
     const allowedFields = ['name', 'description', 'brand', 'features', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
@@ -843,7 +846,7 @@ exports.saveProductTranslation = async (req, res) => {
       qualityStatus: 'approved',
       validationErrors: [],
       manualFields,
-      lastTranslatedAt: existing?.lastTranslatedAt || new Date(),
+      lastTranslatedAt: new Date(),
     };
     const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
       { entityId: productId, targetLang: lang },
@@ -941,7 +944,14 @@ exports.retranslateProduct = async (req, res) => {
 
     return res.json({
       success: true,
-      data: { productId, lang: targetLang, status: translation.qualityStatus, skippedManualFields: manualFields },
+      data: {
+        productId,
+        lang: targetLang,
+        status: translation.qualityStatus,
+        skippedManualFields: manualFields,
+        updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
+        validationErrors: translation.validationErrors || [],
+      },
     });
   } catch (error) {
     console.error('[TranslationController] Error retranslating product:', error);
