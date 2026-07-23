@@ -891,13 +891,15 @@ exports.retranslateProduct = async (req, res) => {
       translateField('brand', product.brand, 'product_brand'),
     ]);
 
+    const validationResults = [nameResult.validation, descResult.validation, brandResult.validation].filter(Boolean);
     const specs = {};
     for (const [key, value] of Object.entries(product.specs || {})) {
       if (manualFields.includes('specs')) {
         specs[key] = existing?.specs?.[key] || String(value);
       } else {
-        const { value: translated } = await translateField('specs', String(value), 'product_spec');
+        const { value: translated, validation } = await translateField('specs', String(value), 'product_spec');
         specs[key] = translated;
+        if (validation) validationResults.push(validation);
       }
     }
     const features = [];
@@ -905,12 +907,11 @@ exports.retranslateProduct = async (req, res) => {
       if (manualFields.includes('features')) {
         features.push(existing?.features?.[features.length] || feature);
       } else {
-        const { value: translated } = await translateField('features', feature, 'product_feature');
+        const { value: translated, validation } = await translateField('features', feature, 'product_feature');
         features.push(translated);
+        if (validation) validationResults.push(validation);
       }
     }
-
-    const validationResults = [nameResult.validation, descResult.validation, brandResult.validation].filter(Boolean);
     const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errs }) => errs))];
     const qualityScore = validationResults.length
       ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
