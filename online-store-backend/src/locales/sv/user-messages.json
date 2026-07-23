@@ -6,5 +6,9 @@
   "user_updated_success": "Användare uppdaterad framgångsrikt",
   "user_deleted_success": "Användare borttagen framgångsrikt",
   "profile_updated_success": "Profil uppdaterad framgångsrikt",
-  "password_changed_success": "Lösenord ändrat framgångsrikt"
+  "password_changed_success": "Lösenord ändrat framgångsrikt",
+  "reset_token_and_password_required": "Token och nytt lösenord krävs",
+  "verification_token_required": "Verifieringstoken krävs",
+  "refresh_token_required": "Uppdateringstoken krävs",
+  "invalid_refresh_token": "Ogiltig uppdateringstoken"
 }

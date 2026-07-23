@@ -18,5 +18,9 @@
   "user_updated_success": "Người dùng được cập nhật thành công",
   "user_deleted_success": "Người dùng được xóa thành công",
   "profile_updated_success": "Hồ sơ được cập nhật thành công",
-  "password_changed_success": "Mật khẩu được thay đổi thành công"
+  "password_changed_success": "Mật khẩu được thay đổi thành công",
+  "reset_token_and_password_required": "Cần có token và mật khẩu mới",
+  "verification_token_required": "Cần có token xác minh email",
+  "refresh_token_required": "Cần có refresh token",
+  "invalid_refresh_token": "Refresh token không hợp lệ"
 }

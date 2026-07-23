@@ -18,5 +18,9 @@
   "user_updated_success": "Gebruiker succesvol bijgewerkt",
   "user_deleted_success": "Gebruiker succesvol verwijderd",
   "profile_updated_success": "Profiel succesvol bijgewerkt",
-  "password_changed_success": "Wachtwoord succesvol gewijzigd"
+  "password_changed_success": "Wachtwoord succesvol gewijzigd",
+  "reset_token_and_password_required": "Token en nieuw wachtwoord zijn vereist",
+  "verification_token_required": "Verificatietoken is vereist",
+  "refresh_token_required": "Vernieuwingstoken is vereist",
+  "invalid_refresh_token": "Ongeldig vernieuwingstoken"
 }
