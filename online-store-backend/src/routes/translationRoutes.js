@@ -42,6 +42,13 @@ router.get(
   translationController.getProductTranslationStatuses
 );
 
+router.get(
+  '/admin/products/:id',
+  protect,
+  admin,
+  translationController.getProductTranslationForAdmin
+);
+
 router.put(
   '/admin/products/:id',
   protect,
