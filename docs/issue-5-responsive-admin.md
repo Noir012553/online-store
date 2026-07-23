@@ -210,3 +210,9 @@ Các điểm cần kiểm tra:
 - Các điều chỉnh responsive trọng tâm đã được rà soát trong mã nguồn; chưa thực hiện kiểm thử tương tác trực tiếp trên preview do môi trường hiện không có tiến trình dev server được cấu hình.
 
 **Trạng thái:** Đã hoàn thành phần triển khai và xác minh tự động; kiểm thử trực tiếp trên preview vẫn là bước vận hành tùy thuộc cấu hình môi trường.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`: `_AdminLayout.tsx` vẫn có sidebar/overlay mobile và các form, danh sách admin trọng tâm vẫn giữ class responsive đã triển khai. Không chạy preview hoặc thao tác trực tiếp trong đợt rà soát Markdown này.
+
+**Trạng thái hiện tại:** Hoàn tất về mặt mã nguồn; còn kiểm thử trực tiếp desktop, tablet và mobile trên preview.

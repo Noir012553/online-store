@@ -425,3 +425,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 - **Đã hoàn thành:** thay mũi tên hard-code trong `online-store-backend/src/test/test-phase4-e2e-simplified.js:166-167` bằng `CLI_SYMBOLS.arrowRight`, giữ nguyên text hiển thị `NEW → OLD schema`.
 - **Đã hoàn thành:** mở rộng `online-store-backend/scripts/check-cli-symbols.js:93-101` để kiểm tra ký hiệu trong lời gọi `describe(...)` và `it(...)` của các file thuộc allowlist, bên cạnh output `console.*`.
 - **Đã xác thực:** `online-store-backend npm run check:emoji`, kiểm tra cú pháp hai file JavaScript và `git diff --check` đều thành công.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`: `uiEmoji.ts`, `cliSymbols.js` và hai script kiểm tra emoji vẫn tồn tại và được khai báo qua package scripts. Emoji trong payment debug response và email marketing vẫn là ngoại lệ ngoài phạm vi registry CLI/UI, không được diễn giải là dự án đã loại bỏ mọi emoji hard-code.
+
+**Trạng thái hiện tại:** Hoàn tất trong phạm vi UI và output CLI được enforcement; các ngoại lệ API, email, locale, report lưu file và script legacy tiếp tục giữ quy trình xử lý riêng.

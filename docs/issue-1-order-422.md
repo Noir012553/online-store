@@ -235,3 +235,13 @@ Khi chạy lại test trong workspace hiện tại, các suite chưa thể hoàn
 - Issue-4 đã được xác minh lại độc lập với **12 PASS, 0 FAIL**, không tạo file mới.
 
 **Trạng thái cuối:** Issue-1 hoàn tất; các giới hạn còn lại chỉ thuộc nhóm runtime test cần môi trường MongoDB/JWT/Cloudflare hợp lệ.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`:
+
+- Validation `baseCurrencyCode` vẫn có trong `online-store-backend/src/models/Product.js` và nhánh trả `422` vẫn có trong `online-store-backend/src/controllers/orderController.js`.
+- Script `src/scripts/repair-product-currencies.js` và hai lệnh `repair:product-currencies` vẫn được khai báo trong `online-store-backend/package.json`.
+- Các số liệu database lịch sử (109 sản phẩm) và kết quả checkout thực tế không thể xác minh lại chỉ từ mã nguồn; chúng được giữ là kết quả đã ghi nhận, không phải kết quả chạy lại trong đợt rà soát này.
+
+**Trạng thái hiện tại:** Hoàn tất về mặt mã nguồn; xác minh runtime đầy đủ tiếp tục cần môi trường backend hợp lệ.

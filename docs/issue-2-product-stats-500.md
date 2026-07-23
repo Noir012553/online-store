@@ -407,3 +407,13 @@ Kết quả này xác nhận lại currency fallback, stats overview, validation
 - `online-store-backend/src/controllers/productController.js` tiếp tục dùng currency báo cáo này cho endpoint stats overview.
 
 **Tiến độ hiện tại:** Issue-2 được xác nhận hoàn tất ở phạm vi sửa HTTP `500`, fallback currency và validation currency. Các ghi chú lỗi test cũ phía trên là kết quả lịch sử, không thay đổi trạng thái API hiện tại.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`:
+
+- `online-store-backend/src/utils/orderRevenue.js` vẫn tự chọn currency active mặc định khi request không truyền `currency` và trả `400` cho currency không hợp lệ.
+- `online-store-backend/src/controllers/productController.js` tiếp tục dùng helper này cho stats overview.
+- Nhận định lịch sử rằng toast API có thể rỗng vì không truyền `t` không còn là trạng thái hiện tại: `LanguageContext` đã thiết lập translator dùng chung và `errorHandler` dùng translator đó khi không nhận `t` trực tiếp.
+
+**Trạng thái hiện tại:** Hoàn tất ở phạm vi stats/currency và toast liên quan; không chạy lại API trong đợt rà soát tài liệu này.
