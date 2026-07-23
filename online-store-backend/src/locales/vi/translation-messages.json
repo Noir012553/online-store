@@ -14,5 +14,10 @@
   "translation_fields_required": "ID sản phẩm và ít nhất một trường bản dịch là bắt buộc",
   "product_save_failed": "Không thể lưu bản dịch sản phẩm",
   "product_id_invalid": "ID sản phẩm không hợp lệ",
-  "product_retranslate_failed": "Dịch lại sản phẩm thất bại"
+  "product_retranslate_failed": "Dịch lại sản phẩm thất bại",
+  "retranslate_limit_invalid": "Giới hạn phải là số nguyên từ 1 đến 500",
+  "dynamic_entity_type_invalid": "Loại thực thể động hợp lệ là bắt buộc",
+  "retranslate_not_needed": "Không có bản dịch động nào cần dịch lại",
+  "retranslate_completed": "Đã hoàn tất dịch lại các bản dịch động",
+  "dynamic_retranslate_failed": "Dịch lại bản dịch động thất bại"
 }

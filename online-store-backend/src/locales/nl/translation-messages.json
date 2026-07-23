@@ -14,5 +14,10 @@
   "translation_fields_required": "Een product-ID en minimaal één vertaalveld zijn vereist",
   "product_save_failed": "Productvertaling kan niet worden opgeslagen",
   "product_id_invalid": "Ongeldige product-ID",
-  "product_retranslate_failed": "Product opnieuw vertalen is mislukt"
+  "product_retranslate_failed": "Product opnieuw vertalen is mislukt",
+  "retranslate_limit_invalid": "De limiet moet een geheel getal tussen 1 en 500 zijn",
+  "dynamic_entity_type_invalid": "Een geldig dynamisch entiteitstype is vereist",
+  "retranslate_not_needed": "Er zijn geen dynamische vertalingen die opnieuw vertaald moeten worden",
+  "retranslate_completed": "Het opnieuw vertalen van dynamische vertalingen is voltooid",
+  "dynamic_retranslate_failed": "Het opnieuw vertalen van dynamische vertalingen is mislukt"
 }

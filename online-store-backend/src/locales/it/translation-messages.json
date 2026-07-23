@@ -14,5 +14,10 @@
   "translation_fields_required": "Sono richiesti un ID prodotto e almeno un campo di traduzione",
   "product_save_failed": "Impossibile salvare la traduzione del prodotto",
   "product_id_invalid": "ID prodotto non valido",
-  "product_retranslate_failed": "La ritraduzione del prodotto non è riuscita"
+  "product_retranslate_failed": "La ritraduzione del prodotto non è riuscita",
+  "retranslate_limit_invalid": "Il limite deve essere un numero intero compreso tra 1 e 500",
+  "dynamic_entity_type_invalid": "È richiesto un tipo di entità dinamica valido",
+  "retranslate_not_needed": "Nessuna traduzione dinamica richiede una nuova traduzione",
+  "retranslate_completed": "La ritraduzione delle traduzioni dinamiche è stata completata",
+  "dynamic_retranslate_failed": "La ritraduzione delle traduzioni dinamiche non è riuscita"
 }
