@@ -24,67 +24,27 @@ Phạm vi rà soát không bao gồm việc xóa file tự động. Các file ch
 
 ## Kết quả rà soát frontend
 
-### 1. Frontend chưa có test runner
+### 1. Frontend có lệnh kiểm tra thủ công
 
 File frontend hiện có:
 
 - `online-store-frontend/src/test/offline-support.test.ts`
 - `online-store-frontend/src/test/offline-manual.js`
 
-`online-store-frontend/package.json` chỉ có các script:
-
-- `dev`
-- `build`
-- `start`
-
-Không có script Jest/Vitest hoặc test runner tương ứng. Vì vậy `offline-support.test.ts` chưa được nối vào pipeline test tự động.
-
-`offline-manual.js` là script kiểm tra thủ công và phần hướng dẫn bên trong đang gọi tên file khác:
-
-```text
-node test-offline-manual.js
-```
-
-Trong khi tên file thực tế là `offline-manual.js`.
+`online-store-frontend/package.json` hiện có script `test` trỏ đúng tới `node src/test/offline-manual.js`. Đây là kiểm tra offline thủ công bằng Node, không phải Jest/Vitest runner; `offline-support.test.ts` vẫn chưa được tự động chạy trong pipeline này.
 
 ### 2. Mức độ đánh giá
 
-- `offline-support.test.ts`: **Ứng viên chưa được wiring**, chưa đủ bằng chứng để kết luận dư thừa vì đây là test có nội dung kiểm tra IndexedDB thực tế.
-- `offline-manual.js`: **Ứng viên manual/legacy**, có thể giữ nếu vẫn cần kiểm tra thủ công; cần sửa hướng dẫn chạy nếu tiếp tục sử dụng.
+- `offline-support.test.ts`: **Chưa được wiring tự động**, chưa đủ bằng chứng để kết luận dư thừa vì có kiểm tra IndexedDB thực tế.
+- `offline-manual.js`: **Script kiểm tra thủ công đang hoạt động**; hướng dẫn chạy đã khớp với vị trí file thực tế.
 
 ## Kết quả rà soát backend
 
-### 1. Script npm trỏ tới file không tồn tại
+### 1. Package scripts backend hiện hợp lệ
 
-Tại `online-store-backend/package.json:20`:
+`online-store-backend/package.json` hiện không còn script `test:tier3`, `test:suite`, `test:suites` hoặc `test:tags` được ghi nhận trong bản rà soát ban đầu. Các script test còn lại trỏ tới file hiện có, bao gồm `test`, `test:list`, `test:simple` và các test VNPay.
 
-```json
-"test:tier3": "node src/test/test-tier3.js"
-```
-
-Nhưng file `online-store-backend/src/test/test-tier3.js` không tồn tại.
-
-Đây là script hỏng hoặc dư thừa và cần được xử lý trước khi xem unified test runner là đầy đủ.
-
-### 2. Wrapper test truyền tham số không hoàn chỉnh
-
-Tại `online-store-backend/package.json:12-14`:
-
-```json
-"test:suite": "node src/test/test-runner.js -- --suite",
-"test:suites": "node src/test/test-runner.js -- --suites",
-"test:tags": "node src/test/test-runner.js -- --tags"
-```
-
-Trong khi `online-store-backend/src/test/test-runner.js` phân tích tham số theo dạng có dấu `=`:
-
-```text
---suite=i18n
---suites=i18n,products
---tags=payments
-```
-
-Do đó các wrapper hiện tại không tự truyền được tên suite hoặc tag khi chạy trực tiếp.
+`online-store-backend/src/test/test-runner.js` vẫn hỗ trợ tham số dạng `--suite=...`, `--suites=...` và `--tags=...` khi chạy trực tiếp. Không có wrapper npm thiếu tham số cần duy trì.
 
 ### 3. Suite bị trùng file test
 
