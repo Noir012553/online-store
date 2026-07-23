@@ -15,6 +15,12 @@ const { getMessage } = require('../i18n/messages');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
+const createShipmentError = (lang, errorCode, messageKey, values = {}) => {
+  const error = new Error(getMessage(lang, messageKey, values));
+  error.errorCode = errorCode;
+  return error;
+};
+
 /**
  * Tạo vận đơn cho một đơn hàng
  * @route POST /api/shipments
@@ -85,7 +91,12 @@ const createShipment = asyncHandler(async (req, res) => {
   ).lean();
   if (!orderCurrency) {
     res.status(503);
-    throw new Error(`Currency metadata is missing for ${order.currencyCode}`);
+    throw createShipmentError(
+      req.lang,
+      'SHIPMENT_CURRENCY_METADATA_MISSING',
+      'shipment.currencyMetadataMissing',
+      { currencyCode: order.currencyCode }
+    );
   }
 
   let insuranceValue;
@@ -106,7 +117,7 @@ const createShipment = asyncHandler(async (req, res) => {
     insuranceValue = Math.max(0, Math.round(convertedInsuranceValue));
   } catch {
     res.status(503);
-    throw new Error('Currency exchange rates are temporarily unavailable');
+    throw createShipmentError(req.lang, 'SHIPMENT_RATES_UNAVAILABLE', 'shipment.ratesUnavailable');
   }
 
   // Prepare shipment data
@@ -219,7 +230,7 @@ const createShipment = asyncHandler(async (req, res) => {
 
   if (!shipmentResult.success) {
     res.status(502);
-    throw new Error(shipmentResult.error);
+    throw createShipmentError(req.lang, 'SHIPMENT_PROVIDER_REQUEST_FAILED', 'shipment.providerRequestFailed');
   }
 
   const shipmentData = shipmentResult.data;
@@ -228,7 +239,7 @@ const createShipment = asyncHandler(async (req, res) => {
   const totalFee = Number(shipmentData.total_fee || shipmentData.totalFee || 0);
   if (!Number.isFinite(totalFee) || totalFee < 0) {
     res.status(502);
-    throw new Error('GHN returned an invalid shipping fee');
+    throw createShipmentError(req.lang, 'SHIPMENT_INVALID_FEE', 'shipment.invalidFee');
   }
 
   let convertedShippingFee;
@@ -250,7 +261,7 @@ const createShipment = asyncHandler(async (req, res) => {
     convertedShippingFee = Math.round(convertedFee * multiplier) / multiplier;
   } catch {
     res.status(503);
-    throw new Error('Currency exchange rates are temporarily unavailable');
+    throw createShipmentError(req.lang, 'SHIPMENT_RATES_UNAVAILABLE', 'shipment.ratesUnavailable');
   }
 
   const utcDeliveryTime = shipmentData.expected_delivery_time || shipmentData.expectedDeliveryTime;
@@ -276,7 +287,7 @@ const createShipment = asyncHandler(async (req, res) => {
 
   if (!Number.isFinite(order.baseTotalPrice) || !Number.isFinite(order.totalPrice)) {
     res.status(503);
-    throw new Error('Order currency data is unavailable');
+    throw createShipmentError(req.lang, 'SHIPMENT_ORDER_CURRENCY_UNAVAILABLE', 'shipment.orderCurrencyUnavailable');
   }
 
   await order.save();
@@ -374,7 +385,7 @@ const getPrintLabel = asyncHandler(async (req, res) => {
     const tokenResult = await adapter.getPrintToken([order.ghnOrderCode]);
     if (!tokenResult.success) {
       res.status(400);
-      throw new Error(tokenResult.error);
+      throw createShipmentError(req.lang, 'SHIPMENT_PRINT_TOKEN_FAILED', 'shipment.printTokenFailed');
     }
 
     // Save token and URL to order

@@ -438,7 +438,8 @@ const syncLocationData = asyncHandler(async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Location data synced successfully',
+      code: 'LOCATION_SYNC_COMPLETED',
+      message: getMessage(req.lang, 'shipment.locationSyncSuccess'),
       data: {
         provinces: provinceCount,
         districts: totalDistricts,
@@ -448,7 +449,8 @@ const syncLocationData = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      code: 'LOCATION_SYNC_FAILED',
+      message: getMessage(req.lang, 'shipment.locationSyncFailed'),
     });
   }
 });
