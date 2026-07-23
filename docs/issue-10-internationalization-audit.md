@@ -482,3 +482,14 @@ Các nhóm validation, rate-limit, order currency, shipping, user, Cloudinary, b
 - Payment và import/export vẫn giữ trạng thái cần xử lý/kiểm thử riêng; không có cơ sở từ lần rà soát này để đánh dấu hoàn tất các contract lỗi của hai nhóm đó.
 
 **Trạng thái cập nhật:** Các mục validation, rate limit, RoleBadge và các nhóm đã ghi nhận hoàn tất vẫn được giữ nguyên. Translation, payment, currency/exchange rate, import/export và email vẫn là phần việc tiếp theo; cần chuẩn hóa contract lỗi theo từng luồng rồi kiểm thử API với các locale trước khi đóng issue.
+
+## Cập nhật đối chiếu repository hiện tại
+
+Đợt rà soát tài liệu này xác nhận các trạng thái đang mở vẫn phù hợp với mã nguồn:
+
+- Translation controller vẫn có response validation và lỗi runtime bằng literal tiếng Anh ở một số endpoint sản phẩm.
+- Exchange-rate service vẫn ném các câu lỗi tiếng Anh trực tiếp; contract mã lỗi và tham số chưa được chuẩn hóa ở boundary API.
+- Các nhóm payment, import/export và email chưa có bằng chứng kiểm thử API đa locale để đánh dấu hoàn tất toàn bộ.
+- Những mục đã đóng như validation middleware, rate limit, RoleBadge và banner translation không có thay đổi làm đảo ngược kết luận trước đó.
+
+**Tiến độ cập nhật:** Issue vẫn mở. Ưu tiên tiếp theo là chuẩn hóa `{ code, params, message }` theo từng luồng còn lại, không parse câu lỗi ở frontend, rồi kiểm thử API với ít nhất `vi`, `en` và một locale không-Latin.

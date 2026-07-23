@@ -186,3 +186,14 @@ Tài liệu đã được cập nhật theo code hiện tại: route redirect, s
 - Cơ chế đọc/status vẫn là hybrid cache; chưa có migration hoặc quy tắc kết thúc fallback được triển khai trong source.
 
 **Trạng thái hiện tại:** Chưa hoàn tất. Cần chốt nguồn cache, contract batch/import và chạy kiểm thử round-trip cùng save/re-translate trong môi trường runtime phù hợp.
+
+## Cập nhật đối chiếu repository hiện tại
+
+Đợt rà soát tĩnh này không thay đổi mã nguồn và tiếp tục xác nhận các điểm mở:
+
+- Luồng đọc dữ liệu và status vẫn là hybrid giữa `ProductCatalogTranslationCache` và `LiveTranslationCache`.
+- `Product.featuresTranslations` vẫn được merge theo field vào dữ liệu trả về; quy tắc này cần được kiểm thử đầu-cuối sau save và re-translate.
+- Import vẫn fallback theo `name + brand` khi thiếu `productId`, nên rủi ro định danh không ổn định chưa được loại bỏ.
+- Contract batch legacy chưa hỗ trợ `productIds`, `fields` hoặc `idempotencyKey` như contract mục tiêu.
+
+**Tiến độ cập nhật:** Không có bằng chứng mới để đóng các hạng mục trên. Bước tiếp theo là chốt contract, chuẩn bị môi trường runtime riêng và chạy round-trip import/export cùng các tình huống save/re-translate.
