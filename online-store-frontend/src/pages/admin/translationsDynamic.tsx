@@ -388,7 +388,7 @@ function ProductTranslationCard({
         setLoadingTranslation(true);
 
         const response = await fetch(
-          `/api/products/${product._id}/translations?lang=${selectedLanguage}`,
+          `/api/translations/admin/products/${product._id}?lang=${selectedLanguage}`,
           {
             headers: {
               'Authorization': `Bearer ${getAuthToken()}`,

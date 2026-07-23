@@ -110,62 +110,8 @@ exports.getProductTranslations = async (req, res) => {
       return res.json({ success: true, data: null });
     }
 
-    const translation = await ProductCatalogTranslationCache.findOne({
-      entityId: productId,
-      targetLang: resolvedLang,
-      status: 'success',
-    }).lean();
-
-    if (translation) {
-      const specs = translation.specs instanceof Map
-        ? Object.fromEntries(translation.specs)
-        : translation.specs || {};
-
-      return res.json({
-        success: true,
-        data: {
-          name: translation.name || undefined,
-          description: translation.description || undefined,
-          brand: translation.brand || undefined,
-          specs,
-          features: translation.features || [],
-        },
-      });
-    }
-
-    const legacyTranslations = await LiveTranslationCache.find({
-      entityId: productId,
-      targetLang: resolvedLang,
-      entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
-      status: 'success',
-    }).lean();
-
-    if (legacyTranslations.length === 0) {
-      return res.json({ success: true, data: null });
-    }
-
-    const legacyData = { specs: {}, features: [] };
-    legacyTranslations.forEach((legacyTranslation) => {
-      switch (legacyTranslation.entityType) {
-        case 'product_name':
-          legacyData.name = legacyTranslation.translatedText;
-          break;
-        case 'product_description':
-          legacyData.description = legacyTranslation.translatedText;
-          break;
-        case 'product_brand':
-          legacyData.brand = legacyTranslation.translatedText;
-          break;
-        case 'product_spec':
-          if (legacyTranslation.specKey) legacyData.specs[legacyTranslation.specKey] = legacyTranslation.translatedText;
-          break;
-        case 'product_feature':
-          legacyData.features.push(legacyTranslation.translatedText);
-          break;
-      }
-    });
-
-    return res.json({ success: true, data: legacyData });
+    const data = await getProductTranslationData(productId, resolvedLang, false);
+    return res.json({ success: true, data });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
     res.status(500).json({
@@ -751,6 +697,76 @@ const productTranslationStatus = (translation) => {
 
 const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 
+const buildLegacyProductTranslation = (translations) => {
+  if (translations.length === 0) return null;
+
+  const data = { specs: {}, features: [] };
+  translations.forEach((translation) => {
+    switch (translation.entityType) {
+      case 'product_name':
+        data.name = translation.translatedText;
+        break;
+      case 'product_description':
+        data.description = translation.translatedText;
+        break;
+      case 'product_brand':
+        data.brand = translation.translatedText;
+        break;
+      case 'product_spec':
+        if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
+        break;
+      case 'product_feature':
+        data.features.push(translation.translatedText);
+        break;
+    }
+  });
+
+  return data;
+};
+
+const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
+  const catalogQuery = { entityId: productId, targetLang };
+  const legacyQuery = {
+    entityId: productId,
+    targetLang,
+    entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+  };
+  if (!includeNonSuccess) {
+    catalogQuery.status = 'success';
+    legacyQuery.status = 'success';
+  }
+
+  const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
+  if (translation) {
+    return {
+      name: translation.name || undefined,
+      description: translation.description || undefined,
+      brand: translation.brand || undefined,
+      specs: translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {},
+      features: translation.features || [],
+    };
+  }
+
+  const legacyTranslations = await LiveTranslationCache.find(legacyQuery).lean();
+  return buildLegacyProductTranslation(legacyTranslations);
+};
+
+exports.getProductTranslationForAdmin = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const { lang } = req.query;
+    if (!isProductId(productId) || typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
+      return res.status(400).json({ success: false, message: 'A valid product ID and target language are required' });
+    }
+
+    const data = await getProductTranslationData(productId, lang, true);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('[TranslationController] Error fetching product translation for admin:', error);
+    return res.status(500).json({ success: false, message: 'Unable to fetch product translation' });
+  }
+};
+
 exports.getProductTranslationStatuses = async (req, res) => {
   try {
     const { lang } = req.query;
@@ -877,13 +893,19 @@ exports.retranslateProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: 'The source language cannot be retranslated' });
     }
 
-    const [product, existing] = await Promise.all([
+    const [product, catalogTranslation, legacyTranslations] = await Promise.all([
       Product.findById(productId).lean(),
       ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
+      LiveTranslationCache.find({
+        entityId: productId,
+        targetLang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      }).lean(),
     ]);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
-    const manualFields = existing?.manualFields || [];
+    const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations);
+    const manualFields = catalogTranslation?.manualFields || [];
     const translateField = async (field, source, entityType) => {
       if (manualFields.includes(field) || !source) return { value: existing?.[field], validation: null };
       const value = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
