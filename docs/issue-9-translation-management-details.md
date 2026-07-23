@@ -162,6 +162,8 @@ Chưa kết luận nguyên nhân chỉ từ source. Cần thu thập:
 
 ## Trạng thái tài liệu
 
+**Trạng thái hiện tại: Chưa hoàn tất.**
+
 Tài liệu đã được cập nhật theo code hiện tại: route redirect, status cap 50, timeout frontend, hybrid cache, endpoint batch legacy và fallback import đều được ghi nhận riêng. Các đề xuất về một nguồn cache, contract batch mới và job nền vẫn là phần cần triển khai sau khi chốt yêu cầu.
 
 ## Cập nhật đối chiếu mã nguồn hiện tại

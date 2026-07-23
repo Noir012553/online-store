@@ -66,6 +66,8 @@ Endpoint theo sản phẩm ghi kết quả vào `ProductCatalogTranslationCache`
 
 ## Trạng thái tài liệu
 
+**Trạng thái hiện tại: Chưa hoàn tất.**
+
 Giao diện và endpoint theo sản phẩm đã được triển khai. Phần còn lại là chuẩn hóa hybrid cache, contract batch/import và kiểm thử đầu cuối; các mục này chưa được xem là hoàn tất chỉ dựa trên kiểm tra tĩnh.
 
 Xem `docs/issue-9-translation-management-details.md` để biết chi tiết kỹ thuật.
