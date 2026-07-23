@@ -23,6 +23,7 @@ const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Supplier = require('../models/Supplier');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -82,14 +83,19 @@ const findExistingProduct = (byId, byNameAndBrand, product) => {
 
 async function invalidateChangedProductTranslations(affectedProducts = []) {
   if (affectedProducts.length === 0) {
-    return { markedForRetranslation: 0, preservedManualTranslations: 0 };
+    return {
+      markedForRetranslation: 0,
+      markedLegacyForRetranslation: 0,
+      preservedManualTranslations: 0,
+    };
   }
 
   const affectedFieldsByProduct = new Map(
     affectedProducts.map(({ productId, fields }) => [productId.toString(), fields])
   );
+  const productIds = [...affectedFieldsByProduct.keys()];
   const caches = await ProductCatalogTranslationCache.find({
-    entityId: { $in: [...affectedFieldsByProduct.keys()] },
+    entityId: { $in: productIds },
   }).lean();
   const operations = [];
   let preservedManualTranslations = 0;
@@ -115,11 +121,28 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     });
   }
 
+  const legacyResult = await LiveTranslationCache.updateMany(
+    {
+      entityId: { $in: productIds },
+      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] },
+    },
+    {
+      $set: {
+        qualityStatus: 'needs_retranslate',
+        validationErrors: ['source_content_changed'],
+      },
+    }
+  );
+
   if (operations.length > 0) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
 
-  return { markedForRetranslation: operations.length, preservedManualTranslations };
+  return {
+    markedForRetranslation: operations.length,
+    markedLegacyForRetranslation: legacyResult.modifiedCount,
+    preservedManualTranslations,
+  };
 }
 
 /**
@@ -870,6 +893,7 @@ const getImportGuide = asyncHandler(async (req, res) => {
  */
 const exportProducts = asyncHandler(async (req, res) => {
   const { format = 'json', category, brand, limit = 10000, lang } = req.query;
+  const parsedLimit = Number(limit);
   const exportLanguage = isSupportedLanguage(lang) ? lang : (req.lang || getDefaultLanguage().code);
 
   // Validate format
@@ -878,6 +902,13 @@ const exportProducts = asyncHandler(async (req, res) => {
       success: false,
       message: `Format không được hỗ trợ: ${format}`,
       supportedFormats: ['json', 'csv'],
+    });
+  }
+
+  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
+    return res.status(400).json({
+      success: false,
+      message: 'limit phải là số nguyên từ 1 đến 10000',
     });
   }
 
@@ -917,8 +948,9 @@ const exportProducts = asyncHandler(async (req, res) => {
       filter.brand = brand;
     }
 
-    // Fetch products với category & supplier info
-    // FIX #3: Only populate non-deleted categories and suppliers
+    const matchedTotal = await Product.countDocuments(filter);
+
+    // Fetch one extra record to determine whether the export was truncated.
     const products = await Product.find(filter)
       .select('-reviews -createdAt -updatedAt -__v')
       .populate({
@@ -931,12 +963,14 @@ const exportProducts = asyncHandler(async (req, res) => {
         select: 'name',
         match: { isDeleted: false }  // FIX #3: Filter deleted suppliers
       })
-      .limit(parseInt(limit))
+      .limit(parsedLimit + 1)
       .lean();
+    const hasMore = products.length > parsedLimit;
+    const exportedProducts = hasMore ? products.slice(0, parsedLimit) : products;
 
     // Transform products
     // FIX #3: Skip products with null category/supplier (they reference deleted documents)
-    const transformedProducts = products
+    const transformedProducts = exportedProducts
       .filter(product => product.category && product.supplier)  // FIX #3: Filter out products with null refs
       .map(product => ({
         productId: product._id.toString(),
@@ -968,6 +1002,9 @@ const exportProducts = asyncHandler(async (req, res) => {
         success: true,
         exportedAt: new Date().toISOString(),
         totalProducts: transformedProducts.length,
+        matchedTotal,
+        exportedTotal: transformedProducts.length,
+        hasMore,
         format: 'json',
         filters: { category, brand },
         products: transformedProducts,
@@ -977,6 +1014,9 @@ const exportProducts = asyncHandler(async (req, res) => {
       const csv = convertProductsToCSV(transformedProducts);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.csv"`);
+      res.setHeader('X-Matched-Total', matchedTotal);
+      res.setHeader('X-Exported-Total', transformedProducts.length);
+      res.setHeader('X-Has-More', String(hasMore));
       res.send('\uFEFF' + csv); // UTF-8 BOM for proper Vietnamese character encoding
     }
   } catch (error) {
