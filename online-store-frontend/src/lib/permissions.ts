@@ -51,17 +51,3 @@ export const canAccessPage = (user: User | null, pagePath: string): boolean => {
 
   return user.role === 'admin' || user.role === 'super-admin';
 };
-
-export const getAccessDeniedMessage = (permission: Permission): string => {
-  const messages: Record<Permission, string> = {
-    'manage:users': 'Only super admins can manage users',
-    'manage:currency': 'Only super admins can manage currencies',
-    'manage:translations': 'Admins can manage translations',
-    'manage:products': 'Only admins can manage products',
-    'manage:orders': 'Only admins can manage orders',
-    'manage:customers': 'Only admins can manage customers',
-    'manage:coupons': 'Only admins can manage coupons',
-    'manage:banners': 'Only admins can manage banners',
-  };
-  return messages[permission];
-};
