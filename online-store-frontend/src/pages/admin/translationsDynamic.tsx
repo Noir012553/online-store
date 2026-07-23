@@ -271,7 +271,10 @@ export function ProductsTranslationsAdminContent() {
         </select>
         <select
           value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as 'all' | TranslationStatus['status'])}
+          onChange={(event) => {
+            setStatusFilter(event.target.value as 'all' | TranslationStatus['status']);
+            setCurrentPage(1);
+          }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
           aria-label={t('status_filter_label', 'productsTranslations')}
         >
