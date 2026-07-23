@@ -753,7 +753,10 @@ const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.tes
 
 exports.getProductTranslationStatuses = async (req, res) => {
   try {
-    const lang = getLanguageParam(req.query);
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
+      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+    }
     const productIds = (req.query.productIds || '').split(',').filter(isProductId);
 
     if (productIds.length === 0 || productIds.length > 50) {
