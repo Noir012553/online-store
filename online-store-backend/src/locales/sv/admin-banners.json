@@ -200,5 +200,6 @@
   "banner_form_lang_optional_note": "Du kan översätta till alla 9 språk som stöds",
   "banner_form_warning_incomplete_optional": "Varning: Vissa språk är ofullständiga",
   "banner_form_lang_incomplete": "ofullständig",
-  "banner_form_warning_incomplete_note": "Du kan fortsätta och översätta dessa språk senare från sidan för översättningshantering"
+  "banner_form_warning_incomplete_note": "Du kan fortsätta och översätta dessa språk senare från sidan för översättningshantering",
+  "missing_translations": "Språk utan översättning"
 }

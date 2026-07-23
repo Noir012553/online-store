@@ -204,5 +204,6 @@
   "banner_form_lang_incomplete": "chưa hoàn tất",
   "banner_form_warning_incomplete_note": "Bạn có thể tiếp tục và dịch những ngôn ngữ này sau từ trang quản lý bản dịch",
   "banner_error_lang_at_least_one_complete": "Vui lòng hoàn tất ít nhất một ngôn ngữ với tiêu đề",
-  "banner_error_lang_at_least_one_complete_cta": "Vui lòng hoàn tất ít nhất một ngôn ngữ đầy đủ (tiêu đề, phụ đề, mô tả, và nút CTA)"
+  "banner_error_lang_at_least_one_complete_cta": "Vui lòng hoàn tất ít nhất một ngôn ngữ đầy đủ (tiêu đề, phụ đề, mô tả, và nút CTA)",
+  "missing_translations": "Các ngôn ngữ chưa được dịch"
 }

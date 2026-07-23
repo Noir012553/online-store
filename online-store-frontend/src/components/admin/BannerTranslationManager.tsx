@@ -244,7 +244,7 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
           </div>
 
           <div className="mt-4 pt-4 border-t border-blue-200">
-            <p className="text-xs font-medium text-gray-600 mb-2">{t('language_coverage', 'admin-banners') || 'Ngôn ngữ được hỗ trợ'}:</p>
+            <p className="text-xs font-medium text-gray-600 mb-2">{t('language_coverage', 'admin-banners')}:</p>
             <div className="flex flex-wrap gap-2">
               {SUPPORTED_LOCALES.map((lang) => {
                 const isTranslated = translations.some((t) => t.language === lang);
@@ -275,7 +275,7 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
             <Globe className="mx-auto mb-3 h-8 w-8 text-gray-400" />
             <p className="font-medium text-gray-900">{t('no_translations_yet', 'admin-banners')}</p>
-            <p className="text-sm text-gray-600 mt-1">{t('click_add_translation_to_start', 'admin-banners') || 'Click nút "Thêm dịch thuật" để bắt đầu'}</p>
+            <p className="text-sm text-gray-600 mt-1">{t('click_add_translation_to_start', 'admin-banners')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -338,7 +338,7 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
 
         {missingLanguages.length > 0 && translations.length > 0 && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-            <p className="text-sm font-medium text-amber-900 mb-2">Các ngôn ngữ chưa được dịch:</p>
+            <p className="text-sm font-medium text-amber-900 mb-2">{t('missing_translations', 'admin-banners')}:</p>
             <div className="flex flex-wrap gap-2">
               {missingLanguages.map((lang) => (
                 <Badge

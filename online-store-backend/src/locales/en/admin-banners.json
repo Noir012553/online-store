@@ -203,5 +203,6 @@
   "banner_form_lang_incomplete": "incomplete",
   "banner_form_warning_incomplete_note": "You can continue and translate these languages later from the translation management page",
   "banner_error_lang_at_least_one_complete": "Please complete at least one language with a title",
-  "banner_error_lang_at_least_one_complete_cta": "Please complete at least one language fully (title, subtitle, description, and CTA button)"
+  "banner_error_lang_at_least_one_complete_cta": "Please complete at least one language fully (title, subtitle, description, and CTA button)",
+  "missing_translations": "Languages without translations"
 }

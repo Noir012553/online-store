@@ -197,5 +197,6 @@
   "banner_form_lang_optional_note": "Sie können in alle 9 unterstützten Sprachen übersetzen",
   "banner_form_warning_incomplete_optional": "Warnung: Einige Sprachen sind unvollständig",
   "banner_form_lang_incomplete": "unvollständig",
-  "banner_form_warning_incomplete_note": "Sie können fortfahren und diese Sprachen später auf der Seite zur Verwaltung von Übersetzungen übersetzen"
+  "banner_form_warning_incomplete_note": "Sie können fortfahren und diese Sprachen später auf der Seite zur Verwaltung von Übersetzungen übersetzen",
+  "missing_translations": "Sprachen ohne Übersetzung"
 }

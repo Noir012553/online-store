@@ -222,5 +222,6 @@
   "banner_form_lang_optional_note": "Puede traducir a los 9 idiomas soportados",
   "banner_form_warning_incomplete_optional": "Advertencia: Algunos idiomas están incompletos",
   "banner_form_lang_incomplete": "incompleto",
-  "banner_form_warning_incomplete_note": "Puede continuar y traducir estos idiomas después desde la página de gestión de traducciones"
+  "banner_form_warning_incomplete_note": "Puede continuar y traducir estos idiomas después desde la página de gestión de traducciones",
+  "missing_translations": "Idiomas sin traducción"
 }
