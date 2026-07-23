@@ -738,6 +738,13 @@ const getStoredFeatureTranslations = (product, targetLang) => (
   (product?.features || []).map((feature) => product.featuresTranslations?.[feature]?.[targetLang] || feature)
 );
 
+const getStoredFeatureTranslationCount = (product, targetLang) => (
+  (product?.features || []).filter((feature) => {
+    const translation = product.featuresTranslations?.[feature]?.[targetLang];
+    return typeof translation === 'string' && translation.trim().length > 0;
+  }).length
+);
+
 const mergeFeatureTranslations = (product, targetLang, translatedFeatures = []) => {
   const storedFeatures = getStoredFeatureTranslations(product, targetLang);
   if (storedFeatures.length === 0) return translatedFeatures;
@@ -818,7 +825,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
         targetLang: lang,
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean(),
-      Product.find({ _id: { $in: productIds } }).select('features specs').lean(),
+      Product.find({ _id: { $in: productIds } }).select('features featuresTranslations specs').lean(),
     ]);
     const catalogByProductId = new Map(catalogTranslations.map((translation) => [translation.entityId, translation]));
     const productsById = new Map(products.map((product) => [product._id.toString(), product]));
@@ -847,7 +854,10 @@ exports.getProductTranslationStatuses = async (req, res) => {
       const product = productsById.get(productId);
       const expectedFeatureCount = product?.features?.length || 0;
       const expectedSpecKeys = Object.keys(product?.specs || {});
-      const translatedFeatureCount = legacyRecords.filter((record) => record.entityType === 'product_feature').length;
+      const translatedFeatureCount = Math.max(
+        legacyRecords.filter((record) => record.entityType === 'product_feature').length,
+        getStoredFeatureTranslationCount(product, lang)
+      );
       const translatedSpecKeys = new Set(
         legacyRecords.filter((record) => record.entityType === 'product_spec' && record.specKey).map((record) => record.specKey)
       );
