@@ -218,3 +218,31 @@ Lần cập nhật này chỉ đọc và đối chiếu các báo cáo Markdown 
 - Issue 5 và Issue 6 đã có xác minh build/check tự động nhưng vẫn thiếu kiểm thử tương tác trên preview; đây là khoảng trống vận hành, không phải lỗi code đã được xác nhận.
 
 **Kết luận rà soát tiếp:** Không phát hiện tài liệu Markdown nào có bằng chứng mới đủ để đóng Issue 8–10 hoặc bỏ qua bước preview của Issue 5–6. Các FAIL cũ đã được phân biệt rõ với kết quả cuối cùng trong báo cáo tổng hợp.
+
+## Bổ sung blocker từ rà soát chéo tài liệu
+
+Rà soát độc lập toàn bộ `docs/**/*.md` cho thấy Issue 3 cần ghi rõ hơn các giới hạn runtime sau:
+
+### Rollback và shadow-write
+
+Theo các báo cáo Issue 1–2, các lỗi còn lại được ghi nhận gồm:
+
+- `test-rollback-procedures.js` còn phụ thuộc fixture hợp lệ, assertion import, Express app export và model `TranslationAuditLog`.
+- Một số nhánh rollback từng gặp `app.address is not a function`, trùng khóa fixture và kiểm tra TTL index phụ thuộc MongoDB.
+- `test-shadow-writes.js` từng dùng `entityType: "generic"`, không phù hợp enum của schema translation cache.
+- Các lỗi này chưa có bằng chứng runtime mới xác nhận đã đóng trong môi trường hiện tại, nên vẫn thuộc nhóm blocker cần kiểm thử lại với database test riêng.
+
+### Suite i18n và products
+
+Các kết quả dynamic trước đó cũng ghi nhận:
+
+- Suite `i18n` còn lỗi import tương đối ở một số test và có nhánh trả HTTP `401` nhưng process vẫn kết thúc exit code `0`.
+- Suite `products` còn phụ thuộc `ADMIN_TOKEN`; một test Phase 4 dùng cú pháp Jest `test(...)` nhưng được chạy bằng Mocha.
+
+Đây là lỗi wiring/cấu hình test, không phải bằng chứng hồi quy của order hoặc product stats, nhưng cần được giữ trong danh sách việc còn lại nếu mục tiêu là đạt runtime test đầy đủ.
+
+### Phân biệt kết quả checker Issue 7
+
+`issue-7-centralized-emoji-management.md` có cả kết quả frontend `check:emoji`/build đạt và một lần rà soát ghi nhận `npm run check:emoji` không chạy được do thiếu module `typescript`. Hai kết quả thuộc các môi trường hoặc thời điểm khác nhau; trạng thái an toàn là: checker đã đạt sau khi dependencies được cài đúng, nhưng mọi kết quả pass chỉ có giá trị trong môi trường đã đủ dependency và theo đúng allowlist.
+
+**Trạng thái bổ sung:** Issue 3 hiện đã bao gồm các blocker rollback/shadow-write, i18n/products và điều kiện môi trường của Issue 7; chưa có bằng chứng mới để chuyển các nhóm này sang hoàn tất.
