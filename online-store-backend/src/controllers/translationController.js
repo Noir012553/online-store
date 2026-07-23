@@ -1522,7 +1522,8 @@ exports.getAllTranslationsByLang = async (req, res) => {
     if (!lang) {
       return res.status(400).json({
         success: false,
-        message: 'Language code is required',
+        code: 'LANGUAGE_CODE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.language_code_required'),
       });
     }
 
@@ -1591,7 +1592,8 @@ exports.bulkTranslateStaticUI = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Bulk translations completed',
+      code: 'BULK_TRANSLATIONS_COMPLETED',
+      message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.bulk_translations_completed'),
       data: {
         translation: result,
         translatedCount: sourceItems.length,
@@ -1621,7 +1623,8 @@ exports.getTranslationStatus = async (req, res) => {
     if (!lang) {
       return res.status(400).json({
         success: false,
-        message: 'Language code is required',
+        code: 'LANGUAGE_CODE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.language_code_required'),
       });
     }
 
@@ -1720,7 +1723,8 @@ exports.getFailedTranslations = async (req, res) => {
     if (!lang) {
       return res.status(400).json({
         success: false,
-        message: 'Language code is required',
+        code: 'LANGUAGE_CODE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.language_code_required'),
       });
     }
 
@@ -1780,7 +1784,8 @@ exports.retryFailedTranslations = async (req, res) => {
     if (!lang) {
       return res.status(400).json({
         success: false,
-        message: 'Language code is required',
+        code: 'LANGUAGE_CODE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.language_code_required'),
       });
     }
 
@@ -2048,7 +2053,8 @@ exports.getFallbackTranslations = async (req, res) => {
     if (lang && !isSupportedLanguage(lang)) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${lang}`,
+        code: 'LANGUAGE_UNSUPPORTED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.unsupported_language', { lang }),
       });
     }
 
@@ -2065,7 +2071,8 @@ exports.getFallbackTranslations = async (req, res) => {
       if (!staticTrans || staticTrans.length === 0) {
         return res.status(404).json({
           success: false,
-          message: `Fallback translations not found for language: ${lang}`,
+          code: 'FALLBACK_TRANSLATIONS_NOT_FOUND',
+          message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.fallback_translations_not_found', { lang }),
         });
       }
 
