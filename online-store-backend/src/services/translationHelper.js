@@ -11,6 +11,7 @@
  */
 
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const CouponTranslationCache = require('../models/CouponTranslationCache');
@@ -35,6 +36,14 @@ const CACHE_MODELS = {
 /**
  * Map entity type → Translatable fields
  */
+const PRODUCT_TRANSLATION_ENTITY_TYPES = [
+  'product_name',
+  'product_description',
+  'product_brand',
+  'product_spec',
+  'product_feature',
+];
+
 const TRANSLATABLE_FIELDS = {
   product: ['name', 'description', 'brand', 'specs', 'features'],
   brand: ['name', 'description'],
@@ -53,6 +62,33 @@ const TRANSLATABLE_FIELDS = {
  * @param {Object} translation - Translation cache object từ DB
  * @returns {Object} Entity với translation overlay
  */
+function buildLegacyProductTranslation(translations) {
+  if (translations.length === 0) return null;
+
+  const data = { specs: {}, features: [] };
+  translations.forEach((translation) => {
+    switch (translation.entityType) {
+      case 'product_name':
+        data.name = translation.translatedText;
+        break;
+      case 'product_description':
+        data.description = translation.translatedText;
+        break;
+      case 'product_brand':
+        data.brand = translation.translatedText;
+        break;
+      case 'product_spec':
+        if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
+        break;
+      case 'product_feature':
+        data.features.push(translation.translatedText);
+        break;
+    }
+  });
+
+  return data;
+}
+
 function applyTranslationOverlay(entity, entityType, translation) {
   // If no translation found, return entity as-is
   if (!translation) return entity;
@@ -211,12 +247,23 @@ async function overlayTranslation(entity, entityType, targetLang) {
 
   try {
     const entityId = entity._id?.toString() || entity.id;
-    const translation = await CacheModel.findOne({
+    let translation = await CacheModel.findOne({
       entityId,
       targetLang,
       status: 'success',
       ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
+
+    if (!translation && entityType === 'product') {
+      const legacyTranslations = await LiveTranslationCache.find({
+        entityId,
+        targetLang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+        status: 'success',
+        qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      }).lean();
+      translation = buildLegacyProductTranslation(legacyTranslations);
+    }
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
 
@@ -468,11 +515,11 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
   try {
     const entityIds = entities.map(e => e._id?.toString() || e.id);
 
-    // No fallback chain - only request exact language
     const translations = await CacheModel.find({
       entityId: { $in: entityIds },
       targetLang,
       status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
 
     const translationMap = {};
@@ -483,6 +530,28 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
         fallbackUsed: false,
       };
     });
+
+    if (entityType === 'product') {
+      const missingEntityIds = entityIds.filter((entityId) => !translationMap[entityId]);
+      if (missingEntityIds.length > 0) {
+        const legacyTranslations = await LiveTranslationCache.find({
+          entityId: { $in: missingEntityIds },
+          targetLang,
+          entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+          status: 'success',
+          qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+        }).lean();
+        const legacyByEntityId = new Map();
+        legacyTranslations.forEach((translation) => {
+          const records = legacyByEntityId.get(translation.entityId) || [];
+          records.push(translation);
+          legacyByEntityId.set(translation.entityId, records);
+        });
+        legacyByEntityId.forEach((records, entityId) => {
+          translationMap[entityId] = buildLegacyProductTranslation(records);
+        });
+      }
+    }
 
     // For products: pre-fetch nested brand translations.
     let brandTranslationMap = {};

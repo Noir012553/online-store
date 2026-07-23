@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const {
+  overlayTranslation,
   overlayTranslationBatchWithFallback,
   getTranslationWithFallback,
   TRANSLATABLE_FIELDS,
@@ -9,6 +10,7 @@ const {
   overlayBannerTranslations,
   overlayTestimonialTranslations,
 } = require('../services/translationHelper');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 function createQueryMock() {
   const mock = (query) => {
@@ -163,6 +165,76 @@ describe('translationHelper - Exact-language overlays', () => {
 
       assert.deepStrictEqual(result, entities);
     });
+  });
+});
+
+describe('translationHelper - Product legacy cache fallback', () => {
+  let mockProductCache;
+  let originalProductCache;
+  let mockLegacyFind;
+  let originalLegacyFind;
+
+  beforeEach(() => {
+    originalProductCache = CACHE_MODELS.product;
+    mockProductCache = {
+      findOne: createQueryMock(),
+      find: createQueryMock(),
+    };
+    CACHE_MODELS.product = mockProductCache;
+    originalLegacyFind = LiveTranslationCache.find;
+    mockLegacyFind = createQueryMock();
+    LiveTranslationCache.find = mockLegacyFind;
+  });
+
+  afterEach(() => {
+    CACHE_MODELS.product = originalProductCache;
+    LiveTranslationCache.find = originalLegacyFind;
+  });
+
+  it('uses legacy translations for a product missing from the catalog cache', async () => {
+    mockProductCache.find.result = Promise.resolve([]);
+    mockLegacyFind.result = Promise.resolve([
+      { entityId: '1', entityType: 'product_name', translatedText: 'Tên legacy' },
+      { entityId: '1', entityType: 'product_spec', specKey: 'CPU', translatedText: 'Bộ xử lý' },
+    ]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Original', specs: { CPU: 'Processor' } },
+    ], 'product', 'en');
+
+    assert.strictEqual(result[0].name, 'Tên legacy');
+    assert.deepStrictEqual(result[0].specs, { CPU: 'Bộ xử lý' });
+    assert.deepStrictEqual(mockLegacyFind.calls, [{
+      entityId: { $in: ['1'] },
+      targetLang: 'en',
+      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] },
+      status: 'success',
+      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+    }]);
+  });
+
+  it('prefers the catalog cache over legacy translations', async () => {
+    mockProductCache.find.result = Promise.resolve([
+      { entityId: '1', name: 'Tên catalog' },
+    ]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Original' },
+    ], 'product', 'en');
+
+    assert.strictEqual(result[0].name, 'Tên catalog');
+    assert.deepStrictEqual(mockLegacyFind.calls, []);
+  });
+
+  it('uses legacy translations for a product detail missing from the catalog cache', async () => {
+    mockProductCache.findOne.result = Promise.resolve(null);
+    mockLegacyFind.result = Promise.resolve([
+      { entityId: '1', entityType: 'product_description', translatedText: 'Mô tả legacy' },
+    ]);
+
+    const result = await overlayTranslation({ _id: '1', description: 'Original' }, 'product', 'en');
+
+    assert.strictEqual(result.description, 'Mô tả legacy');
   });
 });
 
