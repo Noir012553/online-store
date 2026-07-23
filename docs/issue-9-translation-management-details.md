@@ -69,14 +69,11 @@ Không nên để cache xử lý và cache hiển thị có thể đưa ra hai k
 
 Luồng save theo product lưu các field được gửi vào `manualFields` và đặt `qualityStatus: approved`. Luồng re-translate bỏ qua các field nằm trong danh sách này.
 
-Tuy nhiên `Product.featuresTranslations` vẫn là nguồn dữ liệu riêng trong model Product, trong khi overlay sản phẩm chủ yếu đọc `ProductCatalogTranslationCache`. Cần xác minh API hiển thị có merge `featuresTranslations` hay không.
+`Product.featuresTranslations` vẫn là nguồn dữ liệu riêng trong model Product, nhưng API translation hiện đã merge nguồn này vào response. `getProductTranslationData()` lấy `features` và `featuresTranslations` từ Product rồi dùng `mergeFeatureTranslations()` cho cả cache mới và cache legacy; bản dịch lưu trong Product được ưu tiên theo từng vị trí, còn giá trị từ cache được dùng khi chưa có bản dịch thủ công.
 
-**Quyết định cần chốt:**
+**Trạng thái:** Đã xác minh quy tắc merge hiện tại trong `online-store-backend/src/controllers/translationController.js:727-773`. Vẫn cần kiểm thử đầu cuối để xác nhận kết quả sau save/re-translate xuất hiện nhất quán ở API sản phẩm và giao diện.
 
-- Merge bản dịch thủ công vào response với quy tắc ưu tiên rõ ràng; hoặc
-- Migrate dữ liệu thủ công vào cache chuẩn với `source: manual`.
-
-Không nên tiếp tục duy trì hai nguồn thủ công độc lập.
+Không cần tiếp tục coi việc “API có merge `featuresTranslations` hay không” là một mục chưa xác minh.
 
 ## 4. Import/export hiện tại
 
