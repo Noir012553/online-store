@@ -161,6 +161,8 @@
   "admin_currency_code": "Código da Moeda",
   "admin_currency_name": "Nome da Moeda",
   "admin_currency_symbol": "Símbolo",
+  "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Posição do Símbolo",
   "admin_currency_position_before": "Antes do Preço",
   "admin_currency_position_after": "Depois do Preço",

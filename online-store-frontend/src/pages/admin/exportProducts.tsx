@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { useTranslation, useLanguage } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
