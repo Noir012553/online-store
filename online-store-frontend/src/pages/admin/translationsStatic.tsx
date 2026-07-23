@@ -4,12 +4,11 @@ import { Trash2, Plus, Edit2, Check, X, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
-import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
-import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { UI_EMOJI } from '../../lib/uiEmoji';
+import { API_BASE_PATH } from '../../config';
 
 interface StaticTranslation {
   _id: string;
@@ -27,7 +26,6 @@ interface TranslationKey {
 
 const TranslationsAdminTier1Content = () => {
   const { t, loadNamespace, locale } = useTranslation();
-  const router = useRouter();
 
   const [translations, setTranslations] = useState<StaticTranslation[]>([]);
   const [selectedLang, setSelectedLang] = useState<Locale>(DEFAULT_LOCALE);
@@ -50,7 +48,7 @@ const TranslationsAdminTier1Content = () => {
   const [pageSize, setPageSize] = useState(10);
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; keyName: string }>({ isOpen: false, keyName: '' });
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = API_BASE_PATH;
 
   useEffect(() => {
     Promise.all([
@@ -67,7 +65,7 @@ const TranslationsAdminTier1Content = () => {
   const fetchNamespaces = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/translations/namespaces?lang=${locale}`, {
+      const response = await fetch(`${API_BASE}/translations/namespaces?lang=${locale}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -91,7 +89,7 @@ const TranslationsAdminTier1Content = () => {
     try {
       const token = getAuthToken();
       const response = await fetch(
-        `${API_BASE}/api/translations?lang=${selectedLang}&ns=${selectedNamespace}`,
+        `${API_BASE}/translations?lang=${selectedLang}&ns=${selectedNamespace}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -129,7 +127,7 @@ const TranslationsAdminTier1Content = () => {
         [editingKey]: editingValue,
       };
 
-      const response = await fetch(`${API_BASE}/api/translations?lang=${locale}`, {
+      const response = await fetch(`${API_BASE}/translations?lang=${selectedLang}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +167,7 @@ const TranslationsAdminTier1Content = () => {
         [newKeyName]: newKeyValue,
       };
 
-      const response = await fetch(`${API_BASE}/api/translations?lang=${locale}`, {
+      const response = await fetch(`${API_BASE}/translations?lang=${selectedLang}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +206,7 @@ const TranslationsAdminTier1Content = () => {
       const currentTranslation = translations[0];
       const { [keyName]: _, ...updatedTranslations } = currentTranslation.translations;
 
-      const response = await fetch(`${API_BASE}/api/translations?lang=${locale}`, {
+      const response = await fetch(`${API_BASE}/translations?lang=${selectedLang}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -235,7 +233,7 @@ const TranslationsAdminTier1Content = () => {
     setIsTranslating(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/translations/bulk-translate-static?lang=${locale}`, {
+      const response = await fetch(`${API_BASE}/translations/bulk-translate-static?lang=${locale}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

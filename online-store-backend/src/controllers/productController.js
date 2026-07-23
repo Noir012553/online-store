@@ -600,13 +600,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.deal = parseDealInput(deal);
   }
 
-  // Handle featuresTranslations update
-  if (req.body.featuresTranslations !== undefined) {
-    const translations = req.body.featuresTranslations;
-    // If featuresTranslations is a string (JSON), parse it
-    product.featuresTranslations = typeof translations === 'string' ? JSON.parse(translations) : translations;
-  }
-
   if (image || req.file) {
     // Delete old image first if replacing
     if (product.image && isCloudinaryUrl(product.image) && product.imagePublicId) {
