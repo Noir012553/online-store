@@ -427,7 +427,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   if (shippingProvider || shippingService) {
     if (!shippingProvider || !shippingService || !shippingAddress?.districtId || !shippingAddress?.wardCode) {
       res.status(400);
-      throw new Error('A valid shipping provider, service, and address are required');
+      throw createOrderError(lang, 'ORDER_SHIPPING_SELECTION_INVALID', 'shipping.missingParametersService');
     }
 
     const totalWeight = Array.from(productMap.values()).reduce(
@@ -445,9 +445,13 @@ const addOrderItems = asyncHandler(async (req, res) => {
         value: calculatedItemsPrice,
         lang,
       });
-    } catch {
+    } catch (error) {
       res.status(502);
-      throw new Error(getMessage(lang, 'shipping.cannotCalculateFee'));
+      throw createOrderError(
+        lang,
+        error.errorCode || 'ORDER_SHIPPING_FEE_UNAVAILABLE',
+        'shipping.cannotCalculateFee'
+      );
     }
   }
 

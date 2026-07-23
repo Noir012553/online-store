@@ -4,6 +4,12 @@ const ghnService = require('./ghnService');
 const { GHNAdapter } = require('../adapters/carrierAdapters');
 const { getDefaultLanguage } = require('../config/languageInventory');
 
+const createShippingError = (errorCode) => {
+  const error = new Error(errorCode);
+  error.errorCode = errorCode;
+  return error;
+};
+
 async function calculateSelectedShipping({ providerCode, serviceType, from, to, weight, value, lang }) {
   const provider = await ShippingProvider.findOne({
     code: providerCode,
@@ -12,14 +18,14 @@ async function calculateSelectedShipping({ providerCode, serviceType, from, to, 
   }).select('+apiKey');
 
   if (!provider) {
-    throw new Error('Selected shipping provider is unavailable');
+    throw createShippingError('SHIPPING_PROVIDER_UNAVAILABLE');
   }
 
   const result = await calculateShippingForCarrier(provider, { from, to, weight, value, lang });
   const selectedService = result.data?.services?.find((service) => service.serviceType === serviceType);
 
   if (!result.success || !selectedService) {
-    throw new Error('Selected shipping service is unavailable');
+    throw createShippingError('SHIPPING_SERVICE_UNAVAILABLE');
   }
 
   return selectedService.fee;
