@@ -161,6 +161,8 @@
   "admin_currency_code": "Valutacode",
   "admin_currency_name": "Valuatanaam",
   "admin_currency_symbol": "Symbool",
+  "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Symboolpositie",
   "admin_currency_position_before": "Voor de Prijs",
   "admin_currency_position_after": "Na de Prijs",

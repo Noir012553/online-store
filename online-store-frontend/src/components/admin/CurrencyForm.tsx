@@ -127,12 +127,12 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
               name="code"
               value={formData.code}
               onChange={handleInputChange}
-              placeholder="VND, USD, EUR..."
+              placeholder={t('admin_currency_code_placeholder', 'admin')}
               maxLength={3}
               disabled={!!currency}
               className="uppercase"
             />
-            <p className="text-xs text-gray-500 mt-1">ISO 4217</p>
+            <p className="text-xs text-gray-500 mt-1">{t('admin_currency_code_hint', 'admin')}</p>
           </div>
 
           <div>

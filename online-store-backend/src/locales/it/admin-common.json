@@ -161,6 +161,8 @@
   "admin_currency_code": "Codice Valuta",
   "admin_currency_name": "Nome Valuta",
   "admin_currency_symbol": "Simbolo",
+  "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Posizione Simbolo",
   "admin_currency_position_before": "Prima del Prezzo",
   "admin_currency_position_after": "Dopo il Prezzo",
