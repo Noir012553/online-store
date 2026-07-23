@@ -102,3 +102,9 @@ Một số khu vực đã dùng trực tiếp phần tử HTML `<select>`, gồm
 - Build frontend và TypeScript đã chạy thành công sau khi cài dependencies.
 - `npm run check:emoji` và `npm test` đạt lần lượt không có lỗi và 10/10 bài kiểm tra.
 - Chưa kiểm thử trực tiếp trên preview vì môi trường chưa cấu hình tiến trình dev server.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`: không còn các wrapper `src/components/ui/select.tsx`, `src/components/ui/dropdown-menu.tsx` hoặc dependency `@radix-ui/react-select`/`@radix-ui/react-dropdown-menu` trong frontend. Các select native và implementation nội bộ giữ nguyên là hướng triển khai hiện tại.
+
+**Trạng thái hiện tại:** Hoàn tất phần loại bỏ phụ thuộc dropdown nêu trên; còn xác minh thao tác trực tiếp trên preview ở các viewport.

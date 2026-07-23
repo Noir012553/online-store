@@ -350,4 +350,14 @@ KẾT QUẢ ISSUE-4: 12 PASS, 0 FAIL
 
 Các lỗi trước đó do dấu nháy của lệnh `node -e` trong PowerShell và workspace cũ chưa đồng bộ đã được loại bỏ khỏi kết quả kiểm tra.
 
-**Trạng thái cuối:** Issue-4 hoàn tất với **12 PASS, 0 FAIL**; không còn lỗi wiring được phát hiện trong phạm vi rà soát và không tạo file mới.
+**Trạng thái cuối của lần kiểm tra lịch sử:** Issue-4 đạt **12 PASS, 0 FAIL** theo tập tiêu chí đã chạy tại thời điểm đó; không tạo file mới.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`:
+
+- `online-store-backend/src/test/testRegistry.js` vẫn có các alias cùng tham chiếu file VNPay giữa `orders` và `vnpay`, cũng như `test-shadow-writes.js` giữa `rollback` và `shadow-writes`.
+- Các alias này không phải file dư thừa và runner có thể khử trùng danh sách chạy, nhưng không nên diễn giải kết quả lịch sử là đã loại bỏ toàn bộ wiring trùng.
+- Các cặp script cùng tên giữa `online-store-backend/scripts/` và `online-store-backend/src/scripts/` vẫn cần được đối chiếu trước khi có thể phân loại/xóa bản legacy.
+
+**Trạng thái hiện tại:** Hoàn tất phần sửa npm script và lệnh offline manual đã xác minh; việc phân loại alias suite và script legacy vẫn còn mở, không tự xóa file.

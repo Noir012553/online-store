@@ -176,3 +176,13 @@ Tài liệu đã được cập nhật theo code hiện tại: route redirect, s
 - Một số response của translation controller vẫn dùng literal tiếng Anh, ví dụ validation ID/ngôn ngữ và lỗi lấy trạng thái tại `online-store-backend/src/controllers/translationController.js:776-801,859-861`.
 
 **Trạng thái cập nhật:** Mô tả hybrid cache và các rủi ro contract trong tài liệu vẫn đúng. Chưa có bằng chứng kiểm thử tự động cho round-trip import/export translation hoặc kiểm thử đầu-cuối xác nhận save/re-translate hiển thị nhất quán qua API sản phẩm và giao diện; các hạng mục này vẫn cần môi trường runtime phù hợp.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu tại commit `00dd0ee`:
+
+- Luồng save/re-translate vẫn bảo toàn `manualFields`; import vẫn đánh dấu stale các field machine-managed khi source thay đổi.
+- Import vẫn fallback theo `name + brand` khi thiếu `productId`, nên rủi ro định danh không ổn định vẫn còn.
+- Cơ chế đọc/status vẫn là hybrid cache; chưa có migration hoặc quy tắc kết thúc fallback được triển khai trong source.
+
+**Trạng thái hiện tại:** Chưa hoàn tất. Cần chốt nguồn cache, contract batch/import và chạy kiểm thử round-trip cùng save/re-translate trong môi trường runtime phù hợp.
