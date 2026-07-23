@@ -121,22 +121,69 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     });
   }
 
-  const legacyResult = await LiveTranslationCache.updateMany(
-    {
-      entityId: { $in: productIds },
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] },
-    },
-    {
-      $set: {
-        qualityStatus: 'needs_retranslate',
-        validationErrors: ['source_content_changed'],
-      },
-    }
+  const legacyEntityTypesByField = {
+    name: 'product_name',
+    description: 'product_description',
+    brand: 'product_brand',
+    specs: 'product_spec',
+    features: 'product_feature',
+  };
+  const catalogByProductAndLanguage = new Map(
+    caches.map((cache) => [`${cache.entityId}|${cache.targetLang}`, cache])
   );
+  const legacyOperations = [];
+
+  for (const [productId, changedFields] of affectedFieldsByProduct) {
+    const productCaches = caches.filter((cache) => cache.entityId === productId);
+    if (productCaches.length === 0) {
+      legacyOperations.push({
+        updateMany: {
+          filter: {
+            entityId: productId,
+            entityType: { $in: Object.values(legacyEntityTypesByField) },
+          },
+          update: {
+            $set: {
+              qualityStatus: 'needs_retranslate',
+              validationErrors: ['source_content_changed'],
+            },
+          },
+        },
+      });
+      continue;
+    }
+
+    for (const cache of productCaches) {
+      const manualFields = catalogByProductAndLanguage.get(`${productId}|${cache.targetLang}`)?.manualFields || [];
+      const entityTypes = changedFields
+        .filter((field) => !manualFields.includes(field))
+        .map((field) => legacyEntityTypesByField[field]);
+      if (entityTypes.length === 0) continue;
+
+      legacyOperations.push({
+        updateMany: {
+          filter: {
+            entityId: productId,
+            targetLang: cache.targetLang,
+            entityType: { $in: entityTypes },
+          },
+          update: {
+            $set: {
+              qualityStatus: 'needs_retranslate',
+              validationErrors: ['source_content_changed'],
+            },
+          },
+        },
+      });
+    }
+  }
 
   if (operations.length > 0) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
+  const legacyResult = legacyOperations.length > 0
+    ? await LiveTranslationCache.bulkWrite(legacyOperations)
+    : { modifiedCount: 0 };
 
   return {
     markedForRetranslation: operations.length,
