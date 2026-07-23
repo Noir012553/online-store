@@ -208,3 +208,13 @@ Lần cập nhật này chỉ đọc và đối chiếu các báo cáo Markdown 
 | Issue 10 | Chưa hoàn tất | Cần chuẩn hóa và kiểm thử contract lỗi theo từng luồng: translation, payment, currency/exchange rate, import/export và email. |
 
 **Trạng thái cập nhật:** Tiến độ tài liệu không thay đổi so với kết luận kỹ thuật gần nhất. Ưu tiên tiếp theo là chuẩn bị môi trường runtime hợp lệ, kiểm thử preview cho responsive/dropdown và hoàn tất các hạng mục i18n/dynamic translation đang mở.
+
+## Đối soát các phát hiện còn hiệu lực
+
+- Các kết quả `8 PASS, 2 FAIL` và `13 PASS, 1 FAIL` trong `issue-4-redundant-tests-and-scripts.md` là các lần chạy trung gian. Kết quả cuối cùng được tài liệu ghi nhận là **12 PASS, 0 FAIL** tại workspace `26-4-3 copy 38`; không nên lấy các FAIL lịch sử làm trạng thái hiện tại.
+- Các phát hiện ban đầu về validation middleware, rate limit, RoleBadge, checkout error mapping, Cloudinary và banner translation trong `issue-10-internationalization-audit.md` đã có mục cập nhật xác nhận xử lý. Không cần mở lại các mục này nếu không có bằng chứng hồi quy mới.
+- Issue 10 vẫn chưa đóng vì các nhóm payment, translation controller, currency/exchange rate, import/export và email còn thiếu chuẩn hóa contract lỗi và kiểm thử API theo locale.
+- Issue 8 và Issue 9 cùng nhất quán về blocker chính: hybrid cache, giới hạn status theo trang, contract batch/import và kiểm thử đầu-cuối save/re-translate. Chưa có bằng chứng runtime mới để chuyển trạng thái sang hoàn tất.
+- Issue 5 và Issue 6 đã có xác minh build/check tự động nhưng vẫn thiếu kiểm thử tương tác trên preview; đây là khoảng trống vận hành, không phải lỗi code đã được xác nhận.
+
+**Kết luận rà soát tiếp:** Không phát hiện tài liệu Markdown nào có bằng chứng mới đủ để đóng Issue 8–10 hoặc bỏ qua bước preview của Issue 5–6. Các FAIL cũ đã được phân biệt rõ với kết quả cuối cùng trong báo cáo tổng hợp.
