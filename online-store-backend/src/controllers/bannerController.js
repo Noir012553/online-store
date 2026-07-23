@@ -644,7 +644,7 @@ const updateBannerTranslation = asyncHandler(async (req, res) => {
   const translation = await BannerTranslation.findOne({ _id: translationId, bannerId: id });
   if (!translation) {
     res.status(404);
-    throw new Error('Translation not found');
+    throw new Error(getMessage(lang, 'api-errors.banner_translation_not_found'));
   }
 
   translation.title = title;
@@ -672,13 +672,13 @@ const deleteBannerTranslation = asyncHandler(async (req, res) => {
   const translation = await BannerTranslation.findOne({ _id: translationId, bannerId: id });
   if (!translation) {
     res.status(404);
-    throw new Error('Translation not found');
+    throw new Error(getMessage(lang, 'api-errors.banner_translation_not_found'));
   }
 
   await BannerTranslation.findByIdAndDelete(translationId);
   res.json({
     success: true,
-    message: 'Translation deleted',
+    message: getMessage(lang, 'api-errors.banner_translation_deleted'),
   });
 });
 
