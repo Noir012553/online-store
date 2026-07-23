@@ -138,7 +138,7 @@ export function ProductsTranslationsAdminContent() {
   }, [products, selectedLanguage, t, isAdmin]);
 
   if (!isAdmin) {
-    return <PermissionDenied feature="Products Translations" />;
+    return <PermissionDenied feature="translations_dynamic" />;
   }
 
   const handleSaveTranslations = async (productId: string, translations: ProductTranslation) => {
@@ -239,7 +239,7 @@ export function ProductsTranslationsAdminContent() {
           <Globe className="w-8 h-8 text-blue-600" />
           {t('title', 'productsTranslations')}
         </h1>
-        <p className="text-gray-600">{t('subtitle')}</p>
+        <p className="text-gray-600">{t('subtitle', 'productsTranslations')}</p>
       </div>
 
       {/* Search */}
@@ -247,7 +247,7 @@ export function ProductsTranslationsAdminContent() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
-            placeholder={t('search_placeholder')}
+            placeholder={t('search_placeholder', 'productsTranslations')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -851,5 +851,5 @@ export const getServerSideProps = async () => {
 
 export default withAdminLayout(ProductsTranslationsAdminContent, {
   permission: 'manage:translations',
-  featureName: 'Dịch sản phẩm'
+  featureName: 'translations_dynamic'
 });

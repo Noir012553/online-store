@@ -80,7 +80,7 @@ const TranslationsAdminTier1Content = () => {
         setNamespaces(Array.isArray(data.data) ? data.data : data.data.namespaces || []);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('error_load_namespaces', 'admin') });
+      setMessage({ type: 'error', text: t('error_load_namespaces', 'admin-translation') });
     }
   };
 
@@ -106,7 +106,7 @@ const TranslationsAdminTier1Content = () => {
         setTranslations([data.data]);
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('tier1_error_load_translations', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_load_translations', 'admin-translation') });
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ const TranslationsAdminTier1Content = () => {
 
   const handleUpdateKey = async () => {
     if (!editingKey || !editingValue.trim()) {
-      setMessage({ type: 'error', text: t('tier1_error_empty_value', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_empty_value', 'admin-translation') });
       return;
     }
 
@@ -142,19 +142,19 @@ const TranslationsAdminTier1Content = () => {
 
       const data = await response.json();
       if (data.success) {
-        setMessage({ type: 'success', text: t('tier1_success_update', 'admin') });
+        setMessage({ type: 'success', text: t('tier1_success_update', 'admin-translation') });
         setEditingKey(null);
         setEditingValue('');
         fetchTranslations();
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('tier1_error_update', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_update', 'admin-translation') });
     }
   };
 
   const handleAddNewKey = async () => {
     if (!newKeyName.trim() || !newKeyValue.trim()) {
-      setMessage({ type: 'error', text: t('tier1_error_empty_key', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_empty_key', 'admin-translation') });
       return;
     }
 
@@ -182,14 +182,14 @@ const TranslationsAdminTier1Content = () => {
 
       const data = await response.json();
       if (data.success) {
-        setMessage({ type: 'success', text: t('tier1_success_add', 'admin') });
+        setMessage({ type: 'success', text: t('tier1_success_add', 'admin-translation') });
         setNewKeyName('');
         setNewKeyValue('');
         setIsAddingNew(false);
         fetchTranslations();
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('tier1_error_add', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_add', 'admin-translation') });
     }
   };
 
@@ -221,11 +221,11 @@ const TranslationsAdminTier1Content = () => {
 
       const data = await response.json();
       if (data.success) {
-        setMessage({ type: 'success', text: t('tier1_success_delete', 'admin') });
+        setMessage({ type: 'success', text: t('tier1_success_delete', 'admin-translation') });
         fetchTranslations();
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('tier1_error_delete', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_delete', 'admin-translation') });
     }
   };
 
@@ -249,7 +249,7 @@ const TranslationsAdminTier1Content = () => {
       if (data.success) {
         setMessage({
           type: 'success',
-          text: t('tier1_success_translate', 'admin')
+          text: t('tier1_success_translate', 'admin-translation')
             .replace('{translated}', data.data.translatedCount)
             .replace('{total}', data.data.translatedCount + data.data.failedCount),
         });
@@ -258,7 +258,7 @@ const TranslationsAdminTier1Content = () => {
         setMessage({ type: 'error', text: data.message });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: t('tier1_error_translate', 'admin') });
+      setMessage({ type: 'error', text: t('tier1_error_translate', 'admin-translation') });
     } finally {
       setIsTranslating(false);
     }
@@ -639,8 +639,8 @@ const TranslationsAdminTier1Content = () => {
         `}</style>
 
         <div className="tier1-header">
-          <h1>{t('tier1_title', 'admin')}</h1>
-          <p>{t('tier1_description', 'admin')}</p>
+          <h1>{t('tier1_title', 'admin-translation')}</h1>
+          <p>{t('tier1_description', 'admin-translation')}</p>
         </div>
 
         {message && (
@@ -651,7 +651,7 @@ const TranslationsAdminTier1Content = () => {
 
         <div className="tier1-controls">
           <div className="tier1-select-group">
-            <label htmlFor="lang-select">{t('tier1_language_label', 'admin')}</label>
+            <label htmlFor="lang-select">{t('tier1_language_label', 'admin-translation')}</label>
             <select
               id="lang-select"
               value={selectedLang}
@@ -666,7 +666,7 @@ const TranslationsAdminTier1Content = () => {
           </div>
 
           <div className="tier1-select-group">
-            <label htmlFor="namespace-select">{t('tier1_namespace_label', 'admin')}</label>
+            <label htmlFor="namespace-select">{t('tier1_namespace_label', 'admin-translation')}</label>
             <select
               id="namespace-select"
               value={selectedNamespace}
@@ -681,11 +681,11 @@ const TranslationsAdminTier1Content = () => {
           </div>
 
           <div className="tier1-select-group tier1-search-group">
-            <label htmlFor="search-input">{t('search_label', 'admin')}</label>
+            <label htmlFor="search-input">{t('search_label', 'admin-translation')}</label>
             <input
               id="search-input"
               type="text"
-              placeholder={t('tier1_search_placeholder', 'admin')}
+              placeholder={t('tier1_search_placeholder', 'admin-translation')}
               value={searchText}
               onChange={(e) => {
                 setSearchText(e.target.value);
@@ -701,31 +701,31 @@ const TranslationsAdminTier1Content = () => {
               onClick={handleBulkTranslate}
               disabled={isTranslating}
             >
-              <RefreshCw size={16} /> {t('tier1_bulk_translate_btn', 'admin')}
+              <RefreshCw size={16} /> {t('tier1_bulk_translate_btn', 'admin-translation')}
             </button>
             <button
               className="tier1-btn tier1-btn-primary"
               onClick={() => setIsAddingNew(!isAddingNew)}
             >
-              <Plus size={16} /> {t('tier1_add_key_btn', 'admin')}
+              <Plus size={16} /> {t('tier1_add_key_btn', 'admin-translation')}
             </button>
           </div>
         </div>
 
         {isAddingNew && (
           <div className="tier1-add-section">
-            <h3>{t('tier1_add_key_title', 'admin')}</h3>
+            <h3>{t('tier1_add_key_title', 'admin-translation')}</h3>
             <div className="tier1-add-inputs">
               <input
                 type="text"
-                placeholder={t('tier1_key_placeholder', 'admin')}
+                placeholder={t('tier1_key_placeholder', 'admin-translation')}
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 className="tier1-add-input"
               />
               <input
                 type="text"
-                placeholder={t('tier1_value_placeholder', 'admin')}
+                placeholder={t('tier1_value_placeholder', 'admin-translation')}
                 value={newKeyValue}
                 onChange={(e) => setNewKeyValue(e.target.value)}
                 className="tier1-add-input"
@@ -735,7 +735,7 @@ const TranslationsAdminTier1Content = () => {
                   className="tier1-btn tier1-btn-primary"
                   onClick={handleAddNewKey}
                 >
-                  <Check size={16} /> {t('tier1_save_btn', 'admin')}
+                  <Check size={16} /> {t('tier1_save_btn', 'admin-translation')}
                 </button>
                 <button
                   className="tier1-btn tier1-btn-secondary"
@@ -745,7 +745,7 @@ const TranslationsAdminTier1Content = () => {
                     setNewKeyValue('');
                   }}
                 >
-                  <X size={16} /> {t('tier1_cancel_btn', 'admin')}
+                  <X size={16} /> {t('tier1_cancel_btn', 'admin-translation')}
                 </button>
               </div>
             </div>
@@ -753,16 +753,16 @@ const TranslationsAdminTier1Content = () => {
         )}
 
         {loading ? (
-          <div className="tier1-loading">{t('tier1_loading', 'admin')}</div>
+          <div className="tier1-loading">{t('tier1_loading', 'admin-translation')}</div>
         ) : currentTranslation && translationKeys.length > 0 ? (
           <>
             <div className="tier1-table-wrapper">
               <table className="tier1-table">
                 <thead>
                   <tr>
-                    <th>{t('tier1_key_column', 'admin')}</th>
-                    <th>{t('tier1_value_column', 'admin').replace('{lang}', selectedLang.toUpperCase())}</th>
-                    <th>{t('tier1_action_column', 'admin')}</th>
+                    <th>{t('tier1_key_column', 'admin-translation')}</th>
+                    <th>{t('tier1_value_column', 'admin-translation').replace('{lang}', selectedLang.toUpperCase())}</th>
+                    <th>{t('tier1_action_column', 'admin-translation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -840,21 +840,21 @@ const TranslationsAdminTier1Content = () => {
                   disabled={pageIndex === 0}
                   className="tier1-btn tier1-pagination-btn"
                 >
-                  {UI_EMOJI.arrowLeft} {t('tier1_prev_page', 'admin')}
+                  {UI_EMOJI.arrowLeft} {t('tier1_prev_page', 'admin-translation')}
                 </button>
-                <span className="tier1-pagination-status">{t('tier1_page_info', 'admin').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
+                <span className="tier1-pagination-status">{t('tier1_page_info', 'admin-translation').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
                 <button
                   onClick={() => setPageIndex(pageIndex + 1)}
                   disabled={pageIndex === totalPages - 1}
                   className="tier1-btn tier1-pagination-btn"
                 >
-                  {t('tier1_next_page', 'admin')} {UI_EMOJI.arrowRight}
+                  {t('tier1_next_page', 'admin-translation')} {UI_EMOJI.arrowRight}
                 </button>
               </div>
             )}
           </>
         ) : (
-          <div className="tier1-empty">{t('tier1_no_translations', 'admin')}</div>
+          <div className="tier1-empty">{t('tier1_no_translations', 'admin-translation')}</div>
         )}
       </div>
 
@@ -863,7 +863,7 @@ const TranslationsAdminTier1Content = () => {
           <DialogHeader>
             <DialogTitle>{t('common_confirm', 'admin')}</DialogTitle>
           </DialogHeader>
-          <p>{t('tier1_confirm_delete', 'admin').replace('{key}', confirmDialog.keyName)}</p>
+          <p>{t('tier1_confirm_delete', 'admin-translation').replace('{key}', confirmDialog.keyName)}</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog({ isOpen: false, keyName: '' })}>
               {t('common_cancel', 'admin')}
@@ -886,5 +886,5 @@ export async function getServerSideProps(context: any) {
 
 export default withAdminLayout(TranslationsAdminTier1Content, {
   permission: 'manage:translations',
-  featureName: 'Tầng 1',
+  featureName: 'translations_static',
 });
