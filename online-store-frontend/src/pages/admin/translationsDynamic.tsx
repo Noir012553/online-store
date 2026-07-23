@@ -243,8 +243,8 @@ export function ProductsTranslationsAdminContent() {
       </div>
 
       {/* Search */}
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder={t('search_placeholder', 'productsTranslations')}
@@ -453,8 +453,8 @@ function ProductTranslationCard({
     <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex gap-4 flex-1">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-1 gap-4">
             {product.image && (
               <img
                 src={getImageUrl(product.image)}
@@ -470,7 +470,7 @@ function ProductTranslationCard({
           </div>
 
           {/* Language Selector & Actions */}
-          <div className="flex flex-col items-end gap-3 min-w-48">
+          <div className="flex min-w-48 flex-col gap-3 sm:items-end">
             {isEditing && (
               <LanguageSelector
                 selectedLanguage={selectedLanguage}
@@ -685,7 +685,7 @@ function EditView({
         <div className="p-5 space-y-4">
           <h4 className="font-semibold text-gray-900">{t('product_features', 'productsTranslations')}</h4>
           {product.features.map((feature: string, index: number) => (
-            <div key={index} className="grid grid-cols-2 gap-4">
+            <div key={index} className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-xs text-gray-600">{t('feature_label_template', 'productsTranslations').replace('{number}', String(index + 1))}</Label>
                 <div className="mt-1 p-2 bg-gray-100 rounded text-sm text-gray-900">{feature || '-'}</div>
@@ -710,7 +710,7 @@ function EditView({
         <div className="p-5 space-y-4">
           <h4 className="font-semibold text-gray-900">{t('product_specs', 'productsTranslations')}</h4>
           {Object.entries(product.specs).map(([specKey, specValue]) => (
-            <div key={specKey} className="grid grid-cols-2 gap-4">
+            <div key={specKey} className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-xs text-gray-600">{specKey}</Label>
                 <div className="mt-1 p-2 bg-gray-100 rounded text-sm text-gray-900">{String(specValue) || '-'}</div>
@@ -731,7 +731,7 @@ function EditView({
       )}
 
       {/* Actions */}
-      <div className="p-5 flex gap-3 justify-end bg-gray-50">
+      <div className="flex flex-col justify-end gap-3 bg-gray-50 p-5 sm:flex-row">
         <Button
           variant="outline"
           onClick={onCancel}
