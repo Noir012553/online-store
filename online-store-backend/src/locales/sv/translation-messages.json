@@ -14,5 +14,10 @@
   "translation_fields_required": "Ett produkt-ID och minst ett översättningsfält krävs",
   "product_save_failed": "Det gick inte att spara produktöversättningen",
   "product_id_invalid": "Ogiltigt produkt-ID",
-  "product_retranslate_failed": "Det gick inte att översätta produkten igen"
+  "product_retranslate_failed": "Det gick inte att översätta produkten igen",
+  "retranslate_limit_invalid": "Gränsen måste vara ett heltal mellan 1 och 500",
+  "dynamic_entity_type_invalid": "En giltig dynamisk entitetstyp krävs",
+  "retranslate_not_needed": "Inga dynamiska översättningar behöver översättas igen",
+  "retranslate_completed": "Omöversättningen av dynamiska översättningar har slutförts",
+  "dynamic_retranslate_failed": "Det gick inte att översätta dynamiska översättningar igen"
 }

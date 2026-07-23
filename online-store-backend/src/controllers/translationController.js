@@ -1060,17 +1060,11 @@ exports.retranslateDynamic = async (req, res) => {
     const parsedLimit = Number(limit);
 
     if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 500) {
-      return res.status(400).json({
-        success: false,
-        message: 'limit must be an integer between 1 and 500',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_LIMIT_INVALID', 'retranslate_limit_invalid');
     }
 
     if (!entityType || !DYNAMIC_ENTITY_TYPES.has(entityType)) {
-      return res.status(400).json({
-        success: false,
-        message: 'A valid dynamic entity type is required',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_DYNAMIC_ENTITY_TYPE_INVALID', 'dynamic_entity_type_invalid');
     }
 
     const result = await retranslateSeeder.retranslate({
@@ -1083,11 +1077,14 @@ exports.retranslateDynamic = async (req, res) => {
     });
 
     const { totalToRetranslate, fixedCount, stillBrokenCount } = result.stats;
+    const completedWithoutChanges = totalToRetranslate === 0;
     return res.json({
       success: true,
-      message: totalToRetranslate === 0
-        ? 'No dynamic translations need retranslation'
-        : 'Dynamic translations retranslation completed',
+      code: completedWithoutChanges ? 'TRANSLATION_RETRANSLATE_NOT_NEEDED' : 'TRANSLATION_RETRANSLATE_COMPLETED',
+      message: getMessage(
+        getRequestLanguage(req),
+        `translation-messages.${completedWithoutChanges ? 'retranslate_not_needed' : 'retranslate_completed'}`
+      ),
       data: {
         totalToRetranslate,
         fixedCount,
@@ -1103,10 +1100,7 @@ exports.retranslateDynamic = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error retranslating dynamic translations:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Dynamic retranslation failed',
-    });
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_DYNAMIC_RETRANSLATE_FAILED', 'dynamic_retranslate_failed');
   }
 };
 

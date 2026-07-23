@@ -14,5 +14,10 @@
   "translation_fields_required": "Un identifiant de produit et au moins un champ de traduction sont requis",
   "product_save_failed": "Impossible d’enregistrer la traduction du produit",
   "product_id_invalid": "Identifiant de produit non valide",
-  "product_retranslate_failed": "La retraduction du produit a échoué"
+  "product_retranslate_failed": "La retraduction du produit a échoué",
+  "retranslate_limit_invalid": "La limite doit être un entier compris entre 1 et 500",
+  "dynamic_entity_type_invalid": "Un type d’entité dynamique valide est requis",
+  "retranslate_not_needed": "Aucune traduction dynamique ne nécessite de retraduction",
+  "retranslate_completed": "La retraduction des traductions dynamiques est terminée",
+  "dynamic_retranslate_failed": "La retraduction des traductions dynamiques a échoué"
 }

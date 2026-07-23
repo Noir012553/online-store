@@ -14,5 +14,10 @@
   "translation_fields_required": "A product ID and at least one translation field are required",
   "product_save_failed": "Unable to save product translation",
   "product_id_invalid": "Invalid product ID",
-  "product_retranslate_failed": "Product retranslation failed"
+  "product_retranslate_failed": "Product retranslation failed",
+  "retranslate_limit_invalid": "Limit must be an integer between 1 and 500",
+  "dynamic_entity_type_invalid": "A valid dynamic entity type is required",
+  "retranslate_not_needed": "No dynamic translations need retranslation",
+  "retranslate_completed": "Dynamic translations retranslation completed",
+  "dynamic_retranslate_failed": "Dynamic retranslation failed"
 }

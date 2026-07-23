@@ -14,5 +14,10 @@
   "translation_fields_required": "São necessários um ID de produto e pelo menos um campo de tradução",
   "product_save_failed": "Não foi possível salvar a tradução do produto",
   "product_id_invalid": "ID de produto inválido",
-  "product_retranslate_failed": "Não foi possível traduzir o produto novamente"
+  "product_retranslate_failed": "Não foi possível traduzir o produto novamente",
+  "retranslate_limit_invalid": "O limite deve ser um número inteiro entre 1 e 500",
+  "dynamic_entity_type_invalid": "É necessário um tipo de entidade dinâmica válido",
+  "retranslate_not_needed": "Nenhuma tradução dinâmica precisa ser retraduzida",
+  "retranslate_completed": "A retradução das traduções dinâmicas foi concluída",
+  "dynamic_retranslate_failed": "Não foi possível retraduzir as traduções dinâmicas"
 }
