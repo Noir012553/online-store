@@ -848,41 +848,56 @@ exports.retranslateProduct = async (req, res) => {
 
     const manualFields = existing?.manualFields || [];
     const translateField = async (field, source, entityType) => {
-      if (manualFields.includes(field) || !source) return existing?.[field];
-      const translated = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
-      const validation = await translationValidator.validateTranslation(source, translated, targetLang, entityType);
-      if (validation.validationErrors?.length) {
-        const error = new Error('Translation validation failed');
-        error.statusCode = 422;
-        error.validationErrors = validation.validationErrors;
-        throw error;
-      }
-      return translated;
+      if (manualFields.includes(field) || !source) return { value: existing?.[field], validation: null };
+      const value = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
+      const validation = await translationValidator.validateTranslation(source, value, targetLang, entityType);
+      return { value, validation };
     };
+
+    const [nameResult, descResult, brandResult] = await Promise.all([
+      translateField('name', product.name, 'product_name'),
+      translateField('description', product.description, 'product_description'),
+      translateField('brand', product.brand, 'product_brand'),
+    ]);
 
     const specs = {};
     for (const [key, value] of Object.entries(product.specs || {})) {
-      specs[key] = manualFields.includes('specs')
-        ? existing?.specs?.[key] || String(value)
-        : await translateField('specs', String(value), 'product_spec');
+      if (manualFields.includes('specs')) {
+        specs[key] = existing?.specs?.[key] || String(value);
+      } else {
+        const { value: translated } = await translateField('specs', String(value), 'product_spec');
+        specs[key] = translated;
+      }
     }
     const features = [];
     for (const feature of product.features || []) {
-      features.push(manualFields.includes('features')
-        ? existing?.features?.[features.length] || feature
-        : await translateField('features', feature, 'product_feature'));
+      if (manualFields.includes('features')) {
+        features.push(existing?.features?.[features.length] || feature);
+      } else {
+        const { value: translated } = await translateField('features', feature, 'product_feature');
+        features.push(translated);
+      }
     }
 
+    const validationResults = [nameResult.validation, descResult.validation, brandResult.validation].filter(Boolean);
+    const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errs }) => errs))];
+    const qualityScore = validationResults.length
+      ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
+      : 100;
+    const hasNeeds = validationResults.some(({ qualityStatus: s }) => s === 'needs_retranslate');
+    const hasPending = validationResults.some(({ qualityStatus: s }) => s === 'pending');
+    const qualityStatus = hasNeeds ? 'needs_retranslate' : hasPending ? 'pending' : 'approved';
+
     const translated = {
-      name: await translateField('name', product.name, 'product_name'),
-      description: await translateField('description', product.description, 'product_description'),
-      brand: await translateField('brand', product.brand, 'product_brand'),
+      name: nameResult.value ?? product.name,
+      description: descResult.value,
+      brand: brandResult.value,
       specs,
       features,
       status: 'success',
-      qualityStatus: 'approved',
-      qualityScore: 100,
-      validationErrors: [],
+      qualityStatus,
+      qualityScore,
+      validationErrors,
       manualFields,
       lastTranslatedAt: new Date(),
     };
@@ -897,14 +912,6 @@ exports.retranslateProduct = async (req, res) => {
       data: { productId, lang: targetLang, status: translation.qualityStatus, skippedManualFields: manualFields },
     });
   } catch (error) {
-    if (error.statusCode === 422) {
-      return res.status(422).json({
-        success: false,
-        message: 'The translation did not pass validation',
-        validationErrors: error.validationErrors,
-      });
-    }
-
     console.error('[TranslationController] Error retranslating product:', error);
     return res.status(500).json({ success: false, message: 'Product retranslation failed' });
   }
