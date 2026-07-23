@@ -18,5 +18,9 @@
   "user_updated_success": "Utente aggiornato con successo",
   "user_deleted_success": "Utente eliminato con successo",
   "profile_updated_success": "Profilo aggiornato con successo",
-  "password_changed_success": "Password modificata con successo"
+  "password_changed_success": "Password modificata con successo",
+  "reset_token_and_password_required": "Sono richiesti il token e la nuova password",
+  "verification_token_required": "Il token di verifica è obbligatorio",
+  "refresh_token_required": "Il token di aggiornamento è obbligatorio",
+  "invalid_refresh_token": "Token di aggiornamento non valido"
 }

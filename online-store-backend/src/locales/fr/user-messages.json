@@ -18,5 +18,9 @@
   "user_updated_success": "Utilisateur mis à jour avec succès",
   "user_deleted_success": "Utilisateur supprimé avec succès",
   "profile_updated_success": "Profil mis à jour avec succès",
-  "password_changed_success": "Mot de passe changé avec succès"
+  "password_changed_success": "Mot de passe changé avec succès",
+  "reset_token_and_password_required": "Le jeton et le nouveau mot de passe sont requis",
+  "verification_token_required": "Le jeton de vérification est requis",
+  "refresh_token_required": "Le jeton d’actualisation est requis",
+  "invalid_refresh_token": "Jeton d’actualisation non valide"
 }

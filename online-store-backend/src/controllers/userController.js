@@ -15,6 +15,12 @@ const crypto = require('crypto');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 
+const createUserError = (lang, code, messageKey) => {
+  const error = new Error(getMessage(lang, messageKey));
+  error.errorCode = code;
+  return error;
+};
+
 /**
  * Xác thực người dùng và cấp JWT token
  * @route POST /api/users/login
@@ -418,7 +424,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     if (!token || !newPassword) {
         res.status(400);
-        throw new Error('Token and new password are required');
+        throw createUserError(req.lang, 'USER_RESET_TOKEN_AND_PASSWORD_REQUIRED', 'user-messages.reset_token_and_password_required');
     }
 
     // Hash token to compare
@@ -459,7 +465,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
     if (!token) {
         res.status(400);
-        throw new Error('Verification token is required');
+        throw createUserError(req.lang, 'USER_VERIFICATION_TOKEN_REQUIRED', 'user-messages.verification_token_required');
     }
 
     // Hash token để compare
@@ -501,7 +507,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 
     if (!user) {
         res.status(404);
-        throw new Error('User not found');
+        throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
     }
 
     if (user.isEmailVerified) {
@@ -590,7 +596,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     if (!refreshToken) {
         res.status(401);
-        throw new Error('Refresh token is required');
+        throw createUserError(req.lang, 'REFRESH_TOKEN_REQUIRED', 'user-messages.refresh_token_required');
     }
 
     try {
@@ -606,7 +612,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         if (!user) {
             res.status(401);
-            throw new Error('User not found');
+            throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
         }
 
         if (!user.refreshTokenId || decoded.jti !== user.refreshTokenId) {
@@ -640,7 +646,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             sameSite: 'lax'
         });
         res.status(401);
-        throw new Error('Invalid refresh token');
+        throw createUserError(req.lang, 'REFRESH_TOKEN_INVALID', 'user-messages.invalid_refresh_token');
     }
 });
 
