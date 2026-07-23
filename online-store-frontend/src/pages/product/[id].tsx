@@ -224,9 +224,9 @@ export default function ProductDetail() {
 
   // Convert backend product to frontend Laptop format for cart
   const isSourceLocale = locale === 'vi';
-  const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() ?? '';
-  const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() ?? '';
-  const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? {};
+  const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() || laptop.name;
+  const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description;
+  const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? laptop.specs ?? {};
   const localizedFeatures = (laptop.features ?? []).map((feature: string, index: number) => {
     const translatedFeature = isSourceLocale ? feature : translation?.features?.[index] || feature;
     return t(translatedFeature, 'products');

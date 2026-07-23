@@ -733,7 +733,9 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   };
   if (!includeNonSuccess) {
     catalogQuery.status = 'success';
+    catalogQuery.qualityStatus = { $nin: ['needs_retranslate', 'rejected'] };
     legacyQuery.status = 'success';
+    legacyQuery.qualityStatus = { $nin: ['needs_retranslate', 'rejected'] };
   }
 
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();

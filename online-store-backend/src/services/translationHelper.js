@@ -127,7 +127,8 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
     const translations = await CacheModel.find({
       entityId: { $in: entityIds },
       targetLang,
-      status: 'success', // Chỉ lấy successful translations
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
 
     // Debug logging
@@ -214,6 +215,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -271,6 +273,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -326,6 +329,7 @@ async function applyTranslationCache(config) {
       entityId: { $in: ids },
       targetLang: lang,
       status: 'success',
+      ...(type === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
     }).lean();
 
     const translationMap = {};
