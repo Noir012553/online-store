@@ -252,7 +252,9 @@ const sendOTPEmail = async (email, otp, lang) => {
       text: `
         ${msg.title}
 
-        Mã OTP của bạn: ${otp}
+        ${msg.description}
+
+        ${otp}
 
         ${msg.expiry}
         ${msg.ignore}
