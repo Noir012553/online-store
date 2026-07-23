@@ -463,8 +463,10 @@ Nếu backend hỗ trợ xử lý theo batch, có thể bổ sung lựa chọn r
 - **Đã triển khai:** Cập nhật template CSV và import guide để phản ánh `productId` cùng `baseCurrencyCode` trong contract vận hành.
 - **Đã triển khai một phần:** Bổ sung UI trạng thái dynamic translation, lọc theo trạng thái, xác nhận re-translate theo sản phẩm/ngôn ngữ và bảo toàn các trường chỉnh sửa thủ công.
 - **Đã triển khai một phần:** Bổ sung API status/save/re-translate theo `productId`, validation ngôn ngữ, đồng bộ dữ liệu với `ProductCatalogTranslationCache` và sửa lỗi khai báo trùng trong seeder re-translate.
-- **Đã triển khai:** Hợp nhất điều hướng Tầng 1/Tầng 2 bằng cách chuyển hướng `/admin/translationsAdminTier2` về `/admin/translationsAdminTier1`; đổi metadata và nhãn menu sản phẩm thành **Dịch sản phẩm**.
-- **Trạng thái hiện tại:** Luồng quản trị sản phẩm và round-trip CSV đã có nền tảng hoạt động; còn kiểm thử tích hợp endpoint, build frontend, backup translation đa ngôn ngữ, schema/job batch và kiểm thử import thực tế sau khi cài đủ dependency.
+- **Đã triển khai:** Chuyển hướng `/admin/translationsAdminTier2` về `/admin/translationsAdminTier1`, vì vậy không còn hai giao diện Tầng 1/Tầng 2 có chức năng quản lý translation cache trùng lặp; metadata và nhãn menu sản phẩm đã dùng tên **Dịch sản phẩm**.
+- **Đã triển khai:** Endpoint legacy `POST /api/translations/admin/retranslate-dynamic` bắt buộc phải nhận `entityType` hợp lệ; request không còn có thể mặc định xử lý mọi entity trong cùng một ngôn ngữ.
+- **Đã xác minh tĩnh:** Trang `/admin/translationsDynamic` đã dùng endpoint theo từng sản phẩm (`/admin/products/:id/retranslate`) và trạng thái theo sản phẩm/ngôn ngữ; các trường được sửa thủ công được bảo toàn qua `manualFields`.
+- **Còn thực hiện:** Kiểm thử tích hợp endpoint với MongoDB và dịch vụ AI, build frontend, backup translation đa ngôn ngữ, schema/job batch và kiểm thử import thực tế. Lệnh build frontend hiện bị chặn do môi trường chưa cài dependency `next`.
 
 ### Thứ tự triển khai đề xuất
 
