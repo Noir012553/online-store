@@ -60,10 +60,11 @@ export default function ImportExportWidget() {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', `products-${Date.now()}.csv`);
-        link.style.visibility = 'hidden';
+        link.className = 'sr-only';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       } else {
         // Handle JSON export
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -71,10 +72,11 @@ export default function ImportExportWidget() {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', `products-${Date.now()}.json`);
-        link.style.visibility = 'hidden';
+        link.className = 'sr-only';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       }
 
       toast.success(t('success_export', 'export').replace('{{format}}', selectedFormat.toUpperCase()));
