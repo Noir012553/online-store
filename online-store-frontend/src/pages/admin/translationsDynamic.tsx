@@ -16,6 +16,7 @@ import { useTranslation } from "@/lib/i18n";
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types";
 
 const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
+const RETRANSLATE_TIMEOUT_MS = 30_000;
 
 const getLanguages = (t: (key: string, ns?: string) => string) =>
   SUPPORTED_LOCALES.filter((code) => code !== DEFAULT_LOCALE).map((code: Locale) => {
@@ -189,6 +190,9 @@ export function ProductsTranslationsAdminContent() {
     const product = productToRetranslate;
     setProductToRetranslate(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), RETRANSLATE_TIMEOUT_MS);
+
     try {
       setRetranslatingProductId(product._id);
       const response = await fetch(`/api/translations/admin/products/${product._id}/retranslate`, {
@@ -199,6 +203,7 @@ export function ProductsTranslationsAdminContent() {
         },
         body: JSON.stringify({ lang: selectedLanguage }),
         credentials: 'include',
+        signal: controller.signal,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || t('retranslate_failed', 'productsTranslations'));
@@ -214,8 +219,13 @@ export function ProductsTranslationsAdminContent() {
       }));
       toast.success(t('retranslate_success', 'productsTranslations'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('retranslate_failed', 'productsTranslations'));
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error(t('retranslate_timeout', 'productsTranslations'));
+      } else {
+        toast.error(error instanceof Error ? error.message : t('retranslate_failed', 'productsTranslations'));
+      }
     } finally {
+      clearTimeout(timeoutId);
       setRetranslatingProductId(null);
     }
   };
