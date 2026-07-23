@@ -972,16 +972,16 @@ exports.retranslateDynamic = async (req, res) => {
       });
     }
 
-    if (entityType && !DYNAMIC_ENTITY_TYPES.has(entityType)) {
+    if (!entityType || !DYNAMIC_ENTITY_TYPES.has(entityType)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid dynamic entity type',
+        message: 'A valid dynamic entity type is required',
       });
     }
 
     const result = await retranslateSeeder.retranslate({
       lang: lang || null,
-      entityType: entityType || null,
+      entityType,
       limit: parsedLimit,
       validate: true,
       verbose: false,
