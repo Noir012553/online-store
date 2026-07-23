@@ -4,5 +4,15 @@
   "translation_updated": "Traduction mise à jour",
   "translation_created": "Traduction créée",
   "translation_deleted": "Traduction supprimée",
-  "invalid_translation_data": "Données de traduction invalides"
+  "invalid_translation_data": "Données de traduction invalides",
+  "product_target_invalid": "Un identifiant de produit et une langue cible valides sont requis",
+  "target_language_invalid": "Une langue cible valide est requise",
+  "product_ids_invalid": "productIds doit contenir entre 1 et 50 identifiants de produit",
+  "product_fetch_failed": "Impossible de récupérer la traduction du produit",
+  "statuses_fetch_failed": "Impossible de récupérer les états de traduction du produit",
+  "source_language_invalid": "La langue source ne peut pas être utilisée comme langue cible",
+  "translation_fields_required": "Un identifiant de produit et au moins un champ de traduction sont requis",
+  "product_save_failed": "Impossible d’enregistrer la traduction du produit",
+  "product_id_invalid": "Identifiant de produit non valide",
+  "product_retranslate_failed": "La retraduction du produit a échoué"
 }

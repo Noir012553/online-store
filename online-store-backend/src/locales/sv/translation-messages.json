@@ -4,5 +4,15 @@
   "translation_updated": "Översättning uppdaterad",
   "translation_created": "Översättning skapad",
   "translation_deleted": "Översättning raderad",
-  "invalid_translation_data": "Ogiltiga översättningsdata"
+  "invalid_translation_data": "Ogiltiga översättningsdata",
+  "product_target_invalid": "Ett giltigt produkt-ID och målspråk krävs",
+  "target_language_invalid": "Ett giltigt målspråk krävs",
+  "product_ids_invalid": "productIds måste innehålla mellan 1 och 50 produkt-ID:n",
+  "product_fetch_failed": "Det gick inte att hämta produktöversättningen",
+  "statuses_fetch_failed": "Det gick inte att hämta status för produktöversättningar",
+  "source_language_invalid": "Källspråket kan inte användas som målspråk",
+  "translation_fields_required": "Ett produkt-ID och minst ett översättningsfält krävs",
+  "product_save_failed": "Det gick inte att spara produktöversättningen",
+  "product_id_invalid": "Ogiltigt produkt-ID",
+  "product_retranslate_failed": "Det gick inte att översätta produkten igen"
 }

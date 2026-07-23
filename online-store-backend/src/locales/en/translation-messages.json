@@ -4,5 +4,15 @@
   "translation_updated": "Translation updated",
   "translation_created": "Translation created",
   "translation_deleted": "Translation deleted",
-  "invalid_translation_data": "Invalid translation data"
+  "invalid_translation_data": "Invalid translation data",
+  "product_target_invalid": "A valid product ID and target language are required",
+  "target_language_invalid": "A valid target language is required",
+  "product_ids_invalid": "productIds must include between 1 and 50 product IDs",
+  "product_fetch_failed": "Unable to fetch product translation",
+  "statuses_fetch_failed": "Unable to fetch product translation statuses",
+  "source_language_invalid": "The source language cannot be used as a translation target",
+  "translation_fields_required": "A product ID and at least one translation field are required",
+  "product_save_failed": "Unable to save product translation",
+  "product_id_invalid": "Invalid product ID",
+  "product_retranslate_failed": "Product retranslation failed"
 }
