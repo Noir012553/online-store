@@ -547,3 +547,43 @@ File JSON/CSV export có trường `features` chứa các mã như `feature_genu
 - Giữ nguyên `productId`, `baseCurrencyCode` và các feature key để bảo đảm round-trip.
 
 Sau bản sửa, Export không còn dùng mã ngôn ngữ hiện tại làm bộ lọc thương hiệu. Nếu kết quả vẫn là `totalProducts: 0`, cần kiểm tra riêng dữ liệu sản phẩm có `isDeleted: false` hay không.
+
+## Cập nhật: Phân tích lỗi retranslate trả HTTP 422
+
+### Hiện tượng
+
+Sau khi admin nhập sản phẩm mới và mở `/admin/translationsDynamic`, thao tác **Dịch lại** phát sinh lỗi trên trình duyệt:
+
+```text
+retranslate:1 Failed to load resource: the server responded with a status of 422 ()
+```
+
+Giao diện đồng thời hiển thị trạng thái **Chưa có bản dịch**. Log backend cho thấy Cloudflare AI vẫn dịch thành công nhiều nội dung, gồm 16 request từ `vi` sang `en`, nên lỗi cần được phân biệt với lỗi gọi dịch vụ AI.
+
+### Luồng request đang có trong mã nguồn
+
+- `online-store-frontend/src/pages/admin/translationsDynamic.tsx:184-219` gọi `POST /api/translations/admin/products/:id/retranslate` với body `{ lang: selectedLanguage }`.
+- `online-store-backend/src/routes/translationRoutes.js:52-57` định tuyến request tới `translationController.retranslateProduct`.
+- `online-store-backend/src/controllers/translationController.js:830-918` kiểm tra product ID, ngôn ngữ, sản phẩm nguồn, dịch các field không chỉnh sửa thủ công, kiểm định kết quả rồi ghi vào `ProductCatalogTranslationCache`.
+- `online-store-backend/src/controllers/translationController.js:723-770` đọc `ProductCatalogTranslationCache` trước, sau đó mới fallback sang `LiveTranslationCache` để tính trạng thái hiển thị.
+
+### Phân tích nguyên nhân
+
+1. **HTTP 422 chưa được tái hiện từ source hiện tại.** Các nhánh validation của endpoint theo sản phẩm hiện trả `400`, sản phẩm không tồn tại trả `404`, lỗi runtime trả `500`. Tìm kiếm toàn bộ backend chỉ thấy mã `422` ở `orderController.js`, không nằm trong luồng translation.
+2. **Có khả năng môi trường production đang chạy bản build khác source hiện tại hoặc request bị từ chối ở proxy/API gateway.** Cần đối chiếu Request URL, Request Payload và Response body trong DevTools Network để xác định lớp thực sự trả 422.
+3. **Hai nguồn cache dynamic vẫn là rủi ro hiển thị.** Luồng batch `POST /api/translations/admin/retranslate-dynamic` gọi `retranslateSeeder.retranslate`, xử lý `LiveTranslationCache` và không mặc nhiên đồng bộ sang `ProductCatalogTranslationCache`. Nếu admin đang kích hoạt luồng batch/route cũ, AI có thể dịch thành công nhưng trang sản phẩm vẫn không thấy bản dịch catalog.
+4. **“Chưa có bản dịch” là trạng thái fallback của UI.** Khi không có bản ghi phù hợp trong `ProductCatalogTranslationCache` và cũng không có record legacy phù hợp trong `LiveTranslationCache`, controller trả `missing`; frontend dùng trạng thái này để hiển thị “Chưa có bản dịch”. Điều này không chứng minh rằng Cloudflare AI chưa chạy.
+
+### Kết luận hiện tại
+
+Chưa đủ bằng chứng để kết luận 422 do Cloudflare AI hoặc do validation của endpoint theo sản phẩm. Bằng chứng hiện tại phù hợp hơn với một trong hai khả năng: production không chạy đúng contract của source hiện tại, hoặc thao tác đang đi qua luồng retranslate batch/legacy và ghi vào cache khác với cache mà trang sản phẩm đọc.
+
+### Dữ liệu cần thu thập trước khi sửa
+
+- Request URL đầy đủ của request bị 422.
+- Request payload, đặc biệt `productId` và `lang`.
+- Response body nguyên văn từ server/proxy.
+- Commit/build đang chạy trên `manln.online`.
+- Sau request, kiểm tra bản ghi tương ứng trong cả `ProductCatalogTranslationCache` và `LiveTranslationCache` theo `productId` và ngôn ngữ.
+
+**Trạng thái cập nhật:** Đã ghi nhận và phân tích lỗi 422 cùng hiện tượng “Chưa có bản dịch”; chưa thay đổi mã nguồn vì chưa có response body và request thực tế từ môi trường production.
