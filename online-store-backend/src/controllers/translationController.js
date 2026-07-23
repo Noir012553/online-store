@@ -484,7 +484,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
     // Fallback: Read from OLD schema
     const translations = await LiveTranslationCache.find({
       entityId: productId,
-      targetLang: lang,
+      targetLang: resolvedLang,
     }).lean();
 
     const specs = {};
@@ -724,6 +724,17 @@ const buildLegacyProductTranslation = (translations) => {
   return data;
 };
 
+const getStoredFeatureTranslations = (product, targetLang) => (
+  (product?.features || []).map((feature) => product.featuresTranslations?.[feature]?.[targetLang] || feature)
+);
+
+const mergeFeatureTranslations = (product, targetLang, translatedFeatures = []) => {
+  const storedFeatures = getStoredFeatureTranslations(product, targetLang);
+  if (storedFeatures.length === 0) return translatedFeatures;
+
+  return storedFeatures.map((feature, index) => translatedFeatures[index] || feature);
+};
+
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
   const catalogQuery = { entityId: productId, targetLang };
   const legacyQuery = {
@@ -738,19 +749,28 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
     legacyQuery.qualityStatus = { $nin: ['needs_retranslate', 'rejected'] };
   }
 
-  const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
+  const [translation, product] = await Promise.all([
+    ProductCatalogTranslationCache.findOne(catalogQuery).lean(),
+    Product.findById(productId).select('features featuresTranslations').lean(),
+  ]);
   if (translation) {
     return {
       name: translation.name || undefined,
       description: translation.description || undefined,
       brand: translation.brand || undefined,
       specs: translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {},
-      features: translation.features || [],
+      features: mergeFeatureTranslations(product, targetLang, translation.features || []),
     };
   }
 
   const legacyTranslations = await LiveTranslationCache.find(legacyQuery).lean();
-  return buildLegacyProductTranslation(legacyTranslations);
+  const legacyTranslation = buildLegacyProductTranslation(legacyTranslations);
+  if (!legacyTranslation) return null;
+
+  return {
+    ...legacyTranslation,
+    features: mergeFeatureTranslations(product, targetLang, legacyTranslation.features),
+  };
 };
 
 exports.getProductTranslationForAdmin = async (req, res) => {
@@ -781,15 +801,17 @@ exports.getProductTranslationStatuses = async (req, res) => {
       return res.status(400).json({ success: false, message: 'productIds must include between 1 and 50 product IDs' });
     }
 
-    const [catalogTranslations, legacyTranslations] = await Promise.all([
+    const [catalogTranslations, legacyTranslations, products] = await Promise.all([
       ProductCatalogTranslationCache.find({ entityId: { $in: productIds }, targetLang: lang }).lean(),
       LiveTranslationCache.find({
         entityId: { $in: productIds },
         targetLang: lang,
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean(),
+      Product.find({ _id: { $in: productIds } }).select('features specs').lean(),
     ]);
     const catalogByProductId = new Map(catalogTranslations.map((translation) => [translation.entityId, translation]));
+    const productsById = new Map(products.map((product) => [product._id.toString(), product]));
     const legacyByProductId = new Map();
 
     legacyTranslations.forEach((translation) => {
@@ -811,13 +833,24 @@ exports.getProductTranslationStatuses = async (req, res) => {
       }
 
       const legacyRecords = legacyByProductId.get(productId) || [];
+      const translatedTypes = new Set(legacyRecords.map((record) => record.entityType));
+      const product = productsById.get(productId);
+      const expectedFeatureCount = product?.features?.length || 0;
+      const expectedSpecKeys = Object.keys(product?.specs || {});
+      const translatedFeatureCount = legacyRecords.filter((record) => record.entityType === 'product_feature').length;
+      const translatedSpecKeys = new Set(
+        legacyRecords.filter((record) => record.entityType === 'product_spec' && record.specKey).map((record) => record.specKey)
+      );
+      const isComplete = ['product_name', 'product_description', 'product_brand'].every((type) => translatedTypes.has(type))
+        && translatedFeatureCount >= expectedFeatureCount
+        && expectedSpecKeys.every((key) => translatedSpecKeys.has(key));
       const legacyStatus = legacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
         ? 'needs_retranslate'
         : legacyRecords.some((record) => record.qualityStatus === 'rejected' || record.status !== 'success')
           ? 'rejected'
           : legacyRecords.some((record) => record.qualityStatus === 'pending')
             ? 'pending'
-            : legacyRecords.length > 0 ? 'approved' : 'missing';
+            : isComplete ? 'approved' : 'missing';
 
       return { productId, status: legacyStatus, manualFields: [], updatedAt: null, validationErrors: [] };
     });
