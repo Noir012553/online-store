@@ -197,7 +197,7 @@ Các điểm cần kiểm tra:
 
 - Rà soát và xác nhận `_AdminLayout.tsx` đã hỗ trợ sidebar mobile, lớp phủ đóng sidebar, lưu trạng thái sidebar và bố cục content theo breakpoint.
 - Xác nhận các danh sách Products, Orders, Customers và Coupons đã có bộ lọc responsive, bảng cuộn ngang có kiểm soát và cột thao tác không bị co quá mức.
-- Xác nhận `ProductForm.tsx`, `OrderForm.tsx`, `CustomerForm.tsx` và `CouponForm.tsx` đã chuyển các nhóm nhiều cột về một cột trên mobile.
+- Xác nhận `ProductForm.tsx`, `OrderForm.tsx`, `CustomerForm.tsx` và `coupons/CouponForm.tsx` đã chuyển các nhóm nhiều cột về một cột trên mobile.
 - Bổ sung `min-w-[560px]` cho bảng đơn hàng gần đây trong trang Statistics để giữ khả năng đọc và cuộn ngang trên màn hình hẹp.
 - Chuyển vùng nhập bản dịch sản phẩm và các thẻ thông tin trong modal thông báo đơn hàng sang một cột trên mobile, khôi phục hai cột từ breakpoint `sm`.
 - Rà soát các trang Dashboard, Statistics, Banners, Currency, Translations và các bảng admin phụ; giữ nguyên màu sắc, kiểu dáng, logic và breakpoint hiện có.

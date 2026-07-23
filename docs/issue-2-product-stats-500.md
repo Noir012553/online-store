@@ -398,3 +398,12 @@ Kết quả: 8 PASS, 0 FAIL
 Kết quả này xác nhận lại currency fallback, stats overview, validation currency `ZZZ` và sáu khóa toast tiếng Việt đều hoạt động đúng. Tập lệnh kết thúc thành công và không phát sinh file mới.
 
 **Trạng thái cập nhật mới nhất:** Product stats và nhóm bản dịch common đạt **8/8** sau khi sửa cú pháp PowerShell dynamic.
+
+## Đối chiếu repository hiện tại
+
+Đã đối chiếu lại mã nguồn hiện có:
+
+- `online-store-backend/src/utils/orderRevenue.js:10-49` tự chọn currency active mặc định khi request không truyền `currency` và chỉ trả lỗi `400` cho mã currency không hợp lệ.
+- `online-store-backend/src/controllers/productController.js` tiếp tục dùng currency báo cáo này cho endpoint stats overview.
+
+**Tiến độ hiện tại:** Issue-2 được xác nhận hoàn tất ở phạm vi sửa HTTP `500`, fallback currency và validation currency. Các ghi chú lỗi test cũ phía trên là kết quả lịch sử, không thay đổi trạng thái API hiện tại.

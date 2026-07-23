@@ -21,20 +21,15 @@
 
 ## A. Frontend
 
-### A1. Thông báo phân quyền hard-code — Trung bình
+### A1. Thông báo phân quyền hard-code — Đã xử lý
 
-- **Vị trí:** `online-store-frontend/src/lib/permissions.ts:55-66`
-- **Literal:** `Only super admins can manage users`, `Only super admins can manage currencies`, `Admins can manage translations`, `Only admins can manage products/orders/customers/coupons/banners`.
-- **Vấn đề:** `getAccessDeniedMessage()` luôn trả tiếng Anh, không nhận locale và không gọi `t()`.
-- **Ảnh hưởng:** Mọi popup/tooltip/thông báo từ chối quyền sẽ không theo ngôn ngữ giao diện.
-- **Hướng xử lý:** Thay mapping literal bằng translation key, lấy chuỗi qua i18n tại nơi render hoặc truyền translator/locale vào hàm.
+- **Vị trí ban đầu:** `online-store-frontend/src/lib/permissions.ts`.
+- **Kết quả:** `getAccessDeniedMessage()` đã được xoá vì không có consumer; không còn helper trả literal tiếng Anh trong phạm vi này.
 
-### A2. Nhãn và tooltip vai trò quản trị hard-code — Trung bình
+### A2. Nhãn và tooltip vai trò quản trị hard-code — Đã xử lý
 
-- **Vị trí:** `online-store-frontend/src/components/admin/RoleBadge.tsx:10-34,43-47`
-- **Literal:** `Super Admin`, `Admin`, `User`, `Full access to all features`, `Can manage core features`, `Limited access`.
-- **Vấn đề:** `label` và `description` được render trực tiếp; `description` còn là giá trị thuộc tính `title` nên dễ bị bỏ sót khi kiểm tra UI.
-- **Hướng xử lý:** Lưu translation key trong `roleConfig`, gọi `t()` cho cả nhãn và tooltip.
+- **Vị trí:** `online-store-frontend/src/components/admin/RoleBadge.tsx:12-50`.
+- **Kết quả:** `roleConfig` dùng `labelKey` và `descriptionKey`; cả nhãn lẫn tooltip đều được resolve bằng `t(...)`.
 
 ### A3. Placeholder/hint của form tiền tệ chưa qua i18n — Trung bình
 
@@ -170,18 +165,15 @@
 - **Vấn đề:** API import/export đa ngôn ngữ nhưng response bị khóa tiếng Việt hoặc tiếng Anh; `error.message` gốc còn được trả ra trong một số nhánh.
 - **Liên quan:** `CSVAdapter.js:82-89` (`No products found in CSV`, `CSV parse error: ...`), `JSONAdapter.js:38-45` (`JSON parse error: ...`), `productImportValidator.js:190-192` (`Deal must be a JSON object`). Các error này có thể bubble lên controller.
 
-### B13. Rate limit hard-code tiếng Việt — Cao
+### B13. Rate limit hard-code tiếng Việt — Đã xử lý
 
-- **Vị trí:** `online-store-backend/src/middleware/rateLimitMiddleware.js:30-31,56-57`.
-- **Literal:** `Quá nhiều yêu cầu đăng ký. Vui lòng thử lại sau 1 giờ.`, `Quá nhiều request. Vui lòng thử lại sau 15 phút.`
-- **Vấn đề:** Middleware chạy trước controller và không dùng request locale; người dùng không phải tiếng Việt vẫn luôn thấy tiếng Việt.
-- **Hướng xử lý:** Cấu hình handler của rate limiter trả error code hoặc resolve qua language middleware; tránh trộn `yêu cầu` và `request`.
+- **Vị trí:** `online-store-backend/src/middleware/rateLimitMiddleware.js:9-15`.
+- **Kết quả:** Handler chung trả `code`, `retryAfter` và message qua `getMessage(req.lang, 'errors.too_many_requests_title')`; không còn literal tiếng Việt trong response limiter.
 
-### B14. Validation middleware có `getMessage` nhưng không dùng — Cao
+### B14. Validation middleware có `getMessage` nhưng không dùng — Đã xử lý
 
-- **Vị trí:** `online-store-backend/src/middleware/validationMiddleware.js:6-24`.
-- **Literal:** `Validation failed`.
-- **Vấn đề:** `getMessage` đã được import ở dòng 7 nhưng `message` vẫn hard-code ở dòng 18. Đây là lỗi i18n rõ ràng và nhất quán có thể đã bị bỏ sót.
+- **Vị trí:** `online-store-backend/src/middleware/validationMiddleware.js:13-24`.
+- **Kết quả:** Middleware trả mã `VALIDATION_FAILED` và lấy message qua `getMessage(req.lang, 'common.error_request_title')`.
 
 ### B15. Health/analytics/static status responses — Thấp
 
