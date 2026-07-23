@@ -20,6 +20,7 @@ const notFound = (req, res, next) => {
 const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   let message = err.message || 'Internal Server Error'; // Default message if err.message is empty
+  const errorCode = err.errorCode || (typeof err.code === 'string' ? err.code : undefined);
   let errorDetails = null;
 
 
@@ -62,6 +63,7 @@ const errorHandler = (err, req, res, next) => {
 
   res.json({
     success: false,
+    code: errorCode,
     message: message, // Bổ sung message để frontend (api.ts) nhận diện đúng
     error: message,
     ...(errorDetails && { details: errorDetails }),

@@ -15,7 +15,8 @@ const handleValidationErrors = (req, res, next) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       status: 'error',
-      message: 'Validation failed',
+      code: 'VALIDATION_FAILED',
+      message: getMessage(req.lang, 'common.error_request_title'),
       errors: errors.array().map(err => ({
         field: err.param,
         message: err.msg,

@@ -4,6 +4,16 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const { getMessage } = require('../i18n/messages');
+
+const rateLimitHandler = (code) => (req, res) => {
+  res.status(429).json({
+    success: false,
+    code,
+    message: getMessage(req.lang, 'errors.too_many_requests_title'),
+    retryAfter: res.getHeader('Retry-After'),
+  });
+};
 
 /**
  * Login rate limiter
@@ -12,7 +22,7 @@ const rateLimit = require('express-rate-limit');
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 requests
-  message: 'Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút.',
+  handler: rateLimitHandler('RATE_LIMIT_LOGIN'),
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   skip: (req) => {
@@ -28,7 +38,7 @@ const loginLimiter = rateLimit({
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 requests
-  message: 'Quá nhiều yêu cầu đăng ký. Vui lòng thử lại sau 1 giờ.',
+  handler: rateLimitHandler('RATE_LIMIT_REGISTER'),
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -40,7 +50,7 @@ const registerLimiter = rateLimit({
 const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 requests
-  message: 'Quá nhiều yêu cầu reset mật khẩu. Vui lòng thử lại sau 1 giờ.',
+  handler: rateLimitHandler('RATE_LIMIT_PASSWORD_RESET'),
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -54,7 +64,7 @@ const passwordResetLimiter = rateLimit({
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests
-  message: 'Quá nhiều request. Vui lòng thử lại sau 15 phút.',
+  handler: rateLimitHandler('RATE_LIMIT_GLOBAL'),
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
@@ -75,7 +85,7 @@ const globalLimiter = rateLimit({
 const createOrderLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 orders per hour
-  message: 'Quá nhiều yêu cầu tạo đơn hàng. Vui lòng thử lại sau 1 giờ.',
+  handler: rateLimitHandler('RATE_LIMIT_ORDER_CREATE'),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -92,7 +102,7 @@ const createOrderLimiter = rateLimit({
 const initiatePaymentLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 payment attempts per hour
-  message: 'Quá nhiều yêu cầu thanh toán. Vui lòng thử lại sau 1 giờ.',
+  handler: rateLimitHandler('RATE_LIMIT_PAYMENT'),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -107,7 +117,7 @@ const initiatePaymentLimiter = rateLimit({
 const updateCartLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 50, // 50 updates per minute
-  message: 'Quá nhiều cập nhật giỏ hàng. Vui lòng thử lại sau 1 phút.',
+  handler: rateLimitHandler('RATE_LIMIT_CART_UPDATE'),
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -120,7 +130,7 @@ const updateCartLimiter = rateLimit({
 const refreshTokenLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 30, // 30 refresh attempts per hour
-  message: 'Quá nhiều yêu cầu làm mới token. Vui lòng thử lại sau 1 giờ.',
+  handler: rateLimitHandler('RATE_LIMIT_TOKEN_REFRESH'),
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {

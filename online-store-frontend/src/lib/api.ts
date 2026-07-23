@@ -423,11 +423,13 @@ async function executeRequest<T = any>(
 
     if (!response.ok) {
       let errorMessage = `api_error`;
+      let errorCode: string | undefined;
       try {
         const errorData = await response.json();
         if (errorData && errorData.message) {
           errorMessage = errorData.message;
         }
+        errorCode = errorData?.code;
       } catch (parseError) {
         // If response body is not JSON, use status code
         errorMessage = `http_error`;
@@ -441,7 +443,9 @@ async function executeRequest<T = any>(
         method: methodName,
       });
 
-      throw new Error(errorMessage);
+      const apiError = new Error(errorMessage) as Error & { code?: string };
+      apiError.code = errorCode;
+      throw apiError;
     }
 
     const data = await response.json();
