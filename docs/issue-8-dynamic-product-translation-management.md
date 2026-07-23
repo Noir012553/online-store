@@ -2,75 +2,81 @@
 
 ## Mục tiêu
 
-Hoàn thiện luồng quản trị dynamic translation để admin có thể:
+Cho phép admin quản lý dynamic translation theo sản phẩm và ngôn ngữ, gồm xem trạng thái, sửa thủ công, re-translate có xác nhận và không phải chạy seed toàn bộ.
 
-- Xem trạng thái bản dịch theo `productId` và ngôn ngữ.
-- Phân biệt bản dịch thiếu, đang xử lý, đạt yêu cầu, cần dịch lại và lỗi.
-- Sửa bản dịch thủ công mà không bị AI ghi đè ngoài chủ đích.
-- Dịch lại đúng sản phẩm và ngôn ngữ, có xác nhận và cập nhật trạng thái.
-- Không phải chạy seed lại toàn bộ dữ liệu.
+## Route hiện tại
 
-## Phạm vi giao diện
+- `/admin/translationsDynamic`: giao diện dynamic translation sản phẩm.
+- `/admin/translationsStatic`: giao diện static translation.
+- `/admin/productsTranslationsAdmin`: redirect tới `/admin/translationsDynamic`.
+- `/admin/translationsAdminTier1`: redirect tới `/admin/translationsStatic`.
+- `/admin/translationsAdminTier2`: redirect tới `/admin/translationsAdminTier1`, sau đó tiếp tục tới `/admin/translationsStatic`.
 
-- `/admin/translationsDynamic`: quản lý dynamic translation của sản phẩm.
-- `/admin/translationsStatic`: quản lý static translation.
-- `/admin/productsTranslationsAdmin`: route legacy chuyển hướng về dynamic translation.
-- `/admin/translationsAdminTier1`: route legacy chuyển hướng về static translation.
-- `/admin/translationsAdminTier2`: route legacy chuyển hướng về static translation.
+Hai route tier cũ vẫn tồn tại để tương thích URL nhưng không còn render giao diện riêng.
 
-Không duy trì nhiều giao diện có cùng mục đích quản lý translation.
+## Đã có trong code hiện tại
 
-## Đã triển khai
+### Giao diện dynamic
 
-- Trang dynamic hiển thị trạng thái theo sản phẩm và ngôn ngữ.
-- Có bộ lọc `missing`, `pending`, `approved`, `needs_retranslate` và `rejected`.
-- Re-translate theo từng `productId` và `lang`, có xác nhận trước khi chạy.
-- Bảo toàn các trường chỉnh sửa thủ công qua `manualFields`.
-- Kết quả re-translate được ghi vào `ProductCatalogTranslationCache`, là nguồn API sản phẩm đang sử dụng.
-- Đổi tên hiển thị từ “Dịch Features” thành “Dịch sản phẩm”.
-- Route legacy không còn render giao diện trùng lặp.
-- Endpoint batch legacy yêu cầu `entityType` hợp lệ, không còn mặc định xử lý mọi loại entity.
-- Export đã truyền đúng `locale`, giữ `productId`, `baseCurrencyCode`, feature key và bổ sung `featureLabels` chỉ để hiển thị.
+- Tải sản phẩm theo trang, tìm kiếm và locale giao diện.
+- Chọn ngôn ngữ dịch.
+- Tải trạng thái cho các sản phẩm đang hiển thị.
+- Lọc `missing`, `pending`, `approved`, `needs_retranslate`, `rejected`.
+- Sửa và lưu các trường `name`, `description`, `brand`, `features`, `specs`.
+- Re-translate từng sản phẩm theo ngôn ngữ đang chọn.
+- Có hộp thoại xác nhận, khóa thao tác trùng và timeout frontend 30 giây.
+- Giữ các trường thủ công qua `manualFields`.
 
-## Các quyết định tối ưu cần giữ
+### Backend
 
-1. **Một nguồn dữ liệu chuẩn**
-   Trạng thái, bản dịch hiển thị và kết quả re-translate phải có mapping rõ ràng theo `productId`, ngôn ngữ và trường. Không để `LiveTranslationCache` và `ProductCatalogTranslationCache` tạo ra hai trạng thái mâu thuẫn.
+Các endpoint admin hiện có:
 
-2. **Re-translate có phạm vi bắt buộc**
-   Contract cần xác định rõ sản phẩm, ngôn ngữ và trường cần xử lý. `limit` chỉ là giới hạn an toàn sau khi đã lọc đúng phạm vi, không thay thế cho filter.
+- `GET /api/translations/admin/products/status`
+- `GET /api/translations/admin/products/:id`
+- `PUT /api/translations/admin/products/:id`
+- `POST /api/translations/admin/products/:id/retranslate`
+- `POST /api/translations/admin/retranslate-dynamic` — endpoint batch legacy.
 
-3. **Bản dịch thủ công luôn được ưu tiên**
-   Phải phân biệt `manual` và `machine`; re-translate tự động chỉ xử lý dữ liệu AI stale. Muốn ghi đè bản dịch thủ công phải có lựa chọn và xác nhận riêng.
+Endpoint theo sản phẩm ghi kết quả vào `ProductCatalogTranslationCache`. Khi chưa có dữ liệu cache này, controller vẫn fallback sang `LiveTranslationCache`.
 
-4. **Import chỉ kích hoạt dịch lại khi cần**
-   Chỉ các trường có nội dung cần dịch (`name`, `description`, `brand`, `features`, `specs`) mới làm bản dịch stale. Thay đổi giá, tồn kho, ảnh, rating hoặc cờ hiển thị không tạo job dịch lại.
+### Import/export
 
-5. **Tách export nguồn và backup translation**
-   Export sản phẩm dùng cho chỉnh sửa hàng loạt và round-trip dữ liệu nguồn. Backup/migration đa ngôn ngữ, nếu cần, phải là JSON có schema version riêng; không mở rộng CSV vận hành một cách mơ hồ.
+- Export đã truyền locale đúng vị trí.
+- Dữ liệu export giữ `productId`, `baseCurrencyCode` và feature key.
+- `featureLabels` chỉ là nhãn đọc theo ngôn ngữ, không thay thế feature key khi import.
+- Import đã diff các trường có thể dịch và đánh dấu cache stale khi nội dung nguồn thay đổi.
+- Translation thủ công được giữ nếu field thay đổi nằm trong `manualFields`.
 
-## Việc còn lại theo thứ tự ưu tiên
+## Trạng thái thực tế cần lưu ý
 
-1. Chốt nguồn dữ liệu chuẩn và quy tắc ưu tiên bản dịch thủ công.
-2. Hoàn thiện contract re-translate theo sản phẩm/ngôn ngữ/trường, giới hạn batch và idempotency.
-3. Xác minh endpoint theo sản phẩm với MongoDB và dịch vụ AI.
-4. Thiết kế job nền cho batch, gồm `jobId`, tiến trình, retry và kết quả từng bản ghi.
-5. Hoàn thiện import/export với khóa định danh ổn định và invalidate translation theo field diff.
-6. Xác định cách `featuresTranslations` được API hiển thị; không duy trì hai nguồn độc lập.
-7. Chạy build frontend và kiểm thử round-trip JSON/CSV bằng endpoint thật.
-8. Điều tra lỗi HTTP 422 bằng request URL, payload, response body và commit/build production.
+- Hệ thống chưa hoàn toàn dùng một cache duy nhất: status và dữ liệu sản phẩm có fallback giữa `ProductCatalogTranslationCache` và `LiveTranslationCache`.
+- API status nhận `productIds` dạng danh sách phân tách bằng dấu phẩy, tối đa 50 ID mỗi request. UI hiện chỉ gửi các sản phẩm của trang đang xem.
+- Endpoint batch legacy vẫn chạy qua `retranslateSeeder`, nhận `entityType` và `limit` từ 1 đến 500; đây không phải contract re-translate theo product/language/field của giao diện mới.
+- Import vẫn fallback tìm sản phẩm bằng `name + brand` nếu file không có `productId`; khóa này không đủ an toàn cho đồng bộ translation lâu dài.
+- `Product.featuresTranslations` vẫn cần được đối chiếu với nguồn cache hiển thị để tránh lưu một nguồn thủ công nhưng API không dùng.
+
+## Ưu tiên tối ưu tiếp theo
+
+1. Chốt nguồn dữ liệu translation chuẩn và quy tắc fallback legacy.
+2. Chốt provenance `manual`/`machine` và quy tắc ưu tiên khi hiển thị.
+3. Định nghĩa contract re-translate theo `productId`, ngôn ngữ và field; giữ endpoint batch legacy ở phạm vi riêng.
+4. Thiết kế job nền cho batch với tiến trình, retry, partial failure và idempotency.
+5. Bắt buộc khóa ổn định trong import khi cần đồng bộ translation; không dựa vào `name + brand`.
+6. Xác định cách merge hoặc hợp nhất `featuresTranslations` với `ProductCatalogTranslationCache`.
+7. Kiểm thử tích hợp MongoDB + AI, build frontend và round-trip JSON/CSV thật.
+8. Điều tra HTTP 422 bằng request URL, payload, response body và build production trước khi sửa tiếp.
 
 ## Tiêu chí nghiệm thu
 
-- Admin xem đúng trạng thái theo sản phẩm và ngôn ngữ.
-- Re-translate không tác động ngoài phạm vi đã chọn và không ghi đè bản dịch thủ công.
-- API sản phẩm hiển thị ngay kết quả từ đúng nguồn cache sau khi xử lý.
-- Batch không giữ request HTTP quá lâu, có tiến trình và không tạo job trùng.
-- Import/export round-trip thành công và nhận diện sản phẩm bằng khóa ổn định.
-- Static translation, quyền admin và các luồng sản phẩm khác không bị thay đổi.
+- Status hiển thị đúng theo sản phẩm/ngôn ngữ, kể cả trường hợp chỉ có dữ liệu legacy.
+- Re-translate theo sản phẩm không xử lý nhầm entity khác.
+- Không ghi đè field thủ công ngoài xác nhận rõ ràng.
+- Kết quả xử lý được đọc từ đúng nguồn mà API sản phẩm sử dụng.
+- Import/export nhận diện đúng sản phẩm và chỉ đánh dấu stale field thực sự thay đổi.
+- Batch có giới hạn, tiến trình và chống chạy trùng.
 
-## Trạng thái
+## Trạng thái tài liệu
 
-Nền tảng frontend/backend và route mới đã có. Phần cần ưu tiên tiếp theo là chốt contract dữ liệu, xác minh tích hợp đầu cuối và thiết kế job batch; chưa nên mở rộng UI trước khi các điểm này ổn định.
+Giao diện và endpoint theo sản phẩm đã được triển khai. Phần còn lại là chuẩn hóa hybrid cache, contract batch/import và kiểm thử đầu cuối; các mục này chưa được xem là hoàn tất chỉ dựa trên kiểm tra tĩnh.
 
-Xem `docs/issue-9-translation-management-details.md` để biết phân tích kỹ thuật và kế hoạch kiểm thử chi tiết.
+Xem `docs/issue-9-translation-management-details.md` để biết chi tiết kỹ thuật.
