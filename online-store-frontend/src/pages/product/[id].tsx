@@ -181,7 +181,8 @@ export default function ProductDetail() {
       // Refresh reviews and total count
       await handleSubmitReviewSuccess();
     } catch (error) {
-      const message = error instanceof Error && error.message !== 'review_creation_failed'
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      const message = error instanceof Error && code !== 'REVIEW_CREATION_FAILED'
         ? error.message
         : t('review_error', 'products');
       toast.error(message);

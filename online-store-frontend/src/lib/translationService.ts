@@ -21,6 +21,16 @@ interface TranslateTextResponse {
   };
 }
 
+export class TranslationServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly params: Record<string, string> = {}
+  ) {
+    super(code);
+    this.name = 'TranslationServiceError';
+  }
+}
+
 class TranslationService {
   async getStaticTranslations(
     lang: string,
@@ -89,10 +99,10 @@ class TranslationService {
   ): Promise<string> {
     // Validate required parameters
     if (!targetLang) {
-      throw new Error('Target language (targetLang) is required');
+      throw new TranslationServiceError('TRANSLATION_TARGET_LANGUAGE_REQUIRED');
     }
     if (!sourceLang) {
-      throw new Error('Source language (sourceLang) is required');
+      throw new TranslationServiceError('TRANSLATION_SOURCE_LANGUAGE_REQUIRED');
     }
 
     try {
@@ -111,13 +121,15 @@ class TranslationService {
       });
 
       if (!response.ok) {
-        throw new Error('translation_failed_error');
+        throw new TranslationServiceError('TRANSLATION_REQUEST_FAILED', {
+          status: String(response.status),
+        });
       }
 
       const data: TranslateTextResponse = await response.json();
 
       if (!data.success) {
-        throw new Error('translation_service_error');
+        throw new TranslationServiceError('TRANSLATION_SERVICE_FAILED');
       }
 
       return data.data.translatedText;

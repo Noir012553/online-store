@@ -1228,7 +1228,9 @@ export const reviewAPI = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'review_creation_failed');
+      const error = new Error(errorData.message || 'REVIEW_CREATION_FAILED');
+      Object.assign(error, { code: errorData.code || 'REVIEW_CREATION_FAILED' });
+      throw error;
     }
 
     return response.json();
