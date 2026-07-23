@@ -163,16 +163,6 @@ Chưa kết luận nguyên nhân chỉ từ source. Cần thu thập:
 - Commit/build đang chạy production.
 - Record tương ứng trong cả hai cache sau request.
 
-## 7. Thứ tự tối ưu
-
-1. Ghi nhận hybrid cache là trạng thái hiện tại, không gọi đó là một nguồn duy nhất.
-2. Chốt quy tắc hiển thị và provenance manual/machine.
-3. Tách endpoint batch legacy khỏi contract theo sản phẩm.
-4. Bắt buộc khóa ổn định cho import cần đồng bộ translation.
-5. Thiết kế job batch có idempotency và progress.
-6. Chạy kiểm thử tích hợp và round-trip thật.
-7. Sau đó mới mở rộng filter toàn catalog, UI batch hoặc SLA.
-
 ## Trạng thái tài liệu
 
 Tài liệu đã được cập nhật theo code hiện tại: route redirect, status cap 50, timeout frontend, hybrid cache, endpoint batch legacy và fallback import đều được ghi nhận riêng. Các đề xuất về một nguồn cache, contract batch mới và job nền vẫn là phần cần triển khai sau khi chốt yêu cầu.

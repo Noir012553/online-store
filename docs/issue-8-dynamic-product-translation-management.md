@@ -55,17 +55,6 @@ Endpoint theo sản phẩm ghi kết quả vào `ProductCatalogTranslationCache`
 - Import vẫn fallback tìm sản phẩm bằng `name + brand` nếu file không có `productId`; khóa này không đủ an toàn cho đồng bộ translation lâu dài.
 - `Product.featuresTranslations` vẫn cần được đối chiếu với nguồn cache hiển thị để tránh lưu một nguồn thủ công nhưng API không dùng.
 
-## Ưu tiên tối ưu tiếp theo
-
-1. Chốt nguồn dữ liệu translation chuẩn và quy tắc fallback legacy.
-2. Chốt provenance `manual`/`machine` và quy tắc ưu tiên khi hiển thị.
-3. Định nghĩa contract re-translate theo `productId`, ngôn ngữ và field; giữ endpoint batch legacy ở phạm vi riêng.
-4. Thiết kế job nền cho batch với tiến trình, retry, partial failure và idempotency.
-5. Bắt buộc khóa ổn định trong import khi cần đồng bộ translation; không dựa vào `name + brand`.
-6. Xác định cách merge hoặc hợp nhất `featuresTranslations` với `ProductCatalogTranslationCache`.
-7. Kiểm thử tích hợp MongoDB + AI, build frontend và round-trip JSON/CSV thật.
-8. Điều tra HTTP 422 bằng request URL, payload, response body và build production trước khi sửa tiếp.
-
 ## Tiêu chí nghiệm thu
 
 - Status hiển thị đúng theo sản phẩm/ngôn ngữ, kể cả trường hợp chỉ có dữ liệu legacy.
