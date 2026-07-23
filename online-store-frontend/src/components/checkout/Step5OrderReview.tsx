@@ -111,18 +111,14 @@ export function Step5OrderReview() {
   };
 
   const getErrorMessage = (error: any): string => {
-    if (error instanceof Error) {
-      if (error.message.includes('Email already in use')) {
-        return t('email_in_use', 'checkout');
-      } else if (error.message.includes('Insufficient stock')) {
-        return t('insufficient_stock', 'checkout');
-      } else if (error.message.includes('No order items')) {
-        return t('cart_empty', 'checkout');
-      }
-      return t('create_order', 'checkout');
-    }
+    const errorTranslations: Record<string, string> = {
+      ORDER_NO_ITEMS: 'cart_empty',
+      ORDER_INSUFFICIENT_STOCK: 'insufficient_stock',
+      CUSTOMER_FIELD_IN_USE: 'email_in_use',
+    };
 
-    return t('create_order', 'checkout');
+    const translationKey = error?.code ? errorTranslations[error.code] : undefined;
+    return t(translationKey || 'create_order', 'checkout');
   };
 
   return (

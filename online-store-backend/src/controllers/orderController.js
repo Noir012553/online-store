@@ -18,6 +18,12 @@ const { calculateSelectedShipping } = require('../services/shippingService');
 const DEFAULT_ITEM_WEIGHT_GRAMS = 500;
 const WAREHOUSE_DISTRICT_ID = 1458;
 
+const createOrderError = (lang, errorCode, messageKey, values = {}) => {
+  const error = new Error(getMessage(lang, messageKey, values));
+  error.errorCode = errorCode;
+  return error;
+};
+
 const roundCurrencyAmount = (amount, decimalPlaces) => {
   const multiplier = 10 ** decimalPlaces;
   return Math.round(amount * multiplier) / multiplier;
@@ -107,7 +113,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   if (!cartItems || cartItems.length === 0) {
     res.status(400);
-    throw new Error(getMessage(lang, 'order.noCartItems'));
+    throw createOrderError(lang, 'ORDER_NO_ITEMS', 'order.noCartItems');
   }
 
   // ==================== IDEMPOTENCY CHECK ====================
@@ -170,7 +176,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     // Stock check
     if (product.countInStock < item.quantity) {
       res.status(400);
-      throw new Error(getMessage(lang, 'product.insufficientStock'));
+      throw createOrderError(lang, 'ORDER_INSUFFICIENT_STOCK', 'product.insufficientStock');
     }
 
     productMap.set(productId, {
@@ -212,7 +218,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
         if (!customerName) {
           res.status(400);
-          throw new Error(getMessage(lang, 'product.customerNameRequired'));
+          throw createOrderError(lang, 'CUSTOMER_NAME_REQUIRED', 'product.customerNameRequired');
         }
 
         // Generate a unique phone number if not provided
@@ -252,7 +258,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       if (err.code === 11000) {
         const field = Object.keys(err.keyPattern)[0];
         res.status(409);
-        throw new Error(getMessage(lang, 'product.fieldInUse'));
+        throw createOrderError(lang, 'CUSTOMER_FIELD_IN_USE', 'product.fieldInUse');
       }
       throw err;
     }
@@ -264,14 +270,14 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   if (typeof requestedCurrencyCode !== 'string' || !requestedCurrencyCode) {
     res.status(400);
-    throw new Error('currencyCode is required');
+    throw createOrderError(lang, 'ORDER_CURRENCY_REQUIRED', 'checkout.error_currency_required');
   }
 
   const currencyCode = requestedCurrencyCode.toUpperCase();
   const paymentCurrency = await Currency.findOne({ code: currencyCode, isActive: true }, { code: 1 }).lean();
   if (!paymentCurrency) {
     res.status(400);
-    throw new Error('currencyCode must reference an active currency');
+    throw createOrderError(lang, 'ORDER_CURRENCY_NOT_FOUND', 'checkout.error_currency_not_found');
   }
 
   try {
@@ -298,7 +304,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   if (!baseCurrency) {
     res.status(503);
-    throw new Error('Currency configuration is temporarily unavailable');
+    throw createOrderError(lang, 'ORDER_CURRENCY_CONFIG_UNAVAILABLE', 'common.error_request_title');
   }
 
   const baseCurrencyCode = baseCurrency.code;
@@ -327,7 +333,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   for (const code of referencedCurrencyCodes) {
     if (!currencyDecimalPlaces.has(code)) {
       res.status(503);
-      throw new Error('Currency configuration is temporarily unavailable');
+      throw createOrderError(lang, 'ORDER_CURRENCY_CONFIG_UNAVAILABLE', 'common.error_request_title');
     }
   }
 
@@ -341,7 +347,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   for (const sourceCurrencyCode of referencedCurrencyCodes) {
     if (!hasExchangeRate(sourceCurrencyCode, baseCurrencyCode) || !hasExchangeRate(baseCurrencyCode, currencyCode)) {
       res.status(503);
-      throw new Error('Currency exchange rates are temporarily unavailable');
+      throw createOrderError(lang, 'ORDER_RATES_UNAVAILABLE', 'common.error_server_desc');
     }
   }
 
@@ -390,7 +396,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     const couponCurrencyCode = coupon.currencyCode.toUpperCase();
     if (!currencyDecimalPlaces.has(couponCurrencyCode) || !hasExchangeRate(couponCurrencyCode, baseCurrencyCode)) {
       res.status(503);
-      throw new Error('Currency exchange rates are temporarily unavailable');
+      throw createOrderError(lang, 'ORDER_RATES_UNAVAILABLE', 'common.error_server_desc');
     }
     const baseMinOrderAmount = convertToBaseCurrency(coupon.minOrderAmount, couponCurrencyCode);
     if (calculatedItemsPrice < baseMinOrderAmount) {
