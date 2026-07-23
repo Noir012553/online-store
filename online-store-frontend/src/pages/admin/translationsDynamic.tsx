@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
@@ -13,6 +14,8 @@ import { Pagination } from "../../components/admin/Pagination";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useTranslation } from "@/lib/i18n";
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types";
+
+const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
 
 const getLanguages = (t: (key: string, ns?: string) => string) =>
   SUPPORTED_LOCALES.map((code: Locale) => {
@@ -55,7 +58,7 @@ export function ProductsTranslationsAdminContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<Locale>(DEFAULT_LOCALE);
+  const [selectedLanguage, setSelectedLanguage] = useState<Locale>(INITIAL_TRANSLATION_LOCALE);
   const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);

@@ -63,8 +63,8 @@ class CSVAdapter extends BaseImportAdapter {
             if (!product.deal) product.deal = {};
             product.deal[dealKey] = value;
           }
-          // Handle features_* (multiple features)
-          else if (header.startsWith('features')) {
+          // Handle the product feature identifiers
+          else if (header === 'features') {
             // "Feature1|Feature2|Feature3"
             product.features = value.split('|').map(f => f.trim()).filter(f => f);
           }
