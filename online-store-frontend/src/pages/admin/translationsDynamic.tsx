@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
@@ -204,8 +205,10 @@ export function ProductsTranslationsAdminContent() {
         credentials: 'include',
         signal: controller.signal,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || t('retranslate_failed', 'productsTranslations'));
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.message || `${t('retranslate_failed', 'productsTranslations')} (${response.status})`);
+      }
 
       setTranslationStatuses((current) => ({
         ...current,
