@@ -178,3 +178,18 @@ KẾT QUẢ ISSUE-4: 12 PASS, 0 FAIL
 Các kiểm tra backend/frontend, npm script, test registry, test runner, số lượng suite và offline manual đều đạt. Các lỗi trước đó do quoting của `node -e` và workspace cũ chưa đồng bộ đã không còn tái diễn.
 
 **Trạng thái tổng thể:** Issue-1, issue-2, issue-3 và issue-4 đã được rà soát, cập nhật và hoàn tất theo phạm vi kiểm tra hiện tại. Không còn lỗi wiring được xác nhận trong bộ kiểm tra issue-4.
+
+## Cập nhật tổng quan sau rà soát tài liệu
+
+Lần cập nhật này chỉ rà soát các báo cáo Markdown, không sửa mã nguồn, cấu hình hoặc chạy lại kiểm thử.
+
+| Nhóm issue | Trạng thái theo báo cáo hiện có | Ghi chú còn lại |
+| --- | --- | --- |
+| Issue 1–4 | Hoàn tất trong phạm vi đã ghi nhận | Kiểm thử runtime đầy đủ vẫn phụ thuộc MongoDB, JWT và Cloudflare credentials hợp lệ. |
+| Issue 5 | Đã triển khai và xác minh tự động | Cần kiểm thử tương tác trực tiếp trên preview khi có dev server. |
+| Issue 6 | Đã rà soát, dọn import cũ và build thành công | Cần xác minh trực tiếp trên preview ở các viewport. |
+| Issue 7 | Hoàn tất trong phạm vi runtime an toàn | Các emoji thuộc API response, email, locale, report lưu file và script legacy là ngoại lệ có chủ đích hoặc cần quy trình riêng. |
+| Issue 8–9 | Chưa hoàn tất | Cần chốt chiến lược hybrid cache, contract batch/import và kiểm thử đầu-cuối save/re-translate. |
+| Issue 10 | Chưa hoàn tất | Các nhóm translation, payment, currency/exchange rate, import/export và email vẫn cần chuẩn hóa contract lỗi và kiểm thử API theo từng luồng. |
+
+**Trạng thái cập nhật:** Các lỗi chức năng và wiring đã đóng giữ nguyên kết luận trước đó. Phần việc tiếp theo của dự án tập trung vào kiểm thử runtime có cấu hình hợp lệ, kiểm thử preview và các hạng mục i18n/dynamic translation còn mở.
