@@ -116,25 +116,56 @@ exports.getProductTranslations = async (req, res) => {
       status: 'success',
     }).lean();
 
-    if (!translation) {
+    if (translation) {
+      const specs = translation.specs instanceof Map
+        ? Object.fromEntries(translation.specs)
+        : translation.specs || {};
+
+      return res.json({
+        success: true,
+        data: {
+          name: translation.name || undefined,
+          description: translation.description || undefined,
+          brand: translation.brand || undefined,
+          specs,
+          features: translation.features || [],
+        },
+      });
+    }
+
+    const legacyTranslations = await LiveTranslationCache.find({
+      entityId: productId,
+      targetLang: resolvedLang,
+      entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      status: 'success',
+    }).lean();
+
+    if (legacyTranslations.length === 0) {
       return res.json({ success: true, data: null });
     }
 
-    // Convert MongoDB Map to plain object if needed
-    const specs = translation.specs instanceof Map
-      ? Object.fromEntries(translation.specs)
-      : translation.specs || {};
-
-    res.json({
-      success: true,
-      data: {
-        name: translation.name || undefined,
-        description: translation.description || undefined,
-        brand: translation.brand || undefined,
-        specs,
-        features: translation.features || [],
-      },
+    const legacyData = { specs: {}, features: [] };
+    legacyTranslations.forEach((legacyTranslation) => {
+      switch (legacyTranslation.entityType) {
+        case 'product_name':
+          legacyData.name = legacyTranslation.translatedText;
+          break;
+        case 'product_description':
+          legacyData.description = legacyTranslation.translatedText;
+          break;
+        case 'product_brand':
+          legacyData.brand = legacyTranslation.translatedText;
+          break;
+        case 'product_spec':
+          if (legacyTranslation.specKey) legacyData.specs[legacyTranslation.specKey] = legacyTranslation.translatedText;
+          break;
+        case 'product_feature':
+          legacyData.features.push(legacyTranslation.translatedText);
+          break;
+      }
     });
+
+    return res.json({ success: true, data: legacyData });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
     res.status(500).json({
@@ -1431,22 +1462,37 @@ exports.getAllTranslationsByLang = async (req, res) => {
 exports.bulkTranslateStaticUI = async (req, res) => {
   try {
     const defaultLang = getDefaultLanguage().code;
-    const { items, targetLang = defaultLang, namespace = 'common' } = req.body;
+    const { items, targetLang = defaultLang, namespace = 'common' } = req.body || {};
 
-    if (!items || !Array.isArray(items)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Items array is required',
-      });
+    if (!/^[a-zA-Z0-9_-]+$/.test(namespace)) {
+      return res.status(400).json({ success: false, message: 'Invalid translation namespace' });
     }
+    if (!getActiveLangCodes().includes(targetLang)) {
+      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+    }
+
+    let sourceItems = items;
+    if (!sourceItems) {
+      const sourceTranslation = await StaticTranslation.findOne({
+        code: defaultLang,
+        namespace,
+        isDeleted: false,
+      }).lean();
+      const sourceFilePath = path.join(__dirname, '../locales', defaultLang, `${namespace}.json`);
+      const sourceTranslations = {
+        ...(fs.existsSync(sourceFilePath) ? JSON.parse(fs.readFileSync(sourceFilePath, 'utf8')) : {}),
+        ...(sourceTranslation?.translations || {}),
+      };
+      sourceItems = Object.entries(flattenJson(sourceTranslations)).map(([key, text]) => ({ key, text }));
+    }
+
+    if (!Array.isArray(sourceItems) || sourceItems.length === 0 || sourceItems.some((item) => typeof item?.key !== 'string' || typeof item.text !== 'string')) {
+      return res.status(400).json({ success: false, message: 'Items must contain at least one key and text pair' });
+    }
+
     const translations = {};
-    for (const item of items) {
-      const translated = await cloudflareAiService.translate(
-        item.text,
-        defaultLang,
-        targetLang
-      );
-      translations[item.key] = translated;
+    for (const item of sourceItems) {
+      translations[item.key] = await cloudflareAiService.translate(item.text, defaultLang, targetLang);
     }
 
     const result = await StaticTranslation.findOneAndUpdate(
@@ -1458,7 +1504,11 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     res.json({
       success: true,
       message: 'Bulk translations completed',
-      data: result,
+      data: {
+        translation: result,
+        translatedCount: sourceItems.length,
+        failedCount: 0,
+      },
     });
   } catch (error) {
     console.error('[TranslationController] Error bulk translating:', error);
