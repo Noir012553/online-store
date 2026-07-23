@@ -9,5 +9,13 @@
   "createSuccess": "Shipment created successfully",
   "not_found": "Shipment not found",
   "invalid_status": "Invalid shipment status: {status}",
-  "cancel_success": "Shipment cancelled successfully"
+  "cancel_success": "Shipment cancelled successfully",
+  "currencyMetadataMissing": "Currency metadata is unavailable for {{currencyCode}}",
+  "ratesUnavailable": "Currency exchange rates are temporarily unavailable",
+  "providerRequestFailed": "The shipping provider could not process the shipment request",
+  "invalidFee": "The shipping provider returned an invalid shipping fee",
+  "orderCurrencyUnavailable": "Order currency data is unavailable",
+  "printTokenFailed": "Unable to generate the shipment label",
+  "locationSyncSuccess": "Location data synced successfully",
+  "locationSyncFailed": "Unable to synchronize location data"
 }

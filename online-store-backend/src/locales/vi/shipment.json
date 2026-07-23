@@ -10,5 +10,13 @@
   "not_found": "Không tìm thấy vận đơn",
   "invalid_status": "Trạng thái vận đơn không hợp lệ: {status}",
   "cancel_success": "Hủy vận đơn thành công",
-  "noServiceAvailable": "Không có dịch vụ nào khả dụng"
+  "noServiceAvailable": "Không có dịch vụ nào khả dụng",
+  "currencyMetadataMissing": "Không có dữ liệu tiền tệ cho {{currencyCode}}",
+  "ratesUnavailable": "Tỷ giá tiền tệ tạm thời không khả dụng",
+  "providerRequestFailed": "Nhà cung cấp vận chuyển không thể xử lý yêu cầu tạo vận đơn",
+  "invalidFee": "Nhà cung cấp vận chuyển trả về phí giao hàng không hợp lệ",
+  "orderCurrencyUnavailable": "Dữ liệu tiền tệ của đơn hàng không khả dụng",
+  "printTokenFailed": "Không thể tạo nhãn vận đơn",
+  "locationSyncSuccess": "Đồng bộ dữ liệu địa điểm thành công",
+  "locationSyncFailed": "Không thể đồng bộ dữ liệu địa điểm"
 }
