@@ -222,5 +222,6 @@
   "banner_form_lang_optional_note": "U kunt naar alle 9 ondersteunde talen vertalen",
   "banner_form_warning_incomplete_optional": "Waarschuwing: Enkele talen zijn onvolledig",
   "banner_form_lang_incomplete": "onvolledig",
-  "banner_form_warning_incomplete_note": "U kunt doorgaan en deze talen later vertalen op de pagina voor vertaalbeheer"
+  "banner_form_warning_incomplete_note": "U kunt doorgaan en deze talen later vertalen op de pagina voor vertaalbeheer",
+  "missing_translations": "Talen zonder vertaling"
 }
