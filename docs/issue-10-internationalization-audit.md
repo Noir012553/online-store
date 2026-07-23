@@ -478,3 +478,15 @@ Các nhóm validation, rate-limit, order currency, shipping, user, Cloudinary, b
 - Không thay đổi mã nguồn trong lần rà soát này.
 
 **Trạng thái hiện tại:** Các nhóm i18n đã xác nhận vẫn hoàn tất; các nhóm payment, translation, currency, import/export và email còn lại giữ nguyên là công việc tiếp theo, cần kiểm thử API theo từng luồng trước khi triển khai.
+
+### Đối chiếu mã nguồn tại commit `dcdf4ab`
+
+Đã rà soát lại mà không thay đổi mã nguồn hoặc cấu hình môi trường.
+
+- Xác nhận các mục đã đóng vẫn đúng: validation middleware trả `VALIDATION_FAILED` và lấy message qua `getMessage(req.lang, ...)` tại `online-store-backend/src/middleware/validationMiddleware.js:13-24`; `RoleBadge` dùng translation key cho cả nhãn lẫn tooltip tại `online-store-frontend/src/components/admin/RoleBadge.tsx:12-50`.
+- Nhóm translation vẫn chưa hoàn tất: các endpoint translation sản phẩm còn trả literal tiếng Anh cho validation và lỗi runtime tại `online-store-backend/src/controllers/translationController.js:776-801,859-861`.
+- Nhóm currency/exchange rate vẫn chưa hoàn tất: service còn ném các câu tiếng Anh trực tiếp như `Exchange rate does not exist` và `Amount must not be negative` tại `online-store-backend/src/services/exchangeRateService.js:77-220`.
+- Nhóm email vẫn chưa hoàn tất: OTP text fallback còn là `Mã OTP của bạn` cố định và lỗi/dev status vẫn dùng literal tiếng Anh tại `online-store-backend/src/services/emailService.js:216-267`.
+- Payment và import/export vẫn giữ trạng thái cần xử lý/kiểm thử riêng; không có cơ sở từ lần rà soát này để đánh dấu hoàn tất các contract lỗi của hai nhóm đó.
+
+**Trạng thái cập nhật:** Các mục validation, rate limit, RoleBadge và các nhóm đã ghi nhận hoàn tất vẫn được giữ nguyên. Translation, payment, currency/exchange rate, import/export và email vẫn là phần việc tiếp theo; cần chuẩn hóa contract lỗi theo từng luồng rồi kiểm thử API với các locale trước khi đóng issue.

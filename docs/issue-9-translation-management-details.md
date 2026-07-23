@@ -163,3 +163,14 @@ Chưa kết luận nguyên nhân chỉ từ source. Cần thu thập:
 ## Trạng thái tài liệu
 
 Tài liệu đã được cập nhật theo code hiện tại: route redirect, status cap 50, timeout frontend, hybrid cache, endpoint batch legacy và fallback import đều được ghi nhận riêng. Các đề xuất về một nguồn cache, contract batch mới và job nền vẫn là phần cần triển khai sau khi chốt yêu cầu.
+
+## Cập nhật đối chiếu mã nguồn hiện tại
+
+Đã rà soát lại tại commit `dcdf4ab`, không thay đổi mã nguồn.
+
+- Luồng frontend vẫn chỉ lấy status cho sản phẩm của trang hiện tại và lọc trên tập kết quả đó tại `online-store-frontend/src/pages/admin/translationsDynamic.tsx:111-138,183-185`; vì vậy status filter chưa đại diện cho toàn bộ catalog.
+- `getProductTranslationData()` vẫn trả cache catalog nếu có, nếu không mới dựng dữ liệu từ `LiveTranslationCache`; `featuresTranslations` của Product vẫn được merge theo field tại `online-store-backend/src/controllers/translationController.js:752-773`.
+- Status endpoint vẫn đọc đồng thời hai cache và chỉ fallback legacy khi không có catalog record tại `online-store-backend/src/controllers/translationController.js:804-855`.
+- Một số response của translation controller vẫn dùng literal tiếng Anh, ví dụ validation ID/ngôn ngữ và lỗi lấy trạng thái tại `online-store-backend/src/controllers/translationController.js:776-801,859-861`.
+
+**Trạng thái cập nhật:** Mô tả hybrid cache và các rủi ro contract trong tài liệu vẫn đúng. Chưa có bằng chứng kiểm thử tự động cho round-trip import/export translation hoặc kiểm thử đầu-cuối xác nhận save/re-translate hiển thị nhất quán qua API sản phẩm và giao diện; các hạng mục này vẫn cần môi trường runtime phù hợp.

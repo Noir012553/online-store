@@ -69,3 +69,14 @@ Endpoint theo sản phẩm ghi kết quả vào `ProductCatalogTranslationCache`
 Giao diện và endpoint theo sản phẩm đã được triển khai. Phần còn lại là chuẩn hóa hybrid cache, contract batch/import và kiểm thử đầu cuối; các mục này chưa được xem là hoàn tất chỉ dựa trên kiểm tra tĩnh.
 
 Xem `docs/issue-9-translation-management-details.md` để biết chi tiết kỹ thuật.
+
+## Cập nhật rà soát mã nguồn hiện tại
+
+Đã đối chiếu lại mã nguồn tại commit `dcdf4ab`; không sửa mã nguồn trong lần rà soát này.
+
+- Trang dynamic translation vẫn tải sản phẩm theo trang, lấy trạng thái theo danh sách sản phẩm đang hiển thị, lưu thủ công và re-translate từng sản phẩm; timeout frontend vẫn là 30 giây tại `online-store-frontend/src/pages/admin/translationsDynamic.tsx:46-231`.
+- Endpoint status vẫn giới hạn từ 1 đến 50 product ID mỗi request và ưu tiên `ProductCatalogTranslationCache`, sau đó mới suy ra trạng thái từ `LiveTranslationCache` tại `online-store-backend/src/controllers/translationController.js:792-856`.
+- Luồng đọc dữ liệu translation theo sản phẩm vẫn ưu tiên cache mới, fallback sang cache legacy và merge `Product.featuresTranslations` tại `online-store-backend/src/controllers/translationController.js:739-774`.
+- Endpoint batch legacy vẫn có contract riêng theo `lang`, `limit` và `entityType`; chưa phải contract batch theo product/language/field của giao diện mới.
+
+**Trạng thái cập nhật:** Tài liệu vẫn phù hợp với mã nguồn hiện tại. Hybrid cache, giới hạn status theo trang, contract batch legacy và kiểm thử đầu-cuối save/re-translate vẫn là các hạng mục chưa thể đánh dấu hoàn tất chỉ bằng rà soát tĩnh.
