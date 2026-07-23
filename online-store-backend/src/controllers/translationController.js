@@ -860,9 +860,10 @@ exports.saveProductTranslation = async (req, res) => {
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
+    const allowedTranslations = Object.fromEntries(fields.map((field) => [field, translations[field]]));
     const update = {
-      ...translations,
-      name: translations.name ?? existing?.name ?? product.name,
+      ...allowedTranslations,
+      name: allowedTranslations.name ?? existing?.name ?? product.name,
       status: 'success',
       qualityStatus: 'approved',
       validationErrors: [],
