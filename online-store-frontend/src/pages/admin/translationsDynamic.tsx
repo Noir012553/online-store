@@ -18,7 +18,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types"
 const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
 
 const getLanguages = (t: (key: string, ns?: string) => string) =>
-  SUPPORTED_LOCALES.map((code: Locale) => {
+  SUPPORTED_LOCALES.filter((code) => code !== DEFAULT_LOCALE).map((code: Locale) => {
     const langKey = `language_${code}`;
     const langName = t(langKey, 'productsTranslations');
     // Fallback to key if translation not found (shouldn't happen)
@@ -158,7 +158,7 @@ export function ProductsTranslationsAdminContent() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || t('save_failed', 'productsTranslations'));
+        throw new Error(error.message || error.error || t('save_failed', 'productsTranslations'));
       }
 
       const data = await response.json();
@@ -208,11 +208,10 @@ export function ProductsTranslationsAdminContent() {
         [product._id]: {
           status: data.data.status,
           manualFields: data.data.skippedManualFields || [],
-          updatedAt: new Date().toISOString(),
-          validationErrors: [],
+          updatedAt: data.data.updatedAt || null,
+          validationErrors: data.data.validationErrors || [],
         },
       }));
-      setProducts((current) => [...current]);
       toast.success(t('retranslate_success', 'productsTranslations'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('retranslate_failed', 'productsTranslations'));
