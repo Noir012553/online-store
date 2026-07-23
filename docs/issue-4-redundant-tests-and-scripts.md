@@ -361,3 +361,14 @@ Các lỗi trước đó do dấu nháy của lệnh `node -e` trong PowerShell 
 - Các cặp script cùng tên giữa `online-store-backend/scripts/` và `online-store-backend/src/scripts/` vẫn cần được đối chiếu trước khi có thể phân loại/xóa bản legacy.
 
 **Trạng thái hiện tại:** Hoàn tất phần sửa npm script và lệnh offline manual đã xác minh; việc phân loại alias suite và script legacy vẫn còn mở, không tự xóa file.
+
+## Cập nhật đối chiếu repository hiện tại
+
+Đợt rà soát này xác nhận trạng thái hiện tại mà không chạy test hoặc sửa mã nguồn:
+
+- Frontend vẫn chạy `npm test` bằng `node src/test/offline-manual.js`.
+- Backend không còn các script `test:tier3`, `seed:tier1`, `seed:tier2`, `seed:unified` hoặc `seed:tier1:clear` trỏ tới file thiếu.
+- `testRegistry.js` vẫn có 8 suite. Các alias `orders`/`vnpay` và `rollback`/`shadow-writes` là wiring có chủ đích; `resolveTestFiles()` khử trùng danh sách file khi chạy chung.
+- Các số liệu PowerShell và đường dẫn workspace ở các phần trước là kết quả lịch sử, không phải bằng chứng runtime mới của repository hiện tại.
+
+**Trạng thái cập nhật:** Wiring chính đang hợp lệ. Chỉ còn quyết định vận hành về alias suite, test manual và các script legacy; không có cơ sở để tự xóa hoặc di chuyển file trong đợt rà soát tài liệu này.
