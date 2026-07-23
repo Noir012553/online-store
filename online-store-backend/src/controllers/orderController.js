@@ -294,7 +294,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     }));
   } catch (err) {
     res.status(503);
-    throw new Error('Currency exchange rates are temporarily unavailable');
+    throw createOrderError(lang, 'ORDER_RATES_UNAVAILABLE', 'common.error_server_desc');
   }
 
   const baseCurrency = await Currency.findOne(
@@ -316,7 +316,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   if (productBaseCurrencyCodes.some((code) => typeof code !== 'string' || !/^[A-Z]{3}$/.test(code))) {
     res.status(422);
-    throw new Error('Product base currency is missing or invalid');
+    throw createOrderError(lang, 'ORDER_PRODUCT_CURRENCY_INVALID', 'common.error_request_title');
   }
 
   const referencedCurrencyCodes = new Set([
@@ -390,7 +390,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     }
     if (!coupon.currencyCode) {
       res.status(400);
-      throw new Error('Coupon is missing currencyCode');
+      throw createOrderError(lang, 'ORDER_COUPON_CURRENCY_INVALID', 'common.error_request_title');
     }
 
     const couponCurrencyCode = coupon.currencyCode.toUpperCase();
