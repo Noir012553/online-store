@@ -25,6 +25,16 @@ const getLanguageParam = (query = {}) => {
   return ACTIVE_LANGS.includes(lang) ? lang : DEFAULT_LANG;
 };
 
+const getRequestLanguage = (req) => req.lang || getLanguageParam(req.query);
+
+const sendTranslationError = (res, status, lang, code, messageKey, values = {}) => (
+  res.status(status).json({
+    success: false,
+    code,
+    message: getMessage(lang, `translation-messages.${messageKey}`, values),
+  })
+);
+
 exports.getStaticTranslations = async (req, res) => {
   try {
     let { lang, ns = 'common' } = req.query;
@@ -778,14 +788,14 @@ exports.getProductTranslationForAdmin = async (req, res) => {
     const { id: productId } = req.params;
     const { lang } = req.query;
     if (!isProductId(productId) || typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
-      return res.status(400).json({ success: false, message: 'A valid product ID and target language are required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_TARGET_INVALID', 'product_target_invalid');
     }
 
     const data = await getProductTranslationData(productId, lang, true);
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translation for admin:', error);
-    return res.status(500).json({ success: false, message: 'Unable to fetch product translation' });
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_FETCH_FAILED', 'product_fetch_failed');
   }
 };
 
@@ -793,12 +803,12 @@ exports.getProductTranslationStatuses = async (req, res) => {
   try {
     const { lang } = req.query;
     if (typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
-      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     const productIds = (req.query.productIds || '').split(',').filter(isProductId);
 
     if (productIds.length === 0 || productIds.length > 50) {
-      return res.status(400).json({ success: false, message: 'productIds must include between 1 and 50 product IDs' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_IDS_INVALID', 'product_ids_invalid');
     }
 
     const [catalogTranslations, legacyTranslations, products] = await Promise.all([
@@ -858,7 +868,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translation statuses:', error);
-    return res.status(500).json({ success: false, message: 'Unable to fetch product translation statuses' });
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_STATUSES_FETCH_FAILED', 'statuses_fetch_failed');
   }
 };
 
@@ -867,30 +877,30 @@ exports.saveProductTranslation = async (req, res) => {
     const { id: productId } = req.params;
     const requestedLang = req.query.lang;
     if (typeof requestedLang !== 'string' || !getActiveLangCodes().includes(requestedLang)) {
-      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     const lang = requestedLang;
     if (lang === getDefaultLanguage().code) {
-      return res.status(400).json({ success: false, message: 'The source language cannot be saved as a translation' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
     const translations = req.body || {};
     const allowedFields = ['name', 'description', 'brand', 'features', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
 
     if (!isProductId(productId) || fields.length === 0) {
-      return res.status(400).json({ success: false, message: 'A product ID and at least one translation field are required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_FIELDS_REQUIRED', 'translation_fields_required');
     }
     if (fields.some((field) => ['name', 'description', 'brand'].includes(field) && typeof translations[field] !== 'string')
       || ('features' in translations && (!Array.isArray(translations.features) || translations.features.some((value) => typeof value !== 'string')))
       || ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs)))) {
-      return res.status(400).json({ success: false, message: 'Invalid translation payload' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
     }
 
     const [product, existing] = await Promise.all([
       Product.findById(productId).lean(),
       ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang: lang }).lean(),
     ]);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    if (!product) return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
 
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
     const allowedTranslations = Object.fromEntries(fields.map((field) => [field, translations[field]]));
@@ -912,7 +922,7 @@ exports.saveProductTranslation = async (req, res) => {
     return res.json({ success: true, data: translation });
   } catch (error) {
     console.error('[TranslationController] Error saving product translation:', error);
-    return res.status(500).json({ success: false, message: 'Unable to save product translation' });
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_SAVE_FAILED', 'product_save_failed');
   }
 };
 
@@ -921,12 +931,14 @@ exports.retranslateProduct = async (req, res) => {
     const { id: productId } = req.params;
     const { lang: targetLang } = req.body || {};
 
-    if (!isProductId(productId)) return res.status(400).json({ success: false, message: 'Invalid product ID' });
+    if (!isProductId(productId)) {
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_ID_INVALID', 'product_id_invalid');
+    }
     if (typeof targetLang !== 'string' || !getActiveLangCodes().includes(targetLang)) {
-      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     if (targetLang === getDefaultLanguage().code) {
-      return res.status(400).json({ success: false, message: 'The source language cannot be retranslated' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
 
     const [product, catalogTranslation, legacyTranslations] = await Promise.all([
@@ -938,7 +950,7 @@ exports.retranslateProduct = async (req, res) => {
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean(),
     ]);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    if (!product) return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
 
     const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations);
     const manualFields = catalogTranslation?.manualFields || [];
@@ -1016,7 +1028,7 @@ exports.retranslateProduct = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error retranslating product:', error);
-    return res.status(500).json({ success: false, message: 'Product retranslation failed' });
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_FAILED', 'product_retranslate_failed');
   }
 };
 

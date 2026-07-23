@@ -4,5 +4,15 @@
   "translation_updated": "Vertaling bijgewerkt",
   "translation_created": "Vertaling aangemaakt",
   "translation_deleted": "Vertaling verwijderd",
-  "invalid_translation_data": "Ongeldige vertaalgegevens"
+  "invalid_translation_data": "Ongeldige vertaalgegevens",
+  "product_target_invalid": "Een geldige product-ID en doeltaal zijn vereist",
+  "target_language_invalid": "Een geldige doeltaal is vereist",
+  "product_ids_invalid": "productIds moet tussen 1 en 50 product-ID's bevatten",
+  "product_fetch_failed": "Productvertaling kan niet worden opgehaald",
+  "statuses_fetch_failed": "Statussen van productvertalingen kunnen niet worden opgehaald",
+  "source_language_invalid": "De brontaal kan niet als doeltaal worden gebruikt",
+  "translation_fields_required": "Een product-ID en minimaal één vertaalveld zijn vereist",
+  "product_save_failed": "Productvertaling kan niet worden opgeslagen",
+  "product_id_invalid": "Ongeldige product-ID",
+  "product_retranslate_failed": "Product opnieuw vertalen is mislukt"
 }

@@ -4,5 +4,15 @@
   "translation_updated": "Bản dịch được cập nhật",
   "translation_created": "Bản dịch được tạo",
   "translation_deleted": "Bản dịch được xóa",
-  "invalid_translation_data": "Dữ liệu bản dịch không hợp lệ"
+  "invalid_translation_data": "Dữ liệu bản dịch không hợp lệ",
+  "product_target_invalid": "ID sản phẩm và ngôn ngữ đích hợp lệ là bắt buộc",
+  "target_language_invalid": "Ngôn ngữ đích hợp lệ là bắt buộc",
+  "product_ids_invalid": "productIds phải gồm từ 1 đến 50 ID sản phẩm",
+  "product_fetch_failed": "Không thể tải bản dịch sản phẩm",
+  "statuses_fetch_failed": "Không thể tải trạng thái bản dịch sản phẩm",
+  "source_language_invalid": "Không thể dùng ngôn ngữ nguồn làm ngôn ngữ đích",
+  "translation_fields_required": "ID sản phẩm và ít nhất một trường bản dịch là bắt buộc",
+  "product_save_failed": "Không thể lưu bản dịch sản phẩm",
+  "product_id_invalid": "ID sản phẩm không hợp lệ",
+  "product_retranslate_failed": "Dịch lại sản phẩm thất bại"
 }

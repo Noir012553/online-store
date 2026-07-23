@@ -4,5 +4,15 @@
   "translation_updated": "Traducción actualizada",
   "translation_created": "Traducción creada",
   "translation_deleted": "Traducción eliminada",
-  "invalid_translation_data": "Datos de traducción no válidos"
+  "invalid_translation_data": "Datos de traducción no válidos",
+  "product_target_invalid": "Se requieren un ID de producto y un idioma de destino válidos",
+  "target_language_invalid": "Se requiere un idioma de destino válido",
+  "product_ids_invalid": "productIds debe incluir entre 1 y 50 ID de productos",
+  "product_fetch_failed": "No se pudo obtener la traducción del producto",
+  "statuses_fetch_failed": "No se pudieron obtener los estados de traducción del producto",
+  "source_language_invalid": "El idioma de origen no puede utilizarse como idioma de destino",
+  "translation_fields_required": "Se requieren un ID de producto y al menos un campo de traducción",
+  "product_save_failed": "No se pudo guardar la traducción del producto",
+  "product_id_invalid": "ID de producto no válido",
+  "product_retranslate_failed": "No se pudo volver a traducir el producto"
 }
