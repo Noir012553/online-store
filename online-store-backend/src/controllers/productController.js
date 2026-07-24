@@ -22,6 +22,7 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
+const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 
@@ -191,7 +192,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
 
   const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
   const localizedProducts = await localizeProductCategories(translatedProducts, lang);
-  res.json({ products: localizedProducts, page, pages: Math.ceil(count / pageSize), total: count });
+  res.json({ products: await formatProducts(localizedProducts, lang), page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 /**
@@ -292,7 +293,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
   const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
   const localizedProducts = await localizeProductCategories(translatedProducts, lang);
-  res.json({ products: localizedProducts, page, pages: Math.ceil(count / pageSize), total: count });
+  res.json({ products: await formatProducts(localizedProducts, lang), page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 /**
@@ -324,7 +325,7 @@ const getProductById = asyncHandler(async (req, res) => {
     const translatedProduct = await overlayTranslation(productObj, 'product', lang);
     const localizedProduct = await localizeProductCategory(translatedProduct, lang);
 
-    res.json(localizedProduct);
+    res.json((await formatProducts([localizedProduct], lang))[0]);
   } else {
     res.status(404);
     throw new Error(getMessage(lang, 'product.notFound'));
@@ -477,7 +478,8 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   const productResponse = populatedProduct.toObject ? populatedProduct.toObject() : populatedProduct;
-  res.status(201).json(await localizeProductCategory(productResponse, req.lang));
+  const localizedProduct = await localizeProductCategory(productResponse, req.lang);
+  res.status(201).json((await formatProducts([localizedProduct], req.lang))[0]);
 });
 
 /**
@@ -660,7 +662,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   const productResponse = populatedProduct.toObject ? populatedProduct.toObject() : populatedProduct;
-  res.json(await localizeProductCategory(productResponse, req.lang));
+  const localizedProduct = await localizeProductCategory(productResponse, req.lang);
+  res.json((await formatProducts([localizedProduct], req.lang))[0]);
 });
 
 /**
@@ -752,7 +755,8 @@ const restoreProduct = asyncHandler(async (req, res) => {
   }
 
   const productResponse = populatedProduct.toObject ? populatedProduct.toObject() : populatedProduct;
-  res.json(await localizeProductCategory(productResponse, req.lang));
+  const localizedProduct = await localizeProductCategory(productResponse, req.lang);
+  res.json((await formatProducts([localizedProduct], req.lang))[0]);
 });
 
 /**
@@ -778,7 +782,7 @@ const getDeletedProducts = asyncHandler(async (req, res) => {
 
   const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', req.lang);
   const localizedProducts = await localizeProductCategories(translatedProducts, req.lang);
-  res.json({ products: localizedProducts, page, pages: Math.ceil(count / pageSize), total: count });
+  res.json({ products: await formatProducts(localizedProducts, req.lang), page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 /**
@@ -898,7 +902,7 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
       };
     });
 
-    res.json(await localizeProductCategories(processedProducts, lang));
+    res.json(await formatProducts(await localizeProductCategories(processedProducts, lang), lang));
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('[PRODUCT_TOP_RATED] Error:', error);
@@ -957,13 +961,14 @@ const getStatsOverview = asyncHandler(async (req, res) => {
     totalRevenue,
   };
 
-  res.json({
+  const currencies = await getCurrencyMetadata([reportingCurrency]);
+  res.json(formatAmountFields({
     totalProducts: productData.totalProducts,
     inStockProducts: productData.inStockProducts,
     totalOrders: orderData.totalOrders,
     totalRevenue: orderData.totalRevenue,
     totalCustomers,
-  });
+  }, currencies.get(reportingCurrency), req.lang, [['totalRevenue', 'formattedTotalRevenue']]));
 });
 
 /**

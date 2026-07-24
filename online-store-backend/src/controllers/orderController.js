@@ -14,6 +14,7 @@ const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const { convertOrderAmount } = require('../utils/orderRevenue');
 const { calculateSelectedShipping } = require('../services/shippingService');
+const { formatOrders } = require('../utils/currencyResponseFormatter');
 
 const DEFAULT_ITEM_WEIGHT_GRAMS = 500;
 const WAREHOUSE_DISTRICT_ID = 1458;
@@ -80,9 +81,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       broadcastOrderStatusUpdate(io, updatedOrder);
     }
 
-    res.json(updatedOrder);
+    res.json((await formatOrders([updatedOrder], req.lang))[0]);
   } else {
-    res.json(order);
+    res.json((await formatOrders([order], req.lang))[0]);
   }
 });
 
@@ -131,7 +132,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       // Return existing order to prevent duplicate
       return res.status(200).json({
         success: true,
-        data: existingOrder,
+        data: (await formatOrders([existingOrder], req.lang))[0],
         isDuplicate: true,
       });
     }
@@ -567,7 +568,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    data: populatedOrder,
+    data: (await formatOrders([populatedOrder], req.lang))[0],
   });
 });
 
@@ -636,7 +637,7 @@ const getOrderById = asyncHandler(async (req, res) => {
       })
     };
 
-    res.json(order);
+    res.json((await formatOrders([order], lang))[0]);
   } else {
     res.status(404);
     throw new Error(getMessage(lang, 'order.notFound'));
@@ -801,7 +802,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    orders,
+    orders: await formatOrders(orders, lang),
     page,
     pages: Math.ceil(count / pageSize),
   });
@@ -881,7 +882,7 @@ const getOrders = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    orders,
+    orders: await formatOrders(orders, lang),
     page,
     pages: Math.ceil(count / pageSize),
   });
@@ -969,7 +970,7 @@ const restoreOrder = asyncHandler(async (req, res) => {
     // Socket broadcast error không nên làm request fail
   }
 
-  res.json(restoredOrder);
+  res.json((await formatOrders([restoredOrder], req.lang))[0]);
 });
 
 /**
@@ -1043,7 +1044,7 @@ const getDeletedOrders = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    orders,
+    orders: await formatOrders(orders, lang),
     page,
     pages: Math.ceil(count / pageSize),
   });
@@ -1099,7 +1100,7 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
     // Socket broadcast error không nên làm request fail
   }
 
-  res.json(updatedOrder);
+  res.json((await formatOrders([updatedOrder], req.lang))[0]);
 });
 
 /**
