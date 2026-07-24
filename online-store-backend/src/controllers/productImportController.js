@@ -146,8 +146,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({
       success: false,
+      code: 'IMPORT_FILE_REQUIRED',
       message: getMessage(req.lang, 'admin-controllers-messages.please_upload_file'),
-      error: 'No file provided',
     });
   }
 
@@ -155,7 +155,9 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     const file = req.file;
 
     if (!file.buffer) {
-      throw new Error('File buffer is missing');
+      const error = new Error(getMessage(req.lang, 'admin-controllers-messages.file_buffer_missing'));
+      error.code = 'IMPORT_FILE_BUFFER_MISSING';
+      throw error;
     }
 
     const fileContent = file.buffer.toString('utf-8');
@@ -171,6 +173,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (!adapter) {
       return res.status(400).json({
         success: false,
+        code: 'IMPORT_FORMAT_UNSUPPORTED',
         message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
       });
     }
@@ -188,7 +191,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
-        message: `Dữ liệu import không hợp lệ. ${validation.errors.length} lỗi.`,
+        code: 'IMPORT_DATA_INVALID',
+        message: getMessage(req.lang, 'admin-controllers-messages.invalid_import_data', { count: validation.errors.length }),
         errors: validation.errors,
         warnings: validation.warnings,
         invalidProducts: validation.invalidProducts,
@@ -204,7 +208,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (isDryRun(dryRun)) {
       return res.json({
         success: true,
-        message: 'DRY RUN: Preview import (chưa save vào database)',
+        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
         dryRun: true,
         format,
         mode,
@@ -491,7 +495,8 @@ const importProducts = asyncHandler(async (req, res) => {
   if (!data && !products) {
     return res.status(400).json({
       success: false,
-      message: 'Thiếu field "data" hoặc "products" trong request body',
+      code: 'IMPORT_DATA_REQUIRED',
+      message: getMessage(req.lang, 'admin-controllers-messages.missing_data_products_field'),
       supportedFormats: adapterManager.getSupportedFormats(),
     });
   }
@@ -500,7 +505,8 @@ const importProducts = asyncHandler(async (req, res) => {
   if (data && !adapterManager.supports(format)) {
     return res.status(400).json({
       success: false,
-      message: `Format không được hỗ trợ: ${format}`,
+      code: 'IMPORT_FORMAT_UNSUPPORTED',
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
       supportedFormats: adapterManager.getSupportedFormats(),
     });
   }
@@ -520,7 +526,8 @@ const importProducts = asyncHandler(async (req, res) => {
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
-        message: `Dữ liệu import không hợp lệ. ${validation.errors.length} lỗi.`,
+        code: 'IMPORT_DATA_INVALID',
+        message: getMessage(req.lang, 'admin-controllers-messages.invalid_import_data', { count: validation.errors.length }),
         errors: validation.errors,
         warnings: validation.warnings,
         invalidProducts: validation.invalidProducts,
@@ -580,7 +587,7 @@ const importProducts = asyncHandler(async (req, res) => {
     if (isDryRun(dryRun)) {
       return res.json({
         success: true,
-        message: 'DRY RUN: Preview import (chưa save vào database)',
+        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
         dryRun: true,
         format,
         mode,
@@ -624,8 +631,10 @@ const importProducts = asyncHandler(async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: error.message || 'Lỗi khi import products',
-      error: error.message,
+      code: error.code || 'IMPORT_FAILED',
+      message: error.code
+        ? error.message
+        : getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
     });
   }
 });
@@ -779,7 +788,8 @@ const getImportTemplate = asyncHandler(async (req, res) => {
   if (!adapterManager.supports(format)) {
     return res.status(400).json({
       success: false,
-      message: `Format không được hỗ trợ: ${format}`,
+      code: 'IMPORT_FORMAT_UNSUPPORTED',
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
       supportedFormats: adapterManager.getSupportedFormats(),
     });
   }
@@ -884,7 +894,8 @@ const exportProducts = asyncHandler(async (req, res) => {
   if (!['json', 'csv'].includes(format.toLowerCase())) {
     return res.status(400).json({
       success: false,
-      message: `Format không được hỗ trợ: ${format}`,
+      code: 'EXPORT_FORMAT_UNSUPPORTED',
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
       supportedFormats: ['json', 'csv'],
     });
   }
@@ -1006,8 +1017,8 @@ const exportProducts = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi export products',
-      error: error.message,
+      code: 'EXPORT_FAILED',
+      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
     });
   }
 });
