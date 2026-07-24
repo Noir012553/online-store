@@ -83,10 +83,10 @@ Vì vậy test này chỉ có thể đạt khi backend đã khởi động và e
 
 ### Đã xác minh
 
-- Các lỗi chức năng của order và product stats vẫn ở trạng thái đã xử lý theo kết quả đã ghi nhận.
-- `npm run test:list` có thể liệt kê các suite từ registry.
-- Các test rollback/shadow-write và sanity test vẫn tồn tại, không bị kết luận là dư thừa.
-- Điều kiện runtime vẫn được ghi rõ: MongoDB, JWT secrets và Cloudflare credentials hợp lệ; `test:simple` cần backend chạy tại cổng 5000.
+- [x] Các lỗi chức năng của order và product stats vẫn ở trạng thái đã xử lý theo kết quả đã ghi nhận.
+- [x] `npm run test:list` có thể liệt kê các suite từ registry.
+- [x] Các test rollback/shadow-write và sanity test vẫn tồn tại, không bị kết luận là dư thừa.
+- [x] Điều kiện runtime đã được ghi rõ: MongoDB, JWT secrets và Cloudflare credentials hợp lệ; `test:simple` cần backend chạy tại cổng 5000.
 
 ### Chưa thể đóng
 

@@ -202,10 +202,10 @@ Tài liệu đã được cập nhật theo code hiện tại: route redirect, s
 
 ### Đã hoàn tất ở mức rà soát tĩnh
 
-- Đã xác định rõ ranh giới giữa cache mới và cache legacy.
-- Đã xác minh `manualFields` được merge vào dữ liệu trả về và được tôn trọng khi re-translate.
-- Đã xác định fallback `name + brand` là rủi ro định danh, không nên dùng cho round-trip/migration bắt buộc.
-- Đã xác định batch legacy không thể dùng trực tiếp cho thao tác re-translate chọn lọc của UI mới.
+- [x] Đã xác định rõ ranh giới giữa cache mới và cache legacy.
+- [x] Đã xác minh `manualFields` được merge vào dữ liệu trả về và được tôn trọng khi re-translate.
+- [x] Đã xác định fallback `name + brand` là rủi ro định danh, không nên dùng cho round-trip/migration bắt buộc.
+- [x] Đã xác định batch legacy không thể dùng trực tiếp cho thao tác re-translate chọn lọc của UI mới.
 
 ### Chưa có bằng chứng hoàn tất
 
