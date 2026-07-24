@@ -14,6 +14,18 @@ const createEmailDeliveryError = (code, cause) => {
   return error;
 };
 
+const getAuthEmailMessages = (lang, type) => {
+  const keyPrefix = `auth-messages.email_${type}_`;
+  const fields = type === 'verification'
+    ? ['subject', 'title', 'thank_you', 'instruction', 'button', 'link_text', 'expiry', 'ignore']
+    : ['subject', 'title', 'received', 'instruction', 'button', 'link_text', 'expiry', 'ignore'];
+
+  return Object.fromEntries([
+    ...fields.map((field) => [field, getMessage(lang, `${keyPrefix}${field}`)]),
+    ['copyright', getMessage(lang, 'auth-messages.email_copyright')],
+  ]);
+};
+
 /**
  * Email transporter configuration
  * Hỗ trợ nhiều providers: Gmail, SendGrid, AWS SES, etc.
@@ -82,7 +94,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
-    const msg = getMessage(emailLang, 'email.verification');
+    const msg = getAuthEmailMessages(emailLang, 'verification');
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -91,7 +103,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333; text-align: center;">${msg.title}</h2>
           <p style="color: #666; font-size: 16px;">
-            ${msg.thankYou}
+            ${msg.thank_you}
           </p>
           <p style="color: #666; font-size: 16px;">
             ${msg.instruction}
@@ -104,7 +116,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
             </a>
           </div>
           <p style="color: #999; font-size: 14px;">
-            ${msg.linkText}<br/>
+            ${msg.link_text}<br/>
             <a href="${verificationUrl}" style="color: #ef4444;">${verificationUrl}</a>
           </p>
           <p style="color: #999; font-size: 14px; margin-top: 30px;">
@@ -120,7 +132,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
       text: `
         ${msg.title}
 
-        ${msg.thankYou}
+        ${msg.thank_you}
 
         ${msg.instruction}
         ${verificationUrl}
@@ -156,7 +168,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
-    const msg = getMessage(emailLang, 'email.resetPassword');
+    const msg = getAuthEmailMessages(emailLang, 'reset_password');
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -178,7 +190,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
             </a>
           </div>
           <p style="color: #999; font-size: 14px;">
-            ${msg.linkText}<br/>
+            ${msg.link_text}<br/>
             <a href="${resetUrl}" style="color: #ef4444;">${resetUrl}</a>
           </p>
           <p style="color: #999; font-size: 14px; margin-top: 30px;">

@@ -614,7 +614,7 @@ const importProducts = asyncHandler(async (req, res) => {
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
-      message: `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi, ${results.skipped || 0} bỏ qua`,
+      message: getMessage(req.lang, 'frontend-import.import_success'),
       format,
       mode,
       results: {
