@@ -11,6 +11,7 @@ const Currency = require('../models/Currency');
 const ExchangeRate = require('../models/ExchangeRate');
 const { convertOrderAmount } = require('../utils/orderRevenue');
 const { formatCurrency } = require('../utils/currencyFormatter');
+const { formatCoupons } = require('../utils/currencyResponseFormatter');
 const {
   broadcastCouponCreated,
   broadcastCouponUpdated,
@@ -68,7 +69,7 @@ const getCoupons = asyncHandler(async (req, res) => {
     .limit(pageSize)
     .skip(pageSize * (page - 1));
 
-  res.json({ coupons, page, pages: Math.ceil(count / pageSize), total: count });
+  res.json({ coupons: await formatCoupons(coupons, req.lang), page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 /**
@@ -86,7 +87,7 @@ const getCouponById = asyncHandler(async (req, res) => {
     .populate('applicableCategories', 'name');
 
   if (coupon) {
-    res.json(coupon);
+    res.json((await formatCoupons([coupon], req.lang))[0]);
   } else {
     res.status(404);
     throw new Error(getMessage(lang, 'coupons.error_not_found'));
@@ -126,7 +127,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'coupons.error_usage_limit_reached'));
   }
 
-  res.json(coupon);
+  res.json((await formatCoupons([coupon], req.lang))[0]);
 });
 
 const getDeletedCoupons = asyncHandler(async (req, res) => {
@@ -154,7 +155,7 @@ const getDeletedCoupons = asyncHandler(async (req, res) => {
     .limit(pageSize)
     .skip(pageSize * (page - 1));
 
-  res.json({ coupons, page, pages: Math.ceil(count / pageSize), total: count });
+  res.json({ coupons: await formatCoupons(coupons, req.lang), page, pages: Math.ceil(count / pageSize), total: count });
 });
 
 /**
@@ -276,7 +277,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     console.warn('[WARNING] Failed to broadcast coupon create:', err.message);
   }
 
-  res.status(201).json(createdCoupon);
+  res.status(201).json((await formatCoupons([createdCoupon], req.lang))[0]);
 });
 
 /**
@@ -390,7 +391,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
     console.warn('[WARNING] Failed to broadcast coupon update:', err.message);
   }
 
-  res.json(updatedCoupon);
+  res.json((await formatCoupons([updatedCoupon], req.lang))[0]);
 });
 
 /**
@@ -458,7 +459,7 @@ const restoreCoupon = asyncHandler(async (req, res) => {
     console.warn('[WARNING] Failed to broadcast coupon restore:', err.message);
   }
 
-  res.json({ message: getMessage(lang, 'admin-controllers-messages.coupon_restored'), coupon });
+  res.json({ message: getMessage(lang, 'admin-controllers-messages.coupon_restored'), coupon: (await formatCoupons([coupon], req.lang))[0] });
 });
 
 /**
