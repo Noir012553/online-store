@@ -7,6 +7,7 @@ const asyncHandler = require('express-async-handler');
 const shippingService = require('../services/shippingService');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyResponseFormatter');
 
 const WAREHOUSE_DISTRICT_ID = Number(process.env.GHN_WAREHOUSE_DISTRICT_ID) || 1458;
 
@@ -119,10 +120,17 @@ const calculateShipping = asyncHandler(async (req, res) => {
       }
     });
 
+    const currencies = await getCurrencyMetadata(allOptions.map((option) => option.currencyCode));
+    const options = allOptions
+      .map((option) => formatAmountFields(option, currencies.get(option.currencyCode), req.lang, [
+        ['fee', 'formattedFee'],
+      ]))
+      .sort((first, second) => first.fee - second.fee);
+
     res.json({
       success: true,
       weight: normalizedWeight,
-      options: allOptions.sort((a, b) => a.fee - b.fee),
+      options,
     });
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {

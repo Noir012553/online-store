@@ -14,6 +14,7 @@ const { withTimeout } = require('../utils/mongooseUtils');
 const { getMessage } = require('../i18n/messages');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { getCurrencyMetadata, formatAmountFields, formatOrders } = require('../utils/currencyResponseFormatter');
 
 const createShipmentError = (lang, errorCode, messageKey, values = {}) => {
   const error = new Error(getMessage(lang, messageKey, values));
@@ -292,20 +293,26 @@ const createShipment = asyncHandler(async (req, res) => {
 
   await order.save();
 
+  const currencies = await getCurrencyMetadata([providerCurrencyCode]);
+  const shipment = formatAmountFields({
+    orderId: order._id,
+    ghnOrderCode: order.ghnOrderCode,
+    ghnOrderCodeNorm: order.ghnOrderCodeNorm,
+    provider: shippingProvider,
+    service: shippingService,
+    status: order.shipmentStatus,
+    totalFee,
+    expectedDeliveryTime: order.expectedDeliveryTime,
+  }, currencies.get(providerCurrencyCode), req.lang, [
+    ['totalFee', 'formattedTotalFee'],
+  ]);
+  const [formattedOrder] = await formatOrders([order], req.lang);
+
   res.status(201).json({
     success: true,
     message: getMessage(req.lang, 'shipment.createSuccess'),
-    shipment: {
-      orderId: order._id,
-      ghnOrderCode: order.ghnOrderCode,
-      ghnOrderCodeNorm: order.ghnOrderCodeNorm,
-      provider: shippingProvider,
-      service: shippingService,
-      status: order.shipmentStatus,
-      totalFee,
-      expectedDeliveryTime: order.expectedDeliveryTime,
-    },
-    order,
+    shipment,
+    order: formattedOrder,
   });
 });
 

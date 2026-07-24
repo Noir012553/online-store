@@ -16,6 +16,9 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const { getClientIp } = require('../utils/getClientIp');
 const { getMessage } = require('../i18n/messages');
+const { formatPayments } = require('../utils/currencyResponseFormatter');
+
+const formatPaymentResponse = async (payment, lang) => (await formatPayments([payment], lang))[0];
 
 const PAYMENT_MESSAGE_KEYS = {
   PAYMENT_GATEWAY_UNSUPPORTED: 'gateway_unsupported',
@@ -111,7 +114,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    data: result.data,
+    data: await formatPaymentResponse(result.data, req.lang),
   });
 });
 
@@ -155,7 +158,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: result.data,
+    data: await formatPaymentResponse(result.data, req.lang),
   });
 });
 
@@ -263,7 +266,7 @@ const getPaymentHistory = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: result.data,
+    data: await formatPayments(result.data, req.lang),
   });
 });
 
@@ -322,7 +325,7 @@ const getPaymentDetails = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: payment,
+    data: await formatPaymentResponse(payment, req.lang),
   });
 });
 
@@ -357,7 +360,7 @@ const getAllPayments = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: payments,
+    data: await formatPayments(payments, req.lang),
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),

@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { formatCurrency, formatExchangeRate } = require('../utils/currencyFormatter');
+const { formatAmountFields, formatPaymentFields } = require('../utils/currencyResponseFormatter');
 
 describe('currencyFormatter', () => {
   it('formats amounts using currency metadata and the request locale', () => {
@@ -24,5 +25,25 @@ describe('currencyFormatter', () => {
     assert.strictEqual(formatExchangeRate(10.85, 'en'), '10.85');
     assert.strictEqual(formatExchangeRate(0.000041, 'en'), '0.000041');
     assert.strictEqual(formatExchangeRate(0.00003772, 'vi'), '0,00003772');
+  });
+
+  it('adds formatted response fields while preserving raw amounts', () => {
+    const vnd = { code: 'VND', symbol: '₫', position: 'after', decimalPlaces: 0 };
+    const usd = { code: 'USD', symbol: '$', position: 'before', decimalPlaces: 2 };
+    const currencies = new Map([['VND', vnd], ['USD', usd]]);
+    const payment = formatPaymentFields({
+      amount: 125000,
+      currency: 'VND',
+      providerAmount: 5.25,
+      providerCurrency: 'USD',
+    }, currencies, 'en');
+    const shipping = formatAmountFields({ fee: 35000 }, vnd, 'vi', [['fee', 'formattedFee']]);
+
+    assert.strictEqual(payment.amount, 125000);
+    assert.strictEqual(payment.providerAmount, 5.25);
+    assert.strictEqual(payment.formattedAmount, '125,000 ₫');
+    assert.strictEqual(payment.formattedProviderAmount, '$5.25');
+    assert.strictEqual(shipping.fee, 35000);
+    assert.strictEqual(shipping.formattedFee, '35.000 ₫');
   });
 });
