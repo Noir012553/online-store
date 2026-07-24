@@ -17,6 +17,12 @@ const Order = require('../models/Order');
 const { getClientIp } = require('../utils/getClientIp');
 const { getMessage } = require('../i18n/messages');
 
+const createPaymentError = (result) => {
+  const error = new Error(result.error || result.message);
+  error.code = result.code;
+  return error;
+};
+
 /**
  * Tạo payment session
  * @route POST /api/payments/initiate
@@ -74,7 +80,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw new Error(result.error);
+    throw createPaymentError(result);
   }
 
   return res.status(200).json({
@@ -113,6 +119,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
   if (!result.success) {
     res.status(result.httpStatus || 500).json({
       success: false,
+      code: result.code,
       error: result.error,
     });
     return;
@@ -175,6 +182,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
     // Nếu trả về 4xx/5xx, VNPAY sẽ tiếp tục gửi lại webhook
     res.status(200).json({
       success: false,
+      code: 'PAYMENT_WEBHOOK_SIGNATURE_MISSING',
       message: 'Missing signature in webhook',
     });
     return;
@@ -191,6 +199,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
     // (tuy nhiên không xử lý được)
     res.status(200).json({
       success: false,
+      code: result.code || 'PAYMENT_WEBHOOK_PROCESSING_FAILED',
       message: result.message,
     });
     return;
@@ -201,6 +210,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    code: 'PAYMENT_WEBHOOK_PROCESSED',
     message: 'Webhook processed',
     orderId: result.orderId,
   });
@@ -218,7 +228,7 @@ const getPaymentHistory = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw new Error(result.error);
+    throw createPaymentError(result);
   }
 
   res.status(200).json({
@@ -240,7 +250,9 @@ const refundPayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(paymentId);
   if (!payment) {
     res.status(404);
-    throw new Error(`Payment ${paymentId} not found`);
+    const error = new Error(`Payment ${paymentId} not found`);
+    error.code = 'PAYMENT_NOT_FOUND';
+    throw error;
   }
 
   // Hoàn tiền
@@ -248,11 +260,12 @@ const refundPayment = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw new Error(result.error);
+    throw createPaymentError(result);
   }
 
   res.status(200).json({
     success: true,
+    code: 'PAYMENT_REFUND_PROCESSED',
     message: result.message,
     data: {
       refundId: result.refundId,
@@ -272,7 +285,9 @@ const getPaymentDetails = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(paymentId).lean();
   if (!payment) {
     res.status(404);
-    throw new Error(`Payment ${paymentId} not found`);
+    const error = new Error(`Payment ${paymentId} not found`);
+    error.code = 'PAYMENT_NOT_FOUND';
+    throw error;
   }
 
   res.status(200).json({
