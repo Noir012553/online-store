@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "Een geldig dynamisch entiteitstype is vereist",
   "retranslate_not_needed": "Er zijn geen dynamische vertalingen die opnieuw vertaald moeten worden",
   "retranslate_completed": "Het opnieuw vertalen van dynamische vertalingen is voltooid",
-  "dynamic_retranslate_failed": "Het opnieuw vertalen van dynamische vertalingen is mislukt"
+  "dynamic_retranslate_failed": "Het opnieuw vertalen van dynamische vertalingen is mislukt",
+  "target_language_required": "Doeltaal is verplicht",
+  "source_language_required": "Brontaal is verplicht",
+  "text_required": "De te vertalen tekst is verplicht en mag niet leeg zijn",
+  "source_language_unsupported": "Niet-ondersteunde brontaal: {{language}}",
+  "target_language_unsupported": "Niet-ondersteunde doeltaal: {{language}}",
+  "translation_request_failed": "Tekst kan niet worden vertaald"
 }

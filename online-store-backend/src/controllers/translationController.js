@@ -124,10 +124,13 @@ exports.getProductTranslations = async (req, res) => {
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_PRODUCT_FETCH_FAILED',
+      'product_fetch_failed'
+    );
   }
 };
 
@@ -149,33 +152,28 @@ exports.translateText = async (req, res) => {
 
     // Validate required parameters
     if (!targetLang) {
-      return res.status(400).json({
-        success: false,
-        message: 'Target language (targetLang) is required',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_REQUIRED', 'target_language_required');
     }
 
     if (!sourceLang) {
-      return res.status(400).json({
-        success: false,
-        message: 'Source language (sourceLang) is required',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_REQUIRED', 'source_language_required');
     }
 
     if (!text || typeof text !== 'string' || text.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Text to translate is required and must be a non-empty string',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TEXT_REQUIRED', 'text_required');
     }
 
     // Check source language dynamically
     const isSourceSupported = await LanguageService.isSupportedLanguage(sourceLang);
     if (!isSourceSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported source language: ${sourceLang}`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_SOURCE_LANGUAGE_UNSUPPORTED',
+        'source_language_unsupported',
+        { language: sourceLang }
+      );
     }
 
     // Layer 2 (Products): Translate to all 9 languages except source language
@@ -244,10 +242,14 @@ exports.translateText = async (req, res) => {
     // Check target language dynamically
     const isTargetSupported = await LanguageService.isSupportedLanguage(targetLang);
     if (!isTargetSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported target language: ${targetLang}`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_TARGET_LANGUAGE_UNSUPPORTED',
+        'target_language_unsupported',
+        { language: targetLang }
+      );
     }
 
     if (sourceLang === targetLang) {
@@ -319,10 +321,13 @@ exports.translateText = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error translating text:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_REQUEST_FAILED',
+      'translation_request_failed'
+    );
   }
 };
 

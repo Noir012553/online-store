@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "Un type d’entité dynamique valide est requis",
   "retranslate_not_needed": "Aucune traduction dynamique ne nécessite de retraduction",
   "retranslate_completed": "La retraduction des traductions dynamiques est terminée",
-  "dynamic_retranslate_failed": "La retraduction des traductions dynamiques a échoué"
+  "dynamic_retranslate_failed": "La retraduction des traductions dynamiques a échoué",
+  "target_language_required": "La langue cible est requise",
+  "source_language_required": "La langue source est requise",
+  "text_required": "Le texte à traduire est requis et ne peut pas être vide",
+  "source_language_unsupported": "Langue source non prise en charge : {{language}}",
+  "target_language_unsupported": "Langue cible non prise en charge : {{language}}",
+  "translation_request_failed": "Impossible de traduire le texte"
 }

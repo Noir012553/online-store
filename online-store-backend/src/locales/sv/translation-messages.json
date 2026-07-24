@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "En giltig dynamisk entitetstyp krävs",
   "retranslate_not_needed": "Inga dynamiska översättningar behöver översättas igen",
   "retranslate_completed": "Omöversättningen av dynamiska översättningar har slutförts",
-  "dynamic_retranslate_failed": "Det gick inte att översätta dynamiska översättningar igen"
+  "dynamic_retranslate_failed": "Det gick inte att översätta dynamiska översättningar igen",
+  "target_language_required": "Målspråk krävs",
+  "source_language_required": "Källspråk krävs",
+  "text_required": "Texten som ska översättas krävs och får inte vara tom",
+  "source_language_unsupported": "Källspråket stöds inte: {{language}}",
+  "target_language_unsupported": "Målspråket stöds inte: {{language}}",
+  "translation_request_failed": "Det gick inte att översätta texten"
 }

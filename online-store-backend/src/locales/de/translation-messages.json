@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "Ein gültiger dynamischer Entitätstyp ist erforderlich",
   "retranslate_not_needed": "Keine dynamischen Übersetzungen müssen erneut übersetzt werden",
   "retranslate_completed": "Die erneute Übersetzung dynamischer Übersetzungen wurde abgeschlossen",
-  "dynamic_retranslate_failed": "Die erneute Übersetzung dynamischer Übersetzungen ist fehlgeschlagen"
+  "dynamic_retranslate_failed": "Die erneute Übersetzung dynamischer Übersetzungen ist fehlgeschlagen",
+  "target_language_required": "Zielsprache ist erforderlich",
+  "source_language_required": "Ausgangssprache ist erforderlich",
+  "text_required": "Der zu übersetzende Text ist erforderlich und darf nicht leer sein",
+  "source_language_unsupported": "Nicht unterstützte Ausgangssprache: {{language}}",
+  "target_language_unsupported": "Nicht unterstützte Zielsprache: {{language}}",
+  "translation_request_failed": "Text konnte nicht übersetzt werden"
 }
