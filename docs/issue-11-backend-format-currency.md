@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-**Hoàn thành.** Tài liệu đã được đối chiếu và rút gọn; việc chuyển đổi toàn bộ consumer frontend vẫn là hạng mục triển khai riêng.
+**Đang triển khai một phần.** Phần backend và danh sách tỷ giá admin đã hoàn thành; các consumer frontend dưới đây vẫn chưa chuyển sang render hoàn toàn từ formatted fields.
 
 ## Mục tiêu
 
@@ -38,9 +38,21 @@ Ví dụ response:
 
 ## Việc còn lại
 
-- Rà soát các màn hình frontend đang tự format tại `src/lib/utils.ts`, `src/hooks/useCurrency.ts` và `src/hooks/useCurrencyConversion.ts`.
-- Chuyển từng vị trí **hiển thị** ở product, cart, checkout, order, coupon và statistics sang trường `formatted*` tương ứng.
+Các mục chưa fix, được xác định qua mã nguồn hiện tại:
+
+- [ ] **Formatter dùng cục bộ:** `online-store-frontend/src/lib/utils.ts:13-38`, `src/hooks/useCurrency.ts` và `src/hooks/useCurrencyConversion.ts:118-149` vẫn tạo chuỗi bằng `Intl.NumberFormat` thay vì ưu tiên chuỗi từ API.
+- [ ] **Dashboard admin:** `online-store-frontend/src/pages/admin/dashboard.tsx:91-100` vẫn format doanh thu bằng `formatConvertedPrice`; phần phần trăm tại dòng 94-99 không thuộc tiền tệ và có thể giữ nguyên.
+- [ ] **Statistics admin:** `online-store-frontend/src/pages/admin/statistics.tsx:146-153` vẫn fallback sang `formatCurrencyByCode` cho product, order total và coupon amount khi đã có formatted response tương ứng.
+- [ ] **Coupon admin:** `components/admin/CouponManagementPage.tsx:529-542` và `components/admin/coupons/CouponsList.tsx:172-185` vẫn tự format discount khi thiếu formatted field; cần kiểm tra contract response để bỏ fallback sau khi field luôn được trả về.
+- [ ] **Các màn hình order/checkout:** `pages/my-orders.tsx:82-83`, `pages/return.tsx:333-418`, `pages/order-success.tsx:237-239`, `pages/orders/[id].tsx:269-315`, `pages/order-confirmation.tsx` và các component checkout vẫn gọi `formatConvertedPrice`/formatter frontend thay vì render formatted fields từ response.
+- [ ] **Các component catalog:** `components/ProductCard.tsx`, `CategoryProductsList.tsx`, `QuickViewModal.tsx` và `SearchDropdown.tsx` vẫn dùng `formatConvertedPrice` để hiển thị giá sản phẩm.
+- [ ] **Thông báo đơn hàng:** `components/admin/NotificationBell.tsx:41-43` vẫn format giá cục bộ cho đơn đang chờ xử lý.
+- [ ] **Bổ sung test/UI:** chưa có kiểm thử xác nhận toàn bộ consumer trên locale tiếng Việt và locale dùng dấu chấm thập phân sau khi chuyển sang formatted fields.
+
+Các nguyên tắc cần giữ khi xử lý:
+
 - Giữ trường số gốc cho tính toán, sắp xếp và payload nghiệp vụ.
+- Chuyển từng vị trí **hiển thị** sang trường `formatted*` tương ứng.
 - Chỉ thu hẹp hoặc xóa formatter frontend sau khi toàn bộ consumer liên quan đã chuyển đổi và kiểm thử.
 
 ## Kiểm thử cần có khi tiếp tục triển khai
