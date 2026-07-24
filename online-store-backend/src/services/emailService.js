@@ -223,7 +223,14 @@ const sendOTPEmail = async (email, otp, lang) => {
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
-    const msg = getMessage(emailLang, 'email.otp');
+    const msg = {
+      subject: getMessage(emailLang, 'auth-messages.email_otp_subject'),
+      title: getMessage(emailLang, 'auth-messages.email_otp_title'),
+      description: getMessage(emailLang, 'auth-messages.email_otp_description'),
+      expiry: getMessage(emailLang, 'auth-messages.email_otp_expiry'),
+      ignore: getMessage(emailLang, 'auth-messages.email_otp_ignore'),
+      copyright: getMessage(emailLang, 'auth-messages.email_copyright'),
+    };
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
