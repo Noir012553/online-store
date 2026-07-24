@@ -114,7 +114,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
     startDate: { $lte: now },
     endDate: { $gte: now },
   })
-    .populate('applicableProducts', 'name price')
+    .populate('applicableProducts', 'name price baseCurrencyCode')
     .populate('applicableCategories', 'name');
 
   if (!coupon) {

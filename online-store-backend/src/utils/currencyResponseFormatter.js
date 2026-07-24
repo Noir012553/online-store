@@ -1,5 +1,5 @@
 const Currency = require('../models/Currency');
-const { formatCurrency } = require('./currencyFormatter');
+const { formatCurrency, formatExchangeRate } = require('./currencyFormatter');
 
 const getCurrencyMetadata = async (codes) => {
   const uniqueCodes = [...new Set(codes.filter(Boolean).map((code) => code.toUpperCase()))];
@@ -57,43 +57,81 @@ const formatProducts = async (products, lang) => {
   });
 };
 
+const formatOrderFields = (data, currencies, lang) => {
+  const formattedOrder = formatAmountFields(data, currencies.get(data.currencyCode), lang, [
+    ['itemsPrice', 'formattedItemsPrice'],
+    ['discount', 'formattedDiscount'],
+    ['taxPrice', 'formattedTaxPrice'],
+    ['shippingFee', 'formattedShippingFee'],
+    ['totalPrice', 'formattedTotalPrice'],
+  ]);
+  const formattedBaseOrder = formatAmountFields(formattedOrder, currencies.get(data.baseCurrencyCode), lang, [
+    ['baseItemsPrice', 'formattedBaseItemsPrice'],
+    ['baseDiscount', 'formattedBaseDiscount'],
+    ['baseShippingFee', 'formattedBaseShippingFee'],
+    ['baseTotalPrice', 'formattedBaseTotalPrice'],
+  ]);
+  const appliedCoupon = data.appliedCoupon && formatAmountFields(
+    data.appliedCoupon,
+    currencies.get(data.appliedCoupon.couponCurrencyCode),
+    lang,
+    [
+      ['couponMinOrderAmount', 'formattedCouponMinOrderAmount'],
+      ...(data.appliedCoupon.discountType === 'fixed' ? [['discountValue', 'formattedDiscountValue']] : []),
+    ]
+  );
+  const formattedCoupon = appliedCoupon && formatAmountFields(appliedCoupon, currencies.get(data.baseCurrencyCode), lang, [
+    ['baseMinOrderAmount', 'formattedBaseMinOrderAmount'],
+    ['baseDiscountAmount', 'formattedBaseDiscountAmount'],
+    ['discountAmount', 'formattedDiscountAmount'],
+  ]);
+
+  return {
+    ...formattedBaseOrder,
+    ...(formattedCoupon && { appliedCoupon: formattedCoupon }),
+    exchangeRates: (data.exchangeRates || []).map((exchangeRate) => ({
+      ...(exchangeRate.toObject ? exchangeRate.toObject() : exchangeRate),
+      ...(Number.isFinite(exchangeRate.rate) && { formattedRate: formatExchangeRate(exchangeRate.rate, lang) }),
+    })),
+    orderItems: (data.orderItems || []).map((item) => formatAmountFields(item.toObject ? item.toObject() : item, currencies.get(data.currencyCode), lang, [
+      ['price', 'formattedPrice'],
+    ])),
+  };
+};
+
 const formatOrders = async (orders, lang) => {
-  const currencies = await getCurrencyMetadata(orders.flatMap((order) => [order.currencyCode, order.baseCurrencyCode]));
+  const currencies = await getCurrencyMetadata(orders.flatMap((order) => [
+    order.currencyCode,
+    order.baseCurrencyCode,
+    order.appliedCoupon?.couponCurrencyCode,
+  ]));
 
-  return orders.map((order) => {
-    const data = order.toObject ? order.toObject() : order;
-    const formattedOrder = formatAmountFields(data, currencies.get(data.currencyCode), lang, [
-      ['itemsPrice', 'formattedItemsPrice'],
-      ['discount', 'formattedDiscount'],
-      ['taxPrice', 'formattedTaxPrice'],
-      ['shippingFee', 'formattedShippingFee'],
-      ['totalPrice', 'formattedTotalPrice'],
-    ]);
-    const formattedBaseOrder = formatAmountFields(formattedOrder, currencies.get(data.baseCurrencyCode), lang, [
-      ['baseItemsPrice', 'formattedBaseItemsPrice'],
-      ['baseDiscount', 'formattedBaseDiscount'],
-      ['baseShippingFee', 'formattedBaseShippingFee'],
-      ['baseTotalPrice', 'formattedBaseTotalPrice'],
-    ]);
+  return orders.map((order) => formatOrderFields(order.toObject ? order.toObject() : order, currencies, lang));
+};
 
-    return {
-      ...formattedBaseOrder,
-      orderItems: (data.orderItems || []).map((item) => formatAmountFields(item.toObject ? item.toObject() : item, currencies.get(data.currencyCode), lang, [
-        ['price', 'formattedPrice'],
-      ])),
-    };
-  });
+const formatCouponFields = (data, currencies, lang) => {
+  const fields = [['minOrderAmount', 'formattedMinOrderAmount']];
+  if (data.discountType === 'fixed') fields.push(['discountValue', 'formattedDiscountValue']);
+  const formattedCoupon = formatAmountFields(data, currencies.get(data.currencyCode), lang, fields);
+
+  return {
+    ...formattedCoupon,
+    applicableProducts: (data.applicableProducts || []).map((product) => formatAmountFields(
+      product.toObject ? product.toObject() : product,
+      currencies.get(product.baseCurrencyCode),
+      lang,
+      [['price', 'formattedPrice']]
+    )),
+  };
 };
 
 const formatCoupons = async (coupons, lang) => {
-  const currencies = await getCurrencyMetadata(coupons.map((coupon) => coupon.currencyCode));
+  const currencies = await getCurrencyMetadata(coupons.flatMap((coupon) => [
+    coupon.currencyCode,
+    ...(coupon.applicableProducts || []).map((product) => product.baseCurrencyCode),
+  ]));
 
-  return coupons.map((coupon) => {
-    const data = coupon.toObject ? coupon.toObject() : coupon;
-    const fields = [['minOrderAmount', 'formattedMinOrderAmount']];
-    if (data.discountType === 'fixed') fields.push(['discountValue', 'formattedDiscountValue']);
-    return formatAmountFields(data, currencies.get(data.currencyCode), lang, fields);
-  });
+  return coupons.map((coupon) => formatCouponFields(coupon.toObject ? coupon.toObject() : coupon, currencies, lang));
 };
 
 module.exports = {
@@ -102,6 +140,8 @@ module.exports = {
   formatPaymentFields,
   formatPayments,
   formatProducts,
+  formatOrderFields,
   formatOrders,
+  formatCouponFields,
   formatCoupons,
 };
