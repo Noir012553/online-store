@@ -42,6 +42,7 @@ type CouponRecord = {
   maxUses?: number;
   currentUses?: number;
   minOrderAmount?: number;
+  formattedDiscountValue?: string;
   currencyCode: string;
   applicableProducts?: any[];
   applicableCategories?: any[];
@@ -171,6 +172,10 @@ export function CouponsList({ title, description, mode = 'all' }: CouponsListPro
   const formatCouponValue = (coupon: CouponRecord) => {
     if (coupon.discountType === 'percentage') {
       return `${coupon.discountValue}%`;
+    }
+
+    if (coupon.formattedDiscountValue) {
+      return coupon.formattedDiscountValue;
     }
 
     const currency = activeCurrencies.find((item) => item.code === coupon.currencyCode);

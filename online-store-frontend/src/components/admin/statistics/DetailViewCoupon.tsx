@@ -7,7 +7,7 @@ const getCouponValueLabel = (coupon: any, locale?: string) => {
     return `${coupon.discountValue}%`;
   }
 
-  return formatCurrencyByCode(coupon.discountValue, coupon.currencyCode, locale);
+  return coupon.formattedDiscountValue || formatCurrencyByCode(coupon.discountValue, coupon.currencyCode, locale);
 };
 
 interface CouponDetail {
@@ -47,7 +47,7 @@ export function DetailViewCoupon({ detail }: DetailViewCouponProps) {
           {t('detail_min_order_label')}
         </div>
         <div className="mt-1 font-semibold text-gray-900">
-          {formatCurrencyByCode(detail.item.minOrderAmount, detail.item.currencyCode, locale)}
+          {detail.item.formattedMinOrderAmount || formatCurrencyByCode(detail.item.minOrderAmount, detail.item.currencyCode, locale)}
         </div>
       </div>
       <div className="rounded-xl border border-gray-100 p-4">

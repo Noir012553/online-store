@@ -38,7 +38,7 @@ export function DetailViewProduct({ detail }: DetailViewProductProps) {
             {t('detail_price_label')}
           </div>
           <div className="mt-1 font-semibold text-gray-900">
-            {formatCurrencyByCode(detail.item.price, detail.item.baseCurrencyCode, locale)}
+            {detail.item.formattedPrice || formatCurrencyByCode(detail.item.price, detail.item.baseCurrencyCode, locale)}
           </div>
         </div>
         <div className="rounded-xl border border-gray-100 p-4">
