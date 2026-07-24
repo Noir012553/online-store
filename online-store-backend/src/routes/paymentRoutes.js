@@ -23,34 +23,8 @@ const Product = require('../models/Product');
 const { initiatePaymentLimiter } = require('../middleware/rateLimitMiddleware');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage } = require('../config/languageInventory');
 
-// Helper: Get language from request (header, query, or default)
-const getPaymentLanguage = (req) => {
-  // Priority: user.language > query param > header > default
-  if (req.user?.language) {
-    return req.user.language.toUpperCase();
-  }
-
-  const queryLang = req.query.lang || req.body?.lang;
-  if (queryLang) {
-    return queryLang.toUpperCase();
-  }
-
-  // Try to parse Accept-Language header
-  const acceptLang = req.headers['accept-language'];
-  if (acceptLang) {
-    const { getActiveLangCodes } = require('../config/languageInventory');
-    const validLangs = getActiveLangCodes().map(l => l.toUpperCase());
-    const primaryLang = acceptLang.split(',')[0].split('-')[0].toUpperCase();
-    if (validLangs.includes(primaryLang)) {
-      return primaryLang;
-    }
-  }
-
-  // Fallback to DEFAULT_LANGUAGE config
-  return getDefaultLanguage().code.toUpperCase();
-};
+const getPaymentLanguage = (req) => req.lang;
 
 // Webhook endpoint - không cần auth (nhưng verify signature)
 // PHẢI để trước các route khác để tránh conflict
