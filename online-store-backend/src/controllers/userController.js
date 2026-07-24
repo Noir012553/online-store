@@ -657,16 +657,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
  */
 const testSendEmail = asyncHandler(async (req, res) => {
     // Only allow in development
-    if (process.env.NODE_ENV === 'production') {
-        res.status(403);
-        throw new Error('Test email endpoint is not available in production');
+    if (process.env.NODE_ENV !== 'development') {
+        res.status(404);
+        throw createUserError(req.lang, 'TEST_EMAIL_DISABLED', 'errors.page_not_found');
     }
 
     const { email } = req.body;
 
     if (!email) {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'admin-controllers-messages.email_required'));
+        throw createUserError(req.lang, 'TEST_EMAIL_EMAIL_REQUIRED', 'admin-controllers-messages.email_required');
     }
 
     // Generate a fake token for testing
@@ -676,13 +676,16 @@ const testSendEmail = asyncHandler(async (req, res) => {
     try {
         await sendVerificationEmail(email, verificationUrl, req.lang);
         res.json({
-            message: 'Test email sent successfully!',
+            success: true,
+            code: 'TEST_EMAIL_SENT',
+            message: getMessage(req.lang, 'admin-controllers-messages.test_email_sent_successfully'),
             email,
-            note: 'Check your email inbox or spam folder',
+            note: getMessage(req.lang, 'admin-controllers-messages.check_email_inbox_spam'),
         });
     } catch (error) {
+        console.error('[TEST_EMAIL_SEND_ERROR]', error);
         res.status(500);
-        throw new Error(`Failed to send test email: ${error.message}`);
+        throw createUserError(req.lang, 'TEST_EMAIL_SEND_FAILED', 'errors.generic_error');
     }
 });
 

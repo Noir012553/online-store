@@ -469,10 +469,11 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       warnings: validation.warnings,
     });
   } catch (error) {
+    console.error('[IMPORT_FILE_ERROR]', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Lỗi khi import products từ file',
-      error: error.message,
+      code: error.code || 'IMPORT_FILE_FAILED',
+      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
     });
   }
 });
@@ -632,9 +633,7 @@ const importProducts = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       code: error.code || 'IMPORT_FAILED',
-      message: error.code
-        ? error.message
-        : getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
+      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
     });
   }
 });
@@ -903,7 +902,8 @@ const exportProducts = asyncHandler(async (req, res) => {
   if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
     return res.status(400).json({
       success: false,
-      message: 'limit phải là số nguyên từ 1 đến 10000',
+      code: 'EXPORT_LIMIT_INVALID',
+      message: getMessage(req.lang, 'errors.generic_error'),
     });
   }
 
@@ -933,7 +933,7 @@ const exportProducts = asyncHandler(async (req, res) => {
             format,
             filters: { category, brand },
             products: [],
-            warning: `Category "${category}" not found`,
+            warningCode: 'EXPORT_CATEGORY_NOT_FOUND',
           });
         }
       }
@@ -1015,10 +1015,11 @@ const exportProducts = asyncHandler(async (req, res) => {
       res.send('\uFEFF' + csv); // UTF-8 BOM for proper Vietnamese character encoding
     }
   } catch (error) {
+    console.error('[EXPORT_PRODUCTS_ERROR]', error);
     res.status(500).json({
       success: false,
       code: 'EXPORT_FAILED',
-      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
+      message: getMessage(req.lang, 'errors.generic_error'),
     });
   }
 });
@@ -1223,10 +1224,11 @@ const getExportStats = asyncHandler(async (req, res) => {
       suppliers: supplierCounts,
     });
   } catch (error) {
+    console.error('[EXPORT_STATS_ERROR]', error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy export statistics',
-      error: error.message,
+      code: 'EXPORT_STATS_FAILED',
+      message: getMessage(req.lang, 'errors.generic_error'),
     });
   }
 });

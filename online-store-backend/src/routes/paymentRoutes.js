@@ -65,8 +65,22 @@ router.all('/vnpay-api/webhook/:gateway', paymentController.handleWebhook);
 // Public endpoint
 router.get('/gateways', paymentController.getSupportedGateways);
 
+const requireDevelopment = (req, res, next) => {
+  if (process.env.NODE_ENV === 'development') {
+    return next();
+  }
+
+  return res.status(404).json({
+    success: false,
+    code: 'PAYMENT_DEBUG_DISABLED',
+    message: getMessage(getPaymentLanguage(req), 'errors.page_not_found'),
+  });
+};
+
+router.use('/debug', protect, admin, requireDevelopment);
+
 // Debug endpoint (chỉ cho development)
-router.get('/debug/status', protect, admin, asyncHandler(async (req, res) => {
+router.get('/debug/status', asyncHandler(async (req, res) => {
   const paymentLang = getPaymentLanguage(req);
   const supportedGateways = paymentService.getSupportedGateways();
   const envVars = {
@@ -126,8 +140,8 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
     if (!paymentResult.success) {
       return res.status(400).json({
         success: false,
-        error: 'Failed to create payment',
-        details: paymentResult.error
+        code: 'PAYMENT_DEBUG_CREATE_FAILED',
+        message: getMessage(paymentLang, 'errors.generic_error'),
       });
     }
 
@@ -220,10 +234,11 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
     });
 
   } catch (error) {
+    console.error('[PAYMENT_DEBUG_COMPLETE_FLOW_ERROR]', error);
     res.status(400).json({
       success: false,
-      error: error.message,
-      stack: error.stack.split('\n').slice(0, 5)
+      code: 'PAYMENT_DEBUG_FLOW_FAILED',
+      message: getMessage(paymentLang, 'errors.generic_error'),
     });
   }
 }));
@@ -378,13 +393,16 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
     } else {
       res.status(400).json({
         success: false,
-        error: result.error
+        code: 'PAYMENT_DEBUG_SIGNATURE_FAILED',
+        message: getMessage(getPaymentLanguage(req), 'errors.generic_error'),
       });
     }
   } catch (error) {
+    console.error('[PAYMENT_DEBUG_SIGNATURE_ERROR]', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      code: 'PAYMENT_DEBUG_SIGNATURE_FAILED',
+      message: getMessage(getPaymentLanguage(req), 'errors.generic_error'),
     });
   }
 }));
@@ -509,15 +527,11 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(200).json({
+    console.error('[PAYMENT_DEBUG_WEBHOOK_ERROR]', error);
+    res.status(500).json({
       success: false,
-      message: 'Webhook test failed',
-      error: error.message,
-      testPayload: finalPayload,
-      signature: {
-        calculated: signature,
-        length: signature.length,
-      }
+      code: 'PAYMENT_DEBUG_WEBHOOK_FAILED',
+      message: getMessage(paymentLang, 'errors.generic_error'),
     });
   }
 }));
