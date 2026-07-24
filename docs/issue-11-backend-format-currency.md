@@ -48,6 +48,16 @@ Các mục chưa fix, được xác định qua mã nguồn hiện tại:
 - [ ] **Các component catalog:** `components/ProductCard.tsx`, `CategoryProductsList.tsx`, `QuickViewModal.tsx` và `SearchDropdown.tsx` vẫn dùng `formatConvertedPrice` để hiển thị giá sản phẩm.
 - [ ] **Thông báo đơn hàng:** `components/admin/NotificationBell.tsx:41-43` vẫn format giá cục bộ cho đơn đang chờ xử lý.
 - [ ] **Bổ sung test/UI:** chưa có kiểm thử xác nhận toàn bộ consumer trên locale tiếng Việt và locale dùng dấu chấm thập phân sau khi chuyển sang formatted fields.
+- [ ] **Type và adapter frontend:** `online-store-frontend/src/lib/data.ts:5-29` và `src/lib/adapters.ts:59-174` mới khai báo/map `price` và `originalPrice` dạng số, chưa có `formattedPrice`/`formattedOriginalPrice`; cần bổ sung contract trước khi chuyển các component catalog.
+- [ ] **Realtime product payload:** `online-store-backend/src/controllers/productController.js:464-473, 649-658, 741-750` broadcast `price` raw; cần bổ sung formatted fields nếu payload được dùng để hiển thị trực tiếp ở frontend.
+- [ ] **Realtime order/coupon payload:** `online-store-backend/src/controllers/orderController.js:554-563` broadcast `totalPrice` raw; `couponController.js:262-274, 376-388` broadcast `discountValue` và `minOrderAmount` raw. Raw fields vẫn phải giữ, nhưng payload hiển thị cần có formatted fields tương ứng.
+- [ ] **Calculate coupon response:** `online-store-backend/src/controllers/couponController.js:586-604` đã format một số amount nhưng `discountValue` fixed vẫn chưa có `formattedDiscountValue`; cần kiểm tra frontend consumer trước khi hoàn tất contract.
+- [ ] **Export/import product:** `online-store-backend/src/controllers/productImportController.js:1011-1021` chỉ serialize `price`/`originalPrice` raw. Đây không nhất thiết là lỗi nếu chỉ phục vụ dữ liệu máy đọc, nhưng cần xác nhận không bị dùng làm output hiển thị.
+
+Các vị trí sau chỉ là dữ liệu nghiệp vụ hoặc số liệu không phải tiền, không đánh dấu là lỗi format:
+
+- Payload tạo đơn tại `online-store-frontend/src/lib/api.ts:1243-1275`, `CartContext.tsx:57-104`, `checkout/Step2Payment.tsx:45-58` và `checkout/Step5OrderReview.tsx:51-92` phải giữ amount dạng số để tính toán/gửi API.
+- `i18nMonitoring.tsx` dùng `toFixed()` cho phần trăm, mili-giây và MB; rating dùng `toFixed()` cũng không thuộc phạm vi tiền tệ.
 
 Các nguyên tắc cần giữ khi xử lý:
 
