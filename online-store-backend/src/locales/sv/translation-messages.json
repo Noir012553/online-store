@@ -27,5 +27,12 @@
   "target_language_unsupported": "Målspråket stöds inte: {{language}}",
   "translation_request_failed": "Det gick inte att översätta texten",
   "static_translations_not_found": "Inga översättningar hittades för det valda språket och namnområdet",
-  "static_translations_fetch_failed": "Det gick inte att hämta översättningar"
+  "static_translations_fetch_failed": "Det gick inte att hämta översättningar",
+  "operation_failed": "Det gick inte att slutföra översättningsåtgärden",
+  "retry_scheduled": "{{count}} översättningar har markerats för nytt försök",
+  "nested_import_fields_required": "Språkkod, namnrymd och översättningsobjekt krävs",
+  "nested_import_completed": "Kapslad JSON importerades och plattades ut",
+  "entity_id_required": "Frågeparametern entityId krävs",
+  "cache_regeneration_empty": "Det finns inga cachade översättningar att återskapa",
+  "cache_regeneration_completed": "Cachen för produktöversättningar har återskapats"
 }

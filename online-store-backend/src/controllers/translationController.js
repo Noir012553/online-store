@@ -665,10 +665,13 @@ exports.refetchStaticTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error reloading translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -681,10 +684,13 @@ exports.getSupportedNamespaces = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching namespaces:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -712,10 +718,13 @@ exports.syncTranslationsFromJSON = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error syncing translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1163,10 +1172,13 @@ exports.getCacheStats = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching cache stats:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1186,10 +1198,13 @@ exports.clearOldCache = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error clearing cache:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1215,10 +1230,13 @@ exports.getCacheRecords = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching cache records:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1243,10 +1261,13 @@ exports.deleteCacheRecord = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error deleting cache record:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1274,10 +1295,13 @@ exports.listTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error listing translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1306,10 +1330,13 @@ exports.getTranslationById = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error fetching translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1350,10 +1377,13 @@ exports.updateTranslationKey = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error updating translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1394,10 +1424,13 @@ exports.deleteTranslationKey = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error deleting translation key:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1431,10 +1464,13 @@ exports.softDeleteTranslation = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error soft deleting translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1464,10 +1500,13 @@ exports.hardDeleteTranslation = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error hard deleting translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1501,10 +1540,13 @@ exports.restoreTranslation = async (req, res) => {
       });
     }
     console.error('[TranslationController] Error restoring translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1540,10 +1582,13 @@ exports.createStaticTranslation = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error creating translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1574,10 +1619,13 @@ exports.getAllTranslationsByLang = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching translations by language:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1587,10 +1635,10 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     const { items, targetLang = defaultLang, namespace = 'common' } = req.body || {};
 
     if (!/^[a-zA-Z0-9_-]+$/.test(namespace)) {
-      return res.status(400).json({ success: false, message: 'Invalid translation namespace' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_NAMESPACE_INVALID', 'invalid_translation_data');
     }
     if (!getActiveLangCodes().includes(targetLang)) {
-      return res.status(400).json({ success: false, message: 'A valid target language is required' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
 
     let sourceItems = items;
@@ -1609,7 +1657,7 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     }
 
     if (!Array.isArray(sourceItems) || sourceItems.length === 0 || sourceItems.some((item) => typeof item?.key !== 'string' || typeof item.text !== 'string')) {
-      return res.status(400).json({ success: false, message: 'Items must contain at least one key and text pair' });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_ITEMS_INVALID', 'invalid_translation_data');
     }
 
     const translations = {};
@@ -1635,10 +1683,13 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error bulk translating:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1736,10 +1787,13 @@ exports.getTranslationStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching translation status:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1796,10 +1850,13 @@ exports.getFailedTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching failed translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1844,17 +1901,21 @@ exports.retryFailedTranslations = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Marked ${updateResult.modifiedCount} translations for retry. Background job started.`,
+      code: 'TRANSLATION_RETRY_SCHEDULED',
+      message: getMessage(getRequestLanguage(req), 'translation-messages.retry_scheduled', { count: updateResult.modifiedCount }),
       data: {
         resetCount: updateResult.modifiedCount,
       },
     });
   } catch (error) {
     console.error('[TranslationController] Error retrying translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1884,10 +1945,13 @@ exports.editTranslationManual = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error editing translation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1917,10 +1981,13 @@ exports.batchEditTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error batch editing translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -1983,10 +2050,13 @@ exports.manualOverrideTranslation = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error manual override:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2026,10 +2096,13 @@ exports.batchManualOverride = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error batch manual override:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2038,10 +2111,7 @@ exports.importNestedJSON = async (req, res) => {
     const { code, namespace, translations: nestedTranslations } = req.body;
 
     if (!code || !namespace || !nestedTranslations || typeof nestedTranslations !== 'object') {
-      return res.status(400).json({
-        success: false,
-        message: 'Code, namespace, and translations (object) are required',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_NESTED_IMPORT_FIELDS_REQUIRED', 'nested_import_fields_required');
     }
 
     // Flatten nested JSON to dot-notation
@@ -2062,7 +2132,8 @@ exports.importNestedJSON = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Nested JSON imported and flattened successfully',
+      code: 'TRANSLATION_NESTED_IMPORT_COMPLETED',
+      message: getMessage(getRequestLanguage(req), 'translation-messages.nested_import_completed'),
       data: {
         code: result.code,
         namespace: result.namespace,
@@ -2072,10 +2143,13 @@ exports.importNestedJSON = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error importing nested JSON:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2148,10 +2222,13 @@ exports.getFallbackTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error getting fallback translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2243,10 +2320,13 @@ exports.getDynamicTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error getting dynamic translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2263,10 +2343,7 @@ exports.verifyTranslationConsistency = async (req, res) => {
     const resolvedLang = req.lang || getLanguageParam({ lang });
 
     if (!entityId) {
-      return res.status(400).json({
-        success: false,
-        message: 'entityId query parameter is required',
-      });
+      return sendTranslationError(res, 400, resolvedLang, 'TRANSLATION_ENTITY_ID_REQUIRED', 'entity_id_required');
     }
 
     // Vietnamese is always considered complete (source language)
@@ -2326,10 +2403,13 @@ exports.verifyTranslationConsistency = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error verifying translation consistency:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2429,10 +2509,13 @@ exports.getFallbackTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching fallback translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2463,10 +2546,14 @@ exports.getTranslationHealth = async (req, res) => {
     const isSupported = await LanguageService.isSupportedLanguage(resolvedLang);
 
     if (!isSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Language not supported: ${resolvedLang}`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        resolvedLang,
+        'TRANSLATION_LANGUAGE_UNSUPPORTED',
+        'target_language_unsupported',
+        { language: resolvedLang }
+      );
     }
 
     // Get total namespaces for this language
@@ -2512,10 +2599,13 @@ exports.getTranslationHealth = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error checking translation health:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };
 
@@ -2533,10 +2623,7 @@ exports.regenerateProductCache = async (req, res) => {
     console.log(`  Found ${liveRecordCount} records in LiveTranslationCache`);
 
     if (liveRecordCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No translations found in LiveTranslationCache. Run seeding first: npm run seed',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_CACHE_EMPTY', 'cache_regeneration_empty');
     }
 
     // Clear old ProductCatalogTranslationCache
@@ -2555,7 +2642,8 @@ exports.regenerateProductCache = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Product translation cache regenerated successfully',
+      code: 'TRANSLATION_CACHE_REGENERATED',
+      message: getMessage(getRequestLanguage(req), 'translation-messages.cache_regeneration_completed'),
       stats: {
         ...result,
         cacheEntries: newCacheCount,
@@ -2563,9 +2651,12 @@ exports.regenerateProductCache = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error regenerating product cache:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_OPERATION_FAILED',
+      'operation_failed'
+    );
   }
 };

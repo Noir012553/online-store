@@ -27,5 +27,12 @@
   "target_language_unsupported": "Ngôn ngữ đích không được hỗ trợ: {{language}}",
   "translation_request_failed": "Không thể dịch văn bản",
   "static_translations_not_found": "Không tìm thấy bản dịch cho ngôn ngữ và không gian tên đã chọn",
-  "static_translations_fetch_failed": "Không thể tải bản dịch"
+  "static_translations_fetch_failed": "Không thể tải bản dịch",
+  "operation_failed": "Không thể hoàn tất thao tác dịch",
+  "retry_scheduled": "Đã đánh dấu {{count}} bản dịch để thử lại",
+  "nested_import_fields_required": "Mã ngôn ngữ, không gian tên và bản dịch dạng đối tượng là bắt buộc",
+  "nested_import_completed": "Đã nhập và làm phẳng JSON lồng nhau",
+  "entity_id_required": "Tham số entityId là bắt buộc",
+  "cache_regeneration_empty": "Không có bản dịch trong bộ nhớ đệm để tái tạo",
+  "cache_regeneration_completed": "Đã tái tạo bộ nhớ đệm bản dịch sản phẩm"
 }

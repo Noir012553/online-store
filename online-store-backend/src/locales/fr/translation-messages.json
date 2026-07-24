@@ -27,5 +27,12 @@
   "target_language_unsupported": "Langue cible non prise en charge : {{language}}",
   "translation_request_failed": "Impossible de traduire le texte",
   "static_translations_not_found": "Aucune traduction n’a été trouvée pour la langue et l’espace de noms sélectionnés",
-  "static_translations_fetch_failed": "Impossible de charger les traductions"
+  "static_translations_fetch_failed": "Impossible de charger les traductions",
+  "operation_failed": "Impossible de terminer l’opération de traduction",
+  "retry_scheduled": "{{count}} traductions ont été marquées pour une nouvelle tentative",
+  "nested_import_fields_required": "Le code langue, l’espace de noms et l’objet de traductions sont requis",
+  "nested_import_completed": "Le JSON imbriqué a été importé et aplati avec succès",
+  "entity_id_required": "Le paramètre de requête entityId est requis",
+  "cache_regeneration_empty": "Aucune traduction en cache n’est disponible à régénérer",
+  "cache_regeneration_completed": "Le cache de traduction des produits a été régénéré avec succès"
 }

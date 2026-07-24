@@ -27,5 +27,12 @@
   "target_language_unsupported": "Idioma de destino no compatible: {{language}}",
   "translation_request_failed": "No se pudo traducir el texto",
   "static_translations_not_found": "No se encontraron traducciones para el idioma y espacio de nombres seleccionados",
-  "static_translations_fetch_failed": "No se pudieron cargar las traducciones"
+  "static_translations_fetch_failed": "No se pudieron cargar las traducciones",
+  "operation_failed": "No se pudo completar la operación de traducción",
+  "retry_scheduled": "Se marcaron {{count}} traducciones para reintentar",
+  "nested_import_fields_required": "Se requieren el código de idioma, el espacio de nombres y el objeto de traducciones",
+  "nested_import_completed": "El JSON anidado se importó y aplanó correctamente",
+  "entity_id_required": "Se requiere el parámetro de consulta entityId",
+  "cache_regeneration_empty": "No hay traducciones en caché para regenerar",
+  "cache_regeneration_completed": "La caché de traducciones de productos se regeneró correctamente"
 }
