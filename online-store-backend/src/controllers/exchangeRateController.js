@@ -5,18 +5,10 @@
 const exchangeRateService = require('../services/exchangeRateService');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
-const { formatExchangeRate } = require('../utils/currencyFormatter');
+const Currency = require('../models/Currency');
+const { formatCurrency, formatExchangeRate } = require('../utils/currencyFormatter');
 
-const getAdminLanguage = (req) => {
-  if (req.user?.language) {
-    return req.user.language.toUpperCase();
-  }
-  const acceptLang = req.headers['accept-language'];
-  if (acceptLang) {
-    return acceptLang.split(',')[0].split('-')[0].toUpperCase();
-  }
-  return getDefaultLanguage().code.toUpperCase();
-};
+const getAdminLanguage = (req) => (req.lang || getDefaultLanguage().code).toUpperCase();
 
 const formatRateData = (rate, lang) => {
   const data = rate.toObject ? rate.toObject() : rate;
@@ -290,11 +282,20 @@ exports.convertAmount = async (req, res) => {
     }
 
     const result = await exchangeRateService.convertAmount(amount, fromCode, toCode);
+    const currencies = await Currency.find(
+      { code: { $in: [result.fromCode.toUpperCase(), result.toCode.toUpperCase()] } },
+      { code: 1, symbol: 1, position: 1, decimalPlaces: 1, _id: 0 }
+    ).lean();
+    const currenciesByCode = new Map(currencies.map((currency) => [currency.code, currency]));
+    const fromCurrency = currenciesByCode.get(result.fromCode.toUpperCase());
+    const toCurrency = currenciesByCode.get(result.toCode.toUpperCase());
 
     res.json({
       success: true,
       data: {
         ...result,
+        formattedAmount: formatCurrency(result.amount, fromCurrency, adminLang),
+        formattedConvertedAmount: formatCurrency(result.convertedAmount, toCurrency, adminLang),
         formattedRate: formatExchangeRate(result.rate, adminLang),
       },
     });

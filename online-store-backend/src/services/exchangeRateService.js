@@ -198,6 +198,8 @@ class ExchangeRateService {
       throw createExchangeRateError('EXCHANGE_RATE_AMOUNT_NEGATIVE');
     }
 
+    await this._validateCurrencies(fromCode, toCode);
+
     // Nếu cùng mệnh giá, không cần quy đổi
     if (fromCode.toUpperCase() === toCode.toUpperCase()) {
       return {
