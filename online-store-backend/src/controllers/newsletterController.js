@@ -66,7 +66,7 @@ const subscribe = asyncHandler(async (req, res) => {
 
     // Send confirmation email
     try {
-        await sendNewsletterConfirmationEmail(email);
+        await sendNewsletterConfirmationEmail(email, req.lang);
         if (process.env.NODE_ENV === 'development') {
           console.log(`[NEWSLETTER] Confirmation email sent to ${email}`);
         }
