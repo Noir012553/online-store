@@ -25,5 +25,7 @@
   "text_required": "Le texte à traduire est requis et ne peut pas être vide",
   "source_language_unsupported": "Langue source non prise en charge : {{language}}",
   "target_language_unsupported": "Langue cible non prise en charge : {{language}}",
-  "translation_request_failed": "Impossible de traduire le texte"
+  "translation_request_failed": "Impossible de traduire le texte",
+  "static_translations_not_found": "Aucune traduction n’a été trouvée pour la langue et l’espace de noms sélectionnés",
+  "static_translations_fetch_failed": "Impossible de charger les traductions"
 }

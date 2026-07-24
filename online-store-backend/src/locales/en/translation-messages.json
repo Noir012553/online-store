@@ -25,5 +25,7 @@
   "text_required": "Text to translate is required and must be a non-empty string",
   "source_language_unsupported": "Unsupported source language: {{language}}",
   "target_language_unsupported": "Unsupported target language: {{language}}",
-  "translation_request_failed": "Unable to translate text"
+  "translation_request_failed": "Unable to translate text",
+  "static_translations_not_found": "Translations were not found for the selected language and namespace",
+  "static_translations_fetch_failed": "Unable to fetch translations"
 }
