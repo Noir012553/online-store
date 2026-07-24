@@ -143,10 +143,12 @@ const confirmPayment = asyncHandler(async (req, res) => {
   const result = await paymentService.confirmPayment(orderId);
 
   if (!result.success) {
+    const code = result.code || 'PAYMENT_CONFIRMATION_FAILED';
     res.status(result.httpStatus || 500).json({
       success: false,
-      code: result.code,
-      error: result.error,
+      code,
+      params: result.params,
+      message: getPaymentMessage(req.lang, code, result.params),
     });
     return;
   }
@@ -223,10 +225,12 @@ const handleWebhook = asyncHandler(async (req, res) => {
   if (!result.success) {
     // Vẫn trả về 200 để gateway biết webhook đã được nhận
     // (tuy nhiên không xử lý được)
+    const code = result.code || 'PAYMENT_WEBHOOK_PROCESSING_FAILED';
     res.status(200).json({
       success: false,
-      code: result.code || 'PAYMENT_WEBHOOK_PROCESSING_FAILED',
-      message: getPaymentMessage(req.lang, result.code),
+      code,
+      params: result.params,
+      message: getPaymentMessage(req.lang, code, result.params),
     });
     return;
   }

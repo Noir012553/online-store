@@ -47,7 +47,10 @@ class CurrencyService {
   async getCurrencyByCode(code) {
     const currency = await Currency.findOne({ code: code.toUpperCase() });
     if (!currency) {
-      throw new Error(`Currency ${code} does not exist`);
+      const error = new Error('Currency does not exist');
+      error.code = 'CURRENCY_NOT_FOUND';
+      error.params = { code: code.toUpperCase() };
+      throw error;
     }
     return currency;
   }

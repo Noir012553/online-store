@@ -17,6 +17,26 @@ const getAdminLanguage = (req) => {
   return getDefaultLanguage().code.toUpperCase();
 };
 
+const currencyMessageKeys = {
+  CURRENCY_NOT_FOUND: 'checkout.error_currency_not_found',
+  NO_DEFAULT_CURRENCY: 'checkout.error_currency_required',
+  CANNOT_DELETE_DEFAULT_CURRENCY: 'checkout.error_cannot_delete_default_currency',
+  CURRENCY_HAS_RELATED_RATES: 'checkout.error_cannot_delete_currency_with_rates',
+  CURRENCY_ALREADY_EXISTS: 'admin-common.admin_currency_error_exists',
+};
+
+const sendCurrencyError = (res, status, lang, error) => {
+  const code = error.code || 'CURRENCY_OPERATION_FAILED';
+  const key = currencyMessageKeys[code] || 'common.error_request_title';
+
+  return res.status(status).json({
+    success: false,
+    code,
+    params: error.params,
+    message: getMessage(lang, key, error.params),
+  });
+};
+
 /**
  * GET /api/currencies
  * Lấy danh sách tất cả mệnh giá
@@ -41,10 +61,7 @@ exports.getAllCurrencies = async (req, res) => {
     if (process.env.NODE_ENV === 'development') {
       console.error('[CurrencyController.getAllCurrencies] Error:', error);
     }
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    sendCurrencyError(res, 500, getAdminLanguage(req), error);
   }
 };
 
@@ -65,10 +82,7 @@ exports.getCurrencyById = async (req, res) => {
     if (process.env.NODE_ENV === 'development') {
       console.error('[CurrencyController.getCurrencyById] Error:', error);
     }
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+    sendCurrencyError(res, 404, getAdminLanguage(req), error);
   }
 };
 
@@ -77,17 +91,14 @@ exports.getCurrencyById = async (req, res) => {
  * Tạo mệnh giá mới
  */
 exports.createCurrency = async (req, res) => {
+  const adminLang = getAdminLanguage(req);
+
   try {
-    const adminLang = getAdminLanguage(req);
     const { code, name, symbol, position, decimalPlaces, isActive, isDefault, description } =
       req.body;
 
-    // Validation
     if (!code || !name || !symbol) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.requiredFields'),
-      });
+      return sendCurrencyError(res, 400, adminLang, { code: 'CURRENCY_REQUIRED_FIELDS' });
     }
 
     const currencyData = {
@@ -105,7 +116,6 @@ exports.createCurrency = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: getMessage(adminLang, 'currency.createdSuccess'),
       data: currency,
     });
   } catch (error) {
@@ -113,17 +123,12 @@ exports.createCurrency = async (req, res) => {
       console.error('[CurrencyController.createCurrency] Error:', error);
     }
 
-    if (error.message.includes('duplicate')) {
-      return res.status(409).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.alreadyExists'),
-      });
+    if (error.code === 11000) {
+      error.code = 'CURRENCY_ALREADY_EXISTS';
+      return sendCurrencyError(res, 409, adminLang, error);
     }
 
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    sendCurrencyError(res, 400, adminLang, error);
   }
 };
 
@@ -132,6 +137,8 @@ exports.createCurrency = async (req, res) => {
  * Cập nhật mệnh giá
  */
 exports.updateCurrency = async (req, res) => {
+  const adminLang = getAdminLanguage(req);
+
   try {
     const { id } = req.params;
     const { code, name, symbol, position, decimalPlaces, isActive, isDefault, description } =
@@ -152,7 +159,6 @@ exports.updateCurrency = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'currency.updatedSuccess'),
       data: currency,
     });
   } catch (error) {
@@ -160,24 +166,7 @@ exports.updateCurrency = async (req, res) => {
       console.error('[CurrencyController.updateCurrency] Error:', error);
     }
 
-    if (error.code === 'CURRENCY_NOT_FOUND') {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.notFound'),
-      });
-    }
-
-    if (error.code === 'NO_DEFAULT_CURRENCY') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.requiresDefaultCurrency'),
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    sendCurrencyError(res, error.code === 'CURRENCY_NOT_FOUND' ? 404 : 400, adminLang, error);
   }
 };
 
@@ -186,6 +175,8 @@ exports.updateCurrency = async (req, res) => {
  * Xóa mệnh giá
  */
 exports.deleteCurrency = async (req, res) => {
+  const adminLang = getAdminLanguage(req);
+
   try {
     const { id } = req.params;
 
@@ -193,38 +184,12 @@ exports.deleteCurrency = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'currency.deletedSuccess'),
     });
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('[CurrencyController.deleteCurrency] Error:', error);
     }
-    const adminLang = getAdminLanguage(req);
 
-    if (error.code === 'CURRENCY_NOT_FOUND') {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.notFound'),
-      });
-    }
-
-    if (error.code === 'CANNOT_DELETE_DEFAULT_CURRENCY') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.cannotDeleteDefault'),
-      });
-    }
-
-    if (error.code === 'CURRENCY_HAS_RELATED_RATES') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(adminLang, 'currency.hasRelatedRates'),
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    sendCurrencyError(res, error.code === 'CURRENCY_NOT_FOUND' ? 404 : 400, adminLang, error);
   }
 };

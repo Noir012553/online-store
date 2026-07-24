@@ -50,11 +50,28 @@ const toImportIssues = (issues, code) => issues.map((_, index) => ({
   index: index + 1,
 }));
 
-const getImportErrorMessage = (lang, code) => getMessage(
+const importErrorMessageKeys = {
+  IMPORT_DUPLICATE_KEY: 'admin-controllers-messages.duplicate_key_error',
+  IMPORT_CATEGORY_LIMIT_EXCEEDED: 'admin-controllers-messages.too_many_new_categories',
+  IMPORT_SUPPLIER_LIMIT_EXCEEDED: 'admin-controllers-messages.too_many_new_suppliers',
+  IMPORT_CATEGORY_UNRESOLVED: 'admin-controllers-messages.product_category_not_resolve',
+  IMPORT_SUPPLIER_UNRESOLVED: 'admin-controllers-messages.product_supplier_not_resolve',
+  IMPORT_CATEGORY_NOT_FOUND: 'admin-controllers-messages.product_category_not_found',
+  IMPORT_SUPPLIER_NOT_FOUND: 'admin-controllers-messages.product_supplier_not_found',
+  IMPORT_PRODUCTS_NOT_FOUND: 'admin-controllers-messages.products_not_found_count',
+};
+
+const createImportError = (code, params) => {
+  const error = new Error(code);
+  error.code = code;
+  error.params = params;
+  return error;
+};
+
+const getImportErrorMessage = (lang, code, params) => getMessage(
   lang,
-  code === 'IMPORT_DUPLICATE_KEY'
-    ? 'admin-controllers-messages.duplicate_key_error'
-    : 'admin-controllers-messages.error_importing_products'
+  importErrorMessageKeys[code] || 'admin-controllers-messages.error_importing_products',
+  params
 );
 
 const getFeatureLabel = (feature, lang) => {
@@ -281,7 +298,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         if (!categoryLookup.has(sanitizedName)) {
           const validation = validateCategorySupplierName(product.category);
           if (!validation.isValid) {
-            throw new Error(`Category name không hợp lệ: "${product.category}" - ${validation.error}`);
+            throw createImportError('IMPORT_CATEGORY_NAME_INVALID', { name: product.category });
           }
 
           categoryLookup.set(sanitizedName, null); // Mark for creation
@@ -295,7 +312,10 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     if (categoriesToCreate.length > MAX_NEW_CATEGORIES_PER_IMPORT) {
-      throw new Error(`Quá nhiều category mới (${categoriesToCreate.length} > ${MAX_NEW_CATEGORIES_PER_IMPORT}). Vui lòng tạo category sẵn trước.`);
+      throw createImportError('IMPORT_CATEGORY_LIMIT_EXCEEDED', {
+        count: categoriesToCreate.length,
+        max: MAX_NEW_CATEGORIES_PER_IMPORT,
+      });
     }
 
     // Step 2: Bulk create missing categories
@@ -351,7 +371,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         if (!supplierLookup.has(sanitizedName)) {
           const validation = validateCategorySupplierName(product.supplier);
           if (!validation.isValid) {
-            throw new Error(`Supplier name không hợp lệ: "${product.supplier}" - ${validation.error}`);
+            throw createImportError('IMPORT_SUPPLIER_NAME_INVALID', { name: product.supplier });
           }
 
           supplierLookup.set(sanitizedName, null); // Mark for creation
@@ -365,7 +385,10 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     if (suppliersToCreate.length > MAX_NEW_SUPPLIERS_PER_IMPORT) {
-      throw new Error(`Quá nhiều supplier mới (${suppliersToCreate.length} > ${MAX_NEW_SUPPLIERS_PER_IMPORT}). Vui lòng tạo supplier sẵn trước.`);
+      throw createImportError('IMPORT_SUPPLIER_LIMIT_EXCEEDED', {
+        count: suppliersToCreate.length,
+        max: MAX_NEW_SUPPLIERS_PER_IMPORT,
+      });
     }
 
     // Step 4: Bulk create missing suppliers
@@ -424,7 +447,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         categoryId = categoryLookup.get(sanitizedName);
       }
       if (!categoryId) {
-        throw new Error(`Sản phẩm ${idx + 1} "${product.name}": Category "${product.category}" không thể resolve`);
+        throw createImportError('IMPORT_CATEGORY_UNRESOLVED', { idx: idx + 1 });
       }
       enriched.category = categoryId;
 
@@ -438,7 +461,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         supplierId = supplierLookup.get(sanitizedName);
       }
       if (!supplierId) {
-        throw new Error(`Sản phẩm ${idx + 1} "${product.name}": Supplier "${product.supplier}" không thể resolve`);
+        throw createImportError('IMPORT_SUPPLIER_UNRESOLVED', { idx: idx + 1 });
       }
       enriched.supplier = supplierId;
 
@@ -482,7 +505,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       code: error.code || 'IMPORT_FILE_FAILED',
-      message: getImportErrorMessage(req.lang, error.code),
+      params: error.params,
+      message: getImportErrorMessage(req.lang, error.code, error.params),
     });
   }
 });
@@ -576,7 +600,10 @@ const importProducts = asyncHandler(async (req, res) => {
         categoryId = product.category;
       }
       if (!categoryId) {
-        throw new Error(`Product "${product.name}": Category không tìm thấy: ${product.category}`);
+        throw createImportError('IMPORT_CATEGORY_NOT_FOUND', {
+          name: product.name,
+          category: product.category,
+        });
       }
       enriched.category = categoryId;
 
@@ -586,7 +613,10 @@ const importProducts = asyncHandler(async (req, res) => {
         supplierId = product.supplier;
       }
       if (!supplierId) {
-        throw new Error(`Product "${product.name}": Supplier không tìm thấy: ${product.supplier}`);
+        throw createImportError('IMPORT_SUPPLIER_NOT_FOUND', {
+          name: product.name,
+          supplier: product.supplier,
+        });
       }
       enriched.supplier = supplierId;
 
@@ -642,7 +672,8 @@ const importProducts = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       code: error.code || 'IMPORT_FAILED',
-      message: getImportErrorMessage(req.lang, error.code),
+      params: error.params,
+      message: getImportErrorMessage(req.lang, error.code, error.params),
     });
   }
 });
@@ -726,7 +757,7 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   }
 
   if (notFound.length > 0) {
-    throw new Error(`${notFound.length} sản phẩm không tìm thấy`);
+    throw createImportError('IMPORT_PRODUCTS_NOT_FOUND', { count: notFound.length });
   }
 
   if (bulkOps.length > 0) {
