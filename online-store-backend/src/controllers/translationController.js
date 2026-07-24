@@ -462,10 +462,14 @@ exports.getProductCatalogTranslations = async (req, res) => {
     // Check language dynamically from DB
     const isLangSupported = await LanguageService.isSupportedLanguage(resolvedLang);
     if (!isLangSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported language: ${resolvedLang}. Please ensure the language is added and activated in the system.`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        resolvedLang,
+        'TRANSLATION_TARGET_LANGUAGE_UNSUPPORTED',
+        'target_language_unsupported',
+        { language: resolvedLang }
+      );
     }
 
     const result = {
@@ -541,10 +545,13 @@ exports.getProductCatalogTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_PRODUCT_FETCH_FAILED',
+      'product_fetch_failed'
+    );
   }
 };
 
@@ -564,10 +571,14 @@ exports.getReviewTranslations = async (req, res) => {
     // Check language dynamically from DB
     const isLangSupported = await LanguageService.isSupportedLanguage(resolvedLang);
     if (!isLangSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported language: ${resolvedLang}. Please ensure the language is added and activated in the system.`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        resolvedLang,
+        'TRANSLATION_TARGET_LANGUAGE_UNSUPPORTED',
+        'target_language_unsupported',
+        { language: resolvedLang }
+      );
     }
 
     const result = {
@@ -599,7 +610,7 @@ exports.getReviewTranslations = async (req, res) => {
     const translations = await LiveTranslationCache.find({
       entityId: reviewId,
       entityType: { $in: ['review_name', 'review_comment'] },
-      targetLang: lang,
+      targetLang: resolvedLang,
     }).lean();
 
     // Map translations by entity type
@@ -618,10 +629,13 @@ exports.getReviewTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching review translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_PRODUCT_FETCH_FAILED',
+      'product_fetch_failed'
+    );
   }
 };
 
