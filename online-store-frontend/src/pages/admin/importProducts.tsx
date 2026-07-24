@@ -138,13 +138,9 @@ function ImportProductsContent() {
         let errorMessage = t('error_save_data');
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || t('import.upload_failed');
-          if (errorData.error && !errorMessage.includes(errorData.error)) {
-            errorMessage += ` - ${errorData.error}`;
-          }
+          errorMessage = errorData.message || t('import.upload_failed');
         } catch (e) {
-          // Response wasn't JSON, use status text
-          errorMessage = response.statusText || t('import.upload_failed');
+          errorMessage = t('import.upload_failed');
         }
         throw new Error(errorMessage);
       }
@@ -243,8 +239,8 @@ function ImportProductsContent() {
           setFileData('');
         }
       }
-    } catch (err: any) {
-      toast.error(t('error_save_data') + ': ' + err.message);
+    } catch {
+      toast.error(t('error_save_data'));
     } finally {
       setIsLoading(false);
     }

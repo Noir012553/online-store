@@ -614,8 +614,8 @@ Kết quả cần xác nhận:
 - [x] F1 — Translation status trả mã dữ liệu `UI_STATIC` và `PRODUCT_DYNAMIC`, không còn nhãn tiếng Anh cố định.
 - [x] F2 — Thống kê tỷ giá trả `periodDays` dạng số thay cho chuỗi `days` đã ghép sẵn.
 - [x] F3 — Payment error giữ `params` từ service đến response API để nội suy theo locale.
-- [ ] F4 — Payment debug/test vẫn cần giới hạn môi trường và loại bỏ raw error/stack khỏi response user-facing.
-- [ ] F5 — Import/export và adapter vẫn cần contract lỗi ổn định.
-- [ ] F6 — Test email dev vẫn cần chuẩn hóa response và lỗi theo i18n.
+- [x] F4 — Các route debug payment bị giới hạn cho admin trong development; response lỗi dùng `code` và thông điệp theo locale, không trả `error.message` hoặc stack.
+- [x] F5 — CSV/JSON adapter ném mã lỗi ổn định (`IMPORT_CSV_*`, `IMPORT_JSON_*`); controller chỉ trả `code` và thông điệp đã dịch. Kết quả import dùng `reasonCode` thay vì câu tiếng Việt cố định.
+- [x] F6 — Test email development dùng `code` và `getMessage(req.lang, ...)`; nguyên nhân kỹ thuật chỉ được ghi log trên server.
 
-**Trạng thái:** Các hạng mục F1–F3 đã hoàn tất. Audit chưa thể đánh dấu hoàn thành toàn bộ vì F4–F6 còn mở và chưa chạy kiểm thử API đa locale với dữ liệu/credential phù hợp.
+**Trạng thái:** Các hạng mục F1–F6 đã được chuẩn hoá trong mã. Đã kiểm tra cú pháp backend và chạy 10/10 kiểm thử frontend. Kiểm thử API đa locale với dữ liệu/credential thực vẫn cần thực hiện trong môi trường đã cài đủ dependencies backend.
