@@ -343,33 +343,32 @@ exports.translateProductAll9Languages = async (req, res) => {
 
     // Validate required parameter
     if (!sourceLang) {
-      return res.status(400).json({
-        success: false,
-        message: 'Source language (sourceLang) is required',
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_REQUIRED', 'source_language_required');
     }
 
     if (!text || typeof text !== 'string' || text.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'text_to_translate_required'),
-      });
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TEXT_REQUIRED', 'text_required');
     }
 
     if (!entityId || !entityType) {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'entity_id_and_type_required'),
+        code: 'TRANSLATION_ENTITY_ID_AND_TYPE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.entity_id_and_type_required'),
       });
     }
 
     // Check source language dynamically
     const isSourceSupported = await LanguageService.isSupportedLanguage(sourceLang);
     if (!isSourceSupported) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported source language: ${sourceLang}`,
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_SOURCE_LANGUAGE_UNSUPPORTED',
+        'source_language_unsupported',
+        { language: sourceLang }
+      );
     }
 
     const allLangCodes = getActiveLangCodes();
@@ -437,10 +436,13 @@ exports.translateProductAll9Languages = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error translating product to all languages:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'TRANSLATION_REQUEST_FAILED',
+      'translation_request_failed'
+    );
   }
 };
 
