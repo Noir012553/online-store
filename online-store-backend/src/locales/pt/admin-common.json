@@ -162,6 +162,7 @@
   "admin_currency_name": "Nome da Moeda",
   "admin_currency_symbol": "Símbolo",
   "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_symbol_placeholder": "₫, $, €...",
   "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Posição do Símbolo",
   "admin_currency_position_before": "Antes do Preço",

@@ -46,6 +46,7 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
 
   useEffect(() => {
     loadNamespace('admin-banners');
+    loadNamespace('admin-translation');
   }, [loadNamespace]);
 
   useEffect(() => {

@@ -162,6 +162,7 @@
   "admin_currency_name": "Nom de la Devise",
   "admin_currency_symbol": "Symbole",
   "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_symbol_placeholder": "₫, $, €...",
   "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Position du Symbole",
   "admin_currency_position_before": "Avant le Prix",

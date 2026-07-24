@@ -165,6 +165,7 @@
   "admin_currency_name": "Tên tiền tệ",
   "admin_currency_symbol": "Ký hiệu",
   "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_symbol_placeholder": "₫, $, €...",
   "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Vị trí ký hiệu",
   "admin_currency_position_before": "Trước giá",

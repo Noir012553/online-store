@@ -162,6 +162,7 @@
   "admin_currency_name": "Valutanamn",
   "admin_currency_symbol": "Symbol",
   "admin_currency_code_placeholder": "VND, USD, EUR...",
+  "admin_currency_symbol_placeholder": "₫, $, €...",
   "admin_currency_code_hint": "ISO 4217",
   "admin_currency_position": "Symbolposition",
   "admin_currency_position_before": "Före Priset",
