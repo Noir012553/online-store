@@ -153,7 +153,7 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
               name="symbol"
               value={formData.symbol}
               onChange={handleInputChange}
-              placeholder="₫, $, €..."
+              placeholder={t('admin_currency_symbol_placeholder', 'admin')}
             />
           </div>
 
