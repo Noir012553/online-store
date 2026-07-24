@@ -9,5 +9,20 @@
   "payment_confirmed": "Payment confirmed",
   "payment_failed": "Payment failed",
   "refund_success": "Refund successful",
-  "dev_mode_only": "This feature is only available in development mode"
+  "dev_mode_only": "This feature is only available in development mode",
+  "gateway_unsupported": "The payment gateway is not supported",
+  "gateway_currency_unsupported": "The payment gateway does not support the required currency",
+  "payment_initiation_failed": "Unable to initiate payment",
+  "webhook_signature_missing": "The payment webhook signature is missing",
+  "webhook_invalid": "The payment webhook could not be verified",
+  "webhook_processing_failed": "Unable to process the payment webhook",
+  "payment_record_not_found": "Payment record not found",
+  "payment_reconciliation_failed": "Payment details do not match the order",
+  "webhook_already_processed": "Payment webhook was already processed",
+  "webhook_processed": "Payment webhook processed successfully",
+  "payment_not_found": "Payment not found",
+  "successful_payment_not_found": "No successful payment was found for this order",
+  "gateway_adapter_not_found": "The payment gateway is unavailable",
+  "refund_failed": "Unable to process the refund",
+  "payment_confirmation_failed": "Unable to confirm payment"
 }
