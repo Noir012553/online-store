@@ -23,7 +23,6 @@ const Product = require('../models/Product');
 const Category = require('../models/Category');
 const Supplier = require('../models/Supplier');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -85,7 +84,6 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
   if (affectedProducts.length === 0) {
     return {
       markedForRetranslation: 0,
-      markedLegacyForRetranslation: 0,
       preservedManualTranslations: 0,
     };
   }
@@ -121,73 +119,12 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     });
   }
 
-  const legacyEntityTypesByField = {
-    name: 'product_name',
-    description: 'product_description',
-    brand: 'product_brand',
-    specs: 'product_spec',
-    features: 'product_feature',
-  };
-  const catalogByProductAndLanguage = new Map(
-    caches.map((cache) => [`${cache.entityId}|${cache.targetLang}`, cache])
-  );
-  const legacyOperations = [];
-
-  for (const [productId, changedFields] of affectedFieldsByProduct) {
-    const productCaches = caches.filter((cache) => cache.entityId === productId);
-    if (productCaches.length === 0) {
-      legacyOperations.push({
-        updateMany: {
-          filter: {
-            entityId: productId,
-            entityType: { $in: Object.values(legacyEntityTypesByField) },
-          },
-          update: {
-            $set: {
-              qualityStatus: 'needs_retranslate',
-              validationErrors: ['source_content_changed'],
-            },
-          },
-        },
-      });
-      continue;
-    }
-
-    for (const cache of productCaches) {
-      const manualFields = catalogByProductAndLanguage.get(`${productId}|${cache.targetLang}`)?.manualFields || [];
-      const entityTypes = changedFields
-        .filter((field) => !manualFields.includes(field))
-        .map((field) => legacyEntityTypesByField[field]);
-      if (entityTypes.length === 0) continue;
-
-      legacyOperations.push({
-        updateMany: {
-          filter: {
-            entityId: productId,
-            targetLang: cache.targetLang,
-            entityType: { $in: entityTypes },
-          },
-          update: {
-            $set: {
-              qualityStatus: 'needs_retranslate',
-              validationErrors: ['source_content_changed'],
-            },
-          },
-        },
-      });
-    }
-  }
-
   if (operations.length > 0) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
-  const legacyResult = legacyOperations.length > 0
-    ? await LiveTranslationCache.bulkWrite(legacyOperations)
-    : { modifiedCount: 0 };
 
   return {
     markedForRetranslation: operations.length,
-    markedLegacyForRetranslation: legacyResult.modifiedCount,
     preservedManualTranslations,
   };
 }
