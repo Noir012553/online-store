@@ -83,22 +83,22 @@ router.use('/debug', protect, admin, requireDevelopment);
 router.get('/debug/status', asyncHandler(async (req, res) => {
   const paymentLang = getPaymentLanguage(req);
   const supportedGateways = paymentService.getSupportedGateways();
-  const envVars = {
-    VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE ? '✅ SET' : '❌ NOT SET',
-    VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET ? '✅ SET' : '❌ NOT SET',
-    VNPAY_ENDPOINT: process.env.VNPAY_ENDPOINT || '❌ NOT SET',
-    VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || '❌ NOT SET',
-    VNPAY_CALLBACK_URL: process.env.VNPAY_CALLBACK_URL || '❌ NOT SET',
+  const environmentVariables = {
+    VNPAY_TMN_CODE: Boolean(process.env.VNPAY_TMN_CODE),
+    VNPAY_HASH_SECRET: Boolean(process.env.VNPAY_HASH_SECRET),
+    VNPAY_ENDPOINT: Boolean(process.env.VNPAY_ENDPOINT),
+    VNPAY_RETURN_URL: Boolean(process.env.VNPAY_RETURN_URL),
+    VNPAY_CALLBACK_URL: Boolean(process.env.VNPAY_CALLBACK_URL),
   };
 
   res.status(200).json({
     success: true,
+    code: 'PAYMENT_DEBUG_STATUS',
     data: {
       supportedGateways,
       gatewayCount: supportedGateways.length,
-      environmentVariables: envVars,
-      status: supportedGateways.length > 0 ? `✅ ${getMessage(paymentLang, 'payment.readyForPayment')}` : '❌ No payment gateways configured',
-      hint: 'If no gateways are configured, check environment variables in PaymentService.js'
+      environmentVariables,
+      configured: supportedGateways.length > 0,
     }
   });
 }));
@@ -110,7 +110,8 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
   if (process.env.NODE_ENV !== 'development') {
     return res.status(403).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.devModeOnly')
+      code: 'PAYMENT_DEBUG_DISABLED',
+      message: getMessage(paymentLang, 'payment.devModeOnly')
     });
   }
 
@@ -119,8 +120,8 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
   if (!orderId) {
     return res.status(400).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.missingOrderId'),
-      hint: 'Example: { "orderId": "696b670b041e2f97fa56677c" }'
+      code: 'PAYMENT_DEBUG_ORDER_ID_REQUIRED',
+      message: getMessage(paymentLang, 'payment.missingOrderId')
     });
   }
 
@@ -224,12 +225,11 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: webhookResponse.data.success,
-      message: 'Complete flow test finished',
-      details: {
+      code: 'PAYMENT_DEBUG_FLOW_COMPLETED',
+      data: {
         orderId,
         paymentId,
-        webhook: webhookResponse.data,
-        payload: finalPayload,
+        webhookSucceeded: Boolean(webhookResponse.data.success),
       }
     });
 
@@ -250,60 +250,21 @@ router.get('/debug/vnpay-config', asyncHandler(async (req, res) => {
   if (process.env.NODE_ENV !== 'development') {
     return res.status(403).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.devModeOnly')
+      code: 'PAYMENT_DEBUG_DISABLED',
+      message: getMessage(paymentLang, 'payment.devModeOnly')
     });
   }
 
-  const config = {
-    VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE,
-    VNPAY_HASH_SECRET: '***' + (process.env.VNPAY_HASH_SECRET?.substring(process.env.VNPAY_HASH_SECRET.length - 5) || ''),
-    VNPAY_HASH_SECRET_LENGTH: process.env.VNPAY_HASH_SECRET?.length || 0,
-    VNPAY_ENDPOINT: process.env.VNPAY_ENDPOINT,
-    VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL,
-    VNPAY_CALLBACK_URL: process.env.VNPAY_CALLBACK_URL,
-  };
-
-  const checklist = {
-    '✅ Terminal ID (vnp_TmnCode)': {
-      value: config.VNPAY_TMN_CODE,
-      expected: '5G8P0VEL',
-      match: config.VNPAY_TMN_CODE === '5G8P0VEL'
-    },
-    '✅ Secret Key Length': {
-      value: config.VNPAY_HASH_SECRET_LENGTH,
-      expected: '32 or 34 characters',
-      match: config.VNPAY_HASH_SECRET_LENGTH === 32 || config.VNPAY_HASH_SECRET_LENGTH === 34
-    },
-    '✅ Endpoint': {
-      value: config.VNPAY_ENDPOINT,
-      expected: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-      match: config.VNPAY_ENDPOINT === 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
-    },
-    '⚠️  Return URL (in VNPAY Dashboard)': {
-      value: config.VNPAY_RETURN_URL,
-      expected: 'https://manln.online/return',
-      info: 'Verify this URL is configured in VNPAY Dashboard > Cấu hình > Return URL'
-    },
-    '⚠️  Callback URL (in VNPAY Dashboard)': {
-      value: config.VNPAY_CALLBACK_URL,
-      expected: 'https://backend.manln.online/vnpay-api/webhook/vnpay',
-      info: 'Must match IPN URL in VNPAY Dashboard > Cấu hình > IPN URL'
-    }
-  };
-
   res.status(200).json({
     success: true,
-    config,
-    checklist,
-    action_items: [
-      '1️⃣  Verify Terminal ID (vnp_TmnCode) matches VNPAY email',
-      '2️⃣  Verify Secret Key is copied correctly from VNPAY email',
-      '3️⃣  Login to https://sandbox.vnpayment.vn/vnpaygw-sit-testing/user/login',
-      '4️⃣  Check IPN URL matches VNPAY_CALLBACK_URL in .env',
-      '5️⃣  Check Return URL matches VNPAY_RETURN_URL in .env',
-      '6️⃣  Whitelist your server IP in VNPAY Dashboard (if required)',
-      '7️⃣  Click "Sửa" (Edit) to update any URLs in VNPAY Dashboard'
-    ]
+    code: 'PAYMENT_DEBUG_CONFIG_STATUS',
+    data: {
+      terminalCodeConfigured: Boolean(process.env.VNPAY_TMN_CODE),
+      hashSecretConfigured: Boolean(process.env.VNPAY_HASH_SECRET),
+      endpointConfigured: Boolean(process.env.VNPAY_ENDPOINT),
+      returnUrlConfigured: Boolean(process.env.VNPAY_RETURN_URL),
+      callbackUrlConfigured: Boolean(process.env.VNPAY_CALLBACK_URL),
+    },
   });
 }));
 
@@ -313,7 +274,8 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
     const paymentLang = getPaymentLanguage(req);
     return res.status(403).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.devModeOnly')
+      code: 'PAYMENT_DEBUG_DISABLED',
+      message: getMessage(paymentLang, 'payment.devModeOnly')
     });
   }
 
@@ -358,8 +320,8 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
       } else {
         return res.status(400).json({
           success: false,
-          error: 'No products found. Please seed database first (npm run seed)',
-          hint: 'Provide orderId as string (valid MongoDB ObjectId) in request body'
+          code: 'PAYMENT_DEBUG_PRODUCTS_UNAVAILABLE',
+          message: getMessage(getPaymentLanguage(req), 'errors.generic_error'),
         });
       }
     } else {
@@ -382,12 +344,11 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        message: 'Signature test successful',
+        code: 'PAYMENT_DEBUG_SIGNATURE_COMPLETED',
         data: {
           paymentId: result.data.paymentId,
           redirectUrl: result.data.redirectUrl,
           orderId: testOrderId,
-          note: 'Check backend logs for detailed signature calculation info'
         }
       });
     } else {
@@ -414,7 +375,8 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
   if (process.env.NODE_ENV !== 'development') {
     return res.status(403).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.devModeOnly')
+      code: 'PAYMENT_DEBUG_DISABLED',
+      message: getMessage(paymentLang, 'payment.devModeOnly')
     });
   }
 
@@ -428,8 +390,8 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
   if (orders.length === 0) {
     return res.status(400).json({
       success: false,
-      error: 'No unpaid orders found. Create one first.',
-      hint: 'POST /api/payments/debug/create-test-order'
+      code: 'PAYMENT_DEBUG_UNPAID_ORDER_NOT_FOUND',
+      message: getMessage(paymentLang, 'errors.generic_error'),
     });
   }
 
@@ -441,7 +403,8 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
   if (!vnpayAdapter) {
     return res.status(400).json({
       success: false,
-      error: 'VNPAY adapter not initialized',
+      code: 'PAYMENT_DEBUG_GATEWAY_UNAVAILABLE',
+      message: getMessage(paymentLang, 'payment.gateway_adapter_not_found'),
     });
   }
 
@@ -515,15 +478,10 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Webhook test completed',
-      details: {
-        orderTested: orderId,
-        payloadSent: finalPayload,
-        webhookResponse: webhookResponse.data,
-        signature: {
-          calculated: signature,
-          length: signature.length,
-        }
+      code: 'PAYMENT_DEBUG_WEBHOOK_COMPLETED',
+      data: {
+        orderId,
+        webhookSucceeded: Boolean(webhookResponse.data.success),
       }
     });
   } catch (error) {
@@ -543,7 +501,8 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
   if (process.env.NODE_ENV !== 'development') {
     return res.status(403).json({
       success: false,
-      error: getMessage(paymentLang, 'payment.devModeOnly')
+      code: 'PAYMENT_DEBUG_DISABLED',
+      message: getMessage(paymentLang, 'payment.devModeOnly')
     });
   }
 
@@ -557,7 +516,8 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
   if (orders.length === 0) {
     return res.status(400).json({
       success: false,
-      error: 'No unpaid orders found. Create one first using POST /api/payments/debug/create-test-order',
+      code: 'PAYMENT_DEBUG_UNPAID_ORDER_NOT_FOUND',
+      message: getMessage(paymentLang, 'errors.generic_error'),
     });
   }
 
@@ -571,7 +531,8 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
   if (!vnpayAdapter) {
     return res.status(400).json({
       success: false,
-      error: 'VNPAY adapter not initialized',
+      code: 'PAYMENT_DEBUG_GATEWAY_UNAVAILABLE',
+      message: getMessage(paymentLang, 'payment.gateway_adapter_not_found'),
     });
   }
 
@@ -637,13 +598,11 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'Test webhook payload generated',
-    note: 'Copy the query string below and GET /api/payments/webhook/vnpay with these parameters',
-    orderId,
-    amount,
-    queryString: new URLSearchParams(finalPayload).toString(),
-    payload: finalPayload,
-    testUrl: `/api/payments/webhook/vnpay?${new URLSearchParams(finalPayload).toString()}`,
+    code: 'PAYMENT_DEBUG_WEBHOOK_PAYLOAD_CREATED',
+    data: {
+      orderId,
+      amount,
+    },
   });
 }));
 
@@ -677,7 +636,6 @@ router.get('/debug/orders', asyncHandler(async (req, res) => {
         page: parseInt(page),
         pages: Math.ceil(total / limit),
       },
-      hint: 'Copy orderId from the list and use in POST /api/payments/initiate',
     },
   });
 }));
@@ -692,8 +650,8 @@ router.post('/debug/create-test-order', asyncHandler(async (req, res) => {
   if (!product) {
     return res.status(400).json({
       success: false,
-      error: 'No products found in database. Please seed products first.',
-      hint: 'Run: npm run seed'
+      code: 'PAYMENT_DEBUG_PRODUCTS_UNAVAILABLE',
+      message: getMessage(getPaymentLanguage(req), 'errors.generic_error'),
     });
   }
 
@@ -729,7 +687,6 @@ router.post('/debug/create-test-order', asyncHandler(async (req, res) => {
       orderItem: testOrder.orderItems[0],
       totalPrice: testOrder.totalPrice,
       isPaid: testOrder.isPaid,
-      hint: 'Copy orderId and use it in POST /api/payments/initiate'
     }
   });
 }));
