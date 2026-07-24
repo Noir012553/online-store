@@ -521,3 +521,92 @@ Các nhóm validation, rate-limit, order currency, shipping, user, Cloudinary, b
 - Những mục đã đóng như validation middleware, rate limit, RoleBadge và banner translation không có thay đổi làm đảo ngược kết luận trước đó.
 
 **Tiến độ cập nhật:** Issue vẫn mở. Ưu tiên tiếp theo là chuẩn hóa `{ code, params, message }` theo từng luồng còn lại, không parse câu lỗi ở frontend, rồi kiểm thử API với ít nhất `vi`, `en` và một locale không-Latin.
+
+---
+
+## F. Phát hiện xác minh bổ sung
+
+Đợt rà soát hiện tại **chỉ cập nhật tài liệu, chưa sửa mã nguồn**. Các vấn đề còn xác nhận được:
+
+### F1. Translation status còn nhãn tiếng Anh cố định — Trung bình
+
+- **Vị trí:** `online-store-backend/src/controllers/translationController.js:1841,1847`.
+- **Literal:** `UI Strings (Static)`, `Products (Dynamic)`.
+- **Vấn đề:** Hai nhãn nằm trong JSON response và có thể được admin UI render trực tiếp; chưa có key/code để hiển thị theo locale.
+- **Hướng xử lý:** Trả mã dữ liệu (`UI_STATIC`, `PRODUCT_DYNAMIC`) hoặc key i18n, sau đó localize tại boundary hiển thị.
+
+### F2. Thống kê tỷ giá chứa text tiếng Anh trong dữ liệu — Thấp
+
+- **Vị trí:** `online-store-backend/src/services/exchangeRateService.js:315`.
+- **Literal động:** ``period: `${days} days```.
+- **Vấn đề:** Service trộn dữ liệu với câu chữ tiếng Anh; locale khác sẽ nhận cùng chuỗi này.
+- **Hướng xử lý:** Trả `days` dạng số hoặc `{ code: 'DAYS', params: { days } }`; để controller/UI định dạng theo locale.
+
+### F3. Payment controller bỏ `params` khi chuyển lỗi — Trung bình
+
+- **Vị trí:** `online-store-backend/src/controllers/paymentController.js:45-49`.
+- **Vấn đề:** `createPaymentError()` giữ `code` nhưng không truyền `result.params`. Các lỗi có biến động như mã đơn hàng/gateway có thể không được nội suy đúng ở response API.
+- **Hướng xử lý:** Giữ nguyên contract `{ code, params }` đến boundary; chỉ tạo `message` localized ở đó.
+
+### F4. Payment debug/test có raw error và stack — Cao trong môi trường bị expose
+
+- **Vị trí:** `online-store-backend/src/routes/paymentRoutes.js:211-227` và các nhánh test tương tự.
+- **Vấn đề:** Response còn trả literal tiếng Anh, `error.message` và một phần `error.stack`. Ngoài lỗi i18n, đây là nguy cơ lộ chi tiết nội bộ nếu endpoint debug không được giới hạn đúng môi trường/quyền.
+- **Hướng xử lý:** Trả `code`/`params` tối thiểu; log chi tiết ở server; bỏ `stack` khỏi response user-facing hoặc giới hạn tuyệt đối cho môi trường phát triển.
+
+### F5. Import/export và adapter còn lỗi không có contract ổn định — Trung bình
+
+- **Vị trí:** `online-store-backend/src/controllers/productImportController.js:632-638,833-906,929-937`; `src/utils/importAdapters/CSVAdapter.js`; `src/utils/importAdapters/JSONAdapter.js`; `src/utils/productImportValidator.js`.
+- **Vấn đề:** Một số lỗi parse/validation/category vẫn là câu tiếng Anh hoặc tiếng Việt cố định; lỗi từ adapter có thể bubble lên controller và thiếu `{ code, params }`.
+- **Hướng xử lý:** Chuẩn hóa lỗi theo từng adapter, không trả raw `error.message`, dịch tại boundary admin.
+
+### F6. Test email dev còn response tiếng Anh và ghép lỗi gốc — Thấp
+
+- **Vị trí:** `online-store-backend/src/controllers/userController.js:658-685`.
+- **Literal:** `Test email sent successfully!`, `Check your email inbox or spam folder`.
+- **Vấn đề:** Endpoint bị chặn trong production nhưng vẫn là API-visible ở development; nhánh lỗi ghép trực tiếp `error.message`.
+- **Hướng xử lý:** Dùng `code`/key i18n và giữ nguyên nhân kỹ thuật trong log server.
+
+### F7. Ghi chú hiệu chỉnh các kết luận cũ
+
+- `exchangeRateService` hiện đã dùng mã lỗi ở các nhánh chính; mô tả cũ rằng service vẫn ném toàn bộ câu tiếng Anh cần được xem là **đã lỗi thời**.
+- Payment core cũng đã có nhiều mã lỗi ổn định; phần còn mở chủ yếu là controller boundary, route debug/test và việc kiểm thử API.
+- Các mục trên chưa được đánh dấu hoàn tất vì chưa có kiểm thử đa locale tương ứng.
+
+## G. Kịch bản kiểm chứng bằng terminal động
+
+Các lệnh dưới đây dùng biến môi trường để chạy cùng một request với nhiều locale. Cần đặt `API_BASE` và token phù hợp với môi trường kiểm thử; không ghi token thật vào tài liệu hoặc shell history dùng chung.
+
+```bash
+API_BASE="${API_BASE:-http://localhost:5000}"
+AUTH_TOKEN="${AUTH_TOKEN:-}"
+for LANG in vi en ja; do
+  echo "=== locale: $LANG ==="
+  curl -sS \
+    -H "Accept-Language: $LANG" \
+    -H "Authorization: Bearer $AUTH_TOKEN" \
+    "$API_BASE/api/translations/admin/status/$LANG" | jq .
+done
+```
+
+Kiểm tra lỗi payment/import-export bằng cách thay `REQUEST` và `BODY` theo fixture test:
+
+```bash
+for LANG in vi en ja; do
+  echo "=== locale: $LANG ==="
+  curl -sS -X POST "$API_BASE$REQUEST" \
+    -H "Accept-Language: $LANG" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $AUTH_TOKEN" \
+    --data "$BODY" | jq '{success,code,params,message,error,stack}'
+done
+```
+
+Kết quả cần xác nhận:
+
+- `code` giữ nguyên giữa các locale; `message` thay đổi theo locale.
+- `params` có mặt khi lỗi chứa dữ liệu động.
+- Không có `error.message` raw từ provider và không có `stack` trong response user-facing.
+- Không có literal `UI Strings (Static)`, `Products (Dynamic)`, `days` hoặc thông báo import/export cố định ở nơi UI hiển thị.
+
+**Trạng thái:** Các phát hiện F1–F6 đang mở; chưa chạy các lệnh trên trong môi trường có dữ liệu/credential phù hợp.
