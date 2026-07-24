@@ -3,6 +3,7 @@
  */
 
 const exchangeRateService = require('../services/exchangeRateService');
+const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 
 const getAdminLanguage = (req) => {
