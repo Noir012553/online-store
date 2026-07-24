@@ -21,6 +21,7 @@ export interface ExchangeRate {
   fromCode: string;
   toCode: string;
   rate: number;
+  formattedRate?: string;
   source: 'manual' | 'api' | 'import';
   isActive: boolean;
   rateUpdatedAt?: string;
@@ -33,6 +34,7 @@ export interface ConvertResult {
   fromCode: string;
   toCode: string;
   rate: number;
+  formattedRate?: string;
   convertedAmount: number;
 }
 
