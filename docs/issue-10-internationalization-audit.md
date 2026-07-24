@@ -609,4 +609,13 @@ Kết quả cần xác nhận:
 - Không có `error.message` raw từ provider và không có `stack` trong response user-facing.
 - Không có literal `UI Strings (Static)`, `Products (Dynamic)`, `days` hoặc thông báo import/export cố định ở nơi UI hiển thị.
 
-**Trạng thái:** Các phát hiện F1–F6 đang mở; chưa chạy các lệnh trên trong môi trường có dữ liệu/credential phù hợp.
+### Trạng thái xử lý mới nhất
+
+- [x] F1 — Translation status trả mã dữ liệu `UI_STATIC` và `PRODUCT_DYNAMIC`, không còn nhãn tiếng Anh cố định.
+- [x] F2 — Thống kê tỷ giá trả `periodDays` dạng số thay cho chuỗi `days` đã ghép sẵn.
+- [x] F3 — Payment error giữ `params` từ service đến response API để nội suy theo locale.
+- [ ] F4 — Payment debug/test vẫn cần giới hạn môi trường và loại bỏ raw error/stack khỏi response user-facing.
+- [ ] F5 — Import/export và adapter vẫn cần contract lỗi ổn định.
+- [ ] F6 — Test email dev vẫn cần chuẩn hóa response và lỗi theo i18n.
+
+**Trạng thái:** Các hạng mục F1–F3 đã hoàn tất. Audit chưa thể đánh dấu hoàn thành toàn bộ vì F4–F6 còn mở và chưa chạy kiểm thử API đa locale với dữ liệu/credential phù hợp.
