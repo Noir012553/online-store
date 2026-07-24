@@ -1,0 +1,16 @@
+{
+  "required_codes": "Båda valutakoderna krävs",
+  "required_fields": "Källvaluta, målvaluta och växelkurs krävs",
+  "rate_must_be_positive": "Växelkursen måste vara större än noll",
+  "created_success": "Växelkursen skapades",
+  "updated_success": "Växelkursen uppdaterades",
+  "deleted_success": "Växelkursen togs bort",
+  "amount_non_negative": "Beloppet får inte vara negativt",
+  "updated_rates": "{{count}} växelkurser uppdaterades",
+  "not_found": "Växelkursen hittades inte",
+  "pair_not_found": "Växelkurs från {{fromCode}} till {{toCode}} hittades inte",
+  "currencies_match": "Käll- och målvaluta måste vara olika",
+  "already_exists": "Växelkurs från {{fromCode}} till {{toCode}} finns redan",
+  "currency_not_found": "Valutan {{currencyCode}} hittades inte",
+  "operation_failed": "Det gick inte att behandla växelkursbegäran"
+}

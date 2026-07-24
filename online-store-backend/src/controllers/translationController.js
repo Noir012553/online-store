@@ -660,7 +660,7 @@ exports.refetchStaticTranslations = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(req.lang, 'static_translations_reloaded'),
+      message: getMessage(req.lang, 'admin-controllers-messages.static_translations_reloaded'),
       data: results,
     });
   } catch (error) {
@@ -695,7 +695,7 @@ exports.syncTranslationsFromJSON = async (req, res) => {
     if (!language || !namespace || !translations) {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'code_namespace_translations_required'),
+        message: getMessage(req.lang, 'admin-controllers-messages.code_namespace_translations_required'),
       });
     }
 
@@ -707,7 +707,7 @@ exports.syncTranslationsFromJSON = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(req.lang, 'translations_synced_successfully'),
+      message: getMessage(req.lang, 'admin-controllers-messages.translations_synced_successfully'),
       data: result,
     });
   } catch (error) {
@@ -1290,7 +1290,7 @@ exports.getTranslationById = async (req, res) => {
     if (!translation || translation.isDeleted) {
       return res.status(404).json({
         success: false,
-        message: getMessage(req.lang, 'translation_not_found'),
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
@@ -1302,7 +1302,7 @@ exports.getTranslationById = async (req, res) => {
     if (error.kind === 'ObjectId') {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'invalid_translation_id_format'),
+        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
       });
     }
     console.error('[TranslationController] Error fetching translation:', error);
@@ -1321,7 +1321,7 @@ exports.updateTranslationKey = async (req, res) => {
     if (!key || value === undefined) {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'key_is_required'),
+        message: getMessage(req.lang, 'admin-controllers-messages.key_is_required'),
       });
     }
 
@@ -1330,7 +1330,7 @@ exports.updateTranslationKey = async (req, res) => {
     if (!translation || translation.isDeleted) {
       return res.status(404).json({
         success: false,
-        message: getMessage(req.lang, 'translation_not_found'),
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
@@ -1339,14 +1339,14 @@ exports.updateTranslationKey = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(req.lang, 'translation_updated_successfully'),
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_updated_successfully'),
       data: translation,
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'invalid_translation_id_format'),
+        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
       });
     }
     console.error('[TranslationController] Error updating translation:', error);
@@ -1365,7 +1365,7 @@ exports.deleteTranslationKey = async (req, res) => {
     if (!key) {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'key_is_required'),
+        message: getMessage(req.lang, 'admin-controllers-messages.key_is_required'),
       });
     }
 
@@ -1374,7 +1374,7 @@ exports.deleteTranslationKey = async (req, res) => {
     if (!translation || translation.isDeleted) {
       return res.status(404).json({
         success: false,
-        message: getMessage(req.lang, 'translation_not_found'),
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
@@ -1383,14 +1383,14 @@ exports.deleteTranslationKey = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(req.lang, 'translation_key_deleted'),
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_key_deleted'),
       data: translation,
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
       return res.status(400).json({
         success: false,
-        message: getMessage(req.lang, 'invalid_translation_id_format'),
+        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
       });
     }
     console.error('[TranslationController] Error deleting translation key:', error);
@@ -1869,7 +1869,8 @@ exports.editTranslationManual = async (req, res) => {
     if (!hashKey || !translatedText) {
       return res.status(400).json({
         success: false,
-        message: 'hashKey and translatedText are required',
+        code: 'TRANSLATION_FIELDS_REQUIRED',
+        message: getMessage(req.lang, 'admin-controllers-messages.hash_key_translated_text_required'),
       });
     }
 
@@ -1878,7 +1879,7 @@ exports.editTranslationManual = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Translation updated successfully',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_updated_successfully'),
       data: updated,
     });
   } catch (error) {
@@ -1901,7 +1902,8 @@ exports.batchEditTranslations = async (req, res) => {
     if (!updates || !Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'updates array is required and must not be empty',
+        code: 'TRANSLATION_UPDATES_REQUIRED',
+        message: getMessage(req.lang, 'admin-controllers-messages.updates_array_required'),
       });
     }
 
@@ -1910,7 +1912,7 @@ exports.batchEditTranslations = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Updated ${result.modifiedCount} translations`,
+      message: getMessage(req.lang, 'admin-controllers-messages.updated_translations_count', { count: result.modifiedCount }),
       data: result,
     });
   } catch (error) {
@@ -1935,7 +1937,8 @@ exports.manualOverrideTranslation = async (req, res) => {
     if (!hashKey || !translatedText) {
       return res.status(400).json({
         success: false,
-        message: 'hashKey and translatedText are required',
+        code: 'TRANSLATION_FIELDS_REQUIRED',
+        message: getMessage(req.lang, 'admin-controllers-messages.hash_key_translated_text_required'),
       });
     }
 
@@ -1971,7 +1974,7 @@ exports.manualOverrideTranslation = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Translation updated successfully',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_updated_successfully'),
       data: {
         hashKey: updated.hashKey,
         translatedText: updated.translatedText,
@@ -1995,7 +1998,8 @@ exports.batchManualOverride = async (req, res) => {
     if (!Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'updates array is required and must not be empty',
+        code: 'TRANSLATION_UPDATES_REQUIRED',
+        message: getMessage(req.lang, 'admin-controllers-messages.updates_array_required'),
       });
     }
 
@@ -2004,7 +2008,8 @@ exports.batchManualOverride = async (req, res) => {
       if (!update.hashKey || !update.translatedText) {
         return res.status(400).json({
           success: false,
-          message: 'Each update must have hashKey and translatedText',
+          code: 'TRANSLATION_UPDATE_FIELDS_REQUIRED',
+          message: getMessage(req.lang, 'admin-controllers-messages.each_update_must_have_hash_key'),
         });
       }
     }
@@ -2014,7 +2019,7 @@ exports.batchManualOverride = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Updated ${result.modifiedCount} translations`,
+      message: getMessage(req.lang, 'admin-controllers-messages.updated_translations_count', { count: result.modifiedCount }),
       data: {
         modified_count: result.modifiedCount,
       },
@@ -2167,14 +2172,16 @@ exports.getDynamicTranslations = async (req, res) => {
     if (!Array.isArray(items)) {
       return res.status(400).json({
         success: false,
-        message: 'Request body must be an array of translation requests',
+        code: 'TRANSLATION_REQUEST_BODY_INVALID',
+        message: getMessage(resolvedLang, 'admin-controllers-messages.request_body_array_required'),
       });
     }
 
     if (!entityType) {
       return res.status(400).json({
         success: false,
-        message: 'entityType query parameter is required',
+        code: 'TRANSLATION_ENTITY_TYPE_REQUIRED',
+        message: getMessage(resolvedLang, 'admin-controllers-messages.entity_type_query_parameter_required'),
       });
     }
 
@@ -2183,7 +2190,8 @@ exports.getDynamicTranslations = async (req, res) => {
     if (!isLangSupported) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${resolvedLang}`,
+        code: 'TRANSLATION_LANGUAGE_UNSUPPORTED',
+        message: getMessage(resolvedLang, 'admin-controllers-messages.unsupported_language', { lang: resolvedLang }),
       });
     }
 
@@ -2279,7 +2287,8 @@ exports.verifyTranslationConsistency = async (req, res) => {
     if (!isLangSupported) {
       return res.status(400).json({
         success: false,
-        message: `Unsupported language: ${resolvedLang}`,
+        code: 'TRANSLATION_LANGUAGE_UNSUPPORTED',
+        message: getMessage(resolvedLang, 'admin-controllers-messages.unsupported_language', { lang: resolvedLang }),
       });
     }
 
@@ -2339,7 +2348,8 @@ exports.getFallbackTranslations = async (req, res) => {
     if (!resolvedLang) {
       return res.status(400).json({
         success: false,
-        message: 'Language (lang) is required',
+        code: 'TRANSLATION_LANGUAGE_REQUIRED',
+        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.lang_ns_required'),
       });
     }
 
@@ -2388,7 +2398,8 @@ exports.getFallbackTranslations = async (req, res) => {
     if (!translation) {
       return res.status(404).json({
         success: false,
-        message: `Translations not found in fallback chain for namespace: ${ns}`,
+        code: 'TRANSLATION_FALLBACK_NOT_FOUND',
+        message: getMessage(resolvedLang, 'admin-controllers-messages.translations_not_found_in_fallback_chain', { ns }),
       });
     }
 
