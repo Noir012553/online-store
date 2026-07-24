@@ -427,6 +427,7 @@ class PaymentService {
             verified: false,
             isAmountMismatch: true,
             failureCode: 'PAYMENT_AMOUNT_MISMATCH',
+            currency: order.currencyCode,
             failureParams: {
               paidAmount: payment.amount,
               orderTotal: order.totalPrice,
@@ -443,6 +444,7 @@ class PaymentService {
           paymentStatus: payment.status,
           paidAmount: payment.amount,
           totalPrice: order.totalPrice,
+          currency: order.currencyCode,
           verified: true,
         },
       };

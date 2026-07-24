@@ -24,6 +24,27 @@ const formatAmountFields = (data, currency, lang, fields) => {
   }, data);
 };
 
+const formatPaymentFields = (data, currencies, lang) => {
+  const formattedPayment = formatAmountFields(data, currencies.get(data.currency), lang, [
+    ['amount', 'formattedAmount'],
+    ['paidAmount', 'formattedPaidAmount'],
+    ['totalPrice', 'formattedTotalPrice'],
+  ]);
+
+  return formatAmountFields(formattedPayment, currencies.get(data.providerCurrency), lang, [
+    ['providerAmount', 'formattedProviderAmount'],
+  ]);
+};
+
+const formatPayments = async (payments, lang) => {
+  const currencies = await getCurrencyMetadata(payments.flatMap((payment) => [payment.currency, payment.providerCurrency]));
+
+  return payments.map((payment) => {
+    const data = payment.toObject ? payment.toObject() : payment;
+    return formatPaymentFields(data, currencies, lang);
+  });
+};
+
 const formatProducts = async (products, lang) => {
   const currencies = await getCurrencyMetadata(products.map((product) => product.baseCurrencyCode));
 
@@ -78,6 +99,8 @@ const formatCoupons = async (coupons, lang) => {
 module.exports = {
   getCurrencyMetadata,
   formatAmountFields,
+  formatPaymentFields,
+  formatPayments,
   formatProducts,
   formatOrders,
   formatCoupons,
