@@ -839,17 +839,20 @@ exports.getProductTranslationStatuses = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_IDS_INVALID', 'product_ids_invalid');
     }
 
-    const [catalogTranslations, legacyTranslations, products] = await Promise.all([
+    const [catalogTranslations, products] = await Promise.all([
       ProductCatalogTranslationCache.find({ entityId: { $in: productIds }, targetLang: lang }).lean(),
-      LiveTranslationCache.find({
-        entityId: { $in: productIds },
-        targetLang: lang,
-        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
-      }).lean(),
       Product.find({ _id: { $in: productIds } }).select('features featuresTranslations specs').lean(),
     ]);
     const catalogByProductId = new Map(catalogTranslations.map((translation) => [translation.entityId, translation]));
     const productsById = new Map(products.map((product) => [product._id.toString(), product]));
+    const missingCatalogProductIds = productIds.filter((productId) => !catalogByProductId.has(productId));
+    const legacyTranslations = missingCatalogProductIds.length > 0
+      ? await LiveTranslationCache.find({
+        entityId: { $in: missingCatalogProductIds },
+        targetLang: lang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      }).lean()
+      : [];
     const legacyByProductId = new Map();
 
     legacyTranslations.forEach((translation) => {
@@ -972,17 +975,19 @@ exports.retranslateProduct = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
 
-    const [product, catalogTranslation, legacyTranslations] = await Promise.all([
+    const [product, catalogTranslation] = await Promise.all([
       Product.findById(productId).lean(),
       ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
-      LiveTranslationCache.find({
-        entityId: productId,
-        targetLang,
-        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
-      }).lean(),
     ]);
     if (!product) return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
 
+    const legacyTranslations = catalogTranslation
+      ? []
+      : await LiveTranslationCache.find({
+        entityId: productId,
+        targetLang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      }).lean();
     const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations);
     const manualFields = catalogTranslation?.manualFields || [];
     const translateField = async (field, source, entityType) => {
