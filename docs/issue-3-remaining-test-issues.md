@@ -76,6 +76,30 @@ Vì vậy test này chỉ có thể đạt khi backend đã khởi động và e
 
 - Các file test liên quan vượt qua `node --check`.
 - `npm run test:list` liệt kê được các suite.
+
+## Cập nhật tiến độ hiện tại
+
+Đợt rà soát này chỉ cập nhật tài liệu và đối chiếu tĩnh; chưa chạy lại test runtime, không thay đổi mã nguồn và không sử dụng credentials giả.
+
+### Đã xác minh
+
+- [x] Các lỗi chức năng của order và product stats vẫn ở trạng thái đã xử lý theo kết quả đã ghi nhận.
+- [x] `npm run test:list` có thể liệt kê các suite từ registry.
+- [x] Các test rollback/shadow-write và sanity test vẫn tồn tại, không bị kết luận là dư thừa.
+- [x] Điều kiện runtime đã được ghi rõ: MongoDB, JWT secrets và Cloudflare credentials hợp lệ; `test:simple` cần backend chạy tại cổng 5000.
+
+### Chưa thể đóng
+
+- Chưa có kết quả runtime mới cho rollback và shadow-write.
+- Chưa xác minh đầy đủ các test phụ thuộc dữ liệu fixture, index TTL và Cloudflare AI.
+- Chưa thể kết luận test suite đầy đủ đạt khi môi trường ngoài chưa sẵn sàng.
+
+### Bước tiếp theo
+
+1. Chuẩn bị database test riêng và credentials hợp lệ.
+2. Chạy rollback/shadow-write, ghi lại từng PASS/FAIL cùng nguyên nhân.
+3. Khởi động backend rồi chạy `npm run test:simple`.
+4. Không dùng dữ liệu production hoặc giá trị giả để làm cho test chạy qua.
 - Registry đã nhận suite `shadow-writes`.
 - Các import tương đối sai được ghi nhận trước đây đã được sửa.
 - Không phát hiện lại `entityType: "generic"` trong nhóm test hiện tại.
