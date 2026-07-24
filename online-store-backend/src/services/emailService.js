@@ -7,8 +7,8 @@ const nodemailer = require('nodemailer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 
-const createEmailDeliveryError = (code, message, cause) => {
-  const error = new Error(message);
+const createEmailDeliveryError = (code, cause) => {
+  const error = new Error(code);
   error.code = code;
   error.cause = cause;
   return error;
@@ -78,7 +78,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
 
     // If email is not configured, skip sending but log the link
     if (!transporter) {
-      return { message: 'Email disabled (dev mode)' };
+      return { code: 'EMAIL_DISABLED' };
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
@@ -135,11 +135,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw createEmailDeliveryError(
-      'EMAIL_VERIFICATION_SEND_FAILED',
-      `Failed to send verification email: ${error.message}`,
-      error
-    );
+    throw createEmailDeliveryError('EMAIL_VERIFICATION_SEND_FAILED', error);
   }
 };
 
@@ -156,7 +152,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
 
     // If email is not configured, skip sending but log the link
     if (!transporter) {
-      return { message: 'Email disabled (dev mode)' };
+      return { code: 'EMAIL_DISABLED' };
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
@@ -213,11 +209,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw createEmailDeliveryError(
-      'EMAIL_PASSWORD_RESET_SEND_FAILED',
-      `Failed to send reset password email: ${error.message}`,
-      error
-    );
+    throw createEmailDeliveryError('EMAIL_PASSWORD_RESET_SEND_FAILED', error);
   }
 };
 
@@ -234,7 +226,7 @@ const sendOTPEmail = async (email, otp, lang) => {
 
     // If email is not configured, skip sending but log the OTP
     if (!transporter) {
-      return { message: 'Email disabled (dev mode)' };
+      return { code: 'EMAIL_DISABLED' };
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
@@ -245,6 +237,7 @@ const sendOTPEmail = async (email, otp, lang) => {
       expiry: getMessage(emailLang, 'auth-messages.email_otp_expiry'),
       ignore: getMessage(emailLang, 'auth-messages.email_otp_ignore'),
       copyright: getMessage(emailLang, 'auth-messages.email_copyright'),
+      text: getMessage(emailLang, 'auth-messages.email_otp_text', { otp }),
     };
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -276,7 +269,7 @@ const sendOTPEmail = async (email, otp, lang) => {
 
         ${msg.description}
 
-        ${otp}
+        ${msg.text}
 
         ${msg.expiry}
         ${msg.ignore}
@@ -288,11 +281,7 @@ const sendOTPEmail = async (email, otp, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw createEmailDeliveryError(
-      'EMAIL_OTP_SEND_FAILED',
-      `Failed to send OTP email: ${error.message}`,
-      error
-    );
+    throw createEmailDeliveryError('EMAIL_OTP_SEND_FAILED', error);
   }
 };
 
@@ -308,7 +297,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
 
     // If email is not configured, skip sending
     if (!transporter) {
-      return { message: 'Email disabled (dev mode)' };
+      return { code: 'EMAIL_DISABLED' };
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
@@ -391,11 +380,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw createEmailDeliveryError(
-      'EMAIL_NEWSLETTER_SEND_FAILED',
-      `Failed to send newsletter confirmation email: ${error.message}`,
-      error
-    );
+    throw createEmailDeliveryError('EMAIL_NEWSLETTER_SEND_FAILED', error);
   }
 };
 

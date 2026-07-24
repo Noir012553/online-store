@@ -34,6 +34,7 @@
   "email_otp_subject": "Tu código OTP - LaptopStore",
   "email_otp_title": "Código de Verificación",
   "email_otp_description": "Este es tu OTP para verificar tu identidad.",
+  "email_otp_text": "Tu código OTP: {{otp}}",
   "email_otp_expiry": "Este código expirará en 10 minutos.",
   "email_otp_ignore": "Si no solicitaste este código, por favor ignora este email.",
   "email_copyright": "© 2024 LaptopStore. Todos los derechos reservados."
