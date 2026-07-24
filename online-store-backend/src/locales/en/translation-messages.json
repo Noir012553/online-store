@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "A valid dynamic entity type is required",
   "retranslate_not_needed": "No dynamic translations need retranslation",
   "retranslate_completed": "Dynamic translations retranslation completed",
-  "dynamic_retranslate_failed": "Dynamic retranslation failed"
+  "dynamic_retranslate_failed": "Dynamic retranslation failed",
+  "target_language_required": "Target language is required",
+  "source_language_required": "Source language is required",
+  "text_required": "Text to translate is required and must be a non-empty string",
+  "source_language_unsupported": "Unsupported source language: {{language}}",
+  "target_language_unsupported": "Unsupported target language: {{language}}",
+  "translation_request_failed": "Unable to translate text"
 }

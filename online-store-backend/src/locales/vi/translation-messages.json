@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "Loại thực thể động hợp lệ là bắt buộc",
   "retranslate_not_needed": "Không có bản dịch động nào cần dịch lại",
   "retranslate_completed": "Đã hoàn tất dịch lại các bản dịch động",
-  "dynamic_retranslate_failed": "Dịch lại bản dịch động thất bại"
+  "dynamic_retranslate_failed": "Dịch lại bản dịch động thất bại",
+  "target_language_required": "Ngôn ngữ đích là bắt buộc",
+  "source_language_required": "Ngôn ngữ nguồn là bắt buộc",
+  "text_required": "Văn bản cần dịch là bắt buộc và phải là chuỗi không rỗng",
+  "source_language_unsupported": "Ngôn ngữ nguồn không được hỗ trợ: {{language}}",
+  "target_language_unsupported": "Ngôn ngữ đích không được hỗ trợ: {{language}}",
+  "translation_request_failed": "Không thể dịch văn bản"
 }

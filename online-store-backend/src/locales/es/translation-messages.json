@@ -19,5 +19,11 @@
   "dynamic_entity_type_invalid": "Se requiere un tipo de entidad dinámica válido",
   "retranslate_not_needed": "No hay traducciones dinámicas que necesiten volver a traducirse",
   "retranslate_completed": "La retraducción de las traducciones dinámicas se completó",
-  "dynamic_retranslate_failed": "No se pudo volver a traducir las traducciones dinámicas"
+  "dynamic_retranslate_failed": "No se pudo volver a traducir las traducciones dinámicas",
+  "target_language_required": "Se requiere el idioma de destino",
+  "source_language_required": "Se requiere el idioma de origen",
+  "text_required": "El texto que se va a traducir es obligatorio y no puede estar vacío",
+  "source_language_unsupported": "Idioma de origen no compatible: {{language}}",
+  "target_language_unsupported": "Idioma de destino no compatible: {{language}}",
+  "translation_request_failed": "No se pudo traducir el texto"
 }
