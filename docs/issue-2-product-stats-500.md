@@ -417,3 +417,9 @@ Kết quả này xác nhận lại currency fallback, stats overview, validation
 - Nhận định lịch sử rằng toast API có thể rỗng vì không truyền `t` không còn là trạng thái hiện tại: `LanguageContext` đã thiết lập translator dùng chung và `errorHandler` dùng translator đó khi không nhận `t` trực tiếp.
 
 **Trạng thái hiện tại:** Hoàn tất ở phạm vi stats/currency và toast liên quan; không chạy lại API trong đợt rà soát tài liệu này.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Hoàn tất trong phạm vi lỗi stats overview, fallback currency và toast liên quan.
+- **Đã xác nhận trong mã nguồn:** `orderRevenue.js` vẫn chọn currency active mặc định khi request không gửi `currency`; `productController` tiếp tục dùng helper này. `LanguageContext` đã cung cấp translator dùng chung cho xử lý lỗi API và hook upload dùng key dịch.
+- **Còn theo dõi:** Kết quả HTTP và test runtime đã ghi ở các phần trước là lịch sử, không được chạy lại trong đợt đối chiếu tĩnh này.

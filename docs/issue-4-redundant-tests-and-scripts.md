@@ -393,3 +393,9 @@ Các lỗi trước đó do dấu nháy của lệnh `node -e` trong PowerShell 
 - Các số liệu PowerShell và đường dẫn workspace ở các phần trước là kết quả lịch sử, không phải bằng chứng runtime mới của repository hiện tại.
 
 **Trạng thái cập nhật:** Wiring chính đang hợp lệ. Chỉ còn quyết định vận hành về alias suite, test manual và các script legacy; không có cơ sở để tự xóa hoặc di chuyển file trong đợt rà soát tài liệu này.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Hoàn tất phần sửa wiring xác định được; phân loại alias/manual/legacy vẫn là việc vận hành còn mở.
+- **Đã xác nhận trong mã nguồn:** Các npm script trỏ file thiếu đã được loại bỏ; `offline-manual.js` dùng đúng lệnh; registry còn 8 suite. Alias `orders`/`vnpay` và `rollback`/`shadow-writes` dùng chung file có chủ đích, runner khử trùng danh sách khi chạy chung.
+- **Còn theo dõi:** Không tự xóa test hoặc script legacy chỉ dựa trên tên/đường dẫn; cần quyết định riêng sau khi xác nhận nhu cầu vận hành.

@@ -619,3 +619,10 @@ Kết quả cần xác nhận:
 - [x] F6 — Test email development dùng `code` và `getMessage(req.lang, ...)`; nguyên nhân kỹ thuật chỉ được ghi log trên server.
 
 **Trạng thái:** Các hạng mục F1–F6 đã được chuẩn hoá trong mã. Đã kiểm tra cú pháp backend và chạy 10/10 kiểm thử frontend. Kiểm thử API đa locale với dữ liệu/credential thực vẫn cần thực hiện trong môi trường đã cài đủ dependencies backend.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Chưa hoàn tất audit i18n.
+- **Đã xác nhận trong mã nguồn:** Rate limit, validation middleware và `RoleBadge` đã dùng contract/key i18n; các hạng mục F1–F6 được đánh dấu xử lý trong tài liệu vẫn phản ánh mã hiện tại.
+- **Còn triển khai:** Translation controller, currency/exchange-rate, payment, import/export và email vẫn còn nhánh literal hoặc cần xác nhận contract `{ code, params, message }`.
+- **Còn kiểm thử:** Chạy API cùng error path ở `vi`, `en` và một locale không-Latin khi môi trường backend có MongoDB, JWT và Cloudflare hợp lệ.

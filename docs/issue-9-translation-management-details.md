@@ -217,3 +217,9 @@ Tài liệu đã được cập nhật theo code hiện tại: route redirect, s
 ### Trạng thái
 
 Issue vẫn **chưa hoàn tất**. Tài liệu hiện đã phản ánh rõ phần đã xác minh và phần chỉ là đề xuất; không coi contract mục tiêu hoặc job nền là tính năng đang tồn tại.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Chưa hoàn tất.
+- **Đã xác nhận trong mã nguồn:** `featuresTranslations` được merge theo field, nhưng luồng đọc/status vẫn hybrid giữa cache catalog và legacy. Import vẫn fallback `name + brand` khi thiếu `productId`; batch legacy chưa nhận `productIds`, `fields` hoặc `idempotencyKey`.
+- **Còn triển khai:** Chốt nguồn dữ liệu, contract batch/import và chạy kiểm thử round-trip cùng save/re-translate trên database test riêng.

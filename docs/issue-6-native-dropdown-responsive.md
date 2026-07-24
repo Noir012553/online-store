@@ -108,3 +108,9 @@ Một số khu vực đã dùng trực tiếp phần tử HTML `<select>`, gồm
 Đã đối chiếu tại commit `00dd0ee`: không còn các wrapper `src/components/ui/select.tsx`, `src/components/ui/dropdown-menu.tsx` hoặc dependency `@radix-ui/react-select`/`@radix-ui/react-dropdown-menu` trong frontend. Các select native và implementation nội bộ giữ nguyên là hướng triển khai hiện tại.
 
 **Trạng thái hiện tại:** Hoàn tất phần loại bỏ phụ thuộc dropdown nêu trên; còn xác minh thao tác trực tiếp trên preview ở các viewport.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Hoàn tất loại bỏ phụ thuộc dropdown Radix trong phạm vi issue.
+- **Đã xác nhận trong mã nguồn:** Không còn wrapper `select.tsx`/`dropdown-menu.tsx` hoặc dependency Radix tương ứng; các màn hình dùng select native hoặc implementation nội bộ.
+- **Còn theo dõi:** Xác nhận thao tác trực tiếp trên mobile, tablet và desktop khi preview sẵn sàng.
