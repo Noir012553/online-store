@@ -11,6 +11,8 @@ const ExchangeRate = require('../models/ExchangeRate');
 const ExchangeRateHistory = require('../models/ExchangeRateHistory');
 const Currency = require('../models/Currency');
 
+const createExchangeRateError = (code, params = {}) => Object.assign(new Error(code), { code, params });
+
 // Cache tỷ giá trong bộ nhớ (đơn giản)
 let rateCache = {};
 let cacheTimestamp = null;
@@ -25,7 +27,7 @@ class ExchangeRateService {
   async createExchangeRate(data) {
     // Validate: fromCode != toCode
     if (data.fromCode === data.toCode) {
-      throw new Error('Mã tiền tệ nguồn và đích không được giống nhau');
+      throw createExchangeRateError('EXCHANGE_RATE_CURRENCIES_MATCH');
     }
 
     // Validate: cả hai mệnh giá phải tồn tại
@@ -38,9 +40,10 @@ class ExchangeRateService {
     });
 
     if (existing) {
-      throw new Error(
-        `Exchange rate from ${data.fromCode} to ${data.toCode} already exists`
-      );
+      throw createExchangeRateError('EXCHANGE_RATE_ALREADY_EXISTS', {
+        fromCode: data.fromCode,
+        toCode: data.toCode,
+      });
     }
 
     const exchangeRate = new ExchangeRate(data);
@@ -77,7 +80,7 @@ class ExchangeRateService {
   async getExchangeRateById(id) {
     const rate = await ExchangeRate.findById(id);
     if (!rate) {
-      throw new Error('Exchange rate does not exist');
+      throw createExchangeRateError('EXCHANGE_RATE_NOT_FOUND');
     }
     return rate;
   }
@@ -101,9 +104,7 @@ class ExchangeRateService {
     });
 
     if (!rate) {
-      throw new Error(
-        `Exchange rate from ${fromCode} to ${toCode} not found`
-      );
+      throw createExchangeRateError('EXCHANGE_RATE_PAIR_NOT_FOUND', { fromCode, toCode });
     }
 
     return rate;
@@ -118,7 +119,7 @@ class ExchangeRateService {
   async updateExchangeRate(id, updates) {
     const rate = await ExchangeRate.findById(id);
     if (!rate) {
-      throw new Error('Exchange rate does not exist');
+      throw createExchangeRateError('EXCHANGE_RATE_NOT_FOUND');
     }
 
     // Nếu cập nhật fromCode hoặc toCode, cần validate
@@ -127,7 +128,7 @@ class ExchangeRateService {
       const toCode = updates.toCode || rate.toCode;
 
       if (fromCode === toCode) {
-        throw new Error('From currency and to currency must be different');
+        throw createExchangeRateError('EXCHANGE_RATE_CURRENCIES_MATCH');
       }
 
       await this._validateCurrencies(fromCode, toCode);
@@ -140,9 +141,7 @@ class ExchangeRateService {
       });
 
       if (existing) {
-        throw new Error(
-          `Exchange rate from ${fromCode} to ${toCode} already exists`
-        );
+        throw createExchangeRateError('EXCHANGE_RATE_ALREADY_EXISTS', { fromCode, toCode });
       }
     }
 
@@ -178,7 +177,7 @@ class ExchangeRateService {
   async deleteExchangeRate(id) {
     const rate = await ExchangeRate.findById(id);
     if (!rate) {
-      throw new Error('Exchange rate does not exist');
+      throw createExchangeRateError('EXCHANGE_RATE_NOT_FOUND');
     }
 
     await ExchangeRate.findByIdAndDelete(id);
@@ -196,7 +195,7 @@ class ExchangeRateService {
    */
   async convertAmount(amount, fromCode, toCode) {
     if (amount < 0) {
-      throw new Error('Amount must not be negative');
+      throw createExchangeRateError('EXCHANGE_RATE_AMOUNT_NEGATIVE');
     }
 
     // Nếu cùng mệnh giá, không cần quy đổi
@@ -216,7 +215,7 @@ class ExchangeRateService {
     ]);
 
     if (!targetCurrency) {
-      throw new Error(`Currency ${toCode} does not exist`);
+      throw createExchangeRateError('EXCHANGE_RATE_CURRENCY_NOT_FOUND', { currencyCode: toCode });
     }
 
     const multiplier = 10 ** targetCurrency.decimalPlaces;
@@ -251,11 +250,11 @@ class ExchangeRateService {
     ]);
 
     if (!fromExists) {
-      throw new Error(`Currency ${fromCode} does not exist`);
+      throw createExchangeRateError('EXCHANGE_RATE_CURRENCY_NOT_FOUND', { currencyCode: fromCode });
     }
 
     if (!toExists) {
-      throw new Error(`Currency ${toCode} does not exist`);
+      throw createExchangeRateError('EXCHANGE_RATE_CURRENCY_NOT_FOUND', { currencyCode: toCode });
     }
   }
 
