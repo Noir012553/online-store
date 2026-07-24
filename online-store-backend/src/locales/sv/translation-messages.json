@@ -25,5 +25,7 @@
   "text_required": "Texten som ska översättas krävs och får inte vara tom",
   "source_language_unsupported": "Källspråket stöds inte: {{language}}",
   "target_language_unsupported": "Målspråket stöds inte: {{language}}",
-  "translation_request_failed": "Det gick inte att översätta texten"
+  "translation_request_failed": "Det gick inte att översätta texten",
+  "static_translations_not_found": "Inga översättningar hittades för det valda språket och namnområdet",
+  "static_translations_fetch_failed": "Det gick inte att hämta översättningar"
 }

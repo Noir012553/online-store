@@ -55,6 +55,7 @@ exports.getStaticTranslations = async (req, res) => {
     if (!/^[a-zA-Z0-9_-]+$/.test(ns)) {
       return res.status(400).json({
         success: false,
+        code: 'TRANSLATION_NAMESPACE_INVALID',
         message: getMessage(getRequestLanguage(req), 'admin-errors.failed_load_namespace'),
       });
     }
@@ -74,10 +75,13 @@ exports.getStaticTranslations = async (req, res) => {
     }
 
     if (!translations) {
-      return res.status(404).json({
-        success: false,
-        message: `Translations not found for language: ${lang}, namespace: ${ns}`,
-      });
+      return sendTranslationError(
+        res,
+        404,
+        lang,
+        'STATIC_TRANSLATIONS_NOT_FOUND',
+        'static_translations_not_found'
+      );
     }
 
     const flattenedTranslations = flattenJson(translations);
@@ -98,10 +102,13 @@ exports.getStaticTranslations = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching static translations:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendTranslationError(
+      res,
+      500,
+      getRequestLanguage(req),
+      'STATIC_TRANSLATIONS_FETCH_FAILED',
+      'static_translations_fetch_failed'
+    );
   }
 };
 

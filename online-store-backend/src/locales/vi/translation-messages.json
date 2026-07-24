@@ -25,5 +25,7 @@
   "text_required": "Văn bản cần dịch là bắt buộc và phải là chuỗi không rỗng",
   "source_language_unsupported": "Ngôn ngữ nguồn không được hỗ trợ: {{language}}",
   "target_language_unsupported": "Ngôn ngữ đích không được hỗ trợ: {{language}}",
-  "translation_request_failed": "Không thể dịch văn bản"
+  "translation_request_failed": "Không thể dịch văn bản",
+  "static_translations_not_found": "Không tìm thấy bản dịch cho ngôn ngữ và không gian tên đã chọn",
+  "static_translations_fetch_failed": "Không thể tải bản dịch"
 }

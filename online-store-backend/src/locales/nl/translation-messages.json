@@ -25,5 +25,7 @@
   "text_required": "De te vertalen tekst is verplicht en mag niet leeg zijn",
   "source_language_unsupported": "Niet-ondersteunde brontaal: {{language}}",
   "target_language_unsupported": "Niet-ondersteunde doeltaal: {{language}}",
-  "translation_request_failed": "Tekst kan niet worden vertaald"
+  "translation_request_failed": "Tekst kan niet worden vertaald",
+  "static_translations_not_found": "Er zijn geen vertalingen gevonden voor de geselecteerde taal en naamruimte",
+  "static_translations_fetch_failed": "Vertalingen kunnen niet worden opgehaald"
 }

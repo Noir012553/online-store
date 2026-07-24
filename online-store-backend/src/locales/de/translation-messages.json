@@ -25,5 +25,7 @@
   "text_required": "Der zu übersetzende Text ist erforderlich und darf nicht leer sein",
   "source_language_unsupported": "Nicht unterstützte Ausgangssprache: {{language}}",
   "target_language_unsupported": "Nicht unterstützte Zielsprache: {{language}}",
-  "translation_request_failed": "Text konnte nicht übersetzt werden"
+  "translation_request_failed": "Text konnte nicht übersetzt werden",
+  "static_translations_not_found": "Für die ausgewählte Sprache und den Namespace wurden keine Übersetzungen gefunden",
+  "static_translations_fetch_failed": "Übersetzungen konnten nicht geladen werden"
 }

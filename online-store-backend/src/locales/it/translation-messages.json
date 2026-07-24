@@ -25,5 +25,7 @@
   "text_required": "Il testo da tradurre è obbligatorio e non può essere vuoto",
   "source_language_unsupported": "Lingua di origine non supportata: {{language}}",
   "target_language_unsupported": "Lingua di destinazione non supportata: {{language}}",
-  "translation_request_failed": "Impossibile tradurre il testo"
+  "translation_request_failed": "Impossibile tradurre il testo",
+  "static_translations_not_found": "Non sono state trovate traduzioni per la lingua e lo spazio dei nomi selezionati",
+  "static_translations_fetch_failed": "Impossibile caricare le traduzioni"
 }
