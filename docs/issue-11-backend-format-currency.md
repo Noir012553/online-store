@@ -11,6 +11,8 @@ Tên file Markdown tuân theo định dạng `issue-N-<mô-tả>.md`. File này 
 - **Ưu tiên:** Trung bình
 - **Trạng thái hiện tại:** Chỉ lập kế hoạch, chưa triển khai mã nguồn
 
+> **[LỖI — đã xác minh]** Trạng thái này đã lỗi thời: formatter backend, các field `formattedAmount`/`formattedConvertedAmount`/`formattedRate` cho endpoint quy đổi, và phần render `formattedRate` ở danh sách tỷ giá admin đều đã có trong mã nguồn (`online-store-backend/src/utils/currencyFormatter.js:5-22`, `online-store-backend/src/controllers/exchangeRateController.js:293-300`, `online-store-frontend/src/components/admin/ExchangeRateList.tsx:113-115`).
+
 ## Mục tiêu
 
 Đưa trách nhiệm format số tiền và tỷ giá về backend để frontend không tự quyết định số chữ số thập phân, dấu phân cách hoặc ký hiệu tiền tệ. Frontend chỉ nhận chuỗi hiển thị từ API và render chuỗi đó.
@@ -27,6 +29,8 @@ Các helper hiện tại dùng `Intl.NumberFormat` ở:
 - `online-store-frontend/src/hooks/useCurrency.ts`
 - `online-store-frontend/src/hooks/useCurrencyConversion.ts`
 
+> **[LỖI — đã xác minh]** `useCurrency.ts` không gọi trực tiếp `Intl.NumberFormat`; file này chỉ gọi `formatCurrencyWithMetadata` từ `src/lib/utils.ts` (`online-store-frontend/src/hooks/useCurrency.ts:3,9`).
+
 Riêng danh sách tỷ giá admin đang ép mọi giá trị thành 8 chữ số sau dấu thập phân tại:
 
 - `online-store-frontend/src/components/admin/ExchangeRateList.tsx:114`
@@ -36,6 +40,10 @@ rate.rate.toFixed(8)
 ```
 
 Các số 0 ở cuối như `10.85000000` phát sinh từ cách format này, không phải do backend tạo thêm dữ liệu.
+
+> **[LỖI — đã xác minh]** `ExchangeRateList.tsx:114` hiện render `rate.formattedRate`, không có `rate.rate.toFixed(8)` (`online-store-frontend/src/components/admin/ExchangeRateList.tsx:113-115`). Nhận định về nguồn tạo số `0` ở cuối vì vậy không còn đúng với mã hiện tại.
+>
+> Backend hiện format tỷ giá bằng `Intl.NumberFormat` với `maximumFractionDigits: 8`, nên không tự thêm số `0` ở cuối (`online-store-backend/src/utils/currencyFormatter.js:16-18`).
 
 ### Backend hiện đang tính và trả số
 
@@ -48,6 +56,8 @@ Backend thực hiện quy đổi và làm tròn theo `decimalPlaces` của tiề
 - `online-store-backend/src/services/exchangeRateService.js:212-228`
 
 Hiện backend chưa có một formatter tiền tệ dùng chung để trả chuỗi hiển thị theo locale.
+
+> **[LỖI — đã xác minh]** Backend đã có formatter dùng chung tại `online-store-backend/src/utils/currencyFormatter.js:5-22`, gồm `formatCurrency` và `formatExchangeRate`. `exchangeRateController` đã import và trả các field format từ formatter này (`online-store-backend/src/controllers/exchangeRateController.js:9,293-300`).
 
 ## Định hướng API đề xuất
 
@@ -78,6 +88,8 @@ Tên trường cụ thể cần thống nhất theo từng response hiện có. 
 
 ## Các file backend dự kiến thay đổi
 
+> **[LỖI — đã xác minh]** Tiêu đề này cần phân biệt phần chưa triển khai với phần đã có: ít nhất formatter và một phần response của exchange rate đã được triển khai.
+
 ### Formatter dùng chung
 
 Tạo một utility backend trong thư mục utils, ví dụ:
@@ -85,6 +97,8 @@ Tạo một utility backend trong thư mục utils, ví dụ:
 - `online-store-backend/src/utils/currencyFormatter.js`
 
 Utility này nhận số tiền, mã tiền tệ, locale và metadata currency; trả về chuỗi hiển thị bằng `Intl.NumberFormat` hoặc quy tắc tương đương của backend.
+
+> **[LỖI — đã xác minh]** Đây không còn là file “dự kiến tạo”: `online-store-backend/src/utils/currencyFormatter.js` đã tồn tại và đang triển khai `formatCurrency`/`formatExchangeRate`.
 
 Cần tách rõ hai trường hợp:
 
@@ -111,9 +125,13 @@ Rà soát cách backend xác định ngôn ngữ hiện tại, bao gồm:
 - query `lang`
 - `getAdminLanguage()` ở exchange rate controller
 
+> **[LỖI — đã xác minh]** Cần mô tả rõ hơn rằng `getAdminLanguage()` hiện đọc `req.lang` rồi fallback về ngôn ngữ mặc định (`online-store-backend/src/controllers/exchangeRateController.js:11`); `req.lang` đã được `languageMiddleware` xác định theo thứ tự query, body, `Accept-Language`, rồi default (`online-store-backend/src/middleware/languageMiddleware.js:12-40`). Không phải một cơ chế locale độc lập trong exchange-rate controller.
+
 Chọn một cơ chế thống nhất để formatter không tự suy đoán locale khác nhau giữa các endpoint.
 
 ## Các file frontend dự kiến thay đổi
+
+> **[LỖI — đã xác minh]** `ExchangeRateList.tsx` không còn là thay đổi dự kiến cho việc render tỷ giá; component này đã dùng `rate.formattedRate` (`online-store-frontend/src/components/admin/ExchangeRateList.tsx:113-115`).
 
 Rà soát các nơi đang gọi formatter hoặc tự format amount:
 
