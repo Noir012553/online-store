@@ -17,6 +17,38 @@ const getAdminLanguage = (req) => {
   return getDefaultLanguage().code.toUpperCase();
 };
 
+const exchangeRateMessageKeys = {
+  EXCHANGE_RATE_NOT_FOUND: 'not_found',
+  EXCHANGE_RATE_PAIR_NOT_FOUND: 'pair_not_found',
+  EXCHANGE_RATE_CURRENCIES_MATCH: 'currencies_match',
+  EXCHANGE_RATE_ALREADY_EXISTS: 'already_exists',
+  EXCHANGE_RATE_AMOUNT_NEGATIVE: 'amount_non_negative',
+  EXCHANGE_RATE_CURRENCY_NOT_FOUND: 'currency_not_found',
+};
+
+const sendExchangeRateError = (res, status, lang, error) => {
+  const code = error.code || 'EXCHANGE_RATE_OPERATION_FAILED';
+  const key = exchangeRateMessageKeys[code] || 'operation_failed';
+
+  return res.status(status).json({
+    success: false,
+    code,
+    message: getMessage(lang, `exchange-rate.${key}`, error.params),
+  });
+};
+
+const getExchangeRateErrorStatus = (error, fallbackStatus = 400) => {
+  if (['EXCHANGE_RATE_NOT_FOUND', 'EXCHANGE_RATE_PAIR_NOT_FOUND', 'EXCHANGE_RATE_CURRENCY_NOT_FOUND'].includes(error.code)) {
+    return 404;
+  }
+
+  if (error.code === 'EXCHANGE_RATE_ALREADY_EXISTS') {
+    return 409;
+  }
+
+  return fallbackStatus;
+};
+
 /**
  * GET /api/exchange-rates
  * Lấy danh sách tất cả tỷ giá
@@ -47,10 +79,7 @@ exports.getAllExchangeRates = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getAllExchangeRates] Error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, 500, getAdminLanguage(req), error);
   }
 };
 
@@ -69,10 +98,7 @@ exports.getExchangeRateById = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateById] Error:', error);
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error, 404), getAdminLanguage(req), error);
   }
 };
 
@@ -88,7 +114,8 @@ exports.getExchangeRatePair = async (req, res) => {
     if (!fromCode || !toCode) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.requiredCodes'),
+        code: 'EXCHANGE_RATE_CODES_REQUIRED',
+        message: getMessage(adminLang, 'exchange-rate.required_codes'),
       });
     }
 
@@ -100,10 +127,7 @@ exports.getExchangeRatePair = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRatePair] Error:', error);
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error, 404), getAdminLanguage(req), error);
   }
 };
 
@@ -120,14 +144,16 @@ exports.createExchangeRate = async (req, res) => {
     if (!fromCode || !toCode || rate === undefined) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.requiredFields'),
+        code: 'EXCHANGE_RATE_FIELDS_REQUIRED',
+        message: getMessage(adminLang, 'exchange-rate.required_fields'),
       });
     }
 
     if (rate <= 0) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.rateMustBePositive'),
+        code: 'EXCHANGE_RATE_RATE_INVALID',
+        message: getMessage(adminLang, 'exchange-rate.rate_must_be_positive'),
       });
     }
 
@@ -143,30 +169,12 @@ exports.createExchangeRate = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: getMessage(adminLang, 'exchangeRate.createdSuccess'),
+      message: getMessage(adminLang, 'exchange-rate.created_success'),
       data: exchangeRate,
     });
   } catch (error) {
     console.error('[ExchangeRateController.createExchangeRate] Error:', error);
-
-    if (error.message.includes('không tồn tại')) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    if (error.message.includes('already exists')) {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -188,7 +196,8 @@ exports.updateExchangeRate = async (req, res) => {
       if (rate <= 0) {
         return res.status(400).json({
           success: false,
-          message: getMessage(adminLang, 'exchangeRate.rateMustBePositive'),
+          code: 'EXCHANGE_RATE_RATE_INVALID',
+        message: getMessage(adminLang, 'exchange-rate.rate_must_be_positive'),
         });
       }
       updates.rate = parseFloat(rate);
@@ -200,30 +209,12 @@ exports.updateExchangeRate = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'exchangeRate.updatedSuccess'),
+      message: getMessage(adminLang, 'exchange-rate.updated_success'),
       data: exchangeRate,
     });
   } catch (error) {
     console.error('[ExchangeRateController.updateExchangeRate] Error:', error);
-
-    if (error.message.includes('does not exist')) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    if (error.message.includes('already exists')) {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -240,22 +231,11 @@ exports.deleteExchangeRate = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'exchangeRate.deletedSuccess'),
+      message: getMessage(adminLang, 'exchange-rate.deleted_success'),
     });
   } catch (error) {
     console.error('[ExchangeRateController.deleteExchangeRate] Error:', error);
-
-    if (error.message.includes('does not exist')) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -272,14 +252,16 @@ exports.convertAmount = async (req, res) => {
     if (amount === undefined || !fromCode || !toCode) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.requiredFields'),
+        code: 'EXCHANGE_RATE_FIELDS_REQUIRED',
+        message: getMessage(adminLang, 'exchange-rate.required_fields'),
       });
     }
 
     if (amount < 0) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.amountNonNegative'),
+        code: 'EXCHANGE_RATE_AMOUNT_INVALID',
+        message: getMessage(adminLang, 'exchange-rate.amount_non_negative'),
       });
     }
 
@@ -291,18 +273,7 @@ exports.convertAmount = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.convertAmount] Error:', error);
-
-    if (error.message.includes('does not exist') || error.message.includes('not found')) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -319,7 +290,8 @@ exports.getExchangeRateHistory = async (req, res) => {
     if (!fromCode || !toCode) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.requiredCodes'),
+        code: 'EXCHANGE_RATE_CODES_REQUIRED',
+        message: getMessage(adminLang, 'exchange-rate.required_codes'),
       });
     }
 
@@ -337,10 +309,7 @@ exports.getExchangeRateHistory = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateHistory] Error:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -357,7 +326,8 @@ exports.getExchangeRateStats = async (req, res) => {
     if (!fromCode || !toCode) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'exchangeRate.requiredCodes'),
+        code: 'EXCHANGE_RATE_CODES_REQUIRED',
+        message: getMessage(adminLang, 'exchange-rate.required_codes'),
       });
     }
 
@@ -373,10 +343,7 @@ exports.getExchangeRateStats = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateStats] Error:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -394,15 +361,12 @@ exports.updateRatesNow = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'exchangeRate.updatedRates', { count: updatedCount }),
+      message: getMessage(adminLang, 'exchange-rate.updated_rates', { count: updatedCount }),
       data: { updatedCount, timestamp: new Date() },
     });
   } catch (error) {
     console.error('[ExchangeRateController.updateRatesNow] Error:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };
 
@@ -421,9 +385,6 @@ exports.getSchedulerStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('[ExchangeRateController.getSchedulerStatus] Error:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return sendExchangeRateError(res, getExchangeRateErrorStatus(error), getAdminLanguage(req), error);
   }
 };

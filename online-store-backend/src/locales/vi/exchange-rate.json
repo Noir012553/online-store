@@ -1,0 +1,16 @@
+{
+  "required_codes": "Cần cung cấp cả hai mã tiền tệ",
+  "required_fields": "Cần cung cấp tiền tệ nguồn, tiền tệ đích và tỷ giá",
+  "rate_must_be_positive": "Tỷ giá phải lớn hơn không",
+  "created_success": "Tạo tỷ giá thành công",
+  "updated_success": "Cập nhật tỷ giá thành công",
+  "deleted_success": "Xóa tỷ giá thành công",
+  "amount_non_negative": "Số tiền không được âm",
+  "updated_rates": "Đã cập nhật {{count}} tỷ giá",
+  "not_found": "Không tìm thấy tỷ giá",
+  "pair_not_found": "Không tìm thấy tỷ giá từ {{fromCode}} sang {{toCode}}",
+  "currencies_match": "Tiền tệ nguồn và đích phải khác nhau",
+  "already_exists": "Tỷ giá từ {{fromCode}} sang {{toCode}} đã tồn tại",
+  "currency_not_found": "Không tìm thấy tiền tệ {{currencyCode}}",
+  "operation_failed": "Không thể xử lý yêu cầu tỷ giá"
+}
