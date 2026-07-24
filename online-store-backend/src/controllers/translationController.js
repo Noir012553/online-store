@@ -40,13 +40,6 @@ exports.getStaticTranslations = async (req, res) => {
     let { lang, ns = 'common' } = req.query;
     lang = getLanguageParam({ lang });
 
-    if (!lang) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(lang, 'api.emailRequired'),
-      });
-    }
-
     // Fallback to 'common' if namespace is empty string or invalid
     if (!ns || ns === 'undefined' || ns.trim() === '') {
       ns = 'common';
@@ -460,10 +453,13 @@ exports.getProductCatalogTranslations = async (req, res) => {
     const resolvedLang = req.lang || getLanguageParam({ lang });
 
     if (!productId) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(resolvedLang, 'translation.productIdRequired'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        resolvedLang,
+        'TRANSLATION_PRODUCT_ID_REQUIRED',
+        'product_id_required'
+      );
     }
 
     // Check language dynamically from DB
@@ -569,10 +565,13 @@ exports.getReviewTranslations = async (req, res) => {
     const resolvedLang = req.lang || getLanguageParam({ lang });
 
     if (!reviewId) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(resolvedLang, 'translation.productIdRequired'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        resolvedLang,
+        'TRANSLATION_REVIEW_ID_REQUIRED',
+        'product_id_required'
+      );
     }
 
     // Check language dynamically from DB
@@ -652,7 +651,8 @@ exports.refetchStaticTranslations = async (req, res) => {
       const lang = getLanguageParam({ lang: req.lang });
       return res.status(403).json({
         success: false,
-        message: getMessage(lang, 'payment.devModeOnly'),
+        code: 'TRANSLATION_DEV_MODE_ONLY',
+        message: getMessage(lang, 'payment-messages.dev_mode_only'),
       });
     }
 
@@ -1193,7 +1193,10 @@ exports.clearOldCache = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Cleared ${result.deletedCount} old cache records`,
+      code: 'TRANSLATION_CACHE_CLEARED',
+      message: getMessage(getRequestLanguage(req), 'translation-messages.cache_cleared', {
+        count: result.deletedCount,
+      }),
       data: result,
     });
   } catch (error) {
@@ -1247,16 +1250,19 @@ exports.deleteCacheRecord = async (req, res) => {
     const result = await LiveTranslationCache.findByIdAndDelete(id);
 
     if (!result) {
-      const lang = getLanguageParam({ lang: req.lang });
-      return res.status(404).json({
-        success: false,
-        message: getMessage(lang, 'translation.cacheNotFound'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_CACHE_NOT_FOUND',
+        'cache_not_found'
+      );
     }
 
     res.json({
       success: true,
-      message: getMessage(req.lang, 'cache_record_deleted'),
+      code: 'TRANSLATION_CACHE_RECORD_DELETED',
+      message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.cache_record_deleted'),
       data: result,
     });
   } catch (error) {

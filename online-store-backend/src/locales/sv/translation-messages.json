@@ -34,5 +34,6 @@
   "nested_import_completed": "Kapslad JSON importerades och plattades ut",
   "entity_id_required": "Frågeparametern entityId krävs",
   "cache_regeneration_empty": "Det finns inga cachade översättningar att återskapa",
-  "cache_regeneration_completed": "Cachen för produktöversättningar har återskapats"
+  "cache_regeneration_completed": "Cachen för produktöversättningar har återskapats",
+  "cache_cleared": "{{count}} gamla cacheposter har tagits bort"
 }

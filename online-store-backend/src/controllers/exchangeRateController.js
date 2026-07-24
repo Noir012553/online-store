@@ -305,7 +305,7 @@ exports.getExchangeRateHistory = async (req, res) => {
       success: true,
       data: history,
       count: history.length,
-      period: `${days} days`,
+      periodDays: Number(days),
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateHistory] Error:', error);

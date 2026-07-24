@@ -34,5 +34,6 @@
   "nested_import_completed": "Đã nhập và làm phẳng JSON lồng nhau",
   "entity_id_required": "Tham số entityId là bắt buộc",
   "cache_regeneration_empty": "Không có bản dịch trong bộ nhớ đệm để tái tạo",
-  "cache_regeneration_completed": "Đã tái tạo bộ nhớ đệm bản dịch sản phẩm"
+  "cache_regeneration_completed": "Đã tái tạo bộ nhớ đệm bản dịch sản phẩm",
+  "cache_cleared": "Đã xóa {{count}} bản ghi bộ nhớ đệm cũ"
 }
