@@ -142,10 +142,15 @@ function StatisticsProductDescription({ product }: { product: any }) {
 
 function StatisticsContent() {
   const { t, loadNamespace, locale, isLoadingNamespace } = useTranslation();
-  const { formatConvertedPrice, targetCurrency } = useCurrencyConversion();
-  const formatReportingCurrency = (amount: number) => formatConvertedPrice(amount, targetCurrency);
-  const formatCurrency = (amount: number, formatterLocale: string) =>
-    formatCurrencyByCode(amount, targetCurrency, formatterLocale);
+  const { targetCurrency } = useCurrencyConversion();
+  const formatProductPrice = (product: any) =>
+    product.formattedPrice || formatCurrencyByCode(product.price, targetCurrency, locale);
+  const formatOrderTotal = (order: any) =>
+    order.formattedTotalPrice || formatCurrencyByCode(order.totalPrice ?? 0, targetCurrency, locale);
+  const formatCouponValue = (coupon: any) =>
+    coupon.discountType === 'percentage'
+      ? `${coupon.discountValue}%`
+      : coupon.formattedDiscountValue || formatCurrencyByCode(coupon.discountValue || 0, coupon.currencyCode, locale);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -693,14 +698,14 @@ function StatisticsContent() {
           },
           {
             label: t('statistics_revenue'),
-            value: formatReportingCurrency(stats.totalRevenue),
+            value: stats.formattedTotalRevenue,
             sub: t('statistics_all_orders_subtitle'),
             icon: <BarChart3 className="h-5 w-5" />,
             detail: {
               type: 'metric' as const,
               title: t('statistics_revenue'),
               subtitle: t('statistics_all_orders_subtitle'),
-              value: formatReportingCurrency(stats.totalRevenue),
+              value: stats.formattedTotalRevenue,
               meta: {
                 [t('statistics_orders')]: stats.totalOrders ?? 0,
                 [t('statistics_customers')]: stats.totalCustomers ?? 0,
@@ -757,7 +762,7 @@ function StatisticsContent() {
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900 line-clamp-2"><StatisticsProductName product={product} /></p>
                     <p className="text-sm text-gray-500">
-                      <StatisticsCategoryName product={product} /> · {formatCurrency(product.price, locale)}
+                      <StatisticsCategoryName product={product} /> · {formatProductPrice(product)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -793,7 +798,7 @@ function StatisticsContent() {
                     <p className="text-sm text-gray-500"><StatisticsCategoryName product={product} /></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(product.price, locale)}</p>
+                    <p className="text-sm font-semibold text-gray-900">{formatProductPrice(product)}</p>
                     <p className="text-xs text-gray-500">{product.countInStock ?? 0} {t('in_stock').replace('{count}', (product.countInStock ?? 0).toString())}</p>
                   </div>
                 </button>
@@ -1110,7 +1115,7 @@ function StatisticsContent() {
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">{String(order._id || '').slice(-6).toUpperCase()}</td>
                       <td className="px-4 py-3 text-gray-700">{t(order.customerName || order.customer?.name) || t('not_updated')}</td>
-                      <td className="px-4 py-3 text-gray-700">{formatCurrency(order.totalPrice ?? 0, locale)}</td>
+                      <td className="px-4 py-3 text-gray-700">{formatOrderTotal(order)}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="border-gray-200 text-gray-700">
                           {t(order.isDelivered ? 'my_orders_status_delivered' : order.isPaid ? 'my_orders_status_paid' : 'pending_payment')}
@@ -1178,7 +1183,7 @@ function StatisticsContent() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-amber-600">{formatCurrency(product.price, locale)}</p>
+                    <p className="text-sm font-semibold text-amber-600">{formatProductPrice(product)}</p>
                   </div>
                 </button>
               ))
@@ -1208,7 +1213,7 @@ function StatisticsContent() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-amber-600">{formatCurrency(order.totalPrice ?? 0, locale)}</p>
+                    <p className="text-sm font-semibold text-amber-600">{formatOrderTotal(order)}</p>
                   </div>
                 </button>
               ))
@@ -1289,7 +1294,7 @@ function StatisticsContent() {
                         <p className="text-sm text-gray-500">{product.countInStock} {t('admin_statistics_inventory')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-red-600">{formatCurrency(product.price, locale)}</p>
+                        <p className="text-sm font-semibold text-red-600">{formatProductPrice(product)}</p>
                       </div>
                     </button>
                   ))}
@@ -1355,7 +1360,7 @@ function StatisticsContent() {
                         <p className="text-sm text-gray-500">{product.rating.toFixed(1)} ⭐ ({product.numReviews} {t('admin_statistics_reviews')})</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-red-600">{formatCurrency(product.price, locale)}</p>
+                        <p className="text-sm font-semibold text-red-600">{formatProductPrice(product)}</p>
                       </div>
                     </button>
                   ))}
@@ -1424,7 +1429,7 @@ function StatisticsContent() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold text-red-600">
-                          {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : formatCurrency(coupon.discountValue || 0, locale)}
+                          {formatCouponValue(coupon)}
                         </p>
                       </div>
                     </button>

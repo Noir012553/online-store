@@ -40,6 +40,7 @@ export type CouponRecord = {
   maxUses?: number;
   currentUses?: number;
   minOrderAmount?: number;
+  formattedDiscountValue?: string;
   currencyCode: string;
   applicableProducts?: any[];
   applicableCategories?: any[];

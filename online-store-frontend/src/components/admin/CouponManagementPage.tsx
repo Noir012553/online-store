@@ -531,6 +531,10 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
       return `${coupon.discountValue}%`;
     }
 
+    if (coupon.formattedDiscountValue) {
+      return coupon.formattedDiscountValue;
+    }
+
     const currency = activeCurrencies.find((item) => item.code === coupon.currencyCode);
     return currency
       ? formatCurrencyWithMetadata(coupon.discountValue, currency, locale)

@@ -22,7 +22,7 @@ export function DetailViewOrder({ detail }: DetailViewOrderProps) {
           {t('detail_total')}
         </div>
         <div className="mt-1 font-semibold text-gray-900">
-          {formatCurrencyByCode(detail.item.totalPrice, detail.item.currencyCode, locale)}
+          {detail.item.formattedTotalPrice || formatCurrencyByCode(detail.item.totalPrice, detail.item.currencyCode, locale)}
         </div>
       </div>
       <div className="rounded-xl border border-gray-100 p-4">
