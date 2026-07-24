@@ -45,6 +45,11 @@ const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'features',
 
 const isDryRun = (value) => value === true || value === 'true';
 
+const toImportIssues = (issues, code) => issues.map((_, index) => ({
+  code,
+  index: index + 1,
+}));
+
 const getFeatureLabel = (feature, lang) => {
   if (typeof feature !== 'string') return feature;
   const translated = getMessage(lang, `products.${feature}`);
@@ -182,7 +187,12 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     try {
       parsedProducts = await adapter.parse(fileContent);
     } catch (parseError) {
-      throw new Error(getMessage(req.lang, 'admin-controllers-messages.file_parse_error', { error: parseError.message }));
+      console.error('[IMPORT_FILE_PARSE_ERROR]', parseError);
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_FILE_PARSE_FAILED',
+        message: getMessage(req.lang, 'errors.generic_error'),
+      });
     }
 
     // Validate format
@@ -193,8 +203,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         success: false,
         code: 'IMPORT_DATA_INVALID',
         message: getMessage(req.lang, 'admin-controllers-messages.invalid_import_data', { count: validation.errors.length }),
-        errors: validation.errors,
-        warnings: validation.warnings,
+        errors: toImportIssues(validation.errors, 'IMPORT_PRODUCT_INVALID'),
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         invalidProducts: validation.invalidProducts,
       });
     }
@@ -215,7 +225,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         totalProducts: validProducts.length,
         createdCategories: [],
         createdSuppliers: [],
-        warnings: validation.warnings,
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         preview: validProducts.slice(0, 3),
       });
     }
@@ -466,7 +476,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       translationSummary,
       createdCategories,
       createdSuppliers,
-      warnings: validation.warnings,
+      warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
     console.error('[IMPORT_FILE_ERROR]', error);
@@ -529,8 +539,8 @@ const importProducts = asyncHandler(async (req, res) => {
         success: false,
         code: 'IMPORT_DATA_INVALID',
         message: getMessage(req.lang, 'admin-controllers-messages.invalid_import_data', { count: validation.errors.length }),
-        errors: validation.errors,
-        warnings: validation.warnings,
+        errors: toImportIssues(validation.errors, 'IMPORT_PRODUCT_INVALID'),
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         invalidProducts: validation.invalidProducts,
       });
     }
@@ -593,7 +603,7 @@ const importProducts = asyncHandler(async (req, res) => {
         format,
         mode,
         totalProducts: validProducts.length,
-        warnings: validation.warnings,
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         preview: validProducts.slice(0, 3),
       });
     }
@@ -623,7 +633,7 @@ const importProducts = asyncHandler(async (req, res) => {
         affectedTranslations: undefined,
       },
       translationSummary,
-      warnings: validation.warnings,
+      warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
