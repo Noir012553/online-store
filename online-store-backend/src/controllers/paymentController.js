@@ -17,9 +17,34 @@ const Order = require('../models/Order');
 const { getClientIp } = require('../utils/getClientIp');
 const { getMessage } = require('../i18n/messages');
 
-const createPaymentError = (result) => {
-  const error = new Error(result.error || result.message);
-  error.code = result.code;
+const PAYMENT_MESSAGE_KEYS = {
+  PAYMENT_GATEWAY_UNSUPPORTED: 'gateway_unsupported',
+  PAYMENT_GATEWAY_CURRENCY_UNSUPPORTED: 'gateway_currency_unsupported',
+  PAYMENT_INITIATION_FAILED: 'payment_initiation_failed',
+  PAYMENT_WEBHOOK_SIGNATURE_MISSING: 'webhook_signature_missing',
+  PAYMENT_WEBHOOK_INVALID: 'webhook_invalid',
+  PAYMENT_WEBHOOK_PROCESSING_FAILED: 'webhook_processing_failed',
+  PAYMENT_RECORD_NOT_FOUND: 'payment_record_not_found',
+  PAYMENT_ORDER_NOT_FOUND: 'order_not_found',
+  PAYMENT_RECONCILIATION_FAILED: 'payment_reconciliation_failed',
+  PAYMENT_WEBHOOK_ALREADY_PROCESSED: 'webhook_already_processed',
+  PAYMENT_WEBHOOK_PROCESSED: 'webhook_processed',
+  PAYMENT_NOT_FOUND: 'payment_not_found',
+  PAYMENT_SUCCESSFUL_RECORD_NOT_FOUND: 'successful_payment_not_found',
+  PAYMENT_GATEWAY_ADAPTER_NOT_FOUND: 'gateway_adapter_not_found',
+  PAYMENT_REFUND_FAILED: 'refund_failed',
+  PAYMENT_REFUND_PROCESSED: 'refund_success',
+  PAYMENT_CONFIRMATION_FAILED: 'payment_confirmation_failed',
+};
+
+const getPaymentMessage = (lang, code) => {
+  const key = PAYMENT_MESSAGE_KEYS[code] || 'payment_failed';
+  return getMessage(lang, `payment-messages.${key}`);
+};
+
+const createPaymentError = (result, lang) => {
+  const error = new Error(getPaymentMessage(lang, result.code));
+  error.code = result.code || 'PAYMENT_INITIATION_FAILED';
   return error;
 };
 
@@ -42,7 +67,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
     if (!orderId) missingFields.push('orderId');
     if (!gateway) missingFields.push('gateway');
     res.status(400);
-    throw new Error(getMessage(req.lang, 'payment-messages', 'missing_required_fields'));
+    throw new Error(getMessage(req.lang, 'payment-messages.missing_required_fields', { fields: missingFields.join(', ') }));
   }
 
 
@@ -50,20 +75,20 @@ const initiatePayment = asyncHandler(async (req, res) => {
   const order = await Order.findById(orderId);
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(req.lang, 'payment-messages', 'order_not_found'));
+    throw new Error(getMessage(req.lang, 'payment-messages.order_not_found', { orderId }));
   }
 
   // Kiểm tra order chưa thanh toán
   if (order.isPaid) {
     res.status(400);
-    throw new Error(getMessage(req.lang, 'payment-messages', 'order_already_paid'));
+    throw new Error(getMessage(req.lang, 'payment-messages.order_already_paid', { orderId }));
   }
 
   // Lấy IP từ Cloudflare Tunnel
   const clientIp = getClientIp(req);
   if (!clientIp || clientIp === '0.0.0.0') {
     res.status(400);
-    throw new Error(getMessage(req.lang, 'payment-messages', 'cannot_determine_client_ip'));
+    throw new Error(getMessage(req.lang, 'payment-messages.cannot_determine_client_ip'));
   }
 
   // Tạo payment
@@ -80,7 +105,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw createPaymentError(result);
+    throw createPaymentError(result, req.lang);
   }
 
   return res.status(200).json({
@@ -183,7 +208,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: false,
       code: 'PAYMENT_WEBHOOK_SIGNATURE_MISSING',
-      message: 'Missing signature in webhook',
+      message: getPaymentMessage(req.lang, 'PAYMENT_WEBHOOK_SIGNATURE_MISSING'),
     });
     return;
   }
@@ -200,7 +225,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: false,
       code: result.code || 'PAYMENT_WEBHOOK_PROCESSING_FAILED',
-      message: result.message,
+      message: getPaymentMessage(req.lang, result.code),
     });
     return;
   }
@@ -211,7 +236,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     code: 'PAYMENT_WEBHOOK_PROCESSED',
-    message: 'Webhook processed',
+    message: getPaymentMessage(req.lang, 'PAYMENT_WEBHOOK_PROCESSED'),
     orderId: result.orderId,
   });
 });
@@ -228,7 +253,7 @@ const getPaymentHistory = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw createPaymentError(result);
+    throw createPaymentError(result, req.lang);
   }
 
   res.status(200).json({
@@ -250,7 +275,7 @@ const refundPayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(paymentId);
   if (!payment) {
     res.status(404);
-    const error = new Error(`Payment ${paymentId} not found`);
+    const error = new Error(getPaymentMessage(req.lang, 'PAYMENT_NOT_FOUND'));
     error.code = 'PAYMENT_NOT_FOUND';
     throw error;
   }
@@ -260,13 +285,13 @@ const refundPayment = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     res.status(400);
-    throw createPaymentError(result);
+    throw createPaymentError(result, req.lang);
   }
 
   res.status(200).json({
     success: true,
     code: 'PAYMENT_REFUND_PROCESSED',
-    message: result.message,
+    message: getPaymentMessage(req.lang, 'PAYMENT_REFUND_PROCESSED'),
     data: {
       refundId: result.refundId,
       orderId: payment.orderId,
@@ -285,7 +310,7 @@ const getPaymentDetails = asyncHandler(async (req, res) => {
   const payment = await Payment.findById(paymentId).lean();
   if (!payment) {
     res.status(404);
-    const error = new Error(`Payment ${paymentId} not found`);
+    const error = new Error(getPaymentMessage(req.lang, 'PAYMENT_NOT_FOUND'));
     error.code = 'PAYMENT_NOT_FOUND';
     throw error;
   }

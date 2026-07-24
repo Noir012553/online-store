@@ -17,6 +17,12 @@ const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 
+const createPaymentFailure = (code, error) => ({
+  success: false,
+  code,
+  error: error instanceof Error ? error.message : error,
+});
+
 class PaymentService {
   constructor() {
     this.adapters = {};
@@ -117,7 +123,9 @@ class PaymentService {
         throw new Error(getMessage(lang, 'checkout.error_invalid_amount'));
       }
       if (!adapter.supportsCurrency(providerCurrency)) {
-        throw new Error(`Gateway ${gateway} does not support ${providerCurrency}`);
+        const error = new Error(`Gateway ${gateway} does not support ${providerCurrency}`);
+        error.code = 'PAYMENT_GATEWAY_CURRENCY_UNSUPPORTED';
+        throw error;
       }
 
       const payment = new Payment({
@@ -176,10 +184,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('[PaymentService.initiatePayment] Error:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return createPaymentFailure(error.code || 'PAYMENT_INITIATION_FAILED', error);
     }
   }
 
@@ -205,7 +210,7 @@ class PaymentService {
         return {
           success: false,
           code: 'PAYMENT_GATEWAY_UNSUPPORTED',
-          message: `Gateway "${gateway}" is not supported`,
+          error: `Gateway "${gateway}" is not supported`,
         };
       }
 
@@ -214,7 +219,8 @@ class PaymentService {
       if (!ipnResult.success) {
         return {
           success: false,
-          message: ipnResult.error,
+          code: 'PAYMENT_WEBHOOK_INVALID',
+          error: ipnResult.error,
         };
       }
 
@@ -234,7 +240,7 @@ class PaymentService {
         return {
           success: false,
           code: 'PAYMENT_RECORD_NOT_FOUND',
-          message: `Payment record not found for order ${transactionInfo.orderId}`,
+          error: `Payment record not found for order ${transactionInfo.orderId}`,
         };
       }
 
@@ -243,7 +249,7 @@ class PaymentService {
         return {
           success: false,
           code: 'PAYMENT_ORDER_NOT_FOUND',
-          message: `Order ${transactionInfo.orderId} not found`,
+          error: `Order ${transactionInfo.orderId} not found`,
         };
       }
 
@@ -265,7 +271,7 @@ class PaymentService {
         return {
           success: false,
           code: 'PAYMENT_RECONCILIATION_FAILED',
-          message: 'Payment reconciliation failed',
+          error: 'Payment reconciliation failed',
         };
       }
 
@@ -334,10 +340,7 @@ class PaymentService {
     } catch (error) {
       console.error('[PaymentService.handleWebhook] Error:', error.message);
       console.error(error.stack);
-      return {
-        success: false,
-        message: error.message,
-      };
+      return createPaymentFailure('PAYMENT_WEBHOOK_PROCESSING_FAILED', error);
     }
   }
 
@@ -440,10 +443,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('[PaymentService.confirmPayment] Error:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return createPaymentFailure('PAYMENT_CONFIRMATION_FAILED', error);
     }
   }
 
@@ -506,6 +506,7 @@ class PaymentService {
       if (!refundResult.success) {
         return {
           success: false,
+          code: 'PAYMENT_REFUND_FAILED',
           error: refundResult.error,
         };
       }
@@ -528,10 +529,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('[PaymentService.refundPayment] Error:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return createPaymentFailure('PAYMENT_REFUND_FAILED', error);
     }
   }
 

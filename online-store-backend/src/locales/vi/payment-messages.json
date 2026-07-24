@@ -10,5 +10,20 @@
   "payment_failed": "Thanh toán thất bại",
   "refund_success": "Hoàn tiền thành công",
   "dev_mode_only": "Tính năng này chỉ khả dụng ở chế độ phát triển",
-  "amount_invalid": "Số tiền không hợp lệ"
+  "amount_invalid": "Số tiền không hợp lệ",
+  "gateway_unsupported": "Cổng thanh toán không được hỗ trợ",
+  "gateway_currency_unsupported": "Cổng thanh toán không hỗ trợ loại tiền tệ bắt buộc",
+  "payment_initiation_failed": "Không thể khởi tạo thanh toán",
+  "webhook_signature_missing": "Thiếu chữ ký webhook thanh toán",
+  "webhook_invalid": "Không thể xác thực webhook thanh toán",
+  "webhook_processing_failed": "Không thể xử lý webhook thanh toán",
+  "payment_record_not_found": "Không tìm thấy bản ghi thanh toán",
+  "payment_reconciliation_failed": "Thông tin thanh toán không khớp với đơn hàng",
+  "webhook_already_processed": "Webhook thanh toán đã được xử lý",
+  "webhook_processed": "Đã xử lý webhook thanh toán thành công",
+  "payment_not_found": "Không tìm thấy thanh toán",
+  "successful_payment_not_found": "Không tìm thấy thanh toán thành công cho đơn hàng này",
+  "gateway_adapter_not_found": "Cổng thanh toán hiện không khả dụng",
+  "refund_failed": "Không thể xử lý hoàn tiền",
+  "payment_confirmation_failed": "Không thể xác nhận thanh toán"
 }
