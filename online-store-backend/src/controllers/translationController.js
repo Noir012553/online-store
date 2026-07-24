@@ -1838,13 +1838,13 @@ exports.getTranslationStatus = async (req, res) => {
       data: {
         code: lang,
         layer1: {
-          name: 'UI Strings (Static)',
+          code: 'UI_STATIC',
           progress: Math.round(uiProgress),
           totalNamespaces: Math.round(totalUINamespaces),
           completedNamespaces: translatedUINamespaces,
         },
         layer2: {
-          name: 'Products (Dynamic)',
+          code: 'PRODUCT_DYNAMIC',
           progress: Math.round(productProgress),
           expectedTranslations: expectedProductTranslations,
           actualTranslations: actualProductTranslations,
