@@ -28,7 +28,9 @@ class CSVAdapter extends BaseImportAdapter {
     try {
       const lines = csvText.trim().split('\n');
       if (lines.length < 2) {
-        throw new Error('CSV must contain header and at least 1 data row');
+        const error = new Error('IMPORT_CSV_CONTENT_INVALID');
+        error.code = 'IMPORT_CSV_CONTENT_INVALID';
+        throw error;
       }
 
       // Parse header
@@ -80,12 +82,18 @@ class CSVAdapter extends BaseImportAdapter {
       }
 
       if (products.length === 0) {
-        throw new Error('No products found in CSV');
+        const error = new Error('IMPORT_CSV_CONTENT_INVALID');
+        error.code = 'IMPORT_CSV_CONTENT_INVALID';
+        throw error;
       }
 
       return products;
-    } catch (err) {
-      throw new Error(`CSV parse error: ${err.message}`);
+    } catch (error) {
+      if (error.code) throw error;
+
+      const parseError = new Error('IMPORT_CSV_PARSE_FAILED');
+      parseError.code = 'IMPORT_CSV_PARSE_FAILED';
+      throw parseError;
     }
   }
 

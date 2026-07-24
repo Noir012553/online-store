@@ -23,25 +23,31 @@ class JSONAdapter extends BaseImportAdapter {
     try {
       let parsed;
 
-      // Handle string input
       if (typeof data === 'string') {
         parsed = JSON.parse(data);
       } else if (typeof data === 'object') {
         parsed = data;
       } else {
-        throw new Error('Invalid input: expected JSON string or object');
+        const error = new Error('IMPORT_JSON_CONTENT_INVALID');
+        error.code = 'IMPORT_JSON_CONTENT_INVALID';
+        throw error;
       }
 
-      // Handle both direct array or { products: [...] } format
-      let products = Array.isArray(parsed) ? parsed : parsed.products;
+      const products = Array.isArray(parsed) ? parsed : parsed.products;
 
       if (!Array.isArray(products)) {
-        throw new Error('Data must be an array or object with "products" field');
+        const error = new Error('IMPORT_JSON_CONTENT_INVALID');
+        error.code = 'IMPORT_JSON_CONTENT_INVALID';
+        throw error;
       }
 
       return products;
-    } catch (err) {
-      throw new Error(`JSON parse error: ${err.message}`);
+    } catch (error) {
+      if (error.code) throw error;
+
+      const parseError = new Error('IMPORT_JSON_PARSE_FAILED');
+      parseError.code = 'IMPORT_JSON_PARSE_FAILED';
+      throw parseError;
     }
   }
 

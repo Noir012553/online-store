@@ -454,19 +454,11 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         results = await handleUpsertMode(enrichedProducts);
     }
 
-    // Build success message with created categories/suppliers info
-    let successMessage = `Import thành công: ${results.inserted} sản phẩm mới, ${results.updated} cập nhật, ${results.unchanged || 0} không thay đổi, ${results.skipped || 0} bỏ qua`;
-    if (createdCategories.length > 0) {
-      successMessage += ` | Tạo mới ${createdCategories.length} category: ${createdCategories.join(', ')}`;
-    }
-    if (createdSuppliers.length > 0) {
-      successMessage += ` | Tạo mới ${createdSuppliers.length} supplier: ${createdSuppliers.join(', ')}`;
-    }
-
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
-      message: successMessage,
+      code: 'IMPORT_COMPLETED',
+      message: getMessage(req.lang, 'frontend-import.import_success'),
       format,
       mode,
       results: {
@@ -673,7 +665,7 @@ async function handleInsertMode(products) {
   products.forEach(product => {
     const key = `${product.name}|${product.brand}`;
     if (existingSet.has(key)) {
-      skipped.push({ name: product.name, brand: product.brand, reason: 'Sản phẩm đã tồn tại' });
+      skipped.push({ name: product.name, brand: product.brand, reasonCode: 'IMPORT_PRODUCT_EXISTS' });
     } else {
       toInsert.push(withoutImportProductId(product));
     }
@@ -840,7 +832,7 @@ const getImportFormats = asyncHandler(async (req, res) => {
 const getImportGuide = asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    message: 'Hướng dẫn import sản phẩm',
+    code: 'IMPORT_GUIDE',
     supportedFormats: adapterManager.getSupportedFormats(),
     adapters: adapterManager.listAdapters(),
     guide: {
