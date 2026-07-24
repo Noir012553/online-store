@@ -34,5 +34,6 @@
   "nested_import_completed": "Verschachteltes JSON wurde erfolgreich importiert und abgeflacht",
   "entity_id_required": "Der Abfrageparameter entityId ist erforderlich",
   "cache_regeneration_empty": "Es gibt keine zwischengespeicherten Übersetzungen zum Neuaufbau",
-  "cache_regeneration_completed": "Der Produktübersetzungscache wurde erfolgreich neu aufgebaut"
+  "cache_regeneration_completed": "Der Produktübersetzungscache wurde erfolgreich neu aufgebaut",
+  "cache_cleared": "{{count}} alte Cache-Einträge wurden gelöscht"
 }

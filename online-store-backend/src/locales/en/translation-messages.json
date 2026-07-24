@@ -34,5 +34,6 @@
   "nested_import_completed": "Nested JSON was imported and flattened successfully",
   "entity_id_required": "The entityId query parameter is required",
   "cache_regeneration_empty": "There are no cached translations to regenerate",
-  "cache_regeneration_completed": "Product translation cache regenerated successfully"
+  "cache_regeneration_completed": "Product translation cache regenerated successfully",
+  "cache_cleared": "Cleared {{count}} old cache records"
 }

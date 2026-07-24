@@ -34,5 +34,6 @@
   "nested_import_completed": "El JSON anidado se importó y aplanó correctamente",
   "entity_id_required": "Se requiere el parámetro de consulta entityId",
   "cache_regeneration_empty": "No hay traducciones en caché para regenerar",
-  "cache_regeneration_completed": "La caché de traducciones de productos se regeneró correctamente"
+  "cache_regeneration_completed": "La caché de traducciones de productos se regeneró correctamente",
+  "cache_cleared": "Se eliminaron {{count}} registros de caché antiguos"
 }

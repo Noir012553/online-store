@@ -34,5 +34,6 @@
   "nested_import_completed": "Il JSON annidato è stato importato e appiattito correttamente",
   "entity_id_required": "Il parametro di query entityId è obbligatorio",
   "cache_regeneration_empty": "Non ci sono traduzioni in cache da rigenerare",
-  "cache_regeneration_completed": "La cache delle traduzioni dei prodotti è stata rigenerata correttamente"
+  "cache_regeneration_completed": "La cache delle traduzioni dei prodotti è stata rigenerata correttamente",
+  "cache_cleared": "Sono stati eliminati {{count}} vecchi record della cache"
 }
