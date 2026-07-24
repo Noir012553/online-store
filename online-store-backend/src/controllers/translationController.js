@@ -1414,13 +1414,13 @@ exports.softDeleteTranslation = async (req, res) => {
     if (!translation) {
       return res.status(404).json({
         success: false,
-        message: 'Translation not found',
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
     res.json({
       success: true,
-      message: 'Translation soft deleted',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_soft_deleted'),
       data: translation,
     });
   } catch (error) {
@@ -1447,13 +1447,13 @@ exports.hardDeleteTranslation = async (req, res) => {
     if (!translation) {
       return res.status(404).json({
         success: false,
-        message: 'Translation not found',
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
     res.json({
       success: true,
-      message: 'Translation hard deleted',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_hard_deleted'),
       data: translation,
     });
   } catch (error) {
@@ -1484,13 +1484,13 @@ exports.restoreTranslation = async (req, res) => {
     if (!translation) {
       return res.status(404).json({
         success: false,
-        message: 'Translation not found',
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 
     res.json({
       success: true,
-      message: 'Translation restored',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_restored'),
       data: translation,
     });
   } catch (error) {
@@ -1515,7 +1515,7 @@ exports.createStaticTranslation = async (req, res) => {
     if (!code || !namespace || !translations) {
       return res.status(400).json({
         success: false,
-        message: 'Code, namespace, and translations are required',
+        message: getMessage(req.lang, 'admin-controllers-messages.code_namespace_translations_required'),
       });
     }
 
@@ -1523,7 +1523,7 @@ exports.createStaticTranslation = async (req, res) => {
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: `Translation already exists for language: ${code}, namespace: ${namespace}`,
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_already_exists', { code, namespace }),
       });
     }
 
@@ -1535,7 +1535,7 @@ exports.createStaticTranslation = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Translation created',
+      message: getMessage(req.lang, 'admin-controllers-messages.translation_created'),
       data: newTranslation,
     });
   } catch (error) {
@@ -1950,7 +1950,7 @@ exports.manualOverrideTranslation = async (req, res) => {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        message: 'Translation not found',
+        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
       });
     }
 

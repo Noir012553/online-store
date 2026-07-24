@@ -116,7 +116,7 @@ const registerUser = asyncHandler(async (req, res) => {
         // Gửi email xác minh
         try {
             const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-            await sendVerificationEmail(user.email, verificationUrl);
+            await sendVerificationEmail(user.email, verificationUrl, req.lang);
         } catch (emailError) {
             console.warn('⚠️ Email verification could not be sent:', emailError.message);
             // Không throw error, cho phép user tiếp tục
@@ -404,7 +404,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     // Gửi email reset password
     try {
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-        await sendResetPasswordEmail(user.email, resetUrl);
+        await sendResetPasswordEmail(user.email, resetUrl, req.lang);
     } catch (emailError) {
         // Không throw error, không tiết lộ token ngoài email
     }
@@ -527,7 +527,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     // Gửi lại email xác minh
     try {
         const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-        await sendVerificationEmail(user.email, verificationUrl);
+        await sendVerificationEmail(user.email, verificationUrl, req.lang);
     } catch (emailError) {
         console.warn('⚠️ Verification email could not be sent:', emailError.message);
         // Không throw error, cho phép user request lại
@@ -674,7 +674,7 @@ const testSendEmail = asyncHandler(async (req, res) => {
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${testToken}`;
 
     try {
-        await sendVerificationEmail(email, verificationUrl);
+        await sendVerificationEmail(email, verificationUrl, req.lang);
         res.json({
             message: 'Test email sent successfully!',
             email,
