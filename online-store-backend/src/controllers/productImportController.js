@@ -50,6 +50,13 @@ const toImportIssues = (issues, code) => issues.map((_, index) => ({
   index: index + 1,
 }));
 
+const getImportErrorMessage = (lang, code) => getMessage(
+  lang,
+  code === 'IMPORT_DUPLICATE_KEY'
+    ? 'admin-controllers-messages.duplicate_key_error'
+    : 'admin-controllers-messages.error_importing_products'
+);
+
 const getFeatureLabel = (feature, lang) => {
   if (typeof feature !== 'string') return feature;
   const translated = getMessage(lang, `products.${feature}`);
@@ -475,7 +482,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       code: error.code || 'IMPORT_FILE_FAILED',
-      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
+      message: getImportErrorMessage(req.lang, error.code),
     });
   }
 });
@@ -635,7 +642,7 @@ const importProducts = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       code: error.code || 'IMPORT_FAILED',
-      message: getMessage(req.lang, 'admin-controllers-messages.error_importing_products'),
+      message: getImportErrorMessage(req.lang, error.code),
     });
   }
 });
@@ -772,7 +779,9 @@ async function handleUpsertMode(products) {
   } catch (error) {
     if (error.code === 11000) {
       console.error('Duplicate key error during upsert:', error.message);
-      throw new Error('Lỗi duplicate data - có thể do unique constraint violation');
+      const importError = new Error('IMPORT_DUPLICATE_KEY');
+      importError.code = 'IMPORT_DUPLICATE_KEY';
+      throw importError;
     }
     throw error;
   }
@@ -836,11 +845,12 @@ const getImportGuide = asyncHandler(async (req, res) => {
     supportedFormats: adapterManager.getSupportedFormats(),
     adapters: adapterManager.listAdapters(),
     guide: {
-      step1: 'Chọn format (JSON hoặc CSV)',
-      step2: 'Chuẩn bị dữ liệu theo format',
-      step3: 'Gọi POST /api/admin/products/import với dryRun=true',
-      step4: 'Review kết quả',
-      step5: 'Gọi lại với dryRun=false để import thực tế',
+      title: getMessage(req.lang, 'admin-controllers-messages.import_guide_title'),
+      step1: getMessage(req.lang, 'admin-controllers-messages.import_guide_step1'),
+      step2: getMessage(req.lang, 'admin-controllers-messages.import_guide_step2'),
+      step3: getMessage(req.lang, 'admin-controllers-messages.import_guide_step3'),
+      step4: getMessage(req.lang, 'admin-controllers-messages.import_guide_step4'),
+      step5: getMessage(req.lang, 'admin-controllers-messages.import_guide_step5'),
     },
     requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'supplier'],
     optionalFields: [
