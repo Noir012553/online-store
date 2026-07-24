@@ -10,6 +10,7 @@ const Coupon = require('../models/Coupon');
 const Currency = require('../models/Currency');
 const ExchangeRate = require('../models/ExchangeRate');
 const { convertOrderAmount } = require('../utils/orderRevenue');
+const { formatCurrency } = require('../utils/currencyFormatter');
 const {
   broadcastCouponCreated,
   broadcastCouponUpdated,
@@ -490,7 +491,7 @@ const hardDeleteCoupon = asyncHandler(async (req, res) => {
  */
 const calculateDiscount = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage().code;
-  const requestedLang = req.query.lang || defaultLang;
+  const requestedLang = req.lang || defaultLang;
   const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
   const { couponCode, orderAmount, orderCurrencyCode, products } = req.body;
   const normalizedOrderAmount = Number(orderAmount);
@@ -576,6 +577,10 @@ const calculateDiscount = asyncHandler(async (req, res) => {
     : convertCouponAmount(coupon.discountValue, couponCurrencyCode, normalizedOrderCurrencyCode, exchangeRates);
   const discount = Math.min(normalizedOrderAmount, requestedDiscount);
   const finalAmount = normalizedOrderAmount - discount;
+  const orderCurrency = await Currency.findOne(
+    { code: normalizedOrderCurrencyCode, isActive: true },
+    { code: 1, symbol: 1, position: 1, decimalPlaces: 1, _id: 0 }
+  ).lean();
 
   res.json({
     success: true,
@@ -586,9 +591,13 @@ const calculateDiscount = asyncHandler(async (req, res) => {
     discountType: coupon.discountType,
     discountValue: coupon.discountValue,
     minimumOrderAmount,
+    formattedMinimumOrderAmount: formatCurrency(minimumOrderAmount, orderCurrency, lang),
     originalAmount: normalizedOrderAmount,
+    formattedOriginalAmount: formatCurrency(normalizedOrderAmount, orderCurrency, lang),
     discount,
+    formattedDiscount: formatCurrency(discount, orderCurrency, lang),
     finalAmount,
+    formattedFinalAmount: formatCurrency(finalAmount, orderCurrency, lang),
     expiresAt: coupon.endDate,
     remainingUses: Math.max(0, coupon.maxUses - coupon.currentUses),
   });
