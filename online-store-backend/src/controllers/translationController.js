@@ -31,7 +31,11 @@ const sendTranslationError = (res, status, lang, code, messageKey, values = {}) 
   res.status(status).json({
     success: false,
     code,
-    message: getMessage(lang, `translation-messages.${messageKey}`, values),
+    message: getMessage(
+      lang,
+      messageKey.includes('.') ? messageKey : `translation-messages.${messageKey}`,
+      values
+    ),
   })
 );
 
@@ -46,11 +50,13 @@ exports.getStaticTranslations = async (req, res) => {
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(ns)) {
-      return res.status(400).json({
-        success: false,
-        code: 'TRANSLATION_NAMESPACE_INVALID',
-        message: getMessage(getRequestLanguage(req), 'admin-errors.failed_load_namespace'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_NAMESPACE_INVALID',
+        'admin-errors.failed_load_namespace'
+      );
     }
 
     const translation = await StaticTranslation.findOne({
@@ -351,11 +357,13 @@ exports.translateProductAll9Languages = async (req, res) => {
     }
 
     if (!entityId || !entityType) {
-      return res.status(400).json({
-        success: false,
-        code: 'TRANSLATION_ENTITY_ID_AND_TYPE_REQUIRED',
-        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.entity_id_and_type_required'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ENTITY_ID_AND_TYPE_REQUIRED',
+        'admin-controllers-messages.entity_id_and_type_required'
+      );
     }
 
     // Check source language dynamically
@@ -649,11 +657,13 @@ exports.refetchStaticTranslations = async (req, res) => {
   try {
     if (process.env.NODE_ENV !== 'development') {
       const lang = getLanguageParam({ lang: req.lang });
-      return res.status(403).json({
-        success: false,
-        code: 'TRANSLATION_DEV_MODE_ONLY',
-        message: getMessage(lang, 'payment-messages.dev_mode_only'),
-      });
+      return sendTranslationError(
+        res,
+        403,
+        lang,
+        'TRANSLATION_DEV_MODE_ONLY',
+        'payment-messages.dev_mode_only'
+      );
     }
 
     const results = await seedTranslations();
@@ -699,10 +709,13 @@ exports.syncTranslationsFromJSON = async (req, res) => {
     const { language, namespace, translations } = req.body;
 
     if (!language || !namespace || !translations) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.code_namespace_translations_required'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_CODE_NAMESPACE_TRANSLATIONS_REQUIRED',
+        'admin-controllers-messages.code_namespace_translations_required'
+      );
     }
 
     const result = await StaticTranslation.findOneAndUpdate(
@@ -1318,10 +1331,13 @@ exports.getTranslationById = async (req, res) => {
     const translation = await StaticTranslation.findById(id);
 
     if (!translation || translation.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     res.json({
@@ -1330,10 +1346,13 @@ exports.getTranslationById = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id_format'
+      );
     }
     console.error('[TranslationController] Error fetching translation:', error);
     return sendTranslationError(
@@ -1352,19 +1371,25 @@ exports.updateTranslationKey = async (req, res) => {
     const { key, value } = req.body;
 
     if (!key || value === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.key_is_required'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_KEY_REQUIRED',
+        'admin-controllers-messages.key_is_required'
+      );
     }
 
     const translation = await StaticTranslation.findById(id);
 
     if (!translation || translation.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     translation.translations[key] = value;
@@ -1377,10 +1402,13 @@ exports.updateTranslationKey = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id_format'
+      );
     }
     console.error('[TranslationController] Error updating translation:', error);
     return sendTranslationError(
@@ -1399,19 +1427,25 @@ exports.deleteTranslationKey = async (req, res) => {
     const { key } = req.body;
 
     if (!key) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.key_is_required'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_KEY_REQUIRED',
+        'admin-controllers-messages.key_is_required'
+      );
     }
 
     const translation = await StaticTranslation.findById(id);
 
     if (!translation || translation.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     delete translation.translations[key];
@@ -1424,10 +1458,13 @@ exports.deleteTranslationKey = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id_format'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id_format'
+      );
     }
     console.error('[TranslationController] Error deleting translation key:', error);
     return sendTranslationError(
@@ -1451,10 +1488,13 @@ exports.softDeleteTranslation = async (req, res) => {
     );
 
     if (!translation) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     res.json({
@@ -1464,10 +1504,13 @@ exports.softDeleteTranslation = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id'
+      );
     }
     console.error('[TranslationController] Error soft deleting translation:', error);
     return sendTranslationError(
@@ -1487,10 +1530,13 @@ exports.hardDeleteTranslation = async (req, res) => {
     const translation = await StaticTranslation.findByIdAndDelete(id);
 
     if (!translation) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     res.json({
@@ -1500,10 +1546,13 @@ exports.hardDeleteTranslation = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id'
+      );
     }
     console.error('[TranslationController] Error hard deleting translation:', error);
     return sendTranslationError(
@@ -1527,10 +1576,13 @@ exports.restoreTranslation = async (req, res) => {
     );
 
     if (!translation) {
-      return res.status(404).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_not_found'),
-      });
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_NOT_FOUND',
+        'admin-controllers-messages.translation_not_found'
+      );
     }
 
     res.json({
@@ -1540,10 +1592,13 @@ exports.restoreTranslation = async (req, res) => {
     });
   } catch (error) {
     if (error.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.invalid_translation_id'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_ID_INVALID',
+        'admin-controllers-messages.invalid_translation_id'
+      );
     }
     console.error('[TranslationController] Error restoring translation:', error);
     return sendTranslationError(
@@ -1561,18 +1616,25 @@ exports.createStaticTranslation = async (req, res) => {
     const { code, namespace, translations } = req.body;
 
     if (!code || !namespace || !translations) {
-      return res.status(400).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.code_namespace_translations_required'),
-      });
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_CODE_NAMESPACE_TRANSLATIONS_REQUIRED',
+        'admin-controllers-messages.code_namespace_translations_required'
+      );
     }
 
     const existing = await StaticTranslation.findOne({ code, namespace });
     if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: getMessage(req.lang, 'admin-controllers-messages.translation_already_exists', { code, namespace }),
-      });
+      return sendTranslationError(
+        res,
+        409,
+        getRequestLanguage(req),
+        'TRANSLATION_ALREADY_EXISTS',
+        'admin-controllers-messages.translation_already_exists',
+        { code, namespace }
+      );
     }
 
     const newTranslation = await StaticTranslation.create({
