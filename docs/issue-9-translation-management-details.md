@@ -197,3 +197,23 @@ Tài liệu đã được cập nhật theo code hiện tại: route redirect, s
 - Contract batch legacy chưa hỗ trợ `productIds`, `fields` hoặc `idempotencyKey` như contract mục tiêu.
 
 **Tiến độ cập nhật:** Không có bằng chứng mới để đóng các hạng mục trên. Bước tiếp theo là chốt contract, chuẩn bị môi trường runtime riêng và chạy round-trip import/export cùng các tình huống save/re-translate.
+
+## Cập nhật tiến độ hiện tại
+
+### Đã hoàn tất ở mức rà soát tĩnh
+
+- Đã xác định rõ ranh giới giữa cache mới và cache legacy.
+- Đã xác minh `manualFields` được merge vào dữ liệu trả về và được tôn trọng khi re-translate.
+- Đã xác định fallback `name + brand` là rủi ro định danh, không nên dùng cho round-trip/migration bắt buộc.
+- Đã xác định batch legacy không thể dùng trực tiếp cho thao tác re-translate chọn lọc của UI mới.
+
+### Chưa có bằng chứng hoàn tất
+
+- Chưa kiểm thử save rồi đọc lại qua API sản phẩm và UI.
+- Chưa kiểm thử re-translate với từng tổ hợp manual/machine-managed field.
+- Chưa kiểm thử import/export nguyên vòng với và không có `productId`.
+- Chưa có quyết định triển khai contract batch mới hay giữ batch legacy.
+
+### Trạng thái
+
+Issue vẫn **chưa hoàn tất**. Tài liệu hiện đã phản ánh rõ phần đã xác minh và phần chỉ là đề xuất; không coi contract mục tiêu hoặc job nền là tính năng đang tồn tại.
