@@ -142,6 +142,22 @@ export function Step3Payment() {
     }
   };
 
+  const getCheckoutErrorMessage = (error: unknown, fallbackKey: string) => {
+    const errorCode = error instanceof Error
+      ? (error as Error & { code?: string }).code
+      : undefined;
+    const errorTranslations: Record<string, string> = {
+      ORDER_INSUFFICIENT_STOCK: 'error_insufficient_stock',
+      CUSTOMER_FIELD_IN_USE: 'error_email_in_use',
+      ORDER_CURRENCY_REQUIRED: 'error_currency_required',
+      ORDER_CURRENCY_NOT_FOUND: 'error_currency_not_found',
+      ORDER_SHIPPING_SELECTION_INVALID: 'error_validate_shipping',
+      ORDER_SHIPPING_FEE_UNAVAILABLE: 'error_calculate_shipping',
+    };
+
+    return t(errorTranslations[errorCode || ''] || fallbackKey, 'checkout');
+  };
+
   const handleCOD = async () => {
     if (isLoading || totalPrice === null) return;
 
@@ -170,7 +186,7 @@ export function Step3Payment() {
         router.push(`/return?method=cod&orderId=${orderId}&status=success`);
       }
     } catch (error) {
-      toast.error(t('error_order_processing', 'checkout'));
+      toast.error(getCheckoutErrorMessage(error, 'error_order_processing'));
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +258,7 @@ export function Step3Payment() {
         }
       }, 30000);
     } catch (error) {
-      toast.error(t('error_payment_init', 'checkout'));
+      toast.error(getCheckoutErrorMessage(error, 'error_payment_init'));
     } finally {
       setIsLoading(false);
     }
