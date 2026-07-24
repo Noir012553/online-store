@@ -111,7 +111,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                   </td>
                   <td className="px-4 py-3 font-mono font-semibold">{rate.toCode}</td>
                   <td className="px-4 py-3 text-right font-mono">
-                    {rate.rate.toFixed(8)}
+                    {rate.formattedRate}
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
                     <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded capitalize">

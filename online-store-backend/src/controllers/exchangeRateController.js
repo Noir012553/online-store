@@ -5,6 +5,7 @@
 const exchangeRateService = require('../services/exchangeRateService');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { formatExchangeRate } = require('../utils/currencyFormatter');
 
 const getAdminLanguage = (req) => {
   if (req.user?.language) {
@@ -16,6 +17,28 @@ const getAdminLanguage = (req) => {
   }
   return getDefaultLanguage().code.toUpperCase();
 };
+
+const formatRateData = (rate, lang) => {
+  const data = rate.toObject ? rate.toObject() : rate;
+
+  return {
+    ...data,
+    formattedRate: formatExchangeRate(data.rate, lang),
+  };
+};
+
+const formatRateHistory = (history, lang) => history.map((entry) => ({
+  ...entry,
+  formattedOldRate: entry.oldRate === null ? null : formatExchangeRate(entry.oldRate, lang),
+  formattedNewRate: formatExchangeRate(entry.newRate, lang),
+}));
+
+const formatRateStats = (stats, lang) => ({
+  ...stats,
+  formattedFirstRate: formatExchangeRate(stats.firstRate, lang),
+  formattedLastRate: formatExchangeRate(stats.lastRate, lang),
+  formattedCurrentRate: formatExchangeRate(stats.currentRate, lang),
+});
 
 const exchangeRateMessageKeys = {
   EXCHANGE_RATE_NOT_FOUND: 'not_found',
@@ -71,10 +94,11 @@ exports.getAllExchangeRates = async (req, res) => {
     }
 
     const rates = await exchangeRateService.getExchangeRates(filter);
+    const adminLang = getAdminLanguage(req);
 
     res.json({
       success: true,
-      data: rates,
+      data: rates.map((rate) => formatRateData(rate, adminLang)),
       count: rates.length,
     });
   } catch (error) {
@@ -94,7 +118,7 @@ exports.getExchangeRateById = async (req, res) => {
 
     res.json({
       success: true,
-      data: rate,
+      data: formatRateData(rate, getAdminLanguage(req)),
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateById] Error:', error);
@@ -123,7 +147,7 @@ exports.getExchangeRatePair = async (req, res) => {
 
     res.json({
       success: true,
-      data: rate,
+      data: formatRateData(rate, getAdminLanguage(req)),
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRatePair] Error:', error);
@@ -170,7 +194,7 @@ exports.createExchangeRate = async (req, res) => {
     res.status(201).json({
       success: true,
       message: getMessage(adminLang, 'exchange-rate.created_success'),
-      data: exchangeRate,
+      data: formatRateData(exchangeRate, adminLang),
     });
   } catch (error) {
     console.error('[ExchangeRateController.createExchangeRate] Error:', error);
@@ -210,7 +234,7 @@ exports.updateExchangeRate = async (req, res) => {
     res.json({
       success: true,
       message: getMessage(adminLang, 'exchange-rate.updated_success'),
-      data: exchangeRate,
+      data: formatRateData(exchangeRate, adminLang),
     });
   } catch (error) {
     console.error('[ExchangeRateController.updateExchangeRate] Error:', error);
@@ -269,7 +293,10 @@ exports.convertAmount = async (req, res) => {
 
     res.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        formattedRate: formatExchangeRate(result.rate, adminLang),
+      },
     });
   } catch (error) {
     console.error('[ExchangeRateController.convertAmount] Error:', error);
@@ -303,7 +330,7 @@ exports.getExchangeRateHistory = async (req, res) => {
 
     res.json({
       success: true,
-      data: history,
+      data: formatRateHistory(history, adminLang),
       count: history.length,
       periodDays: Number(days),
     });
@@ -339,7 +366,7 @@ exports.getExchangeRateStats = async (req, res) => {
 
     res.json({
       success: true,
-      data: stats,
+      data: formatRateStats(stats, adminLang),
     });
   } catch (error) {
     console.error('[ExchangeRateController.getExchangeRateStats] Error:', error);
