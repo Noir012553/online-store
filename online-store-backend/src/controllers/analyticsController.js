@@ -17,6 +17,13 @@ const { getDefaultLanguage, isSupportedLanguage, getIntlLocale, getActiveLangCod
 const { getMessage } = require('../i18n/messages');
 const { localizeProductCategories } = require('../services/categoryLocalizationService');
 const {
+  getCurrencyMetadata,
+  formatAmountFields,
+  formatProducts,
+  formatOrders,
+  formatCoupons,
+} = require('../utils/currencyResponseFormatter');
+const {
   convertOrderAmount,
   getActiveExchangeRates,
   getReportingCurrency,
@@ -31,6 +38,11 @@ const {
  * @access Public
  * @returns {Object} { totalProducts, inStockProducts, totalOrders, totalRevenue, totalCustomers }
  */
+const formatReportingAmountFields = async (data, reportingCurrency, lang, fields) => {
+  const currencies = await getCurrencyMetadata([reportingCurrency]);
+  return formatAmountFields(data, currencies.get(reportingCurrency), lang, fields);
+};
+
 const getDashboardStats = asyncHandler(async (req, res) => {
   const reportingCurrency = await getReportingCurrency(req.query.currency);
   const result = await withCache('dashboardStats', { reportingCurrency }, async () => {
@@ -80,7 +92,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     };
   });
 
-  res.json(result);
+  res.json(await formatReportingAmountFields(result, reportingCurrency, req.lang, [
+    ['totalRevenue', 'formattedTotalRevenue'],
+  ]));
 });
 
 /**
@@ -188,7 +202,11 @@ const getRevenueTimeline = asyncHandler(async (req, res) => {
     });
   });
 
-  res.json(result);
+  const currencies = await getCurrencyMetadata([reportingCurrency]);
+  const currency = currencies.get(reportingCurrency);
+  res.json(result.map((item) => formatAmountFields(item, currency, lang, [
+    ['revenue', 'formattedRevenue'],
+  ])));
 });
 
 /**
@@ -341,7 +359,7 @@ const getTopSellingProducts = asyncHandler(async (req, res) => {
   }
 
   const result = await getTopProductsQuery(limit, null, startDate, endDate, lang);
-  res.json(result);
+  res.json(await formatProducts(result, lang));
 });
 
 /**
@@ -376,7 +394,20 @@ const getDashboardData = asyncHandler(async (req, res) => {
     };
   });
 
-  res.json(result);
+  const [stats, recentOrders, topProducts] = await Promise.all([
+    formatReportingAmountFields(result.stats, reportingCurrency, lang, [
+      ['totalRevenue', 'formattedTotalRevenue'],
+    ]),
+    formatOrders(result.recentOrders, lang),
+    formatProducts(result.topProducts, lang),
+  ]);
+
+  res.json({
+    ...result,
+    stats,
+    recentOrders,
+    topProducts,
+  });
 });
 
 /**
@@ -589,6 +620,7 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
       _id: product._id,
       name: nameObj,
       price: product.price,
+      baseCurrencyCode: product.baseCurrencyCode,
       image: product.image,
       rating: product.rating,
       numReviews: product.numReviews,
@@ -779,6 +811,7 @@ const getSlowSellingProducts = asyncHandler(async (req, res) => {
           name: 1,
           brand: 1,
           price: 1,
+          baseCurrencyCode: 1,
           countInStock: 1,
           image: 1,
           orderCount: 1,
@@ -854,7 +887,7 @@ const getSlowSellingProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  res.json(await localizeProductCategories(processedProducts, lang));
+  res.json(await formatProducts(await localizeProductCategories(processedProducts, lang), lang));
 });
 
 /**
@@ -930,6 +963,7 @@ const getUnpaidOrders = asyncHandler(async (req, res) => {
         $project: {
           _id: 1,
           totalPrice: 1,
+          currencyCode: 1,
           customerName: 1,
           paymentMethod: 1,
           createdAt: 1,
@@ -996,7 +1030,7 @@ const getUnpaidOrders = asyncHandler(async (req, res) => {
     }
   }
 
-  res.json(unpaidOrders || []);
+  res.json(await formatOrders(unpaidOrders || [], lang));
 });
 
 /**
@@ -1206,7 +1240,7 @@ const getLowInventoryProducts = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    data: await localizeProductCategories(processedProducts, lang),
+    data: await formatProducts(await localizeProductCategories(processedProducts, lang), lang),
     pagination: {
       total,
       page,
@@ -1331,7 +1365,7 @@ const getLowRatingProducts = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    data: await localizeProductCategories(processedProducts, lang),
+    data: await formatProducts(await localizeProductCategories(processedProducts, lang), lang),
     pagination: {
       total,
       page,
@@ -1356,6 +1390,9 @@ const getTopCustomers = asyncHandler(async (req, res) => {
   const sortBy = req.query.sort || '-totalSpent';
   const days = parseInt(req.query.days) || 0;
   const reportingCurrency = await getReportingCurrency(req.query.currency);
+  const defaultLang = getDefaultLanguage().code;
+  const requestedLang = req.lang || defaultLang;
+  const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
 
   // Build sort object
   let sortObj = {};
@@ -1450,7 +1487,12 @@ const getTopCustomers = asyncHandler(async (req, res) => {
   const paginatedCustomers = normalizedCustomers.slice(skip, skip + limit).map(({ ordersList, ...customer }) => customer);
 
   res.json({
-    data: paginatedCustomers,
+    data: (await Promise.all(paginatedCustomers.map((customer) => formatReportingAmountFields(
+      customer,
+      reportingCurrency,
+      lang,
+      [['totalSpent', 'formattedTotalSpent']]
+    )))),
     pagination: {
       total: totalCount,
       page,
@@ -1535,6 +1577,7 @@ const getPaidOrders = asyncHandler(async (req, res) => {
         $project: {
           _id: 1,
           totalPrice: 1,
+          currencyCode: 1,
           customerName: 1,
           paymentMethod: 1,
           createdAt: 1,
@@ -1560,7 +1603,7 @@ const getPaidOrders = asyncHandler(async (req, res) => {
   });
 
   res.json({
-    data: orders || [],
+    data: await formatOrders(orders || [], lang),
     pagination: {
       total,
       page,
@@ -1632,7 +1675,7 @@ const getUnusedCoupons = asyncHandler(async (req, res) => {
   ]);
 
   res.json({
-    data: coupons || [],
+    data: await formatCoupons(coupons || [], req.lang),
     pagination: {
       total,
       page,
