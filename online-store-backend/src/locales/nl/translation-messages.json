@@ -27,5 +27,12 @@
   "target_language_unsupported": "Niet-ondersteunde doeltaal: {{language}}",
   "translation_request_failed": "Tekst kan niet worden vertaald",
   "static_translations_not_found": "Er zijn geen vertalingen gevonden voor de geselecteerde taal en naamruimte",
-  "static_translations_fetch_failed": "Vertalingen kunnen niet worden opgehaald"
+  "static_translations_fetch_failed": "Vertalingen kunnen niet worden opgehaald",
+  "operation_failed": "De vertaalbewerking kan niet worden voltooid",
+  "retry_scheduled": "{{count}} vertalingen zijn gemarkeerd om opnieuw te proberen",
+  "nested_import_fields_required": "Taalcode, naamruimte en vertaalobject zijn verplicht",
+  "nested_import_completed": "Geneste JSON is succesvol geïmporteerd en afgevlakt",
+  "entity_id_required": "De queryparameter entityId is verplicht",
+  "cache_regeneration_empty": "Er zijn geen vertalingen in de cache om opnieuw op te bouwen",
+  "cache_regeneration_completed": "De cache voor productvertalingen is succesvol opnieuw opgebouwd"
 }
