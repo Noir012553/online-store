@@ -431,3 +431,9 @@ Các vị trí dưới đây vẫn dùng emoji/ký hiệu Unicode hard-code tron
 Đã đối chiếu tại commit `00dd0ee`: `uiEmoji.ts`, `cliSymbols.js` và hai script kiểm tra emoji vẫn tồn tại và được khai báo qua package scripts. Emoji trong payment debug response và email marketing vẫn là ngoại lệ ngoài phạm vi registry CLI/UI, không được diễn giải là dự án đã loại bỏ mọi emoji hard-code.
 
 **Trạng thái hiện tại:** Hoàn tất trong phạm vi UI và output CLI được enforcement; các ngoại lệ API, email, locale, report lưu file và script legacy tiếp tục giữ quy trình xử lý riêng.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Hoàn tất trong phạm vi quản lý emoji UI và ký hiệu CLI đã xác định.
+- **Đã xác nhận trong mã nguồn:** Registry `uiEmoji.ts` và `cliSymbols.js`, cùng lệnh `check:emoji` ở hai ứng dụng, vẫn tồn tại và là cơ chế kiểm tra chính.
+- **Ngoại lệ có chủ đích:** Emoji trong API debug, email marketing, locale, metadata cờ, report lưu file và script legacy không thuộc registry CLI/UI; không diễn giải kết quả checker là đã loại bỏ mọi Unicode hard-code trong toàn repository.

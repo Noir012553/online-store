@@ -216,3 +216,9 @@ Các điểm cần kiểm tra:
 Đã đối chiếu tại commit `00dd0ee`: `_AdminLayout.tsx` vẫn có sidebar/overlay mobile và các form, danh sách admin trọng tâm vẫn giữ class responsive đã triển khai. Không chạy preview hoặc thao tác trực tiếp trong đợt rà soát Markdown này.
 
 **Trạng thái hiện tại:** Hoàn tất về mặt mã nguồn; còn kiểm thử trực tiếp desktop, tablet và mobile trên preview.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+- **Trạng thái:** Hoàn tất triển khai responsive trọng tâm; chưa xác nhận thao tác trực tiếp trên preview trong đợt đối chiếu này.
+- **Đã xác nhận trong mã nguồn:** Admin layout vẫn có sidebar/overlay cho mobile; `OrderForm` và `CustomerForm` giữ layout/form action responsive đã triển khai.
+- **Còn theo dõi:** Kiểm tra golden path Desktop/Tablet/Mobile cho Dashboard, Products, Orders và Customers khi preview có môi trường backend phù hợp.

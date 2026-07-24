@@ -9,7 +9,7 @@ Tên file Markdown tuân theo định dạng `issue-N-<mô-tả>.md`. File này 
 - **Loại:** Thay đổi cách cung cấp dữ liệu hiển thị tiền tệ
 - **Phạm vi:** API backend và các màn hình frontend đang hiển thị giá tiền/tỷ giá
 - **Ưu tiên:** Trung bình
-- **Trạng thái hiện tại:** Chỉ lập kế hoạch, chưa triển khai mã nguồn
+- **Trạng thái hiện tại:** Đã triển khai một phần: backend có formatter dùng chung và nhiều formatted field; frontend mới sử dụng một phần, chưa chuyển đổi toàn bộ consumer.
 
 > **[LỖI — đã xác minh]** Trạng thái này đã lỗi thời: formatter backend, các field `formattedAmount`/`formattedConvertedAmount`/`formattedRate` cho endpoint quy đổi, và phần render `formattedRate` ở danh sách tỷ giá admin đều đã có trong mã nguồn (`online-store-backend/src/utils/currencyFormatter.js:5-22`, `online-store-backend/src/controllers/exchangeRateController.js:293-300`, `online-store-frontend/src/components/admin/ExchangeRateList.tsx:113-115`).
 
@@ -214,3 +214,26 @@ Thay đổi theo nguyên tắc:
 ## Kết luận
 
 Có thể đưa phần format hiển thị về backend, nhưng không nên biến toàn bộ dữ liệu tiền tệ thành chuỗi. Cách an toàn là backend trả đồng thời **giá trị số gốc** và **chuỗi đã format**, còn frontend chỉ render chuỗi đã format và tiếp tục dùng giá trị số cho các phép tính cần thiết.
+
+## Cập nhật tiến độ đối chiếu hiện tại
+
+### Đã hoàn thành ở backend
+
+- `online-store-backend/src/utils/currencyFormatter.js` đã cung cấp `formatCurrency` và `formatExchangeRate`.
+- `exchangeRateController` đã trả `formattedRate`, `formattedAmount` và `formattedConvertedAmount` theo locale request.
+- `currencyResponseFormatter.js` đã cung cấp formatted fields cho các nhóm product/order/payment, gồm `formattedPrice`, `formattedTotalPrice`, `formattedItemsPrice`, `formattedDiscount`, `formattedShippingFee`, `formattedPaidAmount` và các field liên quan.
+- Analytics và shipment đã trả các field như `formattedTotalRevenue`, `formattedRevenue` và `formattedTotalFee`.
+
+### Đã hoàn thành ở frontend
+
+- `online-store-frontend/src/components/admin/ExchangeRateList.tsx` đã render `rate.formattedRate`; không còn ép `rate.rate.toFixed(8)`.
+
+### Còn triển khai
+
+- Các helper frontend tại `src/lib/utils.ts`, `src/hooks/useCurrency.ts` và `src/hooks/useCurrencyConversion.ts` vẫn thực hiện format cục bộ.
+- Nhiều màn hình vẫn chưa tiêu thụ formatted fields đã có, bao gồm các field tổng tiền, giá sản phẩm, phí vận chuyển, thanh toán và doanh thu.
+- Cần rà soát từng response/component, chuyển phần **hiển thị** sang formatted field, nhưng giữ numeric field cho tính toán, sắp xếp và payload nghiệp vụ.
+
+### Trạng thái
+
+**Đang triển khai một phần.** Không xóa formatter frontend hoặc thay đổi raw numeric fields trước khi các consumer tương ứng đã được chuyển đổi và kiểm thử API/UI theo locale.
