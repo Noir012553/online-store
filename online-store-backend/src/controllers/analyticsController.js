@@ -1045,6 +1045,7 @@ const getUnpaidOrders = asyncHandler(async (req, res) => {
 const getInactiveCustomers = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const days = parseInt(req.query.days) || 90;
+  const reportingCurrency = await getReportingCurrency(req.query.currency);
   const defaultLang = getDefaultLanguage().code;
   const requestedLang = req.lang || defaultLang;
   const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
@@ -1117,7 +1118,7 @@ const getInactiveCustomers = asyncHandler(async (req, res) => {
           phone: 1,
           address: 1,
           totalOrders: 1,
-          totalSpent: 1,
+          orders: 1,
           lastOrderDate: 1,
           daysSinceLastOrder: 1,
           createdAt: 1,
@@ -1127,7 +1128,27 @@ const getInactiveCustomers = asyncHandler(async (req, res) => {
     10000
   );
 
-  res.json(inactiveCustomers || []);
+  const activeRates = await getActiveExchangeRates();
+  const formattedCustomers = await Promise.all((inactiveCustomers || []).map(({ orders, ...customer }) => formatReportingAmountFields(
+    {
+      ...customer,
+      totalSpent: orders.reduce(
+        (total, order) => total + convertOrderAmount(
+          order.totalPrice,
+          order.currencyCode,
+          reportingCurrency,
+          order.exchangeRates,
+          activeRates
+        ),
+        0
+      ),
+    },
+    reportingCurrency,
+    lang,
+    [['totalSpent', 'formattedTotalSpent']]
+  )));
+
+  res.json(formattedCustomers);
 });
 
 /**
