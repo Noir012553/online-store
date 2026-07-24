@@ -55,7 +55,7 @@ exports.getStaticTranslations = async (req, res) => {
     if (!/^[a-zA-Z0-9_-]+$/.test(ns)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid translation namespace',
+        message: getMessage(getRequestLanguage(req), 'admin-errors.failed_load_namespace'),
       });
     }
 

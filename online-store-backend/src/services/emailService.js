@@ -7,6 +7,13 @@ const nodemailer = require('nodemailer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 
+const createEmailDeliveryError = (code, message, cause) => {
+  const error = new Error(message);
+  error.code = code;
+  error.cause = cause;
+  return error;
+};
+
 /**
  * Email transporter configuration
  * Hỗ trợ nhiều providers: Gmail, SendGrid, AWS SES, etc.
@@ -128,7 +135,11 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw new Error(`Failed to send verification email: ${error.message}`);
+    throw createEmailDeliveryError(
+      'EMAIL_VERIFICATION_SEND_FAILED',
+      `Failed to send verification email: ${error.message}`,
+      error
+    );
   }
 };
 
@@ -202,7 +213,11 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw new Error(`Failed to send reset password email: ${error.message}`);
+    throw createEmailDeliveryError(
+      'EMAIL_PASSWORD_RESET_SEND_FAILED',
+      `Failed to send reset password email: ${error.message}`,
+      error
+    );
   }
 };
 
@@ -223,7 +238,14 @@ const sendOTPEmail = async (email, otp, lang) => {
     }
 
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
-    const msg = getMessage(emailLang, 'email.otp');
+    const msg = {
+      subject: getMessage(emailLang, 'auth-messages.email_otp_subject'),
+      title: getMessage(emailLang, 'auth-messages.email_otp_title'),
+      description: getMessage(emailLang, 'auth-messages.email_otp_description'),
+      expiry: getMessage(emailLang, 'auth-messages.email_otp_expiry'),
+      ignore: getMessage(emailLang, 'auth-messages.email_otp_ignore'),
+      copyright: getMessage(emailLang, 'auth-messages.email_copyright'),
+    };
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -252,7 +274,9 @@ const sendOTPEmail = async (email, otp, lang) => {
       text: `
         ${msg.title}
 
-        Mã OTP của bạn: ${otp}
+        ${msg.description}
+
+        ${otp}
 
         ${msg.expiry}
         ${msg.ignore}
@@ -264,7 +288,11 @@ const sendOTPEmail = async (email, otp, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw new Error(`Failed to send OTP email: ${error.message}`);
+    throw createEmailDeliveryError(
+      'EMAIL_OTP_SEND_FAILED',
+      `Failed to send OTP email: ${error.message}`,
+      error
+    );
   }
 };
 
@@ -363,7 +391,11 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
-    throw new Error(`Failed to send newsletter confirmation email: ${error.message}`);
+    throw createEmailDeliveryError(
+      'EMAIL_NEWSLETTER_SEND_FAILED',
+      `Failed to send newsletter confirmation email: ${error.message}`,
+      error
+    );
   }
 };
 

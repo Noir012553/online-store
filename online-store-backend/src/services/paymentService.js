@@ -204,6 +204,7 @@ class PaymentService {
       if (!adapter) {
         return {
           success: false,
+          code: 'PAYMENT_GATEWAY_UNSUPPORTED',
           message: `Gateway "${gateway}" is not supported`,
         };
       }
@@ -232,6 +233,7 @@ class PaymentService {
       if (!payment) {
         return {
           success: false,
+          code: 'PAYMENT_RECORD_NOT_FOUND',
           message: `Payment record not found for order ${transactionInfo.orderId}`,
         };
       }
@@ -240,6 +242,7 @@ class PaymentService {
       if (!order) {
         return {
           success: false,
+          code: 'PAYMENT_ORDER_NOT_FOUND',
           message: `Order ${transactionInfo.orderId} not found`,
         };
       }
@@ -261,6 +264,7 @@ class PaymentService {
         await payment.save();
         return {
           success: false,
+          code: 'PAYMENT_RECONCILIATION_FAILED',
           message: 'Payment reconciliation failed',
         };
       }
@@ -268,6 +272,7 @@ class PaymentService {
       if (payment.status === 'success') {
         return {
           success: true,
+          code: 'PAYMENT_WEBHOOK_ALREADY_PROCESSED',
           message: 'Webhook already processed',
           orderId: transactionInfo.orderId,
           transactionStatus: payment.status,
@@ -321,6 +326,7 @@ class PaymentService {
 
       return {
         success: true,
+        code: 'PAYMENT_WEBHOOK_PROCESSED',
         message: 'Webhook processed successfully',
         orderId: transactionInfo.orderId,
         transactionStatus: transactionInfo.status,
@@ -348,6 +354,7 @@ class PaymentService {
       if (!order) {
         return {
           success: false,
+          code: 'PAYMENT_ORDER_NOT_FOUND',
           error: `Order ${orderId} not found`,
           httpStatus: 404,
         };
@@ -359,6 +366,7 @@ class PaymentService {
       if (!payment) {
         return {
           success: false,
+          code: 'PAYMENT_RECORD_NOT_FOUND',
           error: `No payment record found for order ${orderId}`,
           httpStatus: 404,
         };
@@ -474,6 +482,7 @@ class PaymentService {
       if (!payment) {
         return {
           success: false,
+          code: 'PAYMENT_SUCCESSFUL_RECORD_NOT_FOUND',
           error: `No successful payment found for order ${orderId}`,
         };
       }
@@ -482,6 +491,7 @@ class PaymentService {
       if (!adapter) {
         return {
           success: false,
+          code: 'PAYMENT_GATEWAY_ADAPTER_NOT_FOUND',
           error: `Adapter for ${payment.gateway} not found`,
         };
       }
@@ -512,6 +522,7 @@ class PaymentService {
 
       return {
         success: true,
+        code: 'PAYMENT_REFUND_PROCESSED',
         message: 'Refund processed successfully',
         refundId: refundResult.refundId,
       };
