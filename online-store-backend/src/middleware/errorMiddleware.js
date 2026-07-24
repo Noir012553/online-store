@@ -64,6 +64,7 @@ const errorHandler = (err, req, res, next) => {
   res.json({
     success: false,
     code: errorCode,
+    ...(err.params && { params: err.params }),
     message: message, // Bổ sung message để frontend (api.ts) nhận diện đúng
     error: message,
     ...(errorDetails && { details: errorDetails }),

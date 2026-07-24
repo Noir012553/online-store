@@ -312,7 +312,7 @@ class ExchangeRateService {
       lastRate: last?.newRate || current.rate,
       currentRate: current.rate,
       totalChanges: history.length,
-      period: `${days} days`,
+      periodDays: days,
     };
   }
 

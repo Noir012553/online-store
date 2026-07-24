@@ -37,14 +37,15 @@ const PAYMENT_MESSAGE_KEYS = {
   PAYMENT_CONFIRMATION_FAILED: 'payment_confirmation_failed',
 };
 
-const getPaymentMessage = (lang, code) => {
+const getPaymentMessage = (lang, code, params) => {
   const key = PAYMENT_MESSAGE_KEYS[code] || 'payment_failed';
-  return getMessage(lang, `payment-messages.${key}`);
+  return getMessage(lang, `payment-messages.${key}`, params);
 };
 
 const createPaymentError = (result, lang) => {
-  const error = new Error(getPaymentMessage(lang, result.code));
+  const error = new Error(getPaymentMessage(lang, result.code, result.params));
   error.code = result.code || 'PAYMENT_INITIATION_FAILED';
+  error.params = result.params;
   return error;
 };
 
