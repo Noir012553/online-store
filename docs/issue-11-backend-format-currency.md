@@ -72,3 +72,14 @@ Các nguyên tắc cần giữ khi xử lý:
 - Locale tiếng Việt, locale dùng dấu chấm thập phân, request có/không có `lang`.
 - Đảm bảo các trường nghiệp vụ như `rate`, `amount`, `convertedAmount` và `total` vẫn là `number`.
 - Kiểm tra các màn hình product, cart/checkout, coupon, statistics và admin exchange rate trên desktop/mobile.
+
+## Tóm tắt rà soát bổ sung
+
+- REST product API đã trả `formattedPrice` và `formattedOriginalPrice`; frontend còn thiếu hai field này trong `Laptop` và `ProductAdapter`, nên catalog chưa thể dùng contract API đầy đủ.
+- `Step1Combined.tsx` đang tạo lại object coupon và làm mất các field `formatted*`; cần giữ lại để checkout render từ response backend.
+- Type coupon frontend còn thiếu `formattedMinOrderAmount`.
+- Payload realtime product, order và coupon vẫn chỉ broadcast số raw; bổ sung formatted fields nếu payload được dùng trực tiếp để hiển thị.
+- `calculateDiscount` đã format amount của đơn hàng nhưng coupon fixed còn thiếu `formattedDiscountValue`; field này cần format theo currency của coupon.
+- Test formatter hiện có nền tảng locale và decimal places, nhưng nên bổ sung test `formatProducts`, currency có hơn 2 chữ số thập phân và response theo `req.lang`.
+
+Thứ tự đề xuất: cập nhật type/adapter product → chuyển catalog sang formatted fields → giữ formatted coupon trong checkout → hoàn tất realtime contract → bổ sung kiểm thử UI và backend.
