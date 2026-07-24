@@ -83,7 +83,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (userExists) {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'user.alreadyExists'));
+        throw createUserError(req.lang, 'USER_ALREADY_EXISTS', 'user-messages.user_already_exists');
     }
 
     // Generate email verification token
@@ -441,7 +441,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     if (!user) {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'admin-controllers-messages.invalid_reset_token'));
+        throw createUserError(req.lang, 'USER_RESET_TOKEN_INVALID', 'admin-controllers-messages.invalid_reset_token');
     }
 
     // Update password
@@ -482,7 +482,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
     if (!user) {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'admin-controllers-messages.invalid_verification_token'));
+        throw createUserError(req.lang, 'USER_VERIFICATION_TOKEN_INVALID', 'admin-controllers-messages.invalid_verification_token');
     }
 
     // Mark email as verified
@@ -700,12 +700,12 @@ const uploadUserAvatar = asyncHandler(async (req, res) => {
 
   if (!user) {
     res.status(404);
-    throw new Error(getMessage(req.lang, 'user.notFound'));
+    throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
   }
 
   if (!req.file) {
     res.status(400);
-    throw new Error(getMessage(req.lang, 'admin-controllers-messages.no_file_uploaded'));
+    throw createUserError(req.lang, 'USER_AVATAR_FILE_REQUIRED', 'admin-controllers-messages.no_file_uploaded');
   }
 
   // Delete old avatar if it exists
@@ -750,7 +750,8 @@ const googleAuth = (req, res) => {
     : process.env.GOOGLE_CALLBACK_URL_DEV;
 
   if (!clientID) {
-    throw new Error('Google Client ID is not configured');
+    res.status(503);
+    throw createUserError(req.lang, 'GOOGLE_OAUTH_UNAVAILABLE', 'errors.generic_error');
   }
 
   // Construct Google OAuth URL
@@ -770,7 +771,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   const { code } = req.query;
   if (!code) {
     res.status(400);
-    throw new Error('Authorization code from Google is required');
+    throw createUserError(req.lang, 'GOOGLE_OAUTH_CODE_REQUIRED', 'errors.generic_error');
   }
 
   const clientID = process.env.GOOGLE_CLIENT_ID;
@@ -867,14 +868,14 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!email || !username || !password) {
     res.status(400);
-    throw new Error('Email, username, and password are required');
+    throw createUserError(lang, 'ADMIN_USER_FIELDS_REQUIRED', 'admin-controllers-messages.email_username_password_required');
   }
 
   // Check if user already exists
   const userExists = await User.findOne({ $or: [{ email }, { username }] });
   if (userExists) {
     res.status(400);
-    throw new Error('User with this email or username already exists');
+    throw createUserError(lang, 'ADMIN_USER_ALREADY_EXISTS', 'admin-controllers-messages.user_email_username_exists');
   }
 
   // Validate role
@@ -897,7 +898,8 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
       isEmailVerified: user.isEmailVerified,
-      message: 'User created successfully by admin',
+      code: 'ADMIN_USER_CREATED',
+      message: getMessage(lang, 'user-messages.user_created_success'),
       user: {
         _id: user._id,
         email: user.email,
