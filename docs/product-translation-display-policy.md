@@ -183,3 +183,17 @@ Cần tách luồng admin khỏi API storefront bằng một endpoint hoặc que
 ### Endpoint public cần rà soát bổ sung
 
 Endpoint `GET /api/products/top/rated` phải áp dụng cùng bộ lọc hoàn chỉnh bản dịch như các endpoint storefront khác. Nếu không, sản phẩm chưa đủ bản dịch vẫn có thể xuất hiện trong danh sách sản phẩm được đánh giá cao.
+
+### Giao diện admin hiển thị bản dịch đích nhưng không hiển thị ô tiếng Việt
+
+Trong trang `/admin/translationsDynamic`, các trường như `feature_rgb_backlight` và `feature_long_battery` là key hoặc giá trị gốc của tính năng trong `Product`, không phải bản dịch tiếng Việt thân thiện để hiển thị cho khách hàng. Giao diện hiện hiển thị các ngôn ngữ đích, ví dụ `Tiếng Anh` với các giá trị như `RGB Backlight` hoặc `Long-Lasting Battery`, nhưng không có ô nhập riêng cho `Tiếng Việt`.
+
+Cách triển khai hiện tại xem dữ liệu gốc trong `Product` là nội dung tiếng Việt và chỉ lưu các ngôn ngữ đích trong `ProductCatalogTranslationCache`. Vì vậy:
+
+- Không được kết luận sản phẩm thiếu tiếng Việt chỉ vì trang admin không có ô `Tiếng Việt`.
+- Phải kiểm tra các trường nguồn tương ứng trong `Product` có nội dung hợp lệ, dễ hiển thị và không chỉ chứa key kỹ thuật như `feature_rgb_backlight`.
+- Phải kiểm tra riêng từng ngôn ngữ đích trong cache với `status = success`, `qualityStatus = approved` và nội dung đầy đủ.
+- Nếu dữ liệu gốc chỉ chứa key kỹ thuật thay vì nội dung tiếng Việt, sản phẩm không nên được coi là có bản dịch tiếng Việt hợp lệ cho storefront; cần chuẩn hóa dữ liệu nguồn hoặc thống nhất cơ chế lưu bản dịch `vi` trong cache.
+- Việc có nội dung tiếng Anh không chứng minh rằng tám ngôn ngữ đích còn lại cũng đã đầy đủ và hợp lệ.
+
+Bộ lọc storefront phải áp dụng nhất quán theo lựa chọn đã thống nhất cho `vi`: hoặc xác nhận dữ liệu gốc của `Product` là bản dịch tiếng Việt hợp lệ, hoặc yêu cầu bản ghi cache `vi` hợp lệ giống các ngôn ngữ khác. Trang admin vẫn phải hiển thị sản phẩm để admin có thể phát hiện và hoàn thiện dữ liệu nguồn hoặc các bản dịch còn thiếu.
