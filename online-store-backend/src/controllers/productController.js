@@ -1051,38 +1051,12 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
       return res.json([]);
     }
 
-    // Process results to apply language-specific name and category (Rule #2: Dynamic Database Translations)
-    let processedProducts = products.map(product => {
-      let nameValue = product.name;
-
-      // Handle object name format for language-specific translation
-      if (typeof nameValue === 'object' && nameValue !== null) {
-        const fallbackChain = [lang, DEFAULT_LANG];
-        for (const fallbackLang of fallbackChain) {
-          if (nameValue[fallbackLang]) {
-            nameValue = nameValue[fallbackLang];
-            break;
-          }
-        }
-        if (typeof nameValue === 'object') {
-          nameValue = '';
-        }
-      }
-
-      return {
-        ...product,
-        name: nameValue,
-      };
-    });
-
+    const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
+    const localizedProducts = await localizeProductCategories(translatedProducts, lang);
     const reportingCurrency = req.query.currencyCode
-    ? await getReportingCurrency(req.query.currencyCode)
+      ? await getReportingCurrency(req.query.currencyCode)
       : null;
-    res.json(await formatProductsForDisplay(
-      await localizeProductCategories(processedProducts, lang),
-      reportingCurrency,
-      req.locale
-    ));
+    res.json(await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale));
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('[PRODUCT_TOP_RATED] Error:', error);

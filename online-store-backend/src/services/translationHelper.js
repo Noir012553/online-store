@@ -61,6 +61,11 @@ const hasRequiredProductFields = (product) => (
   && hasContent(product?.features)
 );
 
+const hasValidSourceProductFields = (product) => (
+  hasRequiredProductFields(product)
+  && product.features.every((feature) => hasText(feature) && !/^feature_[a-z0-9_]+$/i.test(feature.trim()))
+);
+
 const hasValidProductTranslation = (translation) => (
   translation?.status === 'success'
   && translation?.qualityStatus === 'approved'
@@ -69,17 +74,18 @@ const hasValidProductTranslation = (translation) => (
 
 async function getStorefrontVisibleProductIds(products) {
   const requiredLanguages = SUPPORTED_LANGUAGES.map(({ code }) => code);
-  const productIds = products
-    .filter(hasRequiredProductFields)
-    .map((product) => product._id?.toString() || product.id)
-    .filter(Boolean);
+  const productsById = new Map(
+    products
+      .map((product) => [product._id?.toString() || product.id, product])
+      .filter(([productId]) => Boolean(productId))
+  );
+  const productIds = [...productsById.keys()];
 
   if (productIds.length === 0) return new Set();
 
-  const translatedLanguages = requiredLanguages.filter((code) => code !== 'vi');
   const translations = await CACHE_MODELS.product.find({
     entityId: { $in: productIds },
-    targetLang: { $in: translatedLanguages },
+    targetLang: { $in: requiredLanguages },
     status: 'success',
     qualityStatus: 'approved',
   }).lean();
@@ -92,10 +98,18 @@ async function getStorefrontVisibleProductIds(products) {
     validLanguagesByProduct.set(productId, languages);
   });
 
-  return new Set(productIds.filter((productId) => (
-    hasRequiredProductFields(products.find((product) => String(product._id || product.id) === productId))
-    && translatedLanguages.every((language) => validLanguagesByProduct.get(String(productId))?.has(language))
-  )));
+  return new Set(productIds.filter((productId) => {
+    const product = productsById.get(productId);
+    const validLanguages = validLanguagesByProduct.get(productId) || new Set();
+    const hasVietnameseSource = hasValidSourceProductFields(product);
+    const hasVietnameseCache = validLanguages.has('vi');
+
+    return hasRequiredProductFields(product)
+      && (hasVietnameseSource || hasVietnameseCache)
+      && requiredLanguages
+        .filter((language) => language !== 'vi')
+        .every((language) => validLanguages.has(language));
+  }));
 }
 
 /**

@@ -17,6 +17,8 @@ const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
+const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
+
 // Helper to get language from request with dynamic default
 const getLanguageParam = (query = {}) => {
   const ACTIVE_LANGS = getActiveLangCodes();
@@ -878,7 +880,7 @@ exports.getProductTranslationForAdmin = async (req, res) => {
   try {
     const { id: productId } = req.params;
     const { lang } = req.query;
-    if (!isProductId(productId) || typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
+    if (!isProductId(productId) || typeof lang !== 'string' || !SUPPORTED_LANG_CODES.includes(lang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_TARGET_INVALID', 'product_target_invalid');
     }
 
@@ -893,7 +895,7 @@ exports.getProductTranslationForAdmin = async (req, res) => {
 exports.getProductTranslationStatuses = async (req, res) => {
   try {
     const { lang } = req.query;
-    if (typeof lang !== 'string' || !getActiveLangCodes().includes(lang)) {
+    if (typeof lang !== 'string' || !SUPPORTED_LANG_CODES.includes(lang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     const productIds = (req.query.productIds || '').split(',').filter(isProductId);
@@ -973,7 +975,7 @@ exports.saveProductTranslation = async (req, res) => {
   try {
     const { id: productId } = req.params;
     const requestedLang = req.query.lang;
-    if (typeof requestedLang !== 'string' || !getActiveLangCodes().includes(requestedLang)) {
+    if (typeof requestedLang !== 'string' || !SUPPORTED_LANG_CODES.includes(requestedLang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     const lang = requestedLang;
@@ -1026,7 +1028,7 @@ exports.saveProductTranslation = async (req, res) => {
 exports.exportProductTranslationCache = async (req, res) => {
   try {
     const productIds = (req.query.productIds || '').split(',').filter(isProductId);
-    const targetLangs = (req.query.languages || '').split(',').filter((lang) => getActiveLangCodes().includes(lang));
+    const targetLangs = (req.query.languages || '').split(',').filter((lang) => SUPPORTED_LANG_CODES.includes(lang));
     const fields = (req.query.fields || PRODUCT_TRANSLATION_FIELDS.join(',')).split(',').filter((field) => PRODUCT_TRANSLATION_FIELDS.includes(field));
 
     if (productIds.length === 0 || productIds.length > 50 || targetLangs.length === 0 || fields.length === 0) {
@@ -1082,7 +1084,7 @@ exports.importProductTranslationCache = async (req, res) => {
       recordKeys.add(key);
       return isProductId(productId)
         && targetLang !== getDefaultLanguage().code
-        && getActiveLangCodes().includes(targetLang)
+        && SUPPORTED_LANG_CODES.includes(targetLang)
         && fields.length > 0
         && typeof translations === 'object'
         && !Array.isArray(translations)
@@ -1169,7 +1171,7 @@ exports.retranslateProduct = async (req, res) => {
     if (!isProductId(productId)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_ID_INVALID', 'product_id_invalid');
     }
-    if (typeof targetLang !== 'string' || !getActiveLangCodes().includes(targetLang)) {
+    if (typeof targetLang !== 'string' || !SUPPORTED_LANG_CODES.includes(targetLang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
     if (targetLang === getDefaultLanguage().code) {
@@ -1877,7 +1879,7 @@ exports.bulkTranslateStaticUI = async (req, res) => {
     if (!/^[a-zA-Z0-9_-]+$/.test(namespace)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_NAMESPACE_INVALID', 'invalid_translation_data');
     }
-    if (!getActiveLangCodes().includes(targetLang)) {
+    if (!SUPPORTED_LANG_CODES.includes(targetLang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }
 
