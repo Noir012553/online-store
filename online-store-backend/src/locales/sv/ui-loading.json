@@ -1,0 +1,11 @@
+{
+  "loading": "Läser in...",
+  "loading_data": "Läser in data...",
+  "loading_products": "Läser in produkter...",
+  "loading_cart": "Läser in kundvagn...",
+  "loading_checkout": "Läser in betalning...",
+  "loading_orders": "Läser in dina beställningar...",
+  "loading_profile": "Läser in profil...",
+  "loading_admin_ui": "Läser in administrationsgränssnitt...",
+  "please_wait": "Vänta..."
+}

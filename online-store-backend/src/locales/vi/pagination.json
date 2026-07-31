@@ -1,0 +1,15 @@
+{
+  "page": "Trang",
+  "of": "của",
+  "first": "Trang đầu tiên",
+  "previous": "Trang trước",
+  "next": "Trang sau",
+  "last": "Trang cuối cùng",
+  "ellipsis": "...",
+  "pagination_label": "Phân trang",
+  "pagination_previous_page": "Đi tới trang trước",
+  "pagination_previous": "Trước",
+  "pagination_next_page": "Đi tới trang sau",
+  "pagination_next": "Sau",
+  "pagination_more_pages": "Thêm trang"
+}

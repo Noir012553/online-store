@@ -1,0 +1,92 @@
+.errorContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.errorContent {
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+  padding: 60px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 100%;
+}
+
+.errorCode {
+  font-size: 120px;
+  font-weight: 700;
+  color: #667eea;
+  line-height: 1;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.errorTitle {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 16px 0;
+}
+
+.errorDescription {
+  font-size: 16px;
+  color: #718096;
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+}
+
+.homeButton {
+  display: inline-block;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.homeButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.homeButton:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .errorContainer {
+    padding: 20px;
+  }
+
+  .errorContent {
+    padding: 40px 20px;
+  }
+
+  .errorCode {
+    font-size: 80px;
+  }
+
+  .errorTitle {
+    font-size: 24px;
+  }
+
+  .errorDescription {
+    font-size: 14px;
+  }
+
+  .homeButton {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+}

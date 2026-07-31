@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Error del servidor",
+  "error_server_desc": "El servidor está experimentando problemas. Por favor, intenta más tarde.",
+  "error_network_title": "Error de red",
+  "error_network_desc": "No se pudo conectar al servidor. Verifica tu conexión a Internet.",
+  "error_too_many_requests_title": "Demasiadas solicitudes",
+  "error_too_many_requests_desc": "Por favor, espera antes de recargar la página. El servidor está sobrecargado.",
+  "error_server_overloaded_title": "Servidor sobrecargado",
+  "error_server_overloaded_desc": "Por favor, intenta de nuevo en unos segundos.",
+  "error_request_title": "Falló la solicitud",
+  "error_request_status": "Error {{status}}",
+  "error_request_slow": "La solicitud está tardando...",
+  "error_request_processing": "está siendo procesado",
+  "error_request_timeout": "La solicitud tardó demasiado. Verifica tu conexión.",
+  "error_network_fallback": "No se pudo conectar al servidor. Verifica tu conexión a Internet.",
+  "error_auth_required": "Por favor, inicia sesión de nuevo.",
+  "error_permission_denied": "No tienes permiso para acceder.",
+  "error_data_not_found": "Datos no encontrados.",
+  "error_generic": "Por favor, intenta más tarde.",
+  "error_generic_fallback": "Por favor, intenta de nuevo."
+}

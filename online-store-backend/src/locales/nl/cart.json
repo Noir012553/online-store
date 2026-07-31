@@ -1,0 +1,23 @@
+{
+  "shopping_cart": "Winkelwagen",
+  "your_cart_is_empty": "Uw winkelwagen is leeg",
+  "add_some_items": "Voeg enkele items toe om aan de slag te gaan",
+  "cart_continue_shopping": "Verder winkelen",
+  "your_shopping_cart": "Mijn winkelwagen",
+  "items_count": "items",
+  "product_header": "Product",
+  "unit_price_header": "Eenheidsprijs",
+  "quantity_header": "Hoeveelheid",
+  "subtotal_header": "Subtotaal",
+  "remove_header": "Verwijderen",
+  "label_quantity": "Hoeveelheid",
+  "label_subtotal": "Subtotaal",
+  "label_remove_item": "Item verwijderen",
+  "order_summary": "Ordersamenvatting",
+  "subtotal_label": "Subtotaal",
+  "total": "Totaal",
+  "confirm_order_button": "Bestelling bevestigen",
+  "vnpay_next_step_1": "Ga naar VNPAY-betaling",
+  "vnpay_next_step_2": "Selecteer betalingsmethode",
+  "vnpay_next_step_3": "Transactie voltooien"
+}

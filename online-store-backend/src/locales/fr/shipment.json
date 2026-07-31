@@ -1,0 +1,13 @@
+{
+  "required_fields": "Des champs obligatoires manquent",
+  "already_created": "L'expédition a déjà été créée pour cette commande",
+  "invalid_provider": "Prestataire d'expédition invalide",
+  "missing_info": "Informations d'expédition manquantes",
+  "no_service_available": "Aucun service d'expédition disponible pour cette adresse",
+  "unsupported_carrier": "Transporteur non supporté",
+  "create_success": "Expédition créée avec succès",
+  "createSuccess": "Expédition créée avec succès",
+  "not_found": "Expédition non trouvée",
+  "invalid_status": "Statut d'expédition invalide : {status}",
+  "cancel_success": "Expédition annulée avec succès"
+}

@@ -1,0 +1,10 @@
+{
+  "same_district_free_shipping": "Same district - Free shipping",
+  "province_id_required": "Province ID is required",
+  "district_id_required": "District ID is required",
+  "weight_must_be_positive": "Weight must be greater than 0",
+  "shipping_address_required": "Shipping address is required",
+  "invalid_shipping_data": "Invalid shipping data",
+  "ghnDistrictError": "Error fetching district data from GHN: {{error}}",
+  "ghnWardError": "Error fetching ward data from GHN: {{error}}"
+}

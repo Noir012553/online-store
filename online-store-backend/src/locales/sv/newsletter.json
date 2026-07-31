@@ -1,0 +1,14 @@
+{
+  "emailLabel": "E-postadress",
+  "emailPlaceholder": "epost@exempel.com",
+  "phoneLabel": "Telefonnummer",
+  "phonePlaceholder": "+46 (8) 1234-5678",
+  "subscribe": "Prenumerera",
+  "sending": "Skickar...",
+  "thankYouTitle": "Tack!",
+  "thankYouMessage": "Vi skickar exklusiva erbjudanden till din e-post. Kontrollera din inkorg!",
+  "successMessage": "Tack för att du prenumererade!",
+  "errorMessage": "Prenumerationen misslyckades. Försök igen.",
+  "invalidEmail": "Ogiltigt e-postformat",
+  "invalidPhone": "Ogiltigt telefonnummer"
+}

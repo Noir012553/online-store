@@ -1,0 +1,14 @@
+{
+  "emailLabel": "Địa chỉ Email",
+  "emailPlaceholder": "email@example.com",
+  "phoneLabel": "Số điện thoại",
+  "phonePlaceholder": "0901234567",
+  "subscribe": "Đăng ký",
+  "sending": "Đang gửi...",
+  "thankYouTitle": "Cảm ơn bạn!",
+  "thankYouMessage": "Chúng tôi sẽ gửi các ưu đãi độc quyền đến email của bạn. Kiểm tra hộp thư ngay!",
+  "successMessage": "Cảm ơn bạn đã đăng ký!",
+  "errorMessage": "Đăng ký thất bại. Vui lòng thử lại.",
+  "invalidEmail": "Định dạng email không hợp lệ",
+  "invalidPhone": "Số điện thoại không hợp lệ"
+}

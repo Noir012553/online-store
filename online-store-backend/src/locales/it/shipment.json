@@ -1,0 +1,13 @@
+{
+  "required_fields": "Mancano i campi obbligatori",
+  "already_created": "La spedizione è già stata creata per questo ordine",
+  "invalid_provider": "Provider di spedizione non valido",
+  "missing_info": "Informazioni di spedizione mancanti",
+  "no_service_available": "Nessun servizio di spedizione disponibile per questo indirizzo",
+  "unsupported_carrier": "Vettore di spedizione non supportato",
+  "create_success": "Spedizione creata con successo",
+  "createSuccess": "Spedizione creata con successo",
+  "not_found": "Spedizione non trovata",
+  "invalid_status": "Stato di spedizione non valido: {status}",
+  "cancel_success": "Spedizione annullata con successo"
+}

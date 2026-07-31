@@ -1,0 +1,13 @@
+{
+  "required_fields": "Campos obrigatórios estão faltando",
+  "already_created": "A remessa já foi criada para este pedido",
+  "invalid_provider": "Provedor de envio inválido",
+  "missing_info": "Informações de envio ausentes",
+  "no_service_available": "Nenhum serviço de envio disponível para este endereço",
+  "unsupported_carrier": "Operadora de envio não suportada",
+  "create_success": "Remessa criada com sucesso",
+  "createSuccess": "Remessa criada com sucesso",
+  "not_found": "Remessa não encontrada",
+  "invalid_status": "Status de remessa inválido: {status}",
+  "cancel_success": "Remessa cancelada com sucesso"
+}

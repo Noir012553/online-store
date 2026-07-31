@@ -1,0 +1,20 @@
+{
+  "keyboard": "Tangentbord",
+  "keyboard_desc": "Högkvalitativa datortangentbord med modernt design och avancerade funktioner",
+  "mouse": "Mus",
+  "mouse_desc": "Ergonomiska datormussar med hög precision",
+  "headphones": "Hörlurar",
+  "headphones_desc": "Datorhörlurar med vibrerande ljud och kvalitetsmikrofon",
+  "cooling": "Kylning",
+  "cooling_desc": "Effektiva datorkylningslösningar för att hantera värmeproblem",
+  "gaming_laptop": "Gaming-laptop",
+  "gaming_laptop_desc": "Högpresterande gaming-laptops med kraftfulla GPU:er",
+  "office_laptop": "Office-laptop",
+  "office_laptop_desc": "Lätta office-laptops med lång batterilivslängd",
+  "category_keyboard": "Tangentbord",
+  "category_mouse": "Mus",
+  "category_headphones": "Hörlurar",
+  "category_cooling": "Kylning",
+  "category_gaming_laptop": "Gaming-laptop",
+  "category_office_laptop": "Office-laptop"
+}

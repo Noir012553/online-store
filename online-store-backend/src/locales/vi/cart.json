@@ -1,0 +1,23 @@
+{
+  "shopping_cart": "Giỏ hàng",
+  "your_cart_is_empty": "Giỏ hàng của bạn trống",
+  "add_some_items": "Hãy thêm một số mặt hàng để bắt đầu",
+  "cart_continue_shopping": "Tiếp tục mua hàng",
+  "your_shopping_cart": "Giỏ hàng của tôi",
+  "items_count": "mặt hàng",
+  "product_header": "Sản phẩm",
+  "unit_price_header": "Đơn giá",
+  "quantity_header": "Số lượng",
+  "subtotal_header": "Tạm tính",
+  "remove_header": "Xóa",
+  "label_quantity": "Số lượng",
+  "label_subtotal": "Tạm tính",
+  "label_remove_item": "Xóa mặt hàng",
+  "order_summary": "Tóm tắt đơn hàng",
+  "subtotal_label": "Tạm tính",
+  "total": "Tổng cộng",
+  "confirm_order_button": "Xác nhận đơn hàng",
+  "vnpay_next_step_1": "Chuyển đến thanh toán qua VNPAY",
+  "vnpay_next_step_2": "Lựa chọn phương thức thanh toán",
+  "vnpay_next_step_3": "Hoàn tất giao dịch"
+}

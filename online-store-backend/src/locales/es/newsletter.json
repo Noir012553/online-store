@@ -1,0 +1,14 @@
+{
+  "emailLabel": "Dirección de Correo Electrónico",
+  "emailPlaceholder": "correo@ejemplo.com",
+  "phoneLabel": "Número de Teléfono",
+  "phonePlaceholder": "+34 (91) 1234-5678",
+  "subscribe": "Suscribirse",
+  "sending": "Enviando...",
+  "thankYouTitle": "¡Gracias!",
+  "thankYouMessage": "Enviaremos ofertas exclusivas a tu correo electrónico. ¡Revisa tu bandeja de entrada!",
+  "successMessage": "¡Gracias por suscribirte!",
+  "errorMessage": "La suscripción falló. Por favor, intenta de nuevo.",
+  "invalidEmail": "Formato de correo electrónico inválido",
+  "invalidPhone": "Número de teléfono inválido"
+}

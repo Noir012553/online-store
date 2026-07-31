@@ -1,0 +1,13 @@
+{
+  "required_fields": "Obligatoriska fält saknas",
+  "already_created": "Försändelsen har redan skapats för denna beställning",
+  "invalid_provider": "Ogiltig leverantör av försändelse",
+  "missing_info": "Försändelsesinformation saknas",
+  "no_service_available": "Ingen försändelsetjänst tillgänglig för denna adress",
+  "unsupported_carrier": "Försändelsebolag som inte stöds",
+  "create_success": "Försändelse skapad framgångsrikt",
+  "createSuccess": "Försändelse skapad framgångsrikt",
+  "not_found": "Försändelse inte hittad",
+  "invalid_status": "Ogiltigt försändelsesstatus: {status}",
+  "cancel_success": "Försändelse avbruten framgångsrikt"
+}
