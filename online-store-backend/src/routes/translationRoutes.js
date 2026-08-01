@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const translationController = require('../controllers/translationController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { translationAiLimiter, dynamicTranslationLimiter } = require('../middleware/rateLimitMiddleware');
 
 // Admin namespaces
 router.get('/namespaces', translationController.getSupportedNamespaces);
@@ -153,13 +154,19 @@ router.get('/fallback', translationController.getFallbackTranslations);
 
 router.get('/health', translationController.getTranslationHealth);
 
-router.post('/translate', translationController.translateText);
+router.post('/translate', translationAiLimiter, translationController.translateText);
 
 // Layer 2 (Products): Translate to all 9 languages
-router.post('/translate-products-all', translationController.translateProductAll9Languages);
+router.post(
+  '/translate-products-all',
+  protect,
+  admin,
+  translationAiLimiter,
+  translationController.translateProductAll9Languages
+);
 
 // Rule #2: Dynamic data translation endpoints (for frontend translationHelper.ts)
-router.post('/dynamic', translationController.getDynamicTranslations);
+router.post('/dynamic', dynamicTranslationLimiter, translationController.getDynamicTranslations);
 
 router.get('/verify', translationController.verifyTranslationConsistency);
 
