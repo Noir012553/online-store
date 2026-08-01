@@ -77,6 +77,22 @@ const globalLimiter = rateLimit({
   },
 });
 
+const translationAiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  handler: rateLimitHandler('RATE_LIMIT_TRANSLATION_AI'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const dynamicTranslationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  handler: rateLimitHandler('RATE_LIMIT_TRANSLATION_DYNAMIC'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 /**
  * Order creation limiter
  * 5 orders per hour per IP
@@ -158,6 +174,8 @@ module.exports = {
   registerLimiter,
   passwordResetLimiter,
   globalLimiter,
+  translationAiLimiter,
+  dynamicTranslationLimiter,
   createOrderLimiter,
   initiatePaymentLimiter,
   updateCartLimiter,
