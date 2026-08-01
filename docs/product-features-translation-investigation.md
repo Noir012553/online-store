@@ -130,3 +130,43 @@ Không nên đưa static key `feature_*` qua AI dynamic translation.
    - feature là static key hợp lệ;
    - feature là nội dung tự do cần dynamic translation;
    - feature là key không tồn tại trong locale và không được hiển thị nguyên key.
+
+## Kết quả kiểm tra locale và lỗi trang admin
+
+Các file `src/locales/*/products.json` hiện đã có đủ bộ static feature key/value cho 9 ngôn ngữ bắt buộc. Bộ key hiện tại gồm các key như `feature_programmable_keys`, `feature_rgb_backlight`, `feature_long_battery` và các feature static liên quan khác.
+
+Tuy nhiên, trang `/admin/translationsDynamic` đang hiển thị trực tiếp giá trị nguồn từ `Product.features`:
+
+- `online-store-frontend/src/pages/admin/translationsDynamic.tsx:691-702`
+- Cột tiếng Việt render trực tiếp `{feature || '-'}`.
+- Trang này không gọi `t(feature, 'products')` để resolve static key thành value trong locale.
+
+Vì vậy khi dữ liệu chứa `feature_programmable_keys`, admin nhìn thấy key kỹ thuật thay vì `Lập trình nút tùy chỉnh`, dù value đã tồn tại trong `src/locales/vi/products.json`.
+
+Storefront đã có logic resolve static key tại:
+
+- `online-store-frontend/src/pages/product/[id].tsx:277-280`
+- `online-store-frontend/src/components/ProductCard.tsx:55-58`
+
+Đây là lý do admin và storefront có thể hiển thị cùng một feature khác nhau.
+
+## Hai phương án xử lý
+
+### Phương án 1: Bỏ hoàn toàn `Product.features`
+
+Phương án này loại bỏ request dynamic translation cho features và loại bỏ lỗi key, nhưng làm mất dữ liệu tính năng trên storefront, admin và export/import. Không chọn phương án này nếu sản phẩm vẫn cần hiển thị các tính năng nổi bật.
+
+### Phương án 2: Giữ features và tách static/dynamic — phương án được chọn
+
+`Product.features` được xử lý theo hai loại:
+
+- Feature bắt đầu bằng `feature_`: static key, resolve bằng locale, không gửi qua AI và không tạo cache dynamic.
+- Feature là nội dung tự do: giữ nguyên text nguồn, gửi qua dynamic translator và lưu bản dịch trong cache.
+
+Trang admin phải resolve static key khi hiển thị cột tiếng Việt và cột ngôn ngữ đích. Với static key, bản dịch đích cũng lấy từ namespace `products` thay vì đọc bản dịch AI đã tạo trước đó.
+
+Backend seeder phải bỏ qua mọi feature static key trước khi tạo translation task. Các key không tồn tại trong locale phải được phát hiện qua validation và không được hiển thị nguyên key cho khách hàng.
+
+## Kết luận
+
+Không thiếu value static trong JSON đối với bộ key hiện tại. Lỗi chính là trang admin chưa thực hiện static lookup, đồng thời pipeline dynamic translation vẫn gửi static key qua AI. Giữ `features` và tách static/dynamic sẽ bảo toàn dữ liệu sản phẩm, sửa hiển thị admin và giảm request dịch thừa.
