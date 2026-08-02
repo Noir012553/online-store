@@ -4,6 +4,8 @@
  * Chạy trên port 5000 (hoặc PORT env)
  */
 require('dotenv').config();
+const dns = require('dns');
+dns.setServers(['1.1.1.1', '1.0.0.1']);
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
