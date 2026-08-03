@@ -10,17 +10,7 @@ const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { configureMongoDns } = require('../config/mongoDns');
-
-const mongooseOptions = {
-  maxPoolSize: 10,
-  minPoolSize: 5,
-  serverSelectionTimeoutMS: 8000,
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 8000,
-  retryWrites: true,
-  w: 'majority',
-  family: 4,
-};
+const { mongooseOptions } = require('../config/mongoConfig');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
