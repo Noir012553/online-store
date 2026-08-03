@@ -214,7 +214,44 @@ The issue is broader than only the initial MongoDB SRV lookup. The current netwo
 1. Resolving `_mongodb._tcp.cluster0.7pxhir8.mongodb.net` for the SRV record.
 2. Resolving the individual Atlas shard hostnames returned by that SRV record.
 
-No additional tests or code changes were made after recording these findings.
+## Test result after returning to Ho Chi Minh City
+
+A dynamic PowerShell command was run from the backend directory. It selected the active adapter automatically:
+
+```text
+Adapter đang dùng: Wi-Fi (Index: 8)
+DNS cũ: 1.1.1.1, 1.0.0.1
+```
+
+The command temporarily configured Cloudflare IPv4 DNS, flushed the Windows DNS cache, and tested the MongoDB SRV record through `1.1.1.1`. The SRV lookup succeeded and returned all three Atlas targets:
+
+```text
+ac-24ykmxh-shard-00-00.7pxhir8.mongodb.net:27017
+ac-24ykmxh-shard-00-01.7pxhir8.mongodb.net:27017
+ac-24ykmxh-shard-00-02.7pxhir8.mongodb.net:27017
+```
+
+`npm run seed` then connected to MongoDB and successfully completed these modules before the captured output ended:
+
+- System Languages
+- Static Translations
+- Banner Slot Labels i18n
+- Testimonial Labels i18n
+- Currencies and Exchange Rates
+- Users
+- Categories
+- Suppliers
+- Products, including translations to nine languages
+- Homepage Banners
+- Customers
+- Shipping Providers
+- Locations progressed through provinces and districts, then began fetching wards from the GHN API
+
+This confirms that, in the Ho Chi Minh City network environment with Cloudflare DNS configured, the previous `querySrv ECONNREFUSED` error did not occur and the seed process was able to use MongoDB successfully. The captured output does not include the final seed completion message, so full seed completion was not confirmed from this run.
+
+The DNS restoration step ran after `npm run seed` exited. Since the saved DNS was already `1.1.1.1, 1.0.0.1`, the effective DNS configuration remained unchanged.
+
+No application code or seed entry point was changed during this test.
 
 ## Not yet done
 
@@ -222,4 +259,5 @@ No additional tests or code changes were made after recording these findings.
 - No changes have been made to the seed entry point.
 - No changes have been made to retry logic.
 - No direct tests have been run for the individual Atlas shard hostnames.
+- Full completion of this particular seed run has not been confirmed from the captured output.
 - No credentials or `.env` values have been exposed.
