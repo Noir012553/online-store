@@ -4,8 +4,6 @@
  * Chạy trên port 5000 (hoặc PORT env)
  */
 require('dotenv').config();
-const dns = require('dns');
-dns.setServers(['1.1.1.1', '1.0.0.1']);
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -15,6 +13,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const { ensureUploadDir } = require('./config/multerConfig');
+const { configureMongoDns } = require('./config/mongoDns');
 
 // ==================== Import Routes ====================
 const userRoutes = require('./routes/userRoutes');
@@ -347,6 +346,7 @@ const connectDB = async () => {
       return;
     }
 
+    await configureMongoDns(MONGO_URI);
     await mongoose.connect(MONGO_URI, mongooseOptions);
     connectionAttempts = 0;
     await ensureHomepageHeroBanners();
