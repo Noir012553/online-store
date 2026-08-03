@@ -155,9 +155,71 @@ This change has not yet resolved the application or seed command failure. No fur
 6. The remaining issue is specific to the application/seed process initialization or the resolver used by the MongoDB driver in those entry points.
 7. `src/seeds/index.js` definitely needs to be considered separately because it imports Mongoose without the DNS setup used in the direct test.
 
+## Follow-up findings from application logs
+
+The application was started with:
+
+```powershell
+npm start
+```
+
+The initial MongoDB connection completed far enough for the application to seed translations, brands, currencies, and languages. The exchange-rate scheduler and Cloudinary cleanup worker also started.
+
+After startup, MongoDB operations began failing while resolving individual Atlas replica-set members:
+
+```text
+[CLOUDINARY_CLEANUP_OUTBOX] Error: write ECONNRESET
+MongoServerSelectionError: getaddrinfo ENOTFOUND ac-24ykmxh-shard-00-00.7pxhir8.mongodb.net
+```
+
+The same failure appeared in the exchange-rate scheduler:
+
+```text
+[ExchangeRateScheduler] Lỗi cập nhật VND->USD: MongoServerSelectionError: getaddrinfo ENOTFOUND ac-24ykmxh-shard-00-00.7pxhir8.mongodb.net
+```
+
+The driver then reported the topology as:
+
+```text
+ReplicaSetNoPrimary
+```
+
+This does not indicate that Atlas has no primary. It means the driver could not resolve or connect to the replica-set members well enough to select one.
+
+### Important limitation of the current DNS workaround
+
+`src/app.js` currently contains:
+
+```js
+const dns = require('dns');
+dns.setServers(['1.1.1.1', '1.0.0.1']);
+```
+
+This can affect Node.js resolver methods such as `dns.promises.resolveSrv()`, but it does not replace the Windows system resolver used by `dns.lookup()`/`getaddrinfo`. The MongoDB driver may use the latter when resolving the individual shard hostnames returned by the SRV lookup.
+
+Therefore, the current workaround can allow the SRV record to resolve while the subsequent shard hostname lookups still fail with `getaddrinfo ENOTFOUND`.
+
+The seed process has a separate initialization gap. `src/seeds/index.js` imports Mongoose immediately after loading dotenv and does not configure any resolver before connecting. Its failure remains:
+
+```text
+Seeding failed with error: querySrv ECONNREFUSED _mongodb._tcp.cluster0.7pxhir8.mongodb.net
+```
+
+The `ECONNRESET` from the Cloudinary cleanup worker is a separate transient connection-reset error. It is not an authentication error from Cloudinary; the later `ENOTFOUND` error shows that MongoDB hostname resolution is also failing in that worker.
+
+### Current interpretation
+
+The issue is broader than only the initial MongoDB SRV lookup. The current network/DNS path can fail at both stages:
+
+1. Resolving `_mongodb._tcp.cluster0.7pxhir8.mongodb.net` for the SRV record.
+2. Resolving the individual Atlas shard hostnames returned by that SRV record.
+
+No additional tests or code changes were made after recording these findings.
+
 ## Not yet done
 
 - No fallback non-SRV MongoDB URI has been generated.
 - No changes have been made to the seed entry point.
 - No changes have been made to retry logic.
+- No direct tests have been run for the individual Atlas shard hostnames.
 - No credentials or `.env` values have been exposed.
