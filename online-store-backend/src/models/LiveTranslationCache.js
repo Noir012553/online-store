@@ -169,8 +169,9 @@ LiveTranslationCacheSchema.statics.getNeedsRetranslate = async function(filter =
 };
 
 // Helper method: Get quality statistics
-LiveTranslationCacheSchema.statics.getQualityStats = async function(targetLang, entityType = null) {
-  const match = { targetLang };
+LiveTranslationCacheSchema.statics.getQualityStats = async function(targetLang = null, entityType = null) {
+  const match = {};
+  if (targetLang) match.targetLang = targetLang;
   if (entityType) match.entityType = entityType;
 
   return this.aggregate([
@@ -190,8 +191,9 @@ LiveTranslationCacheSchema.statics.getQualityStats = async function(targetLang, 
 };
 
 // Helper method: Get validation error statistics
-LiveTranslationCacheSchema.statics.getValidationErrorStats = async function(targetLang, entityType = null) {
-  const match = { targetLang, validationErrors: { $exists: true, $ne: [] } };
+LiveTranslationCacheSchema.statics.getValidationErrorStats = async function(targetLang = null, entityType = null) {
+  const match = { validationErrors: { $exists: true, $ne: [] } };
+  if (targetLang) match.targetLang = targetLang;
   if (entityType) match.entityType = entityType;
 
   return this.aggregate([

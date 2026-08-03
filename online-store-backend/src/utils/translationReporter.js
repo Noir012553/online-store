@@ -40,7 +40,9 @@ class TranslationReporter {
     errorStats.forEach(stat => {
       report.issuesBreakdown[stat._id] = {
         count: stat.count,
-        percentage: ((stat.count / report.statistics.totalTranslations) * 100).toFixed(2) + '%',
+        percentage: report.statistics.totalTranslations > 0
+          ? `${((stat.count / report.statistics.totalTranslations) * 100).toFixed(2)}%`
+          : '0%',
       };
     });
 
@@ -173,10 +175,10 @@ class TranslationReporter {
       language: stat._id,
       totalTranslations: stat.total,
       approved: stat.approved,
-      approvalRate: ((stat.approved / stat.total) * 100).toFixed(2) + '%',
+      approvalRate: stat.total > 0 ? `${((stat.approved / stat.total) * 100).toFixed(2)}%` : '0%',
       pending: stat.pending,
       needsRetranslate: stat.needsRetranslate,
-      avgQualityScore: Math.round(stat.avgScore),
+      avgQualityScore: Math.round(stat.avgScore || 0),
     }));
   }
 
@@ -197,9 +199,11 @@ class TranslationReporter {
     console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`\n${CLI_SYMBOLS.chart} OVERALL STATISTICS:`);
     console.log(`   Total translations: ${report.statistics.totalTranslations}`);
-    console.log(`   ${CLI_SYMBOLS.success} Approved: ${report.statistics.approved} (${((report.statistics.approved / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
-    console.log(`   ${CLI_SYMBOLS.warning} Pending: ${report.statistics.pending} (${((report.statistics.pending / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
-    console.log(`   ${CLI_SYMBOLS.error} Needs retranslate: ${report.statistics.needsRetranslate} (${((report.statistics.needsRetranslate / report.statistics.totalTranslations) * 100).toFixed(0)}%)`);
+    const total = report.statistics.totalTranslations;
+    const percentage = count => total > 0 ? ((count / total) * 100).toFixed(0) : '0';
+    console.log(`   ${CLI_SYMBOLS.success} Approved: ${report.statistics.approved} (${percentage(report.statistics.approved)}%)`);
+    console.log(`   ${CLI_SYMBOLS.warning} Pending: ${report.statistics.pending} (${percentage(report.statistics.pending)}%)`);
+    console.log(`   ${CLI_SYMBOLS.error} Needs retranslate: ${report.statistics.needsRetranslate} (${percentage(report.statistics.needsRetranslate)}%)`);
     console.log(`   Rejected: ${report.statistics.rejected}`);
 
     if (Object.keys(report.issuesBreakdown).length > 0) {
