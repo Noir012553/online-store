@@ -9,6 +9,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { configureMongoDns } = require('../config/mongoDns');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
@@ -143,6 +144,7 @@ const seed = async () => {
      * Kết nối MongoDB
      * Sử dụng MONGO_URI từ .env file
      */
+    await configureMongoDns(process.env.MONGO_URI);
     await mongoose.connect(process.env.MONGO_URI);
 
     // ==================== Start Seeding ====================
