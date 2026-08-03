@@ -229,25 +229,43 @@ ac-24ykmxh-shard-00-01.7pxhir8.mongodb.net:27017
 ac-24ykmxh-shard-00-02.7pxhir8.mongodb.net:27017
 ```
 
-Sau đó `npm run seed` đã kết nối được MongoDB và hoàn thành thành công các module sau trước thời điểm output được cung cấp:
+Sau đó `npm run seed` đã kết nối được MongoDB và hoàn thành thành công toàn bộ 20 module:
 
-- System Languages
-- Static Translations
-- Banner Slot Labels i18n
-- Testimonial Labels i18n
-- Currencies and Exchange Rates
-- Users
-- Categories
-- Suppliers
-- Products, bao gồm dịch sang chín ngôn ngữ
-- Homepage Banners
-- Customers
-- Shipping Providers
-- Locations đã đi qua provinces và districts, sau đó bắt đầu lấy wards từ GHN API
+```text
+✅ Seeding completed successfully!
 
-Điều này xác nhận rằng trong môi trường mạng tại Thành phố Hồ Chí Minh, khi cấu hình DNS Cloudflare, lỗi `querySrv ECONNREFUSED` trước đó không xảy ra và tiến trình seed có thể sử dụng MongoDB thành công. Output được cung cấp không có thông báo hoàn tất cuối cùng của seed, vì vậy chưa thể xác nhận toàn bộ seed đã chạy xong trong lần này.
+Modules executed: languages, translations, bannerSlotLabels, testimonialLabels,
+currencies, users, categories, suppliers, products, banners, customers,
+shippingProviders, locations, addresses, reviews, orders, coupons,
+categoryTranslations, featuresTranslations, specTranslations
+```
 
-Bước khôi phục DNS được thực hiện sau khi `npm run seed` kết thúc. Vì DNS đã lưu trước đó là `1.1.1.1, 1.0.0.1`, cấu hình DNS thực tế không thay đổi.
+Các kết quả đáng chú ý:
+
+- Dịch thành công 5.008 features × 9 ngôn ngữ.
+- Cập nhật 106 products bằng một thao tác `bulkWrite`.
+- Không có product nào thất bại trong bước dịch features.
+- Đọc được 2.808 bản ghi dịch từ `LiveTranslationCache`.
+- Gom nhóm thành 990 tổ hợp product-ngôn ngữ.
+- Kiểm tra cache cho thấy mỗi ngôn ngữ có 110 products.
+- Seed locations đã tải và lưu thành công 65 provinces và 726 districts, sau đó hoàn tất các bước tiếp theo.
+- Tạo báo cáo seed tại:
+  `seed-reports/seed-report-2026-08-03T13-01-19.md`
+  và
+  `seed-reports/seed-report-2026-08-03T13-01-19.txt`
+
+Kết quả cuối cùng xác nhận rằng trong môi trường mạng tại Thành phố Hồ Chí Minh, khi DNS Cloudflare được cấu hình, lỗi `querySrv ECONNREFUSED` không xảy ra và toàn bộ tiến trình seed đã sử dụng MongoDB thành công.
+
+Bước khôi phục DNS đã chạy sau khi `npm run seed` kết thúc:
+
+```text
+Successfully flushed the DNS Resolver Cache.
+Đã khôi phục DNS cho adapter: Wi-Fi
+```
+
+Vì DNS được lưu trước đó đã là `1.1.1.1, 1.0.0.1`, cấu hình DNS thực tế không thay đổi sau khi khôi phục.
+
+Báo cáo cuối seed hiển thị `Total translations: 0` và các tỷ lệ `NaN%`. Đây là dấu hiệu bất thường riêng ở phần thống kê báo cáo, nhưng không làm seed thất bại: các module vẫn báo hoàn tất và báo cáo chi tiết đã được tạo.
 
 Không có code ứng dụng hoặc entry point seed nào được thay đổi trong lần kiểm tra này.
 
@@ -257,5 +275,5 @@ Không có code ứng dụng hoặc entry point seed nào được thay đổi t
 - Chưa thay đổi entry point của seed.
 - Chưa thay đổi logic retry.
 - Chưa kiểm tra trực tiếp từng hostname shard của Atlas.
-- Chưa xác nhận đầy đủ lần chạy seed này đã hoàn tất từ output được cung cấp.
+- Chưa điều tra riêng vì sao thống kê cuối báo cáo hiển thị `Total translations: 0` và `NaN%`.
 - Không có thông tin đăng nhập hoặc giá trị `.env` nào bị công khai.
