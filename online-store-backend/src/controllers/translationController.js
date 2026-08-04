@@ -521,7 +521,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
       entityId: productId,
       targetLang: resolvedLang,
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
     }).lean();
 
     if (newSchemaData) {
@@ -548,7 +548,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
       entityId: productId,
       targetLang: resolvedLang,
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
     }).lean();
 
     const specs = {};
@@ -2562,6 +2562,8 @@ exports.getDynamicTranslations = async (req, res) => {
           const translation = await ProductCatalogTranslationCache.findOne({
             entityId,
             targetLang: resolvedLang,
+            status: 'success',
+            qualityStatus: 'approved',
           }).lean();
           translatedValue = translation?.name || translation?.translatedContent?.name;
         } else if (itemType === 'category') {

@@ -34,7 +34,7 @@ describe('Product translation cache controller', () => {
     sandbox.restore();
   });
 
-  it('reads only successful product translations that have not been rejected', async () => {
+  it('reads only successful approved product translations', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
     const findOne = sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
@@ -57,12 +57,12 @@ describe('Product translation cache controller', () => {
       entityId: productId,
       targetLang: 'en',
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Laptop');
   });
 
-  it('uses only successful legacy translations that have not been rejected as a fallback', async () => {
+  it('uses only successful approved legacy translations as a fallback', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
@@ -81,7 +81,7 @@ describe('Product translation cache controller', () => {
       entityId: productId,
       targetLang: 'en',
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Legacy laptop');
   });

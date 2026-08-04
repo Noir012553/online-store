@@ -18,21 +18,13 @@ const Category = require('../models/Category');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const translationSeederConfig = require('../config/translationSeeder');
 const crypto = require('crypto');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
-const DEFAULT_CONFIG = {
-  BATCH_SIZE: 5,
-  MAX_RETRIES: 2,
-  RETRY_DELAY: 1000,
-  TIMEOUT_MS: 30000,
-  DRY_RUN: process.env.DRY_RUN === 'true', // Test mode: skip AI calls
-  INCREMENTAL: process.env.INCREMENTAL_SEED === 'true', // Skip already-translated items
-};
-
 class TranslationSeederHelper {
   constructor(config = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...translationSeederConfig, ...config };
   }
 
   /**
@@ -92,7 +84,11 @@ class TranslationSeederHelper {
     );
 
     const cachedRecords = await LiveTranslationCache.find(
-      { hashKey: { $in: hashKeys } },
+      {
+        hashKey: { $in: hashKeys },
+        status: 'success',
+        qualityStatus: 'approved',
+      },
       { hashKey: 1, translatedText: 1 }
     ).lean();
 
@@ -178,7 +174,11 @@ class TranslationSeederHelper {
     );
 
     const cachedRecords = await LiveTranslationCache.find(
-      { hashKey: { $in: hashKeys } },
+      {
+        hashKey: { $in: hashKeys },
+        status: 'success',
+        qualityStatus: 'approved',
+      },
       { hashKey: 1, translatedText: 1 }
     ).lean();
 
@@ -205,7 +205,10 @@ class TranslationSeederHelper {
     const hashKey = this.generateHashKey(text, targetLang);
 
     // Check cache (fallback single query if needed)
-    const cached = await LiveTranslationCache.findOne({ hashKey }, { translatedText: 1 }).lean();
+    const cached = await LiveTranslationCache.findOne(
+      { hashKey, status: 'success', qualityStatus: 'approved' },
+      { translatedText: 1 }
+    ).lean();
     if (cached) {
       return {
         originalText: text,
@@ -331,21 +334,18 @@ class TranslationSeederHelper {
       return;
     }
 
+    const records = [...this._pendingCache];
+
     try {
-      const records = [...this._pendingCache];
-      this._pendingCache = []; // Clear pending
-
-      await LiveTranslationCache.insertMany(records, { ordered: false });
+      await this.batchSaveCache(records);
+      this._pendingCache.splice(0, records.length);
     } catch (error) {
-      if (error.code !== 11000) {
-        console.warn(`  ${CLI_SYMBOLS.warning} Failed to flush cache batch: ${error.message}`);
+      console.warn(`  ${CLI_SYMBOLS.warning} Failed to flush cache batch: ${error.message}`);
+      throw error;
+    } finally {
+      if (global.gc) {
+        global.gc();
       }
-      // 11000 = duplicate key, expected for some records
-    }
-
-    // Memory cleanup: explicitly clear references
-    if (global.gc) {
-      global.gc();
     }
   }
 
