@@ -237,14 +237,12 @@ Sau đó `npm run seed` đã kết nối được MongoDB và hoàn thành thàn
 Modules executed: languages, translations, bannerSlotLabels, testimonialLabels,
 currencies, users, categories, suppliers, products, banners, customers,
 shippingProviders, locations, addresses, reviews, orders, coupons,
-categoryTranslations, featuresTranslations, specTranslations
+categoryTranslations, specTranslations
 ```
 
 Các kết quả đáng chú ý:
 
-- Dịch thành công 5.008 features × 9 ngôn ngữ.
 - Cập nhật 106 products bằng một thao tác `bulkWrite`.
-- Không có product nào thất bại trong bước dịch features.
 - Đọc được 2.808 bản ghi dịch từ `LiveTranslationCache`.
 - Gom nhóm thành 990 tổ hợp product-ngôn ngữ.
 - Kiểm tra cache cho thấy mỗi ngôn ngữ có 110 products.
