@@ -205,3 +205,57 @@ Các bản ghi features cũ trong database chưa bị xóa vật lý; nếu cầ
 - overlay storefront chỉ dùng bản dịch sản phẩm đã approved.
 
 Đã kiểm tra cú pháp JavaScript và whitespace trong diff. Chưa chạy được test backend/build frontend vì môi trường hiện thiếu dependency (`dotenv` và `next`).
+
+## Các vấn đề còn tồn tại sau triển khai
+
+### 1. Public translation endpoint chưa dùng đúng predicate approved
+
+Visibility gate đã yêu cầu `status = success` và `qualityStatus = approved`, nhưng endpoint `GET /api/products/:id/translations` hiện chỉ loại cache `needs_retranslate` và `rejected`. Cache `pending` vẫn có thể được trả cho client public.
+
+**Cách fix:** mọi truy vấn bản dịch phục vụ public phải dùng chính xác:
+
+```js
+{
+  status: 'success',
+  qualityStatus: 'approved'
+}
+```
+
+Không dùng fallback sang bản dịch chưa approved. Endpoint admin vẫn được phép đọc mọi trạng thái.
+
+### 2. Product seed tạo cache pending nên không làm sản phẩm visible
+
+`specTranslationSeeder` ghi vào `ProductCatalogTranslationCache` nhưng không set `qualityStatus`, nên schema đặt mặc định là `pending`. Đây là hành vi an toàn nếu cần kiểm duyệt thủ công, nhưng phải có quy trình approve tiếp theo; nếu không, seed xong vẫn không có sản phẩm trên storefront.
+
+**Cách fix:** chọn và ghi rõ một trong hai quy trình:
+
+- **Có kiểm duyệt:** seed ghi `pending`, chạy validation/duyệt riêng rồi mới chuyển sang `approved`.
+- **Tự động duyệt có điều kiện:** seed chạy completeness/quality validation, chỉ record đạt mới được ghi `approved`; record không đạt giữ `pending` hoặc `needs_retranslate`.
+
+Không được chuyển tất cả record sang `approved` chỉ để vượt visibility gate.
+
+### 3. Cache lookup của seeder có thể dùng lại bản dịch không hợp lệ
+
+Seeder tra `LiveTranslationCache` theo `hashKey` mà không xét trạng thái. Điều này có thể đưa bản dịch rejected/pending vào lần seed sau.
+
+**Cách fix:** cache hit của seeder phải kiểm tra trạng thái hợp lệ; cache không hợp lệ phải được retry hoặc dịch lại. Nếu vẫn duy trì legacy cache, phải áp dụng cùng quy tắc trạng thái cho cả legacy và catalog cache.
+
+### 4. Flush lỗi có thể làm thiếu cache không được phát hiện
+
+`flushPendingCache()` xóa pending records trước khi ghi database và chỉ log lỗi insert. Batch lỗi có thể bị mất, khiến sản phẩm thiếu ngôn ngữ nhưng nguyên nhân không rõ.
+
+**Cách fix:** giữ lại record chưa ghi, retry có giới hạn, báo cáo số record thất bại và không coi seed là thành công khi còn pending chưa flush.
+
+### 5. Description bị cắt có thể trở thành bản dịch hợp lệ
+
+AI có thể trả response ngắn hoặc bị cắt đối với description dài. Luồng seed hiện chưa chunk hoặc kiểm tra completeness trước khi lưu cache.
+
+**Cách fix:** chunk description dài, ghép đúng thứ tự, kiểm tra completeness trước khi approve và gắn `needs_retranslate` khi validation thất bại.
+
+## Tiêu chí hoàn thành bổ sung
+
+- Public product detail và endpoint translation riêng không trả cache `pending`, `rejected`, `needs_retranslate` hoặc status khác `success`.
+- Seeder không coi cache không approved là cache hit.
+- Seed/backfill báo lỗi nếu còn record chưa flush và có retry rõ ràng.
+- Description dài được kiểm tra không bị cắt trước khi cache trở thành `approved`.
+- Có test cho các trạng thái cache, lỗi flush, retry và endpoint public/admin.
