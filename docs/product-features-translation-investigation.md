@@ -150,23 +150,21 @@ Storefront đã có logic resolve static key tại:
 
 Đây là lý do admin và storefront có thể hiển thị cùng một feature khác nhau.
 
-## Hai phương án xử lý
+## Quyết định triển khai
 
-### Phương án 1: Bỏ hoàn toàn `Product.features`
+Sau khi rà soát phạm vi sử dụng, dự án chọn **loại bỏ `Product.features` khỏi luồng sản phẩm** thay vì tiếp tục duy trì hai cơ chế static/dynamic. Lý do là field này vừa gây lỗi hiển thị key kỹ thuật, vừa làm completeness gate coi sản phẩm không có tính năng là chưa hợp lệ.
 
-Phương án này loại bỏ request dynamic translation cho features và loại bỏ lỗi key, nhưng làm mất dữ liệu tính năng trên storefront, admin và export/import. Không chọn phương án này nếu sản phẩm vẫn cần hiển thị các tính năng nổi bật.
+Đã triển khai:
 
-### Phương án 2: Giữ features và tách static/dynamic — phương án được chọn
+- Bỏ `features` và `featuresTranslations` khỏi model `Product`.
+- Không nhận hoặc lưu `features` khi tạo/cập nhật sản phẩm mới.
+- Dừng seeder và batch translation cho `product_feature`.
+- Bỏ phần hiển thị features ở storefront và phần chỉnh sửa features trong admin translation.
+- Loại dữ liệu features cũ khỏi response sản phẩm.
+- Không dùng features làm điều kiện bắt buộc để sản phẩm được hiển thị.
 
-`Product.features` được xử lý theo hai loại:
-
-- Feature bắt đầu bằng `feature_`: static key, resolve bằng locale, không gửi qua AI và không tạo cache dynamic.
-- Feature là nội dung tự do: giữ nguyên text nguồn, gửi qua dynamic translator và lưu bản dịch trong cache.
-
-Trang admin phải resolve static key khi hiển thị cột tiếng Việt và cột ngôn ngữ đích. Với static key, bản dịch đích cũng lấy từ namespace `products` thay vì đọc bản dịch AI đã tạo trước đó.
-
-Backend seeder phải bỏ qua mọi feature static key trước khi tạo translation task. Các key không tồn tại trong locale phải được phát hiện qua validation và không được hiển thị nguyên key cho khách hàng.
+Dữ liệu features cũ trong database chưa bị xóa vật lý. Code hiện tại không còn sử dụng hoặc trả field này; nếu cần xóa vật lý toàn bộ dữ liệu cũ, phải thực hiện migration database riêng.
 
 ## Kết luận
 
-Không thiếu value static trong JSON đối với bộ key hiện tại. Lỗi chính là trang admin chưa thực hiện static lookup, đồng thời pipeline dynamic translation vẫn gửi static key qua AI. Giữ `features` và tách static/dynamic sẽ bảo toàn dữ liệu sản phẩm, sửa hiển thị admin và giảm request dịch thừa.
+Vấn đề key `feature_*` và request dịch features đã được loại bỏ khỏi luồng đang chạy. Điều kiện hiển thị sản phẩm hiện chỉ kiểm tra các trường sản phẩm còn sử dụng và bản dịch hợp lệ đủ toàn bộ ngôn ngữ bắt buộc.

@@ -269,7 +269,6 @@ class TranslationSeederHelper {
     // OPTIMIZATION: Collect all specs/features texts for batch cache lookup
     const specsAndFeatures = [];
     const specMap = new Map(); // Track which text corresponds to which spec key
-    const featureSet = new Set();
 
     if (product.specs && typeof product.specs === 'object') {
       for (const [key, value] of Object.entries(product.specs)) {
@@ -277,15 +276,6 @@ class TranslationSeederHelper {
           const hashKey = this.generateHashKey(value, targetLang);
           specsAndFeatures.push({ text: value, targetLang });
           specMap.set(hashKey, key);
-        }
-      }
-    }
-
-    if (Array.isArray(product.features)) {
-      for (const feature of product.features) {
-        if (typeof feature === 'string') {
-          specsAndFeatures.push({ text: feature, targetLang });
-          featureSet.add(feature);
         }
       }
     }
@@ -322,9 +312,6 @@ class TranslationSeederHelper {
           cacheRecord.entityId = productId;
           cacheRecord.entityType = 'product_spec';
           cacheRecord.specKey = specMap.get(hashKey);
-        } else if (featureSet.has(text)) {
-          cacheRecord.entityId = productId;
-          cacheRecord.entityType = 'product_feature';
         }
 
         this._pendingCache.push(cacheRecord);

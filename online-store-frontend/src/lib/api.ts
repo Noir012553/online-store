@@ -81,8 +81,6 @@ export interface BackendProduct {
   countInStock?: number;
   specs?: Record<string, string | number>;
   description?: string;
-  features?: string[];
-  featuresTranslations?: Record<string, Record<string, string>>;
   specDisplay?: Array<{ field: string; label: string; value: string }>;
   featured?: boolean;
   deal?: { discount: number; endTime?: string | Date };

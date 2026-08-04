@@ -148,15 +148,6 @@ const productSchema = mongoose.Schema(
       type: String,
       default: '',
     },
-    features: [
-      {
-        type: String,
-      }
-    ],
-    featuresTranslations: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
     specs: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
@@ -241,12 +232,10 @@ productSchema.index({ countInStock: 1, isDeleted: 1 });
 productSchema.index({ featured: 1, isDeleted: 1 });
 productSchema.index({ rating: -1, isDeleted: 1 });
 
-// Text indexes để tối ưu full-text search (keyword search)
-// Tìm kiếm trong name (both VI và EN), description, brand, features
-// Weights: name (3x) > description (2x) > brand, features (1x)
+// Text index để tối ưu query full-text search.
 productSchema.index(
-  { 'name': 'text', description: 'text', brand: 'text', features: 'text' },
-  { weights: { name: 3, description: 2, brand: 1, features: 1 }, default_language: 'none' }
+  { 'name': 'text', description: 'text', brand: 'text' },
+  { weights: { name: 3, description: 2, brand: 1 }, default_language: 'none' }
 );
 
 const Product = mongoose.model('Product', productSchema);

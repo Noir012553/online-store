@@ -32,7 +32,6 @@ interface ProductTranslation {
   name?: string;
   description?: string;
   brand?: string;
-  features?: string[];
   specs?: Record<string, string>;
 }
 
@@ -417,7 +416,6 @@ function ProductTranslationCard({
           name: data.data?.name || '',
           description: data.data?.description || '',
           brand: data.data?.brand || '',
-          features: Array.isArray(data.data?.features) ? data.data.features : [],
           specs: data.data?.specs || {},
         });
       } catch (error) {
@@ -435,12 +433,6 @@ function ProductTranslationCard({
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...(translations.features || [])];
-    newFeatures[index] = value;
-    handleFieldChange('features', newFeatures);
   };
 
   const handleSpecChange = (key: string, value: string) => {
@@ -515,7 +507,6 @@ function ProductTranslationCard({
           translations={translations}
           isLoading={loadingTranslation}
           onFieldChange={handleFieldChange}
-          onFeatureChange={handleFeatureChange}
           onSpecChange={handleSpecChange}
           onCancel={onCancel}
           onSave={() => onSave(translations)}
@@ -614,7 +605,6 @@ interface EditViewProps {
   translations: ProductTranslation;
   isLoading: boolean;
   onFieldChange: (field: keyof ProductTranslation, value: any) => void;
-  onFeatureChange: (index: number, value: string) => void;
   onSpecChange: (key: string, value: string) => void;
   onCancel: () => void;
   onSave: () => void;
@@ -627,7 +617,6 @@ function EditView({
   translations,
   isLoading,
   onFieldChange,
-  onFeatureChange,
   onSpecChange,
   onCancel,
   onSave,
@@ -683,31 +672,6 @@ function EditView({
           <div className="mt-1 p-3 bg-gray-100 rounded text-sm text-gray-900">{product.category?.name}</div>
         </div>
       </div>
-
-      {/* Features */}
-      {product?.features && product.features.length > 0 && (
-        <div className="p-5 space-y-4">
-          <h4 className="font-semibold text-gray-900">{t('product_features', 'productsTranslations')}</h4>
-          {product.features.map((feature: string, index: number) => (
-            <div key={index} className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label className="text-xs text-gray-600">{t('feature_label_template', 'productsTranslations').replace('{number}', String(index + 1))}</Label>
-                <div className="mt-1 p-2 bg-gray-100 rounded text-sm text-gray-900">{feature || '-'}</div>
-              </div>
-              <div>
-                <Label className="text-xs text-gray-600">{selectedLang?.name}</Label>
-                <Input
-                  type="text"
-                  value={translations?.features?.[index] || ''}
-                  onChange={(e) => onFeatureChange(index, e.target.value)}
-                  placeholder={t('translate_feature_placeholder', 'productsTranslations')}
-                  className="mt-1 text-sm"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Specs */}
       {product?.specs && Object.keys(product.specs).length > 0 && (

@@ -52,11 +52,6 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       Object.assign(specs, translation.specs);
     }
 
-    const features = (Array.isArray(laptop.features) ? laptop.features : []).map((feature, index) => {
-      const translatedFeature = isSourceLocale ? feature : translation?.features?.[index] || feature;
-      return translatedFeature.startsWith('feature_') ? t(translatedFeature, 'products') : translatedFeature;
-    });
-
     return {
       id: laptop._id || laptop.id || '',
       name: isSourceLocale
@@ -78,7 +73,6 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       inStock: (laptop.countInStock || 0) > 0,
       specs,
       description: isSourceLocale ? laptop.description || '' : translation?.description || laptop.description || '',
-      features,
       featured: laptop.featured || false,
       deal: laptop.deal,
     };

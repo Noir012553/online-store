@@ -280,18 +280,6 @@ class ProductTranslationSeederService {
       // Spec values are translated via product_spec entityType
       // Do NOT add spec translation here to avoid duplicate/conflicting entityType values
 
-      // 5. Dịch từng feature
-      if (Array.isArray(product.features) && product.features.length > 0) {
-        for (const feature of product.features) {
-          if (feature && typeof feature === 'string' && feature.trim()) {
-            fieldsToTranslate.push({
-              originalText: feature,
-              entityType: 'product_feature',
-            });
-          }
-        }
-      }
-
       // Dịch từng field
       for (const field of fieldsToTranslate) {
         try {

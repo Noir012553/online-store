@@ -23,7 +23,6 @@ export interface Laptop {
   inStock: boolean;
   specs: Record<string, string | number>;
   description?: string;
-  features: string[];
   featured?: boolean;
   deal?: {
     discount: number;
