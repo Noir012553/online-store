@@ -8,6 +8,7 @@ const Product = require('../models/Product');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const translationSeederHelper = require('../services/translationSeederHelper');
+const seedSpecTranslations = require('./specTranslationSeeder');
 
 /**
  * Định nghĩa các collection của Gearvn
@@ -345,10 +346,11 @@ const seedProducts = async (userId, categoryIds, supplierIds) => {
       // Include default language even though it's the source, so specTranslationSeeder can aggregate it
 
       try {
-        const { getActiveLangCodes } = require('../config/languageInventory');
-        const allLanguages = getActiveLangCodes();
+        const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
+        const allLanguages = SUPPORTED_LANGUAGES.map(({ code }) => code);
         console.log(`[Seeder] Translating ${createdProducts.length} products to ${allLanguages.length} languages...`);
         await translationSeederHelper.translateProductsBatch(createdProducts, allLanguages);
+        await seedSpecTranslations();
         console.log(`[Seeder] ${CLI_SYMBOLS.success} Product translations completed`);
       } catch (translationError) {
         console.error(`[Seeder] ${CLI_SYMBOLS.warning} Product translation warning: ${translationError.message}`);

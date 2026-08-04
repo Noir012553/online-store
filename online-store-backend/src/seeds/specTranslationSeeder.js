@@ -18,7 +18,7 @@ const fs = require('fs');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const Product = require('../models/Product');
-const { getActiveLangCodes } = require('../config/languageInventory');
+const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 // Load specKeyTranslations
@@ -29,7 +29,7 @@ if (fs.existsSync(specKeyPath)) {
 }
 
 const BATCH_SIZE = 100;
-const SUPPORTED_LANGUAGES = getActiveLangCodes();
+const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 
 /**
  * Aggregate product specs từ multiple LiveTranslationCache rows
@@ -45,7 +45,9 @@ async function seedSpecTranslations() {
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying LiveTranslationCache for product translations...`);
 
     const allRecords = await LiveTranslationCache.find({
-      entityType: { $in: ['product_spec', 'product_name', 'product_description', 'product_brand'] }
+      entityType: { $in: ['product_spec', 'product_name', 'product_description', 'product_brand'] },
+      status: 'success',
+      qualityStatus: 'approved',
     }).lean();
 
     console.log(`  Found ${allRecords.length} translation records\n`);
@@ -71,6 +73,9 @@ async function seedSpecTranslations() {
           description: null,
           brand: null,
           status: 'success',
+          qualityStatus: 'approved',
+          qualityScore: 100,
+          validationErrors: [],
           retryCount: 0,
           lastErrorMessage: null,
           lastRetryAt: null,
@@ -109,7 +114,7 @@ async function seedSpecTranslations() {
       const operations = batch.map(entry => ({
         updateOne: {
           filter: { entityId: entry.entityId, targetLang: entry.targetLang },
-          update: { $setOnInsert: entry },
+          update: { $set: entry },
           upsert: true,
         }
       }));
@@ -133,7 +138,7 @@ async function seedSpecTranslations() {
 
     const verifyByLang = {};
     const verifyWithCategoryName = {};
-    for (const lang of SUPPORTED_LANGUAGES) {
+    for (const lang of SUPPORTED_LANG_CODES) {
       const count = await ProductCatalogTranslationCache.countDocuments({
         targetLang: lang,
         status: 'success'
@@ -142,7 +147,7 @@ async function seedSpecTranslations() {
     }
 
     console.log('  Total records per language:');
-    SUPPORTED_LANGUAGES.forEach(lang => {
+    SUPPORTED_LANG_CODES.forEach(lang => {
       const total = verifyByLang[lang];
       console.log(`    ${lang.padEnd(4)} ${CLI_SYMBOLS.arrowRight} ${total} products`);
     });
