@@ -208,7 +208,7 @@ describe('translationHelper - Product legacy cache fallback', () => {
     assert.deepStrictEqual(mockLegacyFind.calls, [{
       entityId: { $in: ['1'] },
       targetLang: 'en',
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] },
+      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
       status: 'success',
       qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
     }]);
