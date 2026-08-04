@@ -190,6 +190,42 @@ class TranslationSeederHelper {
     return cacheMap;
   }
 
+  splitDescription(text, maxLength = 6000) {
+    if (text.length <= maxLength) return [text];
+
+    const chunks = [];
+    let start = 0;
+
+    while (start < text.length) {
+      let end = Math.min(start + maxLength, text.length);
+      if (end < text.length) {
+        const boundary = Math.max(
+          text.lastIndexOf('\n', end),
+          text.lastIndexOf('. ', end),
+          text.lastIndexOf('! ', end),
+          text.lastIndexOf('? ', end),
+          text.lastIndexOf(' ', end)
+        );
+        if (boundary > start) end = boundary + 1;
+      }
+      chunks.push(text.slice(start, end));
+      start = end;
+    }
+
+    return chunks;
+  }
+
+  async translateDescription(text, targetLang, sourceLang) {
+    const chunks = this.splitDescription(text);
+    const translations = [];
+
+    for (const chunk of chunks) {
+      translations.push(await this.translateWithRetry(chunk, targetLang, 0, sourceLang));
+    }
+
+    return translations.join('');
+  }
+
   /**
    * Translate product fields with cache check
    * Returns: { originalText, translatedText, fromCache }
@@ -218,7 +254,9 @@ class TranslationSeederHelper {
     }
 
     // Not in cache - translate
-    const translatedText = await this.translateWithRetry(text, targetLang, 0, sourceLang);
+    const translatedText = entityType === 'product_description'
+      ? await this.translateDescription(text, targetLang, sourceLang)
+      : await this.translateWithRetry(text, targetLang, 0, sourceLang);
 
     // Queue for batch save (don't save individually)
     // Will be saved via batchSaveCache() to avoid middleware issues

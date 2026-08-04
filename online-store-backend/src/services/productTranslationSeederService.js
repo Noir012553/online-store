@@ -290,7 +290,11 @@ class ProductTranslationSeederService {
             .digest('hex');
 
           // Check cache trước
-          const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          const cached = await LiveTranslationCache.findOne({
+            hashKey,
+            status: 'success',
+            qualityStatus: 'approved',
+          }).lean();
           if (cached) {
             successCount++;
             continue;
