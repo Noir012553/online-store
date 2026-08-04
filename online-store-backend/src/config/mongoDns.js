@@ -1,18 +1,9 @@
 const dns = require('dns');
+const { dnsServers } = require('./mongoConfig');
 
-const DEFAULT_FALLBACK_SERVERS = ['1.1.1.1', '1.0.0.1'];
 let configured = false;
 
 const isSrvUri = mongoUri => typeof mongoUri === 'string' && mongoUri.startsWith('mongodb+srv://');
-
-const getDnsServers = () => {
-  const configuredServers = process.env.MONGO_DNS_SERVERS
-    ?.split(',')
-    .map(server => server.trim())
-    .filter(Boolean);
-
-  return configuredServers?.length ? configuredServers : DEFAULT_FALLBACK_SERVERS;
-};
 
 const configureMongoDns = async mongoUri => {
   if (configured || !isSrvUri(mongoUri)) {
@@ -29,7 +20,11 @@ const configureMongoDns = async mongoUri => {
     configured = true;
     return;
   } catch (systemResolverError) {
-    const fallbackServers = getDnsServers();
+    const fallbackServers = dnsServers;
+    if (fallbackServers.length === 0) {
+      throw new Error(`MongoDB SRV DNS lookup failed with system resolver: ${systemResolverError.message}`);
+    }
+
     dns.setServers(fallbackServers);
 
     try {

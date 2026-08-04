@@ -14,6 +14,7 @@ const path = require('path');
 const fs = require('fs');
 const { ensureUploadDir } = require('./config/multerConfig');
 const { configureMongoDns } = require('./config/mongoDns');
+const { mongooseOptions } = require('./config/mongoConfig');
 
 // ==================== Import Routes ====================
 const userRoutes = require('./routes/userRoutes');
@@ -208,17 +209,6 @@ app.use(languageMiddleware);
  * - Sử dụng mặc định trong tests, ngoài production dùng MongoDB Atlas
  * - Retry logic với exponential backoff cho connection failures
  */
-const mongooseOptions = {
-  maxPoolSize: 10,
-  minPoolSize: 5,
-  serverSelectionTimeoutMS: 8000,  // Reduce timeout to 8 seconds
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 8000,           // Reduce timeout to 8 seconds
-  retryWrites: true,
-  w: 'majority',
-  family: 4,
-};
-
 let connectionAttempts = 0;
 const maxConnectionAttempts = 3;  // Reduce max attempts to 3 (total 8+16+32 = 56 seconds max wait)
 let serverStarted = false;
