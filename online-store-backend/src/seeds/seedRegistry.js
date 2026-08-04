@@ -142,13 +142,6 @@ const SEED_MODULES = {
     seeder: require('./categoryTranslationSeeder'),
     importance: 'HIGH',
   },
-  featuresTranslations: {
-    name: 'Features Translations (i18n Layer 2)',
-    layer: 2,
-    depends: ['products'],
-    seeder: require('./featuresTranslationSeeder'),
-    importance: 'MEDIUM',
-  },
   specTranslations: {
     name: 'Spec Translations Aggregation (Cache Layer)',
     layer: 2,

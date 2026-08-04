@@ -89,7 +89,6 @@ export const LaptopSchema = z.object({
       return cleanedSpecs;
     }),
   description: z.string().optional(),
-  features: z.array(z.string()).default([]),
   specDisplay: z.array(z.object({
     field: z.string(),
     label: z.string(),
@@ -125,11 +124,6 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
     // Handle description
     if (normalized.description) {
       normalized.description = String(normalized.description);
-    }
-
-    // Handle features array
-    if (!Array.isArray(normalized.features)) {
-      normalized.features = [];
     }
 
     // Handle specDisplay array

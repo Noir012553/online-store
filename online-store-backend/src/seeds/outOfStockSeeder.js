@@ -41,17 +41,6 @@ const buildProductDescription = (categoryKey) => {
   return desc;
 };
 
-const buildProductFeatures = () => {
-  const features = {};
-  SUPPORTED_LANGS.forEach(lang => {
-    features[lang] = [
-      getMessage(lang, 'product-seeder-messages.out_of_stock_feature'),
-      getMessage(lang, 'product-seeder-messages.out_of_stock_feature_pending'),
-    ];
-  });
-  return features;
-};
-
 const seedOutOfStockProducts = async (userId, categoryIds, supplierIds) => {
   try {
     const { getDefaultLanguage } = require('../config/languageInventory');
@@ -97,7 +86,6 @@ const seedOutOfStockProducts = async (userId, categoryIds, supplierIds) => {
         specs: {
           example: 'out-of-stock test'
         },
-        features: buildProductFeatures(),
       };
 
       outOfStockProducts.push(productData);

@@ -8,13 +8,13 @@ const SHADOW_WRITES_ENABLED = process.env.SHADOW_WRITES_ENABLED === 'true';
 class TranslationShadowWriteService {
   /**
    * Write product translation to NEW schema (for Phase 1)
-   * Aggregates specs & features into single document
+   * Aggregates specs into a single document
    */
   static async writeShadowProductTranslation(productId, targetLang, translationData) {
     if (!SHADOW_WRITES_ENABLED) return null;
 
     try {
-      const { name, description, brand, specs = {}, features = [], status = 'success', retryCount = 0, lastErrorMessage = null, lastRetryAt = null } = translationData;
+      const { name, description, brand, specs = {}, status = 'success', retryCount = 0, lastErrorMessage = null, lastRetryAt = null } = translationData;
 
       const updateData = {
         entityId: productId,
@@ -23,7 +23,6 @@ class TranslationShadowWriteService {
         description,
         brand,
         specs: new Map(Object.entries(specs)),
-        features: Array.isArray(features) ? features : [],
         status,
         retryCount,
         lastErrorMessage,
@@ -130,7 +129,6 @@ class TranslationShadowWriteService {
         description: translation.description,
         brand: translation.brand,
         specs: translation.specs ? Object.fromEntries(translation.specs) : {},
-        features: translation.features || [],
         categoryName: translation.categoryName,
       };
     } catch (error) {

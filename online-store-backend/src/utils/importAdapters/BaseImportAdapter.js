@@ -64,7 +64,6 @@ class BaseImportAdapter {
       'nhà cung cấp': 'supplier',
       'số lượng': 'countInStock',
       'mô tả': 'description',
-      'tính năng': 'features',
       'thông số': 'specs',
       'product name': 'name',
       'brand': 'brand',
@@ -74,7 +73,6 @@ class BaseImportAdapter {
       'supplier': 'supplier',
       'quantity in stock': 'countInStock',
       'description': 'description',
-      'features': 'features',
       'specifications': 'specs',
     };
 
