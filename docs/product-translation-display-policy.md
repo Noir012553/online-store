@@ -184,16 +184,25 @@ Cần tách luồng admin khỏi API storefront bằng một endpoint hoặc que
 
 Endpoint `GET /api/products/top/rated` phải áp dụng cùng bộ lọc hoàn chỉnh bản dịch như các endpoint storefront khác. Nếu không, sản phẩm chưa đủ bản dịch vẫn có thể xuất hiện trong danh sách sản phẩm được đánh giá cao.
 
-### Giao diện admin hiển thị bản dịch đích nhưng không hiển thị ô tiếng Việt
+### Đã dọn trường `features`
 
-Trong trang `/admin/translationsDynamic`, các trường như `feature_rgb_backlight` và `feature_long_battery` là key hoặc giá trị gốc của tính năng trong `Product`, không phải bản dịch tiếng Việt thân thiện để hiển thị cho khách hàng. Giao diện hiện hiển thị các ngôn ngữ đích, ví dụ `Tiếng Anh` với các giá trị như `RGB Backlight` hoặc `Long-Lasting Battery`, nhưng không có ô nhập riêng cho `Tiếng Việt`.
+Để loại bỏ xung đột giữa static key và dynamic translation, dự án đã loại bỏ `features` khỏi luồng sản phẩm:
 
-Cách triển khai hiện tại xem dữ liệu gốc trong `Product` là nội dung tiếng Việt và chỉ lưu các ngôn ngữ đích trong `ProductCatalogTranslationCache`. Vì vậy:
+- `Product.features` và `featuresTranslations` không còn nằm trong model và không được nhận khi tạo/cập nhật sản phẩm mới.
+- Seeder không còn tạo task hoặc cache `product_feature`.
+- Storefront không còn render features và response không còn trả lại dữ liệu features cũ.
+- Trang `/admin/translationsDynamic` không còn hiển thị hoặc chỉnh sửa features.
+- Visibility gate không còn yêu cầu product phải có features.
 
-- Không được kết luận sản phẩm thiếu tiếng Việt chỉ vì trang admin không có ô `Tiếng Việt`.
-- Phải kiểm tra các trường nguồn tương ứng trong `Product` có nội dung hợp lệ, dễ hiển thị và không chỉ chứa key kỹ thuật như `feature_rgb_backlight`.
-- Phải kiểm tra riêng từng ngôn ngữ đích trong cache với `status = success`, `qualityStatus = approved` và nội dung đầy đủ.
-- Nếu dữ liệu gốc chỉ chứa key kỹ thuật thay vì nội dung tiếng Việt, sản phẩm không nên được coi là có bản dịch tiếng Việt hợp lệ cho storefront; cần chuẩn hóa dữ liệu nguồn hoặc thống nhất cơ chế lưu bản dịch `vi` trong cache.
-- Việc có nội dung tiếng Anh không chứng minh rằng tám ngôn ngữ đích còn lại cũng đã đầy đủ và hợp lệ.
+Các bản ghi features cũ trong database chưa bị xóa vật lý; nếu cần dọn hoàn toàn dữ liệu tồn đọng, cần migration riêng. Việc này không làm thay đổi điều kiện bản dịch: sản phẩm vẫn phải có các trường còn lại đầy đủ và translation cache hợp lệ cho toàn bộ 9 ngôn ngữ.
 
-Bộ lọc storefront phải áp dụng nhất quán theo lựa chọn đã thống nhất cho `vi`: hoặc xác nhận dữ liệu gốc của `Product` là bản dịch tiếng Việt hợp lệ, hoặc yêu cầu bản ghi cache `vi` hợp lệ giống các ngôn ngữ khác. Trang admin vẫn phải hiển thị sản phẩm để admin có thể phát hiện và hoàn thiện dữ liệu nguồn hoặc các bản dịch còn thiếu.
+## Tiến độ triển khai
+
+Đã hoàn thành phần code cho:
+
+- bộ lọc storefront trước phân trang và áp dụng cho danh sách, trang chủ, category, search, featured, hot deals, top rated và chi tiết;
+- điều kiện `status = success`, `qualityStatus = approved` và kiểm tra nội dung bản dịch;
+- luồng admin riêng không áp dụng `storefrontVisible`;
+- overlay storefront chỉ dùng bản dịch sản phẩm đã approved.
+
+Đã kiểm tra cú pháp JavaScript và whitespace trong diff. Chưa chạy được test backend/build frontend vì môi trường hiện thiếu dependency (`dotenv` và `next`).
