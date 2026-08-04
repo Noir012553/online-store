@@ -47,7 +47,6 @@ describe('ROLLBACK PROCEDURES', function() {
         targetLang: 'en',
         name: 'New Schema Data',
         specs: { test: 'new' },
-        features: ['new'],
         status: 'success'
       });
 
@@ -293,7 +292,6 @@ describe('ROLLBACK PROCEDURES', function() {
         targetLang: 'en',
         name: 'Safety Test',
         specs: { key: 'value' },
-        features: ['feature1'],
         status: 'success'
       };
 
@@ -344,7 +342,6 @@ describe('ROLLBACK PROCEDURES', function() {
         targetLang: 'en',
         name: 'TTL Test',
         specs: {},
-        features: [],
         status: 'success',
         createdAt: new Date()
       });

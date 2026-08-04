@@ -138,7 +138,7 @@ exports.getStaticTranslations = async (req, res) => {
 
 /**
  * GET /api/products/:id/translations
- * Fetch translated product data (specs, features, name, etc.) for a specific language
+ * Fetch translated product data (name, description, brand, specs) for a specific language
  * Only returns data for non-VI languages (VI is default/source)
  */
 exports.getProductTranslations = async (req, res) => {
@@ -1044,7 +1044,6 @@ exports.importProductTranslationCache = async (req, res) => {
         && (!('name' in translations) || typeof translations.name === 'string')
         && (!('description' in translations) || typeof translations.description === 'string')
         && (!('brand' in translations) || typeof translations.brand === 'string')
-        && (!('features' in translations) || (Array.isArray(translations.features) && translations.features.every((value) => typeof value === 'string')))
         && (!('specs' in translations) || (translations.specs && typeof translations.specs === 'object' && !Array.isArray(translations.specs)));
     });
     if (!isValid) {

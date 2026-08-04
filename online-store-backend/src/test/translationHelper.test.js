@@ -259,7 +259,6 @@ describe('translationHelper - Storefront product visibility', () => {
     description: 'Mô tả',
     brand: 'Brand',
     specs: { CPU: 'Core Ultra' },
-    features: ['Màn hình OLED'],
   };
 
   const createTranslations = (overrides = {}) => (
@@ -295,7 +294,7 @@ describe('translationHelper - Storefront product visibility', () => {
   it('hides products whose Vietnamese source fields are incomplete', async () => {
     mockProductCache.find.result = Promise.resolve(createTranslations());
 
-    const result = await getStorefrontVisibleProductIds([{ ...product, features: [] }]);
+    const result = await getStorefrontVisibleProductIds([{ ...product, specs: {} }]);
 
     assert.strictEqual(result.size, 0);
   });

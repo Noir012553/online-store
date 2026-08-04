@@ -43,7 +43,6 @@ describe('Product translation cache controller', () => {
         description: 'Translated description',
         brand: 'Brand',
         specs: {},
-        features: [],
       }),
     });
     const res = createResponse();
@@ -130,14 +129,12 @@ describe('Product translation cache controller', () => {
         description: 'Source description',
         brand: 'Source brand',
         specs: { RAM: '16GB' },
-        features: ['Portable'],
       }),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
       lean: sandbox.stub().resolves({
         name: 'Manual laptop',
-        features: ['Manual feature'],
-        manualFields: ['name', 'features'],
+        manualFields: ['name'],
       }),
     });
     const translate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
@@ -149,7 +146,7 @@ describe('Product translation cache controller', () => {
     const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
       lean: sandbox.stub().resolves({
         qualityStatus: 'approved',
-        manualFields: ['name', 'features'],
+        manualFields: ['name'],
         updatedAt: null,
         lastTranslatedAt: null,
         validationErrors: [],
@@ -169,9 +166,8 @@ describe('Product translation cache controller', () => {
       description: 'en:Source description',
       brand: 'en:Source brand',
     });
-    expect(findOneAndUpdate.firstCall.args[1].$set.features).to.deep.equal(['Manual feature']);
     expect(findOneAndUpdate.firstCall.args[1].$set.specs).to.deep.equal({ RAM: 'en:16GB' });
-    expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name', 'features']);
+    expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name']);
   });
 
   it('exports only the requested fields for valid product and language filters', async () => {

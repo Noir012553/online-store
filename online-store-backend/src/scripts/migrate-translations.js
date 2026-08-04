@@ -34,13 +34,11 @@ const buildProductTranslationSnapshot = (translation) => ({
   description: translation.description || null,
   brand: translation.brand || null,
   specs: Object.fromEntries(Object.entries(translation.specs || {}).sort(([left], [right]) => left.localeCompare(right))),
-  features: translation.features || [],
 });
 
 const getSnapshotFieldCounts = (snapshot) => ({
   text: ['name', 'description', 'brand'].filter((field) => snapshot[field]).length,
   specs: Object.keys(snapshot.specs).length,
-  features: snapshot.features.length,
 });
 
 const getSnapshotHash = (snapshot) => crypto
@@ -245,8 +243,7 @@ class MigrationService {
       const sampleProduct = await ProductCatalogTranslationCache.findOne().lean();
       if (sampleProduct) {
         const specsCount = Object.keys(sampleProduct.specs || {}).length;
-        const featuresCount = (sampleProduct.features || []).length;
-        console.log(`  ${CLI_SYMBOLS.success} Sample product aggregation: specs=${specsCount}, features=${featuresCount}`);
+        console.log(`  ${CLI_SYMBOLS.success} Sample product aggregation: specs=${specsCount}`);
       }
 
       // Check for any failed records

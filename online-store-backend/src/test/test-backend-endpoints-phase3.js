@@ -90,10 +90,6 @@ class EndpointTester {
       throw new Error('specs should be an object');
     }
 
-    if (!Array.isArray(data.features)) {
-      throw new Error('features should be an array');
-    }
-
     // If data has specs, should be from new schema (aggregated)
     if (data.specs && typeof data.specs === 'object' && Object.keys(data.specs).length > 0) {
       log.info(`  └─ Found ${Object.keys(data.specs).length} specs (aggregated in new schema)`);

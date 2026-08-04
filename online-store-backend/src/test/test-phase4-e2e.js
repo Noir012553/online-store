@@ -83,7 +83,6 @@ describe('PHASE 4: E2E Integration Tests', () => {
           'Storage': '256GB SSD',
           'CPU': 'A18 Pro Bionic'
         },
-        features: ['Fast', 'Secure', 'Reliable'],
         status: 'success'
       });
     });
@@ -105,7 +104,6 @@ describe('PHASE 4: E2E Integration Tests', () => {
       expect(res.body.data).toBeDefined();
       expect(res.body.data.specs).toBeDefined();
       expect(res.body.data.specs.RAM).toBe('8GB DDR5');
-      expect(res.body.data.features).toEqual(['Fast', 'Secure', 'Reliable']);
     });
 
     test('✅ Specs aggregated in single document (not N+1)', async () => {
@@ -248,7 +246,6 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Offline Test Product',
         specs: { 'Key': 'Value' },
-        features: ['Offline-ready'],
         status: 'success'
       });
 
@@ -426,7 +423,6 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Cached Product',
         specs: { test: 'data' },
-        features: ['test'],
         status: 'success'
       });
 
@@ -476,7 +472,6 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Latency Test',
         specs: {},
-        features: [],
         status: 'success'
       });
 
@@ -523,7 +518,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       // Count old schema
       const oldCount = await LiveTranslationCache.countDocuments({
         entityId: testProductId,
-        entityType: { $in: ['product_spec', 'product_feature'] }
+        entityType: 'product_spec'
       });
 
       // Count new schema (aggregated)
