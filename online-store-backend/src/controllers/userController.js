@@ -4,7 +4,13 @@
  * Hỗ trợ JWT authentication, role-based authorization (user/admin/super-admin)
  */
 const asyncHandler = require('express-async-handler');
-const { generateToken, generateTokenPair, ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = require('../utils/generateToken');
+const {
+    generateToken,
+    generateTokenPair,
+    ACCESS_TOKEN_SECRET,
+    REFRESH_TOKEN_SECRET,
+    JWT_ALGORITHM,
+} = require('../utils/generateToken');
 const { generatePasswordResetToken } = require('../utils/resetTokenGenerator');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../services/emailService');
 const { revokeToken } = require('../utils/tokenBlacklist');
@@ -12,6 +18,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
@@ -383,14 +390,16 @@ const restoreUser = asyncHandler(async (req, res) => {
  * @access Public
  */
 const forgotPassword = asyncHandler(async (req, res) => {
-    const { email } = req.body;
+    const normalizedEmail = typeof req.body.email === 'string'
+        ? req.body.email.trim().toLowerCase()
+        : '';
 
-    if (!email) {
+    if (!normalizedEmail) {
         res.status(400);
         throw new Error(getMessage(req.lang, 'admin-controllers-messages.email_required'));
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail, isDeleted: false });
 
     if (!user) {
         // Don't reveal if email exists for security
@@ -429,7 +438,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
     const { token, newPassword } = req.body;
 
-    if (!token || !newPassword) {
+    if (
+        typeof token !== 'string'
+        || !/^[a-f0-9]{64}$/i.test(token)
+        || typeof newPassword !== 'string'
+        || newPassword.length < 6
+        || newPassword.length > 128
+    ) {
         res.status(400);
         throw createUserError(req.lang, 'USER_RESET_TOKEN_AND_PASSWORD_REQUIRED', 'user-messages.reset_token_and_password_required');
     }
@@ -440,23 +455,27 @@ const resetPassword = asyncHandler(async (req, res) => {
         .update(token)
         .digest('hex');
 
-    // Find user by reset token that hasn't expired
-    const user = await User.findOne({
-        passwordResetToken: hashedToken,
-        passwordResetExpire: { $gt: new Date() },
-    });
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const updateResult = await User.updateOne(
+        {
+            passwordResetToken: hashedToken,
+            passwordResetExpire: { $gt: new Date() },
+            isDeleted: false,
+        },
+        {
+            $set: {
+                password: hashedPassword,
+                passwordResetToken: null,
+                passwordResetExpire: null,
+                refreshTokenId: null,
+            },
+        },
+    );
 
-    if (!user) {
+    if (updateResult.modifiedCount !== 1) {
         res.status(400);
         throw createUserError(req.lang, 'USER_RESET_TOKEN_INVALID', 'admin-controllers-messages.invalid_reset_token');
     }
-
-    // Update password
-    user.password = newPassword;
-    user.passwordResetToken = null;
-    user.passwordResetExpire = null;
-    user.refreshTokenId = null;
-    await user.save();
 
     res.clearCookie('refreshToken', {
         path: '/',
@@ -576,7 +595,9 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     if (refreshToken) {
         try {
-            const decodedRefresh = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+            const decodedRefresh = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, {
+                algorithms: [JWT_ALGORITHM],
+            });
             userId = userId || decodedRefresh.id;
         } catch (error) {
             // Ignore invalid refresh token during logout
@@ -615,9 +636,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     try {
         // Verify refresh token
-        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, {
+            algorithms: [JWT_ALGORITHM],
+        });
 
-        if (decoded.type && decoded.type !== 'refresh') {
+        if (decoded.type !== 'refresh' || typeof decoded.jti !== 'string' || typeof decoded.id !== 'string') {
             res.status(401);
             throw new Error(getMessage(req.lang, 'admin-controllers-messages.invalid_refresh_token_type'));
         }
@@ -634,10 +657,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new Error(getMessage(req.lang, 'admin-controllers-messages.refresh_token_revoked'));
         }
 
-        // Generate new tokens
         const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenId } = generateTokenPair(user._id);
-        user.refreshTokenId = refreshTokenId;
-        await user.save();
+        const rotationResult = await User.updateOne(
+            { _id: user._id, refreshTokenId: decoded.jti, isDeleted: false },
+            { $set: { refreshTokenId } },
+        );
+
+        if (rotationResult.modifiedCount !== 1) {
+            res.status(401);
+            throw new Error(getMessage(req.lang, 'admin-controllers-messages.refresh_token_revoked'));
+        }
 
         // Update refresh token cookie (Token rotation)
         res.cookie('refreshToken', newRefreshToken, {

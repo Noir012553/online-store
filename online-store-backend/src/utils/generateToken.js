@@ -6,7 +6,8 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || (process.env.JWT_SECRET ? `${process.env.JWT_SECRET}_refresh` : undefined);
+const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET;
+const JWT_ALGORITHM = 'HS256';
 
 if (!ACCESS_TOKEN_SECRET) {
   throw new Error('JWT access secret is not configured');
@@ -23,6 +24,7 @@ if (!REFRESH_TOKEN_SECRET) {
  */
 const generateAccessToken = (id) => {
   return jwt.sign({ id, type: 'access' }, ACCESS_TOKEN_SECRET, {
+    algorithm: JWT_ALGORITHM,
     expiresIn: '60m',
   });
 };
@@ -37,6 +39,7 @@ const generateRefreshToken = (id) => {
 
   return {
     refreshToken: jwt.sign({ id, type: 'refresh', jti }, REFRESH_TOKEN_SECRET, {
+      algorithm: JWT_ALGORITHM,
       expiresIn: '7d',
     }),
     refreshTokenId: jti,
@@ -65,6 +68,7 @@ const generateToken = (id) => generateAccessToken(id);
 module.exports = {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
+  JWT_ALGORITHM,
   generateToken,
   generateAccessToken,
   generateRefreshToken,
