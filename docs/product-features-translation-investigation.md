@@ -168,3 +168,43 @@ Dữ liệu features cũ trong database chưa bị xóa vật lý. Code hiện t
 ## Kết luận
 
 Vấn đề key `feature_*` và request dịch features đã được loại bỏ khỏi luồng đang chạy. Điều kiện hiển thị sản phẩm hiện chỉ kiểm tra các trường sản phẩm còn sử dụng và bản dịch hợp lệ đủ toàn bộ ngôn ngữ bắt buộc.
+
+## Vấn đề mới: seed description bị thiếu hoặc không tạo cache
+
+Khi seed bản dịch sản phẩm, một số `description` có hiện tượng:
+
+- Bản dịch được tạo nhưng nội dung ngắn hơn hoặc thiếu một phần so với nguồn.
+- Không tạo được bản ghi cache cho `product_description`.
+
+Hiện chưa thay đổi code để xử lý vấn đề này.
+
+### Luồng liên quan
+
+- `online-store-backend/src/seeds/productSeeder.js:341-352` tạo sản phẩm rồi gọi `translationSeederHelper.translateProductsBatch()`.
+- `online-store-backend/src/seeds/productSeeder.js:85-101` chỉ loại HTML, decode entity và chuẩn hóa khoảng trắng; không cắt độ dài description.
+- `online-store-backend/src/services/translationSeederHelper.js:251-323` gửi `description` nguyên văn qua `translateField()`.
+- `online-store-backend/src/services/translationSeederHelper.js:440-465` flush cache trực tiếp bằng `LiveTranslationCache.insertMany()`.
+- `online-store-backend/src/services/cloudflareAiService.js:237-281` gửi một request gồm system prompt và toàn bộ description.
+
+### Nhận định hiện tại
+
+- `Product.description` và `LiveTranslationCache.originalText`/`translatedText` không có `maxlength`.
+- Luồng seed sản phẩm không có bước `slice`, `substring` hoặc chia description thành đoạn trước khi gửi AI.
+- Request Cloudflare AI không truyền tham số giới hạn output như `max_tokens`; giới hạn thực tế phụ thuộc context/token của model và API.
+- `translationSeederHelper` không gọi `batchSaveCache()`, nên bộ kiểm tra tỷ lệ độ dài trong `translationValidator` không chạy trên cache được flush bởi luồng seed này.
+- Nếu AI trả response rỗng, `cloudflareAiService` ném lỗi; khi đó bản ghi cache không được thêm. Nếu lỗi xảy ra trong lúc flush batch, `insertMany()` có thể khiến một nhóm cache không được lưu.
+
+### Cần thu thập để xác định nguyên nhân
+
+1. `textLength` và lỗi Cloudflare AI tương ứng với từng `product_description`.
+2. Độ dài `originalText` và `translatedText` của các cache đã tạo.
+3. Số lượng bản ghi pending trước và sau mỗi lần `flushPendingCache()`.
+4. Response/error đầy đủ từ Cloudflare AI đối với description dài.
+5. Xác nhận model Cloudflare đang dùng và giới hạn context/output của model đó.
+
+### Hướng xử lý sau khi xác minh
+
+- Chia description dài thành các đoạn có ranh giới an toàn rồi ghép bản dịch theo đúng thứ tự.
+- Bổ sung kiểm tra độ đầy đủ trước khi lưu cache, thay vì chỉ kiểm tra response có rỗng hay không.
+- Cô lập lỗi theo từng record khi flush để một description lỗi không làm mất các bản dịch khác.
+- Bổ sung test cho description ngắn, description dài, response bị cắt và lỗi khi ghi cache.
