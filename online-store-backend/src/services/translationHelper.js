@@ -36,7 +36,7 @@ const CACHE_MODELS = {
  * Map entity type → Translatable fields
  */
 const TRANSLATABLE_FIELDS = {
-  product: ['name', 'description', 'brand', 'specs', 'features'],
+  product: ['name', 'description', 'brand', 'specs'],
   brand: ['name', 'description'],
   userContent: ['title', 'content'],
   coupon: ['name', 'description', 'codeDescription', 'termsAndConditions'],
@@ -58,13 +58,9 @@ const hasRequiredProductFields = (product) => (
   && hasText(product?.description)
   && hasText(product?.brand)
   && hasContent(product?.specs)
-  && hasContent(product?.features)
 );
 
-const hasValidSourceProductFields = (product) => (
-  hasRequiredProductFields(product)
-  && product.features.every((feature) => hasText(feature) && !/^feature_[a-z0-9_]+$/i.test(feature.trim()))
-);
+const hasValidSourceProductFields = (product) => hasRequiredProductFields(product);
 
 const hasValidProductTranslation = (translation) => (
   translation?.status === 'success'
@@ -123,7 +119,7 @@ async function getStorefrontVisibleProductIds(products) {
 function buildLegacyProductTranslation(translations) {
   if (translations.length === 0) return null;
 
-  const data = { specs: {}, features: [] };
+  const data = { specs: {} };
   translations.forEach((translation) => {
     switch (translation.entityType) {
       case 'product_name':
@@ -137,9 +133,6 @@ function buildLegacyProductTranslation(translations) {
         break;
       case 'product_spec':
         if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
-        break;
-      case 'product_feature':
-        data.features.push(translation.translatedText);
         break;
     }
   });
@@ -222,7 +215,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       entityId: { $in: entityIds },
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     // Debug logging
@@ -309,7 +302,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -367,7 +360,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -523,6 +516,7 @@ async function getTranslationWithFallback(entityId, entityType, requestedLang) {
       entityId: String(entityId),
       targetLang: requestedLang,
       status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     if (translation) {
@@ -566,7 +560,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
       entityId: { $in: entityIds },
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     const translationMap = {};

@@ -274,10 +274,6 @@ export default function ProductDetail() {
   const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description;
   const localizedBrand = isSourceLocale ? laptop.brand : translation?.brand?.trim() || laptop.brand;
   const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? laptop.specs ?? {};
-  const localizedFeatures = (laptop.features ?? []).map((feature: string, index: number) => {
-    const translatedFeature = isSourceLocale ? feature : translation?.features?.[index] || feature;
-    return translatedFeature.startsWith('feature_') ? t(translatedFeature, 'products') : translatedFeature;
-  });
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
     ? category._id ?? category.id
@@ -299,7 +295,6 @@ export default function ProductDetail() {
     inStock: (laptop.countInStock ?? 0) > 0,
     specs: localizedSpecs,
     description: localizedDescription,
-    features: localizedFeatures,
     featured: laptop.featured ?? false,
     deal: laptop.deal,
   };
@@ -554,29 +549,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Featured Features */}
-            {(() => {
-              const features = convertedLaptop.features || [];
-
-              return features.length > 0 ? (
-                <div className="bg-linear-to-br from-red-50 to-orange-50 p-6 rounded-lg border border-red-100">
-                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-                    <span>{UI_EMOJI.featured}</span>
-                    {t('section_featured_features', 'products')}
-                  </h3>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {features.map((feature: string, index: number) => (
-                      <li key={index} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100 hover:shadow-md transition-shadow">
-                        <span className="text-red-600 mt-0.5 font-bold text-lg shrink-0">{UI_EMOJI.feature}</span>
-                        <span className="text-gray-800 font-medium">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null;
-            })()}
-
-            {!convertedLaptop.description && convertedLaptop.features.length === 0 && (
+            {!convertedLaptop.description && (
               <p className="text-gray-500 text-center py-8">{t('empty_no_description', 'products')}</p>
             )}
           </div>

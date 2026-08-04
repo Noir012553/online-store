@@ -36,7 +36,7 @@ const DEFAULT_LANG = getDefaultLanguage().code;
 const findStorefrontVisibleProductIds = async (query) => {
   const products = await withTimeout(
     Product.find(query)
-      .select('_id name description brand specs features')
+      .select('_id name description brand specs')
       .lean(),
     20000
   );
@@ -45,7 +45,14 @@ const findStorefrontVisibleProductIds = async (query) => {
 };
 
 const formatProductsForDisplay = async (products, reportingCurrency, locale) => {
-  if (!reportingCurrency) return formatProducts(products, locale);
+  if (!reportingCurrency) {
+    const productsWithoutFeatures = products.map((product) => {
+      const data = product.toObject ? product.toObject() : product;
+      const { features, featuresTranslations, ...displayData } = data;
+      return displayData;
+    });
+    return formatProducts(productsWithoutFeatures, locale);
+  }
 
   const [currencies, activeRates] = await Promise.all([
     getCurrencyMetadata([reportingCurrency]),
@@ -54,6 +61,7 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
 
   return products.map((product) => {
     const data = product.toObject ? product.toObject() : product;
+    const { features, featuresTranslations, ...displayData } = data;
     const displayPrice = convertOrderAmount(
       data.price,
       data.baseCurrencyCode,
@@ -73,7 +81,7 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
 
     return formatAmountFields(
       {
-        ...data,
+        ...displayData,
         displayPrice,
         ...(displayOriginalPrice !== undefined && { displayOriginalPrice }),
         discountPercentage: Number.isFinite(data.originalPrice) && data.originalPrice > data.price
@@ -458,7 +466,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock, supplier,
-    originalPrice, baseCurrencyCode, featured, images, features, specs, deal, image, imagePublicId, imageClaimId
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
   } = req.body;
   const parsedDeal = parseDealInput(deal);
 
@@ -567,7 +575,6 @@ const createProduct = asyncHandler(async (req, res) => {
     description: description || '',
     supplier,
     featured: featured || false,
-    features: features || [],
     specs: normalizedSpecs,
     deal: parsedDeal,
     numReviews: 0,
@@ -633,7 +640,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock, supplier,
-    originalPrice, baseCurrencyCode, featured, images, features, specs, deal, image, imagePublicId, imageClaimId
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
   } = req.body;
 
   const product = await withTimeout(Product.findById(req.params.id), 8000);
@@ -730,10 +737,6 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (images !== undefined) {
     product.images = images;
-  }
-
-  if (features !== undefined) {
-    product.features = features;
   }
 
   if (specs !== undefined) {
