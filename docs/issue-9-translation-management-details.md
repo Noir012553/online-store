@@ -6,7 +6,6 @@
 - Admin save qua endpoint theo product/language.
 - Re-translate bỏ qua các field nằm trong `manualFields`.
 - Cache mới `ProductCatalogTranslationCache` được ưu tiên; `LiveTranslationCache` là fallback.
-- `Product.featuresTranslations` được merge theo field vào response.
 - Batch legacy nhận `lang`, `limit`, `entityType`, không phải contract batch chọn lọc của UI mới.
 
 ## Đã xác minh
