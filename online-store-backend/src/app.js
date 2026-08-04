@@ -13,8 +13,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const { ensureUploadDir } = require('./config/multerConfig');
-const { configureMongoDns } = require('./config/mongoDns');
-const { mongooseOptions } = require('./config/mongoConfig');
+const { connectMongo } = require('./config/mongoConnection');
 
 // ==================== Import Routes ====================
 const userRoutes = require('./routes/userRoutes');
@@ -210,7 +209,7 @@ app.use(languageMiddleware);
  * - Retry logic với exponential backoff cho connection failures
  */
 let connectionAttempts = 0;
-const maxConnectionAttempts = 3;  // Reduce max attempts to 3 (total 8+16+32 = 56 seconds max wait)
+const maxConnectionAttempts = 3;
 let serverStarted = false;
 let homepageHeroBannersSeeded = false;
 let translationsSeeded = false;
@@ -336,8 +335,7 @@ const connectDB = async () => {
       return;
     }
 
-    await configureMongoDns(MONGO_URI);
-    await mongoose.connect(MONGO_URI, mongooseOptions);
+    await connectMongo(MONGO_URI);
     connectionAttempts = 0;
     await ensureHomepageHeroBanners();
     await ensureTranslationsSeeded();
@@ -709,8 +707,6 @@ process.on('SIGINT', () => {
 });
 
 if (require.main === module) {
-  serverStarted = true;
-  server.listen(PORT, '0.0.0.0');
   connectDB();
 }
 
