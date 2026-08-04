@@ -10,6 +10,7 @@ const {
     ACCESS_TOKEN_SECRET,
     REFRESH_TOKEN_SECRET,
     JWT_ALGORITHM,
+    REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
 } = require('../utils/generateToken');
 const { generatePasswordResetToken } = require('../utils/resetTokenGenerator');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../services/emailService');
@@ -58,7 +59,7 @@ const authUser = asyncHandler(async (req, res) => {
             httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
             secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
             sameSite: 'lax',          // Allows same-site cookie in all cases
-            maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
             path: '/',                // Cookie sent with all requests
         });
 
@@ -127,7 +128,7 @@ const registerUser = asyncHandler(async (req, res) => {
             httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
             secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
             sameSite: 'lax',          // Allows same-site cookie in all cases
-            maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
             path: '/',                // Cookie sent with all requests
         });
 
@@ -673,7 +674,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
             path: '/',
         });
 
@@ -937,7 +938,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS, // 7 days
     path: '/',
   });
 

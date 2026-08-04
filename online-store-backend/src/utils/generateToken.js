@@ -4,18 +4,17 @@
 
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const tokenConfig = require('../config/tokenConfig');
 
-const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET;
-const JWT_ALGORITHM = 'HS256';
-
-if (!ACCESS_TOKEN_SECRET) {
-  throw new Error('JWT access secret is not configured');
-}
-
-if (!REFRESH_TOKEN_SECRET) {
-  throw new Error('JWT refresh secret is not configured');
-}
+const {
+  algorithm: JWT_ALGORITHM,
+  access: { secret: ACCESS_TOKEN_SECRET, expiresIn: ACCESS_TOKEN_EXPIRES_IN },
+  refresh: {
+    secret: REFRESH_TOKEN_SECRET,
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    cookieMaxAgeMs: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+  },
+} = tokenConfig;
 
 /**
  * Tạo JWT access token cho người dùng (short-lived)
@@ -25,7 +24,7 @@ if (!REFRESH_TOKEN_SECRET) {
 const generateAccessToken = (id) => {
   return jwt.sign({ id, type: 'access' }, ACCESS_TOKEN_SECRET, {
     algorithm: JWT_ALGORITHM,
-    expiresIn: '60m',
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
 };
 
@@ -40,7 +39,7 @@ const generateRefreshToken = (id) => {
   return {
     refreshToken: jwt.sign({ id, type: 'refresh', jti }, REFRESH_TOKEN_SECRET, {
       algorithm: JWT_ALGORITHM,
-      expiresIn: '7d',
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
     }),
     refreshTokenId: jti,
   };
@@ -69,6 +68,7 @@ module.exports = {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
   JWT_ALGORITHM,
+  REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
   generateToken,
   generateAccessToken,
   generateRefreshToken,
