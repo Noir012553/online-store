@@ -18,21 +18,13 @@ const Category = require('../models/Category');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const translationSeederConfig = require('../config/translationSeeder');
 const crypto = require('crypto');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
-const DEFAULT_CONFIG = {
-  BATCH_SIZE: 5,
-  MAX_RETRIES: 2,
-  RETRY_DELAY: 1000,
-  TIMEOUT_MS: 30000,
-  DRY_RUN: process.env.DRY_RUN === 'true', // Test mode: skip AI calls
-  INCREMENTAL: process.env.INCREMENTAL_SEED === 'true', // Skip already-translated items
-};
-
 class TranslationSeederHelper {
   constructor(config = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...translationSeederConfig, ...config };
   }
 
   /**
