@@ -82,7 +82,7 @@ router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 /**
  * POST /api/users/reset-password - Reset password với reset token
  */
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', passwordResetLimiter, resetPassword);
 
 /**
  * POST /api/users/verify-email - Xác minh email với verification token

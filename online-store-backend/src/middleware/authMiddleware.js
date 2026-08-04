@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const { isTokenRevoked } = require('../utils/tokenBlacklist');
-const { ACCESS_TOKEN_SECRET } = require('../utils/generateToken');
+const { ACCESS_TOKEN_SECRET, JWT_ALGORITHM } = require('../utils/generateToken');
 const { getMessage } = require('../i18n/messages');
 
 /**
@@ -23,10 +23,12 @@ const protect = asyncHandler(async (req, res, next) => {
 
     try {
       token = req.headers.authorization.split(' ')[1];
-      decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+      decoded = jwt.verify(token, ACCESS_TOKEN_SECRET, {
+        algorithms: [JWT_ALGORITHM],
+      });
       authStage = 'token type validation';
 
-      if (decoded.type && decoded.type !== 'access') {
+      if (decoded.type !== 'access') {
         res.status(401);
         throw new Error(getMessage(req.lang, 'auth-messages.invalidTokenType'));
       }
