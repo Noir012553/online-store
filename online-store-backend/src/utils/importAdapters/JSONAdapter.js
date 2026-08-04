@@ -86,7 +86,6 @@ class JSONAdapter extends BaseImportAdapter {
           pollRate: 8000,
           buttons: 8
         },
-        features: ["RGB Lighting", "Lightweight", "7 Buttons"],
         featured: true,
         deal: {
           discount: 15,
@@ -109,7 +108,6 @@ class JSONAdapter extends BaseImportAdapter {
           weight: "445g",
           battery: "168 hours"
         },
-        features: ["Hot-swap", "Backlighting", "Compact"],
         featured: false,
         deal: {
           discount: 20,

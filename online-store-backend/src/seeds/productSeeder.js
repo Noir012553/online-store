@@ -155,43 +155,6 @@ const normalizeSpecValue = (value, specField) => {
 };
 
 /**
- * Extract features từ thông tin thực tế của sản phẩm
- * Trả về translation keys (không hardcode text)
- */
-const extractFeatures = (description = '', tags = '') => {
-  const features = [];
-  const searchableText = `${description} ${Array.isArray(tags) ? tags.join(' ') : tags}`;
-  const descLower = searchableText.toLowerCase();
-
-  if (!searchableText.trim()) return features;
-  const featureKeywords = {
-    'kết nối không dây|wireless|2\\.?4ghz|bluetooth': 'feature_wireless_connectivity',
-    'rgb|led|đèn|light|backlit|backlight': 'feature_rgb_backlight',
-    'chống nước|waterproof|chống bụi': 'feature_waterproof_dustproof',
-    'pin|battery|thời lượng pin|endurance': 'feature_long_battery',
-    'gọn gàng|compact|mini|nhẹ|lightweight': 'feature_compact_design',
-    'mechanical|cơ học|switch|cherry|mech': 'feature_premium_keyboard',
-    'gaming|game|chơi game|esports|fps': 'feature_gaming_optimized',
-    'business|văn phòng|office|productivity': 'feature_office_professional',
-    'high dpi|cảm biến|sensor|tracking|precision': 'feature_high_precision_sensor',
-    'ergonomic|êm ái|thoải mái|comfortable': 'feature_ergonomic_design',
-    'programmable|custom|công cụ mạnh|macro|customizable': 'feature_programmable_keys',
-    'hiệu năng|performance|speed|fast|powerful': 'feature_high_performance',
-    'chất lượng âm|audio|sound|bass|stereo': 'feature_superior_sound',
-    'kết nối ổn định|stable|connection|sync': 'feature_stable_connection',
-  };
-
-  Object.entries(featureKeywords).forEach(([keywords, featureKey]) => {
-    const regex = new RegExp(keywords, 'i');
-    if (regex.test(descLower) && !features.includes(featureKey)) {
-      features.push(featureKey);
-    }
-  });
-
-  return features.slice(0, 12);
-};
-
-/**
  * Smart field name normalization
  */
 const smartNormalizeFieldName = (fieldName) => {
@@ -315,7 +278,6 @@ const mapGearvnToProduct = async (gearvnProduct, userId, categoryId, supplierId)
     specs = { ...extractSpecsFromDescription(cleanDescription, gearvnProduct.title), ...specs };
   }
   specs = normalizeSpecs(normalizeAllSpecs(specs));
-  const features = extractFeatures(cleanDescription, gearvnProduct.tags);
   const description = cleanDescription;
   // Fallback: Use vendor name or empty string (will be translated to all languages)
   // No hardcoded English fallback - seeder will assign multilingual translations
@@ -331,7 +293,6 @@ const mapGearvnToProduct = async (gearvnProduct, userId, categoryId, supplierId)
     supplier: supplierId,
     description: description,
     specs: specs,
-    features: features,
     rating: 4.5 + Math.random() * 0.5,
     numReviews: Math.floor(Math.random() * 100 + 20),
     price: price,

@@ -27,14 +27,6 @@ class ProductFactory {
     const weights = ['1.2kg', '1.5kg', '1.8kg', '2.0kg', '2.3kg'];
     const batteries = ['50Wh', '56Wh', '57Wh', '86Wh', '90Wh'];
 
-    const features = [
-      ['feature_rgb_backlight', 'feature_compact_design', 'feature_long_battery'],
-      ['feature_high_performance', 'feature_superior_sound', 'feature_wireless_connectivity'],
-      ['feature_high_precision_sensor', 'feature_gaming_optimized', 'feature_ergonomic_design'],
-      ['feature_stable_connection', 'feature_gaming_optimized', 'feature_high_performance'],
-      ['feature_compact_design', 'feature_long_battery', 'feature_wireless_connectivity']
-    ];
-
     const price = overrides.price || prices[index % prices.length];
     const originalPrice = price + Math.random() * 10000000;
     const hasDiscount = Math.random() > 0.3;
@@ -61,7 +53,6 @@ class ProductFactory {
         weight: weights[index % weights.length],
         battery: batteries[index % batteries.length]
       },
-      features: overrides.features || features[index % features.length],
       rating: overrides.rating || (4 + Math.random() * 1),
       numReviews: overrides.numReviews || Math.floor(Math.random() * 300),
       price: price,

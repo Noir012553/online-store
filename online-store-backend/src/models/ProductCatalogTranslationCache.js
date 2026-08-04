@@ -33,11 +33,6 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       default: new Map(),
       description: 'Aggregated specs: { "RAM": "16GB DDR5", "Storage": "512GB NVMe" }',
     },
-    features: {
-      type: [String],
-      default: [],
-      description: 'Array of translated features',
-    },
     status: {
       type: String,
       enum: ['success', 'failed_rate_limit', 'failed_error', 'pending_retry'],

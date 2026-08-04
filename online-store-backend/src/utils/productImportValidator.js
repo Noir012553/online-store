@@ -22,7 +22,7 @@ const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'supplier', 'base
  */
 const OPTIONAL_FIELDS = [
   'productId', 'originalPrice', 'image', 'images', 'countInStock', 'specs',
-  'features', 'rating', 'numReviews', 'featured', 'deal'
+  'rating', 'numReviews', 'featured', 'deal'
 ];
 
 
@@ -128,26 +128,6 @@ function validateProduct(product, rowIndex = 0) {
     }
   } else {
     cleaned.specs = {};
-  }
-
-  // Process features - can be array or pipe-separated string
-  if (product.features) {
-    try {
-      if (Array.isArray(product.features)) {
-        cleaned.features = product.features.map(f => String(f).trim()).filter(f => f);
-      } else if (typeof product.features === 'string') {
-        // Parse pipe-separated: "Feature1|Feature2|Feature3"
-        cleaned.features = product.features
-          .split('|')
-          .map(f => String(f).trim())
-          .filter(f => f);
-      }
-    } catch (err) {
-      warnings.push(`Row ${rowIndex}: Failed to parse features, skipped`);
-      cleaned.features = [];
-    }
-  } else {
-    cleaned.features = [];
   }
 
   // Validate category - should be valid category name or ID
