@@ -43,7 +43,6 @@ Ngoài trạng thái, nội dung bắt buộc cũng phải đầy đủ theo yê
 - `description`
 - `brand`
 - `specs`
-- `features`
 
 Không được coi bản dịch là hoàn chỉnh nếu cache chỉ tồn tại nhưng đang ở trạng thái `pending`, `needs_retranslate`, `rejected` hoặc trạng thái lỗi.
 
@@ -184,12 +183,12 @@ Cần tách luồng admin khỏi API storefront bằng một endpoint hoặc que
 
 Endpoint `GET /api/products/top/rated` phải áp dụng cùng bộ lọc hoàn chỉnh bản dịch như các endpoint storefront khác. Nếu không, sản phẩm chưa đủ bản dịch vẫn có thể xuất hiện trong danh sách sản phẩm được đánh giá cao.
 
-### Đã dọn trường `features`
+### Dọn trường `features`
 
 Để loại bỏ xung đột giữa static key và dynamic translation, dự án đã loại bỏ `features` khỏi luồng sản phẩm:
 
 - `Product.features` và `featuresTranslations` không còn nằm trong model và không được nhận khi tạo/cập nhật sản phẩm mới.
-- Seeder không còn tạo task hoặc cache `product_feature`.
+- Seeder, migration, import/export và test không còn tạo task, cache hoặc payload `product_feature`/`features`.
 - Storefront không còn render features và response không còn trả lại dữ liệu features cũ.
 - Trang `/admin/translationsDynamic` không còn hiển thị hoặc chỉnh sửa features.
 - Visibility gate không còn yêu cầu product phải có features.

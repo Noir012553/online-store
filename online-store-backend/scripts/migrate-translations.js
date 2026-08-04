@@ -7,7 +7,7 @@
  * Logic:
  * 1. Tìm tất cả entries từ LiveTranslationCache
  * 2. Group by entityId + targetLang + entityType
- * 3. Aggregate specs & features
+ * 3. Aggregate specs
  * 4. Ghi vào ProductCatalogTranslationCache & UserContentTranslationCache
  * 
  * Safety:
@@ -37,7 +37,6 @@ const getProductTranslationFields = (translation) => ({
   description: translation.description || null,
   brand: translation.brand || null,
   specs: Object.fromEntries(Object.entries(translation.specs || {}).sort(([left], [right]) => left.localeCompare(right))),
-  features: translation.features || [],
 });
 
 class MigrationService {

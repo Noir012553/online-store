@@ -49,9 +49,6 @@ describe('PHASE 4: E2E Verification Tests', function() {
         console.log(`     Keys: ${Object.keys(product.specs).join(', ')}`);
       }
 
-      if (Array.isArray(product.features)) {
-        console.log(`  ${CLI_SYMBOLS.success} Features correctly aggregated into array`);
-      }
     });
 
     it(`${CLI_SYMBOLS.success} All new schema documents have success status`, async function() {

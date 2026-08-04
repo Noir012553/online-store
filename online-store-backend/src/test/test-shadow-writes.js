@@ -88,7 +88,6 @@ async function testShadowWrites() {
         'Size': 'Large',
         'Material': 'Cotton'
       },
-      features: ['Feature 1', 'Feature 2', 'Feature 3'],
       categoryName: 'Test Category',
       status: 'success',
     };
@@ -108,11 +107,6 @@ async function testShadowWrites() {
       console.log(`  ${CLI_SYMBOLS.error} Specs not aggregated`);
     }
 
-    if (fetchedProduct.features.length === 3) {
-      console.log(`  ${CLI_SYMBOLS.success} Features stored correctly:`, fetchedProduct.features.length);
-    } else {
-      console.log(`  ${CLI_SYMBOLS.error} Features not stored correctly`);
-    }
 
     // Test 3: Audit Log
     console.log(`\n${CLI_SYMBOLS.list} Test 3: Audit Trail Logging`);
