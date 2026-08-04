@@ -46,12 +46,7 @@ const findStorefrontVisibleProductIds = async (query) => {
 
 const formatProductsForDisplay = async (products, reportingCurrency, locale) => {
   if (!reportingCurrency) {
-    const productsWithoutFeatures = products.map((product) => {
-      const data = product.toObject ? product.toObject() : product;
-      const { features, featuresTranslations, ...displayData } = data;
-      return displayData;
-    });
-    return formatProducts(productsWithoutFeatures, locale);
+    return formatProducts(products, locale);
   }
 
   const [currencies, activeRates] = await Promise.all([
@@ -61,7 +56,6 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
 
   return products.map((product) => {
     const data = product.toObject ? product.toObject() : product;
-    const { features, featuresTranslations, ...displayData } = data;
     const displayPrice = convertOrderAmount(
       data.price,
       data.baseCurrencyCode,
@@ -81,7 +75,7 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
 
     return formatAmountFields(
       {
-        ...displayData,
+        ...data,
         displayPrice,
         ...(displayOriginalPrice !== undefined && { displayOriginalPrice }),
         discountPercentage: Number.isFinite(data.originalPrice) && data.originalPrice > data.price
