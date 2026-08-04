@@ -15,27 +15,24 @@ const configureMongoDns = async mongoUri => {
   const hostname = new URL(mongoUri).hostname;
   const srvRecord = `_mongodb._tcp.${hostname}`;
 
+  const fallbackServers = dnsServers;
+  if (fallbackServers.length > 0) {
+    dns.setServers(fallbackServers);
+  }
+
   try {
     await dns.promises.resolveSrv(srvRecord);
     configured = true;
+    if (fallbackServers.length > 0) {
+      console.warn(`[DB_DNS] Using configured DNS servers: ${fallbackServers.join(', ')}`);
+    }
     return;
-  } catch (systemResolverError) {
-    const fallbackServers = dnsServers;
-    if (fallbackServers.length === 0) {
-      throw new Error(`MongoDB SRV DNS lookup failed with system resolver: ${systemResolverError.message}`);
+  } catch (resolverError) {
+    if (fallbackServers.length > 0) {
+      throw new Error(`MongoDB SRV DNS lookup failed with configured resolver (${resolverError.message})`);
     }
 
-    dns.setServers(fallbackServers);
-
-    try {
-      await dns.promises.resolveSrv(srvRecord);
-      configured = true;
-      console.warn(`[DB_DNS] System DNS failed; using configured fallback DNS: ${fallbackServers.join(', ')}`);
-    } catch (fallbackResolverError) {
-      throw new Error(
-        `MongoDB SRV DNS lookup failed with system resolver (${systemResolverError.message}) and fallback resolver (${fallbackResolverError.message})`
-      );
-    }
+    throw new Error(`MongoDB SRV DNS lookup failed with system resolver: ${resolverError.message}`);
   }
 };
 

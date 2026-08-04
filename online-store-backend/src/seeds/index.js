@@ -9,8 +9,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { configureMongoDns } = require('../config/mongoDns');
-const { mongooseOptions } = require('../config/mongoConfig');
+const { connectMongo } = require('../config/mongoConnection');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
@@ -149,8 +148,7 @@ const seed = async () => {
       throw new Error('MONGO_URI environment variable is not set');
     }
 
-    await configureMongoDns(process.env.MONGO_URI);
-    await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
+    await connectMongo();
 
     // ==================== Start Seeding ====================
 
@@ -318,7 +316,9 @@ const seed = async () => {
         errorStats.forEach(stat => {
           report.issuesBreakdown[stat._id] = {
             count: stat.count,
-            percentage: ((stat.count / totalStats[0].totalTranslations) * 100).toFixed(2) + '%'
+            percentage: totalStats[0].totalTranslations > 0
+              ? `${((stat.count / totalStats[0].totalTranslations) * 100).toFixed(2)}%`
+              : '0%'
           };
         });
         translationReporter.printSeedReport(report);

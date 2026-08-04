@@ -13,8 +13,9 @@
  * npm run seed:smart --reset-status     - Reset tất cả status về pending
  */
 
-const mongoose = require('mongoose');
 require('dotenv').config();
+const mongoose = require('mongoose');
+const { connectMongo } = require('../config/mongoConnection');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
@@ -23,7 +24,7 @@ const args = process.argv.slice(2);
 
 async function smartSeed() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await connectMongo();
     console.log(`${CLI_SYMBOLS.connection} Connected to MongoDB\n`);
 
     const dryRun = args.includes('--dry-run');

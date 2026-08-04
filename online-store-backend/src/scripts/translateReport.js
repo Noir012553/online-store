@@ -1,5 +1,7 @@
 require('dotenv').config();
+require('dotenv').config();
 const mongoose = require('mongoose');
+const { connectMongo } = require('../config/mongoConnection');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
@@ -10,7 +12,7 @@ async function main() {
   try {
     // Connect to MongoDB
     console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
-    await mongoose.connect(process.env.MONGO_URI);
+    await connectMongo();
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Parse options
