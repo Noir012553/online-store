@@ -208,3 +208,72 @@ Hiện chưa thay đổi code để xử lý vấn đề này.
 - Bổ sung kiểm tra độ đầy đủ trước khi lưu cache, thay vì chỉ kiểm tra response có rỗng hay không.
 - Cô lập lỗi theo từng record khi flush để một description lỗi không làm mất các bản dịch khác.
 - Bổ sung test cho description ngắn, description dài, response bị cắt và lỗi khi ghi cache.
+
+## Các vấn đề còn tồn tại đã xác minh
+
+### 1. Cache seed sản phẩm mặc định là `pending`, không qua visibility gate
+
+`specTranslationSeeder` tạo hoặc aggregate dữ liệu vào `ProductCatalogTranslationCache`, nhưng entry không set `qualityStatus`. Schema mặc định giá trị này là `pending`, trong khi storefront chỉ chấp nhận đồng thời:
+
+```text
+status = success
+qualityStatus = approved
+```
+
+Vì vậy seed có thể hoàn tất nhưng sản phẩm vẫn bị ẩn khỏi storefront cho đến khi có bước approve riêng. Ngoài ra, aggregation dùng `$setOnInsert`, nên chạy lại seeder không cập nhật các entry cũ đang `pending`.
+
+**Hướng fix:**
+
+1. Xác định rõ seeder chỉ tạo bản dịch `pending` để chờ kiểm duyệt, hoặc seeder phải chạy validation trước khi ghi.
+2. Nếu validation đạt, ghi `qualityStatus: approved`; nếu không đạt, ghi `pending` kèm `validationErrors`.
+3. Khi backfill entry đã tồn tại, không dùng riêng `$setOnInsert`; cần có chiến lược update có kiểm soát để cập nhật dữ liệu mới và trạng thái chất lượng.
+4. Không tự động approve chỉ vì AI trả về response không rỗng.
+
+### 2. Endpoint public còn trả bản dịch chưa approved
+
+`GET /api/products/:id/translations` hiện lọc `status = success` nhưng chỉ loại `needs_retranslate` và `rejected`. Do đó cache `pending` vẫn có thể được trả cho client public.
+
+**Hướng fix:** dùng cùng predicate với visibility policy:
+
+```text
+status = success
+qualityStatus = approved
+```
+
+Predicate này phải áp dụng cho cả `ProductCatalogTranslationCache` và legacy `LiveTranslationCache`, không dùng hai tiêu chuẩn khác nhau giữa các endpoint.
+
+### 3. Seeder tái sử dụng cache không hợp lệ
+
+`batchCheckCache()` và `translateField()` tra `LiveTranslationCache` theo `hashKey` chỉ, không kiểm tra `status` hoặc `qualityStatus`. Cache pending, rejected hoặc lỗi vì thế có thể bị coi là cache hit.
+
+**Hướng fix:** chỉ coi cache là hit khi record có trạng thái hợp lệ. Record không hợp lệ phải được dịch lại hoặc chuyển qua luồng retry; không được trả `translatedText` cũ cho sản phẩm.
+
+### 4. Flush batch có thể làm mất cache đang chờ
+
+`flushPendingCache()` xóa `_pendingCache` trước khi `insertMany()`. Nếu insert thất bại vì lỗi database, timeout hoặc lỗi validation, batch bị mất khỏi bộ nhớ và không có retry.
+
+**Hướng fix:**
+
+- chỉ xóa record đã insert thành công;
+- khi lỗi ngoài duplicate key, giữ lại batch chưa ghi và retry với giới hạn;
+- nếu `ordered: false` trả về lỗi từng phần, xác định record thành công/thất bại thay vì coi cả batch thành công hoặc thất bại;
+- log số record pending trước/sau flush và số record retry.
+
+### 5. Description dài có thể bị cắt nhưng vẫn được lưu
+
+Luồng seed gửi nguyên văn description cho AI, chỉ kiểm tra response không rỗng. Luồng này không gọi `batchSaveCache()` nên không chạy validation đầy đủ trước khi flush. Một response ngắn hoặc bị cắt có thể được lưu như bản dịch hợp lệ.
+
+**Hướng fix:**
+
+1. Chia description dài theo ranh giới an toàn, giữ thứ tự các đoạn và ghép lại sau khi dịch.
+2. Kiểm tra tính đầy đủ trước khi lưu: độ dài tương đối, cấu trúc HTML/text cần giữ và các placeholder nếu có.
+3. Không đánh dấu `approved` khi validation thất bại; chuyển sang `pending` hoặc `needs_retranslate`.
+4. Bổ sung test cho response rỗng, response bị cắt, lỗi giữa batch và retry thành công.
+
+## Thứ tự ưu tiên triển khai
+
+1. Dùng chung predicate `success + approved` cho mọi endpoint public và cache lookup.
+2. Quyết định rõ trạng thái sau seed: `pending` chờ duyệt hay validated `approved`; cập nhật aggregation theo quyết định đó.
+3. Sửa flush/retry để không mất cache khi ghi batch lỗi.
+4. Thêm chunking và completeness validation cho description dài.
+5. Bổ sung test tích hợp cho seed, backfill, public endpoint và visibility gate.
