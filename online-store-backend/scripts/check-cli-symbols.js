@@ -31,7 +31,6 @@ const checkedFiles = [
   'src/seeds/addressSeeder.js',
   'src/seeds/brandTranslationsSeeder.js',
   'src/seeds/exchangeRateHistorySeeder.js',
-  'src/seeds/featuresTranslationSeeder.js',
   'src/seeds/locationSeeder.js',
   'src/seeds/productSeeder.js',
   'src/seeds/retranslateSeeder.js',

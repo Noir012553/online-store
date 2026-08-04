@@ -42,7 +42,6 @@ const { connectMongo } = require('../config/mongoConnection');
  *   7. Reviews (8 đánh giá)
  *   8. Orders (600 đơn hàng)
  *   9. Coupons (4 mã giảm giá)
- *   10. Features Translations
  */
 
 // ==================== Import Registry & Utilities ====================
