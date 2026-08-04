@@ -242,11 +242,11 @@ class TranslationSeederHelper {
   }
 
   /**
-   * Translate product object (name, description, brand, specs values, features)
-   * Returns: { name, description, brand } with translations + queued specs/features
+   * Translate product object (name, description, brand, specs values)
+   * Returns: { name, description, brand } with translations and queued specs
    * Tracks translations with productId so they can be retrieved later
    *
-   * OPTIMIZATION: Collect all specs/features texts first, batch check cache, then translate
+   * OPTIMIZATION: Collect all spec texts first, batch check cache, then translate
    */
   async translateProduct(product, targetLang) {
     const productId = product._id ? String(product._id) : null;
@@ -266,27 +266,27 @@ class TranslationSeederHelper {
 
     await Promise.all(promises);
 
-    // OPTIMIZATION: Collect all specs/features texts for batch cache lookup
-    const specsAndFeatures = [];
+    // OPTIMIZATION: Collect all spec texts for batch cache lookup
+    const specsToTranslate = [];
     const specMap = new Map(); // Track which text corresponds to which spec key
 
     if (product.specs && typeof product.specs === 'object') {
       for (const [key, value] of Object.entries(product.specs)) {
         if (typeof value === 'string') {
           const hashKey = this.generateHashKey(value, targetLang);
-          specsAndFeatures.push({ text: value, targetLang });
+          specsToTranslate.push({ text: value, targetLang });
           specMap.set(hashKey, key);
         }
       }
     }
 
-    // Batch check cache for all specs/features in ONE query (O(log n) instead of O(n))
-    if (specsAndFeatures.length > 0) {
-      const cacheMap = await this.batchCheckCache(specsAndFeatures);
+    // Batch check cache for all specs in ONE query (O(log n) instead of O(n))
+    if (specsToTranslate.length > 0) {
+      const cacheMap = await this.batchCheckCache(specsToTranslate);
 
       // Translate only missing items
       const toTranslate = [];
-      specsAndFeatures.forEach(({ text }) => {
+      specsToTranslate.forEach(({ text }) => {
         const hashKey = this.generateHashKey(text, targetLang);
         if (!cacheMap.has(hashKey)) {
           toTranslate.push({ text, hashKey });
@@ -307,7 +307,7 @@ class TranslationSeederHelper {
           translatedText,
         };
 
-        // Add entity type based on whether it's a spec or feature
+        // Attach the product spec identity to the cache record.
         if (specMap.has(hashKey)) {
           cacheRecord.entityId = productId;
           cacheRecord.entityType = 'product_spec';

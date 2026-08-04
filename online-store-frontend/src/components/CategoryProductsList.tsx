@@ -121,7 +121,6 @@ interface BackendProduct {
   countInStock?: number;
   specs?: Record<string, string | number>;
   description?: string;
-  features?: string[];
   featured?: boolean;
   deal?: { discount: number; endTime?: string | Date };
 }
