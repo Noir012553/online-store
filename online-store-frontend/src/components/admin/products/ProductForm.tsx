@@ -211,9 +211,6 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("countInStock", String(validCountInStock));
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
 
-        if (product.featuresTranslations && Object.keys(product.featuresTranslations).length > 0) {
-          formData.append("featuresTranslations", JSON.stringify(product.featuresTranslations));
-        }
 
         if (imageUrl) {
           formData.append("image", imageUrl);

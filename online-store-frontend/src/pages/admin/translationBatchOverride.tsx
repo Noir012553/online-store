@@ -36,7 +36,6 @@ const ENTITY_TYPES = [
   'product',
   'review',
   'category',
-  'feature',
   'spec',
   'description',
   'ad_hoc',

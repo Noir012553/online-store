@@ -76,7 +76,7 @@ class ProductTranslationSeederService {
           .skip(skip)
           .limit(CHUNK_SIZE)
           .lean()
-          .select('_id name description brand specs features');
+          .select('_id name description brand specs');
 
         if (products.length === 0) break;
 

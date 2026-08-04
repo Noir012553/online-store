@@ -7,7 +7,7 @@
  * Logic:
  * 1. Tìm tất cả entries từ LiveTranslationCache
  * 2. Group by entityId + targetLang + entityType
- * 3. Aggregate specs & features
+ * 3. Aggregate specs
  * 4. Ghi vào ProductCatalogTranslationCache & UserContentTranslationCache
  * 
  * Safety:
@@ -119,7 +119,7 @@ class MigrationService {
 
   async getProductTranslationEntries() {
     const allDocs = await LiveTranslationCache.find({
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] },
+      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
     }).lean();
     console.log(`  Found ${allDocs.length} product translation records`);
 
@@ -131,7 +131,6 @@ class MigrationService {
           entityId: doc.entityId,
           targetLang: doc.targetLang,
           specs: {},
-          features: [],
           name: null,
           description: null,
           brand: null,
@@ -149,8 +148,6 @@ class MigrationService {
       else if (doc.entityType === 'product_spec' && doc.specKey) {
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
         group.specs[translatedKey] = doc.translatedText;
-      } else if (doc.entityType === 'product_feature') {
-        group.features.push(doc.translatedText);
       }
     }
 

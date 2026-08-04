@@ -61,7 +61,6 @@ interface BackendProduct {
   } | string;
   specs?: Record<string, string | number>;
   description?: string;
-  features?: string[];
   [key: string]: any;
 }
 

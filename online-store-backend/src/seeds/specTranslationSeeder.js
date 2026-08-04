@@ -41,11 +41,11 @@ async function seedSpecTranslations() {
   try {
     console.log(`${CLI_SYMBOLS.seed} Starting spec translation aggregation...\n`);
 
-    // Step 1: Get all product_spec + product_feature records from LiveTranslationCache
+    // Step 1: Get all product translation records from LiveTranslationCache
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying LiveTranslationCache for product translations...`);
 
     const allRecords = await LiveTranslationCache.find({
-      entityType: { $in: ['product_spec', 'product_feature', 'product_name', 'product_description', 'product_brand'] }
+      entityType: { $in: ['product_spec', 'product_name', 'product_description', 'product_brand'] }
     }).lean();
 
     console.log(`  Found ${allRecords.length} translation records\n`);
@@ -67,7 +67,6 @@ async function seedSpecTranslations() {
           entityId: doc.entityId,
           targetLang: doc.targetLang,
           specs: {},
-          features: [],
           name: null,
           description: null,
           brand: null,
@@ -91,8 +90,6 @@ async function seedSpecTranslations() {
         // Lookup translated key from specKeyTranslations
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
         group.specs[translatedKey] = doc.translatedText;
-      } else if (doc.entityType === 'product_feature') {
-        group.features.push(doc.translatedText);
       }
     }
 
@@ -160,9 +157,6 @@ async function seedSpecTranslations() {
       console.log(`  ID: ${sampleProduct.entityId}`);
       console.log(`  Name: ${sampleProduct.name}`);
       console.log(`  Specs: ${JSON.stringify(sampleProduct.specs)}`);
-      if (sampleProduct.features.length > 0) {
-        console.log(`  Features: [${sampleProduct.features.slice(0, 2).join(', ')}...]`);
-      }
     }
 
     console.log(`\n${CLI_SYMBOLS.success} Seeding completed successfully!\n`);
