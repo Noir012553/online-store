@@ -36,7 +36,7 @@ async function diagnose() {
 
     // Find non-product entity types
     const nonProduct = await LiveTranslationCache.find({
-      entityType: { $nin: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature', 'product_category_name'] }
+      entityType: { $nin: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_category_name'] }
     }).select({ entityType: 1 }).distinct('entityType');
 
     console.log(`\n${CLI_SYMBOLS.chart} Non-product entity types found:`);

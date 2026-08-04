@@ -28,7 +28,7 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
     },
     entityType: {
       type: String,
-      enum: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature', 'review', 'category_name', 'category_description', 'generic'],
+      enum: ['product_name', 'product_description', 'product_brand', 'product_spec', 'review', 'category_name', 'category_description', 'generic'],
       default: 'generic',
     },
     specKey: {
