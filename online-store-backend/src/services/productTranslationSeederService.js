@@ -15,6 +15,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
 const RateLimitHandler = require('./rateLimitHandler');
 const distributedLockService = require('./distributedLockService');
+const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
@@ -302,6 +303,13 @@ class ProductTranslationSeederService {
             targetLang
           );
 
+          const validationResult = await translationValidator.validateTranslation(
+            field.originalText,
+            translatedText,
+            targetLang,
+            field.entityType
+          );
+
           // Lưu cache
           await LiveTranslationCache.create({
             hashKey,
@@ -312,6 +320,9 @@ class ProductTranslationSeederService {
             entityType: field.entityType,
             specKey: field.specKey || null,
             status: 'success',
+            qualityStatus: validationResult.qualityStatus,
+            qualityScore: validationResult.qualityScore,
+            validationErrors: validationResult.validationErrors,
             retryCount: 0,
           });
 
