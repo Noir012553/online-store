@@ -16,7 +16,6 @@ const mongoose = require('mongoose');
  * @field {String} brand - Nhãn hiệu: Dell, HP, Lenovo, ASUS, Apple...
  * @field {ObjectId} category - ID danh mục sản phẩm (ref: Category, bắt buộc)
  * @field {String} description - Mô tả chi tiết sản phẩm (bắt buộc)
- * @field {Array} features - Danh sách các tính năng nổi bật
  * @field {Object} specs - Thông số kỹ thuật: cpu, ram, storage, display, gpu, os, weight, battery
  * @field {Array} reviews - Danh sách đánh giá (ref: Review)
  * @field {Number} rating - Điểm đánh giá trung bình (0-5)

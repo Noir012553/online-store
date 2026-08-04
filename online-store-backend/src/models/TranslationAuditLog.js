@@ -46,7 +46,6 @@ const TranslationAuditLogSchema = new mongoose.Schema(
         'product_description',
         'product_brand',
         'product_spec',
-        'product_feature',
         'category_name',
         'category_description',
         'review',

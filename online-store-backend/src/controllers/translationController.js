@@ -45,7 +45,6 @@ const sendTranslationError = (res, status, lang, code, messageKey, values = {}) 
 const ENTITY_TYPE_MAP = {
   product: 'product_name',
   description: 'product_description',
-  feature: 'product_feature',
   spec: 'product_spec',
   review: 'review',
   category: 'category_name',
@@ -514,7 +513,6 @@ exports.getProductCatalogTranslations = async (req, res) => {
       description: null,
       brand: null,
       specs: {},
-      features: [],
     };
 
     // Phase 3: Try to read from NEW schema first
@@ -532,7 +530,6 @@ exports.getProductCatalogTranslations = async (req, res) => {
         description: newSchemaData.description,
         brand: newSchemaData.brand,
         specs: newSchemaData.specs || {},
-        features: newSchemaData.features || [],
       });
       res.set('Cache-Control', 'public, max-age=3600');
       return res.json({
@@ -555,9 +552,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
     }).lean();
 
     const specs = {};
-    const features = [];
     let hasSpecs = false;
-    let hasFeatures = false;
 
     // Map translations by entity type
     for (const trans of translations) {
@@ -570,18 +565,11 @@ exports.getProductCatalogTranslations = async (req, res) => {
       } else if (trans.entityType === 'product_spec' && trans.specKey) {
         specs[trans.specKey] = trans.translatedText;
         hasSpecs = true;
-      } else if (trans.entityType === 'product_feature') {
-        features.push(trans.translatedText);
-        hasFeatures = true;
       }
     }
 
-    // Only include specs/features if they have actual translation data
     if (hasSpecs) {
       result.specs = specs;
-    }
-    if (hasFeatures) {
-      result.features = features;
     }
 
     res.set('Cache-Control', 'public, max-age=3600');
@@ -781,9 +769,8 @@ const PRODUCT_TRANSLATION_ENTITY_TYPES = [
   'product_description',
   'product_brand',
   'product_spec',
-  'product_feature',
 ];
-const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'features', 'specs'];
+const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'specs'];
 
 const productTranslationStatus = (translation) => {
   if (!translation) return 'missing';
@@ -796,7 +783,7 @@ const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.tes
 const buildLegacyProductTranslation = (translations) => {
   if (translations.length === 0) return null;
 
-  const data = { specs: {}, features: [] };
+  const data = { specs: {} };
   translations.forEach((translation) => {
     switch (translation.entityType) {
       case 'product_name':
@@ -811,32 +798,12 @@ const buildLegacyProductTranslation = (translations) => {
       case 'product_spec':
         if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
         break;
-      case 'product_feature':
-        data.features.push(translation.translatedText);
-        break;
     }
   });
 
   return data;
 };
 
-const getStoredFeatureTranslations = (product, targetLang) => (
-  (product?.features || []).map((feature) => product.featuresTranslations?.[feature]?.[targetLang] || feature)
-);
-
-const getStoredFeatureTranslationCount = (product, targetLang) => (
-  (product?.features || []).filter((feature) => {
-    const translation = product.featuresTranslations?.[feature]?.[targetLang];
-    return typeof translation === 'string' && translation.trim().length > 0;
-  }).length
-);
-
-const mergeFeatureTranslations = (product, targetLang, translatedFeatures = []) => {
-  const storedFeatures = getStoredFeatureTranslations(product, targetLang);
-  if (storedFeatures.length === 0) return translatedFeatures;
-
-  return storedFeatures.map((feature, index) => translatedFeatures[index] || feature);
-};
 
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
   const catalogQuery = { entityId: productId, targetLang };
@@ -852,17 +819,13 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
     legacyQuery.qualityStatus = { $nin: ['needs_retranslate', 'rejected'] };
   }
 
-  const [translation, product] = await Promise.all([
-    ProductCatalogTranslationCache.findOne(catalogQuery).lean(),
-    Product.findById(productId).select('features featuresTranslations').lean(),
-  ]);
+  const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
   if (translation) {
     return {
       name: translation.name || undefined,
       description: translation.description || undefined,
       brand: translation.brand || undefined,
       specs: translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {},
-      features: mergeFeatureTranslations(product, targetLang, translation.features || []),
     };
   }
 
@@ -870,10 +833,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const legacyTranslation = buildLegacyProductTranslation(legacyTranslations);
   if (!legacyTranslation) return null;
 
-  return {
-    ...legacyTranslation,
-    features: mergeFeatureTranslations(product, targetLang, legacyTranslation.features),
-  };
+  return legacyTranslation;
 };
 
 exports.getProductTranslationForAdmin = async (req, res) => {
@@ -906,7 +866,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
 
     const [catalogTranslations, products] = await Promise.all([
       ProductCatalogTranslationCache.find({ entityId: { $in: productIds }, targetLang: lang }).lean(),
-      Product.find({ _id: { $in: productIds } }).select('features featuresTranslations specs').lean(),
+      Product.find({ _id: { $in: productIds } }).select('specs').lean(),
     ]);
     const catalogByProductId = new Map(catalogTranslations.map((translation) => [translation.entityId, translation]));
     const productsById = new Map(products.map((product) => [product._id.toString(), product]));
@@ -941,17 +901,11 @@ exports.getProductTranslationStatuses = async (req, res) => {
       const legacyRecords = legacyByProductId.get(productId) || [];
       const translatedTypes = new Set(legacyRecords.map((record) => record.entityType));
       const product = productsById.get(productId);
-      const expectedFeatureCount = product?.features?.length || 0;
       const expectedSpecKeys = Object.keys(product?.specs || {});
-      const translatedFeatureCount = Math.max(
-        legacyRecords.filter((record) => record.entityType === 'product_feature').length,
-        getStoredFeatureTranslationCount(product, lang)
-      );
       const translatedSpecKeys = new Set(
         legacyRecords.filter((record) => record.entityType === 'product_spec' && record.specKey).map((record) => record.specKey)
       );
       const isComplete = ['product_name', 'product_description', 'product_brand'].every((type) => translatedTypes.has(type))
-        && translatedFeatureCount >= expectedFeatureCount
         && expectedSpecKeys.every((key) => translatedSpecKeys.has(key));
       const legacyStatus = legacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
         ? 'needs_retranslate'
@@ -983,14 +937,13 @@ exports.saveProductTranslation = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
     const translations = req.body || {};
-    const allowedFields = ['name', 'description', 'brand', 'features', 'specs'];
+    const allowedFields = ['name', 'description', 'brand', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
 
     if (!isProductId(productId) || fields.length === 0) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_FIELDS_REQUIRED', 'translation_fields_required');
     }
     if (fields.some((field) => ['name', 'description', 'brand'].includes(field) && typeof translations[field] !== 'string')
-      || ('features' in translations && (!Array.isArray(translations.features) || translations.features.some((value) => typeof value !== 'string')))
       || ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs)))) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
     }
@@ -1217,16 +1170,6 @@ exports.retranslateProduct = async (req, res) => {
         if (validation) validationResults.push(validation);
       }
     }
-    const features = [];
-    for (const feature of product.features || []) {
-      if (manualFields.includes('features')) {
-        features.push(existing?.features?.[features.length] || feature);
-      } else {
-        const { value: translated, validation } = await translateField('features', feature, 'product_feature');
-        features.push(translated);
-        if (validation) validationResults.push(validation);
-      }
-    }
     const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errs }) => errs))];
     const qualityScore = validationResults.length
       ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
@@ -1240,7 +1183,6 @@ exports.retranslateProduct = async (req, res) => {
       description: descResult.value,
       brand: brandResult.value,
       specs,
-      features,
       status: 'success',
       qualityStatus,
       qualityScore,
@@ -1276,7 +1218,6 @@ const DYNAMIC_ENTITY_TYPES = new Set([
   'product_description',
   'product_brand',
   'product_spec',
-  'product_feature',
   'category_name',
   'category_description',
   'review',

@@ -69,7 +69,7 @@ class MigrationService {
     try {
       // Get all product-related translations (including product_category_name from migration)
       const productDocs = await LiveTranslationCache.find({
-        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature'] }
+        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] }
       }).lean();
 
       // Also get category translations that belong to products
@@ -90,7 +90,6 @@ class MigrationService {
             entityId: doc.entityId,
             targetLang: doc.targetLang,
             specs: {},
-            features: [],
             name: null,
             description: null,
             brand: null,
@@ -114,8 +113,6 @@ class MigrationService {
           group.categoryName = doc.translatedText;
         } else if (doc.entityType === 'product_spec' && doc.specKey) {
           group.specs[doc.specKey] = doc.translatedText;
-        } else if (doc.entityType === 'product_feature') {
-          group.features.push(doc.translatedText);
         } else if (doc.entityType === 'category_name') {
           group.categoryName = doc.translatedText;
         } else if (doc.entityType === 'category_description') {
@@ -249,12 +246,11 @@ class MigrationService {
       const sampleProduct = await ProductCatalogTranslationCache.findOne().lean();
       if (sampleProduct) {
         const specsCount = Object.keys(sampleProduct.specs || {}).length;
-        const featuresCount = (sampleProduct.features || []).length;
-        console.log(`  ✅ Sample product aggregation: specs=${specsCount}, features=${featuresCount}`);
+        console.log(`  ✅ Sample product aggregation: specs=${specsCount}`);
       }
 
       const legacyProductDocs = await LiveTranslationCache.find({
-        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'product_feature', 'category_name', 'category_description'] }
+        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec', 'category_name', 'category_description'] }
       }).lean();
       const expectedByKey = new Map();
       for (const legacy of legacyProductDocs) {
@@ -263,7 +259,6 @@ class MigrationService {
           entityId: legacy.entityId,
           targetLang: legacy.targetLang,
           specs: {},
-          features: [],
           name: null,
           description: null,
           brand: null,
@@ -272,7 +267,6 @@ class MigrationService {
         else if (legacy.entityType === 'product_description') expected.description = legacy.translatedText;
         else if (legacy.entityType === 'product_brand') expected.brand = legacy.translatedText;
         else if (legacy.entityType === 'product_spec' && legacy.specKey) expected.specs[legacy.specKey] = legacy.translatedText;
-        else if (legacy.entityType === 'product_feature') expected.features.push(legacy.translatedText);
         else if (legacy.entityType === 'category_description' && !expected.description) expected.description = legacy.translatedText;
         expectedByKey.set(key, expected);
       }
