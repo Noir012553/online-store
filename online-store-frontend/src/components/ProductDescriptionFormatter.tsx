@@ -66,7 +66,7 @@ const sanitizeDescription = (text: string): string => {
 export const ProductDescriptionFormatter: React.FC<Props> = ({
   text,
   className = "mb-4",
-  maxLines = 10
+  maxLines
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useTranslation();
@@ -145,8 +145,8 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   }
 
   // Kiểm tra có cần expand/collapse không
-  const needsExpand = lines.length > maxLines;
-  const visibleLines = isExpanded ? lines : lines.slice(0, maxLines);
+  const needsExpand = maxLines !== undefined && lines.length > maxLines;
+  const visibleLines = isExpanded || maxLines === undefined ? lines : lines.slice(0, maxLines);
 
   return (
     <div className={className}>
