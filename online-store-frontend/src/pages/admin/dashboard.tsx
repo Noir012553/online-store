@@ -197,7 +197,7 @@ function DashboardContent() {
         const days = calculateDaysDifference(startDate, endDate);
         const [revenueData, statusData, topProductsData] = await Promise.all([
           analyticsAPI.getRevenueTimeline(period, days, targetCurrency, startDate, endDate, dashboardLocale, getIntlLocale(dashboardLocale)),
-          analyticsAPI.getOrderStatus(days, startDate, endDate),
+          analyticsAPI.getOrderStatus(days, startDate, endDate, dashboardLocale),
           analyticsAPI.getTopProducts(5, days, startDate, endDate, dashboardLocale, getIntlLocale(dashboardLocale)),
         ]);
 

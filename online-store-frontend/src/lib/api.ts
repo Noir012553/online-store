@@ -1599,8 +1599,9 @@ export const analyticsAPI = {
    * @param startDate - Ngày bắt đầu (Date object hoặc ISO string)
    * @param endDate - Ngày kết thúc (Date object hoặc ISO string)
    */
-  getOrderStatus: async (days = 30, startDate?: Date | string, endDate?: Date | string) => {
+  getOrderStatus: async (days = 30, startDate?: Date | string, endDate?: Date | string, lang = getCurrentLang()) => {
     const params = new URLSearchParams();
+    params.append('lang', lang);
 
     if (startDate && endDate) {
       // Sử dụng local date format (YYYY-MM-DD) để khớp với frontend

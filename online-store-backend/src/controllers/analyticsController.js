@@ -262,7 +262,11 @@ const getOrderStatusDistribution = asyncHandler(async (req, res) => {
     endDate: endDate.toISOString(),
   };
 
-  const result = await withCache('orderStatus', cacheKey, async () => {
+  const defaultLang = getDefaultLanguage().code;
+  const requestedLang = req.query.lang || req.lang || defaultLang;
+  const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
+
+  const result = await withCache('orderStatus', { ...cacheKey, lang }, async () => {
     const statusKey1 = 'status_pending_payment';
     const statusKey2 = 'status_paid';
     const statusKey3 = 'status_delivered';
@@ -317,10 +321,9 @@ const getOrderStatusDistribution = asyncHandler(async (req, res) => {
       8000
     );
 
-    const defaultLang = getDefaultLanguage().code;
-    const lang1 = getMessage(defaultLang, 'admin-controllers-messages.order_status_pending_payment');
-    const lang2 = getMessage(defaultLang, 'admin-controllers-messages.order_status_paid');
-    const lang3 = getMessage(defaultLang, 'admin-controllers-messages.order_status_delivered');
+    const lang1 = getMessage(lang, 'orders.pending_payment');
+    const lang2 = getMessage(lang, 'orders.paid_status');
+    const lang3 = getMessage(lang, 'orders.status_delivered');
 
     return statusData[0]
       ? [

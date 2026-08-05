@@ -5,6 +5,7 @@ import { orderAPI } from "../../lib/api";
 import { formatDate } from "../../lib/utils";
 import { toast } from "sonner";
 import { useLanguage } from '@/lib/i18n';
+import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import {
   Popover,
   PopoverContent,
@@ -38,6 +39,7 @@ interface PendingOrder {
 export function NotificationBell() {
   const router = useRouter();
   const { t, locale } = useLanguage();
+  const { currencyCode } = useCurrencyContext();
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<PendingOrder | null>(null);
@@ -50,12 +52,12 @@ export function NotificationBell() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchPendingOrders, 30000);
     return () => clearInterval(interval);
-  }, [locale]);
+  }, [locale, currencyCode]);
 
   const fetchPendingOrders = async () => {
     try {
       setIsLoading(true);
-      const response = await orderAPI.getAllOrders(1, locale);
+      const response = await orderAPI.getAllOrders(1, locale, locale, currencyCode);
       const allOrders = response.orders || [];
 
       // Filter pending orders (not paid or not delivered)
