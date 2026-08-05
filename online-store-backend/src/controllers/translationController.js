@@ -840,6 +840,25 @@ const buildLegacyProductTranslation = (translations) => {
 };
 
 
+const getSpecEntries = (specs) => (
+  specs instanceof Map
+    ? [...specs.entries()]
+    : specs && typeof specs === 'object'
+      ? Object.entries(specs)
+      : []
+);
+
+const hasCompleteProductTranslation = (sourceProduct, translation) => {
+  const requiredFields = ['name', 'description', 'brand'];
+  if (requiredFields.some((field) => typeof translation?.[field] !== 'string' || !translation[field].trim())) {
+    return false;
+  }
+
+  const sourceSpecs = getSpecEntries(sourceProduct?.specs).filter(([, value]) => value !== null && value !== undefined && String(value).trim());
+  const translatedSpecs = getSpecEntries(translation?.specs).filter(([, value]) => typeof value === 'string' && value.trim());
+  return translatedSpecs.length >= sourceSpecs.length;
+};
+
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
   const catalogQuery = { entityId: productId, targetLang };
   const legacyQuery = {
@@ -855,18 +874,25 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   }
 
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
+  const sourceProduct = includeNonSuccess
+    ? null
+    : await Product.findById(productId).select('specs').lean();
+
   if (translation) {
-    return {
+    const data = {
       name: translation.name || undefined,
       description: translation.description || undefined,
       brand: translation.brand || undefined,
       specs: translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {},
     };
+    if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, data)) return null;
+    return data;
   }
 
   const legacyTranslations = await LiveTranslationCache.find(legacyQuery).lean();
   const legacyTranslation = buildLegacyProductTranslation(legacyTranslations);
   if (!legacyTranslation) return null;
+  if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, legacyTranslation)) return null;
 
   return legacyTranslation;
 };

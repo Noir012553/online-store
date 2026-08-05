@@ -62,10 +62,25 @@ const hasRequiredProductFields = (product) => (
 
 const hasValidSourceProductFields = (product) => hasRequiredProductFields(product);
 
-const hasValidProductTranslation = (translation) => (
+const getSpecEntries = (specs) => {
+  if (specs instanceof Map) return [...specs.entries()];
+  if (specs && typeof specs === 'object') return Object.entries(specs);
+  return [];
+};
+
+const hasCompleteProductTranslation = (sourceProduct, translation) => {
+  if (!hasRequiredProductFields(translation)) return false;
+
+  const sourceSpecs = getSpecEntries(sourceProduct?.specs).filter(([, value]) => value !== null && value !== undefined && String(value).trim());
+  const translatedSpecs = getSpecEntries(translation?.specs).filter(([, value]) => hasText(value));
+
+  return translatedSpecs.length >= sourceSpecs.length;
+};
+
+const hasValidProductTranslation = (translation, sourceProduct) => (
   translation?.status === 'success'
   && translation?.qualityStatus === 'approved'
-  && hasRequiredProductFields(translation)
+  && hasCompleteProductTranslation(sourceProduct, translation)
 );
 
 async function getStorefrontVisibleProductIds(products) {
@@ -87,7 +102,9 @@ async function getStorefrontVisibleProductIds(products) {
   }).lean();
   const validLanguagesByProduct = new Map();
 
-  translations.filter(hasValidProductTranslation).forEach((translation) => {
+  translations
+    .filter((translation) => hasValidProductTranslation(translation, productsById.get(String(translation.entityId))))
+    .forEach((translation) => {
     const productId = String(translation.entityId);
     const languages = validLanguagesByProduct.get(productId) || new Set();
     languages.add(translation.targetLang);
