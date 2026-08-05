@@ -416,7 +416,7 @@ async function applyTranslationCache(config) {
       entityId: { $in: ids },
       targetLang: lang,
       status: 'success',
-      ...(type === 'product' ? { qualityStatus: { $nin: ['needs_retranslate', 'rejected'] } } : {}),
+      ...(type === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     const translationMap = {};
@@ -635,6 +635,7 @@ async function getLocalizedEntity(entityId, entityType, locale) {
       entityId: String(entityId),
       targetLang: locale,
       status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
 
     if (!cache) {

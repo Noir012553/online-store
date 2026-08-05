@@ -21,6 +21,42 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 
 class ProductTranslationSeederService {
+  static _splitDescription(text, maxLength = 6000) {
+    if (text.length <= maxLength) return [text];
+
+    const chunks = [];
+    let start = 0;
+
+    while (start < text.length) {
+      let end = Math.min(start + maxLength, text.length);
+      if (end < text.length) {
+        const boundary = Math.max(
+          text.lastIndexOf('\n', end),
+          text.lastIndexOf('. ', end),
+          text.lastIndexOf('! ', end),
+          text.lastIndexOf('? ', end),
+          text.lastIndexOf(' ', end)
+        );
+        if (boundary > start) end = boundary + 1;
+      }
+      chunks.push(text.slice(start, end));
+      start = end;
+    }
+
+    return chunks;
+  }
+
+  static async _translateDescription(text, sourceLang, targetLang) {
+    const chunks = this._splitDescription(text);
+    const translations = [];
+
+    for (const chunk of chunks) {
+      translations.push(await cloudflareAiService.translate(chunk, sourceLang, targetLang));
+    }
+
+    return translations.join('');
+  }
+
   /**
    * Dịch tất cả sản phẩm sang ngôn ngữ mới
    * Sử dụng chunking + concurrency + throttling + Rate Limit handling
@@ -301,11 +337,9 @@ class ProductTranslationSeederService {
           }
 
           // Dịch text
-          const translatedText = await cloudflareAiService.translate(
-            field.originalText,
-            sourceLang,
-            targetLang
-          );
+          const translatedText = field.entityType === 'product_description'
+            ? await this._translateDescription(field.originalText, sourceLang, targetLang)
+            : await cloudflareAiService.translate(field.originalText, sourceLang, targetLang);
 
           const validationResult = await translationValidator.validateTranslation(
             field.originalText,
