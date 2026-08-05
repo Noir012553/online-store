@@ -656,23 +656,6 @@ function EditView({
         isTextarea
       />
 
-      <TranslationField
-        label={t('product_brand', 'productsTranslations')}
-        sourceValue={product?.brand || ''}
-        targetValue={translations?.brand || ''}
-        sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
-        targetLanguage={selectedLang?.name || selectedLanguage}
-        onChange={(value) => onFieldChange('brand', value)}
-      />
-
-      <div className="p-5 space-y-4">
-        <h4 className="font-semibold text-gray-900">{t('product_category', 'productsTranslations')}</h4>
-        <div>
-          <Label className="text-xs font-semibold text-gray-600">{defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}</Label>
-          <div className="mt-1 p-3 bg-gray-100 rounded text-sm text-gray-900">{product.category?.name}</div>
-        </div>
-      </div>
-
       {/* Specs */}
       {product?.specs && Object.keys(product.specs).length > 0 && (
         <div className="p-5 space-y-4">
