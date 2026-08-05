@@ -374,6 +374,15 @@ Thương hiệu là tên riêng và thường không cần dịch. Ví dụ `ACE
 
 Danh mục không thuộc dynamic product translation theo từng sản phẩm. Tên danh mục phải được resolve bằng luồng category translation/static i18n riêng (`Category Translations (i18n Cache)`). Nếu danh mục chưa hiển thị ở một ngôn ngữ, cần kiểm tra category translation cache/locale tương ứng, không kiểm tra như `product_brand` hoặc `product_description`.
 
+#### Quy tắc hiển thị trên trang admin dịch sản phẩm
+
+Trang `/admin/translationsDynamic` không cần hiển thị hoặc cho chỉnh sửa hai phần:
+
+- `brand` / `Thương hiệu`: tên riêng, giữ nguyên, không tạo task dịch.
+- `category` / `Danh mục`: thuộc luồng category translation/static i18n riêng, không thuộc dynamic product translation.
+
+Giao diện admin chỉ nên tập trung vào các dữ liệu dịch theo từng sản phẩm: `name`, `description` và toàn bộ `specs`.
+
 #### 3. Đặc tính kỹ thuật (`specs`)
 
 Đặc tính kỹ thuật là dữ liệu cần được dịch theo từng sản phẩm và từng ngôn ngữ. Nếu giao diện hiển thị dữ liệu nguồn ở cột tiếng Việt nhưng toàn bộ cột ngôn ngữ đích chỉ hiện `Dịch đặc tính...`, thì đó là dấu hiệu toàn bộ phần `product_spec` của product-language đó chưa có bản dịch hoặc chưa được load vào UI.
