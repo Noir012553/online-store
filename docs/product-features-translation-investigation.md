@@ -309,6 +309,8 @@ Seed process kết thúc với trạng thái thành công, nhưng log chỉ xác
 - Sample `ProductCatalogTranslationCache` có `Specs: {}`, cho thấy catalog record có thể tồn tại nhưng phần đặc tính kỹ thuật chưa được aggregate đầy đủ.
 - Trong giao diện `/admin/translationsDynamic`, phần `Đặc tính kỹ thuật` có tình trạng chỉ dịch được phần tử đầu tiên; các spec value còn lại bị thiếu hoặc vẫn hiển thị placeholder.
 - Báo cáo seed có `78` bản ghi `pending`, `197` lỗi `too_short`, `166` lỗi `missing_brand` và `19` lỗi `too_long`.
+- `missing_brand: 166` không phải số lượng brand cần dịch. `brand` là tên riêng, không thuộc luồng dynamic translation và phải được giữ nguyên ở mọi ngôn ngữ. Đây là cảnh báo sai do quality validator/report đang kiểm tra brand như một field bắt buộc phải có bản dịch.
+- `missing_brand` không được tạo task dịch, không được gửi brand qua AI và không được dùng để đánh dấu product-language là incomplete. Chỉ cần kiểm tra brand gốc tồn tại và được overlay/hiển thị đúng.
 - Vì seeder vẫn có thể aggregate một product-language record khi chỉ có một phần field/spec translation, thông báo `Seeding completed successfully` không đồng nghĩa mọi bản dịch đã hoàn chỉnh hoặc sản phẩm đã đủ điều kiện storefront.
 - Module Customer Addresses cũng tạo `0` địa chỉ vì preload ghi nhận `0` phường/xã, dù location sync trước đó đã tải `11.981` wards.
 
