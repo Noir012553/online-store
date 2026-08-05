@@ -106,9 +106,10 @@ class TranslationSeederHelper {
   async batchSaveCache(records, enableValidation = true) {
     if (records.length === 0) return;
 
+    const recordsToSave = [];
+    const logsToCreate = [];
+
     try {
-      const recordsToSave = [];
-      const logsToCreate = [];
 
       for (const record of records) {
         let validationResult = null;
@@ -155,9 +156,17 @@ class TranslationSeederHelper {
         });
         await TranslationQualityLog.insertMany(logsToCreate, { ordered: false });
       }
+
+      return recordsToSave;
     } catch (error) {
-      // Ignore duplicate key errors on insert (some may already exist)
       if (error.code !== 11000) throw error;
+
+      const existingRecords = await LiveTranslationCache.find(
+        { hashKey: { $in: recordsToSave.map((record) => record.hashKey) } },
+        { hashKey: 1 }
+      ).lean();
+      const existingKeys = new Set(existingRecords.map((record) => record.hashKey));
+      return recordsToSave.filter((record) => existingKeys.has(record.hashKey));
     }
   }
 
@@ -375,8 +384,9 @@ class TranslationSeederHelper {
     const records = [...this._pendingCache];
 
     try {
-      await this.batchSaveCache(records);
-      this._pendingCache.splice(0, records.length);
+      const savedRecords = await this.batchSaveCache(records);
+      const savedKeys = new Set(savedRecords.map((record) => record.hashKey));
+      this._pendingCache = this._pendingCache.filter((record) => !savedKeys.has(record.hashKey));
     } catch (error) {
       console.warn(`  ${CLI_SYMBOLS.warning} Failed to flush cache batch: ${error.message}`);
       throw error;
