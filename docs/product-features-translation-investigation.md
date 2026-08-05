@@ -289,3 +289,88 @@ Khi triển khai, cần:
 3. Sửa flush/retry để không mất cache khi ghi batch lỗi.
 4. Thêm chunking và completeness validation cho description dài.
 5. Bổ sung test tích hợp cho seed, backfill, public endpoint và visibility gate.
+
+## Kết quả seed mới ngày 2026-08-05
+
+### Kết quả đã xác nhận
+
+- Seed chạy thành công toàn bộ 19 module.
+- Có 109 sản phẩm và đủ 9 ngôn ngữ bắt buộc: `vi`, `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`.
+- Spec translation aggregation đọc 2.564 bản ghi `LiveTranslationCache`, nhóm thành 981 tổ hợp product-language và xác minh mỗi ngôn ngữ có 109 sản phẩm.
+- Code hiện tại của `specTranslationSeeder` chỉ đọc bản dịch có `status = success` và `qualityStatus = approved`, sau đó ghi cache catalog với trạng thái `approved` (`online-store-backend/src/seeds/specTranslationSeeder.js:47-51`, `:75-78`). Vì vậy kết quả mới không còn khớp với nhận định cũ rằng cache catalog luôn mặc định `pending`.
+- Seeder hiện đã kiểm tra trạng thái khi tái sử dụng cache và đã chia description dài thành các đoạn trước khi dịch (`online-store-backend/src/services/translationSeederHelper.js:86-91`, `:200-205`, `:217-250`).
+- Báo cáo chất lượng ghi nhận 2.646 translation: 2.564 approved (97%), 82 pending (3%), không có `needs_retranslate` hoặc rejected.
+
+### Vấn đề còn tồn tại
+
+1. Chưa xác định 82 bản ghi `pending` thuộc entity nào. Cần phân loại theo `entityType` và kiểm tra riêng chúng có phải bản dịch sản phẩm hay không. Nếu là product translation thì phải loại khỏi storefront cho đến khi đạt `success + approved`.
+2. Số lượng record và trạng thái approved chưa đủ chứng minh chất lượng nội dung. Sample English trong log vẫn có tên `Bàn phím gaming ASUS ROG Azoth 96 HE White` và `Specs: {}`. Cần kiểm tra thực tế các trường `name`, `description`, `brand`, `specs` trong `ProductCatalogTranslationCache`, đặc biệt với description dài.
+3. Customer Addresses thất bại không nghiêm trọng nhưng cần sửa dữ liệu location preload: log cho biết đã tải 726 quận/huyện nhưng 0 phường/xã, dẫn đến tạo 0 địa chỉ.
+4. Module ghi là `Orders (600 orders)` nhưng thực tế chỉ tạo 410 orders (80 recent + 330 historical). Cần thống nhất mục tiêu seed hoặc sửa log/module để không gây hiểu nhầm.
+5. Báo cáo quality đang tổng hợp translation nói chung; chưa có bảng xác nhận riêng cho `ProductCatalogTranslationCache` theo từng sản phẩm, ngôn ngữ, `status`, `qualityStatus` và độ đầy đủ các field storefront.
+
+### Đánh giá so với display policy
+
+Kết quả mới đã đáp ứng phần coverage và trạng thái approved đối với dữ liệu product được aggregate. Tuy nhiên, để kết luận sản phẩm thực sự được phép hiển thị theo `product-translation-display-policy.md`, cần bổ sung verification trực tiếp trên `ProductCatalogTranslationCache`:
+
+```text
+mỗi product
+  -> đủ 9 targetLang
+  -> status = success
+  -> qualityStatus = approved
+  -> name, description, brand, specs đạt completeness validation
+```
+
+Không nên coi seed thành công hoặc số lượng 981 là bằng chứng duy nhất cho visibility. Các bản ghi pending và các bản dịch thiếu nội dung vẫn phải bị loại khỏi storefront nhưng tiếp tục hiển thị trong trang admin.
+
+### Việc cần làm tiếp theo
+
+- Xuất danh sách 82 bản ghi pending theo `entityType`, `entityId` và `targetLang`.
+- Chạy verification riêng cho 981 product-language cache records, bao gồm completeness của bốn field storefront.
+- Kiểm tra một số description dài ở cả `LiveTranslationCache` và `ProductCatalogTranslationCache` để xác nhận nội dung không bị cắt.
+- Sửa preload phường/xã trước khi seed customer addresses lần tiếp theo.
+- Quyết định rõ module Orders cần 410 hay 600 orders và cập nhật seed/report cho thống nhất.
+- Cập nhật lại các phần “vấn đề còn tồn tại” trong tài liệu nếu các kiểm tra trên xác nhận code hiện tại đã giải quyết chúng.
+
+## Phạm vi lỗi hiển thị translation trên cả 9 ngôn ngữ
+
+Qua kiểm tra trên giao diện admin, vấn đề không chỉ xảy ra với tiếng Hà Lan. Cả 9 ngôn ngữ bắt buộc đều cần được kiểm tra:
+
+```text
+vi, en, pt, fr, de, it, es, nl, sv
+```
+
+### Quy tắc theo loại dữ liệu
+
+#### 1. Thương hiệu (`brand`)
+
+Thương hiệu là tên riêng và thường không cần dịch. Ví dụ `ACER` phải được giữ nguyên ở mọi ngôn ngữ. Admin không nên hiển thị ô dịch hoặc placeholder `VI -> target language` cho brand, đồng thời brand không được bị xem là bản dịch thiếu trong completeness gate.
+
+#### 2. Danh mục (`category`)
+
+Danh mục không thuộc dynamic product translation theo từng sản phẩm. Tên danh mục phải được resolve bằng luồng category translation/static i18n riêng (`Category Translations (i18n Cache)`). Nếu danh mục chưa hiển thị ở một ngôn ngữ, cần kiểm tra category translation cache/locale tương ứng, không kiểm tra như `product_brand` hoặc `product_description`.
+
+#### 3. Đặc tính kỹ thuật (`specs`)
+
+Đặc tính kỹ thuật là dữ liệu cần được dịch theo từng sản phẩm và từng ngôn ngữ. Nếu giao diện hiển thị dữ liệu nguồn ở cột tiếng Việt nhưng toàn bộ cột ngôn ngữ đích chỉ hiện `Dịch đặc tính...`, thì đó là dấu hiệu toàn bộ phần `product_spec` của product-language đó chưa có bản dịch hoặc chưa được load vào UI.
+
+Không được kết luận chỉ dựa trên việc product đã có một record translation cho ngôn ngữ đó. Verification phải kiểm tra toàn bộ phần specs:
+
+```text
+Product.specs
+  -> có translation cho từng spec value
+  -> đủ ở từng targetLang trong 9 ngôn ngữ
+  -> được aggregate vào ProductCatalogTranslationCache.specs
+  -> được API/UI overlay và hiển thị đúng
+```
+
+### Kết luận cập nhật
+
+Lỗi cần điều tra là lỗi coverage/hiển thị translation theo từng loại dữ liệu trên **toàn bộ 9 ngôn ngữ**, không phải lỗi riêng của `nl`:
+
+- `brand`: giữ nguyên, không dịch và không tạo task dịch.
+- `category`: dùng category translation/static i18n riêng.
+- `specs`: phải dịch đầy đủ toàn bộ đặc tính kỹ thuật cho từng product và cả 9 ngôn ngữ.
+- `name` và `description`: tiếp tục thuộc dynamic product translation và phải qua completeness validation.
+
+Bộ kiểm tra hiện tại cần bổ sung kiểm tra theo `productId + targetLang + từng spec key/value`, thay vì chỉ đếm số product-language translation records.
