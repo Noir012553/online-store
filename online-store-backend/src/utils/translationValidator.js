@@ -92,9 +92,6 @@ class TranslationValidator {
     const emptyCheck = this.checkEmpty(translated);
     if (emptyCheck) errors.push(emptyCheck.error);
 
-    const brandCheck = this.checkMissingBrand(original, translated);
-    if (brandCheck) errors.push(brandCheck.error);
-
     const lengthCheck = this.checkLength(original, translated);
     if (lengthCheck) errors.push(lengthCheck.error);
 

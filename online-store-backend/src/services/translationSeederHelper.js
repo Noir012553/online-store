@@ -88,6 +88,7 @@ class TranslationSeederHelper {
         hashKey: { $in: hashKeys },
         status: 'success',
         qualityStatus: 'approved',
+        validationErrors: { $nin: ['missing_brand'] },
       },
       { hashKey: 1, translatedText: 1 }
     ).lean();
@@ -163,13 +164,17 @@ class TranslationSeederHelper {
 
       const existingRecords = await LiveTranslationCache.find(
         { hashKey: { $in: recordsToSave.map((record) => record.hashKey) } },
-        { hashKey: 1, status: 1, qualityStatus: 1 }
+        { hashKey: 1, status: 1, qualityStatus: 1, validationErrors: 1 }
       ).lean();
       const existingByKey = new Map(existingRecords.map((record) => [record.hashKey, record]));
 
       const invalidRecords = recordsToSave.filter((record) => {
         const existing = existingByKey.get(record.hashKey);
-        return existing && (existing.status !== 'success' || existing.qualityStatus !== 'approved');
+        return existing && (
+          existing.status !== 'success'
+          || existing.qualityStatus !== 'approved'
+          || existing.validationErrors?.includes('missing_brand')
+        );
       });
 
       if (invalidRecords.length > 0) {
@@ -202,6 +207,7 @@ class TranslationSeederHelper {
         hashKey: { $in: hashKeys },
         status: 'success',
         qualityStatus: 'approved',
+        validationErrors: { $nin: ['missing_brand'] },
       },
       { hashKey: 1, translatedText: 1 }
     ).lean();
@@ -266,7 +272,12 @@ class TranslationSeederHelper {
 
     // Check cache (fallback single query if needed)
     const cached = await LiveTranslationCache.findOne(
-      { hashKey, status: 'success', qualityStatus: 'approved' },
+      {
+        hashKey,
+        status: 'success',
+        qualityStatus: 'approved',
+        validationErrors: { $nin: ['missing_brand'] },
+      },
       { translatedText: 1 }
     ).lean();
     if (cached) {
