@@ -259,3 +259,64 @@ AI có thể trả response ngắn hoặc bị cắt đối với description d�
 - Seed/backfill báo lỗi nếu còn record chưa flush và có retry rõ ràng.
 - Description dài được kiểm tra không bị cắt trước khi cache trở thành `approved`.
 - Có test cho các trạng thái cache, lỗi flush, retry và endpoint public/admin.
+
+## Đề xuất đơn giản hóa trạng thái sau khi seed
+
+### Mục tiêu
+
+Sau khi `npm run seed` hoàn tất thành công, các bản dịch sản phẩm đạt đủ điều kiện chất lượng sẽ được tự động đánh dấu `approved`. Người vận hành không cần vào trang quản lý dịch để đổi trạng thái thủ công cho từng sản phẩm.
+
+Tuy nhiên, `seed thành công` phải được hiểu là toàn bộ quy trình đã hoàn tất và kiểm tra đạt, không chỉ là request AI trả về hoặc một record được ghi vào database.
+
+### Điều kiện tự động `approved`
+
+Một bản dịch chỉ được ghi `approved` khi đồng thời:
+
+- Dịch thành công, không có lỗi trong quá trình gọi AI hoặc ghi cache.
+- Nội dung trả về không rỗng và vượt qua completeness validation.
+- Các placeholder, cấu trúc nội dung và độ dài tương đối cần thiết được bảo toàn.
+- Record có `status = success`.
+
+Một sản phẩm chỉ được xem là `storefront-ready` khi đã đạt điều kiện trên cho toàn bộ 9 ngôn ngữ bắt buộc:
+
+```text
+vi, en, pt, fr, de, it, es, nl, sv
+```
+
+Nếu còn thiếu ngôn ngữ, còn record chưa flush, hoặc validation thất bại thì không được báo seed hoàn tất cho storefront và không được tự động `approved` record không đạt.
+
+### Bộ trạng thái rút gọn
+
+Chỉ duy trì các trạng thái nghiệp vụ cần thiết:
+
+```text
+approved          Bản dịch hợp lệ, được phép dùng trên storefront
+needs_retranslate Bản dịch lỗi hoặc không đạt validation, cần dịch lại
+```
+
+Các trạng thái kỹ thuật như `pending`, `rejected`, `retranslated`, `failed_rate_limit`, `failed_error` và `pending_retry` nên được chuyển thành log/error metadata hoặc quy về một trong hai trạng thái nghiệp vụ trên, thay vì dùng đồng thời trong visibility policy.
+
+Trong thời gian chuyển đổi dữ liệu cũ, cần có mapping rõ ràng:
+
+```text
+success + approved                         -> approved
+success + pending/rejected/needs_retranslate -> needs_retranslate
+failed_rate_limit/failed_error/pending_retry -> needs_retranslate
+```
+
+### Quy tắc hiển thị sau seed
+
+```text
+seed hoàn tất
+  -> đủ 9 ngôn ngữ
+  -> mọi bản dịch vượt qua validation
+  -> mọi record được ghi thành công
+  -> approved
+  -> storefront hiển thị sản phẩm
+```
+
+Nếu bất kỳ bước nào thất bại, sản phẩm vẫn bị ẩn khỏi storefront và chỉ hiển thị trong trang admin để xử lý. Không được đánh dấu `approved` chỉ vì seed process không throw error.
+
+### Ghi chú vận hành
+
+Quyết định này là chính sách mục tiêu, chưa phải thay đổi code. Khi triển khai cần cập nhật đồng bộ seeder, visibility gate, cache lookup, trang admin, migration trạng thái cũ và test; không được chỉ đổi giá trị mặc định của `qualityStatus`.
