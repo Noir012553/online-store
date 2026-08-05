@@ -2596,12 +2596,13 @@ exports.getDynamicTranslations = async (req, res) => {
           }).lean();
           translatedValue = translation?.name;
         } else if (itemType === 'brand') {
-          const BrandTranslationCache = require('../models/BrandTranslationCache');
-          const translation = await BrandTranslationCache.findOne({
-            brandId: entityId,
+          const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
+          const translation = await BrandCatalogTranslationCache.findOne({
+            entityId: String(entityId),
             targetLang: resolvedLang,
+            status: 'success',
           }).lean();
-          translatedValue = translation?.name || translation?.translatedContent?.name;
+          translatedValue = translation?.name;
         }
 
         // Use original value if no translation found
@@ -2672,7 +2673,7 @@ exports.verifyTranslationConsistency = async (req, res) => {
     const translationCaches = [
       ProductCatalogTranslationCache,
       CategoryCatalogTranslationCache,
-      require('../models/BrandTranslationCache'),
+      require('../models/BrandCatalogTranslationCache'),
     ];
 
     let hasTranslation = false;
