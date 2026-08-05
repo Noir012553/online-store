@@ -11,6 +11,7 @@ const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const {
   getProductCatalogTranslations,
+  translateText,
   saveProductTranslation,
   exportProductTranslationCache,
   importProductTranslationCache,
@@ -60,6 +61,32 @@ describe('Product translation cache controller', () => {
       qualityStatus: 'approved',
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Laptop');
+  });
+
+  it('does not reuse a non-approved cache record for public translation', async () => {
+    sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
+    const findOne = sandbox.stub(LiveTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        translatedText: 'Stale translation',
+        status: 'success',
+        qualityStatus: 'pending',
+      }),
+    });
+    const translate = sandbox.stub(cloudflareAiService, 'translate').resolves('Fresh translation');
+    sandbox.stub(LiveTranslationCache, 'create').resolves();
+    const res = createResponse();
+
+    await translateText({
+      body: { text: 'Laptop', sourceLang: 'vi', targetLang: 'en' },
+      lang: 'vi',
+    }, res);
+
+    expect(findOne.calledOnceWith(sinon.match({
+      status: 'success',
+      qualityStatus: 'approved',
+    }))).to.be.true;
+    expect(translate.calledOnce).to.be.true;
+    expect(res.json.firstCall.args[0].data.translatedText).to.equal('Fresh translation');
   });
 
   it('uses only successful approved legacy translations as a fallback', async () => {

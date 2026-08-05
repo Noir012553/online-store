@@ -223,7 +223,11 @@ exports.translateText = async (req, res) => {
         // Check cache if enabled
         let translatedText;
         if (useCache) {
-          const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          const cached = await LiveTranslationCache.findOne({
+            hashKey,
+            status: 'success',
+            qualityStatus: 'approved',
+          }).lean();
           if (cached) {
             translatedText = cached.translatedText;
             translations[lang] = translatedText;
@@ -302,7 +306,11 @@ exports.translateText = async (req, res) => {
 
     // Check cache if enabled
     if (useCache) {
-      const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+      const cached = await LiveTranslationCache.findOne({
+        hashKey,
+        status: 'success',
+        qualityStatus: 'approved',
+      }).lean();
       if (cached) {
         return res.json({
           success: true,
@@ -417,7 +425,11 @@ exports.translateProductAll9Languages = async (req, res) => {
       // Check cache if enabled
       let translatedText;
       if (useCache) {
-        const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+        const cached = await LiveTranslationCache.findOne({
+          hashKey,
+          status: 'success',
+          qualityStatus: 'approved',
+        }).lean();
         if (cached) {
           translatedText = cached.translatedText;
           translations[lang] = translatedText;
