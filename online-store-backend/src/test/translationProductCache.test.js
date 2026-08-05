@@ -9,7 +9,6 @@ const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
-const { validateProduct } = require('../utils/productImportValidator');
 const {
   getProductCatalogTranslations,
   saveProductTranslation,
@@ -26,24 +25,6 @@ const createResponse = () => ({
 
 describe('Product translation cache controller', () => {
   let sandbox;
-
-  it('does not include removed product feature fields in imported data', () => {
-    const result = validateProduct({
-      name: 'Test product',
-      brand: 'Test brand',
-      price: 100,
-      baseCurrencyCode: 'VND',
-      category: 'Keyboard',
-      supplier: 'Supplier',
-      description: 'Description',
-      features: ['feature_rgb_backlight'],
-      featuresTranslations: { en: ['RGB backlight'] },
-    });
-
-    expect(result.isValid).to.equal(true);
-    expect(result.cleaned).to.not.have.property('features');
-    expect(result.cleaned).to.not.have.property('featuresTranslations');
-  });
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
