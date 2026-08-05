@@ -321,9 +321,9 @@ const getOrderStatusDistribution = asyncHandler(async (req, res) => {
       8000
     );
 
-    const lang1 = getMessage(lang, 'admin-controllers-messages.order_status_pending_payment');
-    const lang2 = getMessage(lang, 'admin-controllers-messages.order_status_paid');
-    const lang3 = getMessage(lang, 'admin-controllers-messages.order_status_delivered');
+    const lang1 = getMessage(lang, 'orders.pending_payment');
+    const lang2 = getMessage(lang, 'orders.paid_status');
+    const lang3 = getMessage(lang, 'orders.status_delivered');
 
     return statusData[0]
       ? [
