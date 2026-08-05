@@ -313,14 +313,6 @@ class ProductTranslationSeederService {
         });
       }
 
-      // 3. Dịch thương hiệu
-      if (product.brand?.trim()) {
-        fieldsToTranslate.push({
-          originalText: product.brand,
-          entityType: 'product_brand',
-        });
-      }
-
       // 4. ⚠️  NOTE: Spec translation (both keys & values) is handled by translationSeederHelper
       // Spec keys are translated via specKeyTranslations.json lookup
       // Spec values are translated via product_spec entityType
@@ -340,7 +332,8 @@ class ProductTranslationSeederService {
             status: 'success',
             qualityStatus: 'approved',
           }).lean();
-          if (cached) {
+          const cachedNeedsRefresh = cached?.validationErrors?.includes('missing_brand');
+          if (cached && !cachedNeedsRefresh) {
             successCount++;
             continue;
           }
@@ -358,7 +351,7 @@ class ProductTranslationSeederService {
           );
 
           // Lưu cache
-          await LiveTranslationCache.create({
+          const translationRecord = {
             hashKey,
             originalText: field.originalText,
             translatedText,
@@ -371,7 +364,12 @@ class ProductTranslationSeederService {
             qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,
             retryCount: 0,
-          });
+          };
+          if (cachedNeedsRefresh) {
+            await LiveTranslationCache.updateOne({ _id: cached._id }, { $set: translationRecord });
+          } else {
+            await LiveTranslationCache.create(translationRecord);
+          }
 
           successCount++;
         } catch (err) {

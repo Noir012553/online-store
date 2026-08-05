@@ -74,14 +74,11 @@ async function testMissingBrandValidation() {
     'product_name'
   );
 
-  if (
-    result.validationErrors.includes('missing_brand') &&
-    result.qualityStatus === 'needs_retranslate'
-  ) {
-    return 'Missing brand detection working correctly';
-  } else {
-    throw new Error(`Expected missing_brand error, got: ${JSON.stringify(result)}`);
+  if (!result.validationErrors.includes('missing_brand') && result.qualityStatus === 'approved') {
+    return 'Brand preservation is not treated as a translation error';
   }
+
+  throw new Error(`Expected brand to be ignored by validation, got: ${JSON.stringify(result)}`);
 }
 
 async function testEmptyTranslationValidation() {
