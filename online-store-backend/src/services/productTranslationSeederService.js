@@ -51,10 +51,19 @@ class ProductTranslationSeederService {
     const translations = [];
 
     for (const chunk of chunks) {
-      translations.push(await cloudflareAiService.translate(chunk, sourceLang, targetLang));
+      const translatedChunk = await cloudflareAiService.translate(chunk, sourceLang, targetLang);
+      if (typeof translatedChunk !== 'string' || translatedChunk.trim() === '') {
+        throw new Error('Description translation returned an empty chunk');
+      }
+      translations.push(translatedChunk);
     }
 
-    return translations.join('');
+    const translatedText = translations.join('');
+    if (translatedText.trim() === '') {
+      throw new Error('Description translation returned empty content');
+    }
+
+    return translatedText;
   }
 
   /**
