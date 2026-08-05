@@ -165,8 +165,23 @@ class TranslationSeederHelper {
         { hashKey: { $in: recordsToSave.map((record) => record.hashKey) } },
         { hashKey: 1, status: 1, qualityStatus: 1 }
       ).lean();
-      const existingKeys = new Set(existingRecords.map((record) => record.hashKey));
-      return recordsToSave.filter((record) => existingKeys.has(record.hashKey));
+      const existingByKey = new Map(existingRecords.map((record) => [record.hashKey, record]));
+
+      const invalidRecords = recordsToSave.filter((record) => {
+        const existing = existingByKey.get(record.hashKey);
+        return existing && (existing.status !== 'success' || existing.qualityStatus !== 'approved');
+      });
+
+      if (invalidRecords.length > 0) {
+        await Promise.all(invalidRecords.map((record) => (
+          LiveTranslationCache.updateOne(
+            { hashKey: record.hashKey },
+            { $set: record }
+          )
+        )));
+      }
+
+      return recordsToSave.filter((record) => existingByKey.has(record.hashKey));
     }
   }
 
