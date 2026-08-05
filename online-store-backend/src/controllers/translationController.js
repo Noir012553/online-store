@@ -210,8 +210,7 @@ exports.translateText = async (req, res) => {
     // Layer 2 (Products): Translate to all 9 languages except source language
     // When targetLang === 'all', dịch cả 9 ngôn ngữ (excluding source lang)
     if (targetLang === 'all') {
-      const allLangCodes = getActiveLangCodes();
-      const targetLangs = allLangCodes.filter(lang => lang !== sourceLang);
+      const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
 
       const translations = {};
       for (const lang of targetLangs) {
@@ -223,7 +222,11 @@ exports.translateText = async (req, res) => {
         // Check cache if enabled
         let translatedText;
         if (useCache) {
-          const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          const cached = await LiveTranslationCache.findOne({
+            hashKey,
+            status: 'success',
+            qualityStatus: 'approved',
+          }).lean();
           if (cached) {
             translatedText = cached.translatedText;
             translations[lang] = translatedText;
@@ -302,7 +305,11 @@ exports.translateText = async (req, res) => {
 
     // Check cache if enabled
     if (useCache) {
-      const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+      const cached = await LiveTranslationCache.findOne({
+        hashKey,
+        status: 'success',
+        qualityStatus: 'approved',
+      }).lean();
       if (cached) {
         return res.json({
           success: true,
@@ -404,8 +411,7 @@ exports.translateProductAll9Languages = async (req, res) => {
       );
     }
 
-    const allLangCodes = getActiveLangCodes();
-    const targetLangs = allLangCodes.filter(lang => lang !== sourceLang);
+    const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
 
     const translations = {};
     for (const lang of targetLangs) {
@@ -417,7 +423,11 @@ exports.translateProductAll9Languages = async (req, res) => {
       // Check cache if enabled
       let translatedText;
       if (useCache) {
-        const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+        const cached = await LiveTranslationCache.findOne({
+          hashKey,
+          status: 'success',
+          qualityStatus: 'approved',
+        }).lean();
         if (cached) {
           translatedText = cached.translatedText;
           translations[lang] = translatedText;
@@ -2586,12 +2596,13 @@ exports.getDynamicTranslations = async (req, res) => {
           }).lean();
           translatedValue = translation?.name;
         } else if (itemType === 'brand') {
-          const BrandTranslationCache = require('../models/BrandTranslationCache');
-          const translation = await BrandTranslationCache.findOne({
-            brandId: entityId,
+          const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
+          const translation = await BrandCatalogTranslationCache.findOne({
+            entityId: String(entityId),
             targetLang: resolvedLang,
+            status: 'success',
           }).lean();
-          translatedValue = translation?.name || translation?.translatedContent?.name;
+          translatedValue = translation?.name;
         }
 
         // Use original value if no translation found
@@ -2662,7 +2673,7 @@ exports.verifyTranslationConsistency = async (req, res) => {
     const translationCaches = [
       ProductCatalogTranslationCache,
       CategoryCatalogTranslationCache,
-      require('../models/BrandTranslationCache'),
+      require('../models/BrandCatalogTranslationCache'),
     ];
 
     let hasTranslation = false;
