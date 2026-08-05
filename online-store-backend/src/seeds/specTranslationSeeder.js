@@ -45,7 +45,7 @@ async function seedSpecTranslations() {
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying LiveTranslationCache for product translations...`);
 
     const allRecords = await LiveTranslationCache.find({
-      entityType: { $in: ['product_spec', 'product_name', 'product_description', 'product_brand'] },
+      entityType: { $in: ['product_spec', 'product_name', 'product_description'] },
       status: 'success',
       qualityStatus: 'approved',
     }).lean();
@@ -89,8 +89,6 @@ async function seedSpecTranslations() {
         group.name = doc.translatedText;
       } else if (doc.entityType === 'product_description') {
         group.description = doc.translatedText;
-      } else if (doc.entityType === 'product_brand') {
-        group.brand = doc.translatedText;
       } else if (doc.entityType === 'product_spec' && doc.specKey) {
         // Lookup translated key from specKeyTranslations
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
@@ -108,6 +106,26 @@ async function seedSpecTranslations() {
     let batchCount = 0;
     let aggregatedCount = 0;
     const entries = Object.values(grouped);
+    const sourceProducts = await Product.find({
+      _id: { $in: entries.map(({ entityId }) => entityId) },
+    }).select('brand specs').lean();
+    const sourceProductById = new Map(sourceProducts.map((product) => [product._id.toString(), product]));
+
+    entries.forEach((entry) => {
+      const sourceProduct = sourceProductById.get(entry.entityId);
+      const expectedSpecCount = Object.keys(sourceProduct?.specs || {}).length;
+      const translatedSpecEntries = Object.entries(entry.specs).filter(([, value]) => String(value || '').trim());
+      const validationErrors = [];
+
+      entry.brand = sourceProduct?.brand || null;
+      if (!String(entry.name || '').trim()) validationErrors.push('missing_name');
+      if (!String(entry.description || '').trim()) validationErrors.push('missing_description');
+      if (translatedSpecEntries.length < expectedSpecCount) validationErrors.push('incomplete_specs');
+
+      entry.validationErrors = validationErrors;
+      entry.qualityStatus = validationErrors.length > 0 ? 'pending' : 'approved';
+      entry.qualityScore = validationErrors.length > 0 ? 0 : 100;
+    });
 
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
       const batch = entries.slice(i, i + BATCH_SIZE);
@@ -141,7 +159,8 @@ async function seedSpecTranslations() {
     for (const lang of SUPPORTED_LANG_CODES) {
       const count = await ProductCatalogTranslationCache.countDocuments({
         targetLang: lang,
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
       verifyByLang[lang] = count;
     }
@@ -154,7 +173,8 @@ async function seedSpecTranslations() {
 
     // Sample verification: pick 1 random product and display
     const sampleProduct = await ProductCatalogTranslationCache.findOne({
-      status: 'success'
+      status: 'success',
+      qualityStatus: 'approved'
     }).lean();
 
     if (sampleProduct) {

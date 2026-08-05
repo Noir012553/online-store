@@ -222,6 +222,8 @@ class RateLimitHandler {
           $set: {
             translatedText,
             status: 'success',
+            qualityStatus: 'approved',
+            validationErrors: [],
             lastRetryAt: new Date(),
             retryCount: 0,
           }
@@ -259,6 +261,8 @@ class RateLimitHandler {
             $set: {
               translatedText,
               status: 'success',
+              qualityStatus: 'approved',
+              validationErrors: [],
               lastRetryAt: new Date(),
               retryCount: 0,
             }

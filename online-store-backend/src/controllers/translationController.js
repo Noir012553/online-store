@@ -147,11 +147,27 @@ exports.getProductTranslations = async (req, res) => {
     const { lang } = req.query;
     const resolvedLang = req.lang || getLanguageParam({ lang });
 
-    if (!resolvedLang) {
-      return res.json({ success: true, data: null });
+    if (!isProductId(productId) || !resolvedLang) {
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_TARGET_INVALID',
+        'product_target_invalid'
+      );
     }
 
     const data = await getProductTranslationData(productId, resolvedLang, false);
+    if (!data) {
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
+        'product_fetch_failed'
+      );
+    }
+
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);

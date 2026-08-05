@@ -243,6 +243,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
           entityId: { $in: brandIds },
           targetLang,
           status: 'success',
+          qualityStatus: 'approved',
         }).lean();
 
         brandTranslations.forEach(t => {
@@ -587,6 +588,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
           entityId: { $in: brandIds },
           targetLang,
           status: 'success',
+          qualityStatus: 'approved',
         }).lean();
 
         brandTranslations.forEach(t => {
