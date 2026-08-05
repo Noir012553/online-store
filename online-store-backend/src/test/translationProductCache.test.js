@@ -9,6 +9,7 @@ const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
+const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const {
   getProductCatalogTranslations,
   translateText,
@@ -74,11 +75,13 @@ describe('Product translation cache controller', () => {
     });
     const translate = sandbox.stub(cloudflareAiService, 'translate').resolves('Fresh translation');
     sandbox.stub(LiveTranslationCache, 'create').resolves();
+    const sourceLang = getDefaultLanguage().code;
+    const targetLang = SUPPORTED_LANGUAGES.find(({ code }) => code !== sourceLang).code;
     const res = createResponse();
 
     await translateText({
-      body: { text: 'Laptop', sourceLang: 'vi', targetLang: 'en' },
-      lang: 'vi',
+      body: { text: 'Laptop', sourceLang, targetLang },
+      lang: sourceLang,
     }, res);
 
     expect(findOne.calledOnceWith(sinon.match({

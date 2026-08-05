@@ -210,8 +210,7 @@ exports.translateText = async (req, res) => {
     // Layer 2 (Products): Translate to all 9 languages except source language
     // When targetLang === 'all', dịch cả 9 ngôn ngữ (excluding source lang)
     if (targetLang === 'all') {
-      const allLangCodes = getActiveLangCodes();
-      const targetLangs = allLangCodes.filter(lang => lang !== sourceLang);
+      const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
 
       const translations = {};
       for (const lang of targetLangs) {
@@ -412,8 +411,7 @@ exports.translateProductAll9Languages = async (req, res) => {
       );
     }
 
-    const allLangCodes = getActiveLangCodes();
-    const targetLangs = allLangCodes.filter(lang => lang !== sourceLang);
+    const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
 
     const translations = {};
     for (const lang of targetLangs) {
