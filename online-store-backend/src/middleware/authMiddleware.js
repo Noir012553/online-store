@@ -54,11 +54,20 @@ const protect = asyncHandler(async (req, res, next) => {
       req.user = user;
       return next();
     } catch (error) {
-      console.error('Authentication failed', {
-        stage: authStage,
-        userId: decoded?.id,
-        error: error.message,
-      });
+      const expectedAuthFailure = error.errorCode === 'USER_NOT_FOUND'
+        || error instanceof jwt.JsonWebTokenError
+        || ['token extraction', 'token type validation', 'token revocation check'].includes(authStage);
+
+      if (!expectedAuthFailure) {
+        console.error('Authentication failed', {
+          stage: authStage,
+          userId: decoded?.id,
+          error: error.message,
+        });
+        res.status(500);
+        throw error;
+      }
+
       res.status(401);
       if (error.errorCode) throw error;
       throw new Error(getMessage(req.lang, 'auth-messages.notAuthorized'));

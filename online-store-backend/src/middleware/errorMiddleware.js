@@ -57,7 +57,7 @@ const errorHandler = (err, req, res, next) => {
     message = getMessage(req.lang, 'common.error_server_desc');
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && statusCode !== 401 && statusCode !== 403) {
     console.error('[ErrorHandler]', err);
   }
 
