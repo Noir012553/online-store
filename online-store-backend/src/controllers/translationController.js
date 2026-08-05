@@ -793,10 +793,9 @@ exports.syncTranslationsFromJSON = async (req, res) => {
 const PRODUCT_TRANSLATION_ENTITY_TYPES = [
   'product_name',
   'product_description',
-  'product_brand',
   'product_spec',
 ];
-const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'specs'];
+const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'specs'];
 
 const PRODUCT_TRANSLATION_QUALITY_STATUSES = new Set([
   'pending',
@@ -826,9 +825,6 @@ const buildLegacyProductTranslation = (translations) => {
         break;
       case 'product_description':
         data.description = translation.translatedText;
-        break;
-      case 'product_brand':
-        data.brand = translation.translatedText;
         break;
       case 'product_spec':
         if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
@@ -876,7 +872,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
   const sourceProduct = includeNonSuccess
     ? null
-    : await Product.findById(productId).select('specs').lean();
+    : await Product.findById(productId).select('brand specs').lean();
 
   if (translation) {
     const data = {
@@ -892,6 +888,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const legacyTranslations = await LiveTranslationCache.find(legacyQuery).lean();
   const legacyTranslation = buildLegacyProductTranslation(legacyTranslations);
   if (!legacyTranslation) return null;
+  legacyTranslation.brand = sourceProduct.brand;
   if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, legacyTranslation)) return null;
 
   return legacyTranslation;
@@ -1001,13 +998,13 @@ exports.saveProductTranslation = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
     const translations = req.body || {};
-    const allowedFields = ['name', 'description', 'brand', 'specs'];
+    const allowedFields = ['name', 'description', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
 
     if (!isProductId(productId) || fields.length === 0) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_FIELDS_REQUIRED', 'translation_fields_required');
     }
-    if (fields.some((field) => ['name', 'description', 'brand'].includes(field) && typeof translations[field] !== 'string')
+    if (fields.some((field) => ['name', 'description'].includes(field) && typeof translations[field] !== 'string')
       || ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs)))) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
     }
@@ -1023,6 +1020,7 @@ exports.saveProductTranslation = async (req, res) => {
     const update = {
       ...allowedTranslations,
       name: allowedTranslations.name ?? existing?.name ?? product.name,
+      brand: product.brand,
       status: 'success',
       qualityStatus: 'approved',
       validationErrors: [],
@@ -1216,13 +1214,12 @@ exports.retranslateProduct = async (req, res) => {
       return { value, validation };
     };
 
-    const [nameResult, descResult, brandResult] = await Promise.all([
+    const [nameResult, descResult] = await Promise.all([
       translateField('name', product.name, 'product_name'),
       translateField('description', product.description, 'product_description'),
-      translateField('brand', product.brand, 'product_brand'),
     ]);
 
-    const validationResults = [nameResult.validation, descResult.validation, brandResult.validation].filter(Boolean);
+    const validationResults = [nameResult.validation, descResult.validation].filter(Boolean);
     const specs = {};
     for (const [key, value] of Object.entries(product.specs || {})) {
       if (manualFields.includes('specs')) {
@@ -1244,7 +1241,7 @@ exports.retranslateProduct = async (req, res) => {
     const translated = {
       name: nameResult.value ?? product.name,
       description: descResult.value,
-      brand: brandResult.value,
+      brand: product.brand,
       specs,
       status: 'success',
       qualityStatus,
