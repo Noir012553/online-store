@@ -772,10 +772,19 @@ const PRODUCT_TRANSLATION_ENTITY_TYPES = [
 ];
 const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'specs'];
 
+const PRODUCT_TRANSLATION_QUALITY_STATUSES = new Set([
+  'pending',
+  'approved',
+  'needs_retranslate',
+  'rejected',
+]);
+
 const productTranslationStatus = (translation) => {
   if (!translation) return 'missing';
   if (translation.status !== 'success') return 'rejected';
-  return translation.qualityStatus || 'pending';
+  return PRODUCT_TRANSLATION_QUALITY_STATUSES.has(translation.qualityStatus)
+    ? translation.qualityStatus
+    : 'pending';
 };
 
 const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
@@ -899,19 +908,22 @@ exports.getProductTranslationStatuses = async (req, res) => {
       }
 
       const legacyRecords = legacyByProductId.get(productId) || [];
-      const translatedTypes = new Set(legacyRecords.map((record) => record.entityType));
+      const currentLegacyRecords = legacyRecords.filter((record) => record.qualityStatus !== 'retranslated');
+      const translatedTypes = new Set(currentLegacyRecords.map((record) => record.entityType));
       const product = productsById.get(productId);
       const expectedSpecKeys = Object.keys(product?.specs || {});
       const translatedSpecKeys = new Set(
-        legacyRecords.filter((record) => record.entityType === 'product_spec' && record.specKey).map((record) => record.specKey)
+        currentLegacyRecords
+          .filter((record) => record.entityType === 'product_spec' && record.specKey)
+          .map((record) => record.specKey)
       );
       const isComplete = ['product_name', 'product_description', 'product_brand'].every((type) => translatedTypes.has(type))
         && expectedSpecKeys.every((key) => translatedSpecKeys.has(key));
-      const legacyStatus = legacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
+      const legacyStatus = currentLegacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
         ? 'needs_retranslate'
-        : legacyRecords.some((record) => record.qualityStatus === 'rejected' || record.status !== 'success')
+        : currentLegacyRecords.some((record) => record.qualityStatus === 'rejected' || record.status !== 'success')
           ? 'rejected'
-          : legacyRecords.some((record) => record.qualityStatus === 'pending')
+          : currentLegacyRecords.some((record) => record.qualityStatus === 'pending')
             ? 'pending'
             : isComplete ? 'approved' : 'missing';
 
