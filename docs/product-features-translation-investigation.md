@@ -429,3 +429,7 @@ số Product.specs entries
 ```
 
 Nếu chỉ có phần tử đầu tiên được dịch, sản phẩm-language đó không được coi là hoàn chỉnh và không được đánh dấu `approved` chỉ dựa trên việc record tổng tồn tại.
+
+## Cập nhật triển khai completeness
+
+Visibility gate hiện đối chiếu số spec value có nội dung trong cache với số spec value có dữ liệu ở sản phẩm nguồn, thay vì chỉ kiểm tra `specs` không rỗng. Endpoint public `GET /api/products/:id/translations` cũng áp dụng kiểm tra tương tự cho cả catalog cache và legacy cache; dữ liệu thiếu field hoặc thiếu spec sẽ trả trạng thái không khả dụng. Luồng admin vẫn đọc được các bản dịch chưa hoàn tất.

@@ -319,4 +319,10 @@ Nếu bất kỳ bước nào thất bại, sản phẩm vẫn bị ẩn khỏi 
 
 ### Ghi chú vận hành
 
-Quyết định này là chính sách mục tiêu, chưa phải thay đổi code. Khi triển khai cần cập nhật đồng bộ seeder, visibility gate, cache lookup, trang admin, migration trạng thái cũ và test; không được chỉ đổi giá trị mặc định của `qualityStatus`.
+Quyết định này là chính sách mục tiêu và đã được triển khai một phần. Visibility gate, cache lookup và luồng admin đã được tách; endpoint public translation hiện chỉ dùng cache `success + approved` và kiểm tra completeness của field/specs. Các phần seeder/flush/retry, migration trạng thái cũ và test tích hợp vẫn cần được hoàn thiện; không được chỉ đổi giá trị mặc định của `qualityStatus`.
+
+### Cập nhật completeness endpoint và visibility gate
+
+- Public product translation không trả catalog hoặc legacy translation nếu thiếu `name`, `description`, `brand` hoặc thiếu số lượng spec value so với sản phẩm nguồn.
+- Storefront chỉ tính ngôn ngữ khi translation cache có đủ field và số lượng spec value tương ứng với sản phẩm nguồn.
+- Endpoint admin vẫn được phép đọc dữ liệu chưa hoàn tất để phục vụ xử lý bản dịch.
