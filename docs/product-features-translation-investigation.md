@@ -270,6 +270,18 @@ Luồng seed gửi nguyên văn description cho AI, chỉ kiểm tra response kh
 3. Không đánh dấu `approved` khi validation thất bại; chuyển sang `pending` hoặc `needs_retranslate`.
 4. Bổ sung test cho response rỗng, response bị cắt, lỗi giữa batch và retry thành công.
 
+### Phạm vi còn rủi ro cần xử lý
+
+`online-store-backend/src/services/productTranslationSeederService.js` vẫn dịch `product_description` bằng một request AI nguyên văn tại dòng 304, không dùng chunking như `translationSeederHelper`. Luồng này chỉ chạy validation sau khi nhận response; một response bị cắt nhưng vẫn vượt ngưỡng tỷ lệ độ dài có thể được lưu và tiếp tục được xem là bản dịch hợp lệ.
+
+Khi triển khai, cần:
+
+- dùng cùng chiến lược chunking theo ranh giới an toàn như `translationSeederHelper`;
+- ghép các đoạn theo đúng thứ tự và bảo toàn cấu trúc nội dung;
+- kiểm tra completeness trước khi lưu cache hoặc đánh dấu `approved`;
+- chuyển response không đạt sang `pending` hoặc `needs_retranslate`;
+- bổ sung test riêng cho luồng `ProductTranslationSeederService` với description ngắn, dài, response bị cắt và lỗi giữa các đoạn.
+
 ## Thứ tự ưu tiên triển khai
 
 1. Dùng chung predicate `success + approved` cho mọi endpoint public và cache lookup.
