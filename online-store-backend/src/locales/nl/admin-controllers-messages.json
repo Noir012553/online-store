@@ -151,6 +151,9 @@
   "provider_deleted_success": "Verzendprovider succesvol verwijderd",
   "provider_not_deleted": "Deze verzendprovider is niet verwijderd",
   "provider_restored_success": "Verzendprovider succesvol hersteld",
+  "order_status_pending_payment": "Betaling in afwachting",
+  "order_status_paid": "Betaald",
+  "order_status_delivered": "Afgeleverd",
   "only_admins_reset_stats": "Alleen beheerders kunnen statistieken opnieuw instellen",
   "cloudflare_stats_reset_success": "Cloudflare-statistieken succesvol opnieuw ingesteld",
   "product_id_required_for_update": "Elk product in de updatemodus moet een geldige productId bevatten. Gebruik een geëxporteerd bestand om product- en vertalingskoppelingen te behouden."

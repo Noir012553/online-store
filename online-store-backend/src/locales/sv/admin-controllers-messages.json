@@ -151,6 +151,9 @@
   "provider_deleted_success": "Skeppningsleverantör raderad framgångsrikt",
   "provider_not_deleted": "Denna skeppningsleverantör är inte raderad",
   "provider_restored_success": "Skeppningsleverantör återställd framgångsrikt",
+  "order_status_pending_payment": "Väntande betalning",
+  "order_status_paid": "Betald",
+  "order_status_delivered": "Levererad",
   "only_admins_reset_stats": "Endast administratörer kan återställa statistik",
   "cloudflare_stats_reset_success": "Cloudflare-statistik återställd framgångsrikt"
 }

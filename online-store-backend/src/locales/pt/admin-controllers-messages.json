@@ -151,6 +151,9 @@
   "provider_deleted_success": "Provedor de envio excluído com sucesso",
   "provider_not_deleted": "Este provedor de envio não foi excluído",
   "provider_restored_success": "Provedor de envio restaurado com sucesso",
+  "order_status_pending_payment": "Pagamento pendente",
+  "order_status_paid": "Pago",
+  "order_status_delivered": "Entregue",
   "only_admins_reset_stats": "Apenas administradores podem redefinir estatísticas",
   "cloudflare_stats_reset_success": "Estatísticas do Cloudflare redefinidas com sucesso",
   "product_id_required_for_update": "Cada produto no modo de atualização deve incluir um productId válido. Use um ficheiro exportado para preservar as associações de produto e tradução."

@@ -151,6 +151,9 @@
   "provider_deleted_success": "Versandanbieter erfolgreich gelöscht",
   "provider_not_deleted": "Dieser Versandanbieter wurde nicht gelöscht",
   "provider_restored_success": "Versandanbieter erfolgreich wiederhergestellt",
+  "order_status_pending_payment": "Zahlung ausstehend",
+  "order_status_paid": "Bezahlt",
+  "order_status_delivered": "Zugestellt",
   "only_admins_reset_stats": "Nur Administratoren können Statistiken zurücksetzen",
   "cloudflare_stats_reset_success": "Cloudflare-Statistiken erfolgreich zurückgesetzt",
   "product_id_required_for_update": "Jedes Produkt im Aktualisierungsmodus muss eine gültige productId enthalten. Verwenden Sie eine exportierte Datei, um Produkt- und Übersetzungszuordnungen beizubehalten."
