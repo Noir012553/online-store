@@ -354,6 +354,15 @@ Danh mục không thuộc dynamic product translation theo từng sản phẩm. 
 
 Đặc tính kỹ thuật là dữ liệu cần được dịch theo từng sản phẩm và từng ngôn ngữ. Nếu giao diện hiển thị dữ liệu nguồn ở cột tiếng Việt nhưng toàn bộ cột ngôn ngữ đích chỉ hiện `Dịch đặc tính...`, thì đó là dấu hiệu toàn bộ phần `product_spec` của product-language đó chưa có bản dịch hoặc chưa được load vào UI.
 
+**Vấn đề mới đã quan sát:** trong giao diện `/admin/translationsDynamic`, phần `Đặc tính kỹ thuật` hiện chỉ có bản dịch cho phần tử đầu tiên; các spec value còn lại vẫn hiển thị placeholder hoặc bị bỏ trống. Đây là lỗi coverage theo từng `spec key/value`, không thể đánh giá trạng thái dịch chỉ bằng một record product-language tổng.
+
+Cần xác định lỗi nằm ở một trong các bước sau:
+
+- Seeder chỉ tạo translation task/cache cho spec đầu tiên.
+- Dữ liệu nhiều spec bị ghi đè khi gom nhóm theo `entityId + targetLang` hoặc theo `specKey`.
+- `ProductCatalogTranslationCache.specs` chỉ được aggregate một phần.
+- API admin hoặc UI chỉ load/render phần tử đầu tiên.
+
 Không được kết luận chỉ dựa trên việc product đã có một record translation cho ngôn ngữ đó. Verification phải kiểm tra toàn bộ phần specs:
 
 ```text
@@ -374,3 +383,16 @@ Lỗi cần điều tra là lỗi coverage/hiển thị translation theo từng 
 - `name` và `description`: tiếp tục thuộc dynamic product translation và phải qua completeness validation.
 
 Bộ kiểm tra hiện tại cần bổ sung kiểm tra theo `productId + targetLang + từng spec key/value`, thay vì chỉ đếm số product-language translation records.
+
+### Việc cần kiểm tra tiếp theo cho lỗi chỉ dịch phần tử đầu tiên
+
+Với mỗi product và từng targetLang, cần đối chiếu:
+
+```text
+số Product.specs entries
+  = số spec translation tasks/records hợp lệ
+  = số key/value trong ProductCatalogTranslationCache.specs
+  = số dòng đặc tính được API admin và UI render
+```
+
+Nếu chỉ có phần tử đầu tiên được dịch, sản phẩm-language đó không được coi là hoàn chỉnh và không được đánh dấu `approved` chỉ dựa trên việc record tổng tồn tại.
