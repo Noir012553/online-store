@@ -331,3 +331,46 @@ Không nên coi seed thành công hoặc số lượng 981 là bằng chứng du
 - Sửa preload phường/xã trước khi seed customer addresses lần tiếp theo.
 - Quyết định rõ module Orders cần 410 hay 600 orders và cập nhật seed/report cho thống nhất.
 - Cập nhật lại các phần “vấn đề còn tồn tại” trong tài liệu nếu các kiểm tra trên xác nhận code hiện tại đã giải quyết chúng.
+
+## Phạm vi lỗi hiển thị translation trên cả 9 ngôn ngữ
+
+Qua kiểm tra trên giao diện admin, vấn đề không chỉ xảy ra với tiếng Hà Lan. Cả 9 ngôn ngữ bắt buộc đều cần được kiểm tra:
+
+```text
+vi, en, pt, fr, de, it, es, nl, sv
+```
+
+### Quy tắc theo loại dữ liệu
+
+#### 1. Thương hiệu (`brand`)
+
+Thương hiệu là tên riêng và thường không cần dịch. Ví dụ `ACER` phải được giữ nguyên ở mọi ngôn ngữ. Admin không nên hiển thị ô dịch hoặc placeholder `VI -> target language` cho brand, đồng thời brand không được bị xem là bản dịch thiếu trong completeness gate.
+
+#### 2. Danh mục (`category`)
+
+Danh mục không thuộc dynamic product translation theo từng sản phẩm. Tên danh mục phải được resolve bằng luồng category translation/static i18n riêng (`Category Translations (i18n Cache)`). Nếu danh mục chưa hiển thị ở một ngôn ngữ, cần kiểm tra category translation cache/locale tương ứng, không kiểm tra như `product_brand` hoặc `product_description`.
+
+#### 3. Đặc tính kỹ thuật (`specs`)
+
+Đặc tính kỹ thuật là dữ liệu cần được dịch theo từng sản phẩm và từng ngôn ngữ. Nếu giao diện hiển thị dữ liệu nguồn ở cột tiếng Việt nhưng toàn bộ cột ngôn ngữ đích chỉ hiện `Dịch đặc tính...`, thì đó là dấu hiệu toàn bộ phần `product_spec` của product-language đó chưa có bản dịch hoặc chưa được load vào UI.
+
+Không được kết luận chỉ dựa trên việc product đã có một record translation cho ngôn ngữ đó. Verification phải kiểm tra toàn bộ phần specs:
+
+```text
+Product.specs
+  -> có translation cho từng spec value
+  -> đủ ở từng targetLang trong 9 ngôn ngữ
+  -> được aggregate vào ProductCatalogTranslationCache.specs
+  -> được API/UI overlay và hiển thị đúng
+```
+
+### Kết luận cập nhật
+
+Lỗi cần điều tra là lỗi coverage/hiển thị translation theo từng loại dữ liệu trên **toàn bộ 9 ngôn ngữ**, không phải lỗi riêng của `nl`:
+
+- `brand`: giữ nguyên, không dịch và không tạo task dịch.
+- `category`: dùng category translation/static i18n riêng.
+- `specs`: phải dịch đầy đủ toàn bộ đặc tính kỹ thuật cho từng product và cả 9 ngôn ngữ.
+- `name` và `description`: tiếp tục thuộc dynamic product translation và phải qua completeness validation.
+
+Bộ kiểm tra hiện tại cần bổ sung kiểm tra theo `productId + targetLang + từng spec key/value`, thay vì chỉ đếm số product-language translation records.
