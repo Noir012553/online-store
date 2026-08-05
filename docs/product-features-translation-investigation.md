@@ -289,3 +289,45 @@ Khi triển khai, cần:
 3. Sửa flush/retry để không mất cache khi ghi batch lỗi.
 4. Thêm chunking và completeness validation cho description dài.
 5. Bổ sung test tích hợp cho seed, backfill, public endpoint và visibility gate.
+
+## Kết quả seed mới ngày 2026-08-05
+
+### Kết quả đã xác nhận
+
+- Seed chạy thành công toàn bộ 19 module.
+- Có 109 sản phẩm và đủ 9 ngôn ngữ bắt buộc: `vi`, `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`.
+- Spec translation aggregation đọc 2.564 bản ghi `LiveTranslationCache`, nhóm thành 981 tổ hợp product-language và xác minh mỗi ngôn ngữ có 109 sản phẩm.
+- Code hiện tại của `specTranslationSeeder` chỉ đọc bản dịch có `status = success` và `qualityStatus = approved`, sau đó ghi cache catalog với trạng thái `approved` (`online-store-backend/src/seeds/specTranslationSeeder.js:47-51`, `:75-78`). Vì vậy kết quả mới không còn khớp với nhận định cũ rằng cache catalog luôn mặc định `pending`.
+- Seeder hiện đã kiểm tra trạng thái khi tái sử dụng cache và đã chia description dài thành các đoạn trước khi dịch (`online-store-backend/src/services/translationSeederHelper.js:86-91`, `:200-205`, `:217-250`).
+- Báo cáo chất lượng ghi nhận 2.646 translation: 2.564 approved (97%), 82 pending (3%), không có `needs_retranslate` hoặc rejected.
+
+### Vấn đề còn tồn tại
+
+1. Chưa xác định 82 bản ghi `pending` thuộc entity nào. Cần phân loại theo `entityType` và kiểm tra riêng chúng có phải bản dịch sản phẩm hay không. Nếu là product translation thì phải loại khỏi storefront cho đến khi đạt `success + approved`.
+2. Số lượng record và trạng thái approved chưa đủ chứng minh chất lượng nội dung. Sample English trong log vẫn có tên `Bàn phím gaming ASUS ROG Azoth 96 HE White` và `Specs: {}`. Cần kiểm tra thực tế các trường `name`, `description`, `brand`, `specs` trong `ProductCatalogTranslationCache`, đặc biệt với description dài.
+3. Customer Addresses thất bại không nghiêm trọng nhưng cần sửa dữ liệu location preload: log cho biết đã tải 726 quận/huyện nhưng 0 phường/xã, dẫn đến tạo 0 địa chỉ.
+4. Module ghi là `Orders (600 orders)` nhưng thực tế chỉ tạo 410 orders (80 recent + 330 historical). Cần thống nhất mục tiêu seed hoặc sửa log/module để không gây hiểu nhầm.
+5. Báo cáo quality đang tổng hợp translation nói chung; chưa có bảng xác nhận riêng cho `ProductCatalogTranslationCache` theo từng sản phẩm, ngôn ngữ, `status`, `qualityStatus` và độ đầy đủ các field storefront.
+
+### Đánh giá so với display policy
+
+Kết quả mới đã đáp ứng phần coverage và trạng thái approved đối với dữ liệu product được aggregate. Tuy nhiên, để kết luận sản phẩm thực sự được phép hiển thị theo `product-translation-display-policy.md`, cần bổ sung verification trực tiếp trên `ProductCatalogTranslationCache`:
+
+```text
+mỗi product
+  -> đủ 9 targetLang
+  -> status = success
+  -> qualityStatus = approved
+  -> name, description, brand, specs đạt completeness validation
+```
+
+Không nên coi seed thành công hoặc số lượng 981 là bằng chứng duy nhất cho visibility. Các bản ghi pending và các bản dịch thiếu nội dung vẫn phải bị loại khỏi storefront nhưng tiếp tục hiển thị trong trang admin.
+
+### Việc cần làm tiếp theo
+
+- Xuất danh sách 82 bản ghi pending theo `entityType`, `entityId` và `targetLang`.
+- Chạy verification riêng cho 981 product-language cache records, bao gồm completeness của bốn field storefront.
+- Kiểm tra một số description dài ở cả `LiveTranslationCache` và `ProductCatalogTranslationCache` để xác nhận nội dung không bị cắt.
+- Sửa preload phường/xã trước khi seed customer addresses lần tiếp theo.
+- Quyết định rõ module Orders cần 410 hay 600 orders và cập nhật seed/report cho thống nhất.
+- Cập nhật lại các phần “vấn đề còn tồn tại” trong tài liệu nếu các kiểm tra trên xác nhận code hiện tại đã giải quyết chúng.
