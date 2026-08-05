@@ -301,9 +301,31 @@ Khi triển khai, cần:
 - Seeder hiện đã kiểm tra trạng thái khi tái sử dụng cache và đã chia description dài thành các đoạn trước khi dịch (`online-store-backend/src/services/translationSeederHelper.js:86-91`, `:200-205`, `:217-250`).
 - Báo cáo chất lượng ghi nhận 2.646 translation: 2.564 approved (97%), 82 pending (3%), không có `needs_retranslate` hoặc rejected.
 
+### Lỗi translation được ghi nhận khi chạy seed ngày 2026-08-05
+
+Seed process kết thúc với trạng thái thành công, nhưng log chỉ xác nhận số lượng product-language records, chưa xác nhận đầy đủ nội dung từng field. Các dấu hiệu đã quan sát:
+
+- Có `109` sản phẩm ở mỗi ngôn ngữ và `981` product-language combinations, nhưng chưa chứng minh mỗi record có đủ `name`, `description`, `brand` và toàn bộ `specs`.
+- Sample `ProductCatalogTranslationCache` có `Specs: {}`, cho thấy catalog record có thể tồn tại nhưng phần đặc tính kỹ thuật chưa được aggregate đầy đủ.
+- Trong giao diện `/admin/translationsDynamic`, phần `Đặc tính kỹ thuật` có tình trạng chỉ dịch được phần tử đầu tiên; các spec value còn lại bị thiếu hoặc vẫn hiển thị placeholder.
+- Báo cáo seed có `78` bản ghi `pending`, `197` lỗi `too_short`, `166` lỗi `missing_brand` và `19` lỗi `too_long`.
+- Vì seeder vẫn có thể aggregate một product-language record khi chỉ có một phần field/spec translation, thông báo `Seeding completed successfully` không đồng nghĩa mọi bản dịch đã hoàn chỉnh hoặc sản phẩm đã đủ điều kiện storefront.
+- Module Customer Addresses cũng tạo `0` địa chỉ vì preload ghi nhận `0` phường/xã, dù location sync trước đó đã tải `11.981` wards.
+
+Cần phân loại các bản ghi lỗi theo `entityType`, `entityId`, `targetLang` và `specKey`, sau đó kiểm tra chuỗi dữ liệu:
+
+```text
+LiveTranslationCache
+  -> ProductCatalogTranslationCache
+  -> API admin
+  -> UI từng spec key/value
+```
+
+Chỉ được coi seed đạt yêu cầu translation khi từng product-language có đủ field bắt buộc, đủ mọi spec value, mọi record đạt trạng thái hợp lệ và không còn batch/cache chưa flush.
+
 ### Vấn đề còn tồn tại
 
-1. Chưa xác định 82 bản ghi `pending` thuộc entity nào. Cần phân loại theo `entityType` và kiểm tra riêng chúng có phải bản dịch sản phẩm hay không. Nếu là product translation thì phải loại khỏi storefront cho đến khi đạt `success + approved`.
+1. Chưa xác định 78 bản ghi `pending` thuộc entity nào. Cần phân loại theo `entityType` và kiểm tra riêng chúng có phải bản dịch sản phẩm hay không. Nếu là product translation thì phải loại khỏi storefront cho đến khi đạt `success + approved`.
 2. Số lượng record và trạng thái approved chưa đủ chứng minh chất lượng nội dung. Sample English trong log vẫn có tên `Bàn phím gaming ASUS ROG Azoth 96 HE White` và `Specs: {}`. Cần kiểm tra thực tế các trường `name`, `description`, `brand`, `specs` trong `ProductCatalogTranslationCache`, đặc biệt với description dài.
 3. Customer Addresses thất bại không nghiêm trọng nhưng cần sửa dữ liệu location preload: log cho biết đã tải 726 quận/huyện nhưng 0 phường/xã, dẫn đến tạo 0 địa chỉ.
 4. Module ghi là `Orders (600 orders)` nhưng thực tế chỉ tạo 410 orders (80 recent + 330 historical). Cần thống nhất mục tiêu seed hoặc sửa log/module để không gây hiểu nhầm.
@@ -325,7 +347,7 @@ Không nên coi seed thành công hoặc số lượng 981 là bằng chứng du
 
 ### Việc cần làm tiếp theo
 
-- Xuất danh sách 82 bản ghi pending theo `entityType`, `entityId` và `targetLang`.
+- Xuất danh sách 78 bản ghi pending theo `entityType`, `entityId` và `targetLang`.
 - Chạy verification riêng cho 981 product-language cache records, bao gồm completeness của bốn field storefront.
 - Kiểm tra một số description dài ở cả `LiveTranslationCache` và `ProductCatalogTranslationCache` để xác nhận nội dung không bị cắt.
 - Sửa preload phường/xã trước khi seed customer addresses lần tiếp theo.
