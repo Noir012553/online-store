@@ -10,6 +10,7 @@
   "not_found": "Shipment not found",
   "invalid_status": "Invalid shipment status: {status}",
   "cancel_success": "Shipment cancelled successfully",
+  "noServiceAvailable": "No service is available",
   "currencyMetadataMissing": "Currency metadata is unavailable for {{currencyCode}}",
   "ratesUnavailable": "Currency exchange rates are temporarily unavailable",
   "providerRequestFailed": "The shipping provider could not process the shipment request",

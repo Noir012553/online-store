@@ -6,5 +6,16 @@
   "shipping_address_required": "L'adresse de livraison est obligatoire",
   "invalid_shipping_data": "Données de livraison invalides",
   "ghnDistrictError": "Erreur lors de la récupération des données du district de GHN: {{error}}",
-  "ghnWardError": "Erreur lors de la récupération des données de quartier de GHN: {{error}}"
+  "ghnWardError": "Erreur lors de la récupération des données de quartier de GHN: {{error}}",
+  "missingParametersService": "Paramètres du service de livraison manquants",
+  "noProvidersConfigured": "Aucun transporteur n'est configuré",
+  "cannotCalculateFee": "Impossible de calculer les frais de livraison",
+  "provinceIdRequired": "L'identifiant de la province ou de la ville est obligatoire",
+  "districtIdRequired": "L'identifiant du district est obligatoire",
+  "sameDistrictFree": "Même arrondissement - Livraison gratuite",
+  "standardServiceName": "Service standard",
+  "standardServiceDesc": "Livraison en 3 à 5 jours",
+  "expressServiceName": "Service express",
+  "expressServiceDesc": "Livraison en 1 à 2 jours",
+  "calculateFeeFailed": "Impossible de calculer les frais de livraison: {{error}}"
 }

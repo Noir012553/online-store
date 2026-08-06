@@ -10,5 +10,21 @@
   "payment_success_message": "Zahlung erfolgreich! Ihre Bestellung wurde bestätigt.",
   "payment_failed": "Zahlungsausfall",
   "refund_success": "Rückerstattung erfolgreich",
-  "dev_mode_only": "Diese Funktion ist nur im Entwicklungsmodus verfügbar"
+  "dev_mode_only": "Diese Funktion ist nur im Entwicklungsmodus verfügbar",
+  "amount_invalid": "Ungültiger Betrag",
+  "gateway_unsupported": "Das Zahlungsgateway wird nicht unterstützt",
+  "gateway_currency_unsupported": "Das Zahlungsgateway unterstützt die erforderliche Währung nicht",
+  "payment_initiation_failed": "Zahlung konnte nicht eingeleitet werden",
+  "webhook_signature_missing": "Die Signatur des Zahlungs-Webhooks fehlt",
+  "webhook_invalid": "Der Zahlungs-Webhook konnte nicht verifiziert werden",
+  "webhook_processing_failed": "Der Zahlungs-Webhook konnte nicht verarbeitet werden",
+  "payment_record_not_found": "Zahlungsdatensatz nicht gefunden",
+  "payment_reconciliation_failed": "Die Zahlungsdetails stimmen nicht mit der Bestellung überein",
+  "webhook_already_processed": "Der Zahlungs-Webhook wurde bereits verarbeitet",
+  "webhook_processed": "Zahlungs-Webhook erfolgreich verarbeitet",
+  "payment_not_found": "Zahlung nicht gefunden",
+  "successful_payment_not_found": "Für diese Bestellung wurde keine erfolgreiche Zahlung gefunden",
+  "gateway_adapter_not_found": "Das Zahlungsgateway ist nicht verfügbar",
+  "refund_failed": "Die Rückerstattung konnte nicht verarbeitet werden",
+  "payment_confirmation_failed": "Die Zahlung konnte nicht bestätigt werden"
 }

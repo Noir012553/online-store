@@ -11,6 +11,7 @@
   "payment_failed": "Payment failed",
   "refund_success": "Refund successful",
   "dev_mode_only": "This feature is only available in development mode",
+  "amount_invalid": "Invalid amount",
   "gateway_unsupported": "The payment gateway is not supported",
   "gateway_currency_unsupported": "The payment gateway does not support the required currency",
   "payment_initiation_failed": "Unable to initiate payment",
