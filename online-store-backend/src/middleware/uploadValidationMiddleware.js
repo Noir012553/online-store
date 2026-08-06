@@ -1,5 +1,4 @@
 const path = require('path');
-const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
 
 const IMAGE_TYPES = {
