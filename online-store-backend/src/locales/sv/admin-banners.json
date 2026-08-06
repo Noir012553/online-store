@@ -201,5 +201,14 @@
   "banner_form_warning_incomplete_optional": "Varning: Vissa språk är ofullständiga",
   "banner_form_lang_incomplete": "ofullständig",
   "banner_form_warning_incomplete_note": "Du kan fortsätta och översätta dessa språk senare från sidan för översättningshantering",
-  "missing_translations": "Språk utan översättning"
+  "missing_translations": "Språk utan översättning",
+  "banner_translation_loading": "Laddar översättning...",
+  "banner_form_lang_all_supported_note": "Alla 9 språk som stöds är tillgängliga",
+  "banner_form_warning_incomplete_languages": "Varning: Vissa språk är ofullständiga",
+  "banner_form_warning_incomplete_finish_note": "Du kan slutföra dessa språk senare på sidan för översättningshantering",
+  "banner_error_lang_at_least_one_complete": "Slutför minst ett språk med en titel",
+  "banner_error_lang_at_least_one_complete_cta": "Slutför minst ett språk helt (titel, undertitel, beskrivning och CTA-knapp)",
+  "banner_form_lang_all_required": "Alla språköversättningar krävs",
+  "banner_form_lang_required_all": "Slutför översättningarna för alla obligatoriska språk",
+  "error_title_required": "Ange en titel"
 }

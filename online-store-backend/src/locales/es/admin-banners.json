@@ -223,5 +223,14 @@
   "banner_form_warning_incomplete_optional": "Advertencia: Algunos idiomas están incompletos",
   "banner_form_lang_incomplete": "incompleto",
   "banner_form_warning_incomplete_note": "Puede continuar y traducir estos idiomas después desde la página de gestión de traducciones",
-  "missing_translations": "Idiomas sin traducción"
+  "missing_translations": "Idiomas sin traducción",
+  "banner_translation_loading": "Cargando traducción...",
+  "banner_form_lang_all_supported_note": "Los 9 idiomas compatibles están disponibles",
+  "banner_form_warning_incomplete_languages": "Advertencia: Algunos idiomas están incompletos",
+  "banner_form_warning_incomplete_finish_note": "Puedes completar estos idiomas más tarde desde la página de gestión de traducciones",
+  "banner_error_lang_at_least_one_complete": "Completa al menos un idioma con un título",
+  "banner_error_lang_at_least_one_complete_cta": "Completa al menos un idioma por completo (título, subtítulo, descripción y botón CTA)",
+  "banner_form_lang_all_required": "Todas las traducciones de idiomas son obligatorias",
+  "banner_form_lang_required_all": "Completa las traducciones de todos los idiomas obligatorios",
+  "error_title_required": "Ingresa un título"
 }

@@ -46,6 +46,7 @@
     "setup-i18n-indexes": "node src/scripts/setup-production-indexes.js",
     "test:blueprint": "node src/test/test-blueprint-3phase.js",
     "test:translation-quality": "node src/scripts/test-translation-quality.js",
+    "check:translation-keys": "node src/scripts/verify-frontend-translation-keys.js",
     "retranslate": "node src/scripts/retranslate.js",
     "translate:report": "node src/scripts/translateReport.js",
     "translate:approve": "node src/scripts/translateApprove.js",

@@ -226,5 +226,9 @@
   "banner_form_warning_incomplete_note": "Você pode continuar e traduzir esses idiomas depois na página de gerenciamento de tradução",
   "banner_error_lang_at_least_one_complete": "Por favor, complete pelo menos um idioma com um título",
   "banner_error_lang_at_least_one_complete_cta": "Por favor, complete pelo menos um idioma completamente (título, subtítulo, descrição e botão CTA)",
-  "missing_translations": "Idiomas sem tradução"
+  "missing_translations": "Idiomas sem tradução",
+  "banner_translation_loading": "Carregando tradução...",
+  "banner_form_lang_all_required": "Todas as traduções de idiomas são obrigatórias",
+  "banner_form_lang_required_all": "Complete as traduções de todos os idiomas obrigatórios",
+  "error_title_required": "Digite um título"
 }
