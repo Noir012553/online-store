@@ -115,7 +115,7 @@
   "error_save_translation": "Error al guardar la traducción",
   "error_delete_translation": "Error al eliminar la traducción",
   "slot_sitewide_top": "Superior en Todo el Sitio",
-  "slot_homepage_hero": "Hero de Página de Inicio",
+  "slot_homepage_hero": "Banner principal de la página de inicio",
   "slot_homepage_left": "Izquierda de Página de Inicio",
   "slot_homepage_right": "Derecha de Página de Inicio",
   "slot_homepage_inline": "Contenido de Página de Inicio",

@@ -54,9 +54,9 @@
   "admin_lang_es": "Espanhol",
   "admin_lang_nl": "Holandês",
   "admin_lang_sv": "Sueco",
-  "admin_audit_log_export_success": "{{count}} logs exportados",
+  "admin_audit_log_export_success": "{{count}} registros exportados",
   "admin_audit_log_csv_col_entity_id": "ID de Entidade",
   "admin_audit_log_loading_error": "Erro ao carregar traduções",
-  "admin_audit_log_fetch_error": "Erro ao buscar logs de auditoria",
-  "admin_audit_log_no_logs_export": "Nenhum log para exportar"
+  "admin_audit_log_fetch_error": "Erro ao buscar registros de auditoria",
+  "admin_audit_log_no_logs_export": "Nenhum registro para exportar"
 }

@@ -13,7 +13,7 @@
   "admin_audit_log_action_type": "Aktionstyp",
   "admin_audit_log_all_actions": "Alle Aktionen",
   "admin_audit_log_action_manual_override": "Manuelle Überschreibung",
-  "admin_audit_log_action_batch_update": "Batch-Update",
+  "admin_audit_log_action_batch_update": "Massenaktualisierung",
   "admin_audit_log_action_auto_translate": "Automatische Übersetzung",
   "admin_audit_log_action_delete": "Löschen",
   "admin_audit_log_date_from": "Datum von",
