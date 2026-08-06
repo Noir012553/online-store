@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Hàng Không thành công",
   "admin_batch_export_results": "Xuất Kết quả",
   "admin_batch_processing": "Đang xử lý...",
-  "admin_batch_process": "Xử lý Hàng loạt"
+  "admin_batch_process": "Xử lý Hàng loạt",
+  "admin_batch_entity_id_required": "ID thực thể là bắt buộc",
+  "admin_batch_entity_type_required": "Loại thực thể là bắt buộc",
+  "admin_batch_language_required": "Ngôn ngữ là bắt buộc",
+  "admin_batch_new_value_required": "Giá trị mới là bắt buộc",
+  "admin_batch_reason_required": "Lý do là bắt buộc",
+  "admin_batch_row_label": "Hàng",
+  "admin_batch_status_error": "Lỗi",
+  "admin_batch_status_pending": "Đang chờ",
+  "admin_batch_status_success": "Thành công",
+  "admin_batch_summary_failed": "Thất bại",
+  "admin_batch_summary_selected": "Đã chọn",
+  "admin_batch_summary_success": "Thành công",
+  "admin_batch_summary_total": "Tổng cộng"
 }

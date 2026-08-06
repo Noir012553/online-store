@@ -119,10 +119,10 @@ export default function OrderConfirmation() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <h1>{t('order_not_found_title', 'orderConfirmation')}</h1>
-          <p className="text-gray-600 mt-2">{t('order_not_found_desc', 'orderConfirmation')}</p>
+          <h1>{t('order_not_found_title', 'order-confirmation')}</h1>
+          <p className="text-gray-600 mt-2">{t('order_not_found_desc', 'order-confirmation')}</p>
           <Button className="mt-4" onClick={() => router.push("/")}>
-            {t('go_home_button', 'orderConfirmation')}
+            {t('go_home_button', 'order-confirmation')}
           </Button>
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function OrderConfirmation() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('loading_order_info', 'orderConfirmation')}</p>
+          <p className="text-gray-600">{t('loading_order_info', 'order-confirmation')}</p>
         </div>
       </div>
     );
@@ -144,10 +144,10 @@ export default function OrderConfirmation() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <h1>{t('order_not_found_title', 'orderConfirmation')}</h1>
-          <p className="text-gray-600 mt-2">{t('order_id_label', 'orderConfirmation')}: {orderId}</p>
+          <h1>{t('order_not_found_title', 'order-confirmation')}</h1>
+          <p className="text-gray-600 mt-2">{t('order_id_label', 'order-confirmation')}: {orderId}</p>
           <Button className="mt-4" onClick={() => router.push("/")}>
-            {t('go_home_button', 'orderConfirmation')}
+            {t('go_home_button', 'order-confirmation')}
           </Button>
         </div>
       </div>

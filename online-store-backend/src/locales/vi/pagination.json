@@ -11,5 +11,6 @@
   "pagination_previous": "Trước",
   "pagination_next_page": "Đi tới trang sau",
   "pagination_next": "Sau",
-  "pagination_more_pages": "Thêm trang"
+  "pagination_more_pages": "Thêm trang",
+  "first_page": "Trang đầu tiên"
 }
