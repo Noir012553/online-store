@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   googleLogin: () => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
+  updateUserProfileImage: (profileImage: string | null) => void;
   logout: () => Promise<void>;
   isAdmin: boolean;
   isSuperAdmin: boolean;
@@ -201,6 +202,13 @@ export const AuthProvider = ({
    * IMPORTANT: Always clear local state even if API call fails
    * This prevents security issues where client remains authenticated if API fails
    */
+  const updateUserProfileImage = (profileImage: string | null) => {
+    setUser((currentUser) => currentUser ? {
+      ...currentUser,
+      profileImage: getImageUrl(profileImage),
+    } : currentUser);
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -247,6 +255,7 @@ export const AuthProvider = ({
       login,
       googleLogin,
       register,
+      updateUserProfileImage,
       logout,
       isAdmin,
       isSuperAdmin,
