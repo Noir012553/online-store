@@ -63,8 +63,26 @@ Các key mới trong `products.json`, `admin-banners.json`, `payment-messages.js
 - `verify-key-consistency.js`: đạt, 76/76 namespace nhất quán ở cả 9 locale.
 - Smoke test `getMessage(lang, 'validation.email.required')`: đạt với `vi`, `en`, `pt`, `fr`, xác nhận namespace `validation` được nạp trực tiếp.
 
+## Rà soát bổ sung
+
+Độ phủ key frontend và parity giữa các locale đã đạt, nhưng kiểm tra parity không phát hiện nội dung còn giữ nguyên tiếng Anh hoặc câu dịch pha trộn. Các vấn đề còn lại đã xác nhận:
+
+- `fr/seeder-messages.json:63-70`: các label `customers_module_label`, `locations_module_label`, `addresses_module_label`, `reviews_module_label`, `orders_module_label`, `coupons_module_label` và `features_module_label` vẫn còn tiếng Anh.
+- `es/seeder-messages.json:63-70`: cùng nhóm label seed vẫn còn tiếng Anh.
+- `nl/seeder-messages.json:69`: `coupons_module_label` vẫn là `Coupons (4 coupons)`.
+- `fr/admin-translation-override.json:2-29` và `es/admin-translation-override.json:2-29`: nhiều tiêu đề, nhãn trường, loại entity và tên ngôn ngữ vẫn chưa được bản địa hóa.
+
+Các checker hiện tại cũng còn giới hạn:
+
+- `verify-no-english-fallback.js:15-17` đưa `en` vào danh sách locale cần kiểm tra, sau đó so sánh English với chính English, nên có thể tạo cảnh báo sai.
+- `verify-no-english-fallback.js:55-67` chỉ so sánh key top-level và chỉ cảnh báo khi hơn 80% giá trị giống English, nên có thể bỏ sót các chuỗi chưa dịch riêng lẻ hoặc key lồng nhau.
+- `verify-language-inventory.js:34-35` đang so sánh `SUPPORTED_LANGUAGES` với chính nó, nên chưa kiểm tra được drift giữa cấu hình kỳ vọng và cấu hình thực tế.
+
 ## Việc còn lại
 
-1. Rà soát chất lượng ngôn ngữ của các namespace backend/seed theo từng thị trường; parity key không đánh giá độ tự nhiên của câu dịch.
+1. Dịch các chuỗi còn sót trong `fr/seeder-messages.json`, `es/seeder-messages.json`, `nl/seeder-messages.json` và hai namespace `admin-translation-override`.
 2. Chuẩn hóa các key trùng nghĩa hoặc khác tên giữa các namespace backend/seed nếu các namespace đó được đưa vào luồng runtime.
-3. Tích hợp `npm run check:translation-keys` vào pipeline CI trước bước frontend build (repository hiện chưa có cấu hình CI được kiểm soát trong mã nguồn).
+3. Cải thiện `verify-no-english-fallback.js` để bỏ qua locale `en`, hỗ trợ key lồng nhau và phát hiện chuỗi chưa dịch riêng lẻ.
+4. Sửa `verify-language-inventory.js` để kiểm tra một danh sách ngôn ngữ kỳ vọng độc lập và đối chiếu namespace thực tế với danh sách namespace cần có.
+5. Mở rộng `.github/workflows/translation-keys.yml` để chạy các checker backend bổ sung trước bước frontend build.
+6. Cập nhật tài liệu này khi CI thay đổi; repository hiện đã có workflow tại `.github/workflows/translation-keys.yml:20-31`.
