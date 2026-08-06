@@ -57,5 +57,7 @@
   "table_slot": "Positie",
   "table_status": "Status",
   "table_actions": "Acties",
-  "banner_indicator": "Ga naar banner"
+  "banner_indicator": "Ga naar banner",
+  "banner_next": "Volgende banner",
+  "banner_previous": "Vorige banner"
 }

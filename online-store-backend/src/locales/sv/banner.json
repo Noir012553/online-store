@@ -57,5 +57,7 @@
   "table_slot": "Position",
   "table_status": "Status",
   "table_actions": "Åtgärder",
-  "banner_indicator": "Gå till banner"
+  "banner_indicator": "Gå till banner",
+  "banner_next": "Nästa banner",
+  "banner_previous": "Föregående banner"
 }
