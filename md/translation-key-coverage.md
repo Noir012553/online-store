@@ -11,24 +11,11 @@
 
 ### 1. Key được frontend gọi nhưng không có trong catalog
 
-Có 104 key được gọi từ frontend nhưng không tồn tại trong bất kỳ locale nào. Các nhóm chính:
+Các key UI đã được bổ sung vào catalog mặc định `vi`. Kiểm tra tĩnh hiện tại quét 1.967 lời gọi dịch trong 229 file frontend và không còn phát hiện key nào không tồn tại trong catalog.
 
-- `admin`
-- `admin-banners`
-- `admin-translation`
-- `admin-translation-batch`
-- `admin-translation-override`
-- `banner`
-- `common`
-- `contact`
-- `errors`
-- `order-confirmation`
-- `pagination`
-- `policies`
-- `profile`
-- `users`
+Checker được đăng ký bằng lệnh `npm run check:translation-keys` ở backend. Checker bỏ qua lời gọi có key động và kiểm tra toàn bộ catalog mặc định, phù hợp với cơ chế fallback của `LanguageContext` và `translationController`.
 
-Khi thiếu key, hàm `t()` trả về chính tên key, khiến giao diện có thể hiển thị nội dung như `admin_batch_status_success` thay vì văn bản đã dịch.
+Khi thiếu key, hàm `t()` có thể trả về chính tên key, khiến giao diện hiển thị nội dung như `admin_batch_status_success` thay vì văn bản đã dịch.
 
 ### 2. Placeholder không được interpolate
 
@@ -46,7 +33,7 @@ Trang xác nhận đơn hàng sử dụng namespace `orderConfirmation`, trong k
 
 ### 4. Locale không đồng đều
 
-So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ phát hiện nhiều khác biệt cấu trúc. Một phần thuộc các file backend/seed chỉ tồn tại ở một ngôn ngữ, không phải toàn bộ đều là nội dung frontend cần dịch. Không nên giải quyết bằng cách sao chép tiếng Việt thành bản dịch giả cho các ngôn ngữ khác.
+So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ hiện còn 307 vấn đề ở 33 namespace. Phần lớn thuộc các file backend/seed hoặc cấu trúc lồng nhau, không phải toàn bộ đều là nội dung frontend cần dịch. Không nên giải quyết bằng cách sao chép tiếng Việt thành bản dịch giả cho các ngôn ngữ khác.
 
 ## Đã xử lý
 
@@ -55,21 +42,27 @@ So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ phát hiện nhiều kh�
 - Đổi namespace `orderConfirmation` thành `order-confirmation`.
 - Cập nhật `translationController` để hợp nhất bản dịch locale hiện tại với từng key từ locale mặc định `vi`. Locale thiếu key sẽ nhận giá trị mặc định thay vì hiển thị tên key.
 - Bổ sung key `empty_no_description` cho các file `products.json` còn thiếu.
+- Dịch bổ sung 27 key sản phẩm mới cho `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`, gồm các nhóm flash deal, tiện ích, gaming, productivity và CTA.
+- Dịch bổ sung toàn bộ key còn thiếu trong `admin-banners.json` cho 8 locale không mặc định.
+- Thêm checker `verify-frontend-translation-keys.js` và script `check:translation-keys` để phát hiện key frontend bị thiếu trước CI/build.
 
 ## Trạng thái bản dịch
 
-Các locale chưa có bản dịch riêng cho một số key mới sẽ tạm thời dùng fallback tiếng Việt. Đây là cơ chế chống hiển thị key thô, không thay thế cho việc dịch nội dung bản địa hóa hoàn chỉnh.
+Các key mới trong `products.json` và `admin-banners.json` hiện đã có bản dịch riêng ở cả 9 locale. Một số namespace backend/seed khác vẫn có khác biệt cấu trúc và có thể tiếp tục dùng fallback tiếng Việt; fallback chỉ chống hiển thị key thô, không thay thế cho bản dịch bản địa hóa hoàn chỉnh.
 
 ## Kiểm tra đã chạy
 
 - `npm run build` frontend: đạt.
-- Kiểm tra cú pháp toàn bộ JavaScript backend: đạt.
-- Kiểm tra JSON các locale đã chỉnh sửa: đạt.
+- `npm run check:translation-keys` backend: đạt, 1.967 lời gọi dịch trong 229 file.
+- Kiểm tra cú pháp 293 file JavaScript backend: đạt.
+- Kiểm tra JSON 652 file locale: đạt.
+- Kiểm tra parity `products.json` và `admin-banners.json` ở 9 locale: đạt.
 - `git diff --check`: đạt.
+- `verify-key-consistency.js`: còn 307 vấn đề ở 33/76 namespace, chủ yếu thuộc backend/seed hoặc nested structure.
 
 ## Việc còn lại
 
-1. Dịch riêng các key fallback tiếng Việt cho `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`.
+1. Tiếp tục dịch riêng các key fallback tiếng Việt còn lại trong các namespace UI ngoài `products` và `admin-banners`.
 2. Phân loại các namespace backend/seed chỉ dùng nội bộ khỏi namespace UI.
 3. Chuẩn hóa các key trùng nghĩa hoặc khác tên giữa các namespace.
-4. Thêm kiểm tra CI để phát hiện frontend gọi key chưa tồn tại trước khi build.
+4. Tích hợp `npm run check:translation-keys` vào pipeline CI trước bước frontend build.

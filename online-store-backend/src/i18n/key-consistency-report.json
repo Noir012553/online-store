@@ -1,66 +1,1644 @@
 {
-  "timestamp": "2026-06-22T13:26:38.810Z",
-  "total_files": 60,
+  "timestamp": "2026-08-06T05:09:25.800Z",
+  "total_files": 76,
   "languages_checked": 9,
-  "consistency_issues": 7,
+  "consistency_issues": 307,
   "files_with_issues": [
-    "admin-coupons.json",
-    "admin-customers.json",
+    "about.json",
+    "admin-common.json",
+    "admin-controllers-messages.json",
     "admin-import.json",
-    "admin-orders.json",
+    "admin-translation-batch.json",
+    "admin-translation-override.json",
+    "admin-translation.json",
     "admin-users.json",
     "admin.json",
-    "products.json"
+    "api.json",
+    "banner.json",
+    "categories.json",
+    "checkout.json",
+    "common.json",
+    "contact.json",
+    "email.json",
+    "errors.json",
+    "import.json",
+    "order-confirmation.json",
+    "orders.json",
+    "pagination.json",
+    "payment-messages.json",
+    "policies.json",
+    "product-seeder-messages.json",
+    "profile.json",
+    "seeder-messages.json",
+    "shipment.json",
+    "shipping-messages.json",
+    "shipping.json",
+    "user-messages.json",
+    "user.json",
+    "users.json",
+    "validation-messages.json"
   ],
   "all_consistent": false,
   "issues_by_file": {
-    "admin-coupons.json": [
+    "about.json": [
       {
-        "language": "vi",
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "en",
         "issue": "EXTRA_KEYS",
-        "details": "Has 9 extra key(s) not in EN: admin_loading, admin_save, cancel..."
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_customer"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "pt",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "fr",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_client"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "de",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_kunde"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "it",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "es",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "nl",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_klant"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
+      },
+      {
+        "language": "sv",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 1 extra key(s) not in vi: testimonial_role_kund"
       }
     ],
-    "admin-customers.json": [
+    "admin-common.json": [
       {
-        "language": "vi",
+        "language": "en",
         "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in EN: customer_fallback"
+        "details": "Has 3 extra key(s) not in vi: admin_original_price_invalid, admin_price_invalid, not_available"
+      }
+    ],
+    "admin-controllers-messages.json": [
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 27 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
       }
     ],
     "admin-import.json": [
       {
-        "language": "vi",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in EN: exporting"
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): exporting"
       }
     ],
-    "admin-orders.json": [
+    "admin-translation-batch.json": [
       {
-        "language": "vi",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in EN: orders_cancel, orders_error_delete_data, orders_error_save_data..."
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
+      }
+    ],
+    "admin-translation-override.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
+      }
+    ],
+    "admin-translation.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): admin_delete_language, admin_error_delete_language, admin_language_deleted"
       }
     ],
     "admin-users.json": [
       {
-        "language": "vi",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 2 extra key(s) not in EN: confirm_delete_user, confirm_hard_delete_user"
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): confirm_delete_user, confirm_hard_delete_user"
       }
     ],
     "admin.json": [
       {
-        "language": "vi",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 4 extra key(s) not in EN: admin_count_in_stock_placeholder, admin_original_price_placeholder, admin_price_currency..."
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 38 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
       }
     ],
-    "products.json": [
+    "api.json": [
       {
-        "language": "vi",
+        "language": "en",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: en/api.json"
+      },
+      {
+        "language": "pt",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: pt/api.json"
+      },
+      {
+        "language": "fr",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: fr/api.json"
+      },
+      {
+        "language": "de",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: de/api.json"
+      },
+      {
+        "language": "it",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: it/api.json"
+      },
+      {
+        "language": "es",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: es/api.json"
+      },
+      {
+        "language": "nl",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: nl/api.json"
+      },
+      {
+        "language": "sv",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: sv/api.json"
+      }
+    ],
+    "banner.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): banner_next, banner_previous"
+      }
+    ],
+    "categories.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 6 key(s): category_cooling, category_gaming_laptop, category_headphones..."
+      }
+    ],
+    "checkout.json": [
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 3 key(s): payment_method_card, payment_method_cod, payment_method_vnpay"
+      }
+    ],
+    "common.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 36 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 36 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+      }
+    ],
+    "contact.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): form_save_button"
+      }
+    ],
+    "email.json": [
+      {
+        "language": "en",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: en/email.json"
+      },
+      {
+        "language": "pt",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: pt/email.json"
+      },
+      {
+        "language": "fr",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: fr/email.json"
+      },
+      {
+        "language": "de",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: de/email.json"
+      },
+      {
+        "language": "it",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: it/email.json"
+      },
+      {
+        "language": "es",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: es/email.json"
+      },
+      {
+        "language": "nl",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: nl/email.json"
+      },
+      {
+        "language": "sv",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: sv/email.json"
+      }
+    ],
+    "errors.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): error_page_not_found"
+      }
+    ],
+    "import.json": [
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): unchanged_label"
+      }
+    ],
+    "order-confirmation.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 10 key(s): breadcrumb_order_confirmation, go_home_button, loading_order_info..."
+      }
+    ],
+    "orders.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): all_status, postal_code"
+      }
+    ],
+    "pagination.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): first_page"
+      }
+    ],
+    "payment-messages.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): amount_invalid"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 16 key(s): amount_invalid, gateway_adapter_not_found, gateway_currency_unsupported..."
+      }
+    ],
+    "policies.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 5 key(s): warranty_contact_email, warranty_contact_phone, warranty_exchange..."
+      }
+    ],
+    "product-seeder-messages.json": [
+      {
+        "language": "en",
         "issue": "EXTRA_KEYS",
-        "details": "Has 27 extra key(s) not in EN: browse_office_laptops, explore_gaming_laptops, fast_shipping..."
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "pt",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "fr",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "de",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "it",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "es",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "nl",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      },
+      {
+        "language": "sv",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
+      }
+    ],
+    "profile.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 2 key(s): profile_joined_date, user_unnamed"
+      }
+    ],
+    "seeder-messages.json": [
+      {
+        "language": "en",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 64 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "pt",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "fr",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "de",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "it",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "es",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "nl",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      },
+      {
+        "language": "sv",
+        "issue": "EXTRA_KEYS",
+        "details": "Has 76 extra key(s) not in vi: addresses_module_label, all_products_translated, api_unavailable_error..."
+      }
+    ],
+    "shipment.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): noServiceAvailable"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 9 key(s): currencyMetadataMissing, invalidFee, locationSyncFailed..."
+      }
+    ],
+    "shipping-messages.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 11 key(s): calculateFeeFailed, cannotCalculateFee, districtIdRequired..."
+      }
+    ],
+    "shipping.json": [
+      {
+        "language": "en",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: en/shipping.json"
+      },
+      {
+        "language": "pt",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: pt/shipping.json"
+      },
+      {
+        "language": "fr",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: fr/shipping.json"
+      },
+      {
+        "language": "de",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: de/shipping.json"
+      },
+      {
+        "language": "it",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: it/shipping.json"
+      },
+      {
+        "language": "es",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: es/shipping.json"
+      },
+      {
+        "language": "nl",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: nl/shipping.json"
+      },
+      {
+        "language": "sv",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: sv/shipping.json"
+      }
+    ],
+    "user-messages.json": [
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 12 key(s): alreadyExists, emailAlreadyVerified, emailVerifiedSuccess..."
+      }
+    ],
+    "user.json": [
+      {
+        "language": "en",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: en/user.json"
+      },
+      {
+        "language": "pt",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: pt/user.json"
+      },
+      {
+        "language": "fr",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: fr/user.json"
+      },
+      {
+        "language": "de",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: de/user.json"
+      },
+      {
+        "language": "it",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: it/user.json"
+      },
+      {
+        "language": "es",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: es/user.json"
+      },
+      {
+        "language": "nl",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: nl/user.json"
+      },
+      {
+        "language": "sv",
+        "issue": "FILE_MISSING",
+        "details": "File does not exist: sv/user.json"
+      }
+    ],
+    "users.json": [
+      {
+        "language": "en",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "pt",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "fr",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "de",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "it",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "es",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "nl",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      },
+      {
+        "language": "sv",
+        "issue": "MISSING_KEYS",
+        "details": "Missing 1 key(s): avatar"
+      }
+    ],
+    "validation-messages.json": [
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "en",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "pt",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "fr",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "de",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "it",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "es",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "nl",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"address\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"cart\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"customer\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"email\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"name\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"password\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"phone\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"product\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"quantity\" has nested object value instead of string"
+      },
+      {
+        "language": "sv",
+        "issue": "NESTED_STRUCTURE",
+        "details": "Key \"shipping\" has nested object value instead of string"
       }
     ]
   }

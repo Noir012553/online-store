@@ -222,5 +222,14 @@
   "banner_form_warning_incomplete_optional": "Avvertimento: Alcune lingue sono incomplete",
   "banner_form_lang_incomplete": "incompleto",
   "banner_form_warning_incomplete_note": "Puoi continuare e tradurre queste lingue in seguito dalla pagina di gestione delle traduzioni",
-  "missing_translations": "Lingue senza traduzione"
+  "missing_translations": "Lingue senza traduzione",
+  "banner_translation_loading": "Caricamento traduzione...",
+  "banner_form_lang_all_supported_note": "Sono disponibili tutte le 9 lingue supportate",
+  "banner_form_warning_incomplete_languages": "Avviso: alcune lingue sono incomplete",
+  "banner_form_warning_incomplete_finish_note": "Puoi completare queste lingue più tardi dalla pagina di gestione delle traduzioni",
+  "banner_error_lang_at_least_one_complete": "Completa almeno una lingua con un titolo",
+  "banner_error_lang_at_least_one_complete_cta": "Completa almeno una lingua interamente (titolo, sottotitolo, descrizione e pulsante CTA)",
+  "banner_form_lang_all_required": "Tutte le traduzioni linguistiche sono obbligatorie",
+  "banner_form_lang_required_all": "Completa le traduzioni per tutte le lingue obbligatorie",
+  "error_title_required": "Inserisci un titolo"
 }

@@ -223,5 +223,14 @@
   "banner_form_warning_incomplete_optional": "Waarschuwing: Enkele talen zijn onvolledig",
   "banner_form_lang_incomplete": "onvolledig",
   "banner_form_warning_incomplete_note": "U kunt doorgaan en deze talen later vertalen op de pagina voor vertaalbeheer",
-  "missing_translations": "Talen zonder vertaling"
+  "missing_translations": "Talen zonder vertaling",
+  "banner_translation_loading": "Vertaling laden...",
+  "banner_form_lang_all_supported_note": "Alle 9 ondersteunde talen zijn beschikbaar",
+  "banner_form_warning_incomplete_languages": "Waarschuwing: Sommige talen zijn onvolledig",
+  "banner_form_warning_incomplete_finish_note": "U kunt deze talen later voltooien op de pagina voor vertaalbeheer",
+  "banner_error_lang_at_least_one_complete": "Voltooi ten minste één taal met een titel",
+  "banner_error_lang_at_least_one_complete_cta": "Voltooi ten minste één taal volledig (titel, ondertitel, beschrijving en CTA-knop)",
+  "banner_form_lang_all_required": "Alle taalvertalingen zijn verplicht",
+  "banner_form_lang_required_all": "Voltooi de vertalingen voor alle verplichte talen",
+  "error_title_required": "Voer een titel in"
 }

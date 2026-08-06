@@ -204,5 +204,8 @@
   "banner_form_warning_incomplete_note": "You can continue and translate these languages later from the translation management page",
   "banner_error_lang_at_least_one_complete": "Please complete at least one language with a title",
   "banner_error_lang_at_least_one_complete_cta": "Please complete at least one language fully (title, subtitle, description, and CTA button)",
-  "missing_translations": "Languages without translations"
+  "missing_translations": "Languages without translations",
+  "banner_form_lang_all_required": "All language translations are required",
+  "banner_form_lang_required_all": "Please complete translations for all required languages",
+  "error_title_required": "Please enter a title"
 }

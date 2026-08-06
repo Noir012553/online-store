@@ -200,5 +200,12 @@
   "banner_form_warning_incomplete_note": "Vous pouvez continuer et traduire ces langues ultérieurement à partir de la page de gestion des traductions",
   "banner_error_lang_at_least_one_complete": "Veuillez compléter au moins une langue avec un titre",
   "banner_error_lang_at_least_one_complete_cta": "Veuillez compléter au moins une langue complètement (titre, sous-titre, description et bouton CTA)",
-  "missing_translations": "Langues sans traduction"
+  "missing_translations": "Langues sans traduction",
+  "banner_translation_loading": "Chargement de la traduction...",
+  "banner_form_lang_all_supported_note": "Les 9 langues prises en charge sont disponibles",
+  "banner_form_warning_incomplete_languages": "Avertissement : Certaines langues sont incomplètes",
+  "banner_form_warning_incomplete_finish_note": "Vous pouvez compléter ces langues plus tard depuis la page de gestion des traductions",
+  "banner_form_lang_all_required": "Toutes les traductions linguistiques sont obligatoires",
+  "banner_form_lang_required_all": "Veuillez compléter les traductions pour toutes les langues obligatoires",
+  "error_title_required": "Veuillez saisir un titre"
 }
