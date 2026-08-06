@@ -136,6 +136,7 @@
   "btn_cancel": "Avbryt",
   "default_anonymous": "Anonym",
   "empty_no_reviews": "Ingen recension ännu",
+  "empty_no_description": "Den här produkten har ännu ingen detaljerad beskrivning",
   "section_related_products": "Relaterade Produkter",
   "filter_title": "Filter",
   "filter_clear_all": "Rensa Alla",

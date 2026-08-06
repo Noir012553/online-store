@@ -136,6 +136,7 @@
   "btn_cancel": "Annuler",
   "default_anonymous": "Anonyme",
   "empty_no_reviews": "Pas encore d'évaluations",
+  "empty_no_description": "Ce produit n'a pas encore de description détaillée",
   "section_related_products": "Produits Connexes",
   "filter_title": "Filtres",
   "filter_clear_all": "Effacer tout",

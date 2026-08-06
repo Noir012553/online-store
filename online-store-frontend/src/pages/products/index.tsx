@@ -9,6 +9,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { BannerSlot } from "../../components/BannerSlot";
 import { useCategories } from "../../lib/context/CategoryContext";
 import { getCategoryName } from "../../lib/data";
+import { interpolateTranslation } from "../../lib/translationInterpolate";
 
 export const getServerSideProps = async () => {
   return {
@@ -102,7 +103,10 @@ export default function AllProductsPage() {
             <div className="mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t('search_results_title')}</h1>
               <p className="text-xs sm:text-sm text-gray-600">
-                {`${t('search_results_count')} - ${searchResults.length} ${t('results_for')} "${search}"`}
+                {interpolateTranslation(t('search_results_count'), {
+                  count: searchResults.length,
+                  query: search,
+                })}
               </p>
             </div>
 
