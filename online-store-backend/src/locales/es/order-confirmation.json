@@ -24,5 +24,15 @@
   "back_to_home_button": "Back to Home",
   "thank_you_message": "Thank you for trusting us!",
   "redirecting_message": "Redirecting to home page in {{seconds}} seconds...",
-  "order_id_label": "ID"
+  "order_id_label": "ID",
+  "breadcrumb_order_confirmation": "Confirmación del pedido",
+  "my_orders_status": "Estado de mi pedido",
+  "order_confirmation_thank_you": "Gracias por tu pedido",
+  "order_item_quantity": "Cantidad: {{count}}",
+  "order_items_details": "Detalles del producto",
+  "order_not_found_desc": "No se encontró la información de este pedido.",
+  "order_not_found_title": "Pedido no encontrado",
+  "order_status_cancelled": "Cancelado",
+  "go_home_button": "Ir al inicio",
+  "loading_order_info": "Cargando información del pedido..."
 }

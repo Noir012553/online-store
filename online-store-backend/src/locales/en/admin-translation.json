@@ -325,5 +325,8 @@
   "locale_label_nl": "Nederlands",
   "locale_label_sv": "Svenska",
   "common_confirm": "Confirm",
-  "common_cancel": "Cancel"
+  "common_cancel": "Cancel",
+  "admin_delete_language": "Delete language",
+  "admin_error_delete_language": "Unable to delete language",
+  "admin_language_deleted": "Language deleted successfully"
 }

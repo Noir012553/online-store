@@ -75,5 +75,7 @@
   "hard_delete": "Hard Delete",
   "cancel": "Cancel",
   "saving": "Saving...",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "confirm_delete_user": "Confirm user deletion",
+  "confirm_hard_delete_user": "Confirm permanent user deletion"
 }

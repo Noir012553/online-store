@@ -75,5 +75,7 @@
   "hard_delete": "Endgültig löschen",
   "cancel": "Abbrechen",
   "saving": "Speichern läuft...",
-  "loading": "Wird geladen..."
+  "loading": "Wird geladen...",
+  "confirm_delete_user": "Benutzerlöschung bestätigen",
+  "confirm_hard_delete_user": "Endgültige Löschung des Benutzers bestätigen"
 }

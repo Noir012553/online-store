@@ -75,5 +75,7 @@
   "hard_delete": "Ta Bort Permanent",
   "cancel": "Avbryt",
   "saving": "Sparar...",
-  "loading": "Laddar..."
+  "loading": "Laddar...",
+  "confirm_delete_user": "Bekräfta radering av användare",
+  "confirm_hard_delete_user": "Bekräfta permanent radering av användare"
 }

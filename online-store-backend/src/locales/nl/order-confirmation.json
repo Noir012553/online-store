@@ -24,5 +24,15 @@
   "back_to_home_button": "Terug naar Home",
   "thank_you_message": "Dank u wel voor uw vertrouwen!",
   "redirecting_message": "Wordt doorgestuurd naar de startpagina in {{seconds}} seconden...",
-  "order_id_label": "ID"
+  "order_id_label": "ID",
+  "breadcrumb_order_confirmation": "Orderbevestiging",
+  "my_orders_status": "Status van mijn bestelling",
+  "order_confirmation_thank_you": "Bedankt voor je bestelling",
+  "order_item_quantity": "Aantal: {{count}}",
+  "order_items_details": "Productdetails",
+  "order_not_found_desc": "De gegevens van deze bestelling konden niet worden gevonden.",
+  "order_not_found_title": "Bestelling niet gevonden",
+  "order_status_cancelled": "Geannuleerd",
+  "go_home_button": "Naar de startpagina",
+  "loading_order_info": "Bestelinformatie laden..."
 }

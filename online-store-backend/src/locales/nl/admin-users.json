@@ -75,5 +75,7 @@
   "hard_delete": "Permanent Verwijderen",
   "cancel": "Annuleren",
   "saving": "Bezig met opslaan...",
-  "loading": "Bezig met laden..."
+  "loading": "Bezig met laden...",
+  "confirm_delete_user": "Verwijderen van gebruiker bevestigen",
+  "confirm_hard_delete_user": "Permanent verwijderen van gebruiker bevestigen"
 }
