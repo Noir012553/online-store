@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Failed Rows",
   "admin_batch_export_results": "Export Results",
   "admin_batch_processing": "Processing...",
-  "admin_batch_process": "Process Batch"
+  "admin_batch_process": "Process Batch",
+  "admin_batch_entity_id_required": "Entity ID is required",
+  "admin_batch_entity_type_required": "Entity type is required",
+  "admin_batch_language_required": "Language is required",
+  "admin_batch_new_value_required": "New value is required",
+  "admin_batch_reason_required": "Reason is required",
+  "admin_batch_row_label": "Row",
+  "admin_batch_status_error": "Error",
+  "admin_batch_status_pending": "Pending",
+  "admin_batch_status_success": "Success",
+  "admin_batch_summary_failed": "Failure",
+  "admin_batch_summary_selected": "Selected",
+  "admin_batch_summary_success": "Success",
+  "admin_batch_summary_total": "Total"
 }

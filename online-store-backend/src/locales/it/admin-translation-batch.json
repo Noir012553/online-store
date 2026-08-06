@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Righe Fallite",
   "admin_batch_export_results": "Esporta Risultati",
   "admin_batch_processing": "Elaborazione in corso...",
-  "admin_batch_process": "Elabora Lotto"
+  "admin_batch_process": "Elabora Lotto",
+  "admin_batch_entity_id_required": "L’ID dell’entità è obbligatorio",
+  "admin_batch_entity_type_required": "Il tipo di entità è obbligatorio",
+  "admin_batch_language_required": "La lingua è obbligatoria",
+  "admin_batch_new_value_required": "Il nuovo valore è obbligatorio",
+  "admin_batch_reason_required": "Il motivo è obbligatorio",
+  "admin_batch_row_label": "Riga",
+  "admin_batch_status_error": "Errore",
+  "admin_batch_status_pending": "In attesa",
+  "admin_batch_status_success": "Riuscito",
+  "admin_batch_summary_failed": "Non riuscito",
+  "admin_batch_summary_selected": "Selezionato",
+  "admin_batch_summary_success": "Riuscito",
+  "admin_batch_summary_total": "Totale"
 }

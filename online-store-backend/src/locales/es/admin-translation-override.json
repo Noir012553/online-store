@@ -37,5 +37,20 @@
   "admin_override_save": "Save Override",
   "admin_override_preview_title": "Preview",
   "admin_override_recent_title": "Recent Overrides",
-  "admin_override_use_this": "Use This"
+  "admin_override_use_this": "Use This",
+  "admin_entity_type_ad_hoc": "Texto ad hoc",
+  "admin_entity_type_category": "Categoría",
+  "admin_entity_type_description": "Descripción",
+  "admin_entity_type_feature": "Función",
+  "admin_entity_type_product": "Producto",
+  "admin_entity_type_review": "Reseña",
+  "admin_entity_type_spec": "Especificación",
+  "admin_override_empty": "No hay sustituciones recientes",
+  "admin_override_error": "No se pudo guardar la sustitución de traducción",
+  "admin_override_preview_entity": "Entidad",
+  "admin_override_preview_language": "Idioma",
+  "admin_override_preview_reason": "Motivo",
+  "admin_override_preview_type": "Tipo",
+  "admin_override_success": "Sustitución de traducción guardada correctamente",
+  "admin_override_validation_error": "Introduce el ID de entidad, el nuevo valor y el motivo"
 }

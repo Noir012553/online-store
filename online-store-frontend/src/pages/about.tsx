@@ -304,7 +304,7 @@ function AboutContent() {
                     <div>
                       <h4>{testimonial.name}</h4>
                       <p className="text-sm text-gray-600">
-                        {t(`testimonial_role_${testimonial.role?.toLowerCase().replace(/\s+/g, '_')}`, 'about') || testimonial.role}
+                        {t('testimonial_role_customer', 'about')}
                       </p>
                     </div>
                   </div>

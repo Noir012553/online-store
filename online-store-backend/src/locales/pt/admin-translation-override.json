@@ -37,5 +37,20 @@
   "admin_override_save": "Salvar Substituição",
   "admin_override_preview_title": "Visualização",
   "admin_override_recent_title": "Substituições Recentes",
-  "admin_override_use_this": "Usar Esta"
+  "admin_override_use_this": "Usar Esta",
+  "admin_entity_type_ad_hoc": "Texto ad hoc",
+  "admin_entity_type_category": "Categoria",
+  "admin_entity_type_description": "Descrição",
+  "admin_entity_type_feature": "Recurso",
+  "admin_entity_type_product": "Produto",
+  "admin_entity_type_review": "Avaliação",
+  "admin_entity_type_spec": "Especificação",
+  "admin_override_empty": "Ainda não há substituições recentes",
+  "admin_override_error": "Não foi possível salvar a substituição de tradução",
+  "admin_override_preview_entity": "Entidade",
+  "admin_override_preview_language": "Idioma",
+  "admin_override_preview_reason": "Motivo",
+  "admin_override_preview_type": "Tipo",
+  "admin_override_success": "Substituição de tradução salva com sucesso",
+  "admin_override_validation_error": "Informe o ID da entidade, o novo valor e o motivo"
 }

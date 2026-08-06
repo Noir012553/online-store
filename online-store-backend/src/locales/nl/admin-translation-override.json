@@ -37,5 +37,20 @@
   "admin_override_save": "Overschrijving Opslaan",
   "admin_override_preview_title": "Voorbeeld",
   "admin_override_recent_title": "Recente Overschrijvingen",
-  "admin_override_use_this": "Gebruik Deze"
+  "admin_override_use_this": "Gebruik Deze",
+  "admin_entity_type_ad_hoc": "Ad-hoctekst",
+  "admin_entity_type_category": "Categorie",
+  "admin_entity_type_description": "Beschrijving",
+  "admin_entity_type_feature": "Functie",
+  "admin_entity_type_product": "Product",
+  "admin_entity_type_review": "Beoordeling",
+  "admin_entity_type_spec": "Specificatie",
+  "admin_override_empty": "Nog geen recente overschrijvingen",
+  "admin_override_error": "De vertalingsoverschrijving kon niet worden opgeslagen",
+  "admin_override_preview_entity": "Entiteit",
+  "admin_override_preview_language": "Taal",
+  "admin_override_preview_reason": "Reden",
+  "admin_override_preview_type": "Type",
+  "admin_override_success": "Vertalingsoverschrijving is opgeslagen",
+  "admin_override_validation_error": "Vul de entiteits-ID, de nieuwe waarde en de reden in"
 }

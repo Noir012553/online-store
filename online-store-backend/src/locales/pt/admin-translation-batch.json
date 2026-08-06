@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Linhas com Falha",
   "admin_batch_export_results": "Exportar Resultados",
   "admin_batch_processing": "Processando...",
-  "admin_batch_process": "Processar Lote"
+  "admin_batch_process": "Processar Lote",
+  "admin_batch_entity_id_required": "ID da entidade é obrigatório",
+  "admin_batch_entity_type_required": "Tipo de entidade é obrigatório",
+  "admin_batch_language_required": "Idioma é obrigatório",
+  "admin_batch_new_value_required": "Novo valor é obrigatório",
+  "admin_batch_reason_required": "Motivo é obrigatório",
+  "admin_batch_row_label": "Linha",
+  "admin_batch_status_error": "Erro",
+  "admin_batch_status_pending": "Pendente",
+  "admin_batch_status_success": "Sucesso",
+  "admin_batch_summary_failed": "Falha",
+  "admin_batch_summary_selected": "Selecionado",
+  "admin_batch_summary_success": "Sucesso",
+  "admin_batch_summary_total": "Total"
 }
