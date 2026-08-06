@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Fehlerhafte Zeilen",
   "admin_batch_export_results": "Ergebnisse Exportieren",
   "admin_batch_processing": "Wird Verarbeitet...",
-  "admin_batch_process": "Stapel Verarbeiten"
+  "admin_batch_process": "Stapel Verarbeiten",
+  "admin_batch_entity_id_required": "Entitäts-ID ist erforderlich",
+  "admin_batch_entity_type_required": "Entitätstyp ist erforderlich",
+  "admin_batch_language_required": "Sprache ist erforderlich",
+  "admin_batch_new_value_required": "Neuer Wert ist erforderlich",
+  "admin_batch_reason_required": "Grund ist erforderlich",
+  "admin_batch_row_label": "Zeile",
+  "admin_batch_status_error": "Fehler",
+  "admin_batch_status_pending": "Ausstehend",
+  "admin_batch_status_success": "Erfolgreich",
+  "admin_batch_summary_failed": "Fehlgeschlagen",
+  "admin_batch_summary_selected": "Ausgewählt",
+  "admin_batch_summary_success": "Erfolgreich",
+  "admin_batch_summary_total": "Gesamt"
 }

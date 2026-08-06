@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Mislukte Rijen",
   "admin_batch_export_results": "Resultaten Exporteren",
   "admin_batch_processing": "Wordt Verwerkt...",
-  "admin_batch_process": "Batch Verwerken"
+  "admin_batch_process": "Batch Verwerken",
+  "admin_batch_entity_id_required": "Entiteits-ID is verplicht",
+  "admin_batch_entity_type_required": "Entiteitstype is verplicht",
+  "admin_batch_language_required": "Taal is verplicht",
+  "admin_batch_new_value_required": "Nieuwe waarde is verplicht",
+  "admin_batch_reason_required": "Reden is verplicht",
+  "admin_batch_row_label": "Rij",
+  "admin_batch_status_error": "Fout",
+  "admin_batch_status_pending": "In afwachting",
+  "admin_batch_status_success": "Geslaagd",
+  "admin_batch_summary_failed": "Mislukt",
+  "admin_batch_summary_selected": "Geselecteerd",
+  "admin_batch_summary_success": "Geslaagd",
+  "admin_batch_summary_total": "Totaal"
 }

@@ -37,5 +37,20 @@
   "admin_override_save": "Save Override",
   "admin_override_preview_title": "Preview",
   "admin_override_recent_title": "Recent Overrides",
-  "admin_override_use_this": "Use This"
+  "admin_override_use_this": "Use This",
+  "admin_entity_type_ad_hoc": "Ad-hoc Text",
+  "admin_entity_type_category": "Category",
+  "admin_entity_type_description": "Description",
+  "admin_entity_type_feature": "Feature",
+  "admin_entity_type_product": "Product",
+  "admin_entity_type_review": "Review",
+  "admin_entity_type_spec": "Specification",
+  "admin_override_empty": "No recent overrides yet",
+  "admin_override_error": "Unable to save translation override",
+  "admin_override_preview_entity": "Entity",
+  "admin_override_preview_language": "Language",
+  "admin_override_preview_reason": "Reason",
+  "admin_override_preview_type": "Type",
+  "admin_override_success": "Translation override saved successfully",
+  "admin_override_validation_error": "Please provide an entity ID, a new value, and a reason"
 }

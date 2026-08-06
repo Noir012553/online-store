@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Failed Rows",
   "admin_batch_export_results": "Export Results",
   "admin_batch_processing": "Processing...",
-  "admin_batch_process": "Process Batch"
+  "admin_batch_process": "Process Batch",
+  "admin_batch_entity_id_required": "L’identifiant de l’entité est requis",
+  "admin_batch_entity_type_required": "Le type d’entité est requis",
+  "admin_batch_language_required": "La langue est requise",
+  "admin_batch_new_value_required": "La nouvelle valeur est requise",
+  "admin_batch_reason_required": "Le motif est requis",
+  "admin_batch_row_label": "Ligne",
+  "admin_batch_status_error": "Erreur",
+  "admin_batch_status_pending": "En attente",
+  "admin_batch_status_success": "Réussi",
+  "admin_batch_summary_failed": "Échec",
+  "admin_batch_summary_selected": "Sélectionné",
+  "admin_batch_summary_success": "Réussi",
+  "admin_batch_summary_total": "Total"
 }

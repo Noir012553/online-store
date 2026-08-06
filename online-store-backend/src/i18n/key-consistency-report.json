@@ -1,15 +1,12 @@
 {
-  "timestamp": "2026-08-06T05:09:25.800Z",
+  "timestamp": "2026-08-06T05:30:40.758Z",
   "total_files": 76,
   "languages_checked": 9,
-  "consistency_issues": 307,
+  "consistency_issues": 275,
   "files_with_issues": [
-    "about.json",
     "admin-common.json",
     "admin-controllers-messages.json",
     "admin-import.json",
-    "admin-translation-batch.json",
-    "admin-translation-override.json",
     "admin-translation.json",
     "admin-users.json",
     "admin.json",
@@ -40,88 +37,6 @@
   ],
   "all_consistent": false,
   "issues_by_file": {
-    "about.json": [
-      {
-        "language": "en",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "en",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_customer"
-      },
-      {
-        "language": "pt",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "pt",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
-      },
-      {
-        "language": "fr",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "fr",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_client"
-      },
-      {
-        "language": "de",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "de",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_kunde"
-      },
-      {
-        "language": "it",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "it",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
-      },
-      {
-        "language": "es",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "es",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_cliente"
-      },
-      {
-        "language": "nl",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "nl",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_klant"
-      },
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 1 key(s): testimonial_role_khách_hàng"
-      },
-      {
-        "language": "sv",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 1 extra key(s) not in vi: testimonial_role_kund"
-      }
-    ],
     "admin-common.json": [
       {
         "language": "en",
@@ -171,90 +86,6 @@
         "language": "en",
         "issue": "MISSING_KEYS",
         "details": "Missing 1 key(s): exporting"
-      }
-    ],
-    "admin-translation-batch.json": [
-      {
-        "language": "en",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "pt",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "fr",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "de",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "it",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "es",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "nl",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      },
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 13 key(s): admin_batch_entity_id_required, admin_batch_entity_type_required, admin_batch_language_required..."
-      }
-    ],
-    "admin-translation-override.json": [
-      {
-        "language": "en",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "pt",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "fr",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "de",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "it",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "es",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "nl",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
-      },
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 15 key(s): admin_entity_type_ad_hoc, admin_entity_type_category, admin_entity_type_description..."
       }
     ],
     "admin-translation.json": [

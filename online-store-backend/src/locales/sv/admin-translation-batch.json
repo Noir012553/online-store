@@ -28,5 +28,18 @@
   "admin_batch_failures_title": "Misslyckade Rader",
   "admin_batch_export_results": "Exportera Resultat",
   "admin_batch_processing": "Bearbetas...",
-  "admin_batch_process": "Bearbeta Batch"
+  "admin_batch_process": "Bearbeta Batch",
+  "admin_batch_entity_id_required": "Entitets-ID krävs",
+  "admin_batch_entity_type_required": "Entitetstyp krävs",
+  "admin_batch_language_required": "Språk krävs",
+  "admin_batch_new_value_required": "Nytt värde krävs",
+  "admin_batch_reason_required": "Orsak krävs",
+  "admin_batch_row_label": "Rad",
+  "admin_batch_status_error": "Fel",
+  "admin_batch_status_pending": "Väntande",
+  "admin_batch_status_success": "Lyckades",
+  "admin_batch_summary_failed": "Misslyckades",
+  "admin_batch_summary_selected": "Vald",
+  "admin_batch_summary_success": "Lyckades",
+  "admin_batch_summary_total": "Totalt"
 }
