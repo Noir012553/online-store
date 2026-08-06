@@ -11,7 +11,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const StaticTranslation = require('../models/StaticTranslation');
-const { getActiveLangCodes } = require('../config/languageInventory');
+const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
 const diagnose = async () => {
   try {
@@ -91,7 +91,7 @@ const diagnose = async () => {
       let missingKeys = [];
 
       footerKeys.forEach(key => {
-        if (viCommon.translations?.[key]) {
+        if (defaultLangCommon.translations?.[key]) {
           foundCount++;
         } else {
           missingKeys.push(key);
