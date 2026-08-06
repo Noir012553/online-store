@@ -11,7 +11,7 @@
 
 ### 1. Key được frontend gọi nhưng không có trong catalog
 
-Các key UI đã được bổ sung vào catalog mặc định `vi`. Kiểm tra tĩnh hiện tại quét 1.967 lời gọi dịch trong 229 file frontend và không còn phát hiện key nào không tồn tại trong catalog.
+Các key UI đã được bổ sung vào catalog mặc định `vi`. Kiểm tra tĩnh hiện tại quét 1.968 lời gọi dịch trong 229 file frontend và không còn phát hiện key nào không tồn tại trong catalog.
 
 Checker được đăng ký bằng lệnh `npm run check:translation-keys` ở backend. Checker bỏ qua lời gọi có key động và kiểm tra toàn bộ catalog mặc định, phù hợp với cơ chế fallback của `LanguageContext` và `translationController`.
 
@@ -33,7 +33,7 @@ Trang xác nhận đơn hàng sử dụng namespace `orderConfirmation`, trong k
 
 ### 4. Locale không đồng đều
 
-So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ hiện còn 307 vấn đề ở 33 namespace. Phần lớn thuộc các file backend/seed hoặc cấu trúc lồng nhau, không phải toàn bộ đều là nội dung frontend cần dịch. Không nên giải quyết bằng cách sao chép tiếng Việt thành bản dịch giả cho các ngôn ngữ khác.
+So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ hiện còn 137 vấn đề ở 10 namespace. Phần lớn thuộc các file backend/seed, file locale nội bộ chưa được tạo hoặc cấu trúc lồng nhau, không phải toàn bộ đều là nội dung frontend cần dịch. Không nên giải quyết bằng cách sao chép tiếng Việt thành bản dịch giả cho các ngôn ngữ khác.
 
 ## Đã xử lý
 
@@ -45,24 +45,25 @@ So sánh toàn bộ 76 namespace JSON cho 9 ngôn ngữ hiện còn 307 vấn đ
 - Dịch bổ sung 27 key sản phẩm mới cho `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`, gồm các nhóm flash deal, tiện ích, gaming, productivity và CTA.
 - Dịch bổ sung toàn bộ key còn thiếu trong `admin-banners.json` cho 8 locale không mặc định.
 - Thêm checker `verify-frontend-translation-keys.js` và script `check:translation-keys` để phát hiện key frontend bị thiếu trước CI/build.
+- Dịch và đồng bộ toàn bộ key trong `payment-messages.json`, `shipping-messages.json` và `shipment.json` cho 8 locale không mặc định.
 
 ## Trạng thái bản dịch
 
-Các key mới trong `products.json` và `admin-banners.json` hiện đã có bản dịch riêng ở cả 9 locale. Một số namespace backend/seed khác vẫn có khác biệt cấu trúc và có thể tiếp tục dùng fallback tiếng Việt; fallback chỉ chống hiển thị key thô, không thay thế cho bản dịch bản địa hóa hoàn chỉnh.
+Các key mới trong `products.json`, `admin-banners.json`, `payment-messages.json`, `shipping-messages.json` và `shipment.json` hiện đã có bản dịch riêng ở cả 9 locale. Các namespace UI đang được frontend tải đều có đủ key; khác biệt còn lại nằm ở namespace backend/seed, file nội bộ chưa được tạo và `validation-messages.json` có cấu trúc lồng nhau. Fallback chỉ chống hiển thị key thô, không thay thế cho bản dịch bản địa hóa hoàn chỉnh.
 
 ## Kiểm tra đã chạy
 
 - `npm run build` frontend: đạt.
-- `npm run check:translation-keys` backend: đạt, 1.967 lời gọi dịch trong 229 file.
+- `npm run check:translation-keys` backend: đạt, 1.968 lời gọi dịch trong 229 file.
 - Kiểm tra cú pháp 293 file JavaScript backend: đạt.
 - Kiểm tra JSON 652 file locale: đạt.
-- Kiểm tra parity `products.json` và `admin-banners.json` ở 9 locale: đạt.
+- Kiểm tra parity `products.json`, `admin-banners.json`, `payment-messages.json`, `shipping-messages.json` và `shipment.json` ở 9 locale: đạt.
 - `git diff --check`: đạt.
-- `verify-key-consistency.js`: còn 307 vấn đề ở 33/76 namespace, chủ yếu thuộc backend/seed hoặc nested structure.
+- `verify-key-consistency.js`: còn 137 vấn đề ở 10/76 namespace, thuộc backend/seed, file locale nội bộ chưa được tạo hoặc `validation-messages.json` có cấu trúc lồng nhau.
 
 ## Việc còn lại
 
-1. Tiếp tục dịch riêng các key fallback tiếng Việt còn lại trong các namespace UI ngoài `products` và `admin-banners`.
-2. Phân loại các namespace backend/seed chỉ dùng nội bộ khỏi namespace UI.
-3. Chuẩn hóa các key trùng nghĩa hoặc khác tên giữa các namespace.
+1. Dịch riêng các key còn thiếu trong `admin-controllers-messages.json` và `user-messages.json`.
+2. Phân loại hoặc tạo các file locale nội bộ còn thiếu: `api.json`, `email.json`, `shipping.json`, `user.json`.
+3. Chuẩn hóa các key trùng nghĩa hoặc khác tên giữa các namespace backend/seed, đồng thời quyết định quy ước cho `validation-messages.json` có cấu trúc lồng nhau.
 4. Tích hợp `npm run check:translation-keys` vào pipeline CI trước bước frontend build.

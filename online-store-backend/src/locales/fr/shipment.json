@@ -9,5 +9,14 @@
   "createSuccess": "Expédition créée avec succès",
   "not_found": "Expédition non trouvée",
   "invalid_status": "Statut d'expédition invalide : {status}",
-  "cancel_success": "Expédition annulée avec succès"
+  "cancel_success": "Expédition annulée avec succès",
+  "noServiceAvailable": "Aucun service n'est disponible",
+  "currencyMetadataMissing": "Les métadonnées de devise ne sont pas disponibles pour {{currencyCode}}",
+  "ratesUnavailable": "Les taux de change sont temporairement indisponibles",
+  "providerRequestFailed": "Le prestataire de livraison n'a pas pu traiter la demande d'expédition",
+  "invalidFee": "Le prestataire de livraison a renvoyé des frais de livraison non valides",
+  "orderCurrencyUnavailable": "Les données de devise de la commande ne sont pas disponibles",
+  "printTokenFailed": "Impossible de générer l'étiquette d'expédition",
+  "locationSyncSuccess": "Données de localisation synchronisées avec succès",
+  "locationSyncFailed": "Impossible de synchroniser les données de localisation"
 }

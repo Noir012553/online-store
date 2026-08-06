@@ -10,5 +10,21 @@
   "payment_success_message": "Paiement réussi! Votre commande a été confirmée.",
   "payment_failed": "Échec du paiement",
   "refund_success": "Remboursement réussi",
-  "dev_mode_only": "Cette fonctionnalité n'est disponible qu'en mode développement"
+  "dev_mode_only": "Cette fonctionnalité n'est disponible qu'en mode développement",
+  "amount_invalid": "Montant invalide",
+  "gateway_unsupported": "La passerelle de paiement n'est pas prise en charge",
+  "gateway_currency_unsupported": "La passerelle de paiement ne prend pas en charge la devise requise",
+  "payment_initiation_failed": "Impossible d'initier le paiement",
+  "webhook_signature_missing": "La signature du webhook de paiement est manquante",
+  "webhook_invalid": "Impossible de vérifier le webhook de paiement",
+  "webhook_processing_failed": "Impossible de traiter le webhook de paiement",
+  "payment_record_not_found": "Enregistrement de paiement introuvable",
+  "payment_reconciliation_failed": "Les détails du paiement ne correspondent pas à la commande",
+  "webhook_already_processed": "Le webhook de paiement a déjà été traité",
+  "webhook_processed": "Webhook de paiement traité avec succès",
+  "payment_not_found": "Paiement introuvable",
+  "successful_payment_not_found": "Aucun paiement réussi n'a été trouvé pour cette commande",
+  "gateway_adapter_not_found": "La passerelle de paiement n'est pas disponible",
+  "refund_failed": "Impossible de traiter le remboursement",
+  "payment_confirmation_failed": "Impossible de confirmer le paiement"
 }

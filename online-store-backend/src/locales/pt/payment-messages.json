@@ -10,5 +10,21 @@
   "payment_success_message": "Pagamento realizado com sucesso! Seu pedido foi confirmado.",
   "payment_failed": "Falha no pagamento",
   "refund_success": "Reembolso bem-sucedido",
-  "dev_mode_only": "Este recurso só está disponível em modo de desenvolvimento"
+  "dev_mode_only": "Este recurso só está disponível em modo de desenvolvimento",
+  "amount_invalid": "Valor inválido",
+  "gateway_unsupported": "O gateway de pagamento não é compatível",
+  "gateway_currency_unsupported": "O gateway de pagamento não oferece suporte à moeda obrigatória",
+  "payment_initiation_failed": "Não foi possível iniciar o pagamento",
+  "webhook_signature_missing": "A assinatura do webhook de pagamento está ausente",
+  "webhook_invalid": "Não foi possível verificar o webhook de pagamento",
+  "webhook_processing_failed": "Não foi possível processar o webhook de pagamento",
+  "payment_record_not_found": "Registro de pagamento não encontrado",
+  "payment_reconciliation_failed": "Os detalhes do pagamento não correspondem ao pedido",
+  "webhook_already_processed": "O webhook de pagamento já foi processado",
+  "webhook_processed": "Webhook de pagamento processado com sucesso",
+  "payment_not_found": "Pagamento não encontrado",
+  "successful_payment_not_found": "Nenhum pagamento bem-sucedido foi encontrado para este pedido",
+  "gateway_adapter_not_found": "O gateway de pagamento não está disponível",
+  "refund_failed": "Não foi possível processar o reembolso",
+  "payment_confirmation_failed": "Não foi possível confirmar o pagamento"
 }

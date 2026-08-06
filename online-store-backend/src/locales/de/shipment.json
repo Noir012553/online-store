@@ -9,5 +9,14 @@
   "createSuccess": "Sendung erfolgreich erstellt",
   "not_found": "Sendung nicht gefunden",
   "invalid_status": "Ungültiger Sendungsstatus: {status}",
-  "cancel_success": "Sendung erfolgreich storniert"
+  "cancel_success": "Sendung erfolgreich storniert",
+  "noServiceAvailable": "Kein Dienst ist verfügbar",
+  "currencyMetadataMissing": "Währungsmetadaten für {{currencyCode}} sind nicht verfügbar",
+  "ratesUnavailable": "Wechselkurse sind vorübergehend nicht verfügbar",
+  "providerRequestFailed": "Der Versandanbieter konnte die Sendungsanfrage nicht verarbeiten",
+  "invalidFee": "Der Versandanbieter hat ungültige Versandkosten zurückgegeben",
+  "orderCurrencyUnavailable": "Währungsdaten der Bestellung sind nicht verfügbar",
+  "printTokenFailed": "Das Versandetikett konnte nicht erstellt werden",
+  "locationSyncSuccess": "Standortdaten erfolgreich synchronisiert",
+  "locationSyncFailed": "Standortdaten konnten nicht synchronisiert werden"
 }

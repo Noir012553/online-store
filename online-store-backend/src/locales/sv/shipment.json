@@ -9,5 +9,14 @@
   "createSuccess": "Försändelse skapad framgångsrikt",
   "not_found": "Försändelse inte hittad",
   "invalid_status": "Ogiltigt försändelsesstatus: {status}",
-  "cancel_success": "Försändelse avbruten framgångsrikt"
+  "cancel_success": "Försändelse avbruten framgångsrikt",
+  "noServiceAvailable": "Ingen tjänst är tillgänglig",
+  "currencyMetadataMissing": "Valutametadata saknas för {{currencyCode}}",
+  "ratesUnavailable": "Växelkurser är tillfälligt otillgängliga",
+  "providerRequestFailed": "Fraktleverantören kunde inte behandla leveransbegäran",
+  "invalidFee": "Fraktleverantören returnerade en ogiltig fraktavgift",
+  "orderCurrencyUnavailable": "Beställningens valutadata är inte tillgängliga",
+  "printTokenFailed": "Det gick inte att skapa fraktetiketten",
+  "locationSyncSuccess": "Platsdata synkroniserades",
+  "locationSyncFailed": "Det gick inte att synkronisera platsdata"
 }

@@ -9,5 +9,14 @@
   "createSuccess": "Spedizione creata con successo",
   "not_found": "Spedizione non trovata",
   "invalid_status": "Stato di spedizione non valido: {status}",
-  "cancel_success": "Spedizione annullata con successo"
+  "cancel_success": "Spedizione annullata con successo",
+  "noServiceAvailable": "Nessun servizio è disponibile",
+  "currencyMetadataMissing": "I metadati della valuta non sono disponibili per {{currencyCode}}",
+  "ratesUnavailable": "I tassi di cambio non sono temporaneamente disponibili",
+  "providerRequestFailed": "Il provider di spedizione non ha potuto elaborare la richiesta di spedizione",
+  "invalidFee": "Il provider di spedizione ha restituito spese di spedizione non valide",
+  "orderCurrencyUnavailable": "I dati della valuta dell'ordine non sono disponibili",
+  "printTokenFailed": "Impossibile generare l'etichetta di spedizione",
+  "locationSyncSuccess": "Dati sulla località sincronizzati correttamente",
+  "locationSyncFailed": "Impossibile sincronizzare i dati sulla località"
 }

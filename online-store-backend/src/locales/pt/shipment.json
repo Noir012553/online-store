@@ -9,5 +9,14 @@
   "createSuccess": "Remessa criada com sucesso",
   "not_found": "Remessa não encontrada",
   "invalid_status": "Status de remessa inválido: {status}",
-  "cancel_success": "Remessa cancelada com sucesso"
+  "cancel_success": "Remessa cancelada com sucesso",
+  "noServiceAvailable": "Nenhum serviço está disponível",
+  "currencyMetadataMissing": "Os metadados da moeda não estão disponíveis para {{currencyCode}}",
+  "ratesUnavailable": "As taxas de câmbio estão temporariamente indisponíveis",
+  "providerRequestFailed": "O provedor de envio não pôde processar a solicitação de remessa",
+  "invalidFee": "O provedor de envio retornou uma taxa de envio inválida",
+  "orderCurrencyUnavailable": "Os dados de moeda do pedido não estão disponíveis",
+  "printTokenFailed": "Não foi possível gerar a etiqueta de envio",
+  "locationSyncSuccess": "Dados de localização sincronizados com sucesso",
+  "locationSyncFailed": "Não foi possível sincronizar os dados de localização"
 }

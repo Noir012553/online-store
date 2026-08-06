@@ -10,5 +10,21 @@
   "payment_success_message": "Betalningen lyckades! Din order har bekräftats.",
   "payment_failed": "Betalningen misslyckades",
   "refund_success": "Återbetalning lyckad",
-  "dev_mode_only": "Den här funktionen är endast tillgänglig i utvecklingsläge"
+  "dev_mode_only": "Den här funktionen är endast tillgänglig i utvecklingsläge",
+  "amount_invalid": "Ogiltigt belopp",
+  "gateway_unsupported": "Betalningsgatewayen stöds inte",
+  "gateway_currency_unsupported": "Betalningsgatewayen stöder inte den obligatoriska valutan",
+  "payment_initiation_failed": "Det gick inte att initiera betalningen",
+  "webhook_signature_missing": "Signaturen för betalningswebhooken saknas",
+  "webhook_invalid": "Betalningswebhooken kunde inte verifieras",
+  "webhook_processing_failed": "Betalningswebhooken kunde inte behandlas",
+  "payment_record_not_found": "Betalningspost hittades inte",
+  "payment_reconciliation_failed": "Betalningsuppgifterna stämmer inte överens med beställningen",
+  "webhook_already_processed": "Betalningswebhooken har redan behandlats",
+  "webhook_processed": "Betalningswebhooken behandlades",
+  "payment_not_found": "Betalning hittades inte",
+  "successful_payment_not_found": "Ingen genomförd betalning hittades för denna beställning",
+  "gateway_adapter_not_found": "Betalningsgatewayen är inte tillgänglig",
+  "refund_failed": "Återbetalningen kunde inte behandlas",
+  "payment_confirmation_failed": "Betalningen kunde inte bekräftas"
 }
