@@ -87,7 +87,7 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_DISABLED',
       params: {},
-      message: getMessage(paymentLang, 'payment.devModeOnly')
+      message: getMessage(paymentLang, 'payment-messages.dev_mode_only')
     });
   }
 
@@ -98,7 +98,7 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_ORDER_ID_REQUIRED',
       params: { field: 'orderId' },
-      message: getMessage(paymentLang, 'payment.missingOrderId')
+      message: getMessage(paymentLang, 'payment-messages.missing_required_fields', { fields: 'orderId' })
     });
   }
 
@@ -231,7 +231,7 @@ router.get('/debug/vnpay-config', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_DISABLED',
       params: {},
-      message: getMessage(paymentLang, 'payment.devModeOnly')
+      message: getMessage(paymentLang, 'payment-messages.dev_mode_only')
     });
   }
 
@@ -256,7 +256,7 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_DISABLED',
       params: {},
-      message: getMessage(paymentLang, 'payment.devModeOnly')
+      message: getMessage(paymentLang, 'payment-messages.dev_mode_only')
     });
   }
 
@@ -361,7 +361,7 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_DISABLED',
       params: {},
-      message: getMessage(paymentLang, 'payment.devModeOnly')
+      message: getMessage(paymentLang, 'payment-messages.dev_mode_only')
     });
   }
 
@@ -391,7 +391,7 @@ router.post('/debug/test-webhook', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_GATEWAY_UNAVAILABLE',
       params: { gateway: 'vnpay' },
-      message: getMessage(paymentLang, 'payment.gateway_adapter_not_found'),
+      message: getMessage(paymentLang, 'payment-messages.gateway_adapter_not_found'),
     });
   }
 
@@ -491,7 +491,7 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_DISABLED',
       params: {},
-      message: getMessage(paymentLang, 'payment.devModeOnly')
+      message: getMessage(paymentLang, 'payment-messages.dev_mode_only')
     });
   }
 
@@ -523,7 +523,7 @@ router.get('/debug/simulate-webhook', asyncHandler(async (req, res) => {
       success: false,
       code: 'PAYMENT_DEBUG_GATEWAY_UNAVAILABLE',
       params: { gateway: 'vnpay' },
-      message: getMessage(paymentLang, 'payment.gateway_adapter_not_found'),
+      message: getMessage(paymentLang, 'payment-messages.gateway_adapter_not_found'),
     });
   }
 
