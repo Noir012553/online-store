@@ -57,5 +57,7 @@
   "table_slot": "Position",
   "table_status": "Status",
   "table_actions": "Aktionen",
-  "banner_indicator": "Zum Banner gehen"
+  "banner_indicator": "Zum Banner gehen",
+  "banner_next": "Nächstes Banner",
+  "banner_previous": "Vorheriges Banner"
 }
