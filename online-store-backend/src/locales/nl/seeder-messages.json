@@ -66,7 +66,7 @@
   "addresses_module_label": "Klantenadres",
   "reviews_module_label": "Productreviews",
   "orders_module_label": "Bestellingen (600 bestellingen)",
-  "coupons_module_label": "Coupons (4 coupons)",
+  "coupons_module_label": "Kortingsbonnen (4 kortingsbonnen)",
   "features_module_label": "Functie Vertalingen (i18n Laag 2)",
   "no_provinces_found": "❌ Geen provincies gevonden in Locatie model. Voer locatie seeder eerst uit! Run: npm run seed",
   "no_addresses_created": "❌ Geen adressen kunnen worden gemaakt. Controleer Locatie data.",

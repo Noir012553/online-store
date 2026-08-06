@@ -1,171 +1,109 @@
-#!/usr/bin/env node
-/**
- * Verify Language Inventory Consistency
- * Ensures all 9 languages are properly configured across:
- * 1. Filesystem (60 JSON files per language)
- * 2. Database (Language collection)
- * 3. Config (languageInventory.js)
- */
-
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
-require('dotenv').config();
-
-const Language = require('../models/Language');
-const StaticTranslation = require('../models/StaticTranslation');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
-const LOCALES_PATH = path.join(__dirname, '../locales');
+const EXPECTED_LANGUAGE_CODES = ['vi', 'en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'];
+const EXPECTED_NAMESPACES = [
+  'about', 'admin-audit-log', 'admin-banners', 'admin-common', 'admin-controllers-messages', 'admin-coupons', 'admin-customers', 'admin-errors', 'admin-export', 'admin-i18n-monitoring', 'admin-import', 'admin-notifications', 'admin-orders', 'admin-translation-batch', 'admin-translation-override', 'admin-translation', 'admin-users', 'admin', 'api-errors', 'api', 'auth-messages', 'auth', 'banner', 'breadcrumbs', 'cart', 'categories', 'checkout', 'common', 'components', 'contact', 'coupons', 'customers', 'dashboard', 'email', 'errors', 'exchange-rate', 'export', 'footer', 'frontend-error-handler', 'frontend-errors', 'frontend-import', 'home', 'homepage-banners-seed', 'import', 'login', 'newsletter', 'notifications', 'order-confirmation', 'order-success', 'orders', 'pages', 'pagination', 'payment-messages', 'payment', 'policies', 'product-seeder-messages', 'product-ui', 'products', 'productsTranslations', 'profile', 'review', 'seeder-messages', 'shipment', 'shipping-messages', 'shipping-providers-seed', 'shipping', 'shopping-guide', 'statistics', 'testimonial', 'translation-messages', 'ui-common', 'ui-loading', 'user-messages', 'user', 'users', 'validation',
+];
+const localesPath = path.join(__dirname, '../locales');
+const skipDatabase = process.argv.includes('--skip-database');
+
+function difference(left, right) {
+  return left.filter((value) => !right.includes(value));
+}
+
+function listNamespaceFiles(language) {
+  const languagePath = path.join(localesPath, language);
+  if (!fs.existsSync(languagePath)) return null;
+  return fs.readdirSync(languagePath)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => path.basename(file, '.json'))
+    .sort();
+}
 
 async function verifyLanguageInventory() {
-  console.log(`\n${CLI_SYMBOLS.search} Verifying 9-Language Inventory System...\n`);
+  const failures = [];
+  const configuredCodes = getActiveLangCodes();
+  const configuredOrderMatches = configuredCodes.join(',') === EXPECTED_LANGUAGE_CODES.join(',');
+  const configDefinitionsMatch = SUPPORTED_LANGUAGES.map((language) => language.code).join(',') === EXPECTED_LANGUAGE_CODES.join(',');
 
-  const results = {
-    config: { status: CLI_SYMBOLS.success, details: [] },
-    filesystem: { status: CLI_SYMBOLS.success, details: [] },
-    database: { status: CLI_SYMBOLS.success, details: [] },
-    consistency: { status: CLI_SYMBOLS.success, details: [] },
-  };
+  console.log(`\n${CLI_SYMBOLS.search} Verifying language inventory...\n`);
+  console.log(`${CLI_SYMBOLS.list} [1/3] Checking configured languages...`);
 
-  // 1. Verify Config (languageInventory.js)
-  console.log(`${CLI_SYMBOLS.list} [1/4] Checking config/languageInventory.js...`);
-  const expectedLanguageCodes = SUPPORTED_LANGUAGES.map(l => l.code);
-  const actualLanguageCodes = SUPPORTED_LANGUAGES.map(l => l.code);
-
-  if (actualLanguageCodes.length === 9 && SUPPORTED_LANGUAGES.every(l => l.code)) {
-    console.log(`  ${CLI_SYMBOLS.success} Config has all 9 languages: ${actualLanguageCodes.join(', ')}`);
-    results.config.details.push(`Found ${actualLanguageCodes.length} languages in correct sequence`);
+  if (configuredOrderMatches && configDefinitionsMatch) {
+    console.log(`  ${CLI_SYMBOLS.success} Expected active languages: ${EXPECTED_LANGUAGE_CODES.join(', ')}`);
   } else {
-    console.log(`  ${CLI_SYMBOLS.error} Config mismatch!`);
-    console.log(`     Got: ${actualLanguageCodes.join(', ')}`);
-    results.config.status = CLI_SYMBOLS.error;
-    results.config.details.push(`Expected 9 languages, got ${actualLanguageCodes.length}`);
+    failures.push(`Configured languages must be exactly: ${EXPECTED_LANGUAGE_CODES.join(', ')}`);
+    console.log(`  ${CLI_SYMBOLS.error} Active languages: ${configuredCodes.join(', ')}`);
   }
 
-  // 2. Verify Filesystem
-  console.log(`\n${CLI_SYMBOLS.folder} [2/4] Checking filesystem (locales/)...`);
-  const fsResults = {};
-  let totalFileCount = 0;
-
-  for (const lang of actualLanguageCodes) {
-    const langPath = path.join(LOCALES_PATH, lang);
-    if (!fs.existsSync(langPath)) {
-      console.log(`  ${CLI_SYMBOLS.error} Missing directory: ${lang}`);
-      results.filesystem.status = CLI_SYMBOLS.error;
-      fsResults[lang] = 'MISSING';
+  console.log(`\n${CLI_SYMBOLS.folder} [2/3] Checking locale namespaces...`);
+  for (const language of EXPECTED_LANGUAGE_CODES) {
+    const namespaceFiles = listNamespaceFiles(language);
+    if (!namespaceFiles) {
+      failures.push(`Missing locale directory: ${language}`);
+      console.log(`  ${CLI_SYMBOLS.error} ${language}: directory is missing`);
       continue;
     }
 
+    const missing = difference(EXPECTED_NAMESPACES, namespaceFiles);
+    const unexpected = difference(namespaceFiles, EXPECTED_NAMESPACES);
+    if (missing.length === 0 && unexpected.length === 0) {
+      console.log(`  ${CLI_SYMBOLS.success} ${language}: ${namespaceFiles.length} expected namespaces`);
+      continue;
+    }
+
+    if (missing.length > 0) failures.push(`${language}: missing namespaces ${missing.join(', ')}`);
+    if (unexpected.length > 0) failures.push(`${language}: unexpected namespaces ${unexpected.join(', ')}`);
+    console.log(`  ${CLI_SYMBOLS.error} ${language}: ${missing.length} missing, ${unexpected.length} unexpected namespaces`);
+  }
+
+  if (skipDatabase) {
+    console.log(`\n${CLI_SYMBOLS.database} [3/3] Database check skipped.`);
+  } else {
+    console.log(`\n${CLI_SYMBOLS.database} [3/3] Checking database inventory...`);
     try {
-      const files = fs.readdirSync(langPath).filter(f => f.endsWith('.json'));
-      totalFileCount += files.length;
-      fsResults[lang] = files.length;
-      console.log(`  ${CLI_SYMBOLS.success} ${lang}: ${files.length} JSON files`);
+      require('dotenv').config();
+      const mongoose = require('mongoose');
+      const Language = require('../models/Language');
+      const StaticTranslation = require('../models/StaticTranslation');
+      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/online-store-dev');
+      const dbLanguages = await Language.find().lean();
+      const dbCodes = dbLanguages.map((language) => language.code).sort();
+      const expectedCodes = [...EXPECTED_LANGUAGE_CODES].sort();
+      if (dbCodes.join(',') !== expectedCodes.join(',')) {
+        failures.push(`Database languages must be exactly: ${EXPECTED_LANGUAGE_CODES.join(', ')}`);
+      }
+
+      const translationCodes = (await StaticTranslation.distinct('code', { isDeleted: false })).sort();
+      if (translationCodes.join(',') !== expectedCodes.join(',')) {
+        failures.push(`Translation records must exist for: ${EXPECTED_LANGUAGE_CODES.join(', ')}`);
+      }
+
+      console.log(`  ${failures.length === 0 ? CLI_SYMBOLS.success : CLI_SYMBOLS.warning} Database language records: ${dbCodes.join(', ')}`);
+      await mongoose.disconnect();
     } catch (error) {
-      console.log(`  ${CLI_SYMBOLS.error} ${lang}: Error reading directory - ${error.message}`);
-      results.filesystem.status = CLI_SYMBOLS.error;
-      fsResults[lang] = 'ERROR';
+      failures.push(`Database check failed: ${error.message}`);
+      if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
     }
   }
 
-  // Verify all languages have same file count (60)
-  const fileCounts = Object.values(fsResults).filter(v => typeof v === 'number');
-  if (fileCounts.length === 9 && fileCounts.every(c => c === fileCounts[0])) {
-    console.log(`  ${CLI_SYMBOLS.success} All ${fileCounts[0]} namespace files per language: ${fileCounts[0] * 9} total`);
-    results.filesystem.details.push(`${fileCounts[0]} files per language, ${fileCounts[0] * 9} total`);
-  } else {
-    console.log(`  ${CLI_SYMBOLS.warning}  File count inconsistent across languages`);
-    results.filesystem.status = `${CLI_SYMBOLS.warning} `;
-    results.filesystem.details.push(`Inconsistent file counts: ${JSON.stringify(fsResults)}`);
+  console.log(`\n${CLI_SYMBOLS.chart} VERIFICATION RESULTS`);
+  console.log(CLI_SYMBOLS.heavyDivider.repeat(31));
+  console.log(`Expected languages: ${EXPECTED_LANGUAGE_CODES.length}`);
+  console.log(`Expected namespaces per language: ${EXPECTED_NAMESPACES.length}`);
+
+  if (failures.length > 0) {
+    failures.forEach((failure) => console.log(`${CLI_SYMBOLS.error} ${failure}`));
+    process.exit(1);
   }
 
-  // 3. Verify Database (requires connection)
-  console.log(`\n${CLI_SYMBOLS.database}  [3/4] Checking database (Language collection)...`);
-  try {
-    if (!mongoose.connection.db) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/online-store-dev', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-    }
-
-    const dbLanguages = await Language.find().lean();
-    const dbLanguageCodes = dbLanguages.map(l => l.code);
-
-    console.log(`  ${CLI_SYMBOLS.success} Found ${dbLanguages.length} languages in Database:`);
-    for (const lang of dbLanguages) {
-      const isDefault = lang.isSystemDefault ? ' (DEFAULT)' : '';
-      const status = lang.isActive ? 'active' : 'inactive';
-      console.log(`     - ${lang.code}: ${lang.name} [${status}]${isDefault}`);
-    }
-
-    const allCodesPresent = expectedLanguageCodes.every(code => dbLanguageCodes.includes(code));
-    if (dbLanguageCodes.length === 9 && allCodesPresent) {
-      results.database.details.push(`All 9 languages configured in DB`);
-    } else {
-      console.log(`  ${CLI_SYMBOLS.warning}  Database languages mismatch!`);
-      results.database.status = `${CLI_SYMBOLS.warning} `;
-      results.database.details.push(`Missing or extra languages`);
-    }
-
-    // 4. Verify Static Translations seeded
-    console.log(`\n${CLI_SYMBOLS.books} [4/4] Checking StaticTranslation collection...`);
-    const translationStats = await StaticTranslation.aggregate([
-      { $match: { isDeleted: false } },
-      {
-        $group: {
-          _id: '$code',
-          namespaceCount: { $sum: 1 },
-          keysTotal: { $sum: { $size: { $objectToArray: '$translations' } } },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    if (translationStats.length === 9) {
-      console.log(`  ${CLI_SYMBOLS.success} All 9 languages have translations seeded:`);
-      for (const stat of translationStats) {
-        console.log(`     - ${stat._id}: ${stat.namespaceCount} namespaces, ~${Math.round(stat.keysTotal)} total keys`);
-      }
-      results.consistency.details.push(`StaticTranslation fully seeded for all 9 languages`);
-    } else {
-      console.log(`  ${CLI_SYMBOLS.error} Only ${translationStats.length}/9 languages have translations!`);
-      results.consistency.status = CLI_SYMBOLS.error;
-      results.consistency.details.push(`Only ${translationStats.length}/9 languages seeded`);
-    }
-  } catch (error) {
-    console.error(`  ${CLI_SYMBOLS.error} Database check failed: ${error.message}`);
-    results.database.status = CLI_SYMBOLS.error;
-    results.database.details.push(`Connection error: ${error.message}`);
-  }
-
-  // Summary
-  console.log('\n' + '='.repeat(60));
-  console.log(`${CLI_SYMBOLS.chart} VERIFICATION SUMMARY:\n`);
-  const allOk = Object.values(results).every(r => r.status.includes(CLI_SYMBOLS.success));
-
-  if (allOk) {
-    console.log(`${CLI_SYMBOLS.success} Language Inventory System is HEALTHY!`);
-    console.log('   - All 9 languages configured');
-    console.log('   - Filesystem consistency verified');
-    console.log('   - Database fully synchronized');
-  } else {
-    console.log(`${CLI_SYMBOLS.warning}  Issues detected in Language Inventory:`);
-    for (const [section, result] of Object.entries(results)) {
-      if (!result.status.includes(CLI_SYMBOLS.success)) {
-        console.log(`   ${result.status} ${section}: ${result.details.join(', ')}`);
-      }
-    }
-  }
-  console.log('\n' + '='.repeat(60) + '\n');
-
-  await mongoose.disconnect();
-  process.exit(allOk ? 0 : 1);
+  console.log(`${CLI_SYMBOLS.success} Language inventory is consistent.`);
 }
 
-verifyLanguageInventory().catch(error => {
-  console.error(`${CLI_SYMBOLS.error} Verification failed:`, error);
+verifyLanguageInventory().catch((error) => {
+  console.error(`${CLI_SYMBOLS.error} Verification failed: ${error.message}`);
   process.exit(1);
 });

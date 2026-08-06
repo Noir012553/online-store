@@ -20,6 +20,15 @@ jobs:
       - name: Install backend dependencies
         working-directory: online-store-backend
         run: npm ci
+      - name: Check language inventory
+        working-directory: online-store-backend
+        run: npm run check:language-inventory
+      - name: Check translation key consistency
+        working-directory: online-store-backend
+        run: npm run check:translation-consistency
+      - name: Audit English fallback values
+        working-directory: online-store-backend
+        run: npm run check:translation-fallback
       - name: Check frontend translation keys
         working-directory: online-store-backend
         run: npm run check:translation-keys
