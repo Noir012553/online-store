@@ -39,6 +39,7 @@ const { getProductTranslations } = require('../controllers/translationController
 const { protect, admin } = require('../middleware/authMiddleware');
 const { uploadLimiter } = require('../middleware/rateLimitMiddleware');
 const { uploadCloudinary, uploadImport } = require('../middleware/uploadMiddleware');
+const { validateImageUpload, validateImportUpload } = require('../middleware/uploadValidationMiddleware');
 
 
 /**
@@ -102,7 +103,7 @@ router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
  */
 router.route('/')
   .get(getProducts)
-  .post(protect, admin, uploadLimiter, uploadCloudinary.single('image'), createProduct);
+  .post(protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, createProduct);
 
 /**
  * GET /api/products/deleted/list - Lấy danh sách sản phẩm đã xóa (Admin only)
@@ -142,7 +143,7 @@ router.get('/:id/translations', getProductTranslations);
  */
 router.route('/:id')
   .get(getProductById)
-  .put(protect, admin, uploadLimiter, uploadCloudinary.single('image'), updateProduct)
+  .put(protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, updateProduct)
   .delete(protect, admin, deleteProduct);
 
 /**
@@ -169,7 +170,7 @@ router.post('/admin/import', protect, admin, importProducts);
  * Admin only - Hỗ trợ insert, update, upsert modes
  * Accepts multipart/form-data with file field (JSON or CSV, max 100MB)
  */
-router.post('/admin/import-file', protect, admin, uploadImport.single('file'), importProductsFromFile);
+router.post('/admin/import-file', protect, admin, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
 
 /**
  * GET /api/products/admin/import-template - Lấy template import
@@ -205,7 +206,7 @@ router.get('/admin/export-stats', protect, admin, getExportStats);
  * POST /api/products/upload - Tải lên ảnh sản phẩm lên Cloudinary (Admin only)
  * Returns: { image: Cloudinary URL, publicId: Cloudinary public ID }
  */
-router.post('/upload', protect, admin, uploadLimiter, uploadCloudinary.single('image'), asyncHandler(async (req, res) => {
+router.post('/upload', protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }

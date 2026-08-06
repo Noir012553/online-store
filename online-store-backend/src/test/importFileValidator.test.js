@@ -1,6 +1,6 @@
 const chai = require('chai');
 const expect = chai.expect;
-const { validateImportFile } = require('../utils/importFileValidator');
+const { validateImportFile } = require('../utils/fileUtils');
 
 describe('Import file validation', () => {
   const createFile = (content, originalname, mimetype) => ({

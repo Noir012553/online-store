@@ -186,10 +186,13 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     const fileContent = file.buffer.toString('utf-8');
 
-    // Detect format from filename
-    let format = 'json';
-    if (file.originalname.endsWith('.csv')) {
-      format = 'csv';
+    const format = req.importFile?.format;
+    if (!format) {
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_FILE_INVALID',
+        message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported'),
+      });
     }
 
     // Parse file content sử dụng adapter

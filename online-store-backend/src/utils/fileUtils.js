@@ -12,15 +12,20 @@ const fs = require('fs');
  * @param {Function} cb - Callback function
  */
 const checkFileType = (file, cb) => {
-  const filetypes = /jpeg|jpg|png|gif|webp/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  const allowedTypes = {
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+  };
+  const extension = path.extname(file.originalname).toLowerCase();
 
-  if (extname && mimetype) {
+  if (allowedTypes[extension] === file.mimetype) {
     return cb(null, true);
-  } else {
-    cb(new Error('Images Only! Allowed: jpeg, jpg, png, gif'));
   }
+
+  return cb(new Error('Images Only! Allowed: jpeg, jpg, png, gif, webp'));
 };
 
 /**
@@ -30,6 +35,49 @@ const checkFileType = (file, cb) => {
  * @param {Object} req - Express request object (để lấy user info)
  * @returns {String} Tên file mới
  */
+const validateImportFile = (file) => {
+  const allowedTypes = {
+    '.json': ['application/json'],
+    '.csv': ['text/csv', 'application/vnd.ms-excel'],
+  };
+  const extension = path.extname(file?.originalname || '').toLowerCase();
+
+  if (!allowedTypes[extension]?.includes(file?.mimetype)) {
+    const error = new Error('IMPORT_FILE_TYPE_MISMATCH');
+    error.code = 'IMPORT_FILE_TYPE_MISMATCH';
+    throw error;
+  }
+
+  if (!Buffer.isBuffer(file.buffer) || file.buffer.length === 0 || file.buffer.includes(0)) {
+    const error = new Error('IMPORT_FILE_CONTENT_INVALID');
+    error.code = 'IMPORT_FILE_CONTENT_INVALID';
+    throw error;
+  }
+
+  const content = file.buffer.toString('utf8').trim();
+  if (!content || content.includes(String.fromCharCode(0xfffd))) {
+    const error = new Error('IMPORT_FILE_CONTENT_INVALID');
+    error.code = 'IMPORT_FILE_CONTENT_INVALID';
+    throw error;
+  }
+
+  if (extension === '.json') {
+    try {
+      JSON.parse(content);
+    } catch {
+      const error = new Error('IMPORT_FILE_CONTENT_INVALID');
+      error.code = 'IMPORT_FILE_CONTENT_INVALID';
+      throw error;
+    }
+  } else if (content.startsWith('{') || content.startsWith('[') || !content.includes('\n')) {
+    const error = new Error('IMPORT_FILE_CONTENT_INVALID');
+    error.code = 'IMPORT_FILE_CONTENT_INVALID';
+    throw error;
+  }
+
+  return { format: extension.slice(1) };
+};
+
 const generateFileName = (file, req) => {
   const ext = path.extname(file.originalname);
   const timestamp = Date.now();
@@ -73,6 +121,7 @@ const deleteImageFile = (filePath) => {
 
 module.exports = {
   checkFileType,
+  validateImportFile,
   generateFileName,
   deleteImageFile,
 };
