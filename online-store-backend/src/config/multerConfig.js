@@ -92,17 +92,16 @@ const uploadCloudinary = multer({
 const uploadImport = multer({
   storage: memoryStorage,
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ['application/json', 'text/csv', 'application/vnd.ms-excel'];
-    const allowedExtensions = ['.json', '.csv'];
-    
+    const allowedTypes = {
+      '.json': ['application/json'],
+      '.csv': ['text/csv', 'application/vnd.ms-excel'],
+    };
     const ext = path.extname(file.originalname).toLowerCase();
-    const isMimeValid = allowedMimes.includes(file.mimetype);
-    const isExtValid = allowedExtensions.includes(ext);
-    
-    if (isExtValid || isMimeValid) {
+
+    if (allowedTypes[ext]?.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only .json and .csv files are allowed'), false);
+      cb(new Error('Only valid .json and .csv files are allowed'), false);
     }
   },
   limits: {
