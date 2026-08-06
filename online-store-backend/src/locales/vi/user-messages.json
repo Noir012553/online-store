@@ -22,5 +22,6 @@
   "reset_token_and_password_required": "Cần có token và mật khẩu mới",
   "verification_token_required": "Cần có token xác minh email",
   "refresh_token_required": "Cần có refresh token",
-  "invalid_refresh_token": "Refresh token không hợp lệ"
+  "invalid_refresh_token": "Refresh token không hợp lệ",
+  "hardDeleteSuccess": "Người dùng đã được xóa vĩnh viễn"
 }

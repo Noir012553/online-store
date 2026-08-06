@@ -22,5 +22,6 @@
   "reset_token_and_password_required": "O token e a nova senha são obrigatórios",
   "verification_token_required": "O token de verificação é obrigatório",
   "refresh_token_required": "O token de atualização é obrigatório",
-  "invalid_refresh_token": "Token de atualização inválido"
+  "invalid_refresh_token": "Token de atualização inválido",
+  "hardDeleteSuccess": "Usuário excluído permanentemente"
 }

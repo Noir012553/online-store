@@ -154,11 +154,11 @@ const registerUser = asyncHandler(async (req, res) => {
             isEmailVerified: user.isEmailVerified,
             token: accessToken,
             accessToken,
-            message: getMessage(req.lang, 'user.registrationSuccess'),
+            message: getMessage(req.lang, 'user-messages.registrationSuccess'),
         });
     } else {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'user.invalidData'));
+        throw new Error(getMessage(req.lang, 'user-messages.invalidData'));
     }
 });
 
@@ -183,7 +183,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
         });
     } else {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 });
 
@@ -237,7 +237,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         });
     } else {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 });
 
@@ -282,7 +282,7 @@ const getUserById = asyncHandler(async (req, res) => {
         res.json(user);
     } else {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 });
 
@@ -310,7 +310,7 @@ const updateUser = asyncHandler(async (req, res) => {
         });
     } else {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 });
 
@@ -332,7 +332,7 @@ const deleteUser = asyncHandler(async (req, res) => {
         res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_deleted') });
     } else {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 });
 
@@ -349,7 +349,7 @@ const hardDeleteUser = asyncHandler(async (req, res) => {
 
     if (!user) {
         res.status(404);
-        throw new Error(getMessage(lang, 'user.notFound'));
+        throw new Error(getMessage(lang, 'user-messages.notFound'));
     }
 
     if (user.profileImage) {
@@ -357,7 +357,7 @@ const hardDeleteUser = asyncHandler(async (req, res) => {
     }
 
     await user.deleteOne();
-    res.json({ message: getMessage(lang, 'user.hardDeleteSuccess') });
+    res.json({ message: getMessage(lang, 'user-messages.hardDeleteSuccess') });
 });
 
 /**
@@ -371,18 +371,18 @@ const restoreUser = asyncHandler(async (req, res) => {
 
     if (!user) {
         res.status(404);
-        throw new Error(getMessage(req.lang, 'user.notFound'));
+        throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 
     if (!user.isDeleted) {
         res.status(400);
-        throw new Error(getMessage(req.lang, 'user.notDeleted'));
+        throw new Error(getMessage(req.lang, 'user-messages.notDeleted'));
     }
 
     user.isDeleted = false;
     await user.save();
 
-    res.json({ message: getMessage(req.lang, 'user.restoreSuccess'), user });
+    res.json({ message: getMessage(req.lang, 'user-messages.restoreSuccess'), user });
 });
 
 /**
@@ -405,7 +405,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     if (!user) {
         // Don't reveal if email exists for security
         res.json({
-            message: getMessage(req.lang, 'user.passwordResetEmailSent'),
+            message: getMessage(req.lang, 'user-messages.passwordResetEmailSent'),
         });
         return;
     }
@@ -427,7 +427,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 
     res.json({
-        message: getMessage(req.lang, 'user.passwordResetEmailSent'),
+        message: getMessage(req.lang, 'user-messages.passwordResetEmailSent'),
     });
 });
 
@@ -486,7 +486,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     });
 
     res.json({
-        message: getMessage(req.lang, 'user.passwordChangedSuccess'),
+        message: getMessage(req.lang, 'user-messages.passwordChangedSuccess'),
     });
 });
 
@@ -527,7 +527,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     await user.save();
 
     res.json({
-        message: getMessage(req.lang, 'user.emailVerifiedSuccess'),
+        message: getMessage(req.lang, 'user-messages.emailVerifiedSuccess'),
         isEmailVerified: true,
     });
 });
@@ -547,7 +547,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 
     if (user.isEmailVerified) {
         res.json({
-            message: getMessage(req.lang, 'user.emailAlreadyVerified'),
+            message: getMessage(req.lang, 'user-messages.emailAlreadyVerified'),
         });
         return;
     }
@@ -569,7 +569,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     }
 
     res.json({
-        message: getMessage(req.lang, 'user.verificationEmailResent'),
+        message: getMessage(req.lang, 'user-messages.verificationEmailResent'),
     });
 });
 
@@ -618,7 +618,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     });
 
     res.json({
-        message: getMessage(req.lang, 'user.logoutSuccess'),
+        message: getMessage(req.lang, 'user-messages.logoutSuccess'),
     });
 });
 
