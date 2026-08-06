@@ -8,6 +8,15 @@ const LOCALES_DIR = path.join(__dirname, '../locales');
 const LANGUAGES = getActiveLangCodes();
 const defaultLang = getDefaultLanguage().code;
 
+function collectLeafKeys(value, prefix = '') {
+  return Object.entries(value).flatMap(([key, child]) => {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    return child && typeof child === 'object' && !Array.isArray(child)
+      ? collectLeafKeys(child, fullKey)
+      : [fullKey];
+  });
+}
+
 // Read all files from DEFAULT language directory
 const defaultDir = path.join(LOCALES_DIR, defaultLang);
 const defaultFiles = fs.readdirSync(defaultDir).filter(f => f.endsWith('.json'));
@@ -27,7 +36,7 @@ defaultFiles.forEach((filename) => {
   // Get DEFAULT language keys as reference
   const defaultPath = path.join(LOCALES_DIR, defaultLang, filename);
   const defaultContent = JSON.parse(fs.readFileSync(defaultPath, 'utf8'));
-  const defaultKeys = Object.keys(defaultContent).sort();
+  const defaultKeys = collectLeafKeys(defaultContent).sort();
 
   // Check all other languages
   LANGUAGES.forEach((lang) => {
@@ -45,7 +54,7 @@ defaultFiles.forEach((filename) => {
     }
 
     const langContent = JSON.parse(fs.readFileSync(langPath, 'utf8'));
-    const langKeys = Object.keys(langContent).sort();
+    const langKeys = collectLeafKeys(langContent).sort();
 
     // Compare key lists
     const missingKeys = defaultKeys.filter(key => !langKeys.includes(key));
@@ -67,18 +76,6 @@ defaultFiles.forEach((filename) => {
       });
     }
 
-    // Check for nested structures (should be flat only)
-    langKeys.forEach(key => {
-      const value = langContent[key];
-      
-      if (typeof value === 'object' && value !== null) {
-        fileIssues.push({
-          language: lang,
-          issue: 'NESTED_STRUCTURE',
-          details: `Key "${key}" has nested object value instead of string`
-        });
-      }
-    });
   });
 
   if (fileIssues.length > 0) {
@@ -94,7 +91,7 @@ if (totalIssues === 0) {
   console.log(`  - Total files checked: ${defaultFiles.length}`);
   console.log(`  - Total language checks: ${defaultFiles.length * (LANGUAGES.length - 1)} (${defaultFiles.length} files * ${LANGUAGES.length - 1} languages)`);
   console.log(`  - Consistency issues found: 0`);
-  console.log(`  - Flat key structure: ${CLI_SYMBOLS.check} Confirmed`);
+  console.log(`  - Nested key structures: ${CLI_SYMBOLS.check} Confirmed`);
   console.log(`  - Key synchronization: ${CLI_SYMBOLS.check} Perfect`);
 } else {
   console.log(`${CLI_SYMBOLS.warning} ISSUES FOUND: ${totalIssues} consistency problems\n`);
@@ -118,14 +115,14 @@ console.log(`\n${CLI_SYMBOLS.microscope} SAMPLE VERIFICATION (First 3 Files)\n`)
 defaultFiles.slice(0, 3).forEach((filename) => {
   const defaultPath = path.join(LOCALES_DIR, defaultLang, filename);
   const defaultContent = JSON.parse(fs.readFileSync(defaultPath, 'utf8'));
-  const keyCount = Object.keys(defaultContent).length;
+  const keyCount = collectLeafKeys(defaultContent).length;
 
   let allMatch = true;
   LANGUAGES.forEach((lang) => {
     if (lang === defaultLang) return;
     const langPath = path.join(LOCALES_DIR, lang, filename);
     const langContent = JSON.parse(fs.readFileSync(langPath, 'utf8'));
-    if (Object.keys(langContent).length !== keyCount) {
+    if (collectLeafKeys(langContent).length !== keyCount) {
       allMatch = false;
     }
   });

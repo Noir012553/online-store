@@ -1,0 +1,15 @@
+{
+  "missingParametersService": "Parameter für den Versanddienst fehlen",
+  "noProvidersConfigured": "Es sind keine Versanddienstleister konfiguriert",
+  "cannotCalculateFee": "Die Versandkosten können nicht berechnet werden",
+  "provinceIdRequired": "Die Provinz- oder Stadt-ID ist erforderlich",
+  "districtIdRequired": "Die Bezirks-ID ist erforderlich",
+  "ghnDistrictError": "Fehler beim Abrufen von Bezirksdaten von GHN: {{error}}",
+  "ghnWardError": "Fehler beim Abrufen von Abschnittsdaten von GHN: {{error}}",
+  "sameDistrictFree": "Gleicher Bezirk - Kostenloser Versand",
+  "standardServiceName": "Standardversand",
+  "standardServiceDesc": "Lieferung in 3–5 Tagen",
+  "expressServiceName": "Expressversand",
+  "expressServiceDesc": "Lieferung in 1–2 Tagen",
+  "calculateFeeFailed": "Die Versandkosten können nicht berechnet werden: {{error}}"
+}

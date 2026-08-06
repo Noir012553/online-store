@@ -57,6 +57,7 @@
   "toast_restore_success": "Restauration réussie",
   "toast_update_success": "Mise à jour réussie",
   "not_updated": "Non mise à jour",
+  "not_available": "Non disponible",
   "my_orders_payment_card": "Carte de Crédit",
   "payment_methods": "Virement Bancaire",
   "create_order_title": "Créer une Nouvelle Commande",

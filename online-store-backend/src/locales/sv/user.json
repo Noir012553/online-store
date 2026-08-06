@@ -1,0 +1,15 @@
+{
+  "alreadyExists": "Användaren finns redan",
+  "invalidData": "Ogiltiga användaruppgifter",
+  "notFound": "Användaren hittades inte",
+  "registrationSuccess": "Användaren har registrerats",
+  "emailVerifiedSuccess": "E-postadressen har verifierats",
+  "emailAlreadyVerified": "E-postadressen är redan verifierad",
+  "passwordChangedSuccess": "Lösenordet har ändrats",
+  "passwordResetEmailSent": "Ett e-postmeddelande för återställning av lösenord har skickats",
+  "logoutSuccess": "Du har loggats ut",
+  "verificationEmailResent": "Verifieringsmeddelandet har skickats igen",
+  "restoreSuccess": "Användaren har återställts",
+  "notDeleted": "Användaren kunde inte tas bort",
+  "hardDeleteSuccess": "Användaren har tagits bort permanent"
+}
