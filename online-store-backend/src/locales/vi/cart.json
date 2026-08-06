@@ -5,6 +5,7 @@
   "cart_continue_shopping": "Tiếp tục mua hàng",
   "your_shopping_cart": "Giỏ hàng của tôi",
   "items_count": "mặt hàng",
+  "items_count_label": "{{count}} mặt hàng",
   "product_header": "Sản phẩm",
   "unit_price_header": "Đơn giá",
   "quantity_header": "Số lượng",

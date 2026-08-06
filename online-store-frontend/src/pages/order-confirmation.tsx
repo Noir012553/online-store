@@ -12,6 +12,7 @@ import { type Locale } from "../lib/i18n/types";
 import { toast } from "sonner";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
 import { getIntlLocale } from "../lib/localeUtils";
+import { interpolateTranslation } from "../lib/translationInterpolate";
 
 export const getServerSideProps = async () => {
   return {
@@ -183,7 +184,7 @@ export default function OrderConfirmation() {
         <div className="bg-white rounded-lg border shadow-sm p-6 mb-6">
           <div className="flex justify-between items-start mb-6 pb-6 border-b">
             <div>
-              <h2 className="text-lg font-semibold mb-2">{t('order_id_code', 'order-confirmation')}</h2>
+              <h2 className="text-lg font-semibold mb-2">{t('order_number_label', 'order-confirmation')}</h2>
               <p className="text-2xl font-bold text-red-600 font-mono">
                 {order._id}
               </p>
@@ -199,7 +200,7 @@ export default function OrderConfirmation() {
               <Package className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-sm text-gray-600">{t('my_orders_status', 'order-confirmation')}</p>
-                <p className="font-semibold text-orange-600">{t('order_status_pending', 'order-confirmation')}</p>
+                <p className="font-semibold text-orange-600">{t('order_status_processing', 'order-confirmation')}</p>
               </div>
             </div>
           </div>
@@ -212,7 +213,11 @@ export default function OrderConfirmation() {
                 <div key={index} className="flex justify-between items-center pb-3 border-b last:border-b-0">
                   <div>
                     <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-600">{t('order_item_quantity', 'order-confirmation').replace('{quantity}', item.qty)}</p>
+                    <p className="text-sm text-gray-600">
+                      {interpolateTranslation(t('order_item_quantity', 'order-confirmation'), {
+                        count: item.qty,
+                      })}
+                    </p>
                   </div>
                   <p className="font-semibold text-red-600">
                     {item.formattedLineTotal}
@@ -268,7 +273,9 @@ export default function OrderConfirmation() {
         ) : (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-center">
             <p className="text-blue-800">
-              {t('redirect_countdown').replace('{countdown}', redirectCountdown.toString())}
+              {interpolateTranslation(t('redirect_countdown'), {
+                seconds: redirectCountdown,
+              })}
             </p>
           </div>
         )}

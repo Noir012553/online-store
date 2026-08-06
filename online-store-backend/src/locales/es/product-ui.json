@@ -1,3 +1,4 @@
 {
-  "reviews_label": "reseñas"
+  "reviews_label": "reseñas",
+  "reviews_count": "{{count}} reseñas"
 }

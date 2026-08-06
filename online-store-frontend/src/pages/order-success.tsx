@@ -12,6 +12,7 @@ import { formatDate } from '../lib/utils';
 import { UI_EMOJI } from '../lib/uiEmoji';
 import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
+import { interpolateTranslation } from '../lib/translationInterpolate';
 
 export const getServerSideProps = async () => {
   return {
@@ -283,7 +284,11 @@ export default function OrderSuccess() {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">{order.orderItems.length} {t('items_count', 'order-success')}</span>
+                      <span className="text-gray-600">
+                        {interpolateTranslation(t('items_count_label', 'orders'), {
+                          count: order.orderItems.length,
+                        })}
+                      </span>
                     </div>
                     <p className="font-semibold text-red-600">{order.formattedTotalPrice}</p>
                   </div>

@@ -15,6 +15,7 @@ import { EmptyState } from "../components/EmptyState";
 import { Badge } from "../components/ui/badge";
 import { useCartSummary } from "../hooks/useCartSummary";
 import { ImageViewer } from "../components/ImageViewer";
+import { interpolateTranslation } from "../lib/translationInterpolate";
 
 export const getServerSideProps = async () => {
   return {
@@ -98,7 +99,9 @@ export default function Cart() {
       <Breadcrumbs links={[{ label: t('shopping_cart', 'cart') }]} />
       <div className="flex items-center justify-between mb-8">
         <h1>{t('your_shopping_cart', 'cart')}</h1>
-        <Badge className="bg-red-600 text-white">{items.length} {t('items_count', 'cart')}</Badge>
+        <Badge className="bg-red-600 text-white">
+          {interpolateTranslation(t('items_count_label', 'cart'), { count: items.length })}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

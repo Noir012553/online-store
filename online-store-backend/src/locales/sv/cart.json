@@ -5,6 +5,7 @@
   "cart_continue_shopping": "Fortsätt handla",
   "your_shopping_cart": "Min shoppingvagn",
   "items_count": "varor",
+  "items_count_label": "{{count}} varor",
   "product_header": "Produkt",
   "unit_price_header": "Enhetspris",
   "quantity_header": "Kvantitet",

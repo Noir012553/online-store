@@ -1,7 +1,7 @@
 /**
  * Interpolate variables in translated strings
- * Supports {varName} syntax
- * Example: "Hello {name}" with { name: "John" } => "Hello John"
+ * Supports {varName} and {{varName}} syntax
+ * Example: "Hello {{name}}" with { name: "John" } => "Hello John"
  */
 export function interpolateTranslation(
   text: string,
@@ -13,8 +13,10 @@ export function interpolateTranslation(
 
   let result = text;
   Object.entries(variables).forEach(([key, value]) => {
-    const pattern = new RegExp(`\\{${key}\\}`, 'g');
-    result = result.replace(pattern, String(value));
+    const valueText = String(value);
+    result = result
+      .replaceAll(`{{${key}}}`, valueText)
+      .replaceAll(`{${key}}`, valueText);
   });
 
   return result;

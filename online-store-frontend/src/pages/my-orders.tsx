@@ -12,6 +12,7 @@ import { formatDate } from '../lib/utils';
 import { useTranslation } from '../lib/i18n';
 import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
+import { interpolateTranslation } from '../lib/translationInterpolate';
 
 export const getServerSideProps = async () => {
   return {
@@ -84,7 +85,9 @@ const OrderItemRow = ({ item, t }: OrderItemRowProps & { t: (key: string, ns?: s
     />
     <div className="flex-1 min-w-0">
       <p className="font-medium text-gray-900 line-clamp-2">{item.name || ''}</p>
-      <p className="text-sm text-gray-600">{t('quantity_label', 'orders')}: {item.qty}</p>
+      <p className="text-sm text-gray-600">
+        {interpolateTranslation(t('quantity_label_with_count', 'orders'), { count: item.qty })}
+      </p>
     </div>
     <div className="text-right shrink-0">
       <p className="font-semibold text-red-600">
@@ -133,7 +136,7 @@ const OrderCard = ({ order, isExpanded, onToggle, onViewDetails, locale, t, getD
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <Package className="w-4 h-4 shrink-0" />
-                <span>{itemCount} {t('items_count', 'orders')}</span>
+                <span>{interpolateTranslation(t('items_count_label', 'orders'), { count: itemCount })}</span>
               </div>
             </div>
           </div>
@@ -408,7 +411,7 @@ export default function MyOrders() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('page_title', 'orders')}</h1>
           <p className="text-gray-600">
             {orders.length > 0
-              ? t('summary_you_have_orders', 'orders').replace('{{count}}', orders.length.toString())
+              ? interpolateTranslation(t('summary_you_have_orders', 'orders'), { count: orders.length })
               : t('summary_no_orders_yet', 'orders')}
           </p>
         </div>
