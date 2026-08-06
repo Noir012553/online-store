@@ -34,7 +34,7 @@ const seedAddresses = async () => {
       provinceId: { $in: provinceIds },
     }).lean();
 
-    const allWards = await Ward.find({}).lean();
+    const allWards = await Ward.find({ provider: 'ghn' }).lean();
 
     console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk location pre-load`);
     console.log(getMessage(seedLang, 'seeder-messages.locations_loaded', {

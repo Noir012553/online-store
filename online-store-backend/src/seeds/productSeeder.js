@@ -240,17 +240,22 @@ const extractSpecsFromDescription = (description = '', productTitle = '') => {
  * Fetch sản phẩm từ URL Gearvn
  */
 const fetchGearvnProducts = async (url, limit = 20) => {
-  try {
-    const fullUrl = `${url}?limit=${limit}`;
-    const response = await fetch(fullUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 10000
-    });
-    const data = await response.json();
-    return data.products || [];
-  } catch (error) {
-    return [];
+  const fullUrl = `${url}?limit=${limit}`;
+  const response = await fetch(fullUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`GearVN returned HTTP ${response.status} for ${url}`);
   }
+
+  const data = await response.json();
+  if (!Array.isArray(data.products)) {
+    throw new Error(`GearVN response does not contain products[] for ${url}`);
+  }
+
+  return data.products;
 };
 
 /**
@@ -313,7 +318,6 @@ const mapGearvnToProduct = async (gearvnProduct, userId, categoryId, supplierId)
  */
 const seedProducts = async (userId, categoryIds, supplierIds) => {
   try {
-    await Product.deleteMany({});
     const allProducts = [];
 
     for (const collection of GEARVN_COLLECTIONS) {
@@ -338,6 +342,12 @@ const seedProducts = async (userId, categoryIds, supplierIds) => {
       }
     }
 
+
+    if (allProducts.length === 0) {
+      throw new Error('No products fetched from GearVN');
+    }
+
+    await Product.deleteMany({});
 
     try {
       const createdProducts = await Product.create(allProducts);

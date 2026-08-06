@@ -19,6 +19,14 @@ const { ABOUT_MEDIA, getCloudinaryDeliveryUrl } = require('../config/aboutMedia'
  * @param {Array} users - Danh sách users
  */
 const seedReviews = async (products, users) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error('Cannot seed reviews without products');
+  }
+
+  if (!Array.isArray(users) || users.length === 0) {
+    throw new Error('Cannot seed reviews without users');
+  }
+
   await Review.deleteMany({});
 
   const reviews = [];
