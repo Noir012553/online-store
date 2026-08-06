@@ -1,17 +1,16 @@
 {
   "page": "Page",
-  "of": "of",
-  "first": "First Page",
-  "previous": "Previous Page",
-  "next": "Next Page",
-  "last": "Last Page",
+  "of": "sur",
+  "first": "Première page",
+  "previous": "Page précédente",
+  "next": "Page suivante",
+  "last": "Dernière page",
   "ellipsis": "...",
   "pagination_label": "Pagination",
-  "pagination_previous_page": "Go to previous page",
-  "pagination_previous": "Previous",
-  "pagination_next_page": "Go to next page",
-  "pagination_next": "Next",
-  "pagination_more_pages": "More pages"
-,
+  "pagination_previous_page": "Aller à la page précédente",
+  "pagination_previous": "Précédent",
+  "pagination_next_page": "Aller à la page suivante",
+  "pagination_next": "Suivant",
+  "pagination_more_pages": "Plus de pages",
   "first_page": "Première page"
 }
