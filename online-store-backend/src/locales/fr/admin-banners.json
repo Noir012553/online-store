@@ -113,7 +113,7 @@
   "banner_sortOrderPlaceholder": "0",
   "banner_error_load_data": "Erreur lors du chargement des données",
   "slot_sitewide_top": "Haut du Site",
-  "slot_homepage_hero": "Hero de la Page d'Accueil",
+  "slot_homepage_hero": "Bannière principale de la page d'accueil",
   "slot_homepage_left": "Gauche de la Page d'Accueil",
   "slot_homepage_right": "Droite de la Page d'Accueil",
   "slot_homepage_inline": "Contenu de la Page d'Accueil",
