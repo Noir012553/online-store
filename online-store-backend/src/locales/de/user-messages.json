@@ -22,5 +22,6 @@
   "reset_token_and_password_required": "Token und neues Passwort sind erforderlich",
   "verification_token_required": "Bestätigungstoken ist erforderlich",
   "refresh_token_required": "Aktualisierungstoken ist erforderlich",
-  "invalid_refresh_token": "Ungültiger Aktualisierungstoken"
+  "invalid_refresh_token": "Ungültiger Aktualisierungstoken",
+  "hardDeleteSuccess": "Benutzer dauerhaft gelöscht"
 }

@@ -22,5 +22,6 @@
   "reset_token_and_password_required": "Le jeton et le nouveau mot de passe sont requis",
   "verification_token_required": "Le jeton de vérification est requis",
   "refresh_token_required": "Le jeton d’actualisation est requis",
-  "invalid_refresh_token": "Jeton d’actualisation non valide"
+  "invalid_refresh_token": "Jeton d’actualisation non valide",
+  "hardDeleteSuccess": "Utilisateur supprimé définitivement"
 }

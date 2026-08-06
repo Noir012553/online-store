@@ -102,14 +102,14 @@ const calculateShipping = asyncHandler(async (req, res) => {
   if (!Number.isInteger(districtId) || districtId <= 0 || !wardCode) {
     return res.status(400).json({
       success: false,
-      message: getMessage(lang, 'shipping.missingParameters'),
+      message: getMessage(lang, 'shipping-messages.missingParametersService'),
     });
   }
 
   if (!Number.isFinite(normalizedWeight) || normalizedWeight <= 0) {
     return res.status(400).json({
       success: false,
-      message: getMessage(lang, 'shipping.weightMustBePositive'),
+      message: getMessage(lang, 'shipping-messages.weight_must_be_positive'),
     });
   }
 

@@ -22,5 +22,6 @@
   "reset_token_and_password_required": "Token and new password are required",
   "verification_token_required": "Verification token is required",
   "refresh_token_required": "Refresh token is required",
-  "invalid_refresh_token": "Invalid refresh token"
+  "invalid_refresh_token": "Invalid refresh token",
+  "hardDeleteSuccess": "User permanently deleted"
 }
