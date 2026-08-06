@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Übersicht anzeigen",
   "processing": "Wird verarbeitet...",
   "avatar_upload_failed": "Avatar-Upload fehlgeschlagen",
-  "upload_error": "Upload fehlgeschlagen"
+  "upload_error": "Upload fehlgeschlagen",
+  "profile_joined_date": "Beitrittsdatum",
+  "user_unnamed": "Unbenannter Benutzer"
 }

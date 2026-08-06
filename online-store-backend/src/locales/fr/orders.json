@@ -155,5 +155,7 @@
   "my_orders_shipping_fee": "Frais de Livraison",
   "order_status_pending": "En Attente",
   "order_status_paid": "Payé",
-  "order_status_delivered": "Livré"
+  "order_status_delivered": "Livré",
+  "all_status": "Tous les statuts",
+  "postal_code": "Code postal"
 }

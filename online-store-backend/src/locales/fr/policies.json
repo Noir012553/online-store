@@ -129,5 +129,10 @@
   "faq_5_question": "Quels modes de paiement sont acceptés ?",
   "faq_5_answer": "Nous acceptons les cartes de crédit, les cartes de débit, les virements bancaires en ligne et les paiements à la livraison.",
   "faq_6_question": "Y a-t-il un support client disponible ?",
-  "faq_6_answer": "Oui, notre équipe d'assistance à la clientèle est disponible 24/7 par téléphone, email et chat."
+  "faq_6_answer": "Oui, notre équipe d'assistance à la clientèle est disponible 24/7 par téléphone, email et chat.",
+  "warranty_contact_email": "Envoyer un e-mail au support",
+  "warranty_contact_phone": "Appeler le support",
+  "warranty_exchange": "Échange de produit",
+  "warranty_official": "Garantie officielle",
+  "warranty_support": "Assistance garantie"
 }

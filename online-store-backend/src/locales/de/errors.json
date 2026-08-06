@@ -24,5 +24,6 @@
   "cart_empty": "Warenkorb ist leer",
   "create_order": "Fehler beim Erstellen der Bestellung",
   "page_not_found": "Seite nicht gefunden",
-  "server_error_page": "Fehler auf dem Server"
+  "server_error_page": "Fehler auf dem Server",
+  "error_page_not_found": "Seite nicht gefunden"
 }

@@ -24,5 +24,6 @@
   "cart_empty": "Panier vide",
   "create_order": "Erreur lors de la création de la commande",
   "page_not_found": "Page non trouvée",
-  "server_error_page": "Une erreur est survenue sur le serveur"
+  "server_error_page": "Une erreur est survenue sur le serveur",
+  "error_page_not_found": "Page introuvable"
 }

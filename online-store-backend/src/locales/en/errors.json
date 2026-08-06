@@ -24,5 +24,6 @@
   "cart_empty": "Cart is empty",
   "create_order": "Error creating order",
   "page_not_found": "Page not found",
-  "server_error_page": "An error occurred on the server"
+  "server_error_page": "An error occurred on the server",
+  "error_page_not_found": "Page not found"
 }

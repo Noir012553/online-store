@@ -49,5 +49,6 @@
   "invalid_image_error": "Immagine non valida",
   "preview": "Anteprima",
   "invalid_file_error": "Formato file non valido",
-  "upload_failed": "Caricamento non riuscito"
+  "upload_failed": "Caricamento non riuscito",
+  "unchanged_label": "Invariato"
 }

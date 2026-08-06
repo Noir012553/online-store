@@ -24,5 +24,6 @@
   "cart_empty": "Varukorg är tom",
   "create_order": "Fel vid skapande av beställning",
   "page_not_found": "Sidan hittades inte",
-  "server_error_page": "Ett fel uppstod på servern"
+  "server_error_page": "Ett fel uppstod på servern",
+  "error_page_not_found": "Sidan hittades inte"
 }

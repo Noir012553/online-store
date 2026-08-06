@@ -155,5 +155,7 @@
   "my_orders_shipping_fee": "Versandkosten",
   "order_status_pending": "Ausstehend",
   "order_status_paid": "Bezahlt",
-  "order_status_delivered": "Geliefert"
+  "order_status_delivered": "Geliefert",
+  "all_status": "Alle Status",
+  "postal_code": "Postleitzahl"
 }

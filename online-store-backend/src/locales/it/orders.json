@@ -155,5 +155,7 @@
   "my_orders_shipping_fee": "Costo Spedizione",
   "order_status_pending": "In Sospeso",
   "order_status_paid": "Pagato",
-  "order_status_delivered": "Consegnato"
+  "order_status_delivered": "Consegnato",
+  "all_status": "Tutti gli stati",
+  "postal_code": "Codice postale"
 }

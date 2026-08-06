@@ -129,5 +129,10 @@
   "faq_5_question": "¿Qué Métodos de Pago Se Aceptan?",
   "faq_5_answer": "Aceptamos tarjetas de crédito, tarjetas de débito, transacciones bancarias en línea y contra reembolso.",
   "faq_6_question": "¿Hay Soporte al Cliente Disponible?",
-  "faq_6_answer": "Sí, nuestro equipo de atención al cliente está disponible 24/7 por teléfono, correo electrónico y chat."
+  "faq_6_answer": "Sí, nuestro equipo de atención al cliente está disponible 24/7 por teléfono, correo electrónico y chat.",
+  "warranty_contact_email": "Enviar correo al soporte",
+  "warranty_contact_phone": "Llamar al soporte",
+  "warranty_exchange": "Cambio de producto",
+  "warranty_official": "Garantía oficial",
+  "warranty_support": "Soporte de garantía"
 }

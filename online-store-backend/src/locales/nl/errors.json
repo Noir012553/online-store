@@ -24,5 +24,6 @@
   "cart_empty": "Winkelwagen is leeg",
   "create_order": "Fout bij aanmaken bestelling",
   "page_not_found": "Pagina niet gevonden",
-  "server_error_page": "Fout op server"
+  "server_error_page": "Fout op server",
+  "error_page_not_found": "Pagina niet gevonden"
 }

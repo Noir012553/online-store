@@ -129,5 +129,10 @@
   "faq_5_question": "Quais métodos de pagamento são aceitos?",
   "faq_5_answer": "Aceitamos cartões de crédito, cartões de débito, transações bancárias online e pagamento na entrega.",
   "faq_6_question": "Existe suporte ao cliente disponível?",
-  "faq_6_answer": "Sim, nossa equipe de atendimento ao cliente está disponível 24/7 via telefone, email e chat."
+  "faq_6_answer": "Sim, nossa equipe de atendimento ao cliente está disponível 24/7 via telefone, email e chat.",
+  "warranty_contact_email": "Enviar e-mail ao suporte",
+  "warranty_contact_phone": "Ligar para o suporte",
+  "warranty_exchange": "Troca de produto",
+  "warranty_official": "Garantia oficial",
+  "warranty_support": "Suporte de garantia"
 }

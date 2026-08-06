@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Visualizar Painel",
   "processing": "Processando...",
   "avatar_upload_failed": "Falha no upload de avatar",
-  "upload_error": "Falha no upload"
+  "upload_error": "Falha no upload",
+  "profile_joined_date": "Data de adesão",
+  "user_unnamed": "Utilizador sem nome"
 }
