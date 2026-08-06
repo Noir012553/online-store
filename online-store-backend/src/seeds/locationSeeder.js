@@ -110,7 +110,12 @@ const seedLocations = async () => {
         throw err;
       });
     }
-    console.log(`${CLI_SYMBOLS.success} Saved/updated ${totalWards} wards\n`);
+
+    const savedWardCount = await Ward.countDocuments({ provider: PROVIDER });
+    if (savedWardCount === 0) {
+      throw new Error('Ward data was fetched but no wards exist in the database');
+    }
+    console.log(`${CLI_SYMBOLS.success} Saved/updated ${savedWardCount} wards\n`);
 
     console.log(CLI_SYMBOLS.divider.repeat(43));
     console.log(`${CLI_SYMBOLS.location} Location Data Sync Complete!`);
@@ -118,14 +123,14 @@ const seedLocations = async () => {
     console.log(`Provider: ${PROVIDER.toUpperCase()}`);
     console.log(`${CLI_SYMBOLS.package} Provinces: ${provinces.length}`);
     console.log(`${CLI_SYMBOLS.package} Districts: ${totalDistricts}`);
-    console.log(`${CLI_SYMBOLS.package} Wards: ${totalWards}`);
+    console.log(`${CLI_SYMBOLS.package} Wards: ${savedWardCount}`);
     console.log(`${CLI_SYMBOLS.divider.repeat(43)}\n`);
 
     return {
       provider: PROVIDER,
       provinces: provinces.length,
       districts: totalDistricts,
-      wards: totalWards,
+      wards: savedWardCount,
     };
   } catch (error) {
     console.error(`${CLI_SYMBOLS.error} Location seeding failed:`, error.message);
