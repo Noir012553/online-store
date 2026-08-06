@@ -329,7 +329,7 @@ const deleteUser = asyncHandler(async (req, res) => {
         }
         user.isDeleted = true;
         await user.save();
-        res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_deleted') });
+        res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_removed') });
     } else {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
