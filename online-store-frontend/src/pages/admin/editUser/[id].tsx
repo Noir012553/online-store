@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useAuth } from "../../../lib/context/AuthContext";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { apiCall } from "../../../lib/api";
 import { useCloudinaryUpload } from "../../../hooks/useCloudinaryUpload";
@@ -31,6 +32,7 @@ function EditUserContent() {
   const router = useRouter();
   const { id } = router.query;
   const { t, loadNamespace, locale } = useTranslation();
+  const { user: currentUser, updateUserProfileImage } = useAuth();
   const { isUploading, uploadProgress, uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
 
   useEffect(() => {
@@ -99,6 +101,9 @@ function EditUserContent() {
       });
       const nextProfileImage = response.profileImage || response.user?.profileImage || uploadResult.secure_url;
       setProfileImage(nextProfileImage);
+      if (currentUser?.id === String(id)) {
+        updateUserProfileImage(nextProfileImage);
+      }
       toast.success(t('avatar_uploaded_success', 'common'));
     } catch (error: any) {
       toast.error(error.message || t('upload_failed', 'common'));

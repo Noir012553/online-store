@@ -355,8 +355,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className={`border-t border-red-600 bg-red-600 ${sidebarOpen ? 'p-4' : 'p-2'}`}>
           {sidebarOpen && (
             <div className="flex items-center gap-3 mb-3 px-2">
-              <div className="w-10 h-10 bg-orange-300 rounded-full flex items-center justify-center shrink-0 text-gray-800 font-semibold">
-                <span>{(user.name || t('user_unnamed', 'admin'))[0]?.toUpperCase()}</span>
+              <div className="w-10 h-10 bg-orange-300 rounded-full flex items-center justify-center shrink-0 overflow-hidden text-gray-800 font-semibold">
+                {user.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt={user.name || t('user_unnamed', 'admin')}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{(user.name || t('user_unnamed', 'admin'))[0]?.toUpperCase()}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm truncate">{user.name || t('user_unnamed', 'admin')}</div>

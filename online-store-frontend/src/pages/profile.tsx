@@ -24,7 +24,7 @@ export const getServerSideProps = async () => {
 
 export default function Profile() {
   const router = useRouter();
-  const { user, isAdmin, isInitialized } = useAuth();
+  const { user, isAdmin, isInitialized, updateUserProfileImage } = useAuth();
   const { t, loadNamespace, locale } = useTranslation();
   const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
   const [isEditing, setIsEditing] = useState(false);
@@ -68,14 +68,7 @@ export default function Profile() {
         phone: user.phone || '',
         address: user.address || '',
       });
-      if (user.profileImage) {
-        // getImageUrl returns either:
-        // - /uploads/... (proxied through Next.js)
-        // - https://... (external image)
-        // - undefined (invalid)
-        const imageUrl = getImageUrl(user.profileImage);
-        setAvatarPreview(imageUrl || '');
-      }
+      setAvatarPreview(getImageUrl(user.profileImage) || '');
     }
   }, [user]);
 
@@ -152,6 +145,8 @@ export default function Profile() {
         throw new Error(error.message || t('profile_avatar_error', 'profile'));
       }
 
+      const updatedUser = await response.json();
+      updateUserProfileImage(updatedUser.profileImage || uploadResult.secure_url);
       toast.success(t('profile_avatar_success', 'profile'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('profile_avatar_error', 'profile'));
