@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Overzicht weergeven",
   "processing": "Bezig met verwerken...",
   "avatar_upload_failed": "Upload van avatar mislukt",
-  "upload_error": "Upload mislukt"
+  "upload_error": "Upload mislukt",
+  "profile_joined_date": "Lid sinds",
+  "user_unnamed": "Naamloze gebruiker"
 }

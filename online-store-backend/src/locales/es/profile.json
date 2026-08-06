@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Ver Panel",
   "processing": "Procesando...",
   "avatar_upload_failed": "Error en la carga de avatar",
-  "upload_error": "Error en la carga"
+  "upload_error": "Error en la carga",
+  "profile_joined_date": "Fecha de registro",
+  "user_unnamed": "Usuario sin nombre"
 }

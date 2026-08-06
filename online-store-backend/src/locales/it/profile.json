@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Visualizza il cruscotto",
   "processing": "Elaborazione in corso...",
   "avatar_upload_failed": "Caricamento avatar non riuscito",
-  "upload_error": "Caricamento non riuscito"
+  "upload_error": "Caricamento non riuscito",
+  "profile_joined_date": "Data di iscrizione",
+  "user_unnamed": "Utente senza nome"
 }

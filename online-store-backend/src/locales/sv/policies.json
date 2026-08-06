@@ -129,5 +129,10 @@
   "faq_5_question": "Vilka betalningsmetoder accepteras?",
   "faq_5_answer": "Vi accepterar kreditkort, betalkort, onlinebank och kontant betalning vid leverans.",
   "faq_6_question": "Är kundsupport tillgänglig?",
-  "faq_6_answer": "Ja, vårt kundsupportteam är tillgängligt 24/7 via telefon, e-post och chatt."
+  "faq_6_answer": "Ja, vårt kundsupportteam är tillgängligt 24/7 via telefon, e-post och chatt.",
+  "warranty_contact_email": "Skicka e-post till supporten",
+  "warranty_contact_phone": "Ring supporten",
+  "warranty_exchange": "Byt produkt",
+  "warranty_official": "Officiell garanti",
+  "warranty_support": "Garantisupport"
 }

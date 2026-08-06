@@ -50,5 +50,7 @@
   "permission_view_dashboard": "View Dashboard",
   "processing": "Processing...",
   "avatar_upload_failed": "Avatar upload failed",
-  "upload_error": "Upload failed"
+  "upload_error": "Upload failed",
+  "profile_joined_date": "Join date",
+  "user_unnamed": "Unnamed user"
 }

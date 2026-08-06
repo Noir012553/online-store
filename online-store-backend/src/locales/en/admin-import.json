@@ -53,5 +53,6 @@
   "format_json": "JSON",
   "format_csv": "CSV",
   "format_json_extension": "JSON (.json)",
-  "format_csv_extension": "CSV (.csv)"
+  "format_csv_extension": "CSV (.csv)",
+  "exporting": "Exporting..."
 }

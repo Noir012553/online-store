@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Visa Instrumentpanel",
   "processing": "Bearbetar...",
   "avatar_upload_failed": "Avataruppload misslyckades",
-  "upload_error": "Överföring misslyckades"
+  "upload_error": "Överföring misslyckades",
+  "profile_joined_date": "Registreringsdatum",
+  "user_unnamed": "Namnlös användare"
 }

@@ -155,5 +155,7 @@
   "my_orders_shipping_fee": "Leveransavgift",
   "order_status_pending": "Väntande",
   "order_status_paid": "Betald",
-  "order_status_delivered": "Levererad"
+  "order_status_delivered": "Levererad",
+  "all_status": "Alla statusar",
+  "postal_code": "Postnummer"
 }
