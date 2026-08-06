@@ -68,14 +68,7 @@ export default function Profile() {
         phone: user.phone || '',
         address: user.address || '',
       });
-      if (user.profileImage) {
-        // getImageUrl returns either:
-        // - /uploads/... (proxied through Next.js)
-        // - https://... (external image)
-        // - undefined (invalid)
-        const imageUrl = getImageUrl(user.profileImage);
-        setAvatarPreview(imageUrl || '');
-      }
+      setAvatarPreview(getImageUrl(user.profileImage) || '');
     }
   }, [user]);
 
