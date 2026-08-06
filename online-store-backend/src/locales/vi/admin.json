@@ -544,5 +544,21 @@
   "language_sv": "Tiếng Thụy Điển",
   "permission_denied_message": "{{feature}} chỉ dành cho siêu quản trị viên. Bạn không có quyền truy cập trang này.",
   "contact_admin_message": "Nếu bạn cho rằng đây là một sai lầm, vui lòng liên hệ với quản trị viên của bạn.",
-  "back_to_dashboard": "Quay lại Bảng điều khiển"
+  "back_to_dashboard": "Quay lại Bảng điều khiển",
+  "admin_create_customer_description": "Tạo thông tin khách hàng mới",
+  "admin_delete_coupon": "Xóa mã giảm giá",
+  "admin_delete_coupon_desc": "Mã giảm giá này sẽ bị chuyển vào thùng rác. Bạn có thể khôi phục sau.",
+  "admin_edit_customer": "Chỉnh sửa khách hàng",
+  "admin_edit_customer_description": "Chỉnh sửa thông tin khách hàng",
+  "admin_hard_delete_coupon": "Xóa vĩnh viễn mã giảm giá",
+  "admin_hard_delete_coupon_desc": "Mã giảm giá này sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+  "admin_price_invalid": "Giá phải lớn hơn 0",
+  "common_delete": "Xóa",
+  "contact_information": "Thông tin liên hệ",
+  "error_customer_not_found": "Không tìm thấy khách hàng",
+  "first_name": "Tên",
+  "last_name": "Họ",
+  "last_updated": "Cập nhật lần cuối",
+  "order_status_cancelled": "Đã hủy",
+  "user_unnamed": "Người dùng chưa đặt tên"
 }

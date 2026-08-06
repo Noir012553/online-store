@@ -325,5 +325,8 @@
   "locale_label_nl": "Tiếng Hà Lan",
   "locale_label_sv": "Tiếng Thụy Điển",
   "common_confirm": "Xác nhận",
-  "common_cancel": "Hủy"
+  "common_cancel": "Hủy",
+  "admin_delete_language": "Xóa ngôn ngữ",
+  "admin_error_delete_language": "Không thể xóa ngôn ngữ",
+  "admin_language_deleted": "Ngôn ngữ đã được xóa thành công"
 }

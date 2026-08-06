@@ -50,5 +50,7 @@
   "permission_view_dashboard": "Xem Bảng điều khiển",
   "processing": "Đang xử lý...",
   "avatar_upload_failed": "Tải avatar thất bại",
-  "upload_error": "Tải lên thất bại"
+  "upload_error": "Tải lên thất bại",
+  "profile_joined_date": "Ngày tham gia",
+  "user_unnamed": "Người dùng chưa đặt tên"
 }

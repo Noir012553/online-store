@@ -19,7 +19,6 @@ assert.strictEqual(typeof hashKey, 'string');
 assert.strictEqual(hashKey.length, 32); // MD5 is 32 hex chars
 
 // Test 2: Language Validation
-const { getActiveLangCodes } = require('../../config/languageInventory');
 const SUPPORTED_LANGUAGES = Object.fromEntries(
   getActiveLangCodes().map(lang => [lang, lang])
 );

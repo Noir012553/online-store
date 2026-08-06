@@ -57,5 +57,7 @@
   "table_slot": "Vị trí",
   "table_status": "Trạng thái",
   "table_actions": "Hành động",
-  "banner_indicator": "Đi tới banner"
+  "banner_indicator": "Đi tới banner",
+  "banner_next": "Banner tiếp theo",
+  "banner_previous": "Banner trước"
 }

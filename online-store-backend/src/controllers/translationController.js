@@ -90,15 +90,19 @@ exports.getStaticTranslations = async (req, res) => {
       isDeleted: false,
     });
 
-    let translations = translation?.translations || null;
+    const defaultLang = getDefaultLanguage().code;
+    const defaultLocalePath = path.join(__dirname, '../locales', defaultLang, `${ns}.json`);
     const localePath = path.join(__dirname, '../locales', lang, `${ns}.json`);
+    const defaultTranslations = lang !== defaultLang && fs.existsSync(defaultLocalePath)
+      ? JSON.parse(fs.readFileSync(defaultLocalePath, 'utf8'))
+      : {};
+    const translations = {
+      ...defaultTranslations,
+      ...(translation?.translations || {}),
+      ...(fs.existsSync(localePath) ? JSON.parse(fs.readFileSync(localePath, 'utf8')) : {}),
+    };
 
-    if (fs.existsSync(localePath)) {
-      const fileTranslations = JSON.parse(fs.readFileSync(localePath, 'utf8'));
-      translations = { ...fileTranslations, ...(translations || {}) };
-    }
-
-    if (!translations) {
+    if (Object.keys(translations).length === 0) {
       return sendTranslationError(
         res,
         404,

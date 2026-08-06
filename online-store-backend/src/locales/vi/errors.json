@@ -24,5 +24,6 @@
   "cart_empty": "Giỏ hàng trống",
   "create_order": "Lỗi khi tạo đơn hàng",
   "page_not_found": "Trang không tìm thấy",
-  "server_error_page": "Đã xảy ra lỗi trên máy chủ"
+  "server_error_page": "Đã xảy ra lỗi trên máy chủ",
+  "error_page_not_found": "Không tìm thấy trang"
 }

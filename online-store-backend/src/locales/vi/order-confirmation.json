@@ -24,5 +24,15 @@
   "back_to_home_button": "Quay lại trang chủ",
   "thank_you_message": "Cảm ơn đã tin tưởng chúng tôi!",
   "redirecting_message": "Đang chuyển hướng về trang chủ trong {{seconds}} giây...",
-  "order_id_label": "Mã"
+  "order_id_label": "Mã",
+  "breadcrumb_order_confirmation": "Xác nhận đơn hàng",
+  "my_orders_status": "Trạng thái đơn hàng của tôi",
+  "order_confirmation_thank_you": "Cảm ơn bạn đã đặt hàng",
+  "order_item_quantity": "Số lượng: {{count}}",
+  "order_items_details": "Chi tiết sản phẩm",
+  "order_not_found_desc": "Không tìm thấy thông tin đơn hàng này.",
+  "order_not_found_title": "Không tìm thấy đơn hàng",
+  "order_status_cancelled": "Đã hủy",
+  "go_home_button": "Về trang chủ",
+  "loading_order_info": "Đang tải thông tin đơn hàng"
 }

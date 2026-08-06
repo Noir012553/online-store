@@ -72,5 +72,6 @@
   "users_password_placeholder": "••••••••",
   "users_confirm_password_placeholder": "••••••••",
   "users_email_cannot_change": "Email không thể thay đổi",
-  "users_user_update_success_message": "Thông tin người dùng đã được cập nhật thành công"
+  "users_user_update_success_message": "Thông tin người dùng đã được cập nhật thành công",
+  "avatar": "Ảnh đại diện"
 }

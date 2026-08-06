@@ -37,5 +37,20 @@
   "admin_override_save": "Lưu Ghi đè",
   "admin_override_preview_title": "Xem trước",
   "admin_override_recent_title": "Ghi đè Gần đây",
-  "admin_override_use_this": "Sử dụng Cái này"
+  "admin_override_use_this": "Sử dụng mục này",
+  "admin_entity_type_ad_hoc": "Văn bản tùy ý",
+  "admin_entity_type_category": "Danh mục",
+  "admin_entity_type_description": "Mô tả",
+  "admin_entity_type_feature": "Tính năng",
+  "admin_entity_type_product": "Sản phẩm",
+  "admin_entity_type_review": "Đánh giá",
+  "admin_entity_type_spec": "Thông số",
+  "admin_override_empty": "Chưa có bản ghi ghi đè gần đây",
+  "admin_override_error": "Không thể lưu ghi đè bản dịch",
+  "admin_override_preview_entity": "Thực thể",
+  "admin_override_preview_language": "Ngôn ngữ",
+  "admin_override_preview_reason": "Lý do",
+  "admin_override_preview_type": "Loại",
+  "admin_override_success": "Ghi đè bản dịch thành công",
+  "admin_override_validation_error": "Vui lòng điền ID thực thể, giá trị mới và lý do"
 }
