@@ -553,5 +553,9 @@
   "last_name": "Nom",
   "last_updated": "Dernière mise à jour",
   "order_status_cancelled": "Annulée",
-  "user_unnamed": "Utilisateur sans nom"
+  "user_unnamed": "Utilisateur sans nom",
+  "admin_price_currency": "(VND)",
+  "admin_price_placeholder": "0",
+  "admin_original_price_placeholder": "0",
+  "admin_count_in_stock_placeholder": "0"
 }

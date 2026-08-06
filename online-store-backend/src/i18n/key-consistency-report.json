@@ -1,12 +1,11 @@
 {
-  "timestamp": "2026-08-06T06:17:03.426Z",
+  "timestamp": "2026-08-06T08:06:45.326Z",
   "total_files": 76,
   "languages_checked": 9,
-  "consistency_issues": 177,
+  "consistency_issues": 162,
   "files_with_issues": [
     "admin-common.json",
     "admin-controllers-messages.json",
-    "admin.json",
     "api.json",
     "common.json",
     "email.json",
@@ -66,48 +65,6 @@
         "details": "Missing 27 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
       }
     ],
-    "admin.json": [
-      {
-        "language": "en",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 38 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "pt",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "fr",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "de",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "it",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "es",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "nl",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      },
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 41 key(s): add_translation, admin_count_in_stock_placeholder, admin_create_customer_description..."
-      }
-    ],
     "api.json": [
       {
         "language": "en",
@@ -152,44 +109,9 @@
     ],
     "common.json": [
       {
-        "language": "en",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 36 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "pt",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "fr",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 36 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "de",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
         "language": "it",
         "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "es",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "nl",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
-      },
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 37 key(s): admin_audit_log_fetch_failed, admin_monitoring_fetch_failed, admin_monitoring_interval_10s..."
+        "details": "Missing 1 key(s): save"
       }
     ],
     "email.json": [
