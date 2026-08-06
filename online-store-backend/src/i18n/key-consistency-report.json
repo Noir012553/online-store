@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-08-06T08:32:11.496Z",
+  "timestamp": "2026-08-06T09:00:28.216Z",
   "total_files": 76,
   "languages_checked": 9,
-  "consistency_issues": 137,
+  "consistency_issues": 136,
   "files_with_issues": [
     "admin-common.json",
     "admin-controllers-messages.json",
@@ -11,7 +11,6 @@
     "product-seeder-messages.json",
     "seeder-messages.json",
     "shipping.json",
-    "user-messages.json",
     "user.json",
     "validation-messages.json"
   ],
@@ -269,13 +268,6 @@
         "language": "sv",
         "issue": "FILE_MISSING",
         "details": "File does not exist: sv/shipping.json"
-      }
-    ],
-    "user-messages.json": [
-      {
-        "language": "sv",
-        "issue": "MISSING_KEYS",
-        "details": "Missing 12 key(s): alreadyExists, emailAlreadyVerified, emailVerifiedSuccess..."
       }
     ],
     "user.json": [
