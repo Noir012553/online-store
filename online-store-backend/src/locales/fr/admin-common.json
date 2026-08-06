@@ -110,6 +110,8 @@
   "admin_products_translations": "Traductions de produits",
   "admin_price_currency": "(VND)",
   "admin_price_placeholder": "0",
+  "admin_price_invalid": "Le prix du produit doit être supérieur à 0",
+  "admin_original_price_invalid": "Le prix d’origine doit être supérieur au prix du produit",
   "admin_original_price_placeholder": "0",
   "admin_count_in_stock_placeholder": "0",
   "admin_shipping_fee_placeholder": "0",

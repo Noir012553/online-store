@@ -110,6 +110,8 @@
   "admin_products_translations": "Produktöversättningar",
   "admin_price_currency": "(VND)",
   "admin_price_placeholder": "0",
+  "admin_price_invalid": "Produktpriset måste vara större än 0",
+  "admin_original_price_invalid": "Ordinarie pris måste vara högre än produktpriset",
   "admin_original_price_placeholder": "0",
   "admin_count_in_stock_placeholder": "0",
   "admin_shipping_fee_placeholder": "0",
