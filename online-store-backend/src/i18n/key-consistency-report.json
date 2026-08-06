@@ -1,14 +1,12 @@
 {
-  "timestamp": "2026-08-06T09:00:28.216Z",
+  "timestamp": "2026-08-06T09:17:41.136Z",
   "total_files": 76,
   "languages_checked": 9,
-  "consistency_issues": 136,
+  "consistency_issues": 127,
   "files_with_issues": [
     "admin-common.json",
-    "admin-controllers-messages.json",
     "api.json",
     "email.json",
-    "product-seeder-messages.json",
     "seeder-messages.json",
     "shipping.json",
     "user.json",
@@ -18,46 +16,39 @@
   "issues_by_file": {
     "admin-common.json": [
       {
-        "language": "en",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 3 extra key(s) not in vi: admin_original_price_invalid, admin_price_invalid, not_available"
-      }
-    ],
-    "admin-controllers-messages.json": [
-      {
         "language": "pt",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "fr",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "de",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "it",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "es",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "nl",
         "issue": "MISSING_KEYS",
-        "details": "Missing 26 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       },
       {
         "language": "sv",
         "issue": "MISSING_KEYS",
-        "details": "Missing 27 key(s): address_created_success, address_deleted_success, address_hard_deleted_success..."
+        "details": "Missing 3 key(s): admin_original_price_invalid, admin_price_invalid, not_available"
       }
     ],
     "api.json": [
@@ -142,48 +133,6 @@
         "language": "sv",
         "issue": "FILE_MISSING",
         "details": "File does not exist: sv/email.json"
-      }
-    ],
-    "product-seeder-messages.json": [
-      {
-        "language": "en",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "pt",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "fr",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "de",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "it",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "es",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "nl",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
-      },
-      {
-        "language": "sv",
-        "issue": "EXTRA_KEYS",
-        "details": "Has 11 extra key(s) not in vi: out_of_stock_category_cooling, out_of_stock_category_gaming_laptop, out_of_stock_category_headphones..."
       }
     ],
     "seeder-messages.json": [
