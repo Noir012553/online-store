@@ -72,5 +72,6 @@
   "users_password_placeholder": "••••••••",
   "users_confirm_password_placeholder": "••••••••",
   "users_email_cannot_change": "E-Mail kann nicht geändert werden",
-  "users_user_update_success_message": "Benutzerinformationen erfolgreich aktualisiert"
+  "users_user_update_success_message": "Benutzerinformationen erfolgreich aktualisiert",
+  "avatar": "Profilbild"
 }

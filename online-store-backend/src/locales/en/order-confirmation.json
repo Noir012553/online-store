@@ -24,5 +24,15 @@
   "back_to_home_button": "Back to Home",
   "thank_you_message": "Thank you for trusting us!",
   "redirecting_message": "Redirecting to home page in {{seconds}} seconds...",
-  "order_id_label": "ID"
+  "order_id_label": "ID",
+  "breadcrumb_order_confirmation": "Order Confirmation",
+  "my_orders_status": "My Order Status",
+  "order_confirmation_thank_you": "Thank you for your order",
+  "order_item_quantity": "Quantity: {{count}}",
+  "order_items_details": "Product Details",
+  "order_not_found_desc": "This order information could not be found.",
+  "order_not_found_title": "Order Not Found",
+  "order_status_cancelled": "Cancelled",
+  "go_home_button": "Go Home",
+  "loading_order_info": "Loading order information..."
 }

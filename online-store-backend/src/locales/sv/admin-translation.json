@@ -325,5 +325,8 @@
   "locale_label_nl": "Nederlands",
   "locale_label_sv": "Svenska",
   "common_confirm": "Bekräfta",
-  "common_cancel": "Avbryt"
+  "common_cancel": "Avbryt",
+  "admin_delete_language": "Ta bort språk",
+  "admin_error_delete_language": "Det gick inte att ta bort språket",
+  "admin_language_deleted": "Språket har tagits bort"
 }

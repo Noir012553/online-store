@@ -72,5 +72,6 @@
   "users_password_placeholder": "••••••••",
   "users_confirm_password_placeholder": "••••••••",
   "users_email_cannot_change": "E-post kan inte ändras",
-  "users_user_update_success_message": "Användarinformation uppdaterad med lycka"
+  "users_user_update_success_message": "Användarinformation uppdaterad med lycka",
+  "avatar": "Profilbild"
 }

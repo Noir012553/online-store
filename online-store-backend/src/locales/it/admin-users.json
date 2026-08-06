@@ -75,5 +75,7 @@
   "hard_delete": "Elimina Permanentemente",
   "cancel": "Annulla",
   "saving": "Salvataggio...",
-  "loading": "Caricamento..."
+  "loading": "Caricamento...",
+  "confirm_delete_user": "Conferma eliminazione utente",
+  "confirm_hard_delete_user": "Conferma eliminazione definitiva dell’utente"
 }
