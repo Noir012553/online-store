@@ -1,0 +1,15 @@
+{
+  "missingParametersService": "Missing shipping service parameters",
+  "noProvidersConfigured": "No shipping providers are configured",
+  "cannotCalculateFee": "Unable to calculate the shipping fee",
+  "provinceIdRequired": "Province or city ID is required",
+  "districtIdRequired": "District ID is required",
+  "ghnDistrictError": "Error fetching district data from GHN: {{error}}",
+  "ghnWardError": "Error fetching ward data from GHN: {{error}}",
+  "sameDistrictFree": "Same district - Free shipping",
+  "standardServiceName": "Standard service",
+  "standardServiceDesc": "Delivery in 3–5 days",
+  "expressServiceName": "Express service",
+  "expressServiceDesc": "Delivery in 1–2 days",
+  "calculateFeeFailed": "Unable to calculate the shipping fee: {{error}}"
+}

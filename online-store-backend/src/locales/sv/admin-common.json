@@ -57,6 +57,7 @@
   "toast_restore_success": "Återställning lyckad",
   "toast_update_success": "Uppdatering lyckad",
   "not_updated": "Inte uppdaterad",
+  "not_available": "Inte tillgänglig",
   "my_orders_payment_card": "Kreditkort",
   "payment_methods": "Banköverföring",
   "create_order_title": "Skapa Ny Beställning",

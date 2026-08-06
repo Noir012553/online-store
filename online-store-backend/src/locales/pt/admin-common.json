@@ -57,6 +57,7 @@
   "toast_restore_success": "Restauração bem-sucedida",
   "toast_update_success": "Atualização bem-sucedida",
   "not_updated": "Não atualizado",
+  "not_available": "Indisponível",
   "my_orders_payment_card": "Cartão de Crédito",
   "payment_methods": "Transferência Bancária",
   "create_order_title": "Criar Novo Pedido",

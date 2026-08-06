@@ -71,5 +71,17 @@
   "locations_seeded_info": "📊 Created {{count}} provinces, {{districts}} districts, {{wards}} wards",
   "banner_not_found": "❌ Banner not found",
   "soft_delete_mode": "🗑️  Soft delete mode",
-  "start_date_end_date_error": "❌ Error: startDate >= endDate"
+  "start_date_end_date_error": "❌ Error: startDate >= endDate",
+  "features_translation_seeding_started": "Feature translation seeding started",
+  "products_with_features_found": "Found {{count}} products with features",
+  "need_translate_features": "{{count}} products need feature translation",
+  "translating_features_step1": "Translating features (step 1)...",
+  "feature_translation_success": "Successfully translated features for {{productName}}",
+  "feature_translation_failed_all": "Failed to translate features for all products",
+  "feature_translation_failed_product": "Failed to translate features for product {{productName}}: {{error}}",
+  "bulk_updating_products_step2": "Bulk updating products (step 2)...",
+  "products_bulk_updated": "Bulk updated {{count}} products",
+  "features_translation_summary": "Feature translation summary: {{success}} succeeded, {{failed}} failed",
+  "features_translation_seeding_error": "Feature translation seeding error: {{error}}",
+  "features_module_label": "Product feature translations"
 }

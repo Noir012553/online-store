@@ -1,0 +1,15 @@
+{
+  "missingParametersService": "Parameters voor de verzendservice ontbreken",
+  "noProvidersConfigured": "Er zijn geen verzendproviders geconfigureerd",
+  "cannotCalculateFee": "De verzendkosten kunnen niet worden berekend",
+  "provinceIdRequired": "De provincie- of stads-ID is vereist",
+  "districtIdRequired": "De district-ID is vereist",
+  "ghnDistrictError": "Fout bij ophalen districtgegevens van GHN: {{error}}",
+  "ghnWardError": "Fout bij ophalen wijkgegevens van GHN: {{error}}",
+  "sameDistrictFree": "Hetzelfde district - Gratis verzending",
+  "standardServiceName": "Standaardservice",
+  "standardServiceDesc": "Levering binnen 3–5 dagen",
+  "expressServiceName": "Expressservice",
+  "expressServiceDesc": "Levering binnen 1–2 dagen",
+  "calculateFeeFailed": "De verzendkosten kunnen niet worden berekend: {{error}}"
+}

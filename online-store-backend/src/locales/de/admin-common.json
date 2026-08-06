@@ -57,6 +57,7 @@
   "toast_restore_success": "Erfolgreich wiederhergestellt",
   "toast_update_success": "Erfolgreich aktualisiert",
   "not_updated": "Nicht aktualisiert",
+  "not_available": "Nicht verfügbar",
   "my_orders_payment_card": "Kreditkarte",
   "payment_methods": "Banküberweisung",
   "create_order_title": "Neue Bestellung erstellen",

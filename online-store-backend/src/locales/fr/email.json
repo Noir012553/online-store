@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Vérifiez votre email de compte - LaptopStore",
+    "title": "Vérification Email",
+    "thank_you": "Merci de vous être inscrit chez LaptopStore!",
+    "instruction": "Veuillez cliquer sur le bouton ci-dessous pour vérifier votre email:",
+    "button": "Vérifier Email",
+    "link_text": "Ou copiez ce lien dans votre navigateur:",
+    "expiry": "Ce lien expirera dans 30 minutes.",
+    "ignore": "Si vous ne vous êtes pas inscrit à ce compte, veuillez ignorer cet email."
+  },
+  "resetPassword": {
+    "subject": "Réinitialiser votre mot de passe - LaptopStore",
+    "title": "Réinitialiser le Mot de Passe",
+    "received": "Nous avons reçu une demande de réinitialisation du mot de passe de votre compte.",
+    "instruction": "Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe:",
+    "button": "Réinitialiser le Mot de Passe",
+    "link_text": "Ou copiez ce lien dans votre navigateur:",
+    "expiry": "Ce lien expirera dans 30 minutes.",
+    "ignore": "Si vous n'avez pas demandé une réinitialisation de mot de passe, veuillez ignorer cet email."
+  },
+  "otp": {
+    "subject": "Votre code OTP - LaptopStore",
+    "title": "Code de Vérification",
+    "description": "Ceci est votre OTP pour vérifier votre identité.",
+    "expiry": "Ce code expirera dans 10 minutes.",
+    "ignore": "Si vous n'avez pas demandé ce code, veuillez ignorer cet email."
+  },
+  "newsletter": {
+    "subject": "Merci de vous être abonné à notre newsletter",
+    "title": "Merci !",
+    "message": "Nous enverrons des offres exclusives à votre e-mail. Vérifiez votre boîte de réception !",
+    "unsubscribe": "Se désabonner"
+  },
+  "copyright": "© 2024 LaptopStore. Tous droits réservés."
+}

@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Verifieer uw accounte-mail - LaptopStore",
+    "title": "E-mailverificatie",
+    "thank_you": "Dank u voor uw registratie bij LaptopStore!",
+    "instruction": "Klik alstublieft op de onderstaande knop om uw e-mail te verifiëren:",
+    "button": "E-mail Verifiëren",
+    "link_text": "Of kopieer deze link in uw browser:",
+    "expiry": "Deze link verloopt over 30 minuten.",
+    "ignore": "Als u zich niet voor dit account hebt aangemeld, negeert u alstublieft deze e-mail."
+  },
+  "resetPassword": {
+    "subject": "Uw wachtwoord opnieuw instellen - LaptopStore",
+    "title": "Wachtwoord Opnieuw Instellen",
+    "received": "We hebben een verzoek ontvangen om het wachtwoord van uw account opnieuw in te stellen.",
+    "instruction": "Klik op de onderstaande knop om een nieuw wachtwoord te maken:",
+    "button": "Wachtwoord Opnieuw Instellen",
+    "link_text": "Of kopieer deze link in uw browser:",
+    "expiry": "Deze link verloopt over 30 minuten.",
+    "ignore": "Als u geen wachtwoord opnieuw hebt ingesteld, negeert u alstublieft deze e-mail."
+  },
+  "otp": {
+    "subject": "Uw OTP-code - LaptopStore",
+    "title": "Verificatiecode",
+    "description": "Dit is uw OTP om uw identiteit te verifiëren.",
+    "expiry": "Deze code verloopt over 10 minuten.",
+    "ignore": "Als u deze code niet hebt aangevraagd, negeert u alstublieft deze e-mail."
+  },
+  "newsletter": {
+    "subject": "Bedankt voor uw aanmelding voor onze nieuwsbrief",
+    "title": "Dank je wel!",
+    "message": "We sturen exclusieve aanbiedingen naar uw e-mail. Controleer uw inbox!",
+    "unsubscribe": "Uitschrijven"
+  },
+  "copyright": "© 2024 LaptopStore. Alle rechten voorbehouden."
+}

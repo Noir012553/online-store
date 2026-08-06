@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Verifiera ditt kontoe-postmeddelande - LaptopStore",
+    "title": "E-postverifiering",
+    "thank_you": "Tack för att du registrerade dig på LaptopStore!",
+    "instruction": "Vänligen klicka på knappen nedan för att verifiera din e-post:",
+    "button": "Verifiera E-post",
+    "link_text": "Eller kopiera denna länk i din webbläsare:",
+    "expiry": "Denna länk upphör att gälla om 30 minuter.",
+    "ignore": "Om du inte registrerade dig för detta konto, ignorera gärna detta e-postmeddelande."
+  },
+  "resetPassword": {
+    "subject": "Återställ ditt lösenord - LaptopStore",
+    "title": "Återställ Lösenord",
+    "received": "Vi fick en begäran om att återställa lösenordet för ditt konto.",
+    "instruction": "Klicka på knappen nedan för att skapa ett nytt lösenord:",
+    "button": "Återställ Lösenord",
+    "link_text": "Eller kopiera denna länk i din webbläsare:",
+    "expiry": "Denna länk upphör att gälla om 30 minuter.",
+    "ignore": "Om du inte begärt en lösenordsåterställning, ignorera gärna detta e-postmeddelande."
+  },
+  "otp": {
+    "subject": "Din OTP-kod - LaptopStore",
+    "title": "Verifieringskod",
+    "description": "Detta är din OTP för att verifiera din identitet.",
+    "expiry": "Denna kod upphör att gälla om 10 minuter.",
+    "ignore": "Om du inte begärt denna kod, ignorera gärna detta e-postmeddelande."
+  },
+  "newsletter": {
+    "subject": "Tack för att du prenumererar på vårt nyhetsbrev",
+    "title": "Tack!",
+    "message": "Vi skickar exklusiva erbjudanden till din e-post. Kontrollera din inkorg!",
+    "unsubscribe": "Avsluta prenumeration"
+  },
+  "copyright": "© 2024 LaptopStore. Alla rättigheter förbehållna."
+}
