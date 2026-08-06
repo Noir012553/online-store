@@ -282,13 +282,13 @@ function getDefaultServiceTypes(code) {
     const activeLangs = getActiveLangCodes();
 
     const messageKeys = {
-      standard: 'shipping-providers-messages.service_standard',
-      fast: 'shipping-providers-messages.service_fast',
-      express: 'shipping-providers-messages.service_express',
+      standard: 'ui-common.shipping_service_standard',
+      fast: 'ui-common.shipping_service_fast',
+      express: 'ui-common.shipping_service_express',
     };
 
     activeLangs.forEach(lang => {
-      names[lang] = getMessage(lang, messageKeys[serviceType] || 'shipping-providers-messages.service_standard');
+      names[lang] = getMessage(lang, messageKeys[serviceType] || 'ui-common.shipping_service_standard');
     });
 
     return names;
