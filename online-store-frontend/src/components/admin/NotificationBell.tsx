@@ -13,6 +13,7 @@ import {
 } from "../ui/popover";
 import { Button } from "../ui/button";
 import { UI_EMOJI } from "../../lib/uiEmoji";
+import { interpolateTranslation } from "../../lib/translationInterpolate";
 import {
   Dialog,
   DialogContent,
@@ -246,7 +247,9 @@ export function NotificationBell() {
                 })}
                 {unreadCount > 10 && (
                   <div className="text-center text-xs text-gray-500 py-3 border-t">
-                    {t('and', 'notifications')} {unreadCount - 10} {t('others', 'notifications')}
+                    {interpolateTranslation(t('and_others', 'notifications'), {
+                      count: unreadCount - 10,
+                    })}
                   </div>
                 )}
               </div>

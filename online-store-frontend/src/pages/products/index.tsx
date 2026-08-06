@@ -78,7 +78,9 @@ export default function AllProductsPage() {
           <Breadcrumbs
             links={[
               { label: t('breadcrumb_label') },
-              ...(isSearching ? [{ label: `${t('search_breadcrumb')} - ${search}` }] : []),
+              ...(isSearching ? [{
+                label: interpolateTranslation(t('search_breadcrumb'), { query: search as string }),
+              }] : []),
             ]}
           />
         </div>
@@ -120,7 +122,9 @@ export default function AllProductsPage() {
               <EmptyState
                 icon={PackageSearch}
                 title={t('search_no_results_title')}
-                description={`${t('search_no_results_desc')} "${search}"`}
+                description={interpolateTranslation(t('search_no_results_desc'), {
+                  query: search as string,
+                })}
               />
             )}
           </>

@@ -26,6 +26,7 @@ import { TranslatedReview } from "../../components/TranslatedReview";
 import { ImageViewer } from "../../components/ImageViewer";
 import { toast } from "sonner";
 import { getImageUrl, isLoginPath } from "../../lib/utils";
+import { interpolateTranslation } from "../../lib/translationInterpolate";
 
 interface Review {
   _id?: string;
@@ -303,7 +304,7 @@ export default function ProductDetail() {
     if (!canDisplayPrice) return;
 
     addToCart(convertedLaptop, quantity);
-    toast.success(t('added_to_cart', 'products'));
+    toast.success(interpolateTranslation(t('added_to_cart', 'products'), { quantity }));
   };
 
   const handleSubmitReviewSuccess = async () => {
@@ -434,9 +435,15 @@ export default function ProductDetail() {
               ))}
               <span className="text-sm sm:text-base">{(laptop.rating || 0).toFixed(1)}</span>
             </div>
-            <span className="text-xs sm:text-sm text-gray-500">({Math.max(totalReviews, reviews.length, laptop.numReviews || 0)} {t('reviews_label', 'product-ui')})</span>
+            <span className="text-xs sm:text-sm text-gray-500">
+              {interpolateTranslation(t('reviews_count', 'product-ui'), {
+                count: Math.max(totalReviews, reviews.length, laptop.numReviews || 0),
+              })}
+            </span>
             <Badge variant={(laptop.countInStock || 0) > 0 ? "default" : "destructive"} className="text-xs sm:text-sm">
-              {(laptop.countInStock || 0) > 0 ? `${t('filter_in_stock', 'products')} (${laptop.countInStock})` : t('out_of_stock', 'products')}
+              {(laptop.countInStock || 0) > 0
+                ? interpolateTranslation(t('stock_in_stock', 'products'), { count: laptop.countInStock || 0 })
+                : t('stock_out_of_stock', 'products')}
             </Badge>
           </div>
 

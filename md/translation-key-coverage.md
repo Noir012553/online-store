@@ -47,6 +47,8 @@ Middleware xác thực gọi namespace `validation`, nhưng các file locale tr�
 - Thêm checker `verify-frontend-translation-keys.js` và script `check:translation-keys` để phát hiện key frontend bị thiếu trước CI/build.
 - Dịch và đồng bộ toàn bộ key trong `payment-messages.json`, `shipping-messages.json` và `shipment.json` cho 8 locale không mặc định.
 - Chuẩn hóa `validation-messages.json` thành `validation.json` ở cả 9 locale để khớp các lời gọi backend `validation.*`.
+- Chuẩn hóa helper interpolation frontend để hỗ trợ cả placeholder `{key}` và `{{key}}`, đồng thời chuyển các luồng tìm kiếm, tồn kho, đánh giá, giỏ hàng, đơn hàng, xác nhận đơn và thông báo sang câu dịch hoàn chỉnh có dữ liệu động.
+- Bổ sung các key có placeholder cho số mặt hàng, số lượng sản phẩm và số lượt đánh giá ở cả 9 locale.
 
 ## Trạng thái bản dịch
 

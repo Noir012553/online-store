@@ -5,6 +5,7 @@
   "cart_continue_shopping": "Continue Shopping",
   "your_shopping_cart": "My Shopping Cart",
   "items_count": "items",
+  "items_count_label": "{{count}} items",
   "product_header": "Product",
   "unit_price_header": "Unit Price",
   "quantity_header": "Quantity",

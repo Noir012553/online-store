@@ -5,6 +5,7 @@
   "cart_continue_shopping": "Zum Einkaufen zurückkehren",
   "your_shopping_cart": "Mein Einkaufswarenkorb",
   "items_count": "Artikel",
+  "items_count_label": "{{count}} Artikel",
   "product_header": "Produkt",
   "unit_price_header": "Einzelpreis",
   "quantity_header": "Menge",

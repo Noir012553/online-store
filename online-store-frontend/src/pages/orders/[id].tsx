@@ -20,6 +20,7 @@ import { useTranslation, useLanguage } from '../../lib/i18n';
 import { toast } from 'sonner';
 import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import { getIntlLocale } from '../../lib/localeUtils';
+import { interpolateTranslation } from '../../lib/translationInterpolate';
 
 export const getServerSideProps = async () => {
   return {
@@ -267,7 +268,7 @@ export default function OrderDetailsPage() {
                       {item.name || ''}
                     </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      {t('quantity_label', 'orders')}: {item.qty}
+                      {interpolateTranslation(t('quantity_label_with_count', 'orders'), { count: item.qty })}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
