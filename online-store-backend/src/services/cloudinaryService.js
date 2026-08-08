@@ -209,6 +209,36 @@ const deleteMultipleFromCloudinary = async (publicIds) => {
   return { deleted, failed, errors };
 };
 
+const deleteCloudinaryImagesByPrefix = async (prefix) => {
+  let nextCursor;
+  let deleted = 0;
+
+  do {
+    const resources = await cloudinary.api.resources({
+      resource_type: 'image',
+      type: 'upload',
+      prefix,
+      max_results: 500,
+      ...(nextCursor ? { next_cursor: nextCursor } : {}),
+    });
+
+    const publicIds = resources.resources.map(resource => resource.public_id);
+    for (let index = 0; index < publicIds.length; index += 100) {
+      const batch = publicIds.slice(index, index + 100);
+      const result = await cloudinary.api.delete_resources(batch, {
+        resource_type: 'image',
+        type: 'upload',
+        invalidate: true,
+      });
+      deleted += Object.keys(result.deleted || {}).length;
+    }
+
+    nextCursor = resources.next_cursor;
+  } while (nextCursor);
+
+  return { deleted };
+};
+
 /**
  * Kiểm tra xem URL có phải từ Cloudinary không
  * Dùng để phân biệt giữa seeded CDN URL (gearvn) vs new Cloudinary URLs
@@ -272,6 +302,7 @@ module.exports = {
   uploadFileToCloudinary,
   deleteFromCloudinary,
   deleteMultipleFromCloudinary,
+  deleteCloudinaryImagesByPrefix,
   isCloudinaryUrl,
   extractPublicIdFromUrl,
   getCloudinaryResource,

@@ -6,10 +6,14 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { deleteCloudinaryImagesByPrefix } = require('./services/cloudinaryService');
 
 const clearDatabase = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
+
+    const cloudinaryResult = await deleteCloudinaryImagesByPrefix('laptop-store/');
+    console.log(`[CLEAR] Deleted ${cloudinaryResult.deleted} Cloudinary images`);
 
     const db = mongoose.connection.db;
 
@@ -37,6 +41,7 @@ const clearDatabase = async () => {
     }
     process.exit(0);
   } catch (error) {
+    console.error('[CLEAR_ERROR]', error.message);
     process.exit(1);
   }
 };
