@@ -28,6 +28,44 @@ Ngoài ra, các module sau có quan hệ với Product:
 | `specTranslations` | Products |
 | `addresses` | Customers, Locations và Shipping Providers |
 
+## Mức độ module hóa hiện tại
+
+### Phần đã module hóa
+
+Seed đã có registry riêng tại `online-store-backend/src/seeds/seedRegistry.js`. Mỗi module có seeder, layer, dependency và mức độ quan trọng riêng. Có thể chạy theo nhóm bằng `--modules=...` hoặc chạy một module riêng bằng `--only-module=...`.
+
+Các nhóm như users, categories, suppliers, currencies, customers, banners, locations, reviews, orders và coupons đã được tách thành các seeder riêng.
+
+### Phần chưa module hóa hoàn toàn
+
+1. Module `products` vẫn gắn với `productSeeder`, trong đó có logic lấy dữ liệu từ endpoint GearVN. Khi endpoint này trả về lỗi, full seed bị dừng.
+2. Registry hiện khai báo `reviews`, `orders`, `coupons` và `specTranslations` phụ thuộc vào module `products`. Chạy `--modules=reviews` có thể kéo `productSeeder` chạy trước.
+3. Registry chưa có khái niệm Product được tạo từ giao diện admin import. Nó chỉ biết Product được tạo bởi module `products`.
+4. Chưa có lệnh hoặc profile chính thức chia quy trình thành trước import, import qua giao diện và sau import.
+5. `--only-module` là cách vận hành tạm thời để bỏ qua dependency sau khi Product đã được import, không phải cơ chế dependency hoàn chỉnh cho luồng mới.
+
+### Luồng module hóa mong muốn
+
+```text
+seed:pre-products
+→ Admin đăng nhập và import Product
+→ seed:post-products
+```
+
+Trong đó:
+
+- `seed:pre-products` tạo dữ liệu nền và tài khoản admin.
+- Giao diện admin tạo Product thông qua import JSON, CSV hoặc file upload.
+- `seed:post-products` tạo reviews, orders, coupons và spec translations dựa trên các Product đã tồn tại.
+- Không module nào trong luồng mặc định gọi lại nguồn dữ liệu GearVN.
+
+### Định hướng xử lý code về sau
+
+1. Tách nguồn Product bên ngoài khỏi luồng seed mặc định.
+2. Bổ sung profile hoặc phase seed rõ ràng cho trước và sau import Product.
+3. Cho phép các module phụ thuộc xác nhận Product đã tồn tại thay vì tự gọi `productSeeder`.
+4. Thêm kiểm thử cho luồng seed nền → đăng nhập admin → import Product → seed module phụ.
+
 ## Luồng giao diện đề xuất
 
 ### 1. Khởi tạo dữ liệu nền
