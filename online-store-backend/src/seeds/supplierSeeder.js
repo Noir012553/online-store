@@ -8,7 +8,7 @@ const SupplierFactory = require('../factories/supplierFactory');
 
 /**
  * Seed dữ liệu nhà cung cấp
- * Tạo các nhà cung cấp mặc định và Tiki Trading
+ * Tạo các nhà cung cấp mặc định
  */
 const seedSuppliers = async () => {
   await Supplier.deleteMany({});
