@@ -29,7 +29,6 @@ const { normalizeSpecs } = require('../utils/specNormalizer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { prepareTikiProductImages } = require('../sources/tiki/imageUploadService');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 
 const buildCategoryNameQuery = (name) => {
@@ -208,7 +207,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     });
   }
 
-  let createdImagePublicIds = [];
 
   try {
     const file = req.file;
@@ -540,26 +538,22 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     console.log(`[FILE_UPLOAD] ${CLI_SYMBOLS.success} Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
 
-    const imagePreparation = await prepareTikiProductImages(enrichedProducts);
-    createdImagePublicIds = imagePreparation.createdPublicIds;
-    const productsWithCloudinaryImages = imagePreparation.products;
 
     // Xử lý theo mode
     let results;
     switch (normalizedMode) {
       case 'insert':
-        results = await handleInsertMode(productsWithCloudinaryImages);
+        results = await handleInsertMode(enrichedProducts);
         break;
       case 'update':
-        results = await handleUpdateMode(productsWithCloudinaryImages);
+        results = await handleUpdateMode(enrichedProducts);
         break;
       case 'upsert':
       default:
-        results = await handleUpsertMode(productsWithCloudinaryImages);
+        results = await handleUpsertMode(enrichedProducts);
     }
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
-    createdImagePublicIds = [];
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
@@ -572,14 +566,14 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         affectedTranslations: undefined,
         obsoleteImagePublicIds: undefined,
       },
-      imageUploadSummary: imagePreparation.summary,
+
       translationSummary,
       createdCategories,
       createdSuppliers,
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
-    await queueObsoleteProductImages(createdImagePublicIds);
+
     console.error('[IMPORT_FILE_ERROR]', error);
     res.status(500).json({
       success: false,
@@ -624,7 +618,6 @@ const importProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  let createdImagePublicIds = [];
 
   try {
     // Parse data sử dụng adapter
@@ -729,26 +722,22 @@ const importProducts = asyncHandler(async (req, res) => {
       });
     }
 
-    const imagePreparation = await prepareTikiProductImages(enrichedProducts);
-    createdImagePublicIds = imagePreparation.createdPublicIds;
-    const productsWithCloudinaryImages = imagePreparation.products;
 
     // Xử lý theo mode
     let results;
     switch (mode.toLowerCase()) {
       case 'insert':
-        results = await handleInsertMode(productsWithCloudinaryImages);
+        results = await handleInsertMode(enrichedProducts);
         break;
       case 'update':
-        results = await handleUpdateMode(productsWithCloudinaryImages);
+        results = await handleUpdateMode(enrichedProducts);
         break;
       case 'upsert':
       default:
-        results = await handleUpsertMode(productsWithCloudinaryImages);
+        results = await handleUpsertMode(enrichedProducts);
     }
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
-    createdImagePublicIds = [];
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     res.json({
       success: true,
@@ -760,12 +749,12 @@ const importProducts = asyncHandler(async (req, res) => {
         affectedTranslations: undefined,
         obsoleteImagePublicIds: undefined,
       },
-      imageUploadSummary: imagePreparation.summary,
+
       translationSummary,
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
-    await queueObsoleteProductImages(createdImagePublicIds);
+
     if (process.env.NODE_ENV === 'development') {
       console.error('[IMPORT_TEXT_ERROR]', error);
       console.error('[IMPORT_TEXT_ERROR_STACK]', error.stack);

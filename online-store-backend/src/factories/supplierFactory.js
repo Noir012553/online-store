@@ -8,12 +8,6 @@ const suppliers = [
   { name: 'Gadget World', email: 'support@gadgetworld.com' },
   { name: 'Digital Store', email: 'contact@digitalstore.com' },
   { name: 'Innovation Labs', email: 'hello@innovationlabs.com' },
-  {
-    name: 'Tiki Trading',
-    sourceNames: ['Tiki'],
-    isDefaultImportSupplier: true,
-    email: 'support@tiki.vn',
-  },
 ];
 
 class SupplierFactory {

@@ -45,20 +45,20 @@ describe('Product import source identity validation', () => {
   it('keeps Cloudinary image metadata in cleaned data', () => {
     const result = validateProduct({
       ...baseProduct,
-      source: 'TIKI',
+      source: 'SUPPLIER_FEED',
       sourceId: '123',
-      image: 'https://res.cloudinary.com/demo/image/upload/laptop-store/tiki/products/image.jpg',
-      imagePublicId: 'laptop-store/tiki/products/image',
-      imagePublicIds: ['laptop-store/tiki/products/image', 'laptop-store/tiki/products/image-2'],
+      image: 'https://res.cloudinary.com/demo/image/upload/laptop-store/supplier-feed/image.jpg',
+      imagePublicId: 'laptop-store/supplier-feed/image',
+      imagePublicIds: ['laptop-store/supplier-feed/image', 'laptop-store/supplier-feed/image-2'],
     });
 
     expect(result.isValid).to.equal(true);
-    expect(result.cleaned.imagePublicId).to.equal('laptop-store/tiki/products/image');
+    expect(result.cleaned.imagePublicId).to.equal('laptop-store/supplier-feed/image');
     expect(result.cleaned.imagePublicIds).to.have.length(2);
   });
 
   it('rejects an incomplete source identity', () => {
-    const result = validateProduct({ ...baseProduct, source: 'TIKI' });
+    const result = validateProduct({ ...baseProduct, source: 'SUPPLIER_FEED' });
 
     expect(result.isValid).to.equal(false);
     expect(result.errors.some(error => error.includes('sourceId is required'))).to.equal(true);
@@ -66,8 +66,8 @@ describe('Product import source identity validation', () => {
 
   it('rejects duplicate source identities in one import', () => {
     const result = validateProductArray([
-      { ...baseProduct, source: 'TIKI', sourceId: '123' },
-      { ...baseProduct, source: 'TIKI', sourceId: '123' },
+      { ...baseProduct, source: 'SUPPLIER_FEED', sourceId: '123' },
+      { ...baseProduct, source: 'SUPPLIER_FEED', sourceId: '123' },
     ]);
 
     expect(result.isValid).to.equal(false);
