@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Bestätigen Sie Ihre E-Mail-Adresse - LaptopStore",
+    "title": "E-Mail-Bestätigung",
+    "thank_you": "Vielen Dank für die Registrierung bei LaptopStore!",
+    "instruction": "Bitte klicken Sie auf die Schaltfläche unten, um Ihre E-Mail zu verifizieren:",
+    "button": "E-Mail verifizieren",
+    "link_text": "Oder kopieren Sie diesen Link in Ihren Browser:",
+    "expiry": "Dieser Link verfällt in 30 Minuten.",
+    "ignore": "Wenn Sie sich nicht für dieses Konto angemeldet haben, ignorieren Sie bitte diese E-Mail."
+  },
+  "resetPassword": {
+    "subject": "Passwort zurücksetzen - LaptopStore",
+    "title": "Passwort Zurücksetzen",
+    "received": "Wir haben eine Anfrage zum Zurücksetzen des Passworts für Ihr Konto erhalten.",
+    "instruction": "Klicken Sie auf die Schaltfläche unten, um ein neues Passwort zu erstellen:",
+    "button": "Passwort Zurücksetzen",
+    "link_text": "Oder kopieren Sie diesen Link in Ihren Browser:",
+    "expiry": "Dieser Link verfällt in 30 Minuten.",
+    "ignore": "Wenn Sie kein Passwort-Zurücksetzen angefordert haben, ignorieren Sie bitte diese E-Mail."
+  },
+  "otp": {
+    "subject": "Ihr OTP-Code - LaptopStore",
+    "title": "Bestätigungscode",
+    "description": "Dies ist Ihr Verifizierungscode.",
+    "expiry": "Dieser Code verfällt in 10 Minuten.",
+    "ignore": "Wenn Sie diesen Code nicht angefordert haben, ignorieren Sie bitte diese E-Mail."
+  },
+  "newsletter": {
+    "subject": "Vielen Dank für Ihre Anmeldung zu unserem Newsletter",
+    "title": "Vielen Dank!",
+    "message": "Wir senden exklusive Angebote an Ihre E-Mail. Überprüfen Sie Ihren Posteingang!",
+    "unsubscribe": "Abbestellen"
+  },
+  "copyright": "© 2024 LaptopStore. Alle Rechte vorbehalten."
+}

@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Lỗi máy chủ",
+  "error_server_desc": "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.",
+  "error_network_title": "Lỗi kết nối",
+  "error_network_desc": "Không thể kết nối đến máy chủ. Kiểm tra kết nối Internet của bạn.",
+  "error_too_many_requests_title": "Quá nhiều yêu cầu",
+  "error_too_many_requests_desc": "Vui lòng chờ trước khi tải lại trang. Máy chủ đang bị quá tải.",
+  "error_server_overloaded_title": "Máy chủ bị quá tải",
+  "error_server_overloaded_desc": "Vui lòng thử lại trong vài giây.",
+  "error_request_title": "Yêu cầu thất bại",
+  "error_request_status": "Lỗi {{status}}",
+  "error_request_slow": "Yêu cầu đang mất thời gian...",
+  "error_request_processing": "đang được xử lý",
+  "error_request_timeout": "Yêu cầu mất quá lâu. Vui lòng kiểm tra kết nối của bạn.",
+  "error_network_fallback": "Không thể kết nối đến máy chủ. Kiểm tra kết nối Internet của bạn.",
+  "error_auth_required": "Vui lòng đăng nhập lại.",
+  "error_permission_denied": "Bạn không có quyền truy cập.",
+  "error_data_not_found": "Dữ liệu không tìm thấy.",
+  "error_generic": "Vui lòng thử lại sau.",
+  "error_generic_fallback": "Vui lòng thử lại."
+}

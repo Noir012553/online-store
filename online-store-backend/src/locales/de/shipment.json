@@ -1,0 +1,22 @@
+{
+  "required_fields": "Erforderliche Felder fehlen",
+  "already_created": "Die Sendung wurde bereits für diese Bestellung erstellt",
+  "invalid_provider": "Ungültiger Versandanbieter",
+  "missing_info": "Versandinformationen fehlen",
+  "no_service_available": "Kein Versanddienst für diese Adresse verfügbar",
+  "unsupported_carrier": "Nicht unterstützter Versandunternehmen",
+  "create_success": "Sendung erfolgreich erstellt",
+  "createSuccess": "Sendung erfolgreich erstellt",
+  "not_found": "Sendung nicht gefunden",
+  "invalid_status": "Ungültiger Sendungsstatus: {status}",
+  "cancel_success": "Sendung erfolgreich storniert",
+  "noServiceAvailable": "Kein Dienst ist verfügbar",
+  "currencyMetadataMissing": "Währungsmetadaten für {{currencyCode}} sind nicht verfügbar",
+  "ratesUnavailable": "Wechselkurse sind vorübergehend nicht verfügbar",
+  "providerRequestFailed": "Der Versandanbieter konnte die Sendungsanfrage nicht verarbeiten",
+  "invalidFee": "Der Versandanbieter hat ungültige Versandkosten zurückgegeben",
+  "orderCurrencyUnavailable": "Währungsdaten der Bestellung sind nicht verfügbar",
+  "printTokenFailed": "Das Versandetikett konnte nicht erstellt werden",
+  "locationSyncSuccess": "Standortdaten erfolgreich synchronisiert",
+  "locationSyncFailed": "Standortdaten konnten nicht synchronisiert werden"
+}

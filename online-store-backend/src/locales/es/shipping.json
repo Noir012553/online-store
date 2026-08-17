@@ -1,0 +1,15 @@
+{
+  "missingParametersService": "Faltan parámetros del servicio de envío",
+  "noProvidersConfigured": "No hay proveedores de envío configurados",
+  "cannotCalculateFee": "No se pudo calcular la tarifa de envío",
+  "provinceIdRequired": "Se requiere el ID de provincia o ciudad",
+  "districtIdRequired": "Se requiere el ID de distrito",
+  "ghnDistrictError": "Error al obtener datos de distrito de GHN: {{error}}",
+  "ghnWardError": "Error al obtener datos de barrio de GHN: {{error}}",
+  "sameDistrictFree": "Mismo distrito - Envío gratis",
+  "standardServiceName": "Servicio estándar",
+  "standardServiceDesc": "Entrega en 3–5 días",
+  "expressServiceName": "Servicio exprés",
+  "expressServiceDesc": "Entrega en 1–2 días",
+  "calculateFeeFailed": "No se pudo calcular la tarifa de envío: {{error}}"
+}

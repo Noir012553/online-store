@@ -1,0 +1,16 @@
+{
+  "required_codes": "Les deux codes de devise sont requis",
+  "required_fields": "La devise source, la devise cible et le taux de change sont requis",
+  "rate_must_be_positive": "Le taux de change doit être supérieur à zéro",
+  "created_success": "Taux de change créé avec succès",
+  "updated_success": "Taux de change mis à jour avec succès",
+  "deleted_success": "Taux de change supprimé avec succès",
+  "amount_non_negative": "Le montant ne peut pas être négatif",
+  "updated_rates": "{{count}} taux de change mis à jour",
+  "not_found": "Taux de change introuvable",
+  "pair_not_found": "Taux de change de {{fromCode}} vers {{toCode}} introuvable",
+  "currencies_match": "Les devises source et cible doivent être différentes",
+  "already_exists": "Le taux de change de {{fromCode}} vers {{toCode}} existe déjà",
+  "currency_not_found": "Devise {{currencyCode}} introuvable",
+  "operation_failed": "Impossible de traiter la demande de taux de change"
+}

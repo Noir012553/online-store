@@ -1,0 +1,20 @@
+{
+  "keyboard": "Teclado",
+  "keyboard_desc": "Teclados de computadora de alta calidad con diseño moderno y características avanzadas",
+  "mouse": "Ratón",
+  "mouse_desc": "Ratones de computadora ergonómicos con alta precisión",
+  "headphones": "Auriculares",
+  "headphones_desc": "Auriculares de computadora con sonido vibrante y micrófono de calidad",
+  "cooling": "Enfriamiento",
+  "cooling_desc": "Soluciones efectivas de enfriamiento de computadora para gestionar problemas de calor",
+  "gaming_laptop": "Portátil Gaming",
+  "gaming_laptop_desc": "Portátiles gaming de alto rendimiento con GPUs potentes",
+  "office_laptop": "Portátil de Oficina",
+  "office_laptop_desc": "Portátiles ligeros de oficina con larga duración de batería",
+  "category_keyboard": "Teclado",
+  "category_mouse": "Ratón",
+  "category_headphones": "Auriculares",
+  "category_cooling": "Enfriamiento",
+  "category_gaming_laptop": "Portátil Gaming",
+  "category_office_laptop": "Portátil de Oficina"
+}

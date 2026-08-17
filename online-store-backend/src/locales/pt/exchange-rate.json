@@ -1,0 +1,16 @@
+{
+  "required_codes": "Ambos os códigos de moeda são obrigatórios",
+  "required_fields": "A moeda de origem, a moeda de destino e a taxa de câmbio são obrigatórias",
+  "rate_must_be_positive": "A taxa de câmbio deve ser maior que zero",
+  "created_success": "Taxa de câmbio criada com sucesso",
+  "updated_success": "Taxa de câmbio atualizada com sucesso",
+  "deleted_success": "Taxa de câmbio excluída com sucesso",
+  "amount_non_negative": "O valor não pode ser negativo",
+  "updated_rates": "{{count}} taxas de câmbio atualizadas",
+  "not_found": "Taxa de câmbio não encontrada",
+  "pair_not_found": "Taxa de câmbio de {{fromCode}} para {{toCode}} não encontrada",
+  "currencies_match": "As moedas de origem e destino devem ser diferentes",
+  "already_exists": "A taxa de câmbio de {{fromCode}} para {{toCode}} já existe",
+  "currency_not_found": "Moeda {{currencyCode}} não encontrada",
+  "operation_failed": "Não foi possível processar a solicitação de taxa de câmbio"
+}

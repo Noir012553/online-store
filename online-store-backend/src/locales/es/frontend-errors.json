@@ -1,0 +1,7 @@
+{
+  "server_error": "Error del servidor",
+  "network_error": "Error de red",
+  "too_many_requests": "Demasiadas solicitudes",
+  "request_timeout": "Tiempo de espera de la solicitud agotado",
+  "request_processing": "Solicitud en procesamiento..."
+}

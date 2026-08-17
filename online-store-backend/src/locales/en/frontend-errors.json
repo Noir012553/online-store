@@ -1,0 +1,7 @@
+{
+  "server_error": "Server error",
+  "network_error": "Network error",
+  "too_many_requests": "Too many requests",
+  "request_timeout": "Request timeout",
+  "request_processing": "Request is processing..."
+}

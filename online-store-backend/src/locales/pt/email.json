@@ -1,0 +1,36 @@
+{
+  "verification": {
+    "subject": "Verifique seu e-mail da conta - LaptopStore",
+    "title": "Verificação de E-mail",
+    "thank_you": "Obrigado por se inscrever na LaptopStore!",
+    "instruction": "Por favor, clique no botão abaixo para verificar seu e-mail:",
+    "button": "Verificar E-mail",
+    "link_text": "Ou copie este link no seu navegador:",
+    "expiry": "Este link expirará em 30 minutos.",
+    "ignore": "Se você não se inscreveu para esta conta, ignore este e-mail."
+  },
+  "resetPassword": {
+    "subject": "Redefinir sua senha - LaptopStore",
+    "title": "Redefinir Senha",
+    "received": "Recebemos uma solicitação para redefinir a senha da sua conta.",
+    "instruction": "Clique no botão abaixo para criar uma nova senha:",
+    "button": "Redefinir Senha",
+    "link_text": "Ou copie este link no seu navegador:",
+    "expiry": "Este link expirará em 30 minutos.",
+    "ignore": "Se você não solicitou uma redefinição de senha, ignore este e-mail."
+  },
+  "otp": {
+    "subject": "Seu código OTP - LaptopStore",
+    "title": "Código de Verificação",
+    "description": "Este é seu OTP para verificar sua identidade.",
+    "expiry": "Este código expirará em 10 minutos.",
+    "ignore": "Se você não solicitou este código, ignore este e-mail."
+  },
+  "newsletter": {
+    "subject": "Obrigado por assinar a nossa newsletter",
+    "title": "Obrigado!",
+    "message": "Enviaremos ofertas exclusivas para seu email. Verifique sua caixa de entrada!",
+    "unsubscribe": "Cancelar inscrição"
+  },
+  "copyright": "© 2024 LaptopStore. Todos os direitos reservados."
+}

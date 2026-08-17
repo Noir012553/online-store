@@ -1,0 +1,7 @@
+{
+  "server_error": "Serverfehler",
+  "network_error": "Netzwerkfehler",
+  "too_many_requests": "Zu viele Anfragen",
+  "request_timeout": "Anfrage-Zeitüberschreitung",
+  "request_processing": "Anfrage wird verarbeitet..."
+}
