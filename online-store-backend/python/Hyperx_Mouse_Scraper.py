@@ -5,6 +5,7 @@ import datetime
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+from scraper_paths import get_output_paths
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -120,8 +121,7 @@ def scrape_full():
     # --- LƯU FILE ---
     date_str = datetime.datetime.now().strftime("%Y%m%d")
     file_prefix = f"Hyperx_Mouse_{date_str}"
-    csv_filename = f"E:\\Dev Camp\\26-4-1\\{file_prefix}.csv"
-    json_filename = f"E:\\Dev Camp\\26-4-1\\{file_prefix}.json"
+    csv_filename, json_filename = get_output_paths(file_prefix)
 
     df = pd.DataFrame(data_list)
     df.to_csv(csv_filename, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)
