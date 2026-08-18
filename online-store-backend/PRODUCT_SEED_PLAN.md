@@ -111,10 +111,11 @@ Các dòng trùng trong cùng một file phải được gộp trước khi ghi 
 
 ### Phase 5: Resolve category
 
-- Tìm category theo tên canonical hoặc alias.
-- Không tự tạo category mới trong lúc import sản phẩm.
-- Đưa các category không resolve được vào báo cáo lỗi.
-- Chỉ import những sản phẩm có category hợp lệ, trừ khi có tùy chọn cho phép bỏ qua category.
+- Đọc category từ trường `Categories` trong file crawler; nếu trường này trống thì suy ra phần category từ tên file `Brand_Category_Date`.
+- Tìm category theo tên canonical hoặc `sourceNames` alias trong database.
+- Nếu category từ crawler chưa tồn tại, pipeline đồng bộ category mới từ chính giá trị crawler, tự tạo `key` và `slug` chuẩn hóa; không dùng danh sách category hard-code trong pipeline.
+- Đưa các dòng thiếu `Categories` vào báo cáo lỗi.
+- Chỉ import những sản phẩm có category hợp lệ.
 
 ### Phase 6: Import theo batch
 
@@ -161,10 +162,13 @@ Import database và dịch/AI phải là hai luồng độc lập.
 ### Dịch sản phẩm
 
 - Chạy sau khi import sản phẩm hoàn tất.
-- Chỉ gửi các sản phẩm thiếu bản dịch.
+- Chỉ gửi các sản phẩm hoặc trường thiếu bản dịch.
+- Dịch tên, mô tả và giá trị thông số kỹ thuật trước khi aggregate vào catalog translation cache.
 - Chia nội dung thành queue, không chạy `Promise.all` cho toàn bộ sản phẩm.
 - Giới hạn số request đồng thời, mặc định 1 hoặc 2.
 - Có delay giữa các request.
+- Khi chạy `npm run seed` một tiến trình, dùng lock trong bộ nhớ; không yêu cầu Redis.
+- Redis chỉ cần khi nhiều process/server cùng chạy translation queue.
 - Xử lý `429` bằng `Retry-After` nếu dịch vụ cung cấp.
 - Exponential backoff cho timeout và lỗi 5xx.
 - Giới hạn số lần retry.
@@ -172,19 +176,44 @@ Import database và dịch/AI phải là hai luồng độc lập.
 - Lưu trạng thái từng sản phẩm để có thể resume.
 - Cho phép chạy riêng từng ngôn ngữ.
 
-## 7. Các lệnh dự kiến
+## 7. Các lệnh chạy pipeline
 
-Tên lệnh có thể điều chỉnh theo convention của backend:
+`npm run seed` chạy toàn bộ pipeline theo thứ tự:
 
 ```text
-npm run products:import -- --file <path> --dry-run
-npm run products:import -- --file <path>
-npm run products:import -- --directory data/scraped-products
-npm run products:translate -- --lang en --limit 50
-npm run products:verify
+seed nền -> crawler -> import upsert theo batch -> dịch sản phẩm -> seed phụ thuộc sản phẩm
 ```
 
-`npm run seed` tiếp tục phụ trách dữ liệu nền. Các seed phụ thuộc sản phẩm như review, order, coupon và spec translation chỉ chạy sau khi product import hoàn tất.
+Chạy toàn bộ crawler và xử lý tất cả file sản phẩm:
+
+```bash
+npm run seed
+```
+
+Chạy preview import từ file hoặc thư mục có sẵn, không ghi Product và không gọi AI:
+
+```bash
+npm run seed -- --dry-run --file data/scraped-products/<file>.json
+npm run seed -- --dry-run --directory data/scraped-products
+```
+
+Các tùy chọn vận hành:
+
+```bash
+npm run seed -- --skip-scrape --directory data/scraped-products
+npm run seed -- --scrape=keyboards
+npm run seed -- --languages=en,fr --batch-size=50
+npm run seed -- --skip-translate
+```
+
+Chạy riêng từng phase khi cần:
+
+```bash
+npm run seed:pre-products
+npm run seed:post-products
+```
+
+Các seed phụ thuộc sản phẩm như review, order, coupon và spec translation chỉ chạy sau khi product import hoàn tất.
 
 ## 8. Xử lý lỗi và báo cáo
 

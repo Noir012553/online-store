@@ -7,10 +7,18 @@ class DistributedLockService {
     this.client = null;
     this.locks = new Map();
     this.initialized = false;
+    this.useMemoryFallback = false;
   }
 
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized || this.useMemoryFallback) return;
+
+    if (process.env.PRODUCT_SEED_LOCK_MODE === 'memory') {
+      this.useMemoryFallback = true;
+      this.initialized = true;
+      console.log('[DistributedLock] Product seed đang dùng lock trong bộ nhớ');
+      return;
+    }
 
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -18,7 +26,7 @@ class DistributedLockService {
         url: redisUrl,
         password: process.env.REDIS_PASSWORD || undefined,
         socket: {
-          reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+          reconnectStrategy: false,
         },
       });
 
@@ -30,8 +38,10 @@ class DistributedLockService {
       this.initialized = true;
       console.log(`[DistributedLock] ${CLI_SYMBOLS.success} Redis connected`);
     } catch (error) {
-      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available, using in-memory fallback`);
       this.useMemoryFallback = true;
+      this.initialized = true;
+      this.client = null;
+      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available, using in-memory fallback`);
     }
   }
 
@@ -164,9 +174,10 @@ class DistributedLockService {
   async close() {
     if (this.client) {
       await this.client.quit();
-      this.initialized = false;
-      console.log('[DistributedLock] Redis connection closed');
+      this.client = null;
     }
+    this.initialized = false;
+    this.useMemoryFallback = false;
   }
 }
 

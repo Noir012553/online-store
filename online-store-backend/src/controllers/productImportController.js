@@ -78,6 +78,7 @@ const getImportProductId = (product) => (
 const getProductLookupFilter = (product) => {
   const productId = getImportProductId(product);
   if (productId) return { _id: productId, isDeleted: false };
+  if (product.sku) return { sku: product.sku, isDeleted: false };
   return { name: product.name, brand: product.brand, isDeleted: false };
 };
 
@@ -101,10 +102,19 @@ const queueObsoleteProductImages = async (publicIds = []) => {
   await Promise.all([...new Set(publicIds)].map(publicId => enqueueCloudinaryCleanup(publicId)));
 };
 
-const findExistingProduct = (byId, byNameAndBrand, product) => {
+const findExistingProduct = (byId, bySku, byNameAndBrand, product) => {
   const productId = getImportProductId(product);
   if (productId) return byId.get(productId);
+  if (product.sku) return bySku.get(product.sku);
   return byNameAndBrand.get(`${product.name}|${product.brand}`);
+};
+
+const addCategoryToMap = (categoryMap, category) => {
+  const names = [category.name, ...(category.sourceNames || [])];
+  names.filter(Boolean).forEach((name) => {
+    categoryMap[name] = category._id;
+    categoryMap[String(name).toLowerCase()] = category._id;
+  });
 };
 
 async function invalidateChangedProductTranslations(affectedProducts = []) {
@@ -270,10 +280,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     // Map category names → IDs (Filter isDeleted = false)
     const categoryMap = {};
     const categories = await Category.find({ isDeleted: false });
-    categories.forEach(cat => {
-      categoryMap[cat.name] = cat._id;
-      categoryMap[cat.name.toLowerCase()] = cat._id;
-    });
+    categories.forEach(cat => addCategoryToMap(categoryMap, cat));
 
     if (!allowCreateReferences) {
       const missingCategory = validProducts.find(product => (
@@ -520,13 +527,23 @@ const importProducts = asyncHandler(async (req, res) => {
       });
     }
 
+    if (isDryRun(dryRun)) {
+      return res.json({
+        success: true,
+        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
+        dryRun: true,
+        format,
+        mode,
+        totalProducts: validProducts.length,
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
+        preview: validProducts.slice(0, 3),
+      });
+    }
+
     // Map category names → IDs (FIX #1: Filter isDeleted = false)
     const categoryMap = {};
     const categories = await Category.find({ isDeleted: false });
-    categories.forEach(cat => {
-      categoryMap[cat.name] = cat._id;
-      categoryMap[cat.name.toLowerCase()] = cat._id;
-    });
+    categories.forEach(cat => addCategoryToMap(categoryMap, cat));
 
     // Enrich products with category IDs
     const enrichedProducts = validProducts.map(product => {
@@ -547,21 +564,6 @@ const importProducts = asyncHandler(async (req, res) => {
 
       return enriched;
     });
-
-    // DRY RUN: Return preview mà không save
-    if (isDryRun(dryRun)) {
-      return res.json({
-        success: true,
-        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
-        dryRun: true,
-        format,
-        mode,
-        totalProducts: validProducts.length,
-        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
-        preview: validProducts.slice(0, 3),
-      });
-    }
-
 
     // Xử lý theo mode
     let results;
@@ -619,16 +621,20 @@ async function handleInsertMode(products) {
       isDeleted: false,
       $or: products.map(getProductLookupFilter),
     },
-    { name: 1, brand: 1 }
+    { name: 1, brand: 1, sku: 1 }
   );
 
-  const existingNames = new Set(existingProducts.map(p => `${p.name}|${p.brand}`));
+  const existingKeys = new Set(existingProducts.flatMap((product) => [
+    product.sku ? `sku:${product.sku}` : null,
+    `name:${product.name}|${product.brand}`,
+  ].filter(Boolean)));
   // Separate products into insert and skip
   const toInsert = [];
   const skipped = [];
 
   products.forEach(product => {
-    const exists = existingNames.has(`${product.name}|${product.brand}`);
+    const key = product.sku ? `sku:${product.sku}` : `name:${product.name}|${product.brand}`;
+    const exists = existingKeys.has(key);
     if (exists) {
       skipped.push({ name: product.name, brand: product.brand, reasonCode: 'IMPORT_PRODUCT_EXISTS' });
     } else {
@@ -664,6 +670,7 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   const filters = productsWithEnrichedIds.map(getProductLookupFilter);
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
+  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [product.sku, product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
 
   const bulkOps = [];
@@ -671,7 +678,7 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   const obsoleteImagePublicIds = [];
 
   for (const product of productsWithEnrichedIds) {
-    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
+    const existing = findExistingProduct(existingById, existingBySku, existingByNameAndBrand, product);
     if (!existing) {
       notFound.push({ name: product.name, brand: product.brand });
       continue;
@@ -722,12 +729,13 @@ async function handleUpsertMode(products) {
   const filters = products.map(getProductLookupFilter);
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
+  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [product.sku, product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
 
   const affectedTranslations = [];
   const obsoleteImagePublicIds = [];
   const bulkOps = products.map((product) => {
-    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
+    const existing = findExistingProduct(existingById, existingBySku, existingByNameAndBrand, product);
     if (existing) {
       obsoleteImagePublicIds.push(
         ...getProductImagePublicIds(existing).filter(publicId => !getProductImagePublicIds(product).includes(publicId))
