@@ -162,7 +162,8 @@ Import database và dịch/AI phải là hai luồng độc lập.
 ### Dịch sản phẩm
 
 - Chạy sau khi import sản phẩm hoàn tất.
-- Chỉ gửi các sản phẩm thiếu bản dịch.
+- Chỉ gửi các sản phẩm hoặc trường thiếu bản dịch.
+- Dịch tên, mô tả và giá trị thông số kỹ thuật trước khi aggregate vào catalog translation cache.
 - Chia nội dung thành queue, không chạy `Promise.all` cho toàn bộ sản phẩm.
 - Giới hạn số request đồng thời, mặc định 1 hoặc 2.
 - Có delay giữa các request.

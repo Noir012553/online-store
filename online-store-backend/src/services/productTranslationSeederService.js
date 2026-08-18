@@ -311,10 +311,17 @@ class ProductTranslationSeederService {
         });
       }
 
-      // 4. ⚠️  NOTE: Spec translation (both keys & values) is handled by translationSeederHelper
-      // Spec keys are translated via specKeyTranslations.json lookup
-      // Spec values are translated via product_spec entityType
-      // Do NOT add spec translation here to avoid duplicate/conflicting entityType values
+      if (product.specs && typeof product.specs === 'object') {
+        Object.entries(product.specs).forEach(([specKey, value]) => {
+          if (typeof value === 'string' && value.trim()) {
+            fieldsToTranslate.push({
+              originalText: value,
+              entityType: 'product_spec',
+              specKey,
+            });
+          }
+        });
+      }
 
       // Dịch từng field
       for (const field of fieldsToTranslate) {
@@ -328,7 +335,6 @@ class ProductTranslationSeederService {
           const cached = await LiveTranslationCache.findOne({
             hashKey,
             status: 'success',
-            qualityStatus: 'approved',
           }).lean();
           const cachedNeedsRefresh = cached?.validationErrors?.includes('missing_brand');
           if (cached && !cachedNeedsRefresh) {

@@ -45,11 +45,10 @@ async function seedSpecTranslations() {
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying products and approved translations...`);
 
     const [products, allRecords] = await Promise.all([
-      Product.find({}).select('_id brand specs').lean(),
+      Product.find({}).select('_id name description brand specs').lean(),
       LiveTranslationCache.find({
         entityType: { $in: ['product_spec', 'product_name', 'product_description'] },
         status: 'success',
-        qualityStatus: 'approved',
         targetLang: { $in: SUPPORTED_LANG_CODES },
       }).lean(),
     ]);
@@ -97,6 +96,29 @@ async function seedSpecTranslations() {
       } else if (doc.entityType === 'product_spec' && doc.specKey) {
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
         group.specs[translatedKey] = doc.translatedText;
+      }
+    }
+
+    const translatedByText = new Map(
+      allRecords.map(record => [`${record.originalText}:${record.targetLang}`, record.translatedText])
+    );
+
+    for (const product of products) {
+      for (const targetLang of SUPPORTED_LANG_CODES) {
+        const group = grouped.get(`${product._id}:${targetLang}`);
+        if (!group) continue;
+
+        group.name ||= translatedByText.get(`${product.name}:${targetLang}`) || null;
+        group.description ||= translatedByText.get(`${product.description}:${targetLang}`) || null;
+
+        for (const [specKey, value] of Object.entries(product.specs || {})) {
+          if (typeof value !== 'string' || !value.trim()) continue;
+          const translatedValue = translatedByText.get(`${value}:${targetLang}`);
+          if (translatedValue) {
+            const translatedKey = specKeyTranslations[specKey]?.[targetLang] || specKey;
+            group.specs[translatedKey] = translatedValue;
+          }
+        }
       }
     }
 
