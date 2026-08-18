@@ -91,7 +91,7 @@ class ProductTranslationSeederService {
       console.log(`\n[ProductSeeder] PHASE 2 (Giai đoạn 2): Dịch sản phẩm từ ${sourceLang} sang ${targetLang}`);
       console.log(`[ProductSeeder] Chiến lược Layer 2: Chấp nhận dính Rate Limit, ghi nhận lỗi, cho Admin retry\n`);
 
-      const totalProducts = await Product.countDocuments({});
+      const totalProducts = await Product.countDocuments({ isDeleted: false });
       console.log(`[ProductSeeder] Tổng sản phẩm cần dịch: ${totalProducts}`);
 
       if (totalProducts === 0) {
@@ -118,7 +118,7 @@ class ProductTranslationSeederService {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.package} Chunk ${chunkIndex + 1}/${totalChunks} (skip=${skip}, limit=${CHUNK_SIZE})`);
 
         // Lấy chunk sản phẩm hiện tại
-        const products = await Product.find({})
+        const products = await Product.find({ isDeleted: false })
           .skip(skip)
           .limit(CHUNK_SIZE)
           .lean()

@@ -47,17 +47,9 @@ const TRANSLATABLE_FIELDS = {
 
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 
-const hasContent = (value) => {
-  if (Array.isArray(value)) return value.some(hasText);
-  if (value instanceof Map) return Array.from(value.values()).some(hasText);
-  return value && typeof value === 'object' && Object.values(value).some(hasText);
-};
-
 const hasRequiredProductFields = (product) => (
   hasText(product?.name)
-  && hasText(product?.description)
   && hasText(product?.brand)
-  && hasContent(product?.specs)
 );
 
 const hasValidSourceProductFields = (product) => hasRequiredProductFields(product);
@@ -70,9 +62,12 @@ const getSpecEntries = (specs) => {
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
   if (!hasRequiredProductFields(translation)) return false;
+  if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
 
-  const sourceSpecs = getSpecEntries(sourceProduct?.specs).filter(([, value]) => value !== null && value !== undefined && String(value).trim());
-  const translatedSpecs = getSpecEntries(translation?.specs).filter(([, value]) => hasText(value));
+  const sourceSpecs = getSpecEntries(sourceProduct?.specs)
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim());
+  const translatedSpecs = getSpecEntries(translation?.specs)
+    .filter(([, value]) => hasText(value));
 
   return translatedSpecs.length >= sourceSpecs.length;
 };
