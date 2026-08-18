@@ -36,7 +36,6 @@ const { connectMongo } = require('../config/mongoConnection');
  * LAYER 2 (Core entities - chỉ chạy nếu không --i18n-only)
  *   2. Users (admin, user1, user2)
  *   3. Categories (6 danh mục)
- *   4. Suppliers (5 nhà cung cấp)
  *   5. Customers (30 khách hàng)
  *
  * Sau khi admin import Product, chạy seed:post-products để tạo reviews, orders, coupons và spec translations.
@@ -163,7 +162,6 @@ const seed = async () => {
     const seedContext = {
       users: null,
       categories: null,
-      suppliers: null,
       products: null,
       customers: null,
       locations: null,
@@ -243,7 +241,6 @@ const seed = async () => {
         // Store in context for next modules
         if (moduleName === 'users' && Array.isArray(result)) seedContext.users = result;
         if (moduleName === 'categories' && Array.isArray(result)) seedContext.categories = result;
-        if (moduleName === 'suppliers' && Array.isArray(result)) seedContext.suppliers = result;
         if (moduleName === 'customers' && Array.isArray(result)) seedContext.customers = result;
         if (moduleName === 'locations' && Array.isArray(result)) seedContext.locations = result;
 

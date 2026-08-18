@@ -177,7 +177,7 @@ const buildRatingFilter = (minRating, maxRating) => {
 
 /**
  * Lấy danh sách sản phẩm tối ưu cho home page
- * Không populate reviews (quá nặng), chỉ populate category + supplier
+ * Không populate reviews (quá nặng), chỉ populate category
  * @route GET /api/products/featured
  * @access Public
  */
@@ -252,7 +252,6 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   const products = await withTimeout(
     Product.find({ ...query, _id: { $in: [...visibleProductIds] } })
       .populate('category')
-      .populate('supplier')
       .lean()
       .sort({ featured: -1, createdAt: -1 })
       .limit(pageSize)
@@ -286,8 +285,7 @@ const getAdminTranslationProducts = asyncHandler(async (req, res) => {
     withTimeout(
       Product.find(query)
         .populate('category')
-        .populate('supplier')
-        .lean()
+      .lean()
         .sort({ createdAt: -1 })
         .limit(pageSize)
         .skip(pageSize * (page - 1)),
@@ -394,7 +392,6 @@ const getProducts = asyncHandler(async (req, res) => {
   const products = await withTimeout(
     Product.find({ ...query, _id: { $in: [...visibleProductIds] } })
       .populate('category')
-      .populate('supplier')
       .lean()
       .limit(pageSize)
       .skip(pageSize * (page - 1)),
@@ -427,8 +424,7 @@ const getProductById = asyncHandler(async (req, res) => {
   const product = await withTimeout(
     Product.findById(req.params.id)
       .populate({ path: 'reviews', options: { limit: 50 } }) // Limit reviews to prevent memory leak
-      .populate('category')
-      .populate('supplier'),
+      .populate('category'),
     15000
   );
 
@@ -460,7 +456,7 @@ const getProductById = asyncHandler(async (req, res) => {
 const createProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
-    name, price, description, brand, category, countInStock, supplier,
+    name, price, description, brand, category, countInStock,
     originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
   } = req.body;
   const parsedDeal = parseDealInput(deal);
@@ -571,7 +567,6 @@ const createProduct = asyncHandler(async (req, res) => {
     category: resolvedCategory._id,
     countInStock: numCountInStock,
     description: normalizedDescription,
-    supplier,
     featured: featured || false,
     specs: normalizedSpecs,
     deal: parsedDeal,
@@ -593,8 +588,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const populatedProduct = await withTimeout(
     Product.findById(createdProduct._id)
       .populate('reviews')
-      .populate('category')
-      .populate('supplier'),
+      .populate('category'),
     8000
   );
 
@@ -637,7 +631,7 @@ const createProduct = asyncHandler(async (req, res) => {
 const updateProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
-    name, price, description, brand, category, countInStock, supplier,
+    name, price, description, brand, category, countInStock,
     originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
   } = req.body;
 
@@ -725,10 +719,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.countInStock = parseInt(countInStock);
   }
 
-  if (supplier !== undefined) {
-    product.supplier = supplier;
-  }
-
   if (featured !== undefined) {
     product.featured = featured;
   }
@@ -812,8 +802,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
   const populatedProduct = await withTimeout(
     Product.findById(updatedProduct._id)
-      .populate('category')
-      .populate('supplier'),
+      .populate('category'),
     8000
   );
 
@@ -925,8 +914,7 @@ const restoreProduct = asyncHandler(async (req, res) => {
   }
   const populatedProduct = await withTimeout(
     Product.findById(restoredProduct._id)
-      .populate('category')
-      .populate('supplier'),
+      .populate('category'),
     8000
   );
 
@@ -974,7 +962,6 @@ const getDeletedProducts = asyncHandler(async (req, res) => {
   const products = await withTimeout(
     Product.find({ isDeleted: true })
       .populate('category')
-      .populate('supplier')
       .lean() // Use lean() to reduce memory overhead for large product lists
       .sort({ updatedAt: -1 })
       .limit(pageSize)

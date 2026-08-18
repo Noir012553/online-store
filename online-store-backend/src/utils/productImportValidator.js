@@ -13,25 +13,20 @@
 const mongoose = require('mongoose');
 const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
 
-const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category', 'supplier']);
+const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 
 /**
  * Required fields khi import products
  */
-const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'supplier', 'baseCurrencyCode'];
+const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode'];
 
 /**
  * Optional fields có thể có khi import
  */
 const OPTIONAL_FIELDS = [
-  'productId', 'source', 'sourceId', 'sourceParentId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+  'productId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
   'rating', 'numReviews', 'featured', 'deal'
 ];
-
-const SOURCE_PATTERN = /^[A-Z0-9][A-Z0-9_-]{0,31}$/;
-
-const normalizeSource = (source) => String(source || '').trim().toUpperCase();
-
 
 /**
  * Validate 1 product object
@@ -73,28 +68,8 @@ function validateProduct(product, rowIndex = 0) {
     }
   }
 
-  const source = normalizeSource(product.source);
-  const sourceId = product.sourceId === undefined || product.sourceId === null
-    ? ''
-    : String(product.sourceId).trim();
-
-  if (source || sourceId) {
-    if (!source || !SOURCE_PATTERN.test(source)) {
-      errors.push(`Row ${rowIndex}: source must be an uppercase identifier using letters, numbers, hyphens, or underscores`);
-    }
-    if (!sourceId) {
-      errors.push(`Row ${rowIndex}: sourceId is required when source is provided`);
-    } else {
-      cleaned.sourceId = sourceId;
-    }
-    if (source) cleaned.source = source;
-
-    if (product.sourceParentId !== undefined && product.sourceParentId !== null && String(product.sourceParentId).trim()) {
-      cleaned.sourceParentId = String(product.sourceParentId).trim();
-    }
-    if (product.sku !== undefined && product.sku !== null && String(product.sku).trim()) {
-      cleaned.sku = String(product.sku).trim();
-    }
+  if (product.sku !== undefined && product.sku !== null && String(product.sku).trim()) {
+    cleaned.sku = String(product.sku).trim();
   }
 
   // Validate price
@@ -167,12 +142,6 @@ function validateProduct(product, rowIndex = 0) {
   if (product.category) {
     cleaned.category = String(product.category).trim();
     // TODO: Check nếu category tồn tại trong DB
-  }
-
-  // Validate supplier - should be valid supplier name or ID
-  if (product.supplier) {
-    cleaned.supplier = String(product.supplier).trim();
-    // TODO: Check nếu supplier tồn tại trong DB
   }
 
   // Optional fields
@@ -341,19 +310,9 @@ function validateProductArray(products) {
   const invalidProducts = [];
   const allErrors = [];
   const allWarnings = [];
-  const seenSourceIdentities = new Set();
-
   products.forEach((product, index) => {
     const result = validateProduct(product, index + 1);
-    let errors = result.errors;
-    if (result.isValid && result.cleaned.source && result.cleaned.sourceId) {
-      const sourceIdentity = `${result.cleaned.source}|${result.cleaned.sourceId}`;
-      if (seenSourceIdentities.has(sourceIdentity)) {
-        errors = [...errors, `Row ${index + 1}: DUPLICATE_SOURCE_ID "${sourceIdentity}"`];
-      } else {
-        seenSourceIdentities.add(sourceIdentity);
-      }
-    }
+    const errors = result.errors;
 
     if (errors.length === 0) {
       validProducts.push(result.cleaned);
@@ -379,7 +338,7 @@ function validateProductArray(products) {
 }
 
 /**
- * Validate category/supplier name để tránh injection, data pollution
+ * Validate category name để tránh injection, data pollution
  *
  * Rules:
  * - Length: 1-100 characters
@@ -392,7 +351,7 @@ function validateProductArray(products) {
  * @param {String} name - Name to validate
  * @returns {Object} { isValid, error }
  */
-function validateCategorySupplierName(name) {
+function validateCategoryName(name) {
   // Trim whitespace
   const trimmed = String(name || '').trim();
 
@@ -439,7 +398,7 @@ function validateCategorySupplierName(name) {
 }
 
 /**
- * Sanitize category/supplier name
+ * Sanitize category name
  * - Trim whitespace
  * - Normalize multiple spaces to single space
  * - Remove accents for consistency (optional)
@@ -447,7 +406,7 @@ function validateCategorySupplierName(name) {
  * @param {String} name
  * @returns {String} Sanitized name
  */
-function sanitizeCategorySupplierName(name) {
+function sanitizeCategoryName(name) {
   return String(name || '')
     .trim()
     .replace(/\s+/g, ' '); // Replace multiple spaces with single space
@@ -457,10 +416,8 @@ module.exports = {
   validateProduct,
   validateProductArray,
   normalizeSpecNames,
-  validateCategorySupplierName,
-  sanitizeCategorySupplierName,
+  validateCategoryName,
+  sanitizeCategoryName,
   REQUIRED_FIELDS,
   OPTIONAL_FIELDS,
-  SOURCE_PATTERN,
-  normalizeSource,
 };
