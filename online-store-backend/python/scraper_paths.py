@@ -2,8 +2,14 @@ import os
 from pathlib import Path
 
 
+PRODUCT_OUTPUT_FIELDS = (
+    "Brand", "ID", "Name", "SKU", "Price_VND", "Regular_Price", "InStock",
+    "Categories", "Attributes", "Description", "MainImage", "GalleryImages", "URL",
+)
+
+
 def get_output_directory():
-    project_root = Path(os.getenv("SCRAPER_PROJECT_ROOT", Path.cwd())).expanduser().resolve()
+    project_root = Path(__file__).resolve().parent.parent
     configured_output = os.getenv("SCRAPER_OUTPUT_DIR")
 
     if configured_output:
