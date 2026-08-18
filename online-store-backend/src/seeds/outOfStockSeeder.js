@@ -76,6 +76,7 @@ const seedOutOfStockProducts = async (userId, categoryIds) => {
         image: imageUrl,
         images: [imageUrl],
         price: 1000000 + i * 100000,
+        baseCurrencyCode: 'VND',
         originalPrice: 1500000 + i * 100000,
         countInStock: 0,
         description: buildProductDescription(categoryKey),

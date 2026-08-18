@@ -198,7 +198,7 @@ router.get('/admin/export', protect, admin, exportProducts);
 
 /**
  * GET /api/products/admin/export-stats - Lấy thống kê export
- * Admin only - Dùng để hiển thị available categories, brands, suppliers
+ * Admin only - Dùng để hiển thị available categories và brands
  */
 router.get('/admin/export-stats', protect, admin, getExportStats);
 
