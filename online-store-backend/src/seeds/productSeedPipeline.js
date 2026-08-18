@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const Category = require('../models/Category');
 const {
   getActiveLangCodes,
   getDefaultLanguage,
@@ -70,6 +71,75 @@ const chooseProductFiles = (directory) => {
     .filter(Boolean)
     .sort()
     .map(filename => path.join(directory, filename));
+};
+
+const normalizeName = value => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '');
+
+const inferCategoryFromFilename = (product, filePath) => {
+  if (product.category?.trim()) return product.category.trim();
+
+  const name = path.basename(filePath, path.extname(filePath)).replace(/_\d{8}$/, '');
+  const parts = name.split('_').filter(Boolean);
+  const brandKey = normalizeName(product.brand || product.Brand);
+  for (let index = 1; index < parts.length; index++) {
+    if (normalizeName(parts.slice(0, index).join('_')) === brandKey) {
+      return parts.slice(index).join(' ');
+    }
+  }
+
+  return null;
+};
+
+const getSourceCategoryNames = (products) => [...new Set(
+  products
+    .map(product => product.category)
+    .filter(category => typeof category === 'string' && category.trim())
+    .map(category => category.trim())
+)];
+
+const ensureSourceCategories = async (products, filePath, dryRun) => {
+  const categoryNames = getSourceCategoryNames(products);
+  const existingCategories = await Category.find({ isDeleted: false }).lean();
+  const categoryMap = new Map();
+
+  existingCategories.forEach((category) => {
+    [category.name, ...(category.sourceNames || [])]
+      .filter(Boolean)
+      .forEach(name => categoryMap.set(String(name).trim().toLowerCase(), category));
+  });
+
+  const missingCategories = categoryNames.filter(name => !categoryMap.has(name.toLowerCase()));
+  if (missingCategories.length === 0 || dryRun) {
+    if (missingCategories.length > 0) {
+      console.log(`[ProductPipeline] Category chưa có trong DB (${path.basename(filePath)}): ${missingCategories.join(', ')}`);
+    }
+    return missingCategories;
+  }
+
+  for (const name of missingCategories) {
+    const key = name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+    const category = await Category.findOneAndUpdate(
+      { name },
+      {
+        $set: { isDeleted: false },
+        $setOnInsert: { name, key, slug: key.replace(/_/g, '-'), sourceNames: [] },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+    categoryMap.set(name.toLowerCase(), category);
+    console.log(`[ProductPipeline] Đã đồng bộ category từ crawler: ${name}`);
+  }
+
+  return [];
 };
 
 const getInputFiles = ({ file, directory }) => {
@@ -151,12 +221,20 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => 
   const format = path.extname(filePath).toLowerCase().slice(1);
   const manager = new ImportAdapterManager();
   const content = fs.readFileSync(filePath, 'utf8');
-  const parsedProducts = await manager.parse(content, format);
-  const { unique, duplicateCount } = dedupeProducts(parsedProducts);
+  const parsedProducts = (await manager.parse(content, format)).map(product => ({
+    ...product,
+    category: inferCategoryFromFilename(product, filePath),
+  }));
+  const { unique: dedupedProducts, duplicateCount } = dedupeProducts(parsedProducts);
+  const validation = await manager.validate(dedupedProducts, format);
+  await ensureSourceCategories(validation.validProducts, filePath, dryRun);
+  const unique = validation.validProducts;
   const totalBatches = Math.ceil(unique.length / batchSize);
   const summary = {
     file: filePath,
     read: parsedProducts.length,
+    invalid: validation.invalidProducts.length,
+    warnings: validation.warnings.length,
     duplicates: duplicateCount,
     inserted: 0,
     updated: 0,
@@ -164,7 +242,7 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => 
     batches: 0,
   };
 
-  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, ${unique.length} dòng sau dedupe`);
+  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, ${validation.invalidProducts.length} dòng lỗi, ${unique.length} dòng hợp lệ sau dedupe`);
 
   for (let offset = 0; offset < unique.length; offset += batchSize) {
     const batch = unique.slice(offset, offset + batchSize);

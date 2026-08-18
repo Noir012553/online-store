@@ -111,10 +111,11 @@ Các dòng trùng trong cùng một file phải được gộp trước khi ghi 
 
 ### Phase 5: Resolve category
 
-- Tìm category theo tên canonical hoặc alias.
-- Không tự tạo category mới trong lúc import sản phẩm.
-- Đưa các category không resolve được vào báo cáo lỗi.
-- Chỉ import những sản phẩm có category hợp lệ, trừ khi có tùy chọn cho phép bỏ qua category.
+- Đọc category từ trường `Categories` trong file crawler; nếu trường này trống thì suy ra phần category từ tên file `Brand_Category_Date`.
+- Tìm category theo tên canonical hoặc `sourceNames` alias trong database.
+- Nếu category từ crawler chưa tồn tại, pipeline đồng bộ category mới từ chính giá trị crawler, tự tạo `key` và `slug` chuẩn hóa; không dùng danh sách category hard-code trong pipeline.
+- Đưa các dòng thiếu `Categories` vào báo cáo lỗi.
+- Chỉ import những sản phẩm có category hợp lệ.
 
 ### Phase 6: Import theo batch
 

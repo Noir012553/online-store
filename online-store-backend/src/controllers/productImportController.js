@@ -527,6 +527,19 @@ const importProducts = asyncHandler(async (req, res) => {
       });
     }
 
+    if (isDryRun(dryRun)) {
+      return res.json({
+        success: true,
+        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
+        dryRun: true,
+        format,
+        mode,
+        totalProducts: validProducts.length,
+        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
+        preview: validProducts.slice(0, 3),
+      });
+    }
+
     // Map category names → IDs (FIX #1: Filter isDeleted = false)
     const categoryMap = {};
     const categories = await Category.find({ isDeleted: false });
@@ -551,21 +564,6 @@ const importProducts = asyncHandler(async (req, res) => {
 
       return enriched;
     });
-
-    // DRY RUN: Return preview mà không save
-    if (isDryRun(dryRun)) {
-      return res.json({
-        success: true,
-        message: getMessage(req.lang, 'admin-controllers-messages.dry_run_preview_import'),
-        dryRun: true,
-        format,
-        mode,
-        totalProducts: validProducts.length,
-        warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
-        preview: validProducts.slice(0, 3),
-      });
-    }
-
 
     // Xử lý theo mode
     let results;
