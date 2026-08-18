@@ -332,12 +332,11 @@ class ProductTranslationSeederService {
             .digest('hex');
 
           // Check cache trước
-          const cached = await LiveTranslationCache.findOne({
-            hashKey,
-            status: 'success',
-          }).lean();
-          const cachedNeedsRefresh = cached?.validationErrors?.includes('missing_brand');
-          if (cached && !cachedNeedsRefresh) {
+          const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          const hasApprovedCache = cached?.status === 'success'
+            && cached.qualityStatus === 'approved'
+            && !cached.validationErrors?.includes('missing_brand');
+          if (hasApprovedCache) {
             successCount++;
             continue;
           }
@@ -369,7 +368,7 @@ class ProductTranslationSeederService {
             validationErrors: validationResult.validationErrors,
             retryCount: 0,
           };
-          if (cachedNeedsRefresh) {
+          if (cached) {
             await LiveTranslationCache.updateOne({ _id: cached._id }, { $set: translationRecord });
           } else {
             await LiveTranslationCache.create(translationRecord);
