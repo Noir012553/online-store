@@ -142,7 +142,7 @@ const ensureSourceCategories = async (products, filePath, dryRun) => {
         $set: { isDeleted: false },
         $setOnInsert: { name, key, slug: key.replace(/_/g, '-'), sourceNames: [] },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     ).lean();
     categoryMap.set(name.toLowerCase(), category);
     console.log(`[ProductPipeline] Đã đồng bộ category từ crawler: ${name}`);
