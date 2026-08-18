@@ -54,6 +54,7 @@ class ProductFactory {
       rating: overrides.rating || (4 + Math.random() * 1),
       numReviews: overrides.numReviews || Math.floor(Math.random() * 300),
       price: price,
+      baseCurrencyCode: overrides.baseCurrencyCode || 'VND',
       originalPrice: hasDiscount ? originalPrice : undefined,
       countInStock: overrides.countInStock || Math.floor(Math.random() * 100 + 5),
       featured: overrides.featured !== undefined ? overrides.featured : Math.random() > 0.6,

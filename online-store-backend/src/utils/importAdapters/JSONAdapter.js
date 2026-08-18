@@ -41,7 +41,7 @@ class JSONAdapter extends BaseImportAdapter {
         throw error;
       }
 
-      return products;
+      return products.map((product) => this.normalizeFieldNames(product));
     } catch (error) {
       if (error.code) throw error;
 

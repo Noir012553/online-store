@@ -73,12 +73,29 @@ class BaseImportAdapter {
       'description': 'description',
       'specifications': 'specs',
     };
-
+    const isCrawlerProduct = Object.hasOwn(product, 'Price_VND');
     const normalized = {};
+
     for (const [key, value] of Object.entries(product)) {
       const normalizedKey = fieldMapping[key.toLowerCase()] || key;
       normalized[normalizedKey] = value;
     }
+
+    if (!isCrawlerProduct) return normalized;
+
+    normalized.name = product.Name;
+    normalized.brand = product.Brand;
+    normalized.sku = product.SKU;
+    normalized.price = product.Price_VND;
+    normalized.originalPrice = product.Regular_Price;
+    normalized.category = product.Categories;
+    normalized.specs = product.Attributes;
+    normalized.description = product.Description;
+    normalized.image = product.MainImage;
+    normalized.images = product.GalleryImages;
+    normalized.countInStock = /^(in stock|true|1)$/i.test(String(product.InStock).trim()) ? 1 : 0;
+    normalized.baseCurrencyCode = 'VND';
+
     return normalized;
   }
 
