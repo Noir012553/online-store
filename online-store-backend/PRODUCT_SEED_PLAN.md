@@ -172,19 +172,44 @@ Import database và dịch/AI phải là hai luồng độc lập.
 - Lưu trạng thái từng sản phẩm để có thể resume.
 - Cho phép chạy riêng từng ngôn ngữ.
 
-## 7. Các lệnh dự kiến
+## 7. Các lệnh chạy pipeline
 
-Tên lệnh có thể điều chỉnh theo convention của backend:
+`npm run seed` chạy toàn bộ pipeline theo thứ tự:
 
 ```text
-npm run products:import -- --file <path> --dry-run
-npm run products:import -- --file <path>
-npm run products:import -- --directory data/scraped-products
-npm run products:translate -- --lang en --limit 50
-npm run products:verify
+seed nền -> crawler -> import upsert theo batch -> dịch sản phẩm -> seed phụ thuộc sản phẩm
 ```
 
-`npm run seed` tiếp tục phụ trách dữ liệu nền. Các seed phụ thuộc sản phẩm như review, order, coupon và spec translation chỉ chạy sau khi product import hoàn tất.
+Chạy toàn bộ crawler và xử lý tất cả file sản phẩm:
+
+```bash
+npm run seed
+```
+
+Chạy preview import từ file hoặc thư mục có sẵn, không ghi Product và không gọi AI:
+
+```bash
+npm run seed -- --dry-run --file data/scraped-products/<file>.json
+npm run seed -- --dry-run --directory data/scraped-products
+```
+
+Các tùy chọn vận hành:
+
+```bash
+npm run seed -- --skip-scrape --directory data/scraped-products
+npm run seed -- --scrape=keyboards
+npm run seed -- --languages=en,fr --batch-size=50
+npm run seed -- --skip-translate
+```
+
+Chạy riêng từng phase khi cần:
+
+```bash
+npm run seed:pre-products
+npm run seed:post-products
+```
+
+Các seed phụ thuộc sản phẩm như review, order, coupon và spec translation chỉ chạy sau khi product import hoàn tất.
 
 ## 8. Xử lý lỗi và báo cáo
 

@@ -3,9 +3,9 @@
  * 
  * Dịch tất cả sản phẩm từ tiếng Việt (vi) sang ngôn ngữ mới
  * CHIẾN LƯỢC LAYER 2 (Linh hoạt - chấp nhận dính Rate Limit):
- * - Chunking: Xử lý 10 sản phẩm mỗi lần (chấp nhận dính Rate Limit)
- * - Concurrency: 8 sản phẩm đồng thời (thoải mái hơn Layer 1)
- * - Throttling: 500ms - mềm mại hơn Layer 1 (1500ms)
+ * - Chunking: Xử lý 10 sản phẩm mỗi lần
+ * - Concurrency: Có thể cấu hình, mặc định 1 sản phẩm đồng thời
+ * - Throttling: Có thể cấu hình, mặc định 1000ms giữa các chunk
  * - 429 Error Handling: Ghi nhận status='failed_rate_limit' thay vì crash
  * - Fallback: Giữ text gốc (originalText) khi dính Rate Limit
  */
@@ -106,8 +106,8 @@ class ProductTranslationSeederService {
 
       // Layer 2 Configuration: Thoải mái hơn Layer 1
       const CHUNK_SIZE = 10;
-      const CONCURRENT_PRODUCTS = 8;
-      const THROTTLE_BETWEEN_CHUNKS = 500;
+      const CONCURRENT_PRODUCTS = Math.max(1, Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1));
+      const THROTTLE_BETWEEN_CHUNKS = Math.max(0, Number(process.env.PRODUCT_TRANSLATION_DELAY_MS || 1000));
 
       const totalChunks = Math.ceil(totalProducts / CHUNK_SIZE);
 
@@ -126,14 +126,11 @@ class ProductTranslationSeederService {
 
         if (products.length === 0) break;
 
-        // Dịch từng sản phẩm trong chunk
-        const productPromises = products.map((product, idx) =>
-          this._translateProduct(product, targetLang, sourceLang, idx)
-        );
-
         // Process với concurrency limit
-        for (let i = 0; i < productPromises.length; i += CONCURRENT_PRODUCTS) {
-          const concurrent = productPromises.slice(i, i + CONCURRENT_PRODUCTS);
+        for (let i = 0; i < products.length; i += CONCURRENT_PRODUCTS) {
+          const concurrent = products.slice(i, i + CONCURRENT_PRODUCTS).map((product, index) =>
+            this._translateProduct(product, targetLang, sourceLang, i + index)
+          );
           const results = await Promise.allSettled(concurrent);
 
           for (const result of results) {
@@ -274,6 +271,7 @@ class ProductTranslationSeederService {
   static async _translateProduct(product, targetLang, sourceLang, index) {
     const productId = product._id.toString();
     const lockKey = `translate:${productId}:${targetLang}`;
+    let lockId = null;
 
     try {
       await distributedLockService.initialize();
@@ -284,7 +282,7 @@ class ProductTranslationSeederService {
         return { success: 0, rateLimitErr: 0, otherErr: 0 };
       }
 
-      const lockId = await distributedLockService.acquireLock(lockKey, 120);
+      lockId = await distributedLockService.acquireLock(lockKey, 120);
       if (!lockId) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Không thể acquire lock cho ${productId}, skip`);
         return { success: 0, rateLimitErr: 0, otherErr: 0 };
@@ -409,7 +407,7 @@ class ProductTranslationSeederService {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi xử lý sản phẩm: ${err.message}`);
       return { success: 0, rateLimitErr: 0, otherErr: 1 };
     } finally {
-      await distributedLockService.releaseLock(lockKey, lockId);
+      if (lockId) await distributedLockService.releaseLock(lockKey, lockId);
     }
   }
 

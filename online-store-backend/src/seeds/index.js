@@ -10,6 +10,7 @@ const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { connectMongo } = require('../config/mongoConnection');
+const { runProductSeedPipeline } = require('./productSeedPipeline');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
@@ -18,8 +19,8 @@ const { connectMongo } = require('../config/mongoConnection');
  * ⚡ LAYER 1 (i18n) được ưu tiên chạy trước tất cả entities khác
  *
  * Cách dùng:
- * npm run seed                                  - Seed dữ liệu nền trước khi import Product
- * npm run seed -- --dry-run                     - Test mode (skip AI, use mock data)
+ * npm run seed                                  - Chạy toàn bộ crawler, seed, import, dịch và post-products
+ * npm run seed -- --dry-run                     - Seed nền và preview import, không ghi Product hoặc gọi crawler
  * npm run seed -- --incremental                 - Only translate missing items
  * npm run seed:post-products                    - Seed dữ liệu phụ thuộc sau khi import Product
  * npm run seed -- --i18n-only                   - Seed ONLY i18n (Layer 1: languages + translations)
@@ -58,6 +59,11 @@ function parseCliArgs() {
   let modules = null;
   let onlyModule = null;
   let phase = null;
+  let file = null;
+  let directory = null;
+  let scrapeTarget = null;
+  let languages = null;
+  let batchSize = null;
 
   args.forEach(arg => {
     if (arg.startsWith('--modules=')) {
@@ -68,6 +74,21 @@ function parseCliArgs() {
     }
     if (arg.startsWith('--phase=')) {
       phase = arg.replace('--phase=', '').trim();
+    }
+    if (arg.startsWith('--file=')) {
+      file = arg.replace('--file=', '').trim();
+    }
+    if (arg.startsWith('--directory=')) {
+      directory = arg.replace('--directory=', '').trim();
+    }
+    if (arg.startsWith('--scrape=')) {
+      scrapeTarget = arg.replace('--scrape=', '').trim();
+    }
+    if (arg.startsWith('--languages=')) {
+      languages = arg.replace('--languages=', '').split(',').map(language => language.trim()).filter(Boolean);
+    }
+    if (arg.startsWith('--batch-size=')) {
+      batchSize = Number(arg.replace('--batch-size=', '').trim());
     }
   });
 
@@ -80,6 +101,13 @@ function parseCliArgs() {
     modules,
     onlyModule,
     phase,
+    file,
+    directory,
+    scrapeTarget,
+    languages,
+    batchSize,
+    skipScrape: args.includes('--skip-scrape'),
+    skipTranslate: args.includes('--skip-translate'),
   };
 }
 
@@ -137,8 +165,15 @@ const seed = async () => {
     } else if (cliArgs.i18nOnly) {
       modulesToRun = resolveModules(['languages', 'translations']);
     } else {
+      const runFullPipeline = cliArgs.all || !cliArgs.phase && !cliArgs.onlyModule && !cliArgs.modules && !cliArgs.i18nOnly;
       modulesToRun = [...SEED_PHASES.preProducts];
-      seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
+      if (runFullPipeline) {
+        modulesToRun.push('__product-pipeline__');
+        if (!cliArgs.dryRun) modulesToRun.push(...SEED_PHASES.postProducts);
+        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: Crawler -> import -> translation -> post-products\n`);
+      } else {
+        seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
+      }
     }
 
     // ==================== Database Connection ====================
@@ -168,6 +203,21 @@ const seed = async () => {
     };
 
     for (const moduleName of modulesToRun) {
+      if (moduleName === '__product-pipeline__') {
+        const pipelineSummary = await runProductSeedPipeline({
+          dryRun: cliArgs.dryRun,
+          file: cliArgs.file,
+          directory: cliArgs.directory,
+          scrapeTarget: cliArgs.scrapeTarget,
+          languages: cliArgs.languages,
+          batchSize: cliArgs.batchSize,
+          skipScrape: cliArgs.skipScrape,
+          skipTranslate: cliArgs.skipTranslate,
+        });
+        seedLogger.log(`${CLI_SYMBOLS.success} Product pipeline completed: ${JSON.stringify(pipelineSummary)}\n`);
+        continue;
+      }
+
       const module = SEED_MODULES[moduleName];
       if (!module) {
         seedLogger.warn(`Unknown module: ${moduleName}`);

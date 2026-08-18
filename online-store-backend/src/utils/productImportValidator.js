@@ -18,7 +18,7 @@ const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 /**
  * Required fields khi import products
  */
-const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode'];
+const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode', 'image'];
 
 /**
  * Optional fields có thể có khi import
