@@ -47,6 +47,7 @@ data/*.json
 data/.processed/
 data/.failed/
 data/.auto-import-reports/
+data/scraped-products/
 !data/.gitkeep
 
 # User-generated uploads (local storage for avatars, reviews)

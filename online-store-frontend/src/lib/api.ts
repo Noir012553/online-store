@@ -855,7 +855,7 @@ export const productAPI = {
   },
 
   /**
-   * Lấy thống kê export (categories, brands, suppliers, total count)
+   * Lấy thống kê export (categories, brands, total count)
    */
   getExportStats: async (locale?: string) => {
     const endpoint = '/products/admin/export-stats';
@@ -1257,18 +1257,6 @@ export const bannerAPI = {
     const params = new URLSearchParams();
     if (locale) params.append('lang', locale);
     return apiCall(`/banners/slots${params.toString() ? '?' + params.toString() : ''}`);
-  },
-};
-
-/**
- * Supplier API endpoints
- */
-export const supplierAPI = {
-  /**
-   * Lấy danh sách nhà cung cấp công khai (brands)
-   */
-  getPublicSuppliers: async () => {
-    return apiCall('/suppliers/public/list');
   },
 };
 

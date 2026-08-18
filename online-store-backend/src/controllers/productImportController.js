@@ -21,10 +21,9 @@ const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-const Supplier = require('../models/Supplier');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
-const { validateCategorySupplierName, sanitizeCategorySupplierName } = require('../utils/productImportValidator');
+const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
@@ -39,9 +38,8 @@ const buildCategoryNameQuery = (name) => {
 // Initialize adapter manager
 const adapterManager = new ImportAdapterManager();
 
-// Config: Max new categories/suppliers per import (to prevent abuse)
+// Config: Max new categories per import (to prevent abuse)
 const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
-const MAX_NEW_SUPPLIERS_PER_IMPORT = 10;
 const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'specs'];
 
 const isDryRun = (value) => value === true || value === 'true';
@@ -54,14 +52,10 @@ const toImportIssues = (issues, code) => issues.map((_, index) => ({
 const importErrorMessageKeys = {
   IMPORT_DUPLICATE_KEY: 'admin-controllers-messages.duplicate_key_error',
   IMPORT_CATEGORY_LIMIT_EXCEEDED: 'admin-controllers-messages.too_many_new_categories',
-  IMPORT_SUPPLIER_LIMIT_EXCEEDED: 'admin-controllers-messages.too_many_new_suppliers',
   IMPORT_CATEGORY_UNRESOLVED: 'admin-controllers-messages.product_category_not_resolve',
-  IMPORT_SUPPLIER_UNRESOLVED: 'admin-controllers-messages.product_supplier_not_resolve',
   IMPORT_CATEGORY_NOT_FOUND: 'admin-controllers-messages.product_category_not_found',
-  IMPORT_SUPPLIER_NOT_FOUND: 'admin-controllers-messages.product_supplier_not_found',
   IMPORT_PRODUCTS_NOT_FOUND: 'admin-controllers-messages.products_not_found_count',
   IMPORT_PRODUCT_ID_REQUIRED_FOR_UPDATE: 'admin-controllers-messages.product_id_required_for_update',
-  IMPORT_SOURCE_ID_REQUIRED: 'admin-controllers-messages.product_id_required_for_update',
 };
 
 const createImportError = (code, params) => {
@@ -81,25 +75,8 @@ const getImportProductId = (product) => (
   mongoose.Types.ObjectId.isValid(product.productId) ? product.productId.toString() : null
 );
 
-const getSourceIdentity = (product) => (
-  product.source && product.sourceId
-    ? `${String(product.source).toUpperCase()}|${String(product.sourceId)}`
-    : null
-);
-
 const getProductLookupFilter = (product) => {
   const productId = getImportProductId(product);
-  const sourceIdentity = getSourceIdentity(product);
-  if (sourceIdentity) {
-    return {
-      source: String(product.source).toUpperCase(),
-      sourceId: String(product.sourceId),
-      isDeleted: false,
-    };
-  }
-  if (product.source && !product.sourceId) {
-    throw createImportError('IMPORT_SOURCE_ID_REQUIRED');
-  }
   if (productId) return { _id: productId, isDeleted: false };
   return { name: product.name, brand: product.brand, isDeleted: false };
 };
@@ -124,13 +101,8 @@ const queueObsoleteProductImages = async (publicIds = []) => {
   await Promise.all([...new Set(publicIds)].map(publicId => enqueueCloudinaryCleanup(publicId)));
 };
 
-const findExistingProduct = (byId, byNameAndBrand, bySourceIdentity, product) => {
+const findExistingProduct = (byId, byNameAndBrand, product) => {
   const productId = getImportProductId(product);
-  const sourceIdentity = getSourceIdentity(product);
-  if (sourceIdentity) return bySourceIdentity.get(sourceIdentity);
-  if (product.source && !product.sourceId) {
-    throw createImportError('IMPORT_SOURCE_ID_REQUIRED');
-  }
   if (productId) return byId.get(productId);
   return byNameAndBrand.get(`${product.name}|${product.brand}`);
 };
@@ -272,7 +244,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     const normalizedMode = mode.toLowerCase();
 
     if (normalizedMode === 'update' && validProducts.some((product) => (
-      !getImportProductId(product) && !getSourceIdentity(product)
+      !getImportProductId(product)
     ))) {
       return res.status(400).json({
         success: false,
@@ -290,7 +262,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         mode,
         totalProducts: validProducts.length,
         createdCategories: [],
-        createdSuppliers: [],
         warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         preview: validProducts.slice(0, 3),
       });
@@ -302,14 +273,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     categories.forEach(cat => {
       categoryMap[cat.name] = cat._id;
       categoryMap[cat.name.toLowerCase()] = cat._id;
-    });
-
-    // Map supplier names → IDs (Filter isDeleted = false)
-    const supplierMap = {};
-    const suppliers = await Supplier.find({ isDeleted: false });
-    suppliers.forEach(sup => {
-      supplierMap[sup.name] = sup._id;
-      supplierMap[sup.name.toLowerCase()] = sup._id;
     });
 
     if (!allowCreateReferences) {
@@ -325,32 +288,18 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         });
       }
 
-      const missingSupplier = validProducts.find(product => (
-        !supplierMap[product.supplier]
-        && !supplierMap[String(product.supplier).toLowerCase()]
-        && !mongoose.Types.ObjectId.isValid(product.supplier)
-      ));
-      if (missingSupplier) {
-        throw createImportError('IMPORT_SUPPLIER_NOT_FOUND', {
-          name: missingSupplier.name,
-          supplier: missingSupplier.supplier,
-        });
-      }
     }
 
-    // Pre-identify all missing categories/suppliers and create them in bulk.
-    // BEFORE: Loop N products × (check + create category + check + create supplier) = N*4 operations
-    // AFTER: Pre-collect → Bulk create categories → Bulk create suppliers = 2 operations
+    // Pre-identify missing categories and create them in bulk.
     if (process.env.NODE_ENV === 'development') {
-      console.time(`${CLI_SYMBOLS.duration} Bulk category/supplier creation`);
+      console.time(`${CLI_SYMBOLS.duration} Bulk category creation`);
     }
 
     const createdCategories = [];
-    const createdSuppliers = [];
 
-    // Step 1: Identify missing categories
+    // Identify missing categories
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${CLI_SYMBOLS.search} [Step 1/4] Scanning for missing categories...`);
+      console.log(`${CLI_SYMBOLS.search} Scanning for missing categories...`);
     }
     const categoriesToCreate = [];
     const categoryLookup = new Map();
@@ -362,9 +311,9 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       }
 
       if (!categoryId) {
-        const sanitizedName = sanitizeCategorySupplierName(product.category);
+        const sanitizedName = sanitizeCategoryName(product.category);
         if (!categoryLookup.has(sanitizedName)) {
-          const validation = validateCategorySupplierName(product.category);
+          const validation = validateCategoryName(product.category);
           if (!validation.isValid) {
             throw createImportError('IMPORT_CATEGORY_NAME_INVALID', { name: product.category });
           }
@@ -386,9 +335,9 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       });
     }
 
-    // Step 2: Bulk create missing categories
+    // Bulk create missing categories
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${CLI_SYMBOLS.save} [Step 2/4] Bulk creating categories...`);
+      console.log(`${CLI_SYMBOLS.save} Bulk creating categories...`);
     }
     if (categoriesToCreate.length > 0) {
       try {
@@ -421,84 +370,11 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       }
     }
 
-    // Step 3: Identify missing suppliers
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${CLI_SYMBOLS.search} [Step 3/4] Scanning for missing suppliers...`);
-    }
-    const suppliersToCreate = [];
-    const supplierLookup = new Map();
-
-    for (const product of validProducts) {
-      let supplierId = supplierMap[product.supplier] || supplierMap[String(product.supplier).toLowerCase()];
-      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
-        supplierId = product.supplier;
-      }
-
-      if (!supplierId) {
-        const sanitizedName = sanitizeCategorySupplierName(product.supplier);
-        if (!supplierLookup.has(sanitizedName)) {
-          const validation = validateCategorySupplierName(product.supplier);
-          if (!validation.isValid) {
-            throw createImportError('IMPORT_SUPPLIER_NAME_INVALID', { name: product.supplier });
-          }
-
-          supplierLookup.set(sanitizedName, null); // Mark for creation
-          suppliersToCreate.push({ name: sanitizedName, isDeleted: false });
-        }
-      }
+      console.timeEnd(`${CLI_SYMBOLS.duration} Bulk category creation`);
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`${CLI_SYMBOLS.chart} Found ${suppliersToCreate.length} suppliers to create`);
-    }
-
-    if (suppliersToCreate.length > MAX_NEW_SUPPLIERS_PER_IMPORT) {
-      throw createImportError('IMPORT_SUPPLIER_LIMIT_EXCEEDED', {
-        count: suppliersToCreate.length,
-        max: MAX_NEW_SUPPLIERS_PER_IMPORT,
-      });
-    }
-
-    // Step 4: Bulk create missing suppliers
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`${CLI_SYMBOLS.save} [Step 4/4] Bulk creating suppliers...`);
-    }
-    if (suppliersToCreate.length > 0) {
-      try {
-        const newSuppliers = await Supplier.insertMany(suppliersToCreate, { ordered: false });
-        newSuppliers.forEach(sup => {
-          supplierLookup.set(sup.name, sup._id);
-          supplierMap[sup.name] = sup._id;
-          supplierMap[sup.name.toLowerCase()] = sup._id;
-          createdSuppliers.push(sup.name);
-        });
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`${CLI_SYMBOLS.success} Created ${newSuppliers.length} suppliers`);
-        }
-      } catch (err) {
-        if (err.code === 11000) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`${CLI_SYMBOLS.warning} Some suppliers already exist, fetching them...`);
-          }
-          for (const { name } of suppliersToCreate) {
-            const existing = await Supplier.findOne({ name, isDeleted: false });
-            if (existing) {
-              supplierLookup.set(name, existing._id);
-              supplierMap[name] = existing._id;
-              supplierMap[name.toLowerCase()] = existing._id;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.timeEnd(`${CLI_SYMBOLS.duration} Bulk category/supplier creation`);
-    }
-
-    // Now enrich all products in a single pass (category/supplier already resolved)
+    // Now enrich all products in a single pass (category already resolved)
     if (process.env.NODE_ENV === 'development') {
       console.log(`${CLI_SYMBOLS.edit} Enriching products with resolved IDs...`);
     }
@@ -511,7 +387,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         categoryId = product.category;
       }
       if (!categoryId) {
-        const sanitizedName = sanitizeCategorySupplierName(product.category);
+        const sanitizedName = sanitizeCategoryName(product.category);
         categoryId = categoryLookup.get(sanitizedName);
       }
       if (!categoryId) {
@@ -519,24 +395,10 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       }
       enriched.category = categoryId;
 
-      // Resolve supplier
-      let supplierId = supplierMap[product.supplier] || supplierMap[String(product.supplier).toLowerCase()];
-      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
-        supplierId = product.supplier;
-      }
-      if (!supplierId) {
-        const sanitizedName = sanitizeCategorySupplierName(product.supplier);
-        supplierId = supplierLookup.get(sanitizedName);
-      }
-      if (!supplierId) {
-        throw createImportError('IMPORT_SUPPLIER_UNRESOLVED', { idx: idx + 1 });
-      }
-      enriched.supplier = supplierId;
-
       return enriched;
     });
 
-    console.log(`[FILE_UPLOAD] ${CLI_SYMBOLS.success} Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories, ${createdSuppliers.length} suppliers)`);
+    console.log(`[FILE_UPLOAD] ${CLI_SYMBOLS.success} Successfully enriched ${enrichedProducts.length} products (created ${createdCategories.length} categories)`);
 
 
     // Xử lý theo mode
@@ -569,7 +431,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
       translationSummary,
       createdCategories,
-      createdSuppliers,
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
@@ -650,7 +511,7 @@ const importProducts = asyncHandler(async (req, res) => {
     const normalizedMode = mode.toLowerCase();
 
     if (normalizedMode === 'update' && validProducts.some((product) => (
-      !getImportProductId(product) && !getSourceIdentity(product)
+      !getImportProductId(product)
     ))) {
       return res.status(400).json({
         success: false,
@@ -667,15 +528,7 @@ const importProducts = asyncHandler(async (req, res) => {
       categoryMap[cat.name.toLowerCase()] = cat._id;
     });
 
-    // Map supplier names → IDs (FIX #1: Filter isDeleted = false)
-    const supplierMap = {};
-    const suppliers = await Supplier.find({ isDeleted: false });
-    suppliers.forEach(sup => {
-      supplierMap[sup.name] = sup._id;
-      supplierMap[sup.name.toLowerCase()] = sup._id;
-    });
-
-    // Enrich products với category/supplier IDs
+    // Enrich products with category IDs
     const enrichedProducts = validProducts.map(product => {
       const enriched = { ...product, user: adminUserId };
 
@@ -691,19 +544,6 @@ const importProducts = asyncHandler(async (req, res) => {
         });
       }
       enriched.category = categoryId;
-
-      // Resolve supplier
-      let supplierId = supplierMap[product.supplier];
-      if (!supplierId && mongoose.Types.ObjectId.isValid(product.supplier)) {
-        supplierId = product.supplier;
-      }
-      if (!supplierId) {
-        throw createImportError('IMPORT_SUPPLIER_NOT_FOUND', {
-          name: product.name,
-          supplier: product.supplier,
-        });
-      }
-      enriched.supplier = supplierId;
 
       return enriched;
     });
@@ -779,27 +619,18 @@ async function handleInsertMode(products) {
       isDeleted: false,
       $or: products.map(getProductLookupFilter),
     },
-    { name: 1, brand: 1, source: 1, sourceId: 1 }
+    { name: 1, brand: 1 }
   );
 
   const existingNames = new Set(existingProducts.map(p => `${p.name}|${p.brand}`));
-  const existingSourceIdentities = new Set(
-    existingProducts
-      .filter(product => product.source && product.sourceId)
-      .map(product => `${product.source}|${product.sourceId}`)
-  );
-
   // Separate products into insert and skip
   const toInsert = [];
   const skipped = [];
 
   products.forEach(product => {
-    const sourceIdentity = getSourceIdentity(product);
-    const exists = sourceIdentity
-      ? existingSourceIdentities.has(sourceIdentity)
-      : existingNames.has(`${product.name}|${product.brand}`);
+    const exists = existingNames.has(`${product.name}|${product.brand}`);
     if (exists) {
-      skipped.push({ name: product.name, brand: product.brand, sourceIdentity, reasonCode: 'IMPORT_PRODUCT_EXISTS' });
+      skipped.push({ name: product.name, brand: product.brand, reasonCode: 'IMPORT_PRODUCT_EXISTS' });
     } else {
       toInsert.push(withoutImportProductId(product));
     }
@@ -825,7 +656,7 @@ async function handleInsertMode(products) {
 /**
  * Update mode: Chỉ cập nhật cũ (lỗi nếu không tìm)
  * OPTIMIZATION: Bulk fetch existing products with $in instead of looping findOne
- * FIX #2: Enrich category/supplier trước khi update
+ * FIX #2: Enrich category trước khi update
  */
 async function handleUpdateMode(productsWithEnrichedIds) {
   const updated = [];
@@ -834,17 +665,13 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
-  const existingBySourceIdentity = new Map(
-    existingProducts
-      .filter(product => product.source && product.sourceId)
-      .map(product => [`${String(product.source).toUpperCase()}|${String(product.sourceId)}`, product])
-  );
+
   const bulkOps = [];
   const affectedTranslations = [];
   const obsoleteImagePublicIds = [];
 
   for (const product of productsWithEnrichedIds) {
-    const existing = findExistingProduct(existingById, existingByNameAndBrand, existingBySourceIdentity, product);
+    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
     if (!existing) {
       notFound.push({ name: product.name, brand: product.brand });
       continue;
@@ -896,15 +723,11 @@ async function handleUpsertMode(products) {
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
-  const existingBySourceIdentity = new Map(
-    existingProducts
-      .filter(product => product.source && product.sourceId)
-      .map(product => [`${String(product.source).toUpperCase()}|${String(product.sourceId)}`, product])
-  );
+
   const affectedTranslations = [];
   const obsoleteImagePublicIds = [];
   const bulkOps = products.map((product) => {
-    const existing = findExistingProduct(existingById, existingByNameAndBrand, existingBySourceIdentity, product);
+    const existing = findExistingProduct(existingById, existingByNameAndBrand, product);
     if (existing) {
       obsoleteImagePublicIds.push(
         ...getProductImagePublicIds(existing).filter(publicId => !getProductImagePublicIds(product).includes(publicId))
@@ -1012,9 +835,9 @@ const getImportGuide = asyncHandler(async (req, res) => {
       step4: getMessage(req.lang, 'admin-controllers-messages.import_guide_step4'),
       step5: getMessage(req.lang, 'admin-controllers-messages.import_guide_step5'),
     },
-    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'supplier'],
+    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category'],
     optionalFields: [
-      'productId', 'source', 'sourceId', 'sourceParentId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+      'productId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {
@@ -1022,12 +845,6 @@ const getImportGuide = asyncHandler(async (req, res) => {
         format: 'MongoDB ObjectId from a product export',
         requiredFor: ['update'],
         note: 'Required for update mode. Keep this value when updating exported products so their existing translations can be refreshed correctly.',
-      },
-      sourceIdentity: {
-        fields: ['source', 'sourceId', 'sourceParentId', 'sku'],
-        format: 'source + sourceId uniquely identify products from an external source',
-        requiredFor: ['imports with an external source'],
-        note: 'When source identity is present, upsert matches source and sourceId instead of name and brand.',
       },
       specs: {
         format: 'JSON | In CSV use: specs_fieldName (e.g., specs_weight, specs_connection)',
@@ -1127,25 +944,16 @@ const exportProducts = asyncHandler(async (req, res) => {
         select: 'name',
         match: { isDeleted: false }  // FIX #3: Filter deleted categories
       })
-      .populate({
-        path: 'supplier',
-        select: 'name',
-        match: { isDeleted: false }  // FIX #3: Filter deleted suppliers
-      })
       .limit(parsedLimit + 1)
       .lean();
     const hasMore = products.length > parsedLimit;
     const exportedProducts = hasMore ? products.slice(0, parsedLimit) : products;
 
-    // Transform products
-    // FIX #3: Skip products with null category/supplier (they reference deleted documents)
+    // Transform products, skipping products with deleted categories.
     const transformedProducts = exportedProducts
-      .filter(product => product.category && product.supplier)  // FIX #3: Filter out products with null refs
+      .filter(product => product.category)
       .map(product => ({
         productId: product._id.toString(),
-        source: product.source || undefined,
-        sourceId: product.sourceId || undefined,
-        sourceParentId: product.sourceParentId || undefined,
         sku: product.sku || undefined,
         name: product.name,
         brand: product.brand,
@@ -1153,7 +961,6 @@ const exportProducts = asyncHandler(async (req, res) => {
         baseCurrencyCode: product.baseCurrencyCode,
         originalPrice: product.originalPrice,
         category: product.category?.name || 'Unknown',  // Fallback to avoid null
-        supplier: product.supplier?.name || 'Unknown',  // Fallback to avoid null
         description: product.description,
         image: product.image || '',
         countInStock: product.countInStock || 0,
@@ -1204,12 +1011,12 @@ const exportProducts = asyncHandler(async (req, res) => {
  */
 function convertProductsToCSV(products) {
   if (!products || products.length === 0) {
-    return 'productId,source,sourceId,sourceParentId,sku,name,brand,price,baseCurrencyCode,originalPrice,category,supplier,description,image,countInStock,rating,numReviews,featured,deal_discount,deal_endTime';
+    return 'productId,sku,name,brand,price,baseCurrencyCode,originalPrice,category,description,image,countInStock,rating,numReviews,featured,deal_discount,deal_endTime';
   }
 
   // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
   const headers = [
-    'productId', 'source', 'sourceId', 'sourceParentId', 'sku', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category', 'supplier',
+    'productId', 'sku', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category',
     'description', 'image', 'countInStock', 'rating', 'numReviews',
     'featured', 'deal_discount', 'deal_endTime'
   ];
@@ -1284,7 +1091,7 @@ const getExportStats = asyncHandler(async (req, res) => {
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
     const totalProducts = await Product.countDocuments({ isDeleted: false });
 
-    // FIX #5: Add filters for deleted categories/suppliers and add $limit
+    // Add filters for deleted categories and limit aggregation size.
     const categoryCounts = await Product.aggregate([
       { $match: { isDeleted: false } },
       { $group: { _id: '$category', count: { $sum: 1 } } },
@@ -1319,34 +1126,6 @@ const getExportStats = asyncHandler(async (req, res) => {
       { $group: { _id: '$brand', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 20 }
-    ]);
-
-    // FIX #5: Only lookup non-deleted suppliers
-    const supplierCounts = await Product.aggregate([
-      { $match: { isDeleted: false } },
-      { $group: { _id: '$supplier', count: { $sum: 1 } } },
-      { $lookup: {
-        from: 'suppliers',
-        let: { supplierId: '$_id' },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ['$_id', '$$supplierId'] },
-              isDeleted: false,
-            },
-          },
-        ],
-        as: 'supplierInfo'
-      }},
-      // FIX #5: Drop documents with no matching supplier (deleted supplier)
-      { $unwind: { path: '$supplierInfo', preserveNullAndEmptyArrays: false } },
-      { $project: {
-        supplier: '$supplierInfo.name',
-        count: 1,
-        _id: 0
-      } },
-      { $sort: { count: -1 } },
-      { $limit: 50 }  // FIX #5: Add limit
     ]);
 
     // Apply category translations (Rule #2: Dynamic Database Translations)
@@ -1391,7 +1170,6 @@ const getExportStats = asyncHandler(async (req, res) => {
       totalProducts,
       categories: processedCategories,
       brands: brandCounts.map(b => ({ brand: b._id, count: b.count })),
-      suppliers: supplierCounts,
     });
   } catch (error) {
     console.error('[EXPORT_STATS_ERROR]', error);

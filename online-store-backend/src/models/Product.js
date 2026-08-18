@@ -1,6 +1,6 @@
 /**
  * Model sản phẩm laptop
- * Quản lý: tên, ảnh, giá, kho, thương hiệu, danh mục, nhà cung cấp
+ * Quản lý: tên, ảnh, giá, kho, thương hiệu, danh mục
  * Hỗ trợ review, rating, tìm kiếm, lọc, soft delete
  */
 
@@ -24,7 +24,6 @@ const mongoose = require('mongoose');
  * @field {Number} originalPrice - Giá gốc trước khuyến mãi theo baseCurrencyCode
  * @field {String} baseCurrencyCode - Currency gốc của giá sản phẩm
  * @field {Number} countInStock - Số lượng tồn kho
- * @field {ObjectId} supplier - ID nhà cung cấp (ref: Supplier, tùy chọn)
  * @field {Boolean} featured - Sản phẩm nổi bật (mặc định: false)
  * @field {Object} deal - Khuyến mãi: { discount (%), endTime (Date) }
  * @field {Boolean} isDeleted - Cờ xóa mềm (mặc định: false)
@@ -133,22 +132,6 @@ const productSchema = mongoose.Schema(
       type: [String],
       default: [],
     },
-    source: {
-      type: String,
-      uppercase: true,
-      trim: true,
-      default: null,
-    },
-    sourceId: {
-      type: String,
-      trim: true,
-      default: null,
-    },
-    sourceParentId: {
-      type: String,
-      trim: true,
-      default: null,
-    },
     sku: {
       type: String,
       trim: true,
@@ -219,10 +202,6 @@ const productSchema = mongoose.Schema(
       required: true,
       default: 0,
     },
-    supplier: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Supplier',
-    },
     featured: {
       type: Boolean,
       default: false,
@@ -251,16 +230,6 @@ productSchema.index({ name: 1, isDeleted: 1 });
 productSchema.index({ category: 1, isDeleted: 1 });
 productSchema.index({ brand: 1, isDeleted: 1 });
 productSchema.index({ isDeleted: 1 });
-productSchema.index(
-  { source: 1, sourceId: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      source: { $type: 'string', $gt: '' },
-      sourceId: { $type: 'string', $gt: '' },
-    },
-  }
-);
 productSchema.index({ price: 1, isDeleted: 1 });
 productSchema.index({ countInStock: 1, isDeleted: 1 });
 productSchema.index({ featured: 1, isDeleted: 1 });

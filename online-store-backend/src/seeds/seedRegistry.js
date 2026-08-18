@@ -58,13 +58,6 @@ const SEED_MODULES = {
     seeder: require('./categorySeeder'),
     importance: 'HIGH',
   },
-  suppliers: {
-    name: 'Suppliers (5 suppliers)',
-    layer: 2,
-    depends: [],
-    seeder: require('./supplierSeeder'),
-    importance: 'HIGH',
-  },
   banners: {
     name: 'Homepage Banners',
     layer: 2,
@@ -153,7 +146,6 @@ const SEED_PHASES = {
     'currencies',
     'users',
     'categories',
-    'suppliers',
     'customers',
     'shippingProviders',
     'locations',

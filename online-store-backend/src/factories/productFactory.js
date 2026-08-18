@@ -1,6 +1,6 @@
 /**
  * Factory để tạo dữ liệu sản phẩm động
- * Tạo sản phẩm với relationships đến category, supplier, user
+ * Tạo sản phẩm với relationships đến category và user
  */
 class ProductFactory {
   /**
@@ -8,10 +8,9 @@ class ProductFactory {
    * @param {Object} overrides - Dữ liệu override
    * @param {ObjectId} userId - ID của người tạo sản phẩm
    * @param {ObjectId} categoryId - ID danh mục
-   * @param {ObjectId} supplierId - ID nhà cung cấp
    * @param {Number} index - Index để tạo dữ liệu khác nhau
    */
-  static create(overrides = {}, userId, categoryId, supplierId, index = 0) {
+  static create(overrides = {}, userId, categoryId, index = 0) {
     const prices = [15000000, 20000000, 25000000, 12000000, 18000000, 45990000, 28990000, 35990000, 42990000, 14990000];
     const brands = ['Dell', 'HP', 'Lenovo', 'ASUS', 'Apple', 'MSI', 'Acer'];
     const names = [
@@ -41,7 +40,6 @@ class ProductFactory {
       ],
       brand: overrides.brand || brands[index % brands.length],
       category: overrides.category || categoryId,
-      supplier: overrides.supplier || supplierId,
       description: overrides.description || 'Premium laptop with latest specifications and excellent performance',
       specs: overrides.specs || {
         cpu: cpus[index % cpus.length],
@@ -72,19 +70,16 @@ class ProductFactory {
    * @param {Number} count - Số lượng sản phẩm muốn tạo
    * @param {ObjectId} userId - ID của người tạo sản phẩm
    * @param {Array} categoryIds - Danh sách ID danh mục
-   * @param {Array} supplierIds - Danh sách ID nhà cung cấp
    * @param {Object} overrides - Dữ liệu override
    */
-  static createMany(count = 20, userId, categoryIds = [], supplierIds = [], overrides = {}) {
+  static createMany(count = 20, userId, categoryIds = [], overrides = {}) {
     const result = [];
     for (let i = 0; i < count; i++) {
       const catIdx = i % categoryIds.length;
-      const supIdx = i % supplierIds.length;
       result.push(this.create(
         { ...overrides },
         userId,
         categoryIds[catIdx],
-        supplierIds[supIdx],
         i
       ));
     }

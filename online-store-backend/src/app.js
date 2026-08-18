@@ -20,7 +20,6 @@ const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const customerRoutes = require('./routes/customerRoutes');
-const supplierRoutes = require('./routes/supplierRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const brandRoutes = require('./routes/brandRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
@@ -83,7 +82,6 @@ ensureUploadDir('reviewers');
  * /api/products            - Product CRUD operations
  * /api/orders              - Order management
  * /api/customers           - Customer management (upsert by phone)
- * /api/suppliers           - Supplier management
  * /api/categories          - Category management
  * /api/reviews             - Product reviews
  * /api/coupons             - Discount coupon management
@@ -526,7 +524,6 @@ app.use('/api/products', productRoutes);     // Product management
 app.use('/api/orders', orderRoutes);         // Order processing
 app.use('/api/payments', paymentRoutes);     // Payment gateway integration (VNPAY, MoMo, Stripe...)
 app.use('/api/customers', customerRoutes);   // Customer management
-app.use('/api/suppliers', supplierRoutes);   // Supplier management
 app.use('/api/categories', categoryRoutes);  // Category management
 app.use('/api/brands', brandRoutes);         // Brand management
 app.use('/api/reviews', reviewRoutes);       // Product reviews

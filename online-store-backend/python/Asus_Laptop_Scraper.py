@@ -1,9 +1,9 @@
 import csv
 import datetime
 import json
-import os
 import time
 from bs4 import BeautifulSoup
+from scraper_paths import get_output_paths
 import pandas as pd
 import requests
 
@@ -137,13 +137,10 @@ def scrape_full():
             print(f"Lỗi tại URL {url}: {e}")
 
     # --- LƯU FILE ---
-    output_dir = 'E:\\Dev Camp\\26-4-1'
-    os.makedirs(output_dir, exist_ok=True)
     
     date_str = datetime.datetime.now().strftime("%Y%m%d")
     file_prefix = f"Asus_Laptop_{date_str}"
-    csv_filename = os.path.join(output_dir, f'{file_prefix}.csv')
-    json_filename = os.path.join(output_dir, f'{file_prefix}.json')
+    csv_filename, json_filename = get_output_paths(file_prefix)
 
     df = pd.DataFrame(data_list)
     df.to_csv(csv_filename, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)

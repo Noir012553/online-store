@@ -41,7 +41,7 @@ const buildProductDescription = (categoryKey) => {
   return desc;
 };
 
-const seedOutOfStockProducts = async (userId, categoryIds, supplierIds) => {
+const seedOutOfStockProducts = async (userId, categoryIds) => {
   try {
     const { getDefaultLanguage } = require('../config/languageInventory');
     const defaultLang = getDefaultLanguage().code;
@@ -73,7 +73,6 @@ const seedOutOfStockProducts = async (userId, categoryIds, supplierIds) => {
         name: buildProductName(categoryKey),
         brand: brand,
         category: categoryIds[i],
-        supplier: supplierIds[i % supplierIds.length],
         image: imageUrl,
         images: [imageUrl],
         price: 1000000 + i * 100000,
