@@ -139,11 +139,11 @@ const SEED_MODULES = {
 
 const SEED_PHASES = {
   preProducts: [
+    'currencies',
     'languages',
     'translations',
     'bannerSlotLabels',
     'testimonialLabels',
-    'currencies',
     'users',
     'categories',
     'customers',
@@ -199,13 +199,7 @@ function resolveModules(moduleNames) {
     });
   });
 
-  // Sort by layer (LAYER 1 before LAYER 2)
-  return result.sort((a, b) => {
-    const layerDiff = SEED_MODULES[a].layer - SEED_MODULES[b].layer;
-    if (layerDiff !== 0) return layerDiff;
-    // Same layer: maintain order
-    return result.indexOf(a) - result.indexOf(b);
-  });
+  return result;
 }
 
 /**
