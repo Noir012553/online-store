@@ -3,7 +3,7 @@ import datetime
 import json
 import time
 from bs4 import BeautifulSoup
-from scraper_paths import get_output_paths
+from scraper_paths import PRODUCT_OUTPUT_FIELDS, get_output_paths
 import pandas as pd
 import requests
 
@@ -150,7 +150,7 @@ def scrape_full():
   file_prefix = f'Leopold_Keyboard_{date_str}'
   csv_filename, json_filename = get_output_paths(file_prefix)
 
-  df = pd.DataFrame(data_list)
+  df = pd.DataFrame(data_list, columns=PRODUCT_OUTPUT_FIELDS)
   df.to_csv(csv_filename, index=False, encoding='utf-8-sig', quoting=csv.QUOTE_ALL)
   df.to_json(json_filename, orient='records', indent=4, force_ascii=False)
 
