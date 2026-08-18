@@ -20,7 +20,7 @@ const runCommand = (command, args, options = {}) => new Promise((resolve, reject
   const child = spawn(command, args, {
     ...options,
     stdio: 'inherit',
-    shell: process.platform === 'win32' && command.endsWith('.cmd'),
+    shell: false,
   });
 
   child.on('error', reject);
@@ -50,6 +50,13 @@ const runScraper = async (scrapeTarget = 'all') => {
   console.log(`[ProductPipeline] Bắt đầu crawler: ${scriptName}`);
   console.log(`[ProductPipeline] Thư mục scraper: ${scraperRoot}`);
   console.log(`[ProductPipeline] Thư mục output: ${process.env.SCRAPER_OUTPUT_DIR || defaultProductDirectory}`);
+
+  if (process.platform === 'win32') {
+    const npmCommand = `${getNpmCommand()} run ${scriptName}`;
+    await runCommand(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', npmCommand], { cwd: scraperRoot });
+    return;
+  }
+
   await runCommand(getNpmCommand(), ['run', scriptName], { cwd: scraperRoot });
 };
 
