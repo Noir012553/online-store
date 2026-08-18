@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const distributedLockService = require('../services/distributedLockService');
 const Category = require('../models/Category');
 const {
   getActiveLangCodes,
@@ -274,7 +275,12 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => 
 };
 
 const translateProducts = async (languages) => {
-  const sourceLang = getDefaultLanguage().code;
+  const previousLockMode = process.env.PRODUCT_SEED_LOCK_MODE;
+  process.env.PRODUCT_SEED_LOCK_MODE = 'memory';
+  await distributedLockService.initialize();
+
+  try {
+    const sourceLang = getDefaultLanguage().code;
   const targetLanguages = languages?.length
     ? [...new Set(languages)]
     : getActiveLangCodes().filter(language => language !== sourceLang);
@@ -290,7 +296,14 @@ const translateProducts = async (languages) => {
     summaries[targetLang] = await ProductTranslationSeederService.translateAllProducts(targetLang, sourceLang);
   }
 
-  return summaries;
+    return summaries;
+  } finally {
+    if (previousLockMode === undefined) {
+      delete process.env.PRODUCT_SEED_LOCK_MODE;
+    } else {
+      process.env.PRODUCT_SEED_LOCK_MODE = previousLockMode;
+    }
+  }
 };
 
 const runProductSeedPipeline = async (options = {}) => {

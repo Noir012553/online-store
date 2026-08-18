@@ -166,6 +166,8 @@ Import database và dịch/AI phải là hai luồng độc lập.
 - Chia nội dung thành queue, không chạy `Promise.all` cho toàn bộ sản phẩm.
 - Giới hạn số request đồng thời, mặc định 1 hoặc 2.
 - Có delay giữa các request.
+- Khi chạy `npm run seed` một tiến trình, dùng lock trong bộ nhớ; không yêu cầu Redis.
+- Redis chỉ cần khi nhiều process/server cùng chạy translation queue.
 - Xử lý `429` bằng `Retry-After` nếu dịch vụ cung cấp.
 - Exponential backoff cho timeout và lỗi 5xx.
 - Giới hạn số lần retry.

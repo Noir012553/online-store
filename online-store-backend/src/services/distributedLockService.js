@@ -13,6 +13,13 @@ class DistributedLockService {
   async initialize() {
     if (this.initialized || this.useMemoryFallback) return;
 
+    if (process.env.PRODUCT_SEED_LOCK_MODE === 'memory') {
+      this.useMemoryFallback = true;
+      this.initialized = true;
+      console.log('[DistributedLock] Product seed đang dùng lock trong bộ nhớ');
+      return;
+    }
+
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
       this.client = redis.createClient({
