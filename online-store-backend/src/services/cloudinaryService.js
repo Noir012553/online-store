@@ -115,12 +115,16 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
  * 
  * @param {String} filePath - Path/URL của file
  * @param {String} folder - Folder trong Cloudinary
+ * @param {String|null} publicId - Public ID ổn định để ghi đè asset khi cần
  * @returns {Promise<Object>} - { url, publicId, format }
  */
-const uploadFileToCloudinary = async (filePath, folder = 'admins') => {
+const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null) => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: `laptop-store/${folder}`,
+      public_id: publicId || undefined,
+      overwrite: Boolean(publicId),
+      invalidate: Boolean(publicId),
       resource_type: 'image',
       quality: 'auto',
       fetch_format: 'auto',

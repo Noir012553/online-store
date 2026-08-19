@@ -3,6 +3,10 @@ const expect = chai.expect;
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
+const {
+  getProductImagePublicId,
+  uploadProductImage,
+} = require('../seeds/productSeedPipeline');
 
 describe('Import file validation', () => {
   const createFile = (content, originalname, mimetype) => ({
@@ -86,6 +90,30 @@ describe('Crawler product field mapping', () => {
     expect(normalized.images).to.deep.equal(['https://example.com/1.jpg']);
     expect(normalized.ID).to.equal('source-id-001');
     expect(normalized.URL).to.equal('https://example.com/product');
+  });
+});
+
+describe('Product seed image backup', () => {
+  it('creates a stable Cloudinary public ID from product identity', () => {
+    const firstId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
+    const secondId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
+    const galleryId = getProductImagePublicId({ sku: 'SKU-001' }, 'gallery', 2);
+
+    expect(firstId).to.equal(secondId);
+    expect(firstId).to.match(/^[a-f0-9]{24}\/main$/);
+    expect(galleryId).to.match(/^[a-f0-9]{24}\/gallery-2$/);
+  });
+
+  it('does not re-upload an image that is already on Cloudinary', async () => {
+    const result = await uploadProductImage(
+      'https://res.cloudinary.com/demo/image/upload/laptop-store/products/product/main.jpg',
+      'ignored-public-id'
+    );
+
+    expect(result).to.deep.equal({
+      url: 'https://res.cloudinary.com/demo/image/upload/laptop-store/products/product/main.jpg',
+      publicId: 'laptop-store/products/product/main',
+    });
   });
 });
 
