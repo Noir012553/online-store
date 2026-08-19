@@ -88,7 +88,13 @@ function SearchResultItem({
   );
 }
 
-export function SearchDropdown() {
+export function SearchDropdown({
+  inputId = 'site-search',
+  className = 'relative w-52',
+}: {
+  inputId?: string;
+  className?: string;
+}) {
   const router = useRouter();
   const { t } = useTranslation();
   const { locale } = useLanguage();
@@ -271,12 +277,12 @@ export function SearchDropdown() {
   };
 
   return (
-    <div className="relative w-52">
+    <div className={className}>
       {/* Search Input */}
       <div className="relative">
         <Input
           ref={searchInputRef}
-          id="site-search"
+          id={inputId}
           name="q"
           type="text"
           placeholder={t('search_placeholder')}

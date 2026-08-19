@@ -91,7 +91,7 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
       data.exchangeRates,
       activeRates
     );
-    const displayOriginalPrice = Number.isFinite(data.originalPrice)
+    const displayOriginalPrice = Number.isFinite(data.originalPrice) && data.originalPrice > data.price
       ? convertOrderAmount(
         data.originalPrice,
         data.baseCurrencyCode,

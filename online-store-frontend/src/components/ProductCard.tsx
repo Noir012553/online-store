@@ -23,9 +23,8 @@ interface ProductCardProps {
   onQuickViewToggle?: (isOpen: boolean) => void;
 }
 
-// Wrapper component for valid Link or fallback div - moved outside to prevent unmounting/remounting
-const RouterOrDiv = ({ href, children, className, isValidId, ...rest }: { href?: string; children: React.ReactNode; className?: string; isValidId: boolean; [key: string]: any }) => {
-  if (isValidId && href) {
+const ProductDetailsContainer = ({ href, children, className, ...rest }: { href?: string; children: React.ReactNode; className?: string; [key: string]: any }) => {
+  if (href) {
     return <Link href={href} className={className} {...rest}>{children}</Link>;
   }
   return <div className={className} {...rest}>{children}</div>;
@@ -101,106 +100,110 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   // Check if ID is valid MongoDB ObjectId (24 hex characters)
   const isValidId = useMemo(() => /^[a-f0-9]{24}$/.test(convertedLaptop.id || ''), [convertedLaptop.id]);
 
+  const productHref = isValidId ? `/product/${convertedLaptop.id}` : undefined;
+
   return (
     <>
-      <RouterOrDiv href={isValidId ? `/product/${convertedLaptop.id}` : '#'} className="group block h-full" isValidId={isValidId}>
+      <div className="group block h-full">
         <div className="bg-white border rounded-lg overflow-hidden group-hover:shadow-xl transition-shadow duration-300 flex flex-col h-full relative z-0">
           <div className="relative aspect-square overflow-hidden bg-gray-100">
-            <ImageWithFallback
-              src={convertedLaptop.image}
-              alt={String(convertedLaptop.name)}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
-              loading="lazy"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 transform-gpu pointer-events-none"
-            />
-            {discount > 0 && (
-              <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none">
-                -{discount}%
-              </Badge>
-            )}
-            {hasActiveDeal && (
-              <Badge
-                className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
-                  isFeaturedHotDeal
-                    ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
-                    : 'bg-black'
-                }`}
-              >
-                <EmojiSvg
-                  emoji={UI_EMOJI.hotDeal}
-                  className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
-                />
-                {t('hot_deal_badge', 'products')}
-              </Badge>
-            )}
-            {convertedLaptop.featured && !hasActiveDeal && (
-              <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
-                <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
-                {t('featured_badge', 'products')}
-              </Badge>
-            )}
-            {!convertedLaptop.inStock && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
-                <span className="bg-red-600 text-white px-4 py-2 rounded font-semibold">{t('out_of_stock', 'products')}</span>
-              </div>
-            )}
+            <ProductDetailsContainer href={productHref} className="absolute inset-0 z-0 block">
+              <ImageWithFallback
+                src={convertedLaptop.image}
+                alt={String(convertedLaptop.name)}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
+                loading="lazy"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 transform-gpu pointer-events-none"
+              />
+              {discount > 0 && (
+                <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none">
+                  -{discount}%
+                </Badge>
+              )}
+              {hasActiveDeal && (
+                <Badge
+                  className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
+                    isFeaturedHotDeal
+                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
+                      : 'bg-black'
+                  }`}
+                >
+                  <EmojiSvg
+                    emoji={UI_EMOJI.hotDeal}
+                    className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
+                  />
+                  {t('hot_deal_badge', 'products')}
+                </Badge>
+              )}
+              {convertedLaptop.featured && !hasActiveDeal && (
+                <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
+                  <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
+                  {t('featured_badge', 'products')}
+                </Badge>
+              )}
+              {!convertedLaptop.inStock && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+                  <span className="bg-red-600 text-white px-4 py-2 rounded font-semibold">{t('out_of_stock', 'products')}</span>
+                </div>
+              )}
+            </ProductDetailsContainer>
 
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 z-20 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
               <Button
-                asChild
+                type="button"
                 onClick={handleQuickView}
                 size="sm"
                 className="bg-white text-black hover:bg-gray-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-auto cursor-pointer"
               >
-                <span>
-                  <Eye className="w-4 h-4 mr-2" />
-                  {t('quick_view', 'products')}
-                </span>
+                <Eye className="w-4 h-4 mr-2" />
+                {t('quick_view', 'products')}
               </Button>
             </div>
           </div>
 
           <div className="p-2 sm:p-3 flex flex-col flex-1">
-            <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide h-4 sm:h-5">{convertedLaptop.brand}</p>
-            <h3 className="mb-2 text-xs sm:text-sm text-black group-hover:text-red-600 transition-colors h-16 sm:h-20 line-clamp-3 flex items-start">
-              {String(convertedLaptop.name)}
-            </h3>
+            <ProductDetailsContainer href={productHref} className="flex flex-1 flex-col">
+              <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide h-4 sm:h-5">{convertedLaptop.brand}</p>
+              <h3 className="mb-2 text-xs sm:text-sm text-black group-hover:text-red-600 transition-colors h-16 sm:h-20 line-clamp-3 flex items-start">
+                {String(convertedLaptop.name)}
+              </h3>
 
-            <div className="flex items-center gap-2 mb-2 h-4 sm:h-5">
-              <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-xs sm:text-sm text-black">{convertedLaptop.rating.toFixed(1)}</span>
+              <div className="flex items-center gap-2 mb-2 h-4 sm:h-5">
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs sm:text-sm text-black">{convertedLaptop.rating.toFixed(1)}</span>
+                </div>
+                <span className="text-xs sm:text-sm text-black">({convertedLaptop.reviews})</span>
               </div>
-              <span className="text-xs sm:text-sm text-black">({convertedLaptop.reviews})</span>
-            </div>
 
-            <div className="h-20 sm:h-32 mb-3 text-xs sm:text-sm text-gray-600 space-y-0.5 overflow-hidden">
-              {(() => {
-                const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
-                if (specEntries.length === 0) {
-                  return <p className="text-xs text-gray-400">{t('no_specs', 'products')}</p>;
-                }
+              <div className="h-20 sm:h-32 mb-3 text-xs sm:text-sm text-gray-600 space-y-0.5 overflow-hidden">
+                {(() => {
+                  const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
+                  if (specEntries.length === 0) {
+                    return <p className="text-xs text-gray-400">{t('no_specs', 'products')}</p>;
+                  }
 
-                return specEntries.map(([key, value]) => (
-                  <p key={key} className="truncate text-xs">
-                    <span className="text-gray-500">{key}:</span> {String(value)}
-                  </p>
-                ));
-              })()}
-            </div>
+                  return specEntries.map(([key, value]) => (
+                    <p key={key} className="truncate text-xs">
+                      <span className="text-gray-500">{key}:</span> {String(value)}
+                    </p>
+                  ));
+                })()}
+              </div>
 
-            <div className="flex flex-col justify-end gap-0.5 mb-2 h-10 sm:h-12 mx-auto">
-              {convertedLaptop.originalPrice && (
-                <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
-                  {convertedLaptop.formattedOriginalPrice}
-                </span>
-              )}
-              <span className="text-green-600 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>
-            </div>
+              <div className="flex flex-col justify-end gap-0.5 mb-2 h-10 sm:h-12 mx-auto">
+                {convertedLaptop.originalPrice != null && convertedLaptop.originalPrice > convertedLaptop.price && (
+                  <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
+                    {convertedLaptop.formattedOriginalPrice}
+                  </span>
+                )}
+                <span className="text-green-600 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>
+              </div>
+            </ProductDetailsContainer>
 
             <Button
-              asChild
+              type="button"
               onClick={handleAddToCart}
               disabled={!convertedLaptop.inStock || isAddingToCart}
               className="w-full bg-red-600 hover:bg-red-700 transition-all duration-300 hover:shadow-lg text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm py-1.5 sm:py-2"
@@ -213,7 +216,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
             </Button>
           </div>
         </div>
-      </RouterOrDiv>
+      </div>
 
       {showQuickView && (
         <QuickViewModal laptop={convertedLaptop} onClose={() => {

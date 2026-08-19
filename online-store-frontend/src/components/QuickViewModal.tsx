@@ -129,7 +129,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
               </div>
 
               <div className="flex min-h-16 flex-col justify-end gap-1 rounded-xl bg-red-50 px-4 py-3">
-                {laptop.originalPrice && (
+                {laptop.originalPrice != null && laptop.originalPrice > laptop.price && (
                   <span className="text-base font-semibold text-red-600 line-through">
                     {laptop.formattedOriginalPrice}
                   </span>

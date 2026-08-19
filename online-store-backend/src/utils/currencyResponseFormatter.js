@@ -53,7 +53,9 @@ const formatProducts = async (products, lang) => {
     const data = product.toObject ? product.toObject() : product;
     const formattedProduct = formatAmountFields(data, currencies.get(data.baseCurrencyCode), lang, [
       ['price', 'formattedPrice'],
-      ['originalPrice', 'formattedOriginalPrice'],
+      ...(Number.isFinite(data.originalPrice) && data.originalPrice > data.price
+        ? [['originalPrice', 'formattedOriginalPrice']]
+        : []),
     ]);
     const discountPercentage = Number.isFinite(data.originalPrice) && data.originalPrice > data.price
       ? Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100)

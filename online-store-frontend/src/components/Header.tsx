@@ -115,10 +115,14 @@ function HeaderComponent() {
           {/* Right: Search, Cart, User, Language, Mobile Menu */}
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden lg:block">
-              <SearchDropdown />
+              <SearchDropdown inputId="desktop-site-search" />
             </div>
 
-            <Link href="/cart" className="relative flex items-center justify-center p-1">
+            <Link
+              href="/cart"
+              aria-label={t('shopping_cart', 'cart')}
+              className="relative flex items-center justify-center p-1"
+            >
               <ShoppingCartIcon className="w-5 h-5" />
               {totalItems > 0 && (
                 <Badge className="absolute -top-2 -right-2 bg-red-600 animate-in zoom-in duration-300 px-1 py-0 text-[8px] h-4 w-4 flex items-center justify-center">
@@ -199,11 +203,17 @@ function HeaderComponent() {
                 )}
               </div>
             ) : (
-              <Link href="/login">
-                <Button variant="ghost" size="icon" className="hover:text-red-600 p-1">
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="hover:text-red-600 p-1"
+                aria-label={t('login', 'common')}
+              >
+                <Link href="/login">
                   <User className="w-5 h-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
 
             {/* Mobile Hamburger Menu */}
@@ -224,7 +234,7 @@ function HeaderComponent() {
         <div className="lg:hidden bg-white border-b shadow-md">
           <div className="container mx-auto header-container-px py-4">
             <div className="mb-4">
-              <SearchDropdown />
+              <SearchDropdown inputId="mobile-site-search" className="relative w-full" />
             </div>
             <nav className="flex flex-col gap-3 border-t pt-3">
               <Link
