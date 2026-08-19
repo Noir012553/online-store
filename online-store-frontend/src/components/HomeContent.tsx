@@ -462,7 +462,7 @@ export default function Home() {
       );
       const products = allProducts.filter((product) => (
         getCategoryValues(product.category).some((value) => categoryKeys.has(normalizeCategoryKey(value)))
-      )).slice(0, 8);
+      )).slice(0, 12);
 
       return { category, products };
     })
@@ -470,7 +470,7 @@ export default function Home() {
   const sectionsToRender = categorySections.length > 0
     ? categorySections
     : allProducts.length > 0
-      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 8) }]
+      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 12) }]
       : [];
 
   return (
