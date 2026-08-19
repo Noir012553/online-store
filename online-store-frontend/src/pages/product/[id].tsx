@@ -9,7 +9,7 @@ import { useCurrencyContext } from "../../lib/context/CurrencyContext";
 import { useProductTranslation } from "../../hooks/useProductTranslation";
 import { getIntlLocale } from "../../lib/localeUtils";
 import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload";
-import { Laptop } from "../../lib/data";
+import { Laptop, isActiveDeal } from "../../lib/data";
 import { Button } from "../../components/ui/button";
 import { ProductGallery } from "../../components/product/ProductGallery";
 import { ProductRecommendations } from "../../components/product/ProductRecommendations";
@@ -360,9 +360,12 @@ export default function ProductDetail() {
     router.push("/cart");
   };
 
-  const discount = laptop.originalPrice != null
-    ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
-    : 0;
+  const discount = Math.max(
+    laptop.originalPrice != null
+      ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
+      : 0,
+    isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) : 0
+  );
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
@@ -387,7 +390,7 @@ export default function ProductDetail() {
           mainImage={mainImage}
           selectedImage={selectedImage}
           discount={discount}
-          hasDeal={Boolean(laptop.deal)}
+          hasDeal={isActiveDeal(laptop.deal)}
           dealLabel={t('badge_flash_deal', 'products')}
           noImageLabel={t('image_no_image_available', 'products')}
           onSelectImage={setSelectedImage}

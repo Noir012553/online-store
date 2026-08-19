@@ -59,6 +59,7 @@ describe('Product Controller', () => {
         populate: sandbox.stub().returnsThis(),
         limit: sandbox.stub().returnsThis(),
         skip: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
         lean: sandbox.stub().returnsThis(),
         then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
       };

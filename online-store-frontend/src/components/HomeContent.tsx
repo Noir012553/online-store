@@ -3,7 +3,7 @@ import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Gamepad2, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap } from "lucide-react";
-import { features, getCategoryName } from "../lib/data";
+import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
@@ -143,10 +143,11 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
   const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 59,
-    seconds: 59,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
   });
+  const [dealEndTime, setDealEndTime] = useState<number | null>(null);
   const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
@@ -261,9 +262,20 @@ export default function Home() {
 
         setAllProducts(displayProducts);
 
-        // Get deal products
-        const deals = allProductsList.filter((p: BackendProduct) => p.deal && (p.countInStock || 0) > 0);
-        setDealProducts(deals.slice(0, 10));
+        const deals = allProductsList
+          .filter((product: BackendProduct) => isActiveDeal(product.deal) && (product.countInStock || 0) > 0)
+          .sort((first: BackendProduct, second: BackendProduct) => {
+            const discountDifference = Number(second.deal?.discount || 0) - Number(first.deal?.discount || 0);
+            if (discountDifference !== 0) return discountDifference;
+
+            const firstEnd = getDealEndTimestamp(first.deal) ?? Number.MAX_SAFE_INTEGER;
+            const secondEnd = getDealEndTimestamp(second.deal) ?? Number.MAX_SAFE_INTEGER;
+            return firstEnd - secondEnd;
+          })
+          .slice(0, 10);
+
+        setDealProducts(deals);
+        setDealEndTime(getDealEndTimestamp(deals[0]?.deal));
       } catch (error) {
         // Error fetching products - will show empty state
       } finally {
@@ -367,22 +379,25 @@ export default function Home() {
     }
   }, [dealProducts.length, isDealQuickViewOpen]);
 
-  // Countdown timer for deals
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return prev;
+    if (!dealEndTime) {
+      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
+
+    const updateTimeLeft = () => {
+      const remainingSeconds = Math.max(0, Math.floor((dealEndTime - Date.now()) / 1000));
+      setTimeLeft({
+        hours: Math.floor(remainingSeconds / 3600),
+        minutes: Math.floor((remainingSeconds % 3600) / 60),
+        seconds: remainingSeconds % 60,
       });
-    }, 1000);
+    };
+
+    updateTimeLeft();
+    const timer = setInterval(updateTimeLeft, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [dealEndTime]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);

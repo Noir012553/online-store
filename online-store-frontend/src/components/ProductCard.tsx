@@ -1,7 +1,7 @@
 import { ShoppingCart, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Laptop, getCategoryName } from "../lib/data";
+import { Laptop, getCategoryName, isActiveDeal } from "../lib/data";
 import { getImageUrl } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -91,8 +91,12 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     onQuickViewToggle?.(true);
   };
 
-  const discount = convertedLaptop.discountPercentage ?? 0;
-  const isFeaturedHotDeal = convertedLaptop.featured && !!convertedLaptop.deal;
+  const discount = Math.max(
+    convertedLaptop.discountPercentage ?? 0,
+    isActiveDeal(convertedLaptop.deal) ? Number(convertedLaptop.deal?.discount) : 0
+  );
+  const hasActiveDeal = isActiveDeal(convertedLaptop.deal);
+  const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 
   // Check if ID is valid MongoDB ObjectId (24 hex characters)
   const isValidId = useMemo(() => /^[a-f0-9]{24}$/.test(convertedLaptop.id || ''), [convertedLaptop.id]);
@@ -115,7 +119,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 -{discount}%
               </Badge>
             )}
-            {convertedLaptop.deal && (
+            {hasActiveDeal && (
               <Badge
                 className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
                   isFeaturedHotDeal
@@ -130,7 +134,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 {t('hot_deal_badge', 'products')}
               </Badge>
             )}
-            {convertedLaptop.featured && !convertedLaptop.deal && (
+            {convertedLaptop.featured && !hasActiveDeal && (
               <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
                 <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
                 {t('featured_badge', 'products')}
