@@ -30,6 +30,23 @@ export interface Laptop {
   };
 }
 
+export type ProductDeal = Laptop['deal'];
+
+export const getDealEndTimestamp = (deal?: ProductDeal): number | null => {
+  if (!deal?.endTime) return null;
+
+  const timestamp = new Date(deal.endTime).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+export const isActiveDeal = (deal?: ProductDeal): boolean => {
+  const discount = Number(deal?.discount);
+  if (!Number.isFinite(discount) || discount <= 0) return false;
+
+  const endTimestamp = getDealEndTimestamp(deal);
+  return endTimestamp === null || endTimestamp > Date.now();
+};
+
 export interface Review {
   id: string;
   userId: string;

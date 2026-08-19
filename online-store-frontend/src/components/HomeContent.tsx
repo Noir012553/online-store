@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Gamepad2, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap } from "lucide-react";
-import { features, getCategoryName } from "../lib/data";
+import { ChevronLeft, ChevronRight, Gamepad2, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
@@ -30,10 +30,14 @@ const iconMap = {
   Truck,
   Shield,
   Headphones,
+  Headphone: Headphones,
   CreditCard,
   Keyboard,
   Mouse,
   Zap,
+  Monitor,
+  MonitorPlay,
+  Volume2,
 };
 
 
@@ -82,6 +86,20 @@ type HomeCategory = {
   key?: string;
   translationKey?: string;
   sourceNames?: string[];
+  icon?: string;
+};
+
+const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
+  '/products/laptop-gaming': '/products/gaming-laptop',
+  '/products/laptop-van-phong': '/products/laptop-office',
+};
+
+const normalizeHomepageTargetUrl = (targetUrl?: string): string => {
+  if (!targetUrl) return '';
+
+  const [path, query] = targetUrl.split('?');
+  const normalizedPath = HOMEPAGE_ROUTE_ALIASES[path] || path;
+  return query ? `${normalizedPath}?${query}` : normalizedPath;
 };
 
 const normalizeCategoryKey = (value: unknown): string => (
@@ -92,6 +110,19 @@ const getCategoryValues = (value: BackendProduct['category']): string[] => {
   if (typeof value === 'string') return [value];
   if (!value || typeof value !== 'object') return [];
   return [value._id, value.id, value.name].filter((item): item is string => Boolean(item));
+};
+
+const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
+  const categoryText = [category.name, ...(category.sourceNames || [])]
+    .map(normalizeCategoryKey)
+    .join(' ');
+
+  if (/headphones?|tai nghe/.test(categoryText)) return 'Headphone';
+  if (/audio|âm thanh|loa/.test(categoryText)) return 'Volume2';
+  if (/gaming monitor|màn hình gaming/.test(categoryText)) return 'MonitorPlay';
+  if (/monitor|màn hình/.test(categoryText)) return 'Monitor';
+
+  return (category.icon || 'Laptop') as keyof typeof iconMap;
 };
 
 export default function Home() {
@@ -143,10 +174,11 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
   const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 59,
-    seconds: 59,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
   });
+  const [dealEndTime, setDealEndTime] = useState<number | null>(null);
   const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
@@ -156,7 +188,7 @@ export default function Home() {
   // Sticky banner scroll with constraints - confined within content wrapper
   // minBannerTopDocument = banner won't go above this distance from page top (px)
   // Adjust this value based on your hero section height
-  const { bannerTop } = useStickyBannerScroll({
+  const { bannerTop, bannerRef } = useStickyBannerScroll({
     containerSelector: '#homepage-content-wrapper',
     minBannerTopDocument: 700, // Adjust this number to control minimum position
     headerHeight: 80,
@@ -193,7 +225,7 @@ export default function Home() {
       description: getTextByLang(banner.description, currentLang),
       image: banner.image,
       cta: getTextByLang(banner.ctaText, currentLang),
-      link: banner.targetUrl || '',
+      link: normalizeHomepageTargetUrl(banner.targetUrl),
       openInNewTab: banner.openInNewTab,
     };
   });
@@ -261,9 +293,20 @@ export default function Home() {
 
         setAllProducts(displayProducts);
 
-        // Get deal products
-        const deals = allProductsList.filter((p: BackendProduct) => p.deal && (p.countInStock || 0) > 0);
-        setDealProducts(deals.slice(0, 10));
+        const deals = allProductsList
+          .filter((product: BackendProduct) => isActiveDeal(product.deal) && (product.countInStock || 0) > 0)
+          .sort((first: BackendProduct, second: BackendProduct) => {
+            const discountDifference = Number(second.deal?.discount || 0) - Number(first.deal?.discount || 0);
+            if (discountDifference !== 0) return discountDifference;
+
+            const firstEnd = getDealEndTimestamp(first.deal) ?? Number.MAX_SAFE_INTEGER;
+            const secondEnd = getDealEndTimestamp(second.deal) ?? Number.MAX_SAFE_INTEGER;
+            return firstEnd - secondEnd;
+          })
+          .slice(0, 10);
+
+        setDealProducts(deals);
+        setDealEndTime(getDealEndTimestamp(deals[0]?.deal));
       } catch (error) {
         // Error fetching products - will show empty state
       } finally {
@@ -367,22 +410,25 @@ export default function Home() {
     }
   }, [dealProducts.length, isDealQuickViewOpen]);
 
-  // Countdown timer for deals
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return prev;
+    if (!dealEndTime) {
+      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
+
+    const updateTimeLeft = () => {
+      const remainingSeconds = Math.max(0, Math.floor((dealEndTime - Date.now()) / 1000));
+      setTimeLeft({
+        hours: Math.floor(remainingSeconds / 3600),
+        minutes: Math.floor((remainingSeconds % 3600) / 60),
+        seconds: remainingSeconds % 60,
       });
-    }, 1000);
+    };
+
+    updateTimeLeft();
+    const timer = setInterval(updateTimeLeft, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [dealEndTime]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);
@@ -429,7 +475,7 @@ export default function Home() {
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
-      <section className="relative bg-gray-900 overflow-hidden" style={{ height: "calc(100vh - 80px)" }}>
+      <section className="relative h-[calc(100vh-80px)] overflow-hidden bg-gray-900">
         {heroSlidesToRender.map((slide, index) => {
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
@@ -457,17 +503,15 @@ export default function Home() {
                   {slide.description && <p className="mb-6 text-xs sm:text-sm lg:text-lg">{slide.description}</p>}
                   {href && slide.cta ? (
                     isInternalLink ? (
-                      <Link href={href}>
-                        <Button size="sm" className="bg-red-600 hover:bg-red-700">
-                          {slide.cta}
-                        </Button>
-                      </Link>
+                      <Button asChild size="sm" className="bg-red-600 hover:bg-red-700">
+                        <Link href={href}>{slide.cta}</Link>
+                      </Button>
                     ) : (
-                      <a href={href} target={slide.openInNewTab ? '_blank' : undefined} rel={slide.openInNewTab ? 'noreferrer' : undefined}>
-                        <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                      <Button asChild size="sm" className="bg-red-600 hover:bg-red-700">
+                        <a href={href} target={slide.openInNewTab ? '_blank' : undefined} rel={slide.openInNewTab ? 'noreferrer' : undefined}>
                           {slide.cta}
-                        </Button>
-                      </a>
+                        </a>
+                      </Button>
                     )
                   ) : slide.cta ? (
                     <span className="inline-flex rounded-md bg-red-600 px-4 py-2 text-xs font-medium text-white sm:px-5 sm:py-3 sm:text-sm">
@@ -513,19 +557,28 @@ export default function Home() {
         {/* MAIN CONTENT WRAPPER with side banners */}
         <div id="homepage-content-wrapper" className="relative overflow-x-hidden bg-white">
           {/* LEFT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
-          <div className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} style={{ left: '5px', top: `${bannerTop}px` }}>
+          <div
+            ref={bannerRef}
+            aria-hidden={!isBannerVisible}
+            className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            style={{ left: '5px', top: `${bannerTop}px` }}
+          >
             <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
           </div>
 
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
-          <div className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} style={{ right: '5px', top: `${bannerTop}px` }}>
+          <div
+            aria-hidden={!isBannerVisible}
+            className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            style={{ right: '5px', top: `${bannerTop}px` }}
+          >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
           </div>
           {Array.isArray(categories) && categories.length > 0 && (
             <section className="bg-white container mx-auto section-container-px py-4 sm:py-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 {categories.map((category) => {
-                  const iconKey = (category.icon || 'Laptop') as keyof typeof iconMap;
+                  const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
                   const displayName = getCategoryName(category);
                   const slug = category.slug || category._id;

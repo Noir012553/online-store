@@ -61,7 +61,7 @@ class ProductFactory {
       deal: overrides.deal !== undefined ? overrides.deal : (Math.random() > 0.7 ? {
         discount: Math.floor(Math.random() * 30 + 10),
         endTime: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000)
-      } : {}),
+      } : undefined),
       reviews: overrides.reviews || [],
     };
   }

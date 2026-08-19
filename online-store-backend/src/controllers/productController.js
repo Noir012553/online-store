@@ -34,6 +34,33 @@ const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 
+const getActiveDealDiscount = (deal) => {
+  const discount = Number(deal?.discount);
+  if (!Number.isFinite(discount) || discount <= 0) return 0;
+
+  if (deal?.endTime) {
+    const endTime = new Date(deal.endTime).getTime();
+    if (!Number.isFinite(endTime) || endTime <= Date.now()) return 0;
+  }
+
+  return discount;
+};
+
+const getProductSort = (sortBy) => {
+  switch (sortBy) {
+    case 'name':
+      return { name: 1, _id: 1 };
+    case 'price-asc':
+      return { price: 1, _id: 1 };
+    case 'price-desc':
+      return { price: -1, _id: 1 };
+    case 'rating':
+      return { rating: -1, _id: 1 };
+    default:
+      return { featured: -1, createdAt: -1, _id: 1 };
+  }
+};
+
 const findStorefrontVisibleProductIds = async (query) => {
   const products = await withTimeout(
     Product.find(query)
@@ -64,7 +91,7 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
       data.exchangeRates,
       activeRates
     );
-    const displayOriginalPrice = Number.isFinite(data.originalPrice)
+    const displayOriginalPrice = Number.isFinite(data.originalPrice) && data.originalPrice > data.price
       ? convertOrderAmount(
         data.originalPrice,
         data.baseCurrencyCode,
@@ -79,9 +106,12 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
         ...data,
         displayPrice,
         ...(displayOriginalPrice !== undefined && { displayOriginalPrice }),
-        discountPercentage: Number.isFinite(data.originalPrice) && data.originalPrice > data.price
-          ? Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100)
-          : 0,
+        discountPercentage: Math.max(
+          Number.isFinite(data.originalPrice) && data.originalPrice > data.price
+            ? Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100)
+            : 0,
+          getActiveDealDiscount(data.deal)
+        ),
       },
       currencies.get(reportingCurrency),
       locale,
@@ -367,7 +397,18 @@ const getProducts = asyncHandler(async (req, res) => {
   }
   const brand = req.query.brand ? { brand: req.query.brand } : {};
   const featuredFilter = req.query.featured === 'true' ? { featured: true } : {};
-  const dealFilter = req.query.hasDeal === 'true' ? { 'deal.discount': { $gt: 0 } } : {};
+  const dealFilter = req.query.hasDeal === 'true'
+    ? {
+      'deal.discount': { $gt: 0 },
+      $and: [{
+        $or: [
+          { 'deal.endTime': { $exists: false } },
+          { 'deal.endTime': null },
+          { 'deal.endTime': { $gt: new Date() } },
+        ],
+      }],
+    }
+    : {};
 
   // Price range filter
   const priceFilter = {};
@@ -411,6 +452,7 @@ const getProducts = asyncHandler(async (req, res) => {
     Product.find({ ...query, _id: { $in: [...visibleProductIds] } })
       .populate('category')
       .lean()
+      .sort(getProductSort(req.query.sortBy))
       .limit(pageSize)
       .skip(pageSize * (page - 1)),
     20000

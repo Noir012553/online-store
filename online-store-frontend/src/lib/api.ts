@@ -583,6 +583,8 @@ export const productAPI = {
    * @param hotDeal - Lọc sản phẩm có deal
    * @param minRating - Đánh giá tối thiểu
    * @param maxRating - Đánh giá tối đa
+   * @param requestOptions - Tùy chọn hủy request
+   * @param sortBy - Cách sắp xếp kết quả
    */
   getProducts: async (
     page = 1,
@@ -602,7 +604,8 @@ export const productAPI = {
     lang?: string,
     locale: string = lang || getCurrentLang(),
     currencyCode?: string,
-    requestOptions?: Pick<FetchOptions, 'signal'>
+    requestOptions?: Pick<FetchOptions, 'signal'>,
+    sortBy = 'featured'
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -622,6 +625,7 @@ export const productAPI = {
     if (hotDeal !== undefined) params.append('hasDeal', hotDeal.toString());
     if (minRating !== undefined) params.append('minRating', minRating.toString());
     if (maxRating !== undefined) params.append('maxRating', maxRating.toString());
+    if (sortBy) params.append('sortBy', sortBy);
 
     return apiCall(`/products?${params.toString()}`, {
       adapter: (data) => ({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, X, PackageSearch } from "lucide-react";
 import { productAPI } from "../lib/api";
+import { isActiveDeal } from "../lib/data";
 import { ProductCard } from "./ProductCard";
 import { Button } from "./ui/button";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
@@ -126,7 +127,11 @@ interface BackendProduct {
 }
 
 const getProductDiscountPercent = (product: BackendProduct): number => (
-  Math.max(0, product.discountPercentage ?? product.deal?.discount ?? 0)
+  Math.max(
+    0,
+    product.discountPercentage ?? 0,
+    isActiveDeal(product.deal) ? Number(product.deal?.discount) : 0
+  )
 );
 
 export function CategoryProductsList({ categoryId, categoryName }: CategoryProductsListProps) {
@@ -243,15 +248,15 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     setBrands(Array.from(uniqueBrands).sort());
   }, [allProducts]);
 
-  // Fetch and filter products based on active filters
   useEffect(() => {
     if (!hasRestoredFilters) return;
+
+    const controller = new AbortController();
 
     const fetchFilteredProducts = async () => {
       try {
         setIsLoading(true);
 
-        // Build filter parameters for API
         const brandFilter = filters.brands.length > 0 ? filters.brands[0] : undefined;
         const [minPrice, maxPrice] = filters.priceRange;
         const minPriceParam = minPrice > 0 ? minPrice : undefined;
@@ -265,7 +270,6 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
         const minRatingParam = minRating > 0 ? minRating : undefined;
         const maxRatingParam = maxRating < 5 ? maxRating : undefined;
 
-        // Fetch products from API with brand, price, discount, rating, hot deal, and stock filters
         const response = await productAPI.getProducts(
           page,
           undefined,
@@ -283,50 +287,31 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           maxRatingParam,
           locale,
           locale,
-          currencyCode
+          currencyCode,
+          { signal: controller.signal },
+          sortBy
         );
 
-        let fetchedProducts = response.products || [];
+        if (controller.signal.aborted) return;
 
-        // Handle discount filter client-side if needed
-        if (minDiscountParam !== undefined || maxDiscountParam !== undefined) {
-          fetchedProducts = fetchedProducts.filter((p: BackendProduct) => {
-            const discount = getProductDiscountPercent(p);
-            const meetsMin = minDiscountParam === undefined || discount >= minDiscountParam;
-            const meetsMax = maxDiscountParam === undefined || discount <= maxDiscountParam;
-            return meetsMin && meetsMax;
-          });
-        }
-
-        setProducts(fetchedProducts);
-        setTotalPages(response.pages || 1);
+        const nextTotalPages = response.pages || 1;
+        setProducts(response.products || []);
+        setTotalPages(nextTotalPages);
+        if (page > nextTotalPages) setPage(nextTotalPages);
       } catch (err) {
+        if (controller.signal.aborted) return;
         setProducts([]);
+        setTotalPages(1);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     fetchFilteredProducts();
-  }, [categoryId, currencyCode, page, filters, hasRestoredFilters, locale]);
+    return () => controller.abort();
+  }, [categoryId, currencyCode, page, filters, hasRestoredFilters, locale, sortBy]);
 
-  let sortedProducts = [...products];
-  switch (sortBy) {
-    case 'price-asc':
-      sortedProducts.sort((a, b) => a.price - b.price);
-      break;
-    case 'price-desc':
-      sortedProducts.sort((a, b) => b.price - a.price);
-      break;
-    case 'rating':
-      sortedProducts.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-      break;
-    case 'name':
-      sortedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      break;
-    default:
-      sortedProducts.sort((a, b) => ((b.featured ?? false) ? 1 : 0) - ((a.featured ?? false) ? 1 : 0));
-  }
+  const sortedProducts = products;
 
   const hasActiveFilters = filters.brands.length > 0 ||
     (filters.priceRange[0] > 0 || filters.priceRange[1] > 0) ||

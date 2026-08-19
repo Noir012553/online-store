@@ -113,7 +113,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
           fill
           sizes="100vw"
           className="object-cover"
-          priority
+          loading="lazy"
         />
       </div>
     );
@@ -145,7 +145,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
         fill
         sizes="100vw"
         className="object-cover"
-        priority
+        loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
       <div className="absolute inset-0 flex items-center">

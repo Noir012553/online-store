@@ -233,6 +233,7 @@ productSchema.index({ isDeleted: 1 });
 productSchema.index({ price: 1, isDeleted: 1 });
 productSchema.index({ countInStock: 1, isDeleted: 1 });
 productSchema.index({ featured: 1, isDeleted: 1 });
+productSchema.index({ isDeleted: 1, 'deal.discount': 1, 'deal.endTime': 1 });
 productSchema.index({ rating: -1, isDeleted: 1 });
 
 // Text index để tối ưu query full-text search.

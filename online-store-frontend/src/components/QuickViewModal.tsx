@@ -1,5 +1,5 @@
 import { Star, ShoppingCart, X } from "lucide-react";
-import { Laptop } from "../lib/data";
+import { Laptop, isActiveDeal } from "../lib/data";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
@@ -51,10 +51,14 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
     }
   };
 
-  const discount = laptop.originalPrice
-    ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
-    : 0;
-  const isFeaturedHotDeal = laptop.featured && !!laptop.deal;
+  const discount = Math.max(
+    laptop.originalPrice
+      ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
+      : 0,
+    isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) : 0
+  );
+  const hasActiveDeal = isActiveDeal(laptop.deal);
+  const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
@@ -87,7 +91,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   -{discount}%
                 </Badge>
               )}
-              {laptop.deal && (
+              {hasActiveDeal && (
                 <Badge
                   className={`absolute top-3 left-3 flex items-center gap-1 text-white ${
                     isFeaturedHotDeal
@@ -99,7 +103,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   {t('hot_deal_badge', 'products')}
                 </Badge>
               )}
-              {laptop.featured && !laptop.deal && (
+              {laptop.featured && !hasActiveDeal && (
                 <Badge className="absolute top-3 left-3 bg-red-600 text-white flex items-center gap-1">
                   <span className="w-4 h-4">{UI_EMOJI.featured}</span>
                   {t('featured_badge', 'products')}
@@ -125,7 +129,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
               </div>
 
               <div className="flex min-h-16 flex-col justify-end gap-1 rounded-xl bg-red-50 px-4 py-3">
-                {laptop.originalPrice && (
+                {laptop.originalPrice != null && laptop.originalPrice > laptop.price && (
                   <span className="text-base font-semibold text-red-600 line-through">
                     {laptop.formattedOriginalPrice}
                   </span>

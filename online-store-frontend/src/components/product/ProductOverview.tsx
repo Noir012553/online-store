@@ -61,7 +61,7 @@ export function ProductOverview({
       <div className="flex flex-col gap-2 mb-4 sm:mb-6">
         {canDisplayPrice && (
           <>
-            {product.formattedOriginalPrice && (
+            {product.originalPrice != null && product.originalPrice > product.price && product.formattedOriginalPrice && (
               <span className="text-lg sm:text-2xl text-red-600 line-through font-semibold">
                 {product.formattedOriginalPrice}
               </span>
