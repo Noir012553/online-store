@@ -295,10 +295,10 @@ export async function apiCall<T = any>(
   } = options;
   const timeout = customTimeout || 30000; // Increased from 15s to 30s to allow for slower operations
 
-  // Check deduplication cache (skip for mutations or if explicitly disabled)
+  // Requests with caller-owned signals must keep their own cancellation lifecycle.
   const isMutation = method !== 'GET';
 
-  if (!isMutation && !skipCache) {
+  if (!isMutation && !skipCache && !externalSignal) {
     const signature = createRequestSignature(endpoint, options);
     const now = Date.now();
     const lastRequestTime = requestTimestamps.get(signature) || 0;
