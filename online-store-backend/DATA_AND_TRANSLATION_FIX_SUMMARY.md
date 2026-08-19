@@ -154,6 +154,18 @@ const products = await Product.find({ isDeleted: false })
   .select('_id name description brand specs');
 ```
 
+### 2.4. `vi` dùng product source, không đọc translation cache
+
+File: `online-store-backend/src/controllers/translationController.js`
+
+`GET /api/products/:id/translations?lang=vi` hiện đọc trực tiếp `Product.name`, `Product.description`, `Product.brand` và `Product.specs`. Endpoint chỉ đọc product translation catalog cho các ngôn ngữ đích khác `vi`.
+
+Kết quả:
+
+- Product tồn tại và `lang=vi` → `200` với dữ liệu nguồn.
+- Product không tồn tại → `404`.
+- Không còn coi việc thiếu record translation `vi` là lỗi dữ liệu bản dịch.
+
 ## 3. Lỗi `too_long` làm bản dịch bị xem là không đạt
 
 Report trước đây có dạng:
@@ -264,6 +276,26 @@ normalized.baseCurrencyCode = 'VND';
 - Không thay `MainImage` thiếu bằng placeholder.
 - Dữ liệu crawler được normalize một lần trước khi validate/import.
 
+Mapping đầy đủ 13 field nguồn:
+
+| Field crawler | Field chuẩn hóa backend | Trạng thái |
+|---|---|---|
+| `Brand` | `brand` | lưu vào `Product.brand` |
+| `ID` | giữ nguyên trên object adapter | chưa lưu thành field riêng trong `Product` |
+| `Name` | `name` | lưu vào `Product.name` |
+| `SKU` | `sku` | lưu vào `Product.sku`, hỗ trợ dedupe |
+| `Price_VND` | `price` | lưu vào `Product.price` |
+| `Regular_Price` | `originalPrice` | lưu vào `Product.originalPrice` |
+| `InStock` | `countInStock` | `In Stock`/`true`/`1` → `1`, còn lại → `0` |
+| `Categories` | `category` | resolve sang `Category._id` |
+| `Attributes` | `specs` | parse/normalize thành object |
+| `Description` | `description` | lưu nguyên nội dung sau sanitizer |
+| `MainImage` | `image` | lưu vào `Product.image` |
+| `GalleryImages` | `images` | lưu thành mảng URL |
+| `URL` | giữ nguyên trên object adapter | chưa lưu thành field riêng trong `Product` |
+
+`ID` và `URL` không được dùng để phát minh category; chúng chỉ phục vụ nhận diện/dedupe ở lớp nguồn. Test mapping 13 field đã được thêm vào `src/test/importFileValidator.test.js`.
+
 ### 5.2. Route import không bypass adapter
 
 File: `online-store-backend/src/controllers/productImportController.js`
@@ -351,6 +383,33 @@ Laptop Office -> Office Laptop
 ```
 
 Đây là mapping alias đã biết từ dữ liệu crawler, không phải tự gán mọi sản phẩm vào một category mặc định.
+
+### 5.5. Category storefront lấy động từ product data
+
+Files:
+
+- `online-store-backend/src/controllers/categoryController.js`
+- `online-store-frontend/src/lib/api.ts`
+- `online-store-frontend/src/lib/context/CategoryContext.tsx`
+
+Storefront gọi:
+
+```text
+GET /api/categories?withProducts=true&pageSize=500&lang={lang}
+```
+
+`withProducts=true` giới hạn danh sách vào các category đang được product chưa xóa sử dụng. `pageSize=500` loại bỏ giới hạn cũ chỉ trả 10 category, nhờ đó dropdown Header và category cards không bị thiếu danh mục.
+
+Category mới được tạo từ raw crawler import cũng được sinh `key` và `slug` từ chính giá trị `Categories`. Khi lọc product theo category, backend vẫn hỗ trợ các alias/source category đã tồn tại.
+
+Kết quả kiểm tra database hiện tại:
+
+```text
+11 categories đang được product sử dụng
+Headphone: 59 products
+```
+
+`Laptop Office`/`Office Laptop` và `Headphone`/`Headphones` vẫn có thể xuất hiện đồng thời nếu database đang có product tham chiếu tới cả hai record. Chưa tự động merge vì đây là migration dữ liệu khó hoàn tác.
 
 ## 6. Schema backend hiện tại
 
@@ -472,6 +531,10 @@ File `online-store-frontend/src/components/ProductCard.tsx` đang lấy:
 
 Fallback text như `no_brand` hoặc `no_category` chỉ dùng để hiển thị giao diện, không ghi ngược vào product data.
 
+### 7.5. Dropdown và category cards dùng dữ liệu động
+
+`Header.tsx` và `pages/products/index.tsx` lấy danh sách từ `CategoryContext`, không còn duy trì danh sách route category cố định ở frontend. Slug dùng theo `category.slug`; chỉ fallback về `_id` nếu dữ liệu category cũ chưa có slug.
+
 ## 8. Các lỗi phát sinh trong quá trình sửa
 
 ### 8.1. Khai báo `fs` trùng
@@ -506,32 +569,23 @@ Vì vậy lỗi này thuộc source cũ/phiên bản trước, không còn là l
 Đã thực hiện/ghi nhận:
 
 - Backend syntax check: đạt sau khi sửa khai báo `fs` trùng.
-- Frontend TypeScript check `npm exec -- tsc --noEmit`: chạy thành công.
+- Frontend TypeScript check `npm exec -- tsc --noEmit`: chạy thành công sau thay đổi category API.
+- Raw crawler mapping test cho đủ 13 field: đã bổ sung.
+- Category API dynamic check: đạt, trả 11 category đang được product sử dụng.
+- Category product filter check: đạt, `Headphone` trả 59 product.
 - Seed product translation catalog: đạt đủ sản phẩm và ngôn ngữ như phần trên.
 
-Lần chạy `npm test` đầy đủ vẫn còn các failure không cùng nguyên nhân với mapping crawler:
+Các test translation/endpoint trước đây đã được cập nhật:
 
-1. `translationProductCache.test.js`
-   - Assertion cũ kỳ vọng số request dịch khác với pipeline hiện tại.
-   - Pipeline dịch name, description, specs; brand được giữ từ source.
+- bỏ ID giả, lấy product/language/namespace động;
+- thêm fixture MongoDB tạm thời cho legacy fallback và cleanup sau test;
+- đồng bộ assertion brand source và số lần gọi dịch;
+- `lang=vi` kiểm tra dữ liệu product nguồn;
+- sửa registry từ `sourceImportValidator.test.js` sang `importFileValidator.test.js`;
+- rollback test tự tìm Git root;
+- simple test dùng public payment gateway endpoint thay vì debug endpoint yêu cầu admin.
 
-2. `test-backend-endpoints-phase3.js`
-   - Test dùng ID giả như `test_product_001`, không phải MongoDB ObjectId hợp lệ.
-   - Controller trả `400` đúng theo validation ID hiện tại.
-
-3. `test-rollback-procedures.js`
-   - Test yêu cầu git working tree sạch.
-   - Trong lúc phát triển đang có thay đổi code nên test fail theo điều kiện môi trường.
-
-4. `test-simple.js`
-   - Đây là integration test gọi `localhost:5000`.
-   - Sẽ fail nếu backend không chạy hoặc endpoint debug VNPay không trả success.
-
-5. `sourceImportValidator.test.js`
-   - Test registry có khai báo file nhưng file không tồn tại.
-   - Đây là lỗi cấu hình test runner.
-
-Các test trên chưa được sửa trong phạm vi bản sửa mapping Brand/Category.
+Full `npm test` cần chạy lại trong môi trường backend có đầy đủ `node_modules`; workspace kiểm tra hiện tại thiếu `dotenv` của backend nên chỉ xác nhận được syntax và frontend TypeScript.
 
 ## 10. Việc còn tồn đọng
 
@@ -546,7 +600,14 @@ npm run seed -- --only-module=categories
 
 - Kiểm tra các category duplicate đã tồn tại như `Headphone`, `Laptop Office`, `Laptop`.
 - Nếu cần, viết migration merge category cũ về canonical category; chưa tự động merge vì đây là thay đổi dữ liệu database khó hoàn tác.
+- Sau khi sync category, xác nhận lại endpoint storefront:
+
+```bash
+curl "http://localhost:5000/api/categories?withProducts=true&pageSize=500&lang=vi"
+```
+
 - Kiểm tra trực tiếp fixture raw crawler đủ 13 field qua JSON adapter/import endpoint.
+- `ID` và `URL` hiện vẫn chưa có field riêng trong `Product`; nếu cần truy vấn theo source ID/URL, phải thực hiện schema migration riêng.
 
 Fixture kiểm tra đề xuất:
 
@@ -640,13 +701,20 @@ npm test
 - Đảm bảo cả payload `data` và `products` đều đi qua adapter.
 - Resolve category theo canonical name, alias và lowercase.
 - Thêm alias `Headphone` và `Laptop Office`.
+- Bổ sung slug/key cho category mới sinh từ crawler import.
+- Category storefront lọc động theo product active và tăng page size lên 500.
+- Dropdown Header và category cards dùng CategoryContext/API, không hard-code route category.
+- Product filter hỗ trợ category canonical và alias nguồn.
+- Bổ sung test xác nhận đủ 13 field crawler.
 - Bỏ fallback brand/category/image/inStock giả ở frontend.
 - Giữ brand/category/inStock theo dữ liệu backend/crawler.
 - Sửa lỗi khai báo `fs` trùng.
+- Sửa các test translation/endpoint đang dùng ID giả hoặc assertion cũ.
 
 ### Chưa sửa
 
-- Các test độc lập đang lệch với implementation hoặc môi trường chạy.
+- Full `npm test` chưa được chạy lại trong workspace hiện tại vì thiếu `online-store-backend/node_modules`/`dotenv`; syntax và frontend TypeScript đã được kiểm tra.
 - Category duplicate đã có trong database chưa được merge.
 - Chưa migrate `Product.brand` sang `Brand ObjectId`.
+- `ID` và `URL` chưa được lưu thành field riêng trong `Product`.
 - Một số scraper vẫn có thể tạo `Regular_Price`, `Description` hoặc `InStock` thay vì lấy giá trị gốc tuyệt đối.
