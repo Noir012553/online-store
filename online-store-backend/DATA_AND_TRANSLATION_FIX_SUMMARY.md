@@ -585,7 +585,38 @@ Các test translation/endpoint trước đây đã được cập nhật:
 - rollback test tự tìm Git root;
 - simple test dùng public payment gateway endpoint thay vì debug endpoint yêu cầu admin.
 
-Full `npm test` cần chạy lại trong môi trường backend có đầy đủ `node_modules`; workspace kiểm tra hiện tại thiếu `dotenv` của backend nên chỉ xác nhận được syntax và frontend TypeScript.
+Đã xác nhận thêm sau các thay đổi product detail:
+
+- Rollback suite: `17 passing`, gồm cả Scenario 3 Git rollback.
+- Shadow-write suite: đạt.
+- Frontend TypeScript check: đạt.
+- Frontend offline test: `10/10 passing`.
+- Static product locale JSON có đủ key `section_recently_viewed_products` cho 9 ngôn ngữ.
+
+### 9.1. Đánh giá bảo mật Recently Viewed
+
+Recently Viewed hiện được lưu ở frontend bằng `localStorage` với key `laptopstore_recently_viewed_products`.
+
+Phạm vi dữ liệu hiện tại:
+
+- Chỉ lưu thông tin product public đã trả về từ API.
+- Tối đa 5 object trong storage: product hiện tại và 4 product đã xem trước đó.
+- Không lưu JWT, refresh token, password, API key, secret hoặc thông tin thanh toán.
+- Tên key localStorage không phải secret và không tạo ra quyền truy cập backend.
+
+Rủi ro cần ghi nhận:
+
+- JavaScript chạy trên cùng origin, đặc biệt trong trường hợp XSS, có thể đọc localStorage.
+- Dữ liệu tồn tại sau khi đóng trình duyệt và có thể được đọc trên máy dùng chung.
+- Nếu backend bổ sung field nội bộ vào product response, field đó có thể bị lưu theo object product.
+
+Kết luận hiện tại: rủi ro thấp vì dữ liệu public, storage bị giới hạn kích thước và không chứa credential. Không được dùng cơ chế này để lưu dữ liệu nhạy cảm. Nếu muốn giảm dữ liệu lưu ở client hơn nữa, bước tiếp theo là chỉ lưu product ID rồi gọi backend để lấy lại product.
+
+### 9.2. Recently Viewed và phân quyền xử lý
+
+- Backend xử lý product detail, related products và bản dịch theo static locale JSON.
+- Frontend chỉ render danh sách Recently Viewed và quản lý lịch sử xem cục bộ của trình duyệt.
+- Bản dịch `section_recently_viewed_products` không hard-code ở frontend; frontend đọc qua translation service từ backend.
 
 ## 10. Việc còn tồn đọng
 
@@ -710,10 +741,16 @@ npm test
 - Giữ brand/category/inStock theo dữ liệu backend/crawler.
 - Sửa lỗi khai báo `fs` trùng.
 - Sửa các test translation/endpoint đang dùng ID giả hoặc assertion cũ.
+- Sửa deduplication request để request có `AbortSignal` riêng không dùng lại promise đã bị abort.
+- Module hóa product detail thành gallery, overview, tabs, reviews, recommendations và hook Recently Viewed.
+- Thêm static translation `section_recently_viewed_products` cho 9 ngôn ngữ ở backend.
+- Loại bỏ bản dịch Recently Viewed hard-code khỏi frontend.
+- Giới hạn Recently Viewed ở tối đa 5 product object public trong localStorage.
 
 ### Chưa sửa
 
-- Full `npm test` chưa được chạy lại trong workspace hiện tại vì thiếu `online-store-backend/node_modules`/`dotenv`; syntax và frontend TypeScript đã được kiểm tra.
+- Chưa chuyển Recently Viewed sang backend; hiện vẫn là lịch sử cục bộ theo trình duyệt.
+- Cần chạy lại full `npm test` backend trên môi trường triển khai sau khi đồng bộ các thay đổi mới.
 - Category duplicate đã có trong database chưa được merge.
 - Chưa migrate `Product.brand` sang `Brand ObjectId`.
 - `ID` và `URL` chưa được lưu thành field riêng trong `Product`.
