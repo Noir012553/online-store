@@ -12,6 +12,7 @@ const translationValidator = require('../utils/translationValidator');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const {
   getProductCatalogTranslations,
+  getProductTranslations,
   translateText,
   saveProductTranslation,
   exportProductTranslationCache,
@@ -62,6 +63,34 @@ describe('Product translation cache controller', () => {
       qualityStatus: 'approved',
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Laptop');
+  });
+
+  it('returns source product data for the default language', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returns({
+        lean: sandbox.stub().resolves({
+          name: 'Laptop source',
+          description: 'Source description',
+          brand: 'Source brand',
+          specs: { RAM: '16GB' },
+        }),
+      }),
+    });
+    const res = createResponse();
+
+    await getProductTranslations({
+      params: { id: productId },
+      query: { lang: getDefaultLanguage().code },
+      lang: getDefaultLanguage().code,
+    }, res);
+
+    expect(res.json.lastCall.args[0].data).to.deep.equal({
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      specs: { RAM: '16GB' },
+    });
   });
 
   it('does not reuse a non-approved cache record for public translation', async () => {
@@ -190,11 +219,11 @@ describe('Product translation cache controller', () => {
       lang: 'en',
     }, res);
 
-    expect(translate.callCount).to.equal(3);
+    expect(translate.callCount).to.equal(2);
     expect(findOneAndUpdate.firstCall.args[1].$set).to.include({
       name: 'Manual laptop',
       description: 'en:Source description',
-      brand: 'en:Source brand',
+      brand: 'Source brand',
     });
     expect(findOneAndUpdate.firstCall.args[1].$set.specs).to.deep.equal({ RAM: 'en:16GB' });
     expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name']);

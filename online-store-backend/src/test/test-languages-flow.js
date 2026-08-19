@@ -6,13 +6,14 @@
  */
 
 require('dotenv').config();
+const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const Language = require('../models/Language');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const Product = require('../models/Product');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/online-store';
-const { getActiveLangCodes } = require('../config/languageInventory');
+const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
 async function testLanguagesFlow() {
   try {
@@ -23,10 +24,11 @@ async function testLanguagesFlow() {
 
     // 2. Check system default language
     const defaultLang = await Language.findOne({ isSystemDefault: true });
+    assert.equal(defaultLang?.code, getDefaultLanguage().code);
 
     // 3. Check available products
-    const totalProducts = await Product.countDocuments({});
-    const sampleProduct = await Product.findOne().lean();
+    const totalProducts = await Product.countDocuments({ isDeleted: false });
+    assert.ok(totalProducts > 0, 'No active products are available');
 
     // 4. Check translation cache
     const cacheStats = await LiveTranslationCache.aggregate([
@@ -48,13 +50,22 @@ async function testLanguagesFlow() {
 
     // 6. Test supported languages list
     const activeLangs = getActiveLangCodes();
-    activeLangs.forEach((code) => {
-      const isAdded = existingLanguages.some(l => l.code === code);
-      const status = isAdded ? '✅ Added' : '❌ Not added';
-    });
+    const existingLanguageCodes = new Set(existingLanguages.map(({ code }) => code));
+    const missingLanguages = activeLangs.filter((code) => !existingLanguageCodes.has(code));
+    assert.deepEqual(missingLanguages, [], `Missing active languages: ${missingLanguages.join(', ')}`);
+
+    const unsupportedCacheLanguages = cacheStats
+      .map(({ _id: code }) => code)
+      .filter((code) => !activeLangs.includes(code));
+    assert.deepEqual(
+      unsupportedCacheLanguages,
+      [],
+      `Translation cache contains unsupported languages: ${unsupportedCacheLanguages.join(', ')}`
+    );
 
 
   } catch (error) {
+    console.error(`[LanguageFlowTest] ${error.message}`);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
