@@ -41,6 +41,19 @@ interface Review {
 }
 
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
+const RECENTLY_VIEWED_STORAGE_KEY = 'laptopstore_recently_viewed_products';
+const MAX_RECENTLY_VIEWED_PRODUCTS = 4;
+const RECENTLY_VIEWED_LABELS: Record<string, string> = {
+  vi: 'Sản phẩm đã xem',
+  en: 'Recently Viewed',
+  pt: 'Vistos Recentemente',
+  fr: 'Vus Récemment',
+  de: 'Zuletzt Angesehen',
+  it: 'Visti di Recente',
+  es: 'Vistos Recientemente',
+  nl: 'Onlangs Bekeken',
+  sv: 'Nyligen Visade',
+};
 
 type ProductTab = (typeof TAB_VALUES)[number];
 
@@ -66,6 +79,7 @@ export default function ProductDetail() {
   const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
   const [laptop, setLaptop] = useState<any>(null);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
+  const [recentlyViewedLaptops, setRecentlyViewedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -186,6 +200,28 @@ export default function ProductDetail() {
       controller.abort();
     };
   }, [currencyCode, id, isHydrated, locale]);
+
+  useEffect(() => {
+    if (!laptop?._id || typeof window === 'undefined') return;
+
+    try {
+      const storedProducts = JSON.parse(
+        window.localStorage.getItem(RECENTLY_VIEWED_STORAGE_KEY) || '[]'
+      );
+      const previousProducts = Array.isArray(storedProducts)
+        ? storedProducts.filter((product) => product?._id && product._id !== laptop._id)
+        : [];
+      const updatedProducts = [laptop, ...previousProducts].slice(0, MAX_RECENTLY_VIEWED_PRODUCTS + 1);
+
+      window.localStorage.setItem(
+        RECENTLY_VIEWED_STORAGE_KEY,
+        JSON.stringify(updatedProducts)
+      );
+      setRecentlyViewedLaptops(updatedProducts.slice(1, MAX_RECENTLY_VIEWED_PRODUCTS + 1));
+    } catch {
+      setRecentlyViewedLaptops([]);
+    }
+  }, [laptop]);
 
   const handleSubmitReview = async () => {
     if (!user) {
@@ -337,6 +373,11 @@ export default function ProductDetail() {
     : 0;
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
+  const recentlyViewedTitleKey = 'section_recently_viewed_products';
+  const translatedRecentlyViewedTitle = t(recentlyViewedTitleKey, 'products');
+  const recentlyViewedTitle = translatedRecentlyViewedTitle === recentlyViewedTitleKey
+    ? RECENTLY_VIEWED_LABELS[locale] || RECENTLY_VIEWED_LABELS.en
+    : translatedRecentlyViewedTitle;
 
   return (
     <div className="container mx-auto px-4 py-8 animate-in fade-in duration-300">
@@ -731,6 +772,17 @@ export default function ProductDetail() {
           <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl">{t('section_related_products', 'products')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {relatedLaptops.map((product) => (
+              <ProductCard key={product._id} laptop={product} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recentlyViewedLaptops.length > 0 && (
+        <section className="mt-8 sm:mt-12">
+          <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl">{recentlyViewedTitle}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {recentlyViewedLaptops.map((product) => (
               <ProductCard key={product._id} laptop={product} />
             ))}
           </div>
