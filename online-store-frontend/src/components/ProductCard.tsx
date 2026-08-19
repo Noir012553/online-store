@@ -1,19 +1,18 @@
 import { ShoppingCart, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Laptop, getTranslatedValue, getCategoryName } from "../lib/data";
-import { getImageUrl, capitalizeSpecKey } from "../lib/utils";
+import { Laptop, getCategoryName } from "../lib/data";
+import { getImageUrl } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
 import { useLanguage } from "../lib/i18n";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { toast } from "sonner";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { EmojiSvg } from "./EmojiSvg";
 import { UI_EMOJI } from "../lib/uiEmoji";
 import { BackendProduct } from "../lib/api";
-import { useProductTranslation } from "../hooks/useProductTranslation";
 
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mod.QuickViewModal), {
   ssr: false,
@@ -34,8 +33,7 @@ const RouterOrDiv = ({ href, children, className, isValidId, ...rest }: { href?:
 
 export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { locale, t } = useLanguage();
-  const { translation } = useProductTranslation(laptop._id);
+  const { t } = useLanguage();
   const [showQuickView, setShowQuickView] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
@@ -46,18 +44,10 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     const displayCategoryName = categoryObj ? getCategoryName(categoryObj) : '';
     const displayBrand = !laptop.brand ? t('no_brand', 'products') : laptop.brand;
 
-    const isSourceLocale = locale === 'vi';
-    const specs = { ...laptop.specs };
-    if (!isSourceLocale && translation?.specs) {
-      Object.assign(specs, translation.specs);
-    }
-
     return {
       id: laptop._id || laptop.id || '',
-      name: isSourceLocale
-        ? getTranslatedValue(typeof laptop.name === 'object' ? laptop.name : laptop.name, locale)
-        : translation?.name || getTranslatedValue(laptop.name, locale),
-      brand: isSourceLocale ? displayBrand : translation?.brand || displayBrand,
+      name: laptop.name,
+      brand: displayBrand,
       category: categoryId || t('no_category', 'admin'),
       categoryName: displayCategoryName || t('no_category', 'admin'),
       price: laptop.price,
@@ -71,12 +61,12 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       rating: laptop.rating || 0,
       reviews: laptop.numReviews || 0,
       inStock: (laptop.countInStock || 0) > 0,
-      specs,
-      description: isSourceLocale ? laptop.description || '' : translation?.description || laptop.description || '',
+      specs: laptop.specs || {},
+      description: laptop.description || '',
       featured: laptop.featured || false,
       deal: laptop.deal,
     };
-  }, [laptop, translation, locale, t]);
+  }, [laptop, t]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -190,7 +180,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
 
                 return specEntries.map(([key, value]) => (
                   <p key={key} className="truncate text-xs">
-                    <span className="text-gray-500">{capitalizeSpecKey(key)}:</span> {String(value)}
+                    <span className="text-gray-500">{key}:</span> {String(value)}
                   </p>
                 ));
               })()}

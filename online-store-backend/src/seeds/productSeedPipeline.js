@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { spawn } = require('child_process');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
@@ -12,6 +13,11 @@ const {
 } = require('../config/languageInventory');
 const ProductImportController = require('../controllers/productImportController');
 const User = require('../models/User');
+const {
+  extractPublicIdFromUrl,
+  isCloudinaryUrl,
+  uploadFileToCloudinary,
+} = require('../services/cloudinaryService');
 
 const backendRoot = path.resolve(__dirname, '../..');
 const scraperRoot = path.join(backendRoot, 'python');
@@ -152,6 +158,66 @@ const ensureSourceCategories = async (products, filePath, dryRun) => {
   return [];
 };
 
+const getProductImagePublicId = (product, slot, index = 0) => {
+  const identity = product.sku || product.URL || `${product.brand}:${product.name}`;
+  const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
+  return `${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
+};
+
+const uploadProductImage = async (sourceUrl, publicId) => {
+  if (isCloudinaryUrl(sourceUrl)) {
+    return {
+      url: sourceUrl,
+      publicId: extractPublicIdFromUrl(sourceUrl) || publicId,
+    };
+  }
+
+  if (!/^https?:\/\//i.test(String(sourceUrl || '').trim())) {
+    throw new Error(`URL ảnh sản phẩm không hợp lệ: ${sourceUrl}`);
+  }
+
+  return uploadFileToCloudinary(sourceUrl, 'products', publicId);
+};
+
+const uploadProductImages = async (product) => {
+  const sourceImage = String(product.image || '').trim();
+  const sourceGallery = Array.isArray(product.images)
+    ? product.images.map(image => String(image || '').trim()).filter(Boolean)
+    : [];
+
+  const mainImage = await uploadProductImage(
+    sourceImage,
+    getProductImagePublicId(product, 'main')
+  );
+  const galleryImages = [];
+  const galleryPublicIds = [];
+
+  for (let index = 0; index < sourceGallery.length; index += 1) {
+    const uploadedImage = await uploadProductImage(
+      sourceGallery[index],
+      getProductImagePublicId(product, 'gallery', index)
+    );
+    galleryImages.push(uploadedImage.url);
+    galleryPublicIds.push(uploadedImage.publicId);
+  }
+
+  return {
+    ...product,
+    image: mainImage.url,
+    imagePublicId: mainImage.publicId,
+    images: galleryImages,
+    imagePublicIds: galleryPublicIds,
+  };
+};
+
+const prepareProductImages = async (products) => {
+  const preparedProducts = [];
+  for (const product of products) {
+    preparedProducts.push(await uploadProductImages(product));
+  }
+  return preparedProducts;
+};
+
 const getInputFiles = ({ file, directory }) => {
   if (file) {
     const resolvedFile = path.resolve(backendRoot, file);
@@ -238,7 +304,9 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => 
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(parsedProducts);
   const validation = await manager.validate(dedupedProducts, format);
   await ensureSourceCategories(validation.validProducts, filePath, dryRun);
-  const unique = validation.validProducts;
+  const unique = dryRun
+    ? validation.validProducts
+    : await prepareProductImages(validation.validProducts);
   const totalBatches = Math.ceil(unique.length / batchSize);
   const summary = {
     file: filePath,
@@ -346,5 +414,7 @@ const runProductSeedPipeline = async (options = {}) => {
 };
 
 module.exports = {
+  getProductImagePublicId,
+  uploadProductImage,
   runProductSeedPipeline,
 };

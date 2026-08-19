@@ -31,6 +31,7 @@ const vietnameseToEnglishSpecMap = {
 
   // ========== LAYOUT ==========
   'layout': 'layout',
+  'kichthuoc/layout': 'layout',
   'bucucphim': 'layout',
   'bố cục phím': 'layout',
 
@@ -65,6 +66,8 @@ const vietnameseToEnglishSpecMap = {
   'số lượng nút bấm': 'buttons',
   'soluongnut': 'buttons',
   'số lượng nút': 'buttons',
+  'soluongphim': 'buttons',
+  'số lượng phím': 'buttons',
 
   // ========== HEADPHONE ==========
   'driver': 'driver',

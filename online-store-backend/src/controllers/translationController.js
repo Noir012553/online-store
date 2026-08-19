@@ -16,6 +16,7 @@ const seedTranslations = require('../seeds/translationSeeder');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
+const { localizeProductSpecs } = require('../services/translationHelper');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 
@@ -182,9 +183,12 @@ exports.getProductTranslations = async (req, res) => {
           name: sourceProduct.name,
           description: sourceProduct.description,
           brand: sourceProduct.brand,
-          specs: sourceProduct.specs instanceof Map
-            ? Object.fromEntries(sourceProduct.specs)
-            : sourceProduct.specs || {},
+          specs: localizeProductSpecs(
+            sourceProduct.specs instanceof Map
+              ? Object.fromEntries(sourceProduct.specs)
+              : sourceProduct.specs || {},
+            resolvedLang
+          ),
         },
       });
     }
@@ -200,7 +204,13 @@ exports.getProductTranslations = async (req, res) => {
       );
     }
 
-    return res.json({ success: true, data });
+    return res.json({
+      success: true,
+      data: {
+        ...data,
+        specs: localizeProductSpecs(data.specs, resolvedLang),
+      },
+    });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
     return sendTranslationError(

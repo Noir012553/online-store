@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLanguage } from '../lib/i18n';
-import { capitalizeSpecKey } from '../lib/utils';
 
 interface SpecsTableProps {
   specs: Record<string, any>;
@@ -21,7 +20,7 @@ export const SpecsTable: React.FC<SpecsTableProps> = ({ specs }) => {
           {specEntries.map(([key, value], idx) => (
             <tr key={key} className={idx % 2 === 0 ? "bg-white" : "bg-white/30"}>
               <td className="px-4 py-3 font-medium text-gray-600 w-1/3 border-b border-gray-50">
-                {capitalizeSpecKey(key)}
+                {key}
               </td>
               <td className="px-4 py-3 text-gray-900 border-b border-gray-50">
                 {String(value)}
