@@ -75,6 +75,25 @@ type HeroSlide = {
   sortOrder?: number;
 };
 
+type HomeCategory = {
+  _id: string;
+  name: string;
+  slug?: string;
+  key?: string;
+  translationKey?: string;
+  sourceNames?: string[];
+};
+
+const normalizeCategoryKey = (value: unknown): string => (
+  typeof value === 'string' ? value.trim().toLowerCase() : ''
+);
+
+const getCategoryValues = (value: BackendProduct['category']): string[] => {
+  if (typeof value === 'string') return [value];
+  if (!value || typeof value !== 'object') return [];
+  return [value._id, value.id, value.name].filter((item): item is string => Boolean(item));
+};
+
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories } = useCategories();
@@ -235,57 +254,9 @@ export default function Home() {
 
         const allProductsList = productsResponse.products || [];
 
-        // Categories are now fetched from CategoryContext, not here
-        const cats = Array.isArray(categories) ? categories : [];
+        // Keep active products available for category sections rendered below.
+        const displayProducts = allProductsList.filter((product: BackendProduct) => (product.countInStock || 0) > 0);
 
-        // Find category IDs for office and gaming laptops by translationKey or ID
-        const officeCategory = cats.find((c: any) => c.translationKey === 'category_office_laptop' || c._id === process.env.NEXT_PUBLIC_OFFICE_CATEGORY_ID);
-        const gamingCategory = cats.find((c: any) => c.translationKey === 'category_gaming_laptop' || c._id === process.env.NEXT_PUBLIC_GAMING_CATEGORY_ID);
-
-        // Helper to get category ID from category object or string
-        const getCategoryId = (cat: any): string | undefined => {
-          if (typeof cat === 'string') return cat;
-          if (cat && typeof cat === 'object') return cat._id || cat.id;
-          return undefined;
-        };
-
-        // Organize products: 8 office laptops + 8 gaming laptops + 12 others
-        // If categories not found, fallback to showing all products
-        let displayProducts: BackendProduct[] = [];
-
-        if (officeCategory && gamingCategory) {
-          const officeProducts = allProductsList.filter((p: BackendProduct) => {
-            const catId = getCategoryId(p.category);
-            const isOffice = catId === officeCategory._id;
-            return isOffice && (p.countInStock || 0) > 0;
-          });
-
-          const gamingProducts = allProductsList.filter((p: BackendProduct) => {
-            const catId = getCategoryId(p.category);
-            const isGaming = catId === gamingCategory._id;
-            return isGaming && (p.countInStock || 0) > 0;
-          });
-
-          const otherProducts = allProductsList.filter((p: BackendProduct) => {
-            const catId = getCategoryId(p.category);
-            const isLaptop =
-              catId === officeCategory._id ||
-              catId === gamingCategory._id;
-            return (p.countInStock || 0) > 0 && !isLaptop;
-          });
-
-          // Combine: 8 office + 8 gaming + 12 others (28 total for 4 columns x 7 rows)
-          displayProducts = [
-            ...officeProducts.slice(0, 8),
-            ...gamingProducts.slice(0, 8),
-            ...otherProducts.slice(0, 12),
-          ];
-        } else {
-          // Fallback: if categories not found, show all in-stock products
-          displayProducts = allProductsList.filter((p: BackendProduct) => (p.countInStock || 0) > 0).slice(0, 28);
-        }
-
-        // Final check before setting state
         if (!isMounted) return;
 
         setAllProducts(displayProducts);
@@ -308,7 +279,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [categories, currencyCode, locale, isHydrated]);
+  }, [currencyCode, locale, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -428,6 +399,33 @@ export default function Home() {
   const prevDealSlide = () => {
     setCurrentDealSlide((prev) => Math.max(prev - 1, 0));
   };
+
+  const categorySections = (Array.isArray(categories) ? categories as HomeCategory[] : [])
+    .map((category) => {
+      const categoryKeys = new Set(
+        [
+          category._id,
+          category.name,
+          category.slug,
+          category.key,
+          category.translationKey,
+          ...(category.sourceNames || []),
+        ]
+          .map(normalizeCategoryKey)
+          .filter(Boolean),
+      );
+      const products = allProducts.filter((product) => (
+        getCategoryValues(product.category).some((value) => categoryKeys.has(normalizeCategoryKey(value)))
+      )).slice(0, 8);
+
+      return { category, products };
+    })
+    .filter(({ products }) => products.length > 0);
+  const sectionsToRender = categorySections.length > 0
+    ? categorySections
+    : allProducts.length > 0
+      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 8) }]
+      : [];
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
@@ -551,22 +549,38 @@ export default function Home() {
 
           <section className="bg-white pt-6 pb-6 sm:pt-8 sm:pb-8">
             <div className="container mx-auto section-container-px">
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                  {Array(8).fill(null).map((_, index) => (
+                    <ProductSkeleton key={index} />
+                  ))}
+                </div>
+              ) : sectionsToRender.length > 0 ? (
+                <div className="space-y-10">
+                  {sectionsToRender.map(({ category, products }) => (
+                    <div key={category._id}>
+                      <div className="flex items-center justify-between gap-4 mb-4 sm:mb-6">
+                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                          {getCategoryName(category)}
+                        </h2>
+                        <Link
+                          href={category._id === 'all-products' ? '/products' : `/products/${category.slug || category._id}`}
+                          className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline whitespace-nowrap"
+                        >
+                          {t('view_all_products')}
+                        </Link>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        {products.map((product) => (
+                          <ProductCard key={product._id} laptop={product} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-                {isLoading ? (
-                  <>
-                    {Array(28).fill(null).map((_, i) => (
-                      <ProductSkeleton key={i} />
-                    ))}
-                  </>
-                ) : allProducts.length > 0 ? (
-                  allProducts.map((product) => (
-                    <ProductCard key={product._id} laptop={product} />
-                  ))
-                ) : null}
-              </div>
-
-              <div className="mb-8">
+              <div className="mt-10 mb-8">
                 <BannerSlot slot="homepage_inline" variant="strip" limit={3} />
               </div>
 
