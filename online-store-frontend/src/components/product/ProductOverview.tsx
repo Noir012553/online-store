@@ -102,6 +102,7 @@ export function ProductOverview({
             name="quantity"
             type="number"
             min="1"
+            max={stockCount > 0 ? stockCount : undefined}
             value={quantity}
             onChange={(event) => onQuantityChange(Math.max(1, parseInt(event.target.value) || 1))}
             className="w-12 sm:w-16 text-center border-x text-sm"

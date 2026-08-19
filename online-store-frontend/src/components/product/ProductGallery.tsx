@@ -43,6 +43,7 @@ export function ProductGallery({
               alt={productName}
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
               loading="eager"
               className="object-contain transition-transform duration-300 group-hover:scale-110"
             />

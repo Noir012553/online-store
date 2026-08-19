@@ -23,6 +23,7 @@ import { ImageViewer } from "../../components/ImageViewer";
 import { toast } from "sonner";
 import { getImageUrl, isLoginPath } from "../../lib/utils";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
+import type { Locale } from "../../lib/i18n/types";
 
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
@@ -30,6 +31,32 @@ type ProductTab = (typeof TAB_VALUES)[number];
 const getSafeProductTab = (value: unknown): ProductTab => {
   if (typeof value !== 'string') return 'specs';
   return (TAB_VALUES as readonly string[]).includes(value) ? (value as ProductTab) : 'specs';
+};
+
+const formatProductAmount = (
+  value: unknown,
+  formattedValue: unknown,
+  locale: Locale,
+  currencyCode: string,
+): string | undefined => {
+  if (typeof formattedValue === 'string' && formattedValue.trim()) {
+    return formattedValue;
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return new Intl.NumberFormat(getIntlLocale(locale), {
+    style: 'currency',
+    currency: currencyCode,
+  }).format(value);
+};
+
+const cleanProductDescription = (value: unknown): string => {
+  if (typeof value !== 'string') return '';
+  const description = value.trim();
+  return /^(?:thông số|specifications?)\s*:\s*\{\s*\}$/i.test(description) ? '' : description;
 };
 
 export const getServerSideProps = async () => {
@@ -121,6 +148,8 @@ export default function ProductDetail() {
         );
         if (!isCurrentRequest()) return;
         setLaptop(product);
+        setSelectedImage(0);
+        setQuantity(1);
 
         // Fetch related products (same category)
         const categoryId = product.category?._id || product.category;
@@ -257,14 +286,26 @@ export default function ProductDetail() {
   // Convert backend product to frontend Laptop format for cart
   const isSourceLocale = locale === 'vi';
   const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() || laptop.name;
-  const localizedDescription = isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description;
+  const localizedDescription = cleanProductDescription(
+    isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description,
+  );
   const localizedBrand = isSourceLocale ? laptop.brand : translation?.brand?.trim() || laptop.brand;
-  const localizedSpecs = isSourceLocale ? laptop.specs ?? {} : translation?.specs ?? laptop.specs ?? {};
+  const sourceSpecs = laptop.specs ?? {};
+  const localizedSpecs = isSourceLocale
+    ? sourceSpecs
+    : { ...sourceSpecs, ...(translation?.specs ?? {}) };
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
     ? category._id ?? category.id
     : category;
-  const canDisplayPrice = Boolean(laptop.formattedPrice);
+  const formattedPrice = formatProductAmount(laptop.price, laptop.formattedPrice, locale, laptop.baseCurrencyCode);
+  const formattedOriginalPrice = formatProductAmount(
+    laptop.originalPrice,
+    laptop.formattedOriginalPrice,
+    locale,
+    laptop.baseCurrencyCode,
+  );
+  const canDisplayPrice = Boolean(formattedPrice && Number.isFinite(laptop.price) && laptop.price > 0);
 
   const convertedLaptop: Laptop = {
     id: laptop._id,
@@ -272,8 +313,10 @@ export default function ProductDetail() {
     brand: localizedBrand ?? t('no_brand', 'products'),
     category: categoryId ?? t('no_category', 'admin'),
     price: laptop.price,
+    formattedPrice,
     baseCurrencyCode: laptop.baseCurrencyCode,
     originalPrice: laptop.originalPrice,
+    formattedOriginalPrice,
     image: images[0] ?? '',
     images,
     rating: laptop.rating ?? 0,
@@ -360,7 +403,7 @@ export default function ProductDetail() {
           reviewCount={Math.max(totalReviews, reviews.length, laptop.numReviews || 0)}
           canDisplayPrice={canDisplayPrice}
           quantity={quantity}
-          onQuantityChange={setQuantity}
+          onQuantityChange={(nextQuantity) => setQuantity(Math.min(laptop.countInStock > 0 ? laptop.countInStock : 1, Math.max(1, nextQuantity)))}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
         />
