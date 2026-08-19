@@ -25,7 +25,7 @@ const categories = [
   },
   {
     name: 'Headphones',
-    sourceNames: ['Tai Nghe', 'Tai Nghe Chụp Tai', 'Tai Nghe Gaming'],
+    sourceNames: ['Headphone', 'Tai Nghe', 'Tai Nghe Chụp Tai', 'Tai Nghe Gaming'],
     description: 'Computer headphones with dynamic sound suitable for work and entertainment',
     key: 'headphones',
     slug: 'headphones',
@@ -55,7 +55,7 @@ const categories = [
   },
   {
     name: 'Office Laptop',
-    sourceNames: ['Laptop Truyền Thống', 'Laptop Văn Phòng'],
+    sourceNames: ['Laptop Office', 'Laptop Truyền Thống', 'Laptop Văn Phòng'],
     description: 'Lightweight office laptops with long battery life for daily work',
     key: 'office_laptop',
     slug: 'office-laptop',

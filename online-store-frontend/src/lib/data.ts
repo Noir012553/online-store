@@ -20,7 +20,7 @@ export interface Laptop {
   images: string[];
   rating: number;
   reviews: number;
-  inStock: boolean;
+  inStock?: boolean;
   specs: Record<string, string | number>;
   description?: string;
   featured?: boolean;

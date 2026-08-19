@@ -59,22 +59,22 @@ export abstract class BaseAdapter<TInput, TOutput> {
 export const LaptopSchema = z.object({
   id: z.string().or(z.number()).transform(val => String(val)),
   _id: z.string().optional(),
-  name: z.string().default('product_unnamed'),
-  brand: z.string().default('brand_generic'),
-  category: z.string().default('product_category_laptop'),
+  name: z.string().trim().min(1),
+  brand: z.string().trim().min(1),
+  category: z.string().trim().min(1),
   categoryId: z.string().optional(),
   categoryName: z.string().optional(),
-  price: z.number().default(0),
+  price: z.number().nonnegative(),
   formattedPrice: z.string().optional(),
   baseCurrencyCode: z.string(),
   originalPrice: z.number().optional(),
   formattedOriginalPrice: z.string().optional(),
-  image: z.string().default('/images/placeholder.jpg'),
+  image: z.string().trim().min(1),
   images: z.array(z.string()).default([]),
   rating: z.number().default(0),
   reviews: z.number().default(0),
-  inStock: z.boolean().default(true),
-  countInStock: z.number().default(0),
+  inStock: z.boolean().optional(),
+  countInStock: z.number().nonnegative().optional(),
   specs: z
     .record(z.string(), z.union([z.string(), z.number(), z.null(), z.undefined()]))
     .default({})
@@ -114,11 +114,8 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
     if (!normalized.id && normalized._id) {
       normalized.id = normalized._id;
     }
-    // Handle name
-    if (normalized.name) {
-      normalized.name = String(normalized.name) || "product_unnamed";
-    } else {
-      normalized.name = "product_unnamed";
+    if (typeof normalized.name === 'string') {
+      normalized.name = normalized.name.trim();
     }
 
     // Handle description
@@ -131,20 +128,25 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
       normalized.specDisplay = [];
     }
 
-    // Handle category
+    // Preserve the category returned by the backend without inventing a value.
     if (normalized.category && typeof normalized.category === 'object') {
-      const catName = normalized.category.name;
-      const finalName = typeof catName === 'string' && catName.trim()
-        ? catName
-        : 'product_category_laptop';
+      const categoryName = normalized.category.name || normalized.categoryName;
       normalized.categoryId = normalized.category._id || normalized.category.id;
-      normalized.categoryName = finalName;
-      normalized.category = finalName;
-    } else if (normalized.category) {
-      const categoryName = String(normalized.category).trim();
-      normalized.category = categoryName || 'product_category_laptop';
+      if (typeof categoryName === 'string' && categoryName.trim()) {
+        normalized.categoryName = categoryName.trim();
+        normalized.category = categoryName.trim();
+      } else {
+        delete normalized.category;
+      }
+    } else if (typeof normalized.category === 'string') {
+      const categoryName = normalized.category.trim();
+      if (categoryName) {
+        normalized.category = categoryName;
+      } else {
+        delete normalized.category;
+      }
     } else {
-      normalized.category = 'product_category_laptop';
+      delete normalized.category;
     }
 
     // Map backend field names
@@ -158,8 +160,8 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
 
     if (normalized.countInStock !== undefined) {
       normalized.inStock = Number(normalized.countInStock) > 0;
-    } else if (normalized.inStock === undefined) {
-      normalized.inStock = true;
+    } else {
+      delete normalized.inStock;
     }
 
     if (typeof normalized.specs !== 'object' || normalized.specs === null) {
