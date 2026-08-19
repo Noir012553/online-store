@@ -195,12 +195,16 @@ const uploadProductImages = async (product) => {
   const galleryPublicIds = [];
 
   for (let index = 0; index < sourceGallery.length; index += 1) {
-    const uploadedImage = await uploadProductImage(
-      sourceGallery[index],
-      getProductImagePublicId(product, 'gallery', index)
-    );
-    galleryImages.push(uploadedImage.url);
-    galleryPublicIds.push(uploadedImage.publicId);
+    try {
+      const uploadedImage = await uploadProductImage(
+        sourceGallery[index],
+        getProductImagePublicId(product, 'gallery', index)
+      );
+      galleryImages.push(uploadedImage.url);
+      galleryPublicIds.push(uploadedImage.publicId);
+    } catch (error) {
+      console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${error.message}`);
+    }
   }
 
   return {
@@ -215,7 +219,11 @@ const uploadProductImages = async (product) => {
 const prepareProductImages = async (products) => {
   const preparedProducts = [];
   for (const product of products) {
-    preparedProducts.push(await uploadProductImages(product));
+    try {
+      preparedProducts.push(await uploadProductImages(product));
+    } catch (error) {
+      console.warn(`[ProductPipeline] Bỏ qua sản phẩm "${product.name}" vì không tải được ảnh chính: ${error.message}`);
+    }
   }
   return preparedProducts;
 };
