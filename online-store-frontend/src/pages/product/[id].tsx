@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/i18n";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Star, LogIn } from "lucide-react";
 import { productAPI, reviewAPI } from "../../lib/api";
 import { useCart } from "../../lib/context/CartContext";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -12,32 +11,18 @@ import { getIntlLocale } from "../../lib/localeUtils";
 import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload";
 import { Laptop } from "../../lib/data";
 import { Button } from "../../components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { ProductGallery } from "../../components/product/ProductGallery";
 import { ProductRecommendations } from "../../components/product/ProductRecommendations";
 import { ProductOverview } from "../../components/product/ProductOverview";
+import { ProductInformationTabs } from "../../components/product/ProductInformationTabs";
+import { type ProductReview, type ProductReviewForm } from "../../components/product/ProductReviews";
 import { useRecentlyViewedProducts } from "../../hooks/useRecentlyViewedProducts";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { BannerSlot } from "../../components/BannerSlot";
-import { ProductDescriptionFormatter } from "../../components/ProductDescriptionFormatter";
-import { SpecsTable } from "../../components/SpecsTable";
-import { TranslatedReview } from "../../components/TranslatedReview";
 import { ImageViewer } from "../../components/ImageViewer";
 import { toast } from "sonner";
 import { getImageUrl, isLoginPath } from "../../lib/utils";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
-
-interface Review {
-  _id?: string;
-  name?: string;
-  rating: number;
-  comment: string;
-  user?: {
-    username?: string;
-    name?: string;
-  };
-  createdAt?: string;
-}
 
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
@@ -64,7 +49,7 @@ export default function ProductDetail() {
   const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
   const [laptop, setLaptop] = useState<any>(null);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +58,7 @@ export default function ProductDetail() {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState<{ src: string; alt: string; images?: string[]; initialIndex?: number } | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', avatar: null as File | null });
+  const [reviewForm, setReviewForm] = useState<ProductReviewForm>({ rating: 5, comment: '', avatar: null });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState<ProductTab>('specs');
 
@@ -381,185 +366,26 @@ export default function ProductDetail() {
         />
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8 sm:mb-12">
-        <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
-          <TabsTrigger value="specs" className="text-xs sm:text-sm">{t('tab_specs', 'products')}</TabsTrigger>
-          <TabsTrigger value="description" className="text-xs sm:text-sm">{t('tab_description', 'products')}</TabsTrigger>
-          <TabsTrigger value="reviews" className="text-xs sm:text-sm">{t('tab_reviews', 'products')} ({Math.max(totalReviews, reviews.length, laptop.numReviews || 0)})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="specs" id="product-specs-container" className="bg-white p-4 sm:p-6 border rounded-lg">
-          <SpecsTable specs={convertedLaptop.specs} />
-        </TabsContent>
-        <TabsContent value="description" id="product-description-container" className="bg-white p-4 sm:p-6 border rounded-lg">
-          <div className="space-y-8">
-            {convertedLaptop.description && (
-              <div>
-                <h3 className="text-lg font-bold mb-4 text-gray-900">{t('section_description', 'products')}</h3>
-                <ProductDescriptionFormatter
-                  text={convertedLaptop.description || ''}
-                />
-              </div>
-            )}
-
-            {!convertedLaptop.description && (
-              <p className="text-gray-500 text-center py-8">{t('empty_no_description', 'products')}</p>
-            )}
-          </div>
-        </TabsContent>
-        <TabsContent value="reviews" className="bg-white p-6 border rounded-lg">
-          <div className="space-y-6">
-            {!showReviewForm && (
-              user ? (
-                <Button onClick={() => setShowReviewForm(true)} className="bg-red-600 hover:bg-red-700">
-                  {t('btn_write_review', 'products')}
-                </Button>
-              ) : (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <LogIn className="w-5 h-5 text-blue-600" />
-                    <p className="text-sm text-blue-800">{t('msg_login_to_review', 'products')}</p>
-                  </div>
-                  <Link href={loginHref}>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      {t('btn_login', 'auth')}
-                    </Button>
-                  </Link>
-                </div>
-              )
-            )}
-
-            {showReviewForm && (
-              <div className="border p-6 rounded-lg bg-white space-y-4 mb-6">
-                <h3 className="font-bold">{t('btn_write_review', 'products')}</h3>
-
-                <div>
-                  <label className="block text-sm mb-2">{t('label_rating', 'products')}</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                        className="p-1"
-                      >
-                        <Star
-                          className={`w-6 h-6 ${
-                            star <= reviewForm.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-2">{t('label_your_review', 'products')}</label>
-                  <textarea
-                    id="review-comment"
-                    name="comment"
-                    value={reviewForm.comment}
-                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                    placeholder={t('placeholder_review_comment', 'products')}
-                    className="w-full border rounded-lg p-3 min-h-24"
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="review-avatar" className="block text-sm mb-2">{t('label_avatar', 'products')}</label>
-                  <div className="relative">
-                    <input
-                      id="review-avatar"
-                      name="avatar"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setReviewForm({ ...reviewForm, avatar: e.target.files?.[0] || null })}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div className="w-full border rounded-lg p-3 bg-white hover:bg-white transition-colors cursor-pointer flex items-center gap-2 text-gray-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="text-sm">{reviewForm.avatar ? reviewForm.avatar.name : t('placeholder_no_file', 'products')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSubmitReview}
-                    disabled={isSubmittingReview}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {isSubmittingReview ? t('btn_submitting', 'products') : t('btn_submit_review', 'products')}
-                  </Button>
-                  <Button
-                    onClick={() => setShowReviewForm(false)}
-                    variant="outline"
-                  >
-                    {t('btn_cancel', 'products')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {reviews.length > 0 ? (
-              reviews.map((review) => {
-                const reviewerName = review.name || review.user?.name || t('default_anonymous', 'products');
-                const reviewDate = review.createdAt ? new Date(review.createdAt).toLocaleDateString(getIntlLocale(locale)) : t('not_available', 'common');
-                const initials = reviewerName[0] || '?';
-                return (
-                  <div key={review._id} className="border-b pb-6 last:border-b-0">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center overflow-hidden">
-                        {(review as any).avatar ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setViewerImage({ src: (review as any).avatar, alt: reviewerName });
-                              setIsImageViewerOpen(true);
-                            }}
-                            className="h-full w-full cursor-zoom-in"
-                            aria-label={reviewerName}
-                          >
-                            <img src={(review as any).avatar} alt={reviewerName} className="w-full h-full object-cover" />
-                          </button>
-                        ) : (
-                          <span>{initials}</span>
-                        )}
-                      </div>
-                      <div>
-                        <p>{reviewerName}</p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < review.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            {reviewDate}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <TranslatedReview review={review} />
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-gray-500">{t('empty_no_reviews', 'products')}</p>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+      <ProductInformationTabs
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        product={convertedLaptop}
+        reviewCount={Math.max(totalReviews, reviews.length, laptop.numReviews || 0)}
+        reviews={reviews}
+        user={user}
+        loginHref={loginHref}
+        showReviewForm={showReviewForm}
+        reviewForm={reviewForm}
+        isSubmittingReview={isSubmittingReview}
+        onShowReviewForm={() => setShowReviewForm(true)}
+        onReviewFormChange={(updates) => setReviewForm((current) => ({ ...current, ...updates }))}
+        onReviewSubmit={handleSubmitReview}
+        onReviewCancel={() => setShowReviewForm(false)}
+        onOpenImage={(src, alt) => {
+          setViewerImage({ src, alt });
+          setIsImageViewerOpen(true);
+        }}
+      />
 
       {isImageViewerOpen && viewerImage && (
         <ImageViewer
