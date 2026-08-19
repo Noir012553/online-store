@@ -780,7 +780,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     if (start > 2) {
                       pages.push(
                         <span key="dots-start" className="px-2 text-gray-400">
-                          {t('ellipsis', 'pagination')}
+                          ...
                         </span>
                       );
                     }
@@ -804,7 +804,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     if (end < totalPages - 1) {
                       pages.push(
                         <span key="dots-end" className="px-2 text-gray-400">
-                          {t('ellipsis', 'pagination')}
+                          ...
                         </span>
                       );
                     }

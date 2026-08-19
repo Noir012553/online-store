@@ -11,7 +11,7 @@ const SeedStatusSchema = new mongoose.Schema(
     // Unique identifier cho seed phase
     phase: {
       type: String,
-      enum: ['INITIAL_SEED', 'TIER1_PRODUCTS'],
+      enum: ['INITIAL_SEED', 'TIER1_PRODUCTS', 'PRODUCT_HIGHLIGHTS'],
       required: true,
       unique: true,
       index: true,

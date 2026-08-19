@@ -136,6 +136,7 @@ export function Footer() {
           sizes="100vw"
           className="object-cover object-center"
           priority={false}
+          unoptimized
         />
       </div>
 

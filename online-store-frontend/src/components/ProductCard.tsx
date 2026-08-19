@@ -7,7 +7,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
 import { useLanguage } from "../lib/i18n";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { EmojiSvg } from "./EmojiSvg";

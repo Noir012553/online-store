@@ -6,6 +6,7 @@ const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const {
   getProductImagePublicId,
   uploadProductImage,
+  assignInitialHighlights,
 } = require('../seeds/productSeedPipeline');
 
 describe('Import file validation', () => {
@@ -114,6 +115,26 @@ describe('Product seed image backup', () => {
       url: 'https://res.cloudinary.com/demo/image/upload/laptop-store/products/product/main.jpg',
       publicId: 'laptop-store/products/product/main',
     });
+  });
+});
+
+describe('Initial product highlights', () => {
+  it('assigns random featured and hot deal products when fields are missing', () => {
+    const products = Array.from({ length: 10 }, (_, index) => ({ name: `Product ${index}` }));
+    const seededProducts = assignInitialHighlights(products);
+
+    expect(seededProducts.filter(product => product.featured === true)).to.have.lengthOf(1);
+    expect(seededProducts.filter(product => product.deal?.discount > 0)).to.have.lengthOf(1);
+    expect(products.every(product => product.featured === undefined && product.deal === undefined)).to.equal(true);
+  });
+
+  it('preserves explicit featured and deal values', () => {
+    const products = [
+      { name: 'Featured product', featured: true, deal: { discount: 25 } },
+      { name: 'Regular product', featured: false, deal: {} },
+    ];
+
+    expect(assignInitialHighlights(products)).to.deep.equal(products);
   });
 });
 

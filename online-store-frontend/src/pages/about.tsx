@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Target, Eye, Heart, Award, Users, TrendingUp } from "lucide-react";
 import { productAPI } from "../lib/api";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { useAuth } from "../lib/context/AuthContext";
 import { useLanguage } from "../lib/i18n";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
