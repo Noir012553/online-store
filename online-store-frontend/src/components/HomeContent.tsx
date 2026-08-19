@@ -14,7 +14,7 @@ import { useBrands } from "../hooks/useBrands";
 import { ProductCard } from "../components/ProductCard";
 import { BannerSlot } from "../components/BannerSlot";
 import { Button } from "../components/ui/button";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { EmojiSvg } from "../components/EmojiSvg";
 import { UI_EMOJI } from "../lib/uiEmoji";
 import { ProductSkeleton } from "../components/ProductSkeleton";

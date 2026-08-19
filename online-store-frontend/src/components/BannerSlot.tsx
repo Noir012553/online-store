@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { bannerAPI, type BannerRecord } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { getTranslatedValue } from '../lib/data';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './image/ImageWithFallback';
 import { useTranslation } from '../lib/i18n';
 
 export type BannerVariant = 'hero' | 'strip' | 'image-only';

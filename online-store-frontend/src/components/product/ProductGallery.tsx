@@ -1,5 +1,5 @@
 import { Badge } from '../ui/badge';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { ImageWithFallback } from '../image/ImageWithFallback';
 import { EmojiSvg } from '../EmojiSvg';
 import { UI_EMOJI } from '../../lib/uiEmoji';
 

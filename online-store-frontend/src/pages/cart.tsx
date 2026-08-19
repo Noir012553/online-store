@@ -9,7 +9,7 @@ import { useProductTranslation } from "../hooks/useProductTranslation";
 import { getTranslatedValue } from "../lib/data";
 import { DEFAULT_LOCALE } from "../lib/i18n/types";
 import { Button } from "../components/ui/button";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { EmptyState } from "../components/EmptyState";
 import { Badge } from "../components/ui/badge";
