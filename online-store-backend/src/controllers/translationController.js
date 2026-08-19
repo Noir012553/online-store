@@ -143,7 +143,7 @@ exports.getStaticTranslations = async (req, res) => {
 /**
  * GET /api/products/:id/translations
  * Fetch translated product data (name, description, brand, specs) for a specific language
- * Only returns data for non-VI languages (VI is default/source)
+ * Returns translated data for target languages and source product data for the default language
  */
 exports.getProductTranslations = async (req, res) => {
   try {
@@ -159,6 +159,34 @@ exports.getProductTranslations = async (req, res) => {
         'TRANSLATION_PRODUCT_TARGET_INVALID',
         'product_target_invalid'
       );
+    }
+
+    if (resolvedLang === getDefaultLanguage().code) {
+      const sourceProduct = await Product.findById(productId)
+        .select('name description brand specs')
+        .lean();
+
+      if (!sourceProduct) {
+        return sendTranslationError(
+          res,
+          404,
+          getRequestLanguage(req),
+          'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
+          'product_fetch_failed'
+        );
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          name: sourceProduct.name,
+          description: sourceProduct.description,
+          brand: sourceProduct.brand,
+          specs: sourceProduct.specs instanceof Map
+            ? Object.fromEntries(sourceProduct.specs)
+            : sourceProduct.specs || {},
+        },
+      });
     }
 
     const data = await getProductTranslationData(productId, resolvedLang, false);
@@ -247,7 +275,7 @@ exports.translateText = async (req, res) => {
             status: 'success',
             qualityStatus: 'approved',
           }).lean();
-          if (cached) {
+          if (cached?.status === 'success' && cached?.qualityStatus === 'approved') {
             translatedText = cached.translatedText;
             translations[lang] = translatedText;
             continue;
@@ -330,7 +358,7 @@ exports.translateText = async (req, res) => {
         status: 'success',
         qualityStatus: 'approved',
       }).lean();
-      if (cached) {
+      if (cached?.status === 'success' && cached?.qualityStatus === 'approved') {
         return res.json({
           success: true,
           data: {

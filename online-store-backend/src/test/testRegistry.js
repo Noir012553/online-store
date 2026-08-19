@@ -46,7 +46,7 @@ const TEST_SUITES = {
     tags: ['products', 'entities', 'sources'],
     files: [
       'test-phase4-e2e-simplified.js',
-      'sourceImportValidator.test.js',
+      'importFileValidator.test.js',
     ],
   },
 

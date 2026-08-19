@@ -2,6 +2,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
+const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 
 describe('Import file validation', () => {
   const createFile = (content, originalname, mimetype) => ({
@@ -46,6 +47,45 @@ describe('Import file validation', () => {
       originalname: 'products.json',
       mimetype: 'application/json',
     }, 'json')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('Crawler product field mapping', () => {
+  it('maps the exact crawler schema without inventing category data', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-001',
+      Name: 'Product name',
+      SKU: 'SKU-001',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'In Stock',
+      Categories: 'Headphone',
+      Attributes: '{"Color":"Black"}',
+      Description: 'Source description',
+      MainImage: 'https://example.com/main.jpg',
+      GalleryImages: ['https://example.com/1.jpg'],
+      URL: 'https://example.com/product',
+    };
+
+    const [normalized] = await new JSONAdapter().parse(JSON.stringify([rawProduct]));
+
+    expect(normalized).to.include({
+      brand: 'Razer',
+      name: 'Product name',
+      sku: 'SKU-001',
+      price: 100000,
+      originalPrice: 120000,
+      countInStock: 1,
+      category: 'Headphone',
+      specs: '{"Color":"Black"}',
+      description: 'Source description',
+      image: 'https://example.com/main.jpg',
+      baseCurrencyCode: 'VND',
+    });
+    expect(normalized.images).to.deep.equal(['https://example.com/1.jpg']);
+    expect(normalized.ID).to.equal('source-id-001');
+    expect(normalized.URL).to.equal('https://example.com/product');
   });
 });
 

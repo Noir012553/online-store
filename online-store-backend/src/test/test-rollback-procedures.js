@@ -22,7 +22,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationAuditLog = require('../models/TranslationAuditLog');
 
 describe('ROLLBACK PROCEDURES', function() {
-  const testProductId = 'rollback-test-product-123';
+  const testProductId = `rollback-test-${new mongoose.Types.ObjectId()}`;
 
   before(async function() {
     await mongoose.connect(process.env.MONGO_URI);
@@ -220,12 +220,21 @@ describe('ROLLBACK PROCEDURES', function() {
 
     it('✅ Git status is available before rollback', () => {
       const { spawnSync } = require('child_process');
-      const result = spawnSync('git', ['status', '--porcelain'], {
+      const rootResult = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+        cwd: __dirname,
         encoding: 'utf8',
       });
 
-      assert.equal(result.error, undefined);
-      assert.equal(result.status, 0);
+      assert.equal(rootResult.error, undefined);
+      assert.equal(rootResult.status, 0);
+
+      const gitRoot = rootResult.stdout.trim();
+      const statusResult = spawnSync('git', ['-C', gitRoot, 'status', '--porcelain'], {
+        encoding: 'utf8',
+      });
+
+      assert.equal(statusResult.error, undefined);
+      assert.equal(statusResult.status, 0);
     });
   });
 

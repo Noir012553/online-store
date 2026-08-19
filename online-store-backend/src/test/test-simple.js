@@ -1,83 +1,58 @@
-#!/usr/bin/env node
-
-/**
- * Simple test script to verify VNPAY signature verification
- * Run: npm test:simple or node test/test-simple.js
- */
-
 const http = require('http');
+
+const baseUrl = new URL(process.env.BASE_URL || 'http://localhost:5000');
 
 function makeRequest(method, path, body = null) {
   return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'localhost',
-      port: 5000,
-      path: path,
-      method: method,
+    const request = http.request({
+      hostname: baseUrl.hostname,
+      port: baseUrl.port || (baseUrl.protocol === 'https:' ? 443 : 80),
+      path,
+      method,
       headers: {
         'Content-Type': 'application/json',
-      }
-    };
-
-    const req = http.request(options, (res) => {
+      },
+    }, (response) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
+      response.on('data', chunk => {
+        data += chunk;
+      });
+      response.on('end', () => {
         try {
-          resolve({
-            status: res.statusCode,
-            data: JSON.parse(data)
-          });
-        } catch (e) {
-          resolve({
-            status: res.statusCode,
-            data: data
-          });
+          resolve({ status: response.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ status: response.statusCode, data });
         }
       });
     });
 
-    req.on('error', reject);
-    
+    request.on('error', reject);
+
     if (body) {
-      req.write(JSON.stringify(body));
+      request.write(JSON.stringify(body));
     }
-    
-    req.end();
+
+    request.end();
   });
 }
 
 async function test() {
-
   try {
-    // Step 1: Get config
-    const configRes = await makeRequest('GET', '/api/payments/debug/vnpay-config');
-    
-    if (!configRes.data.success) {
-      process.exit(1);
+    const response = await makeRequest('GET', '/api/payments/gateways');
+
+    if (response.status !== 200 || !response.data.success) {
+      throw new Error(
+        `Payment gateway endpoint failed: ${response.status} ${JSON.stringify(response.data)}`
+      );
     }
 
-    const config = configRes.data.config;
-
-    // Step 2: Test webhook
-    
-    const webhookRes = await makeRequest('POST', '/api/payments/debug/test-webhook');
-    
-    if (!webhookRes.data.success) {
-      
-      if (webhookRes.data.details) {
-      }
-    } else {
-      
-      if (webhookRes.data.details?.webhookResponse?.success === false) {
-      } else if (webhookRes.data.details?.webhookResponse?.success) {
-      }
+    const gateways = response.data.data?.gateways;
+    if (!Array.isArray(gateways)) {
+      throw new Error('Payment gateway response is missing the gateways array');
     }
-
-
-    process.exit(0);
   } catch (error) {
-    process.exit(1);
+    console.error(`[test-simple] ${error.message}`);
+    process.exitCode = 1;
   }
 }
 

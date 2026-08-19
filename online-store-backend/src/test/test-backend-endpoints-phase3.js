@@ -11,12 +11,118 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+const Product = require('../models/Product');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 const TEST_TIMEOUT = 30000;
-const testLang = getActiveLangCodes()[1] || getDefaultLanguage().code;
+
+const getTargetLanguage = () => (
+  getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
+  || getDefaultLanguage().code
+);
+
+const requestProducts = async (pageSize = 2) => {
+  const response = await axios.get(
+    `${BASE_URL}/api/products?pageNumber=1&pageSize=${pageSize}`,
+    { validateStatus: () => true }
+  );
+
+  if (response.status !== 200) {
+    throw new Error(`Unable to load product fixtures: ${response.status}`);
+  }
+
+  const products = response.data.products || response.data.data?.products || [];
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error('No product fixture is available');
+  }
+
+  return products;
+};
+
+const createLegacyFallbackFixture = async (targetLang) => {
+  await mongoose.connect(process.env.MONGO_URI);
+  const sourceProduct = await Product.findOne({ isDeleted: false }).lean();
+  if (!sourceProduct) {
+    await mongoose.disconnect();
+    throw new Error('No product source is available for fallback fixture');
+  }
+
+  const productId = new mongoose.Types.ObjectId();
+  const name = `Fallback fixture ${productId}`;
+  const description = 'Fallback fixture source description';
+  const product = await Product.create({
+    _id: productId,
+    user: sourceProduct.user,
+    name,
+    image: sourceProduct.image,
+    sku: `fallback-${productId}`,
+    brand: sourceProduct.brand,
+    category: sourceProduct.category,
+    description,
+    specs: {},
+    price: sourceProduct.price,
+    originalPrice: sourceProduct.originalPrice,
+    baseCurrencyCode: sourceProduct.baseCurrencyCode,
+    countInStock: sourceProduct.countInStock,
+  });
+
+  const records = [
+    {
+      entityType: 'product_name',
+      originalText: name,
+      translatedText: `Legacy ${name}`,
+    },
+    {
+      entityType: 'product_description',
+      originalText: description,
+      translatedText: `Legacy ${description}`,
+    },
+  ].map((translation, index) => ({
+    ...translation,
+    entityId: product._id.toString(),
+    targetLang,
+    hashKey: `fallback-fixture-${product._id}-${targetLang}-${index}`,
+    status: 'success',
+    qualityStatus: 'approved',
+  }));
+
+  await LiveTranslationCache.insertMany(records);
+
+  return {
+    productId: product._id.toString(),
+    cleanup: async () => {
+      await ProductCatalogTranslationCache.deleteMany({ entityId: product._id.toString() });
+      await LiveTranslationCache.deleteMany({ entityId: product._id.toString() });
+      await Product.deleteOne({ _id: product._id });
+      await mongoose.disconnect();
+    },
+  };
+};
+
+const getStaticNamespace = async () => {
+  const response = await axios.get(
+    `${BASE_URL}/api/translations/namespaces`,
+    { validateStatus: () => true }
+  );
+
+  if (response.status !== 200) {
+    throw new Error(`Unable to load translation namespaces: ${response.status}`);
+  }
+
+  const namespaces = response.data.data || [];
+  if (!Array.isArray(namespaces) || namespaces.length === 0) {
+    throw new Error('No static translation namespace is available');
+  }
+
+  return namespaces.includes('common') ? 'common' : namespaces[0];
+};
+
+const testLang = getTargetLanguage();
 
 // Color output helpers
 const colors = {
@@ -57,12 +163,12 @@ class EndpointTester {
   }
 
   async test1_ProductTranslationsNewSchema() {
-    // Assuming there's a product with ID in new schema
-    const productId = 'test_product_001'; // Replace with actual product ID
-    const lang = getDefaultLanguage().code;
+    const [product] = await requestProducts(1);
+    const productId = product._id;
+    const lang = getTargetLanguage();
 
     const response = await axios.get(
-      `${BASE_URL}/api/translations/products/${productId}?lang=${lang}`,
+      `${BASE_URL}/api/products/${productId}/translations?lang=${lang}`,
       { validateStatus: () => true }
     );
 
@@ -97,33 +203,33 @@ class EndpointTester {
   }
 
   async test2_ProductTranslationsFallback() {
-    // Test fallback to old schema
-    const productId = 'test_product_old'; // Product only in old schema
-    const lang = getDefaultLanguage().code;
+    const lang = getTargetLanguage();
+    const fixture = await createLegacyFallbackFixture(lang);
 
-    const response = await axios.get(
-      `${BASE_URL}/api/translations/products/${productId}?lang=${lang}`,
-      { validateStatus: () => true }
-    );
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/api/products/${fixture.productId}/translations?lang=${lang}`,
+        { validateStatus: () => true }
+      );
 
-    if (response.status === 404) {
-      log.info('  └─ 404 expected for non-existent product');
-      return;
-    }
+      if (response.status !== 200) {
+        throw new Error(`Expected fallback response 200, got ${response.status}: ${JSON.stringify(response.data)}`);
+      }
 
-    if (response.status !== 200) {
-      throw new Error(`Expected 200 or 404, got ${response.status}`);
-    }
+      const { data } = response.data;
+      if (data?.name !== `Legacy Fallback fixture ${fixture.productId}`) {
+        throw new Error('Legacy product translation fallback did not return the seeded name');
+      }
 
-    const { data } = response.data;
-    if (data?.specs && typeof data.specs === 'object' && Object.keys(data.specs).length > 0) {
-      log.info(`  └─ Fallback to old schema working: ${Object.keys(data.specs).length} specs`);
+      log.info('  └─ Dynamic legacy fallback fixture returned successfully');
+    } finally {
+      await fixture.cleanup();
     }
   }
 
   async test3_ReviewTranslationsNewSchema() {
-    const reviewId = 'test_review_001';
-    const lang = getDefaultLanguage().code;
+    const reviewId = crypto.randomBytes(12).toString('hex');
+    const lang = getTargetLanguage();
 
     const response = await axios.get(
       `${BASE_URL}/api/translations/reviews/${reviewId}?lang=${lang}`,
@@ -142,10 +248,8 @@ class EndpointTester {
 
   async test4_TranslateTextWithShadowWrite() {
     // Test that translateText creates shadow writes
-    const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
     const testText = `Test translation at ${new Date().toISOString()}`;
-    const activeLangs = getActiveLangCodes();
-    const targetLang = activeLangs[1] || activeLangs[0]; // Use non-default language for testing
+    const targetLang = getTargetLanguage();
     const sourceLang = getDefaultLanguage().code;
 
     const response = await axios.post(
@@ -225,8 +329,9 @@ class EndpointTester {
   }
 
   async test6_ManualOverrideAudit() {
-    // Test that manual overrides are logged
-    const hashKey = crypto.createHash('md5').update('test_audit:en').digest('hex');
+    const hashKey = crypto.createHash('md5')
+      .update(`test_audit:${getTargetLanguage()}:${Date.now()}`)
+      .digest('hex');
     const response = await axios.post(
       `${BASE_URL}/api/translations/manual-override`,
       {
@@ -250,8 +355,10 @@ class EndpointTester {
 
   async test7_CacheHeadersPresent() {
     // Test that cache headers are properly set
+    const namespace = await getStaticNamespace();
+    const lang = getTargetLanguage();
     const response = await axios.get(
-      `${BASE_URL}/api/translations?lang=en&ns=common`,
+      `${BASE_URL}/api/translations?lang=${lang}&ns=${encodeURIComponent(namespace)}`,
       { validateStatus: () => true }
     );
 
@@ -279,32 +386,23 @@ class EndpointTester {
   }
 
   async test8_VietnameseLangNoTranslation() {
-    // Vietnamese should return no translation (it's the source language)
+    const [product] = await requestProducts(1);
+    const sourceLang = getDefaultLanguage().code;
     const response = await axios.get(
-      `${BASE_URL}/api/translations/products/test_product?lang=vi`,
+      `${BASE_URL}/api/products/${product._id}/translations?lang=${sourceLang}`,
       { validateStatus: () => true }
     );
 
-    if (response.status === 404) {
-      log.info('  └─ 404 for non-existent product (ok, no seeded data)');
-      return;
-    }
-
     if (response.status !== 200) {
-      throw new Error(`Expected 200 or 404, got ${response.status}`);
+      throw new Error(`Expected source product response 200, got ${response.status}`);
     }
 
     const { data } = response.data;
-    if (!data) {
-      log.info('  └─ Product exists but has no translation data (ok, no seeded data)');
-      return;
+    if (!data || data.name !== product.name || data.brand !== product.brand) {
+      throw new Error('Source language should return the original product fields');
     }
 
-    if (data.name !== null || data.description !== null) {
-      throw new Error('Vietnamese should not have translations');
-    }
-
-    log.info('  └─ Vietnamese language correctly returns no translation');
+    log.info('  └─ Source language correctly returns original product data');
   }
 
   async runAllTests() {

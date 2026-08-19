@@ -969,9 +969,17 @@ export const categoryAPI = {
   /**
    * Lấy danh sách danh mục
    */
-  getCategories: async (lang?: Locale, requestOptions?: Pick<FetchOptions, 'signal'>) => {
+  getCategories: async (
+    lang?: Locale,
+    requestOptions?: Pick<FetchOptions, 'signal'>,
+    withProducts = false,
+  ) => {
     const endpoint = `/categories`;
-    const finalEndpoint = lang ? `${endpoint}?lang=${lang}` : buildLocalizedUrl(endpoint);
+    const localizedEndpoint = lang ? `${endpoint}?lang=${lang}` : buildLocalizedUrl(endpoint);
+    const separator = localizedEndpoint.includes('?') ? '&' : '?';
+    const finalEndpoint = withProducts
+      ? `${localizedEndpoint}${separator}withProducts=true&pageSize=500`
+      : localizedEndpoint;
     return await apiCall(finalEndpoint, requestOptions);
   },
 
