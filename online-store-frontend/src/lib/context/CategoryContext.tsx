@@ -38,7 +38,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
     const fetchCategories = async () => {
       setIsLoading(true);
       try {
-        const response = await categoryAPI.getCategories(locale);
+        const response = await categoryAPI.getCategories(locale, undefined, true);
         if (requestId !== requestIdRef.current) return;
 
         const cats = response.categories || response;

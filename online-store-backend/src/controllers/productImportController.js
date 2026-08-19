@@ -44,6 +44,13 @@ const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'specs'];
 
 const isDryRun = (value) => value === true || value === 'true';
 
+const toCategorySlug = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
 const toImportIssues = (issues, code) => issues.map((_, index) => ({
   code,
   index: index + 1,
@@ -326,7 +333,13 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
           }
 
           categoryLookup.set(sanitizedName, null); // Mark for creation
-          categoriesToCreate.push({ name: sanitizedName, isDeleted: false });
+          const slug = toCategorySlug(sanitizedName);
+          categoriesToCreate.push({
+            name: sanitizedName,
+            key: slug.replace(/-/g, '_'),
+            slug,
+            isDeleted: false,
+          });
         }
       }
     }

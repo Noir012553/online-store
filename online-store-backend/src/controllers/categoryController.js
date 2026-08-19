@@ -26,10 +26,40 @@ const normalizeSourceNames = (value) => (
  */
 const getCategories = asyncHandler(async (req, res) => {
   try {
-    const pageSize = parseInt(req.query.pageSize) || 10;
-    const page = parseInt(req.query.pageNumber) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize) || 10, 500);
+    const page = Math.max(parseInt(req.query.pageNumber) || 1, 1);
     const searchTerm = typeof req.query.keyword === 'string' ? req.query.keyword.trim() : '';
     const query = { isDeleted: false };
+
+    if (req.query.withProducts === 'true') {
+      const [usedCategoryIds, activeCategories] = await Promise.all([
+        withTimeout(
+          Product.distinct('category', { isDeleted: false, category: { $ne: null } }),
+          8000
+        ),
+        withTimeout(Category.find({ isDeleted: false }).lean(), 8000),
+      ]);
+      const categoriesById = new Map(activeCategories.map(category => [category._id.toString(), category]));
+      const canonicalBySourceName = new Map();
+
+      activeCategories.forEach((category) => {
+        canonicalBySourceName.set(String(category.name).trim().toLowerCase(), category);
+      });
+      activeCategories.forEach((category) => {
+        (category.sourceNames || []).forEach((sourceName) => {
+          canonicalBySourceName.set(String(sourceName).trim().toLowerCase(), category);
+        });
+      });
+
+      const canonicalCategoryIds = [...new Set(
+        usedCategoryIds
+          .map(categoryId => categoriesById.get(categoryId.toString()))
+          .map(category => category && canonicalBySourceName.get(String(category.name).trim().toLowerCase()))
+          .filter(Boolean)
+          .map(category => category._id.toString())
+      )];
+      query._id = { $in: canonicalCategoryIds };
+    }
 
     if (searchTerm) {
       const nameRegex = { $regex: escapeRegex(searchTerm), $options: 'i' };

@@ -345,7 +345,25 @@ const getProducts = asyncHandler(async (req, res) => {
 
   let category = {};
   if (req.query.category && mongoose.Types.ObjectId.isValid(req.query.category)) {
-    category = { category: new mongoose.Types.ObjectId(req.query.category) };
+    const categoryId = new mongoose.Types.ObjectId(req.query.category);
+    const selectedCategory = await Category.findOne({ _id: categoryId, isDeleted: false }).lean();
+
+    if (selectedCategory) {
+      const categoryNames = [selectedCategory.name, ...(selectedCategory.sourceNames || [])]
+        .filter(Boolean)
+        .map(name => String(name).trim());
+      const relatedCategoryIds = await Category.find({
+        isDeleted: false,
+        $or: [
+          { _id: categoryId },
+          { name: { $in: categoryNames } },
+          { sourceNames: { $in: categoryNames } },
+        ],
+      }).distinct('_id');
+      category = { category: { $in: relatedCategoryIds } };
+    } else {
+      category = { category: categoryId };
+    }
   }
   const brand = req.query.brand ? { brand: req.query.brand } : {};
   const featuredFilter = req.query.featured === 'true' ? { featured: true } : {};
