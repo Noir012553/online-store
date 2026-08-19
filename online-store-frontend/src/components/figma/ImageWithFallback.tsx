@@ -29,6 +29,7 @@ export function ImageWithFallback({
   };
 
   const hasValidSrc = src && typeof src === 'string' && src.trim() !== '';
+  const isExternalImage = typeof src === 'string' && /^https?:\/\//i.test(src);
   const shouldShowError = didError || !hasValidSrc;
   const { loading, ...restWithoutLoading } = rest as typeof rest & {
     loading?: 'lazy' | 'eager';
@@ -69,6 +70,7 @@ export function ImageWithFallback({
         style={style}
         onError={handleError}
         {...imageRest}
+        unoptimized={isExternalImage}
       />
     );
   }
@@ -87,6 +89,7 @@ export function ImageWithFallback({
         style={style}
         onError={handleError}
         {...imageRest}
+        unoptimized={isExternalImage}
       />
     );
   }
