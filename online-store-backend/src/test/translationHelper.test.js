@@ -10,6 +10,7 @@ const {
   overlayBannerTranslations,
   overlayTestimonialTranslations,
   getStorefrontVisibleProductIds,
+  localizeProductSpecs,
 } = require('../services/translationHelper');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 
@@ -204,7 +205,7 @@ describe('translationHelper - Product legacy cache fallback', () => {
     ], 'product', 'en');
 
     assert.strictEqual(result[0].name, 'Tên legacy');
-    assert.deepStrictEqual(result[0].specs, { CPU: 'Bộ xử lý' });
+    assert.deepStrictEqual(result[0].specs, { Processor: 'Bộ xử lý' });
     assert.deepStrictEqual(mockLegacyFind.calls, [{
       entityId: { $in: ['1'] },
       targetLang: 'en',
@@ -236,6 +237,22 @@ describe('translationHelper - Product legacy cache fallback', () => {
     const result = await overlayTranslation({ _id: '1', description: 'Original' }, 'product', 'en');
 
     assert.strictEqual(result.description, 'Mô tả legacy');
+  });
+});
+
+describe('translationHelper - Static product specification labels', () => {
+  it('localizes static keys while preserving dynamic values', () => {
+    assert.deepStrictEqual(
+      localizeProductSpecs({ layout: '75%', connection: 'Wireless;USB', keycapMaterial: 'PBT' }, 'en'),
+      { Layout: '75%', Connection: 'Wireless;USB', 'Keycap Material': 'PBT' }
+    );
+  });
+
+  it('recognizes translated source keys before applying the requested locale', () => {
+    assert.deepStrictEqual(
+      localizeProductSpecs({ 'Kích thước/Layout': '75%', 'Phương thức kết nối': 'Có dây' }, 'de'),
+      { Layout: '75%', Verbindung: 'Có dây' }
+    );
   });
 });
 

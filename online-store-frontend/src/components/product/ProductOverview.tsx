@@ -79,7 +79,7 @@ export function ProductOverview({
           <div className="space-y-1 sm:space-y-2 text-gray-700">
             {Object.entries(product.specs).slice(0, 5).map(([key, value]) => (
               <div key={key} className="flex justify-between gap-4 text-xs sm:text-sm">
-                <span className="font-medium capitalize">{UI_EMOJI.bullet} {key}:</span>
+                <span className="font-medium">{UI_EMOJI.bullet} {key}:</span>
                 <span className="text-right">{String(value)}</span>
               </div>
             ))}

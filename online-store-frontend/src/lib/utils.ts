@@ -19,11 +19,6 @@ export function calculateDiscount(original: number, current: number): number {
   return Math.round(((original - current) / original) * 100);
 }
 
-export function capitalizeSpecKey(key: string): string {
-  if (!key) return '';
-  return key.charAt(0).toUpperCase() + key.slice(1);
-}
-
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }

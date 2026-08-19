@@ -52,7 +52,7 @@
     "es": "Conexión",
     "sv": "Anslutning",
     "nl": "Verbinding",
-    "vi": "Kết nối"
+    "vi": "Phương thức kết nối"
   },
   "dimensions": {
     "en": "Dimensions",
@@ -196,5 +196,214 @@
     "sv": "Vikt",
     "nl": "Gewicht",
     "vi": "Cân nặng"
+  },
+  "cpu": {
+    "en": "Processor",
+    "de": "Prozessor",
+    "fr": "Processeur",
+    "it": "Processore",
+    "pt": "Processador",
+    "es": "Procesador",
+    "sv": "Processor",
+    "nl": "Processor",
+    "vi": "Bộ xử lý"
+  },
+  "os": {
+    "en": "Operating System",
+    "de": "Betriebssystem",
+    "fr": "Système d'exploitation",
+    "it": "Sistema operativo",
+    "pt": "Sistema operacional",
+    "es": "Sistema operativo",
+    "sv": "Operativsystem",
+    "nl": "Besturingssysteem",
+    "vi": "Hệ điều hành"
+  },
+  "switchType": {
+    "en": "Switch Type",
+    "de": "Switch-Typ",
+    "fr": "Type de commutateur",
+    "it": "Tipo di switch",
+    "pt": "Tipo de switch",
+    "es": "Tipo de interruptor",
+    "sv": "Switchtyp",
+    "nl": "Switchtype",
+    "vi": "Loại switch"
+  },
+  "layout": {
+    "en": "Layout",
+    "de": "Layout",
+    "fr": "Disposition",
+    "it": "Layout",
+    "pt": "Layout",
+    "es": "Diseño",
+    "sv": "Layout",
+    "nl": "Lay-out",
+    "vi": "Kích thước/Layout"
+  },
+  "keycapMaterial": {
+    "en": "Keycap Material",
+    "de": "Keycap-Material",
+    "fr": "Matériau des keycaps",
+    "it": "Materiale keycap",
+    "pt": "Material da keycap",
+    "es": "Material de keycap",
+    "sv": "Keycap-material",
+    "nl": "Keycapmateriaal",
+    "vi": "Chất liệu Keycap"
+  },
+  "maxDPI": {
+    "en": "Max DPI",
+    "de": "Max. DPI",
+    "fr": "DPI max.",
+    "it": "DPI massimo",
+    "pt": "DPI máximo",
+    "es": "DPI máx.",
+    "sv": "Max DPI",
+    "nl": "Max DPI",
+    "vi": "DPI tối đa"
+  },
+  "pollRate": {
+    "en": "Polling Rate",
+    "de": "Abfragerate",
+    "fr": "Taux d'interrogation",
+    "it": "Frequenza di polling",
+    "pt": "Taxa de polling",
+    "es": "Tasa de sondeo",
+    "sv": "Pollningsfrekvens",
+    "nl": "Pollingsnelheid",
+    "vi": "Tần số phản hồi"
+  },
+  "buttons": {
+    "en": "Buttons",
+    "de": "Tasten",
+    "fr": "Boutons",
+    "it": "Pulsanti",
+    "pt": "Botões",
+    "es": "Botones",
+    "sv": "Knappar",
+    "nl": "Knoppen",
+    "vi": "Số lượng phím"
+  },
+  "mouseType": {
+    "en": "Mouse Type",
+    "de": "Maustyp",
+    "fr": "Type de souris",
+    "it": "Tipo di mouse",
+    "pt": "Tipo de mouse",
+    "es": "Tipo de ratón",
+    "sv": "Mustyp",
+    "nl": "Muistype",
+    "vi": "Loại chuột"
+  },
+  "driver": {
+    "en": "Driver",
+    "de": "Treiber",
+    "fr": "Pilote",
+    "it": "Driver",
+    "pt": "Driver",
+    "es": "Controlador",
+    "sv": "Drivrutin",
+    "nl": "Driver",
+    "vi": "Driver"
+  },
+  "impedance": {
+    "en": "Impedance",
+    "de": "Impedanz",
+    "fr": "Impédance",
+    "it": "Impedenza",
+    "pt": "Impedância",
+    "es": "Impedancia",
+    "sv": "Impedans",
+    "nl": "Impedantie",
+    "vi": "Trở kháng"
+  },
+  "cableLength": {
+    "en": "Cable Length",
+    "de": "Kabellänge",
+    "fr": "Longueur du câble",
+    "it": "Lunghezza del cavo",
+    "pt": "Comprimento do cabo",
+    "es": "Longitud del cable",
+    "sv": "Kabellängd",
+    "nl": "Kabellengte",
+    "vi": "Độ dài dây"
+  },
+  "type": {
+    "en": "Type",
+    "de": "Typ",
+    "fr": "Type",
+    "it": "Tipo",
+    "pt": "Tipo",
+    "es": "Tipo",
+    "sv": "Typ",
+    "nl": "Type",
+    "vi": "Loại"
+  },
+  "tdp": {
+    "en": "TDP",
+    "de": "TDP",
+    "fr": "TDP",
+    "it": "TDP",
+    "pt": "TDP",
+    "es": "TDP",
+    "sv": "TDP",
+    "nl": "TDP",
+    "vi": "TDP"
+  },
+  "fanSpeed": {
+    "en": "Fan Speed",
+    "de": "Lüftergeschwindigkeit",
+    "fr": "Vitesse du ventilateur",
+    "it": "Velocità della ventola",
+    "pt": "Velocidade da ventoinha",
+    "es": "Velocidad del ventilador",
+    "sv": "Fläkthastighet",
+    "nl": "Ventilatorsnelheid",
+    "vi": "Tốc độ quạt"
+  },
+  "noiseLevel": {
+    "en": "Noise Level",
+    "de": "Geräuschpegel",
+    "fr": "Niveau sonore",
+    "it": "Livello di rumore",
+    "pt": "Nível de ruído",
+    "es": "Nivel de ruido",
+    "sv": "Ljudnivå",
+    "nl": "Geluidsniveau",
+    "vi": "Mức tiếng ồn"
+  },
+  "condition": {
+    "en": "Condition",
+    "de": "Zustand",
+    "fr": "État",
+    "it": "Condizione",
+    "pt": "Condição",
+    "es": "Condición",
+    "sv": "Skick",
+    "nl": "Conditie",
+    "vi": "Tình trạng"
+  },
+  "led": {
+    "en": "LED",
+    "de": "LED",
+    "fr": "LED",
+    "it": "LED",
+    "pt": "LED",
+    "es": "LED",
+    "sv": "LED",
+    "nl": "LED",
+    "vi": "LED"
+  },
+  "durability": {
+    "en": "Durability",
+    "de": "Haltbarkeit",
+    "fr": "Durabilité",
+    "it": "Durata",
+    "pt": "Durabilidade",
+    "es": "Durabilidad",
+    "sv": "Hållbarhet",
+    "nl": "Duurzaamheid",
+    "vi": "Độ bền"
   }
 }

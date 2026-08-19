@@ -47,6 +47,7 @@ const TEST_SUITES = {
     files: [
       'test-phase4-e2e-simplified.js',
       'importFileValidator.test.js',
+      'translationHelper.test.js',
     ],
   },
 

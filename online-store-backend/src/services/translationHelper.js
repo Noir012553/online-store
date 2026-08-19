@@ -18,6 +18,8 @@ const OrderTranslationCache = require('../models/OrderTranslationCache');
 const BannerTranslationCache = require('../models/BannerTranslationCache');
 const TestimonialTranslationCache = require('../models/TestimonialTranslationCache');
 const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
+const { normalizeSpecFieldName } = require('../utils/specNormalizer');
+const specKeyTranslations = require('../data/specKeyTranslations.json');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -58,6 +60,38 @@ const getSpecEntries = (specs) => {
   if (specs instanceof Map) return [...specs.entries()];
   if (specs && typeof specs === 'object') return Object.entries(specs);
   return [];
+};
+
+const getSpecKeyLookup = (lang) => Object.entries(specKeyTranslations).reduce((lookup, [canonicalKey, labels]) => {
+  const localizedLabel = labels[lang] || labels.vi || canonicalKey;
+  lookup.set(canonicalKey, localizedLabel);
+  Object.values(labels).forEach((label) => lookup.set(label, localizedLabel));
+  return lookup;
+}, new Map());
+
+const localizeProductSpecs = (specs, lang) => {
+  const keyLookup = getSpecKeyLookup(lang);
+  const localizedSpecs = {};
+
+  getSpecEntries(specs).forEach(([rawKey, value]) => {
+    const key = String(rawKey || '').trim();
+    if (!key) return;
+
+    const translatedKey = keyLookup.get(key)
+      || keyLookup.get(normalizeSpecFieldName(key))
+      || key;
+    localizedSpecs[translatedKey] = value;
+  });
+
+  return localizedSpecs;
+};
+
+const localizeProductSpecFields = (entity, lang) => {
+  if (!entity || !lang) return entity;
+  return {
+    ...entity,
+    specs: localizeProductSpecs(entity.specs, lang),
+  };
 };
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
@@ -273,6 +307,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+        overlayed = localizeProductSpecFields(overlayed, targetLang);
       }
 
       // Debug: Log first entity to see structure
@@ -338,6 +373,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       }
 
       overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+      overlayed = localizeProductSpecFields(overlayed, targetLang);
     }
 
     return overlayed;
@@ -399,6 +435,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       }
 
       overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+      overlayed = localizeProductSpecFields(overlayed, targetLang);
     }
 
     return overlayed;
@@ -618,6 +655,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+        overlayed = localizeProductSpecFields(overlayed, targetLang);
       }
 
       return overlayed;
@@ -684,6 +722,7 @@ module.exports = {
   // Single overlay
   overlayTranslation,
   getLocalizedEntity,
+  localizeProductSpecs,
 
   // Advanced
   applyTranslationCache,
