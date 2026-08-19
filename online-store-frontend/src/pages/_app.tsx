@@ -161,7 +161,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
             )}
           </AnimatePresence>
           <AnimatePresence mode="wait">
-            <PageTransition key={router?.asPath || ''}>
+            <PageTransition key={router?.asPath?.split('?')[0] || ''}>
               <Component {...pageProps} />
             </PageTransition>
           </AnimatePresence>
@@ -182,7 +182,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
           )}
         </AnimatePresence>
         <AnimatePresence mode="wait">
-          <PageTransition key={router?.asPath || ''}>
+          <PageTransition key={router?.asPath?.split('?')[0] || ''}>
             <Component {...pageProps} />
           </PageTransition>
         </AnimatePresence>
