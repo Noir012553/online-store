@@ -13,6 +13,8 @@ const {
 } = require('../config/languageInventory');
 const ProductImportController = require('../controllers/productImportController');
 const User = require('../models/User');
+const Product = require('../models/Product');
+const SeedStatus = require('../models/SeedStatus');
 const {
   extractPublicIdFromUrl,
   isCloudinaryUrl,
@@ -259,6 +261,44 @@ const dedupeProducts = (products) => {
   return { unique, duplicateCount };
 };
 
+const INITIAL_HIGHLIGHT_RATIO = 0.1;
+const DEAL_DURATION_DAYS = 7;
+const PRODUCT_HIGHLIGHTS_SEED_PHASE = 'PRODUCT_HIGHLIGHTS';
+
+const selectRandomItems = (items) => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+
+  const count = Math.min(
+    shuffled.length,
+    Math.max(1, Math.round(shuffled.length * INITIAL_HIGHLIGHT_RATIO))
+  );
+  return shuffled.slice(0, count);
+};
+
+const assignInitialHighlights = (products) => {
+  const seededProducts = products.map(product => ({ ...product }));
+  const featuredCandidates = seededProducts.filter(product => product.featured === undefined);
+  const dealCandidates = seededProducts.filter(product => product.deal === undefined);
+
+  selectRandomItems(featuredCandidates).forEach((product) => {
+    product.featured = true;
+  });
+
+  selectRandomItems(dealCandidates).forEach((product) => {
+    const durationDays = Math.floor(Math.random() * DEAL_DURATION_DAYS) + 1;
+    product.deal = {
+      discount: Math.floor(Math.random() * 21) + 10,
+      endTime: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000),
+    };
+  });
+
+  return seededProducts;
+};
+
 const createResponse = () => ({
   statusCode: 200,
   payload: null,
@@ -293,7 +333,7 @@ const importBatch = async ({ products, format, adminUser, dryRun }) => {
   return response.payload;
 };
 
-const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => {
+const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initializeHighlights }) => {
   const format = path.extname(filePath).toLowerCase().slice(1);
   const manager = new ImportAdapterManager();
   const content = fs.readFileSync(filePath, 'utf8');
@@ -303,10 +343,13 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun }) => 
   }));
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(parsedProducts);
   const validation = await manager.validate(dedupedProducts, format);
-  await ensureSourceCategories(validation.validProducts, filePath, dryRun);
+  const productsToImport = initializeHighlights && !dryRun
+    ? assignInitialHighlights(validation.validProducts)
+    : validation.validProducts;
+  await ensureSourceCategories(productsToImport, filePath, dryRun);
   const unique = dryRun
-    ? validation.validProducts
-    : await prepareProductImages(validation.validProducts);
+    ? productsToImport
+    : await prepareProductImages(productsToImport);
   const totalBatches = Math.ceil(unique.length / batchSize);
   const summary = {
     file: filePath,
@@ -390,6 +433,10 @@ const runProductSeedPipeline = async (options = {}) => {
   }
 
   const files = getInputFiles(options);
+  const highlightSeedStatus = await SeedStatus.findOne({ phase: PRODUCT_HIGHLIGHTS_SEED_PHASE })
+    .select('status')
+    .lean();
+  const initializeHighlights = !dryRun && highlightSeedStatus?.status !== 'completed';
   const adminUser = await User.findOne({
     role: { $in: ['admin', 'super-admin'] },
     isDeleted: false,
@@ -399,22 +446,50 @@ const runProductSeedPipeline = async (options = {}) => {
     throw new Error('Không tìm thấy tài khoản admin để gán cho sản phẩm import');
   }
 
+  if (initializeHighlights) {
+    console.log('[ProductPipeline] Khởi tạo ngẫu nhiên featured và hot deal cho seed đầu tiên');
+  }
+
   const imports = [];
   for (const filePath of files) {
-    imports.push(await importProductFile({ filePath, adminUser, batchSize, dryRun }));
+    imports.push(await importProductFile({
+      filePath,
+      adminUser,
+      batchSize,
+      dryRun,
+      initializeHighlights,
+    }));
+  }
+
+  if (initializeHighlights && await Product.exists({})) {
+    await SeedStatus.findOneAndUpdate(
+      { phase: PRODUCT_HIGHLIGHTS_SEED_PHASE },
+      {
+        $set: {
+          status: 'completed',
+          completedAt: new Date(),
+          notes: 'Initial featured and hot deal values assigned during product seed',
+        },
+        $setOnInsert: {
+          phase: PRODUCT_HIGHLIGHTS_SEED_PHASE,
+        },
+      },
+      { upsert: true, setDefaultsOnInsert: true }
+    );
   }
 
   if (dryRun || options.skipTranslate) {
     console.log('[ProductPipeline] Kết thúc ở bước import preview');
-    return { files, imports, translations: {} };
+    return { files, imports, translations: {}, initializeHighlights };
   }
 
   const translations = await translateProducts(options.languages);
-  return { files, imports, translations };
+  return { files, imports, translations, initializeHighlights };
 };
 
 module.exports = {
   getProductImagePublicId,
   uploadProductImage,
+  assignInitialHighlights,
   runProductSeedPipeline,
 };

@@ -853,3 +853,24 @@ Frontend đã có các component và module dùng chung cho những phần giao 
 4. Cuối cùng chuẩn hóa cấu trúc component và hook của khu vực admin.
 
 Kết luận hiện tại: product detail và các component dùng chung đã được module hóa đáng kể, nhưng toàn bộ frontend chưa đạt trạng thái module hóa hoàn toàn.
+
+## 16. Khởi tạo sản phẩm nổi bật và Hot Deal
+
+### Yêu cầu
+
+Lần seed product đầu tiên cần có một số sản phẩm ngẫu nhiên được đánh dấu `featured` và `deal` để storefront không bắt đầu với bộ lọc Nổi bật/Hot Deal rỗng. Sau lần khởi tạo này, admin có toàn quyền bật/tắt và chỉnh sửa các giá trị trong giao diện quản trị.
+
+### Đã triển khai
+
+- `online-store-backend/src/seeds/productSeedPipeline.js` chọn ngẫu nhiên khoảng 10% sản phẩm cho `featured`.
+- Chọn ngẫu nhiên khoảng 10% sản phẩm cho `deal`, với discount từ 10% đến 30% và thời hạn từ 1 đến 7 ngày.
+- Mỗi nhóm có ít nhất một sản phẩm nếu dữ liệu import có sản phẩm.
+- Chỉ gán cho field đang thiếu; giá trị `featured`/`deal` explicit từ dữ liệu import được giữ nguyên.
+- Dùng `SeedStatus` với phase `PRODUCT_HIGHLIGHTS` để logic chỉ chạy một lần. Các lần seed/upsert sau không ghi đè lựa chọn của admin.
+- Không thay đổi filter storefront `featured=true`/`hasDeal=true` hoặc API update product của admin.
+- Bổ sung test cho việc tạo highlight ngẫu nhiên và bảo toàn giá trị explicit trong `src/test/importFileValidator.test.js`.
+
+### Kiểm tra
+
+- Syntax check cho pipeline, schema `SeedStatus` và test: đạt.
+- Test runtime đầy đủ chưa chạy được trong môi trường hiện tại vì thiếu dependency backend `mongoose`; cần chạy lại sau khi cài đủ `online-store-backend/node_modules`.
