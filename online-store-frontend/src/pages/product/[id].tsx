@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/i18n";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { Star, ShoppingCart, Minus, Plus, Truck, Shield, CreditCard, LogIn, AlertCircle } from "lucide-react";
+import { Star, LogIn } from "lucide-react";
 import { productAPI, reviewAPI } from "../../lib/api";
 import { useCart } from "../../lib/context/CartContext";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -12,12 +12,11 @@ import { getIntlLocale } from "../../lib/localeUtils";
 import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload";
 import { Laptop } from "../../lib/data";
 import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { ProductCard } from "../../components/ProductCard";
-import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { EmojiSvg } from "../../components/EmojiSvg";
-import { UI_EMOJI } from "../../lib/uiEmoji";
+import { ProductGallery } from "../../components/product/ProductGallery";
+import { ProductRecommendations } from "../../components/product/ProductRecommendations";
+import { ProductOverview } from "../../components/product/ProductOverview";
+import { useRecentlyViewedProducts } from "../../hooks/useRecentlyViewedProducts";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { BannerSlot } from "../../components/BannerSlot";
 import { ProductDescriptionFormatter } from "../../components/ProductDescriptionFormatter";
@@ -41,20 +40,6 @@ interface Review {
 }
 
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
-const RECENTLY_VIEWED_STORAGE_KEY = 'laptopstore_recently_viewed_products';
-const MAX_RECENTLY_VIEWED_PRODUCTS = 4;
-const RECENTLY_VIEWED_LABELS: Record<string, string> = {
-  vi: 'Sản phẩm đã xem',
-  en: 'Recently Viewed',
-  pt: 'Vistos Recentemente',
-  fr: 'Vus Récemment',
-  de: 'Zuletzt Angesehen',
-  it: 'Visti di Recente',
-  es: 'Vistos Recientemente',
-  nl: 'Onlangs Bekeken',
-  sv: 'Nyligen Visade',
-};
-
 type ProductTab = (typeof TAB_VALUES)[number];
 
 const getSafeProductTab = (value: unknown): ProductTab => {
@@ -79,7 +64,6 @@ export default function ProductDetail() {
   const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
   const [laptop, setLaptop] = useState<any>(null);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
-  const [recentlyViewedLaptops, setRecentlyViewedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -201,27 +185,7 @@ export default function ProductDetail() {
     };
   }, [currencyCode, id, isHydrated, locale]);
 
-  useEffect(() => {
-    if (!laptop?._id || typeof window === 'undefined') return;
-
-    try {
-      const storedProducts = JSON.parse(
-        window.localStorage.getItem(RECENTLY_VIEWED_STORAGE_KEY) || '[]'
-      );
-      const previousProducts = Array.isArray(storedProducts)
-        ? storedProducts.filter((product) => product?._id && product._id !== laptop._id)
-        : [];
-      const updatedProducts = [laptop, ...previousProducts].slice(0, MAX_RECENTLY_VIEWED_PRODUCTS + 1);
-
-      window.localStorage.setItem(
-        RECENTLY_VIEWED_STORAGE_KEY,
-        JSON.stringify(updatedProducts)
-      );
-      setRecentlyViewedLaptops(updatedProducts.slice(1, MAX_RECENTLY_VIEWED_PRODUCTS + 1));
-    } catch {
-      setRecentlyViewedLaptops([]);
-    }
-  }, [laptop]);
+  const recentlyViewedProducts = useRecentlyViewedProducts(laptop);
 
   const handleSubmitReview = async () => {
     if (!user) {
@@ -373,11 +337,6 @@ export default function ProductDetail() {
     : 0;
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
-  const recentlyViewedTitleKey = 'section_recently_viewed_products';
-  const translatedRecentlyViewedTitle = t(recentlyViewedTitleKey, 'products');
-  const recentlyViewedTitle = translatedRecentlyViewedTitle === recentlyViewedTitleKey
-    ? RECENTLY_VIEWED_LABELS[locale] || RECENTLY_VIEWED_LABELS.en
-    : translatedRecentlyViewedTitle;
 
   return (
     <div className="container mx-auto px-4 py-8 animate-in fade-in duration-300">
@@ -394,187 +353,32 @@ export default function ProductDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
-        <div>
-          <div className="relative aspect-video mb-3 sm:mb-4 bg-gray-100 rounded-lg overflow-hidden group">
-            {mainImage ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setViewerImage({ src: mainImage, alt: convertedLaptop.name || '', images, initialIndex: selectedImage });
-                  setIsImageViewerOpen(true);
-                }}
-                className="absolute inset-0 h-full w-full cursor-zoom-in"
-                aria-label={convertedLaptop.name || ''}
-              >
-                <ImageWithFallback
-                  src={mainImage}
-                  alt={convertedLaptop.name || ''}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  loading="eager"
-                  className="object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-              </button>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
-                <div className="text-center">
-                  <p className="text-sm">{t('image_no_image_available', 'products')}</p>
-                </div>
-              </div>
-            )}
-            {discount > 0 && (
-              <Badge className="absolute top-4 right-4 bg-red-600 text-white text-lg px-4 py-2 animate-in zoom-in duration-300">
-                -{discount}%
-              </Badge>
-            )}
-            {laptop.deal && (
-              <Badge className="absolute top-4 left-4 bg-black text-white text-lg px-4 py-2 animate-in zoom-in duration-300 flex items-center gap-1">
-                <EmojiSvg emoji={UI_EMOJI.hotDeal} className="w-5 h-5" />
-                {t('badge_flash_deal', 'products')}
-              </Badge>
-            )}
-          </div>
-          {images && images.length > 1 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {images.map((image: string, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative aspect-video border-2 rounded overflow-hidden transition-all duration-300 hover:shadow-lg ${
-                    selectedImage === index ? "border-red-600 scale-105" : "border-gray-200"
-                  }`}
-                >
-                  <ImageWithFallback
-                    src={image}
-                    alt={`${convertedLaptop.name} ${index + 1}`}
-                    fill
-                    sizes="96px"
-                    loading="lazy"
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery
+          productName={convertedLaptop.name || ''}
+          images={images}
+          mainImage={mainImage}
+          selectedImage={selectedImage}
+          discount={discount}
+          hasDeal={Boolean(laptop.deal)}
+          dealLabel={t('badge_flash_deal', 'products')}
+          noImageLabel={t('image_no_image_available', 'products')}
+          onSelectImage={setSelectedImage}
+          onOpenViewer={() => {
+            setViewerImage({ src: mainImage || '', alt: convertedLaptop.name || '', images, initialIndex: selectedImage });
+            setIsImageViewerOpen(true);
+          }}
+        />
 
-        <div>
-          <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl">
-            {convertedLaptop.name || ''}
-          </h1>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-            <div className="flex items-center gap-1 sm:gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                    i < Math.floor(laptop.rating || 0)
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300"
-                  }`}
-                />
-              ))}
-              <span className="text-sm sm:text-base">{(laptop.rating || 0).toFixed(1)}</span>
-            </div>
-            <span className="text-xs sm:text-sm text-gray-500">
-              {interpolateTranslation(t('reviews_count', 'product-ui'), {
-                count: Math.max(totalReviews, reviews.length, laptop.numReviews || 0),
-              })}
-            </span>
-            <Badge variant={(laptop.countInStock || 0) > 0 ? "default" : "destructive"} className="text-xs sm:text-sm">
-              {(laptop.countInStock || 0) > 0
-                ? interpolateTranslation(t('stock_in_stock', 'products'), { count: laptop.countInStock || 0 })
-                : t('stock_out_of_stock', 'products')}
-            </Badge>
-          </div>
-
-          <div className="flex flex-col gap-2 mb-4 sm:mb-6">
-            {canDisplayPrice && (
-              <>
-                {laptop.formattedOriginalPrice && (
-                  <span className="text-lg sm:text-2xl text-red-600 line-through font-semibold">
-                    {laptop.formattedOriginalPrice}
-                  </span>
-                )}
-                <span className="text-2xl sm:text-3xl text-green-600 font-bold">
-                  {laptop.formattedPrice}
-                </span>
-              </>
-            )}
-          </div>
-
-          {Object.keys(convertedLaptop.specs).length > 0 && (
-            <div className="bg-white p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
-              <h3 className="mb-2 sm:mb-3 text-sm sm:text-base font-semibold">{t('section_specifications', 'products')}</h3>
-              <div className="space-y-1 sm:space-y-2 text-gray-700">
-                {Object.entries(convertedLaptop.specs).slice(0, 5).map(([key, value]) => (
-                  <div key={key} className="flex justify-between gap-4 text-xs sm:text-sm">
-                    <span className="font-medium capitalize">{UI_EMOJI.bullet} {key}:</span>
-                    <span className="text-right">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 text-sm sm:text-base">
-            <span>{t('label_quantity', 'products')}:</span>
-            <div className="flex items-center border rounded">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="p-1.5 sm:p-2 hover:bg-gray-100"
-              >
-                <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-              <input
-                id="quantity"
-                name="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-12 sm:w-16 text-center border-x text-sm"
-              />
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="p-1.5 sm:p-2 hover:bg-gray-100"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
-            <Button
-              onClick={handleAddToCart}
-              disabled={(laptop.countInStock || 0) <= 0}
-              variant="outline"
-              className="flex-1 text-xs sm:text-sm py-1.5 sm:py-2"
-            >
-              <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">{t('btn_add_to_cart', 'products')}</span>
-              <span className="sm:hidden">{t('btn_add_mobile', 'products')}</span>
-            </Button>
-            <Button
-              onClick={handleBuyNow}
-              disabled={(laptop.countInStock || 0) <= 0}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm py-1.5 sm:py-2"
-            >
-              {t('btn_buy_now', 'products')}
-            </Button>
-          </div>
-
-          <div className="space-y-2 sm:space-y-3 border-t pt-4 sm:pt-6">
-            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0" />
-              <span>{t('benefit_warranty', 'products')}</span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0" />
-              <span>{t('benefit_payment', 'products')}</span>
-            </div>
-          </div>
-        </div>
+        <ProductOverview
+          product={convertedLaptop}
+          stockCount={laptop.countInStock || 0}
+          reviewCount={Math.max(totalReviews, reviews.length, laptop.numReviews || 0)}
+          canDisplayPrice={canDisplayPrice}
+          quantity={quantity}
+          onQuantityChange={setQuantity}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8 sm:mb-12">
@@ -767,27 +571,13 @@ export default function ProductDetail() {
         />
       )}
 
-      {relatedLaptops.length > 0 && (
-        <section>
-          <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl">{t('section_related_products', 'products')}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {relatedLaptops.map((product) => (
-              <ProductCard key={product._id} laptop={product} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {recentlyViewedLaptops.length > 0 && (
-        <section className="mt-8 sm:mt-12">
-          <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl">{recentlyViewedTitle}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {recentlyViewedLaptops.map((product) => (
-              <ProductCard key={product._id} laptop={product} />
-            ))}
-          </div>
-        </section>
-      )}
+      <ProductRecommendations
+        relatedProducts={relatedLaptops}
+        recentlyViewedProducts={recentlyViewedProducts}
+        relatedTitle={t('section_related_products', 'products')}
+        recentlyViewedTitle={t('section_recently_viewed_products', 'products')}
+        locale={locale}
+      />
     </div>
   );
 }
