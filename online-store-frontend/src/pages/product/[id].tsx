@@ -402,7 +402,6 @@ export default function ProductDetail() {
         recentlyViewedProducts={recentlyViewedProducts}
         relatedTitle={t('section_related_products', 'products')}
         recentlyViewedTitle={t('section_recently_viewed_products', 'products')}
-        locale={locale}
       />
     </div>
   );
