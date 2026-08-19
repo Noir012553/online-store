@@ -10,6 +10,7 @@ const seedLogger = require('../utils/seedLogger');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { connectMongo } = require('../config/mongoConnection');
+const validationConfig = require('../config/translationValidation');
 const { runProductSeedPipeline } = require('./productSeedPipeline');
 
 /**
@@ -355,8 +356,12 @@ const seed = async () => {
       if (totalStats.length > 0) {
         const report = await translationReporter.generateSeedReport(totalStats);
         report.issuesBreakdown = {};
+        report.advisoriesBreakdown = {};
         errorStats.forEach(stat => {
-          report.issuesBreakdown[stat._id] = {
+          const target = validationConfig.NON_BLOCKING_ERRORS.includes(stat._id)
+            ? report.advisoriesBreakdown
+            : report.issuesBreakdown;
+          target[stat._id] = {
             count: stat.count,
             percentage: totalStats[0].totalTranslations > 0
               ? `${((stat.count / totalStats[0].totalTranslations) * 100).toFixed(2)}%`

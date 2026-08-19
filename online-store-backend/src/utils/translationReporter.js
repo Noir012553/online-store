@@ -33,17 +33,22 @@ class TranslationReporter {
         avgQualityScore: Math.round(stats[0]?.avgQualityScore || 0),
       },
       issuesBreakdown: {},
+      advisoriesBreakdown: {},
       recommendations: [],
     };
 
     // Build issues breakdown
     errorStats.forEach(stat => {
-      report.issuesBreakdown[stat._id] = {
+      const breakdown = {
         count: stat.count,
         percentage: report.statistics.totalTranslations > 0
           ? `${((stat.count / report.statistics.totalTranslations) * 100).toFixed(2)}%`
           : '0%',
       };
+      const target = config.NON_BLOCKING_ERRORS.includes(stat._id)
+        ? report.advisoriesBreakdown
+        : report.issuesBreakdown;
+      target[stat._id] = breakdown;
     });
 
     // Generate recommendations
@@ -209,6 +214,13 @@ class TranslationReporter {
     if (Object.keys(report.issuesBreakdown).length > 0) {
       console.log(`\n${CLI_SYMBOLS.error} ISSUES BREAKDOWN:`);
       Object.entries(report.issuesBreakdown).forEach(([error, stat]) => {
+        console.log(`   ${CLI_SYMBOLS.bullet} ${error}: ${stat.count} (${stat.percentage})`);
+      });
+    }
+
+    if (Object.keys(report.advisoriesBreakdown).length > 0) {
+      console.log(`\n${CLI_SYMBOLS.warning} QUALITY ADVISORIES:`);
+      Object.entries(report.advisoriesBreakdown).forEach(([error, stat]) => {
         console.log(`   ${CLI_SYMBOLS.bullet} ${error}: ${stat.count} (${stat.percentage})`);
       });
     }
