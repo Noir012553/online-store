@@ -755,3 +755,46 @@ npm test
 - Chưa migrate `Product.brand` sang `Brand ObjectId`.
 - `ID` và `URL` chưa được lưu thành field riêng trong `Product`.
 - Một số scraper vẫn có thể tạo `Regular_Price`, `Description` hoặc `InStock` thay vì lấy giá trị gốc tuyệt đối.
+
+## 13. Sự cố rate limit refresh token
+
+### 13.1. Lỗi đã gặp
+
+Khi truy cập trang sản phẩm, ví dụ `/products/gaming-laptop`, hệ thống ghi nhận request refresh token bị từ chối hai lần:
+
+```text
+HTTP 429 /api/users/refresh
+{
+  "success": false,
+  "code": "RATE_LIMIT_TOKEN_REFRESH",
+  "message": "Quá nhiều yêu cầu",
+  "retryAfter": "2358"
+}
+```
+
+`retryAfter: 2358` là thời gian chờ tính bằng giây, tương đương khoảng 39 phút 18 giây. Đây là rate limit của endpoint refresh token, không phải lỗi tải danh sách sản phẩm hay lỗi dữ liệu category.
+
+### 13.2. Nguyên nhân
+
+- Client gửi quá nhiều request `POST /api/users/refresh` trong khoảng thời gian ngắn.
+- Một hoặc nhiều request nhận `401` có thể cùng kích hoạt luồng refresh nếu không dùng chung trạng thái refresh đang chạy.
+- Nếu refresh thất bại mà request tiếp tục retry ngay, số lần gọi tăng nhanh và chạm giới hạn server.
+- Backend đang giới hạn endpoint refresh ở 30 lần mỗi giờ theo user/IP trong `src/middleware/rateLimitMiddleware.js`.
+- Frontend đã có `isRefreshing` và `refreshPromise` để chống một số request refresh đồng thời, nhưng vẫn cần cooldown/backoff sau phản hồi `429`.
+
+### 13.3. Cách xử lý và fix
+
+1. Khi nhận `429 RATE_LIMIT_TOKEN_REFRESH`, không gọi lại refresh ngay lập tức.
+2. Đọc giá trị `retryAfter` từ JSON response hoặc header `Retry-After`; với lỗi trên phải chờ `2358` giây trước lần thử tiếp theo.
+3. Lưu thời điểm hết cooldown trong memory của tab hoặc cơ chế chia sẻ phù hợp, đồng thời dùng exponential backoff có giới hạn cho các lỗi tạm thời.
+4. Giữ một `refreshPromise` dùng chung cho toàn bộ request đang chờ; không tạo refresh request mới khi một request refresh đã chạy.
+5. Trong thời gian cooldown, không retry các request API theo vòng lặp. Hủy retry và đưa người dùng về trạng thái cần đăng nhập lại khi access token không còn hợp lệ.
+6. Khi refresh thất bại do token hết hạn, bị thu hồi hoặc hết cooldown mà vẫn không thể refresh, xóa access token trong memory, clear session/cart theo flow logout hiện tại và chuyển người dùng tới login/re-auth.
+7. Chỉ retry request API gốc tối đa một lần sau khi refresh thành công; không retry lại request gốc sau khi refresh trả `401` hoặc `429`.
+
+Kết quả mong muốn:
+
+- Không còn vòng lặp gọi `/api/users/refresh` khi refresh đã bị rate limit.
+- Các request đồng thời chờ cùng một refresh request thay vì tạo nhiều request mới.
+- Client tôn trọng `retryAfter: 2358` và không làm tăng thêm bộ đếm rate limit.
+- Người dùng nhận được flow logout/re-auth rõ ràng khi refresh token không thể sử dụng.
