@@ -47,6 +47,7 @@ module.exports = {
   AUTO_APPROVE_IF_NO_ERRORS: true,
   AUTO_RETRANSLATE_IF_CRITICAL: true,
   CRITICAL_ERRORS: ['empty', 'wrong_language'],
+  NON_BLOCKING_ERRORS: ['too_long'],
 
   // ========== LOGGING ==========
   VERBOSE: process.env.NODE_ENV === 'development',

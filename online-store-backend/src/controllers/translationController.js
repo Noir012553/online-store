@@ -849,7 +849,10 @@ const getSpecEntries = (specs) => (
 );
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
-  const requiredFields = ['name', 'description', 'brand'];
+  const requiredFields = ['name', 'brand'];
+  if (typeof sourceProduct?.description === 'string' && sourceProduct.description.trim()) {
+    requiredFields.push('description');
+  }
   if (requiredFields.some((field) => typeof translation?.[field] !== 'string' || !translation[field].trim())) {
     return false;
   }
@@ -876,7 +879,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
   const sourceProduct = includeNonSuccess
     ? null
-    : await Product.findById(productId).select('brand specs').lean();
+    : await Product.findById(productId).select('name description brand specs').lean();
 
   if (translation) {
     const data = {

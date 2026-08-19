@@ -48,7 +48,7 @@ async function seedSpecTranslations() {
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying products and approved translations...`);
 
     const [products, allRecords] = await Promise.all([
-      Product.find({}).select('_id name description brand specs').lean(),
+      Product.find({ isDeleted: false }).select('_id name description brand specs').lean(),
       LiveTranslationCache.find({
         entityType: { $in: ['product_spec', 'product_name', 'product_description'] },
         status: 'success',
@@ -152,10 +152,14 @@ async function seedSpecTranslations() {
         return !translatedSpecKeys.has(translatedKey);
       });
       const validationErrors = [];
+      const hasSourceDescription = typeof sourceProduct?.description === 'string'
+        && sourceProduct.description.trim();
 
       entry.brand = sourceProduct?.brand || null;
       if (!String(entry.name || '').trim()) validationErrors.push('missing_name');
-      if (!String(entry.description || '').trim()) validationErrors.push('missing_description');
+      if (hasSourceDescription && !String(entry.description || '').trim()) {
+        validationErrors.push('missing_description');
+      }
       if (missingSpec) validationErrors.push('incomplete_specs');
 
       entry.validationErrors = validationErrors;

@@ -488,13 +488,9 @@ const importProducts = asyncHandler(async (req, res) => {
 
 
   try {
-    // Parse data sử dụng adapter
-    let parsedProducts = products;
-    
-    if (data) {
-      const adapter = adapterManager.getAdapter(format);
-      parsedProducts = await adapter.parse(data);
-    }
+    // Parse every raw payload through the adapter so crawler field names are normalized.
+    const adapter = adapterManager.getAdapter(format);
+    const parsedProducts = await adapter.parse(data || products);
 
     // Validate format
     const validation = await adapterManager.validate(parsedProducts, format);
@@ -550,7 +546,8 @@ const importProducts = asyncHandler(async (req, res) => {
       const enriched = { ...product, user: adminUserId };
 
       // Resolve category
-      let categoryId = categoryMap[product.category];
+      let categoryId = categoryMap[product.category]
+        || categoryMap[String(product.category).toLowerCase()];
       if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
         categoryId = product.category;
       }

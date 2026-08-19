@@ -291,12 +291,12 @@ describe('translationHelper - Storefront product visibility', () => {
     assert.strictEqual(result.size, 0);
   });
 
-  it('hides products whose Vietnamese source fields are incomplete', async () => {
+  it('shows products whose optional source specs are empty', async () => {
     mockProductCache.find.result = Promise.resolve(createTranslations());
 
-    const result = await getStorefrontVisibleProductIds([{ ...product, specs: {} }]);
+    const result = await getStorefrontVisibleProductIds([{ ...product, description: '', specs: {} }]);
 
-    assert.strictEqual(result.size, 0);
+    assert.deepStrictEqual([...result], ['product-1']);
   });
 });
 
