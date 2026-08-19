@@ -184,6 +184,10 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
             <div className="h-20 sm:h-32 mb-3 text-xs sm:text-sm text-gray-600 space-y-0.5 overflow-hidden">
               {(() => {
                 const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
+                if (specEntries.length === 0) {
+                  return <p className="text-xs text-gray-400">{t('no_specs', 'products')}</p>;
+                }
+
                 return specEntries.map(([key, value]) => (
                   <p key={key} className="truncate text-xs">
                     <span className="text-gray-500">{capitalizeSpecKey(key)}:</span> {String(value)}

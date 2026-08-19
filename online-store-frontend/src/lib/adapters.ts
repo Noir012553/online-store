@@ -119,9 +119,30 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
     }
 
     // Handle description
-    if (normalized.description) {
+    if (normalized.description !== undefined && normalized.description !== null) {
       normalized.description = String(normalized.description);
     }
+
+    if (typeof normalized.specs === 'string') {
+      try {
+        const parsedSpecs = JSON.parse(normalized.specs);
+        normalized.specs = parsedSpecs && typeof parsedSpecs === 'object' && !Array.isArray(parsedSpecs)
+          ? parsedSpecs
+          : {};
+      } catch {
+        normalized.specs = {};
+      }
+    }
+
+    if (!normalized.specs || typeof normalized.specs !== 'object' || Array.isArray(normalized.specs)) {
+      normalized.specs = {};
+    }
+
+    normalized.specs = Object.fromEntries(
+      Object.entries(normalized.specs)
+        .filter(([, value]) => value !== null && value !== undefined)
+        .map(([key, value]) => [key, typeof value === 'string' || typeof value === 'number' ? value : String(value)])
+    );
 
     // Handle specDisplay array
     if (!Array.isArray(normalized.specDisplay)) {
@@ -162,10 +183,6 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
       normalized.inStock = Number(normalized.countInStock) > 0;
     } else {
       delete normalized.inStock;
-    }
-
-    if (typeof normalized.specs !== 'object' || normalized.specs === null) {
-      normalized.specs = {};
     }
 
     return normalized;
