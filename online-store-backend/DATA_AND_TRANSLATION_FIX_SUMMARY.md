@@ -824,3 +824,32 @@ Kết quả mong muốn:
 - Full backend test suite chưa chạy được trong môi trường hiện tại vì thiếu dependency `dotenv`; cần chạy lại sau khi cài đủ dependencies.
 - Cần xác nhận thực tế một sản phẩm có `image` là `https://res.cloudinary.com/...` và gallery có `imagePublicIds` sau lần seed thật đầu tiên.
 - Cần kiểm tra quota, thời gian upload và số lượng asset Cloudinary sau khi seed toàn bộ crawler products.
+
+## 15. Trạng thái module hóa frontend
+
+### Đã module hóa
+
+Frontend đã có các component và module dùng chung cho những phần giao diện chính:
+
+- `Header`, `Footer`, `BannerSlot`, `LanguageSwitcher` và `FloatingCart` cho layout toàn site.
+- `ProductCard`, `QuickViewModal`, `ProductSkeleton`, `ImageViewer` và `ImageWithFallback` cho hiển thị sản phẩm/ảnh.
+- `Breadcrumbs`, `SpecsTable`, `ProductDescriptionFormatter`, `TranslatedReview` và `WarrantyInfoBanner` cho các phần nội dung dùng lại.
+- Context/hook cho auth, cart, category, language, currency, translation và Recently Viewed.
+- Product detail đã được tách thành `ProductGallery`, `ProductOverview`, `ProductInformationTabs`, `ProductRecommendations`, `ProductReviews` và hook `useRecentlyViewedProducts`.
+- Thư mục `src/components/figma` đã đổi tên thành `src/components/image` vì chỉ chứa component xử lý ảnh `ImageWithFallback`.
+
+### Chưa module hóa hoàn toàn
+
+- `online-store-frontend/src/components/HomeContent.tsx` vẫn chứa nhiều logic và markup của homepage, gồm hero, deals, brands, category sections và product sections.
+- `online-store-frontend/src/pages/product/[id].tsx` vẫn chứa phần lớn logic fetch product/reviews, review form, upload avatar và điều khiển state của trang chi tiết.
+- Một số page như cart, checkout, profile, order detail và các trang policy vẫn kết hợp trực tiếp UI với business logic.
+- Khu vực admin đã có component riêng nhưng cấu trúc module chưa đồng nhất giữa các trang.
+
+### Thứ tự module hóa đề xuất
+
+1. Tách `HomeContent.tsx` thành các module hero, deals, brands, category sections và product sections.
+2. Tách logic fetch/state khỏi `pages/product/[id].tsx` thành hook và component điều phối riêng.
+3. Chuẩn hóa cart/checkout/profile/order detail thành các component theo từng vùng chức năng.
+4. Cuối cùng chuẩn hóa cấu trúc component và hook của khu vực admin.
+
+Kết luận hiện tại: product detail và các component dùng chung đã được module hóa đáng kể, nhưng toàn bộ frontend chưa đạt trạng thái module hóa hoàn toàn.
