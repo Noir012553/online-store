@@ -746,6 +746,15 @@ npm test
 - Thêm static translation `section_recently_viewed_products` cho 9 ngôn ngữ ở backend.
 - Loại bỏ bản dịch Recently Viewed hard-code khỏi frontend.
 - Giới hạn Recently Viewed ở tối đa 5 product object public trong localStorage.
+- Upload `MainImage` và từng ảnh trong `GalleryImages` lên Cloudinary trong product seed.
+- Lưu Cloudinary URL vào `Product.image`/`Product.images` và public ID vào `imagePublicId`/`imagePublicIds`.
+- Dùng public ID ổn định theo SKU/URL/tên sản phẩm để seed lại không tạo asset Cloudinary trùng.
+- Bỏ qua upload lại nếu ảnh nguồn đã là URL Cloudinary; dry-run không upload ảnh.
+- Bổ sung alias spec crawler như `Kích thước/Layout`, `Phương thức kết nối`, `Chất liệu Keycap`, `Số lượng phím` về key chuẩn backend.
+- Backend localize static specification keys theo `lang` sau khi overlay dynamic product translation.
+- Translation endpoint `/api/products/:id/translations` trả về spec labels đã dịch; dynamic values vẫn được giữ nguyên.
+- Frontend ProductCard/SpecsTable/ProductOverview chỉ render label backend trả về, không tự capitalize hoặc tự dịch spec key.
+- Loại bỏ request translation riêng cho từng ProductCard để giảm request dư thừa.
 
 ### Chưa sửa
 
@@ -798,3 +807,20 @@ Kết quả mong muốn:
 - Các request đồng thời chờ cùng một refresh request thay vì tạo nhiều request mới.
 - Client tôn trọng `retryAfter: 2358` và không làm tăng thêm bộ đếm rate limit.
 - Người dùng nhận được flow logout/re-auth rõ ràng khi refresh token không thể sử dụng.
+
+## 14. Cập nhật tiến độ mới nhất
+
+### Đã xác nhận sau khi triển khai
+
+- Backend syntax check đạt cho `translationHelper.js`, `translationController.js` và `specNormalizer.js`.
+- `specKeyTranslations.json` đã được kiểm tra parse JSON thành công.
+- Frontend TypeScript check `npm exec -- tsc --noEmit` đạt.
+- Dev server frontend vẫn compile và trả `200` cho `/products/keyboard` sau khi bỏ logic dịch spec khỏi ProductCard.
+- `git diff --check` không phát hiện whitespace lỗi.
+
+### Chưa xác nhận trên môi trường triển khai
+
+- Chưa chạy `npm seed` thật sau khi thêm Cloudinary image backup để tránh upload hàng loạt ngoài ý muốn trong môi trường kiểm tra.
+- Full backend test suite chưa chạy được trong môi trường hiện tại vì thiếu dependency `dotenv`; cần chạy lại sau khi cài đủ dependencies.
+- Cần xác nhận thực tế một sản phẩm có `image` là `https://res.cloudinary.com/...` và gallery có `imagePublicIds` sau lần seed thật đầu tiên.
+- Cần kiểm tra quota, thời gian upload và số lượng asset Cloudinary sau khi seed toàn bộ crawler products.
