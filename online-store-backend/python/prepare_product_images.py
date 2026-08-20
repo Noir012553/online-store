@@ -1,8 +1,12 @@
 import argparse
+import argparse
 import hashlib
 import json
 import os
 import tempfile
+import time
+from datetime import datetime, timezone
+from http.client import IncompleteRead
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -12,6 +16,8 @@ from scraper_paths import get_output_directory
 
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
+DOWNLOAD_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 1
 IMAGE_EXTENSIONS = {
     'image/jpeg': '.jpg',
     'image/png': '.png',
@@ -64,6 +70,25 @@ def extension_for_response(response, source_url):
     return suffix if suffix in {'.jpg', '.jpeg', '.png', '.webp', '.gif'} else '.jpg'
 
 
+def _is_retryable_download_error(error):
+    if isinstance(error, IncompleteRead):
+        return True
+    if isinstance(error, requests.exceptions.HTTPError):
+        status = error.response.status_code if error.response is not None else None
+        return status in {408, 429} or (status is not None and status >= 500)
+    if isinstance(error, requests.exceptions.RequestException):
+        return True
+
+    current = error
+    for _ in range(3):
+        current = current.__cause__ or current.__context__
+        if current is None:
+            break
+        if isinstance(current, IncompleteRead) or 'incompleteread' in type(current).__name__.lower():
+            return True
+    return 'incompleteread' in str(error).lower()
+
+
 def download_image(source_url, destination_base, slot):
     destination_base.mkdir(parents=True, exist_ok=True)
     temporary_path = None
@@ -114,6 +139,19 @@ def download_image(source_url, destination_base, slot):
         raise
 
 
+def download_image_with_retry(source_url, destination_base, slot):
+    last_error = None
+    for attempt in range(DOWNLOAD_ATTEMPTS):
+        try:
+            return download_image(source_url, destination_base, slot)
+        except Exception as error:
+            last_error = error
+            if not _is_retryable_download_error(error) or attempt == DOWNLOAD_ATTEMPTS - 1:
+                raise
+            time.sleep(RETRY_BACKOFF_SECONDS * (2 ** attempt))
+    raise last_error
+
+
 def is_image_signature(signature):
     return (
         signature.startswith(b'\xff\xd8\xff')
@@ -134,14 +172,19 @@ def process_image(source, destination_base, slot):
     if not is_remote_image(source):
         return source.replace('\\', '/'), None
 
-    return download_image(source, destination_base, slot), source
+    return download_image_with_retry(source, destination_base, slot), source
 
 
-def process_file(json_path, output_root):
+def create_batch_id():
+    return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+
+
+def process_file(json_path, output_root, batch_id=None):
     products = json.loads(json_path.read_text(encoding='utf-8'))
     if not isinstance(products, list):
         raise ValueError(f'{json_path.name} must contain a product array')
 
+    batch_id = batch_id or create_batch_id()
     manifest = {}
     main_failures = []
     gallery_failures = []
@@ -149,8 +192,9 @@ def process_file(json_path, output_root):
 
     for index, product in enumerate(products):
         product_key = get_product_key(product)
-        product_dir = output_root / 'images' / json_path.stem / product_key
+        product_dir = output_root / 'images' / batch_id / json_path.stem / product_key
         entry = {
+            'batchId': batch_id,
             'productUrl': product.get('URL'),
             'productKey': product_key,
             'main': [],
@@ -183,6 +227,8 @@ def process_file(json_path, output_root):
                     changed = True
                 except Exception as error:
                     gallery_failures.append(f'{json_path.name} row {index + 1} gallery {gallery_index + 1}: {gallery_source} ({error})')
+                    # Keep the failed remote URL in both manifest and source data.
+                    gallery_paths.append(gallery_source)
                     entry['gallery'].append({'sourceUrl': gallery_source, 'status': 'failed', 'error': str(error)})
             elif gallery_source:
                 gallery_paths.append(gallery_source.replace('\\', '/'))
@@ -190,8 +236,6 @@ def process_file(json_path, output_root):
 
         if gallery_paths:
             product['GalleryImages'] = ' || '.join(gallery_paths)
-        elif product.get('GalleryImages'):
-            product['GalleryImages'] = ''
         manifest[product_key] = entry
 
     if changed:
@@ -199,7 +243,7 @@ def process_file(json_path, output_root):
         temporary_path.write_text(json.dumps(products, ensure_ascii=False, indent=4), encoding='utf-8')
         os.replace(temporary_path, json_path)
 
-    manifest_path = output_root / 'manifests' / f'{json_path.stem}.images.json'
+    manifest_path = output_root / 'manifests' / batch_id / f'{json_path.stem}.images.json'
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     return main_failures, gallery_failures
@@ -224,6 +268,7 @@ def main():
     parser.add_argument('--since', type=float)
     args = parser.parse_args()
     output_root = get_output_directory()
+    batch_id = create_batch_id()
     target_files = get_target_files(output_root, args.file, args.since)
     if not target_files:
         raise SystemExit('No product JSON files matched image processing')
@@ -231,7 +276,7 @@ def main():
     all_main_failures = []
     all_gallery_failures = []
     for json_path in target_files:
-        main_failures, gallery_failures = process_file(json_path, output_root)
+        main_failures, gallery_failures = process_file(json_path, output_root, batch_id)
         all_main_failures.extend(main_failures)
         all_gallery_failures.extend(gallery_failures)
         print(f'[ImageProcessor] Processed {json_path.name}')
