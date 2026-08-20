@@ -118,8 +118,63 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
  * @param {String|null} publicId - Public ID ổn định để ghi đè asset khi cần
  * @returns {Promise<Object>} - { url, publicId, format }
  */
+const downloadRemoteImage = async (sourceUrl) => {
+  const response = await fetch(sourceUrl, {
+    headers: {
+      Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
+    },
+    signal: AbortSignal.timeout(30000),
+    redirect: 'follow',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Remote image request failed with status ${response.status}`);
+  }
+
+  const contentLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
+    throw new Error('Remote image exceeds the 5 MB limit');
+  }
+
+  if (!response.body) {
+    throw new Error('Remote image response has no body');
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_IMAGE_BYTES) {
+      await reader.cancel();
+      throw new Error('Remote image exceeds the 5 MB limit');
+    }
+    chunks.push(Buffer.from(value));
+  }
+
+  return Buffer.concat(chunks, totalBytes);
+};
+
 const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null) => {
   try {
+    if (/^https?:\/\//i.test(String(filePath || '').trim())) {
+      const uploadedImage = await uploadToCloudinary(
+        await downloadRemoteImage(filePath),
+        folder,
+        publicId
+      );
+      return {
+        url: uploadedImage.url,
+        publicId: uploadedImage.publicId,
+        format: uploadedImage.format,
+      };
+    }
+
     const result = await cloudinary.uploader.upload(filePath, {
       folder: `laptop-store/${folder}`,
       public_id: publicId || undefined,
