@@ -76,7 +76,12 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
       async (error, result) => {
         if (error) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('[CLOUDINARY_ERROR]', error);
+            console.error('[CLOUDINARY_ERROR]', {
+              name: error?.name,
+              message: error?.message,
+              httpCode: error?.http_code,
+              stack: error?.stack,
+            });
           }
           reject(error);
           return;
@@ -197,7 +202,12 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
     };
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('[CLOUDINARY_UPLOAD_ERROR]', error);
+      console.error('[CLOUDINARY_UPLOAD_ERROR]', {
+        name: error?.name,
+        message: error?.message,
+        httpCode: error?.http_code,
+        stack: error?.stack,
+      });
     }
     throw error;
   }

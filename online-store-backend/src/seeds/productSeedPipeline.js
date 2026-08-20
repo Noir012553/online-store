@@ -25,6 +25,26 @@ const backendRoot = path.resolve(__dirname, '../..');
 const scraperRoot = path.join(backendRoot, 'python');
 const defaultProductDirectory = path.join(backendRoot, 'data', 'scraped-products');
 
+const getProductDataDirectory = () => {
+  const configuredDirectory = process.env.SCRAPER_OUTPUT_DIR;
+  return path.resolve(backendRoot, configuredDirectory || defaultProductDirectory);
+};
+
+const resolveProductImagePath = (sourcePath) => {
+  const outputDirectory = getProductDataDirectory();
+  const resolvedPath = path.resolve(outputDirectory, sourcePath);
+  const relativePath = path.relative(outputDirectory, resolvedPath);
+
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error(`Đường dẫn ảnh nằm ngoài thư mục dữ liệu sản phẩm: ${sourcePath}`);
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`Không tìm thấy file ảnh sản phẩm: ${resolvedPath}`);
+  }
+
+  return resolvedPath;
+};
+
 const runCommand = (command, args, options = {}) => new Promise((resolve, reject) => {
   const child = spawn(command, args, {
     ...options,
@@ -59,14 +79,20 @@ const runScraper = async (scrapeTarget = 'all') => {
   console.log(`[ProductPipeline] Bắt đầu crawler: ${scriptName}`);
   console.log(`[ProductPipeline] Thư mục scraper: ${scraperRoot}`);
   console.log(`[ProductPipeline] Thư mục output: ${process.env.SCRAPER_OUTPUT_DIR || defaultProductDirectory}`);
+  const scraperStartedAt = Date.now() / 1000;
 
   if (process.platform === 'win32') {
     const npmCommand = `${getNpmCommand()} run ${scriptName}`;
     await runCommand(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', npmCommand], { cwd: scraperRoot });
-    return;
+  } else {
+    await runCommand(getNpmCommand(), ['run', scriptName], { cwd: scraperRoot });
   }
 
-  await runCommand(getNpmCommand(), ['run', scriptName], { cwd: scraperRoot });
+  await runCommand(
+    process.env.PYTHON_COMMAND || 'python',
+    ['prepare_product_images.py', '--since', String(scraperStartedAt)],
+    { cwd: scraperRoot }
+  );
 };
 
 const chooseProductFiles = (directory) => {
@@ -174,11 +200,12 @@ const uploadProductImage = async (sourceUrl, publicId) => {
     };
   }
 
-  if (!/^https?:\/\//i.test(String(sourceUrl || '').trim())) {
-    throw new Error(`URL ảnh sản phẩm không hợp lệ: ${sourceUrl}`);
+  const normalizedSource = String(sourceUrl || '').trim();
+  if (/^https?:\/\//i.test(normalizedSource)) {
+    return uploadFileToCloudinary(normalizedSource, 'products', publicId);
   }
 
-  return uploadFileToCloudinary(sourceUrl, 'products', publicId);
+  return uploadFileToCloudinary(resolveProductImagePath(normalizedSource), 'products', publicId);
 };
 
 const uploadProductImages = async (product) => {

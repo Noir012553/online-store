@@ -82,7 +82,7 @@ def scrape_full():
                     if any(bad in src.lower() for bad in ["icon", "logo", "avatar", "badge"]):
                         continue
                     full_src = src if src.startswith("http") else "https:" + src
-                    clean_img_url = full_src.split("?")[0]
+                    clean_img_url = full_src
                     if clean_img_url not in image_list: 
                         image_list.append(clean_img_url)
             
