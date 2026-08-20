@@ -525,6 +525,9 @@ const runProductSeedPipeline = async (options = {}) => {
 module.exports = {
   getProductImagePublicId,
   uploadProductImage,
+  uploadProductImages,
   assignInitialHighlights,
+  getProductDataDirectory,
+  runScraper,
   runProductSeedPipeline,
 };
