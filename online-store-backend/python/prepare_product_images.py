@@ -165,6 +165,19 @@ def to_relative_path(output_root, file_path):
     return file_path.relative_to(output_root).as_posix()
 
 
+def infer_existing_batch_id(products, output_root):
+    image_root = output_root / 'images'
+    for product in products:
+        image_values = [product.get('MainImage'), *split_gallery(product.get('GalleryImages'))]
+        for image_value in image_values:
+            relative_path = Path(str(image_value or '').replace('\\', '/'))
+            if len(relative_path.parts) > 1 and relative_path.parts[0] == 'images':
+                batch_id = relative_path.parts[1]
+                if (image_root / batch_id).exists():
+                    return batch_id
+    return None
+
+
 def process_image(source, destination_base, slot):
     source = str(source or '').strip()
     if not source:
@@ -184,7 +197,7 @@ def process_file(json_path, output_root, batch_id=None):
     if not isinstance(products, list):
         raise ValueError(f'{json_path.name} must contain a product array')
 
-    batch_id = batch_id or create_batch_id()
+    batch_id = infer_existing_batch_id(products, output_root) or batch_id or create_batch_id()
     manifest = {}
     main_failures = []
     gallery_failures = []

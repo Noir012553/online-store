@@ -3,7 +3,11 @@ import datetime
 import json
 import time
 from bs4 import BeautifulSoup
-from scraper_paths import (\n    PRODUCT_OUTPUT_FIELDS,\n    extract_product_image_urls,\n    get_output_paths,\n)
+from scraper_paths import (
+    PRODUCT_OUTPUT_FIELDS,
+    extract_product_image_urls,
+    get_output_paths,
+)
 import pandas as pd
 import requests
 

@@ -5,7 +5,11 @@ import datetime
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from scraper_paths import (\n    PRODUCT_OUTPUT_FIELDS,\n    extract_product_image_urls,\n    get_output_paths,\n)
+from scraper_paths import (
+    PRODUCT_OUTPUT_FIELDS,
+    extract_product_image_urls,
+    get_output_paths,
+)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

@@ -35,15 +35,14 @@ def get_output_paths(file_prefix):
 
 def _image_url_from_tag(image):
     """Return the best URL from an image tag, including lazy-load variants."""
-    for attribute in ("src", "data-src", "data-original"):
+    for attribute in ("data-src", "data-original", "src"):
         value = str(image.get(attribute) or "").strip()
         if value:
             return value
 
-    srcset = str(image.get("srcset") or image.get("data-srcset") or "").strip()
+    srcset = str(image.get("data-srcset") or image.get("srcset") or "").strip()
     if srcset:
-        # The first candidate is the least surprising fallback when no width is requested.
-        return srcset.split(",", 1)[0].strip().split()[0]
+        return srcset.split(",")[-1].strip().split()[0]
     return ""
 
 
