@@ -302,6 +302,17 @@ describe('Product translation cache controller', () => {
     expect(res.status.calledWith(500)).to.be.true;
   });
 
+  it('preserves specification keys containing dots', () => {
+    const cacheEntry = new ProductCatalogTranslationCache({
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: 'en',
+      name: 'Mouse',
+      specs: { 'DPI max.': '26,000' },
+    });
+
+    expect(cacheEntry.toObject().specs).to.deep.equal({ 'DPI max.': '26,000' });
+  });
+
   it('imports a record using the product name when the selected fields omit name', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     const create = sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request' });
