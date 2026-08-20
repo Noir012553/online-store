@@ -3,7 +3,11 @@ import datetime
 import json
 import time
 from bs4 import BeautifulSoup
-from scraper_paths import PRODUCT_OUTPUT_FIELDS, get_output_paths
+from scraper_paths import (
+    PRODUCT_OUTPUT_FIELDS,
+    extract_product_image_urls,
+    get_output_paths,
+)
 import pandas as pd
 import requests
 
@@ -78,17 +82,7 @@ def scrape_full():
                 except: pass
 
             # --- TRÍCH XUẤT HÌNH ẢNH ---
-            image_list = []
-            for img in soup.find_all("img", src=True):
-                src = img['src']
-                if any(domain in src for domain in ["hstatic.net", "gearvn.com"]) and any(ext in src.lower() for ext in [".jpg", ".png", ".webp", ".jpeg"]):
-                    if any(bad in src.lower() for bad in ["icon", "logo", "avatar", "badge"]):
-                        continue
-                    full_src = src if src.startswith("http") else "https:" + src
-                    clean_img_url = full_src.split("?")[0]
-                    if clean_img_url not in image_list: 
-                        image_list.append(clean_img_url)
-            
+            image_list = extract_product_image_urls(soup)
             main_img = image_list[0] if image_list else ""
             gallery_imgs = " || ".join(image_list[1:]) if len(image_list) > 1 else ""
 

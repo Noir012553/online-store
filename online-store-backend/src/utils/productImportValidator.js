@@ -68,8 +68,11 @@ function validateProduct(product, rowIndex = 0) {
     }
   }
 
-  if (product.sku !== undefined && product.sku !== null && String(product.sku).trim()) {
-    cleaned.sku = String(product.sku).trim();
+  if (product.sku !== undefined && product.sku !== null) {
+    const sku = String(product.sku).trim();
+    if (sku && !['n/a', 'na', 'none', 'null', 'unknown'].includes(sku.toLowerCase())) {
+      cleaned.sku = sku;
+    }
   }
 
   // Validate price

@@ -43,7 +43,8 @@
     "scrape:edifier-headphone": "python Edifier_Headphone_Scraper.py",
     "scrape:hyperx-headphone": "python Hyperx_Headphone_Scraper.py",
     "scrape:logitech-headphone": "python Logitech_Headphone_Scraper.py",
-    "scrape:razer-headphone": "python Razer_Headphone_Scraper.py"
+    "scrape:razer-headphone": "python Razer_Headphone_Scraper.py",
+    "prepare:images": "python prepare_product_images.py"
   },
   "author": "",
   "license": "ISC"
