@@ -106,7 +106,7 @@
   "coupon_admin_description": "Alle Geschäftsgutscheine verwalten",
   "admin_translations_title": "Übersetzungen",
   "admin_languages_config": "Sprachen",
-  "admin_translations_tier1": "Ebene 1",
+  "admin_translations_tier1": "Statische Übersetzungen",
   "admin_translations_tier2": "Ebene 2",
   "admin_products_translations": "Produktübersetzungen",
   "admin_price_currency": "(VND)",

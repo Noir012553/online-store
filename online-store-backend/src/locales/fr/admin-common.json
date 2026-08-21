@@ -106,7 +106,7 @@
   "coupon_admin_description": "Gérer tous les coupons du magasin",
   "admin_translations_title": "Traductions",
   "admin_languages_config": "Langues",
-  "admin_translations_tier1": "Niveau 1",
+  "admin_translations_tier1": "Traductions statiques",
   "admin_translations_tier2": "Niveau 2",
   "admin_products_translations": "Traductions de produits",
   "admin_price_currency": "(VND)",

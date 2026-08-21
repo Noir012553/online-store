@@ -106,7 +106,7 @@
   "coupon_admin_description": "Hantera alla butikskuponger",
   "admin_translations_title": "Översättningar",
   "admin_languages_config": "Språk",
-  "admin_translations_tier1": "Nivå 1",
+  "admin_translations_tier1": "Statiska översättningar",
   "admin_translations_tier2": "Nivå 2",
   "admin_products_translations": "Produktöversättningar",
   "admin_price_currency": "(VND)",

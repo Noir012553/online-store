@@ -107,7 +107,7 @@
   "coupon_admin_description": "Quản lý tất cả mã giảm giá của cửa hàng",
   "admin_translations_title": "Bản dịch",
   "admin_languages_config": "Ngôn ngữ",
-  "admin_translations_tier1": "Tầng 1",
+  "admin_translations_tier1": "Bản dịch tĩnh",
   "admin_translations_tier2": "Tầng 2",
   "admin_products_translations": "Dịch sản phẩm",
   "admin_price_currency": "(VND)",
