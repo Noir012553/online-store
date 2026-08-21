@@ -306,43 +306,23 @@ export default function Home() {
 
         const categoryResults = await Promise.all(
           categories.map(async (category) => {
-            const [specResponse, allResponse] = await Promise.all([
-              productAPI.getFeaturedProducts(
-                1,
-                undefined,
-                category._id,
-                undefined,
-                12,
-                undefined,
-                undefined,
-                true,
-                locale,
-                locale,
-                currencyCode,
-                true,
-              ),
-              productAPI.getFeaturedProducts(
-                1,
-                undefined,
-                category._id,
-                undefined,
-                12,
-                undefined,
-                undefined,
-                true,
-                locale,
-                locale,
-                currencyCode,
-              ),
-            ]);
-            const specProducts = specResponse.products || [];
-            const specProductIds = new Set(specProducts.map((product: BackendProduct) => product._id));
-            const products = [
-              ...specProducts,
-              ...(allResponse.products || []).filter((product: BackendProduct) => !specProductIds.has(product._id)),
-            ].slice(0, 12);
+            const response = await productAPI.getFeaturedProducts(
+              1,
+              undefined,
+              category._id,
+              undefined,
+              12,
+              undefined,
+              undefined,
+              true,
+              locale,
+              locale,
+              currencyCode,
+              undefined,
+              true,
+            );
 
-            return [category._id, products] as const;
+            return [category._id, response.products || []] as const;
           }),
         );
 

@@ -360,12 +360,7 @@ export default function ProductDetail() {
     router.push("/cart");
   };
 
-  const discount = Math.max(
-    laptop.originalPrice != null
-      ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
-      : 0,
-    isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) : 0
-  );
+  const discount = Math.max(0, laptop.discountPercentage ?? 0);
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 

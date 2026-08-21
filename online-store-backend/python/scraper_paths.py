@@ -67,21 +67,20 @@ def _has_price_class(tag, class_fragment):
 def extract_product_prices(soup, fallback_price="N/A"):
     """Return sale and regular VND prices without inferring a missing regular price."""
     summary = soup.select_one('[data-product-summary-region="true"]') or soup
-
-    original_price_tag = summary.select_one('.line-through')
+    original_price_tag = summary.select_one(
+        '.line-through, del, s, [data-product-regular-price], [data-compare-at-price]'
+    )
     regular_price = _parse_price_value(original_price_tag.get_text(" ", strip=True)) if original_price_tag else None
 
     sale_price_tag = next(
         (
             tag
-            for tag in summary.find_all('span')
-            if not _has_price_class(tag, 'line-through')
-            and (
-                _has_price_class(tag, 'color-red-700')
-                or _has_price_class(tag, 'flash-price-sale')
-                or _has_price_class(tag, 'text-green-600')
+            for tag in summary.select(
+                '[data-product-sale-price], [data-sale-price], .flash-price-sale, '
+                '.color-red-700, .text-green-600, ins'
             )
-            and _parse_price_value(tag.get_text(" ", strip=True))
+            if not _has_price_class(tag, 'line-through')
+            and (_parse_price_value(tag.get_text(" ", strip=True)) or 0) >= 1000
         ),
         None,
     )

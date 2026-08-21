@@ -90,10 +90,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     onQuickViewToggle?.(true);
   };
 
-  const discount = Math.max(
-    convertedLaptop.discountPercentage ?? 0,
-    isActiveDeal(convertedLaptop.deal) ? Number(convertedLaptop.deal?.discount) : 0
-  );
+  const discount = Math.max(0, convertedLaptop.discountPercentage ?? 0);
   const hasActiveDeal = isActiveDeal(convertedLaptop.deal);
   const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 

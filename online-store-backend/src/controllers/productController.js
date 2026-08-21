@@ -282,17 +282,41 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
 
   const visibleProductIds = await findStorefrontVisibleProductIds(query);
   const count = visibleProductIds.size;
+  const productQuery = { ...query, _id: { $in: [...visibleProductIds] } };
+  const prioritizeSpecs = req.query.prioritizeSpecs === 'true';
   const products = await withTimeout(
-    Product.find({ ...query, _id: { $in: [...visibleProductIds] } })
-      .populate('category')
-      .lean()
-      .sort({ featured: -1, createdAt: -1 })
-      .limit(pageSize)
-      .skip(pageSize * (page - 1)),
+    prioritizeSpecs
+      ? Product.aggregate([
+        { $match: productQuery },
+        {
+          $addFields: {
+            hasSpecs: {
+              $cond: [
+                { $eq: [{ $type: '$specs' }, 'object'] },
+                { $ne: ['$specs', {}] },
+                false,
+              ],
+            },
+          },
+        },
+        { $sort: { hasSpecs: -1, featured: -1, createdAt: -1, _id: 1 } },
+        { $skip: pageSize * (page - 1) },
+        { $limit: pageSize },
+        { $project: { hasSpecs: 0 } },
+      ])
+      : Product.find(productQuery)
+        .populate('category')
+        .lean()
+        .sort({ featured: -1, createdAt: -1, _id: 1 })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1)),
     15000
   );
+  const populatedProducts = prioritizeSpecs
+    ? await Product.populate(products, { path: 'category' })
+    : products;
 
-  const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
+  const translatedProducts = await overlayTranslationBatchWithFallback(populatedProducts, 'product', lang);
   const localizedProducts = await localizeProductCategories(translatedProducts, lang);
   res.json({ products: await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale), page, pages: Math.ceil(count / pageSize), total: count });
 });
