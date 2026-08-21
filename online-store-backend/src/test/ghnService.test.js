@@ -12,19 +12,26 @@ describe('GHN insurance value normalization', () => {
     }
   });
 
-  it('uses the GHN default limit when no environment value is configured', () => {
+  it('uses the default limit when no environment value is configured', () => {
     delete process.env.GHN_MAX_INSURANCE_VALUE;
-    assert.equal(ghnService.normalizeInsuranceValue(50000000), 5000000);
+    const defaultLimit = ghnService.getMaxInsuranceValue();
+    const valueAboveLimit = defaultLimit + Math.max(defaultLimit, 1);
+
+    assert.equal(ghnService.normalizeInsuranceValue(valueAboveLimit), defaultLimit);
   });
 
   it('uses the configured limit without changing payment amounts', () => {
-    process.env.GHN_MAX_INSURANCE_VALUE = '300000000';
-    assert.equal(ghnService.normalizeInsuranceValue(50000000), 50000000);
+    const configuredLimit = ghnService.getMaxInsuranceValue() + 1;
+    process.env.GHN_MAX_INSURANCE_VALUE = String(configuredLimit);
+    const valueAboveLimit = configuredLimit + 1;
+
+    assert.equal(ghnService.normalizeInsuranceValue(valueAboveLimit), configuredLimit);
   });
 
   it('normalizes negative and invalid values to zero', () => {
-    process.env.GHN_MAX_INSURANCE_VALUE = '5000000';
-    assert.equal(ghnService.normalizeInsuranceValue(-100), 0);
+    process.env.GHN_MAX_INSURANCE_VALUE = String(ghnService.getMaxInsuranceValue());
+
+    assert.equal(ghnService.normalizeInsuranceValue(-1), 0);
     assert.equal(ghnService.normalizeInsuranceValue('invalid'), 0);
   });
 });

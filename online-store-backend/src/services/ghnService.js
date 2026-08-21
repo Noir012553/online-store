@@ -660,6 +660,7 @@ module.exports = {
   validateProvincDistrictWard,
   validateDistrictIds,
   calculateShippingFee,
+  getMaxInsuranceValue,
   normalizeInsuranceValue,
   getServiceTypes,
   getAvailableServices,
