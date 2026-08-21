@@ -130,6 +130,31 @@ const getDealCardsPerView = (): number => {
   return 3;
 };
 
+const isLaptopDealCategory = (category: HomeCategory): boolean => {
+  const categoryIdentifiers = [
+    category.slug,
+    category.key,
+    category.translationKey,
+    category.name,
+    ...(category.sourceNames || []),
+  ]
+    .filter(Boolean)
+    .map(normalizeCategoryKey);
+
+  return categoryIdentifiers.some((identifier) => (
+    identifier === 'gaming-laptop'
+    || identifier === 'gaming_laptop'
+    || identifier === 'category_gaming_laptop'
+    || identifier === 'gaming laptop'
+    || identifier === 'laptop gaming'
+    || identifier === 'office-laptop'
+    || identifier === 'office_laptop'
+    || identifier === 'category_office_laptop'
+    || identifier === 'office laptop'
+    || identifier === 'laptop văn phòng'
+  ));
+};
+
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories } = useCategories();
@@ -293,7 +318,29 @@ export default function Home() {
         const allProductsList = productsResponse.products || [];
         setAllProducts(allProductsList);
 
-        const deals = allProductsList
+        const dealCategoryIds = categories
+          .filter(isLaptopDealCategory)
+          .map((category) => category._id);
+        const dealCategoryResults = await Promise.all(
+          dealCategoryIds.map((categoryId) => productAPI.getFeaturedProducts(
+            1,
+            undefined,
+            categoryId,
+            undefined,
+            200,
+            undefined,
+            undefined,
+            true,
+            locale,
+            locale,
+            currencyCode,
+          )),
+        );
+
+        if (!isMounted) return;
+
+        const dealCandidates = dealCategoryResults.flatMap((response) => response.products || []);
+        const deals = dealCandidates
           .filter((product: BackendProduct) => isActiveDeal(product.deal))
           .sort((first: BackendProduct, second: BackendProduct) => {
             const specsDifference = Number(hasProductSpecs(second)) - Number(hasProductSpecs(first));
