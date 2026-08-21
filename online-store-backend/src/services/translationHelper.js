@@ -20,6 +20,7 @@ const TestimonialTranslationCache = require('../models/TestimonialTranslationCac
 const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
+const { getCanonicalSpecKey, getSpecKeyLabels } = require('./specKeyTranslationService');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -86,12 +87,51 @@ const localizeProductSpecs = (specs, lang) => {
   return localizedSpecs;
 };
 
-const localizeProductSpecFields = (entity, lang) => {
+const getStaticSpecLabels = (specs, lang) => {
+  const labels = {};
+  getSpecEntries(specs).forEach(([rawKey]) => {
+    const canonicalKey = getCanonicalSpecKey(rawKey);
+    if (!canonicalKey) return;
+    const translation = specKeyTranslations[canonicalKey];
+    labels[canonicalKey] = translation?.[lang] || translation?.vi || translation?.en || canonicalKey;
+  });
+  return labels;
+};
+
+const localizeProductSpecData = async (specs, lang) => {
+  const labels = await getSpecKeyLabels(specs, lang);
+  const localizedSpecs = {};
+  const specLabels = {};
+
+  getSpecEntries(specs).forEach(([rawKey, value]) => {
+    const key = String(rawKey || '').trim();
+    const canonicalKey = getCanonicalSpecKey(key);
+    if (!key || !canonicalKey) return;
+
+    const translatedKey = labels[canonicalKey] || key;
+    localizedSpecs[translatedKey] = value;
+    specLabels[canonicalKey] = translatedKey;
+  });
+
+  return { specs: localizedSpecs, specLabels };
+};
+
+const localizeProductSpecFields = async (entity, lang) => {
   if (!entity || !lang) return entity;
-  return {
-    ...entity,
-    specs: localizeProductSpecs(entity.specs, lang),
-  };
+
+  try {
+    const localizedSpecData = await localizeProductSpecData(entity.specs, lang);
+    return {
+      ...entity,
+      ...localizedSpecData,
+    };
+  } catch (error) {
+    return {
+      ...entity,
+      specs: localizeProductSpecs(entity.specs, lang),
+      specLabels: getStaticSpecLabels(entity.specs, lang),
+    };
+  }
 };
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
@@ -299,7 +339,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
     }
 
     // Overlay translation lên mỗi entity
-    const result = entities.map((entity, idx) => {
+    const result = await Promise.all(entities.map(async (entity, idx) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId];
       let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -307,7 +347,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-        overlayed = localizeProductSpecFields(overlayed, targetLang);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang);
       }
 
       // Debug: Log first entity to see structure
@@ -316,7 +356,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       }
 
       return overlayed;
-    });
+    }));
 
     return result;
   } catch (error) {
@@ -373,7 +413,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       }
 
       overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-      overlayed = localizeProductSpecFields(overlayed, targetLang);
+      overlayed = await localizeProductSpecFields(overlayed, targetLang);
     }
 
     return overlayed;
@@ -435,7 +475,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       }
 
       overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-      overlayed = localizeProductSpecFields(overlayed, targetLang);
+      overlayed = await localizeProductSpecFields(overlayed, targetLang);
     }
 
     return overlayed;
@@ -647,7 +687,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
     }
 
     // Overlay translations
-    const result = entities.map(entity => {
+    const result = await Promise.all(entities.map(async (entity) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId];
       let overlayed = translation ? applyTranslationOverlay(entity, entityType, translation) : entity;
@@ -655,11 +695,11 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-        overlayed = localizeProductSpecFields(overlayed, targetLang);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang);
       }
 
       return overlayed;
-    });
+    }));
 
     return result;
   } catch (error) {
@@ -723,6 +763,7 @@ module.exports = {
   overlayTranslation,
   getLocalizedEntity,
   localizeProductSpecs,
+  localizeProductSpecFields,
 
   // Advanced
   applyTranslationCache,

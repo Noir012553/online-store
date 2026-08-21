@@ -91,6 +91,9 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   };
 
   const discount = Math.max(0, convertedLaptop.discountPercentage ?? 0);
+  const hasOriginalPrice = convertedLaptop.originalPrice != null
+    && convertedLaptop.originalPrice > convertedLaptop.price
+    && Boolean(convertedLaptop.formattedOriginalPrice);
   const hasActiveDeal = isActiveDeal(convertedLaptop.deal);
   const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 
@@ -190,10 +193,17 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
               </div>
 
               <div className="flex flex-col justify-end gap-0.5 mb-2 h-10 sm:h-12 mx-auto">
-                {convertedLaptop.originalPrice != null && convertedLaptop.originalPrice > convertedLaptop.price && (
-                  <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
-                    {convertedLaptop.formattedOriginalPrice}
-                  </span>
+                {(hasOriginalPrice || discount > 0) && (
+                  <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
+                    {hasOriginalPrice && (
+                      <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
+                        {convertedLaptop.formattedOriginalPrice}
+                      </span>
+                    )}
+                    {discount > 0 && (
+                      <span className="text-red-600 text-xs sm:text-sm font-semibold">-{discount}%</span>
+                    )}
+                  </div>
                 )}
                 <span className="text-green-600 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>
               </div>
