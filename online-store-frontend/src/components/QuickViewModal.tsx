@@ -117,7 +117,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1">
                     <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold text-black">{laptop.rating}</span>
+                    <span className="font-semibold text-black">{(laptop.rating || 0).toFixed(1)}</span>
                   </div>
                   <span className="text-gray-600">({laptop.reviews} {t('reviews_text', 'products')})</span>
                 </div>

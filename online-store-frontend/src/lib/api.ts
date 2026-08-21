@@ -78,6 +78,7 @@ export interface BackendProduct {
   images?: string[];
   rating?: number;
   numReviews?: number;
+  reviews?: number | unknown[];
   countInStock?: number;
   specs?: Record<string, string | number>;
   specLabels?: Record<string, string>;

@@ -323,7 +323,9 @@ export default function ProductDetail() {
     image: images[0] ?? '',
     images,
     rating: laptop.rating ?? 0,
-    reviews: laptop.numReviews ?? 0,
+    reviews: laptop.numReviews ?? (
+      Array.isArray(laptop.reviews) ? laptop.reviews.length : Number(laptop.reviews) || 0
+    ),
     inStock: (laptop.countInStock ?? 0) > 0,
     specs: localizedSpecs,
     specLabels,
