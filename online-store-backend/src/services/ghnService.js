@@ -7,6 +7,19 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const GHN_BASE_URL = 'https://dev-online-gateway.ghn.vn/shiip/public-api';
 const GHN_TIMEOUT = 10000;
+const DEFAULT_GHN_MAX_INSURANCE_VALUE = 5_000_000;
+
+const getMaxInsuranceValue = () => {
+  const configuredValue = Number.parseInt(process.env.GHN_MAX_INSURANCE_VALUE, 10);
+  return Number.isFinite(configuredValue) && configuredValue >= 0
+    ? configuredValue
+    : DEFAULT_GHN_MAX_INSURANCE_VALUE;
+};
+
+const normalizeInsuranceValue = (value) => Math.min(
+  Math.max(Number(value) || 0, 0),
+  getMaxInsuranceValue()
+);
 
 async function getGhnClient() {
   const provider = await ShippingProvider.getByCode('ghn');
@@ -287,7 +300,7 @@ async function calculateShippingFee({
       length: finalLength,                       // ✅ Number (cm)
       width: finalWidth,                         // ✅ Number (cm)
       height: finalHeight,                       // ✅ Number (cm)
-      insurance_value: Number(insurance_value) || 0, // ✅ Number (đồng), quan trọng cho phí bảo hiểm
+      insurance_value: normalizeInsuranceValue(insurance_value),
     };
 
 
@@ -499,7 +512,7 @@ async function createShipment(params) {
       items,
       from_district_id: Number(from_district_id || 1458),
       from_ward_code: String(from_ward_code || '21905'),
-      insurance_value: Number(insurance_value) || 0,
+      insurance_value: normalizeInsuranceValue(insurance_value),
     };
 
     // Nếu có service_id, sử dụng nó; nếu không dùng service_type_id
@@ -647,6 +660,8 @@ module.exports = {
   validateProvincDistrictWard,
   validateDistrictIds,
   calculateShippingFee,
+  getMaxInsuranceValue,
+  normalizeInsuranceValue,
   getServiceTypes,
   getAvailableServices,
   createShipment,

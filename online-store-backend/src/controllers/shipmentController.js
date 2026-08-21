@@ -117,7 +117,7 @@ const createShipment = asyncHandler(async (req, res) => {
       throw new Error('Invalid insurance value');
     }
 
-    insuranceValue = Math.max(0, Math.round(convertedInsuranceValue));
+    insuranceValue = ghnService.normalizeInsuranceValue(convertedInsuranceValue);
   } catch {
     res.status(503);
     throw createShipmentError(req.lang, 'SHIPMENT_RATES_UNAVAILABLE', 'shipment.ratesUnavailable');

@@ -28,9 +28,8 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       description: 'Translated brand name',
     },
     specs: {
-      type: Map,
-      of: String,
-      default: new Map(),
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
       description: 'Aggregated specs: { "RAM": "16GB DDR5", "Storage": "512GB NVMe" }',
     },
     status: {

@@ -302,6 +302,23 @@ describe('Product translation cache controller', () => {
     expect(res.status.calledWith(500)).to.be.true;
   });
 
+  it('preserves specification keys containing dots', () => {
+    const entityId = new mongoose.Types.ObjectId().toString();
+    const specKey = [
+      new mongoose.Types.ObjectId().toString(),
+      new mongoose.Types.ObjectId().toString(),
+    ].join('.');
+    const specValue = new mongoose.Types.ObjectId().toString();
+    const cacheEntry = new ProductCatalogTranslationCache({
+      entityId,
+      targetLang: getDefaultLanguage().code,
+      name: `Product ${entityId}`,
+      specs: { [specKey]: specValue },
+    });
+
+    expect(cacheEntry.toObject().specs).to.deep.equal({ [specKey]: specValue });
+  });
+
   it('imports a record using the product name when the selected fields omit name', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     const create = sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request' });
