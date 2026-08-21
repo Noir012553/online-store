@@ -653,6 +653,7 @@ export const productAPI = {
     lang?: string,
     locale: string = lang || getCurrentLang(),
     currencyCode?: string,
+    hasSpecs?: boolean,
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -666,6 +667,7 @@ export const productAPI = {
     if (minPrice !== undefined) params.append('minPrice', minPrice.toString());
     if (maxPrice !== undefined) params.append('maxPrice', maxPrice.toString());
     if (inStock !== undefined) params.append('inStock', inStock.toString());
+    if (hasSpecs !== undefined) params.append('hasSpecs', hasSpecs.toString());
 
     return apiCall(`/products/featured/list?${params.toString()}`, {
       adapter: (data) => ({

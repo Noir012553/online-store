@@ -106,6 +106,10 @@ const normalizeCategoryKey = (value: unknown): string => (
   typeof value === 'string' ? value.trim().toLowerCase() : ''
 );
 
+const hasProductSpecs = (product: BackendProduct): boolean => (
+  Boolean(product.specs && Object.keys(product.specs).length > 0)
+);
+
 const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
   const categoryText = [category.name, ...(category.sourceNames || [])]
     .map(normalizeCategoryKey)
@@ -285,6 +289,9 @@ export default function Home() {
         const deals = allProductsList
           .filter((product: BackendProduct) => isActiveDeal(product.deal) && (product.countInStock || 0) > 0)
           .sort((first: BackendProduct, second: BackendProduct) => {
+            const specsDifference = Number(hasProductSpecs(second)) - Number(hasProductSpecs(first));
+            if (specsDifference !== 0) return specsDifference;
+
             const discountDifference = Number(second.deal?.discount || 0) - Number(first.deal?.discount || 0);
             if (discountDifference !== 0) return discountDifference;
 
@@ -299,21 +306,43 @@ export default function Home() {
 
         const categoryResults = await Promise.all(
           categories.map(async (category) => {
-            const response = await productAPI.getFeaturedProducts(
-              1,
-              undefined,
-              category._id,
-              undefined,
-              12,
-              undefined,
-              undefined,
-              true,
-              locale,
-              locale,
-              currencyCode,
-            );
+            const [specResponse, allResponse] = await Promise.all([
+              productAPI.getFeaturedProducts(
+                1,
+                undefined,
+                category._id,
+                undefined,
+                12,
+                undefined,
+                undefined,
+                true,
+                locale,
+                locale,
+                currencyCode,
+                true,
+              ),
+              productAPI.getFeaturedProducts(
+                1,
+                undefined,
+                category._id,
+                undefined,
+                12,
+                undefined,
+                undefined,
+                true,
+                locale,
+                locale,
+                currencyCode,
+              ),
+            ]);
+            const specProducts = specResponse.products || [];
+            const specProductIds = new Set(specProducts.map((product: BackendProduct) => product._id));
+            const products = [
+              ...specProducts,
+              ...(allResponse.products || []).filter((product: BackendProduct) => !specProductIds.has(product._id)),
+            ].slice(0, 12);
 
-            return [category._id, response.products || []] as const;
+            return [category._id, products] as const;
           }),
         );
 
