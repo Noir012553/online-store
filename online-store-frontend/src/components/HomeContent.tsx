@@ -106,12 +106,6 @@ const normalizeCategoryKey = (value: unknown): string => (
   typeof value === 'string' ? value.trim().toLowerCase() : ''
 );
 
-const getCategoryValues = (value: BackendProduct['category']): string[] => {
-  if (typeof value === 'string') return [value];
-  if (!value || typeof value !== 'object') return [];
-  return [value._id, value.id, value.name].filter((item): item is string => Boolean(item));
-};
-
 const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
   const categoryText = [category.name, ...(category.sourceNames || [])]
     .map(normalizeCategoryKey)
@@ -180,6 +174,7 @@ export default function Home() {
   });
   const [dealEndTime, setDealEndTime] = useState<number | null>(null);
   const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
+  const [categoryProducts, setCategoryProducts] = useState<Record<string, BackendProduct[]>>({});
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -281,16 +276,10 @@ export default function Home() {
           currencyCode,
         );
 
-        // Check if component is still mounted before updating state
         if (!isMounted) return;
 
         const allProductsList = productsResponse.products || [];
-
-        // Keep active products available for category sections rendered below.
         const displayProducts = allProductsList.filter((product: BackendProduct) => (product.countInStock || 0) > 0);
-
-        if (!isMounted) return;
-
         setAllProducts(displayProducts);
 
         const deals = allProductsList
@@ -307,6 +296,30 @@ export default function Home() {
 
         setDealProducts(deals);
         setDealEndTime(getDealEndTimestamp(deals[0]?.deal));
+
+        const categoryResults = await Promise.all(
+          categories.map(async (category) => {
+            const response = await productAPI.getFeaturedProducts(
+              1,
+              undefined,
+              category._id,
+              undefined,
+              12,
+              undefined,
+              undefined,
+              true,
+              locale,
+              locale,
+              currencyCode,
+            );
+
+            return [category._id, response.products || []] as const;
+          }),
+        );
+
+        if (!isMounted) return;
+
+        setCategoryProducts(Object.fromEntries(categoryResults));
       } catch (error) {
         // Error fetching products - will show empty state
       } finally {
@@ -322,7 +335,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [currencyCode, locale, isHydrated]);
+  }, [categories, currencyCode, locale, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -447,25 +460,10 @@ export default function Home() {
   };
 
   const categorySections = (Array.isArray(categories) ? categories as HomeCategory[] : [])
-    .map((category) => {
-      const categoryKeys = new Set(
-        [
-          category._id,
-          category.name,
-          category.slug,
-          category.key,
-          category.translationKey,
-          ...(category.sourceNames || []),
-        ]
-          .map(normalizeCategoryKey)
-          .filter(Boolean),
-      );
-      const products = allProducts.filter((product) => (
-        getCategoryValues(product.category).some((value) => categoryKeys.has(normalizeCategoryKey(value)))
-      )).slice(0, 12);
-
-      return { category, products };
-    })
+    .map((category) => ({
+      category,
+      products: categoryProducts[category._id] || [],
+    }))
     .filter(({ products }) => products.length > 0);
   const sectionsToRender = categorySections.length > 0
     ? categorySections
