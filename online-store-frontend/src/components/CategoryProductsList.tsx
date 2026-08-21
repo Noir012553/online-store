@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, X, PackageSearch } from "lucide-react";
 import { productAPI } from "../lib/api";
-import { isActiveDeal } from "../lib/data";
 import { ProductCard } from "./ProductCard";
 import { Button } from "./ui/button";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
@@ -127,11 +126,7 @@ interface BackendProduct {
 }
 
 const getProductDiscountPercent = (product: BackendProduct): number => (
-  Math.max(
-    0,
-    product.discountPercentage ?? 0,
-    isActiveDeal(product.deal) ? Number(product.deal?.discount) : 0
-  )
+  Math.max(0, product.discountPercentage ?? 0)
 );
 
 export function CategoryProductsList({ categoryId, categoryName }: CategoryProductsListProps) {

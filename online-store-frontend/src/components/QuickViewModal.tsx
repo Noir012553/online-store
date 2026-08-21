@@ -51,12 +51,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
     }
   };
 
-  const discount = Math.max(
-    laptop.originalPrice
-      ? Math.round(((laptop.originalPrice - laptop.price) / laptop.originalPrice) * 100)
-      : 0,
-    isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) : 0
-  );
+  const discount = Math.max(0, laptop.discountPercentage ?? 0);
   const hasActiveDeal = isActiveDeal(laptop.deal);
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
