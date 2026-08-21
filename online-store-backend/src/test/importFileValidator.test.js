@@ -79,6 +79,8 @@ describe('Crawler product field mapping', () => {
       brand: 'Razer',
       name: 'Product name',
       sku: 'SKU-001',
+      sourceProductId: 'source-id-001',
+      sourceUrl: 'https://example.com/product',
       price: 100000,
       originalPrice: 120000,
       countInStock: 1,

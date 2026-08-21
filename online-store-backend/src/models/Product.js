@@ -137,6 +137,16 @@ const productSchema = mongoose.Schema(
       trim: true,
       default: null,
     },
+    sourceProductId: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    sourceUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     images: [
       {
         type: String,

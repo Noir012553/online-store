@@ -24,7 +24,7 @@ const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode
  * Optional fields có thể có khi import
  */
 const OPTIONAL_FIELDS = [
-  'productId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+  'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
   'rating', 'numReviews', 'featured', 'deal'
 ];
 
@@ -72,6 +72,24 @@ function validateProduct(product, rowIndex = 0) {
     const sku = String(product.sku).trim();
     if (sku && !['n/a', 'na', 'none', 'null', 'unknown'].includes(sku.toLowerCase())) {
       cleaned.sku = sku;
+    }
+  }
+
+  if (product.sourceProductId !== undefined && product.sourceProductId !== null) {
+    const sourceProductId = String(product.sourceProductId).trim();
+    if (sourceProductId) cleaned.sourceProductId = sourceProductId;
+  }
+
+  if (product.sourceUrl !== undefined && product.sourceUrl !== null) {
+    const sourceUrl = String(product.sourceUrl).trim();
+    if (sourceUrl) {
+      try {
+        const parsedUrl = new URL(sourceUrl);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Unsupported protocol');
+        cleaned.sourceUrl = parsedUrl.toString();
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid sourceUrl, skipped`);
+      }
     }
   }
 

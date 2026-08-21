@@ -84,7 +84,7 @@ describe('currencyFormatter', () => {
         discountAmount: 250000,
       },
       exchangeRates: [{ rate: 0.000041 }],
-      orderItems: [{ price: 12.5, qty: 2 }],
+      orderItems: [{ price: 12.5, originalPrice: 15, discountPercentage: 17, qty: 2 }],
     }, new Map([['VND', vnd], ['USD', usd]]), 'en');
 
     assert.strictEqual(order.appliedCoupon.discountValue, 10);
@@ -93,6 +93,8 @@ describe('currencyFormatter', () => {
     assert.strictEqual(order.exchangeRates[0].rate, 0.000041);
     assert.strictEqual(order.exchangeRates[0].formattedRate, '0.000041');
     assert.strictEqual(order.orderItems[0].lineTotal, 25);
+    assert.strictEqual(order.orderItems[0].formattedOriginalPrice, '$15.00');
+    assert.strictEqual(order.orderItems[0].discountPercentage, 17);
     assert.strictEqual(order.orderItems[0].formattedLineTotal, '$25.00');
   });
 

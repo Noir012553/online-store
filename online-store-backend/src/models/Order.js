@@ -49,6 +49,8 @@ const orderSchema = mongoose.Schema(
         qty: { type: Number, required: true },
         image: { type: String, required: true },
         price: { type: Number, required: true },
+        originalPrice: { type: Number },
+        discountPercentage: { type: Number, min: 0, max: 100, default: 0 },
         product: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,

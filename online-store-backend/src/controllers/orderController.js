@@ -500,19 +500,38 @@ const addOrderItems = asyncHandler(async (req, res) => {
   const exchangeRateCapturedAt = new Date();
 
   // Map cartItems to orderItems with actual product data from DB
-  const orderItems = Array.from(productMap.entries()).map(([productId, { product, quantity }]) => ({
-    product: product._id,
-    name: typeof product.name === 'object' ? product.name[getDefaultLanguage().code] || Object.values(product.name).find(Boolean) || product.name : product.name,
-    qty: quantity,
-    price: convertFromCatalogCurrency(
+  const orderItems = Array.from(productMap.entries()).map(([productId, { product, quantity }]) => {
+    const catalogCurrencyCode = getProductBaseCurrencyCode(product);
+    const price = convertFromCatalogCurrency(
       product.price,
-      getProductBaseCurrencyCode(product),
+      catalogCurrencyCode,
       currencyCode,
       exchangeRates,
       currencyDecimalPlaces.get(currencyCode)
-    ),
-    image: product.image || product.images?.[0] || '',
-  }));
+    );
+    const hasProductDiscount = Number.isFinite(product.originalPrice) && product.originalPrice > product.price;
+    const originalPrice = hasProductDiscount
+      ? convertFromCatalogCurrency(
+        product.originalPrice,
+        catalogCurrencyCode,
+        currencyCode,
+        exchangeRates,
+        currencyDecimalPlaces.get(currencyCode)
+      )
+      : undefined;
+
+    return {
+      product: product._id,
+      name: typeof product.name === 'object' ? product.name[getDefaultLanguage().code] || Object.values(product.name).find(Boolean) || product.name : product.name,
+      qty: quantity,
+      price,
+      ...(originalPrice !== undefined && {
+        originalPrice,
+        discountPercentage: Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100),
+      }),
+      image: product.image || product.images?.[0] || '',
+    };
+  });
 
   if (req.isSummaryRequest) {
     const summary = await formatCheckoutSummary({
