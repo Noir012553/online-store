@@ -317,8 +317,8 @@ export default function Home() {
               locale,
               locale,
               currencyCode,
-              undefined,
               true,
+              undefined,
             );
 
             return [category._id, response.products || []] as const;
