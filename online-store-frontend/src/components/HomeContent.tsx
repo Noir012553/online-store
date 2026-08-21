@@ -274,7 +274,6 @@ export default function Home() {
           locale,
           locale,
           currencyCode,
-          true,
         );
 
         if (!isMounted) return;
@@ -312,7 +311,6 @@ export default function Home() {
               locale,
               locale,
               currencyCode,
-              true,
             );
 
             return [category._id, response.products || []] as const;

@@ -267,11 +267,8 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   }
 
   const discountFilter = buildDiscountFilter(req.query.minDiscount, req.query.maxDiscount);
-  const specsFilter = req.query.hasSpecs === 'true'
-    ? { specs: { $type: 'object', $ne: {} } }
-    : {};
 
-  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter, ...specsFilter };
+  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter };
   if (discountFilter) {
     query.$and = query.$and || [];
     query.$and.push(discountFilter);
