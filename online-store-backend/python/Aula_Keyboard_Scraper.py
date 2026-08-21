@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from scraper_paths import (
     PRODUCT_OUTPUT_FIELDS,
     extract_product_image_urls,
+    extract_product_prices,
     get_output_paths,
 )
 import pandas as pd
@@ -116,13 +117,15 @@ def scrape_full():
               val = p_tags[1].text.strip()
               specs[key] = val
 
+      price, regular_price = extract_product_prices(soup, price)
+
       data_list.append({
           'Brand': 'Aula',
           'ID': url.split('/')[-1],
           'Name': name,
           'SKU': sku,
           'Price_VND': price,
-          'Regular_Price': price,
+          'Regular_Price': regular_price,
           'InStock': instock,
           'Categories': 'Keyboard',
           'Attributes': json.dumps(specs, ensure_ascii=False),
