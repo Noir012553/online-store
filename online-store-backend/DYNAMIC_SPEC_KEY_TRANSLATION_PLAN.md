@@ -296,4 +296,255 @@ Normalize trước khi lưu
 
 Không chọn mô hình dịch dynamic trước rồi mới normalize, và không lưu key đã dịch vào Product model.
 
+## 10. Phân tích kết hợp hai vấn đề
+
+Phần này phân tích trường hợp vừa muốn dịch dynamic key specs, vừa thực hiện normalize sau khi dịch:
+
+```text
+Raw key từ crawler/import
+→ Dynamic translation
+→ Normalize kết quả dịch
+→ Lưu hoặc hiển thị
+```
+
+Đây là pipeline không nên dùng vì hai bước đều có thể thay đổi nội dung key. Khi kết hợp, các lỗi không chỉ xảy ra riêng lẻ mà còn khuếch đại lẫn nhau.
+
+### 10.1. Mất canonical identity
+
+Sau khi dynamic translation chạy, key gốc có thể không còn tồn tại. Hệ thống sẽ phải suy đoán:
+
+```text
+"Kích thước/Layout"
+"Keyboard format"
+"Disposition"
+```
+
+có phải cùng là `layout` hay không.
+
+Nếu suy đoán thất bại, key bị lưu thành một field mới hoặc bị loại bởi `validSpecFields`. Khi đó cùng một loại specs có thể tồn tại dưới nhiều key khác nhau.
+
+### 10.2. Mapping tăng theo ngôn ngữ và provider
+
+Normalizer sau dịch phải hiểu:
+
+- Raw key từ crawler.
+- Label của từng locale.
+- Các synonym do provider sinh ra.
+- Các biến thể viết hoa, viết thường, dấu câu và số ít/số nhiều.
+- Khác biệt giữa các phiên bản model dịch.
+
+Mỗi thêm một locale hoặc provider sẽ làm mapping phức tạp hơn, thay vì chỉ cần mapping raw key → canonical key một lần.
+
+### 10.3. Kết quả dynamic không ổn định
+
+Cùng một key có thể trả về label khác nhau ở những lần dịch khác nhau. Normalizer sau đó có thể:
+
+- Nhận một kết quả nhưng không nhận kết quả khác.
+- Chuẩn hóa cùng một key thành hai canonical key.
+- Tạo dữ liệu khác nhau giữa các lần import.
+- Làm cache không thể tái sử dụng ổn định.
+
+### 10.4. Collision và ghi đè dữ liệu
+
+Hai key khác nhau có thể được dịch thành cùng một label:
+
+```text
+dimensions → Kích thước
+size       → Kích thước
+```
+
+Nếu label được dùng làm object key, một value có thể ghi đè value còn lại. Collision cũng có thể xảy ra sau bước normalize nếu nhiều label được gom về cùng canonical key nhưng không có quy tắc merge rõ ràng.
+
+### 10.5. Dữ liệu phụ thuộc locale
+
+Nếu normalize và lưu sau khi dịch, cùng một product có thể có cấu trúc khác nhau theo locale:
+
+```js
+// vi
+{ "Kích thước/Layout": "Full-size" }
+
+// en
+{ "Layout": "Full-size" }
+```
+
+Điều này phá vỡ giả định rằng `Product.specs` là dữ liệu gốc độc lập ngôn ngữ.
+
+Hệ quả:
+
+- Query/filter theo specs không ổn định.
+- Index MongoDB không dùng chung được.
+- Analytics tách cùng một field thành nhiều nhóm.
+- Đổi locale có thể làm thay đổi schema dữ liệu.
+- Import/export không còn round-trip an toàn.
+
+### 10.6. Cache bị phân mảnh và khó invalidate
+
+Cache sẽ dễ bị tạo theo label sau dịch thay vì canonical key:
+
+```text
+Kích thước/Layout + vi
+Layout + en
+Disposition + fr
+```
+
+Ba entry này có thể cùng là `layout`, nhưng hệ thống không có identity ổn định để gom lại.
+
+Nếu sửa bản dịch hoặc đổi provider, cần xác định và xóa nhiều cache entry. Cache product cũ trong `ProductCatalogTranslationCache.specs` cũng có thể không tương thích với cache key mới.
+
+### 10.7. Lỗi provider trở thành lỗi schema
+
+Nếu provider timeout, rate limit hoặc trả kết quả rỗng:
+
+- Normalize không có đầu vào hợp lệ.
+- Key có thể bị bỏ qua.
+- Product có thể mất field specs.
+- Dữ liệu tạm thời có thể được lưu sai.
+- Một lần dịch lỗi có thể tạo schema khác với lần chạy thành công.
+
+Nếu normalize trước, lỗi provider chỉ ảnh hưởng label hiển thị; canonical data vẫn còn nguyên.
+
+### 10.8. Thiếu context kỹ thuật
+
+Dynamic provider có thể không biết `type`, `size`, `buttons` thuộc category nào. Khi dịch trước normalize, context cần thiết chưa được gắn với canonical field.
+
+Ví dụ:
+
+```text
+buttons của mouse  → Số nút
+buttons của keyboard → Số lượng phím
+```
+
+Nếu key đã bị dịch thành label chung, bước normalize phía sau khó khôi phục category và ý nghĩa ban đầu.
+
+### 10.9. Tăng latency và chi phí
+
+Pipeline kết hợp có thể tạo chuỗi xử lý:
+
+```text
+fetch product
+→ dịch từng raw key
+→ chờ provider
+→ normalize từng kết quả
+→ ghi cache
+→ render
+```
+
+Nếu mỗi product có nhiều key, số request tăng theo số product thay vì số key duy nhất. Trang chủ, trang danh mục và trang chi tiết đều có thể bị ảnh hưởng bởi latency, rate limit và chi phí provider.
+
+### 10.10. API contract bị mơ hồ
+
+Frontend sẽ không biết object key hiện tại là:
+
+- Raw key.
+- Canonical key.
+- Label đã dịch.
+- Label đã normalize lại.
+
+Nếu `ProductCard`, `QuickViewModal`, trang chi tiết và admin dùng cách hiểu khác nhau, cùng một product có thể hiển thị specs khác nhau.
+
+Không nên dùng label đã dịch làm identity ở frontend. API nên tách dữ liệu:
+
+```json
+{
+  "specs": {
+    "layout": "Full-size"
+  },
+  "specLabels": {
+    "layout": "Kích thước/Layout"
+  }
+}
+```
+
+### 10.11. Migration và rollback khó kiểm soát
+
+Khi dữ liệu đã bị lưu bằng key sau dịch, migration phải:
+
+1. Nhận diện locale của từng key.
+2. Đoán canonical key tương ứng.
+3. Xử lý synonym và collision.
+4. Gộp value bị trùng mà không mất dữ liệu.
+5. Dọn cache của từng locale.
+6. Khôi phục các key không thể nhận diện.
+7. Đồng bộ lại frontend, API và admin tools.
+
+Rollback cũng khó vì không còn bản gốc chắc chắn để khôi phục.
+
+### 10.12. Rủi ro bảo mật và chất lượng input
+
+Raw key từ crawler/import là dữ liệu bên ngoài. Nếu gửi thẳng vào provider trước khi sanitize:
+
+- Key quá dài làm tăng chi phí.
+- Key có thể chứa HTML hoặc markup.
+- Nội dung không phải tên field có thể làm provider trả câu dài.
+- Kết quả dịch có thể chứa markup không an toàn.
+- Cache có thể lưu dữ liệu không hợp lệ và phát lại cho nhiều product.
+
+Cần sanitize, giới hạn độ dài, validate output và không render HTML từ label dịch.
+
+### 10.13. Quan sát lỗi khó hơn
+
+Khi lỗi xảy ra, cần phân biệt ít nhất các trạng thái:
+
+```text
+raw key
+canonical key dự kiến
+kết quả dynamic translation
+kết quả normalize
+label cuối cùng
+fallback đã dùng
+```
+
+Nếu chỉ lưu label cuối cùng, việc truy ngược nguyên nhân sẽ khó. Log và metric cũng dễ bị nhân bản theo locale/provider.
+
+### 10.14. Kiểm thử tăng mạnh
+
+Ngoài test normalize và translation riêng lẻ, phải test tổ hợp:
+
+- Mỗi raw key với mỗi locale.
+- Mỗi synonym do provider có thể trả về.
+- Hai key có cùng label dịch.
+- Provider trả kết quả không hợp lệ.
+- Cache hit/miss đồng thời.
+- Đổi locale sau khi cache đã tồn tại.
+- Import lại cùng một product nhiều lần.
+- Query/filter theo canonical key sau khi đã dịch.
+- Migration dữ liệu có key đã dịch.
+
+### 10.15. Quy tắc bất biến cần bắt buộc
+
+Sau khi triển khai, các invariant sau phải luôn đúng:
+
+1. `Product.specs` chỉ chứa canonical key.
+2. Canonical key không phụ thuộc locale.
+3. Label dịch không được dùng để query hoặc làm identity.
+4. Dynamic translation chỉ chạy ở backend.
+5. Một cặp `canonicalKey + locale` chỉ có một bản dịch được chọn.
+6. Provider lỗi không được làm mất canonical data.
+7. Unknown key hợp lệ không bị mất chỉ vì chưa có static label.
+8. Frontend có fallback nếu `specLabels` thiếu.
+
+## 11. Kết luận khi kết hợp hai vấn đề
+
+Không nên kết hợp theo hướng:
+
+```text
+Dịch dynamic raw key
+→ Normalize label đã dịch
+→ Lưu label/canonical key mới
+```
+
+Nên tách rõ hai nhiệm vụ:
+
+```text
+Raw key
+→ sanitize + normalize một lần
+→ lưu canonical key
+→ dynamic translate canonical key theo locale
+→ cache label
+→ static fallback
+→ trả specs + specLabels
+```
+
+Nếu cần hỗ trợ key mới từ dữ liệu cào, hãy mở rộng normalizer để giữ lại key hợp lệ chưa biết, sau đó dịch label của canonical key. Không dùng dynamic translation để thay thế bước xác định identity của field.
+
 File này chỉ là kế hoạch; chưa thay đổi code nghiệp vụ.
