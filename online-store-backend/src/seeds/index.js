@@ -139,7 +139,7 @@ const seed = async () => {
     }
 
     if (cliArgs.i18nOnly) {
-      seedLogger.log(`${CLI_SYMBOLS.globe} i18n ONLY (LAYER 1): Seeding only i18n (languages + translations)\n`);
+      seedLogger.log(`${CLI_SYMBOLS.globe} i18n ONLY (LAYER 1): Seeding languages, translations and spec labels\n`);
     }
 
     // ==================== Resolve modules to run ====================
@@ -164,7 +164,7 @@ const seed = async () => {
       modulesToRun = resolveModules(cliArgs.modules);
       seedLogger.log(`${CLI_SYMBOLS.package} MODULES mode: Running [${modulesToRun.join(', ')}]\n`);
     } else if (cliArgs.i18nOnly) {
-      modulesToRun = resolveModules(['languages', 'translations']);
+      modulesToRun = resolveModules(['languages', 'translations', 'specKeyCache']);
     } else {
       const runFullPipeline = cliArgs.all || !cliArgs.phase && !cliArgs.onlyModule && !cliArgs.modules && !cliArgs.i18nOnly;
       modulesToRun = [...SEED_PHASES.preProducts];

@@ -202,7 +202,7 @@ const validSpecFields = new Set([
 ]);
 
 const sanitizeUnknownSpecKey = (fieldName) => {
-  if (typeof fieldName !== 'string') return '';
+  if (typeof fieldName !== 'string' || /<[^>]*>|javascript\s*:/i.test(fieldName)) return '';
 
   const sanitized = removeDiacritics(fieldName)
     .normalize('NFKC')

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const SpecKeyTranslationCache = require('../models/SpecKeyTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
-const { normalizeSpecFieldName } = require('../utils/specNormalizer');
+const { normalizeSpecFieldName, sanitizeUnknownSpecKey } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 
 const memoryCache = new Map();
@@ -20,14 +20,7 @@ const getCanonicalSpecKey = (rawKey) => {
   const normalizedKey = normalizeSpecFieldName(key);
   if (normalizedKey) return normalizedKey;
 
-  return key
-    .normalize('NFKC')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 80);
+  return sanitizeUnknownSpecKey(key);
 };
 
 const getStaticLabel = (canonicalKey, targetLang) => {
@@ -103,10 +96,10 @@ const getSpecKeyLabels = async (specs, targetLang) => {
 
   const defaultLang = getDefaultLanguage().code;
   if (targetLang === defaultLang || mongoose.connection.readyState !== 1) {
-    return Object.fromEntries(canonicalKeys.map((canonicalKey) => [
-      canonicalKey,
-      getStaticLabel(canonicalKey, targetLang),
-    ]));
+    return Object.fromEntries(canonicalKeys.map((canonicalKey) => {
+      const cacheKey = getCacheKey(canonicalKey, targetLang);
+      return [canonicalKey, memoryCache.get(cacheKey) || getStaticLabel(canonicalKey, targetLang)];
+    }));
   }
 
   let cachedRows = [];

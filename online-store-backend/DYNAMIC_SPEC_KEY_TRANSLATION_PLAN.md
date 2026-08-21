@@ -564,6 +564,11 @@ Nếu cần hỗ trợ key mới từ dữ liệu cào, hãy mở rộng normali
 - Cập nhật validation completeness để kiểm tra identity canonical key, không chỉ đếm số lượng field.
 - Cập nhật ProductCard, QuickView, trang chi tiết và ProductOverview dùng `specLabels`, có fallback về canonical key.
 - Cập nhật test contract tương ứng với response canonical/specLabels.
+- Thêm static cache seeder idempotent, không ghi đè dynamic row; đăng ký trong seed registry và i18n-only mode.
+- Thêm audit read-only cho `Product.specs`, `ProductCatalogTranslationCache.specs` và `SpecKeyTranslationCache`.
+- Thêm backup/restore riêng cho hai collection cache, restore mặc định không overwrite.
+- Thêm migration canonical key ở chế độ dry-run mặc định; yêu cầu `--apply` kèm backup file và bỏ qua collision để xử lý thủ công.
+- Bổ sung test rollout cho canonicalization, unknown key, static fallback, response `specs/specLabels` và static seed deduplication.
 
 ### Đã kiểm tra
 
@@ -575,10 +580,10 @@ Nếu cần hỗ trợ key mới từ dữ liệu cào, hãy mở rộng normali
 
 ### Còn cần thực hiện trước rollout
 
-- Audit dữ liệu MongoDB thực tế để xác định cache cũ hoặc `Product.specs` đang chứa translated key.
-- Viết/chạy migration và rollback cho dữ liệu cache cũ nếu audit phát hiện key không canonical.
-- Seed static dictionary vào cache mới và đối chiếu kết quả static/dynamic theo từng locale.
-- Bổ sung test riêng cho unknown key, cache hit/miss, duplicate request đồng thời, provider timeout và dynamic cache persistence.
+- Chạy audit trên MongoDB thực tế để xác định cache cũ hoặc `Product.specs` đang chứa translated key.
+- Chạy backup, migration dry-run, review collision rồi mới apply migration nếu audit yêu cầu.
+- Chạy static seeder trên môi trường có MongoDB và đối chiếu kết quả static/dynamic theo từng locale.
+- Bổ sung test chuyên sâu cho cache hit/miss, duplicate request đồng thời, provider timeout và dynamic cache persistence.
 - Chạy build TypeScript frontend lại trong môi trường không bị ngắt và kiểm thử UI product card, quick view, trang chi tiết.
 - Dùng `curl` kiểm tra các API product translation sau khi backend có MongoDB và cấu hình provider/cache phù hợp.
 
