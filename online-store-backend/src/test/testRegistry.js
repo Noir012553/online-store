@@ -112,6 +112,7 @@ const TEST_SUITES = {
     tags: ['basic'],
     files: [
       'test-simple.js',
+      'ghnService.test.js',
     ],
   },
 };
