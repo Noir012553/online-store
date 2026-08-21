@@ -111,6 +111,9 @@ const formatOrderFields = (data, currencies, lang) => {
         lang,
         [
           ['price', 'formattedPrice'],
+          ...(Number.isFinite(orderItem.originalPrice) && orderItem.originalPrice > orderItem.price
+            ? [['originalPrice', 'formattedOriginalPrice']]
+            : []),
           ['lineTotal', 'formattedLineTotal'],
         ]
       );
@@ -193,13 +196,17 @@ const formatReportingOrders = async (orders, reportingCurrency, lang) => {
         orderItems: order.orderItems.map((item) => {
           const price = convertAmount(item.price);
           const lineTotal = convertAmount(item.lineTotal);
+          const originalPrice = Number.isFinite(item.originalPrice) && item.originalPrice > item.price
+            ? convertAmount(item.originalPrice)
+            : undefined;
 
           return formatAmountFields(
-            { ...item, price, lineTotal },
+            { ...item, price, lineTotal, ...(originalPrice !== undefined && { originalPrice }) },
             currency,
             lang,
             [
               ['price', 'formattedPrice'],
+              ...(originalPrice !== undefined ? [['originalPrice', 'formattedOriginalPrice']] : []),
               ['lineTotal', 'formattedLineTotal'],
             ]
           );

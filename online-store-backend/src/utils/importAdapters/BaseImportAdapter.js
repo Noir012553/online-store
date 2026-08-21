@@ -86,6 +86,8 @@ class BaseImportAdapter {
     normalized.name = product.Name;
     normalized.brand = product.Brand;
     normalized.sku = product.SKU;
+    normalized.sourceProductId = product.ID;
+    normalized.sourceUrl = product.URL;
     normalized.price = product.Price_VND;
     normalized.originalPrice = product.Regular_Price;
     normalized.category = product.Categories;
@@ -93,7 +95,7 @@ class BaseImportAdapter {
     normalized.description = product.Description;
     normalized.image = product.MainImage;
     normalized.images = product.GalleryImages;
-    normalized.countInStock = /^(in stock|true|1)$/i.test(String(product.InStock).trim()) ? 1 : 0;
+    normalized.countInStock = /^(in stock|còn hàng|true|1)$/i.test(String(product.InStock).trim()) ? 1 : 0;
     normalized.baseCurrencyCode = 'VND';
 
     return normalized;

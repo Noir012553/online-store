@@ -64,27 +64,46 @@ def _has_price_class(tag, class_fragment):
     return any(class_fragment in class_name for class_name in tag.get("class", []))
 
 
+def _price_from_tag(tag, attributes=()):
+    if not tag:
+        return None
+
+    for attribute in attributes:
+        price = _parse_price_value(tag.get(attribute))
+        if price:
+            return price
+
+    return _parse_price_value(tag.get_text(" ", strip=True))
+
+
 def extract_product_prices(soup, fallback_price="N/A"):
     """Return sale and regular VND prices without inferring a missing regular price."""
     summary = soup.select_one('[data-product-summary-region="true"]') or soup
     original_price_tag = summary.select_one(
-        '.line-through, del, s, [data-product-regular-price], [data-compare-at-price]'
+        '.line-through, del, s, .old-price, .regular-price, .price-regular, '
+        '[data-product-regular-price], [data-compare-at-price]'
     )
-    regular_price = _parse_price_value(original_price_tag.get_text(" ", strip=True)) if original_price_tag else None
+    regular_price = _price_from_tag(
+        original_price_tag,
+        ('data-product-regular-price', 'data-compare-at-price', 'data-price', 'content', 'value'),
+    )
 
     sale_price_tag = next(
         (
             tag
             for tag in summary.select(
                 '[data-product-sale-price], [data-sale-price], .flash-price-sale, '
-                '.color-red-700, .text-green-600, ins'
+                '.sale-price, .price-sale, .color-red-700, .text-green-600, ins'
             )
             if not _has_price_class(tag, 'line-through')
-            and (_parse_price_value(tag.get_text(" ", strip=True)) or 0) >= 1000
+            and (_price_from_tag(tag, ('data-product-sale-price', 'data-sale-price', 'data-price', 'content', 'value')) or 0) >= 1000
         ),
         None,
     )
-    sale_price = _parse_price_value(sale_price_tag.get_text(" ", strip=True)) if sale_price_tag else None
+    sale_price = _price_from_tag(
+        sale_price_tag,
+        ('data-product-sale-price', 'data-sale-price', 'data-price', 'content', 'value'),
+    )
 
     normalized_fallback = _parse_price_value(fallback_price) or fallback_price
     return sale_price or normalized_fallback, regular_price
