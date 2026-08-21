@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
-import { productAPI, categoryAPI } from "../../../lib/api";
+import { productAPI } from "../../../lib/api";
 import { DEFAULT_LOCALE } from "../../../lib/i18n/types";
 import { useProductTranslation } from "../../../hooks/useProductTranslation";
 import { Button } from "../../ui/button";
@@ -16,6 +16,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useCloudinaryUpload } from "@/hooks/useCloudinaryUpload";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
 import { UI_EMOJI } from "@/lib/uiEmoji";
+import { useCategories } from "../../../lib/context/CategoryContext";
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -28,13 +29,13 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   const { t, loadNamespace } = useTranslation();
   const { locale } = useLanguage();
   const { activeCurrencies } = useCurrencyContext();
+  const { categories } = useCategories();
   const { uploadToCloudinary, validateUploadedImage, uploadProgress } = useCloudinaryUpload();
 
   useEffect(() => {
     loadNamespace('admin');
   }, [loadNamespace]);
 
-  const [categories, setCategories] = useState<any[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const baseCurrencyCode = product?.baseCurrencyCode || '';
@@ -49,20 +50,6 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   const { translation: productTranslation } = useProductTranslation(
     mode === 'edit' && productId ? String(productId) : ''
   );
-
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await categoryAPI.getCategories(locale);
-        const categoriesList = response.categories || response;
-        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
-      } catch (error) {
-        // Failed to fetch categories
-      }
-    };
-    fetchCategories();
-  }, [locale]);
 
   // Fetch product for edit mode
   useEffect(() => {

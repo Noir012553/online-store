@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
-import { productAPI, categoryAPI } from "../../../lib/api";
+import { productAPI } from "../../../lib/api";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -23,6 +23,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/router';
 import { getAuthToken } from "../../../lib/api";
 import { UI_EMOJI } from "../../../lib/uiEmoji";
+import { useCategories } from "../../../lib/context/CategoryContext";
 
 interface ProductsListProps {
   discountMode?: boolean;
@@ -34,6 +35,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const { t, loadNamespace } = useTranslation();
   const { locale } = useLanguage();
   const { currencyCode } = useCurrencyContext();
+  const { categories } = useCategories();
 
   useEffect(() => {
     loadNamespace('admin');
@@ -41,7 +43,6 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
 
   const [products, setProducts] = useState<any[]>([]);
   const [deletedProducts, setDeletedProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterBrand, setFilterBrand] = useState("all");
@@ -54,20 +55,6 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const itemsPerPage = 10;
-
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await categoryAPI.getCategories(locale);
-        const categoriesList = response.categories || response;
-        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
-      } catch (error) {
-        // Failed to fetch categories
-      }
-    };
-    fetchCategories();
-  }, [locale]);
 
   const fetchProducts = useCallback(async () => {
     try {

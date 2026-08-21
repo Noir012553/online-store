@@ -1,13 +1,12 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import { Trash2, Plus, Edit2, Check, X, RefreshCw } from 'lucide-react';
+import { Trash2, Plus, Edit2, Check, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
-import { UI_EMOJI } from '../../lib/uiEmoji';
 import { API_BASE_PATH } from '../../config';
 
 interface StaticTranslation {
@@ -840,7 +839,8 @@ const TranslationsAdminTier1Content = () => {
                   disabled={pageIndex === 0}
                   className="tier1-btn tier1-pagination-btn"
                 >
-                  {UI_EMOJI.arrowLeft} {t('tier1_prev_page', 'admin-translation')}
+                  <ChevronLeft size={16} aria-hidden="true" />
+                  {t('tier1_prev_page', 'admin-translation').replace(/^[←→]\s*/, '').replace(/\s*[←→]$/, '')}
                 </button>
                 <span className="tier1-pagination-status">{t('tier1_page_info', 'admin-translation').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
                 <button
@@ -848,7 +848,8 @@ const TranslationsAdminTier1Content = () => {
                   disabled={pageIndex === totalPages - 1}
                   className="tier1-btn tier1-pagination-btn"
                 >
-                  {t('tier1_next_page', 'admin-translation')} {UI_EMOJI.arrowRight}
+                  {t('tier1_next_page', 'admin-translation').replace(/^[←→]\s*/, '').replace(/\s*[←→]$/, '')}
+                  <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
             )}

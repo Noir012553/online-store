@@ -58,7 +58,9 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       image: getImageUrl(laptop.image) || '',
       images: (laptop.images || []).map((img: string) => getImageUrl(img) || ''),
       rating: laptop.rating || 0,
-      reviews: laptop.numReviews || 0,
+      reviews: laptop.numReviews ?? (
+        Array.isArray(laptop.reviews) ? laptop.reviews.length : Number(laptop.reviews) || 0
+      ),
       inStock: (laptop.countInStock || 0) > 0,
       specs: laptop.specs || {},
       specLabels: laptop.specLabels || {},

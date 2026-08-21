@@ -41,7 +41,7 @@
   "language_management_add_language": "Adicionar Idioma",
   "language_management_select_placeholder": "Selecionar idioma",
   "language_management_activate_button": "Ativar",
-  "tier1_title": "📚 Gerenciar Traduções Tier 1 (Traduções Estáticas)",
+  "tier1_title": "📚 Gerenciar Traduções Estáticas",
   "tier1_description": "Gerenciar chaves i18n para elementos de UI (strings de UI, botões, rótulos...)",
   "tier1_language_label": "Idioma",
   "tier1_namespace_label": "Namespace",
