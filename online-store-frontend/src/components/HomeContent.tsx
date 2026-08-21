@@ -264,7 +264,7 @@ export default function Home() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch all products using optimized featured endpoint (no reviews populate, faster)
+        // Fetch in-stock products using optimized featured endpoint (no reviews populate, faster)
         // Increased pageSize to 200 to ensure we get all demo products (laptops are often at the end)
         const productsResponse = await productAPI.getFeaturedProducts(
           1,
@@ -274,7 +274,7 @@ export default function Home() {
           200,
           undefined,
           undefined,
-          undefined,
+          true,
           locale,
           locale,
           currencyCode,
@@ -283,11 +283,10 @@ export default function Home() {
         if (!isMounted) return;
 
         const allProductsList = productsResponse.products || [];
-        const displayProducts = allProductsList.filter((product: BackendProduct) => (product.countInStock || 0) > 0);
-        setAllProducts(displayProducts);
+        setAllProducts(allProductsList);
 
         const deals = allProductsList
-          .filter((product: BackendProduct) => isActiveDeal(product.deal) && (product.countInStock || 0) > 0)
+          .filter((product: BackendProduct) => isActiveDeal(product.deal))
           .sort((first: BackendProduct, second: BackendProduct) => {
             const specsDifference = Number(hasProductSpecs(second)) - Number(hasProductSpecs(first));
             if (specsDifference !== 0) return specsDifference;
