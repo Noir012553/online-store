@@ -22,6 +22,7 @@ export interface Laptop {
   reviews: number;
   inStock?: boolean;
   specs: Record<string, string | number>;
+  specLabels?: Record<string, string>;
   description?: string;
   featured?: boolean;
   deal?: {

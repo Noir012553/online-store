@@ -138,7 +138,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {Object.entries(laptop.specs).slice(0, 6).map(([key, value]) => (
                       <div key={key} className="min-w-0">
-                        <p className="font-medium text-gray-700">{key}:</p>
+                        <p className="font-medium text-gray-700">{laptop.specLabels?.[key] || key}:</p>
                         <p className="truncate text-black">{String(value)}</p>
                       </div>
                     ))}

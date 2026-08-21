@@ -201,6 +201,21 @@ const validSpecFields = new Set([
   'condition', 'led', 'warranty', 'sensor', 'durability', 'size'
 ]);
 
+const sanitizeUnknownSpecKey = (fieldName) => {
+  if (typeof fieldName !== 'string' || /<[^>]*>|javascript\s*:/i.test(fieldName)) return '';
+
+  const sanitized = removeDiacritics(fieldName)
+    .normalize('NFKC')
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+
+  if (!sanitized || ['__proto__', 'constructor', 'prototype'].includes(sanitized)) return '';
+  return sanitized;
+};
+
 /**
  * Normalization Map for units and common technical terms
  */
@@ -330,9 +345,8 @@ function normalizeSpecFieldName(fieldName) {
 /**
  * Normalize a specs object before saving to MongoDB
  * - Converts Vietnamese field names to English keys
- * - Removes unknown/junk fields
+ * - Sanitizes unknown but valid field names instead of dropping them
  * - Merges duplicate fields with different names
- * - Keeps only valid spec fields
  * @param {Object} specs - Raw specs object from API or seed
  * @returns {Object} Normalized specs object
  */
@@ -355,10 +369,9 @@ function normalizeSpecs(specs) {
     }
 
     // Normalize the field name
-    const normalizedField = normalizeSpecFieldName(fieldName);
+    const normalizedField = normalizeSpecFieldName(fieldName) || sanitizeUnknownSpecKey(fieldName);
 
-    // Only include if it's a valid known spec field
-    if (normalizedField && validSpecFields.has(normalizedField)) {
+    if (normalizedField) {
       // Sanitize the value
       const cleanValue = sanitizeSpecValue(value, normalizedField);
 
@@ -383,5 +396,6 @@ function normalizeSpecs(specs) {
 module.exports = {
   normalizeSpecs,
   normalizeSpecFieldName,
+  sanitizeUnknownSpecKey,
   validSpecFields,
 };

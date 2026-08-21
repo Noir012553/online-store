@@ -294,6 +294,9 @@ export default function ProductDetail() {
   const localizedSpecs = isSourceLocale
     ? sourceSpecs
     : { ...sourceSpecs, ...(translation?.specs ?? {}) };
+  const specLabels = isSourceLocale
+    ? (laptop.specLabels ?? {})
+    : (translation?.specLabels ?? laptop.specLabels ?? {});
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
     ? category._id ?? category.id
@@ -323,6 +326,7 @@ export default function ProductDetail() {
     reviews: laptop.numReviews ?? 0,
     inStock: (laptop.countInStock ?? 0) > 0,
     specs: localizedSpecs,
+    specLabels,
     description: localizedDescription,
     featured: laptop.featured ?? false,
     deal: laptop.deal,

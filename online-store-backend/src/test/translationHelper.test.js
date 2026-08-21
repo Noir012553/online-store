@@ -205,7 +205,7 @@ describe('translationHelper - Product legacy cache fallback', () => {
     ], 'product', 'en');
 
     assert.strictEqual(result[0].name, 'Tên legacy');
-    assert.deepStrictEqual(result[0].specs, { Processor: 'Bộ xử lý' });
+    assert.deepStrictEqual(result[0].specs, { cpu: 'Bộ xử lý' });
     assert.deepStrictEqual(mockLegacyFind.calls, [{
       entityId: { $in: ['1'] },
       targetLang: 'en',

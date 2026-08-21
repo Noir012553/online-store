@@ -11,6 +11,7 @@
  */
 
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const CouponTranslationCache = require('../models/CouponTranslationCache');
@@ -98,8 +99,8 @@ const getStaticSpecLabels = (specs, lang) => {
   return labels;
 };
 
-const localizeProductSpecData = async (specs, lang) => {
-  const labels = await getSpecKeyLabels(specs, lang);
+const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
+  const labels = preloadedLabels || await getSpecKeyLabels(specs, lang);
   const localizedSpecs = {};
   const specLabels = {};
 
@@ -108,19 +109,18 @@ const localizeProductSpecData = async (specs, lang) => {
     const canonicalKey = getCanonicalSpecKey(key);
     if (!key || !canonicalKey) return;
 
-    const translatedKey = labels[canonicalKey] || key;
-    localizedSpecs[translatedKey] = value;
-    specLabels[canonicalKey] = translatedKey;
+    localizedSpecs[canonicalKey] = value;
+    specLabels[canonicalKey] = labels[canonicalKey] || key;
   });
 
   return { specs: localizedSpecs, specLabels };
 };
 
-const localizeProductSpecFields = async (entity, lang) => {
+const localizeProductSpecFields = async (entity, lang, preloadedLabels = null) => {
   if (!entity || !lang) return entity;
 
   try {
-    const localizedSpecData = await localizeProductSpecData(entity.specs, lang);
+    const localizedSpecData = await localizeProductSpecData(entity.specs, lang, preloadedLabels);
     return {
       ...entity,
       ...localizedSpecData,
@@ -134,16 +134,30 @@ const localizeProductSpecFields = async (entity, lang) => {
   }
 };
 
+const getBatchSpecLabels = async (entities, targetLang) => {
+  const specs = {};
+  entities.forEach((entity) => {
+    getSpecEntries(entity?.specs).forEach(([key, value]) => {
+      specs[key] = value;
+    });
+  });
+  return getSpecKeyLabels(specs, targetLang);
+};
+
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
   if (!hasRequiredProductFields(translation)) return false;
   if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
 
-  const sourceSpecs = getSpecEntries(sourceProduct?.specs)
-    .filter(([, value]) => value !== null && value !== undefined && String(value).trim());
-  const translatedSpecs = getSpecEntries(translation?.specs)
-    .filter(([, value]) => hasText(value));
+  const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
+  const translatedSpecKeys = new Set(getSpecEntries(translation?.specs)
+    .filter(([, value]) => hasText(value))
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
 
-  return translatedSpecs.length >= sourceSpecs.length;
+  return [...sourceSpecKeys].every((key) => translatedSpecKeys.has(key));
 };
 
 const hasValidProductTranslation = (translation, sourceProduct) => (
@@ -225,6 +239,33 @@ function buildLegacyProductTranslation(translations) {
 
   return data;
 }
+
+const getLegacyProductTranslationMap = async (entityIds, targetLang) => {
+  if (!entityIds.length) return new Map();
+
+  try {
+    const records = await LiveTranslationCache.find({
+      entityId: { $in: entityIds },
+      targetLang,
+      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
+      status: 'success',
+      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+    }).lean();
+    const grouped = new Map();
+    records.forEach((record) => {
+      const translations = grouped.get(String(record.entityId)) || [];
+      translations.push(record);
+      grouped.set(String(record.entityId), translations);
+    });
+    return new Map([...grouped].map(([entityId, translations]) => [
+      entityId,
+      buildLegacyProductTranslation(translations),
+    ]));
+  } catch (error) {
+    console.error('[translationHelper] Error fetching legacy product translations:', error);
+    return new Map();
+  }
+};
 
 function applyTranslationOverlay(entity, entityType, translation) {
   // If no translation found, return entity as-is
@@ -314,6 +355,9 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
     translations.forEach(t => {
       translationMap[t.entityId] = t;
     });
+    const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
+      ? await getLegacyProductTranslationMap(entityIds, targetLang)
+      : new Map();
 
     // For products: pre-fetch nested brand translations.
     let brandTranslationMap = {};
@@ -338,16 +382,20 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       }
     }
 
+    const batchSpecLabels = entityType === 'product'
+      ? await getBatchSpecLabels(entities, targetLang)
+      : null;
+
     // Overlay translation lên mỗi entity
     const result = await Promise.all(entities.map(async (entity, idx) => {
       const entityId = entity._id?.toString() || entity.id;
-      const translation = translationMap[entityId];
+      const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
       let overlayed = applyTranslationOverlay(entity, entityType, translation);
 
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-        overlayed = await localizeProductSpecFields(overlayed, targetLang);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang, batchSpecLabels);
       }
 
       // Debug: Log first entity to see structure
@@ -392,6 +440,9 @@ async function overlayTranslation(entity, entityType, targetLang) {
       status: 'success',
       ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
+    if (!translation && entityType === 'product') {
+      translation = (await getLegacyProductTranslationMap([entityId], targetLang)).get(String(entityId));
+    }
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
 
@@ -451,6 +502,9 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       status: 'success',
       ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
+    if (!translation && entityType === 'product') {
+      translation = (await getLegacyProductTranslationMap([entityId], targetLang)).get(String(entityId));
+    }
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
 
@@ -661,6 +715,9 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
         fallbackUsed: false,
       };
     });
+    const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
+      ? await getLegacyProductTranslationMap(entityIds, targetLang)
+      : new Map();
 
     // For products: pre-fetch nested brand translations.
     let brandTranslationMap = {};
@@ -686,16 +743,20 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
       }
     }
 
+    const batchSpecLabels = entityType === 'product'
+      ? await getBatchSpecLabels(entities, targetLang)
+      : null;
+
     // Overlay translations
     const result = await Promise.all(entities.map(async (entity) => {
       const entityId = entity._id?.toString() || entity.id;
-      const translation = translationMap[entityId];
+      const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
       let overlayed = translation ? applyTranslationOverlay(entity, entityType, translation) : entity;
 
       // Apply nested translations for products
       if (entityType === 'product') {
         overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
-        overlayed = await localizeProductSpecFields(overlayed, targetLang);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang, batchSpecLabels);
       }
 
       return overlayed;

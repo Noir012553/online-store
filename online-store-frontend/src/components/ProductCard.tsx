@@ -61,6 +61,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       reviews: laptop.numReviews || 0,
       inStock: (laptop.countInStock || 0) > 0,
       specs: laptop.specs || {},
+      specLabels: laptop.specLabels || {},
       description: laptop.description || '',
       featured: laptop.featured || false,
       deal: laptop.deal,
@@ -186,7 +187,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
 
                   return specEntries.map(([key, value]) => (
                     <p key={key} className="truncate text-xs">
-                      <span className="text-gray-500">{key}:</span> {String(value)}
+                      <span className="text-gray-500">{convertedLaptop.specLabels?.[key] || key}:</span> {String(value)}
                     </p>
                   ));
                 })()}

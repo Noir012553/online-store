@@ -25,6 +25,7 @@ const TEST_SUITES = {
       'test-languages-flow.js',
       'test-translation-api.js',
       'translationProductCache.test.js',
+      'specKeyTranslationCache.test.js',
     ],
   },
 

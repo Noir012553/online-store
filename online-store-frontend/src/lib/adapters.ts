@@ -88,6 +88,7 @@ export const LaptopSchema = z.object({
       }
       return cleanedSpecs;
     }),
+  specLabels: z.record(z.string(), z.string()).default({}),
   description: z.string().optional(),
   specDisplay: z.array(z.object({
     field: z.string(),

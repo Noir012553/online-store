@@ -28,6 +28,13 @@ const SEED_MODULES = {
     seeder: require('./translationSeeder'),
     importance: 'CRITICAL',
   },
+  specKeyCache: {
+    name: 'Spec Key Label Cache (Static Seed)',
+    layer: 1,
+    depends: ['languages'],
+    seeder: require('./specKeyCacheSeeder'),
+    importance: 'HIGH',
+  },
   bannerSlotLabels: {
     name: 'Banner Slot Labels i18n (Rule #1: Static UI)',
     layer: 1,
@@ -142,6 +149,7 @@ const SEED_PHASES = {
     'currencies',
     'languages',
     'translations',
+    'specKeyCache',
     'bannerSlotLabels',
     'testimonialLabels',
     'users',
