@@ -123,6 +123,13 @@ const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
   return (category.icon || 'Laptop') as keyof typeof iconMap;
 };
 
+const getDealCardsPerView = (): number => {
+  if (typeof window === 'undefined') return 3;
+  if (window.matchMedia('(max-width: 639px)').matches) return 1;
+  if (window.matchMedia('(max-width: 1023px)').matches) return 2;
+  return 3;
+};
+
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories } = useCategories();
@@ -171,6 +178,7 @@ export default function Home() {
   const fallbackHeroSlides = buildHeroSlides();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
+  const [dealCardsPerView, setDealCardsPerView] = useState(getDealCardsPerView);
   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
@@ -418,18 +426,29 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [heroSlidesToRender.length]);
 
+  useEffect(() => {
+    const updateDealCardsPerView = () => setDealCardsPerView(getDealCardsPerView());
+    updateDealCardsPerView();
+    window.addEventListener('resize', updateDealCardsPerView);
+    return () => window.removeEventListener('resize', updateDealCardsPerView);
+  }, []);
+
+  useEffect(() => {
+    setCurrentDealSlide((prev) => Math.min(prev, Math.max(dealProducts.length - dealCardsPerView, 0)));
+  }, [dealProducts.length, dealCardsPerView]);
+
   // Auto-rotate deal carousel slides (paused when quick view is open)
   useEffect(() => {
-    if (dealProducts.length > 3 && !isDealQuickViewOpen) {
+    if (dealProducts.length > dealCardsPerView && !isDealQuickViewOpen) {
       const timer = setInterval(() => {
         setCurrentDealSlide((prev) => {
           const next = prev + 1;
-          return next >= dealProducts.length - 2 ? 0 : next;
+          return next >= dealProducts.length - dealCardsPerView + 1 ? 0 : next;
         });
-      }, 4000);
+      }, 6500);
       return () => clearInterval(timer);
     }
-  }, [dealProducts.length, isDealQuickViewOpen]);
+  }, [dealCardsPerView, dealProducts.length, isDealQuickViewOpen]);
 
   useEffect(() => {
     if (!dealEndTime) {
@@ -460,7 +479,7 @@ export default function Home() {
   };
 
   const nextDealSlide = () => {
-    setCurrentDealSlide((prev) => Math.min(prev + 1, dealProducts.length - 3));
+    setCurrentDealSlide((prev) => Math.min(prev + 1, Math.max(dealProducts.length - dealCardsPerView, 0)));
   };
 
   const prevDealSlide = () => {
@@ -681,7 +700,7 @@ export default function Home() {
                 {/* Auto-Carousel for Deal Products - Responsive: 1 on mobile, 2 on tablet, 3 on desktop */}
                 <div className="relative overflow-visible flex items-center gap-2 sm:gap-4">
                   {/* Previous Button - Always visible but styled differently on mobile */}
-                  {dealProducts.length > 3 && (
+                  {dealProducts.length > dealCardsPerView && (
                     <button
                       onClick={prevDealSlide}
                       className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black hover:bg-gray-800 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -694,9 +713,12 @@ export default function Home() {
 
                   {/* Main Carousel Container */}
                   <div className="flex-1 overflow-hidden">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 transition-all duration-700">
+                    <div
+                      key={`${currentDealSlide}-${dealCardsPerView}`}
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-1000 ease-out"
+                    >
                       {dealProducts
-                        .slice(currentDealSlide, currentDealSlide + 3)
+                        .slice(currentDealSlide, currentDealSlide + dealCardsPerView)
                         .map((product) => (
                           <ProductCard
                             key={product._id}
@@ -708,11 +730,11 @@ export default function Home() {
                   </div>
 
                   {/* Next Button - Always visible but styled differently on mobile */}
-                  {dealProducts.length > 3 && (
+                  {dealProducts.length > dealCardsPerView && (
                     <button
                       onClick={nextDealSlide}
                       className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black hover:bg-gray-800 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={currentDealSlide >= dealProducts.length - 3}
+                      disabled={currentDealSlide >= dealProducts.length - dealCardsPerView}
                       aria-label={t('carousel_next', 'components')}
                     >
                       <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -721,9 +743,9 @@ export default function Home() {
                 </div>
 
                 {/* Carousel Indicators */}
-                {dealProducts.length > 3 && (
+                {dealProducts.length > dealCardsPerView && (
                   <div className="flex justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6">
-                    {Array.from({ length: dealProducts.length - 2 }).map((_, index) => (
+                    {Array.from({ length: dealProducts.length - dealCardsPerView + 1 }).map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setCurrentDealSlide(index)}
