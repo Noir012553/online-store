@@ -310,7 +310,7 @@ export default function Home() {
               undefined,
               category._id,
               undefined,
-              12,
+              8,
               undefined,
               undefined,
               true,
@@ -470,13 +470,13 @@ export default function Home() {
   const categorySections = (Array.isArray(categories) ? categories as HomeCategory[] : [])
     .map((category) => ({
       category,
-      products: categoryProducts[category._id] || [],
+      products: (categoryProducts[category._id] || []).slice(0, 8),
     }))
     .filter(({ products }) => products.length > 0);
   const sectionsToRender = categorySections.length > 0
     ? categorySections
     : allProducts.length > 0
-      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 12) }]
+      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 8) }]
       : [];
 
   return (
