@@ -16,7 +16,7 @@ const seedTranslations = require('../seeds/translationSeeder');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
-const { localizeProductSpecs } = require('../services/translationHelper');
+const { localizeProductSpecFields } = require('../services/translationHelper');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 
@@ -177,18 +177,20 @@ exports.getProductTranslations = async (req, res) => {
         );
       }
 
+      const localizedSpecData = await localizeProductSpecFields({
+        specs: sourceProduct.specs instanceof Map
+          ? Object.fromEntries(sourceProduct.specs)
+          : sourceProduct.specs || {},
+      }, resolvedLang);
+
       return res.json({
         success: true,
         data: {
           name: sourceProduct.name,
           description: sourceProduct.description,
           brand: sourceProduct.brand,
-          specs: localizeProductSpecs(
-            sourceProduct.specs instanceof Map
-              ? Object.fromEntries(sourceProduct.specs)
-              : sourceProduct.specs || {},
-            resolvedLang
-          ),
+          specs: localizedSpecData.specs,
+          specLabels: localizedSpecData.specLabels,
         },
       });
     }
@@ -204,11 +206,13 @@ exports.getProductTranslations = async (req, res) => {
       );
     }
 
+    const localizedSpecData = await localizeProductSpecFields({ specs: data.specs }, resolvedLang);
+
     return res.json({
       success: true,
       data: {
         ...data,
-        specs: localizeProductSpecs(data.specs, resolvedLang),
+        ...localizedSpecData,
       },
     });
   } catch (error) {
