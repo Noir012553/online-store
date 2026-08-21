@@ -257,7 +257,10 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
-    const validProducts = validation.validProducts;
+    const validProducts = validation.validProducts.map((product) => ({
+      ...product,
+      specs: normalizeSpecs(product.specs || {}),
+    }));
     const normalizedMode = mode.toLowerCase();
 
     if (normalizedMode === 'update' && validProducts.some((product) => (
@@ -523,7 +526,10 @@ const importProducts = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
-    const validProducts = validation.validProducts;
+    const validProducts = validation.validProducts.map((product) => ({
+      ...product,
+      specs: normalizeSpecs(product.specs || {}),
+    }));
     const normalizedMode = mode.toLowerCase();
 
     if (normalizedMode === 'update' && validProducts.some((product) => (

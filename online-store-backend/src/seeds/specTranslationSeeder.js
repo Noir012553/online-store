@@ -20,6 +20,7 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const Product = require('../models/Product');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -98,8 +99,8 @@ async function seedSpecTranslations() {
       } else if (doc.entityType === 'product_description') {
         group.description = doc.translatedText;
       } else if (doc.entityType === 'product_spec' && doc.specKey) {
-        const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
-        group.specs[translatedKey] = doc.translatedText;
+        const canonicalKey = getCanonicalSpecKey(doc.specKey);
+        if (canonicalKey) group.specs[canonicalKey] = doc.translatedText;
       }
     }
 
@@ -119,8 +120,8 @@ async function seedSpecTranslations() {
           if (typeof value !== 'string' || !value.trim()) continue;
           const translatedValue = translatedByText.get(`${value}:${targetLang}`);
           if (translatedValue) {
-            const translatedKey = specKeyTranslations[specKey]?.[targetLang] || specKey;
-            group.specs[translatedKey] = translatedValue;
+            const canonicalKey = getCanonicalSpecKey(specKey);
+            if (canonicalKey) group.specs[canonicalKey] = translatedValue;
           }
         }
       }
@@ -146,11 +147,10 @@ async function seedSpecTranslations() {
       });
       const translatedSpecKeys = new Set(Object.entries(entry.specs)
         .filter(([, value]) => typeof value === 'string' && value.trim())
-        .map(([key]) => key));
-      const missingSpec = sourceSpecKeys.some((key) => {
-        const translatedKey = specKeyTranslations[key]?.[entry.targetLang] || key;
-        return !translatedSpecKeys.has(translatedKey);
-      });
+        .map(([key]) => getCanonicalSpecKey(key)));
+      const missingSpec = sourceSpecKeys.some((key) => (
+        !translatedSpecKeys.has(getCanonicalSpecKey(key))
+      ));
       const validationErrors = [];
       const hasSourceDescription = typeof sourceProduct?.description === 'string'
         && sourceProduct.description.trim();

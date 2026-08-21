@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const SpecKeyTranslationCache = require('../models/SpecKeyTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
@@ -71,9 +72,12 @@ const warmDynamicTranslation = (canonicalKey, targetLang, fallbackLabel) => {
         {
           canonicalKey,
           targetLang,
+          normalizedKey: canonicalKey,
           translatedLabel: label,
           status: 'success',
+          qualityStatus: 'approved',
           source: 'dynamic',
+          provider: 'cloudflare',
           lastTranslatedAt: new Date(),
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -97,11 +101,24 @@ const getSpecKeyLabels = async (specs, targetLang) => {
 
   if (canonicalKeys.length === 0) return {};
 
-  const cachedRows = await SpecKeyTranslationCache.find({
-    canonicalKey: { $in: canonicalKeys },
-    targetLang,
-    status: 'success',
-  }).lean();
+  const defaultLang = getDefaultLanguage().code;
+  if (targetLang === defaultLang || mongoose.connection.readyState !== 1) {
+    return Object.fromEntries(canonicalKeys.map((canonicalKey) => [
+      canonicalKey,
+      getStaticLabel(canonicalKey, targetLang),
+    ]));
+  }
+
+  let cachedRows = [];
+  try {
+    cachedRows = await SpecKeyTranslationCache.find({
+      canonicalKey: { $in: canonicalKeys },
+      targetLang,
+      status: 'success',
+    }).lean();
+  } catch (error) {
+    console.error('[SpecKeyTranslationService] Cache read failed:', error.message);
+  }
   const databaseCache = new Map(cachedRows.map((row) => [row.canonicalKey, row.translatedLabel]));
   const labels = {};
 

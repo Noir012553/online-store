@@ -7,6 +7,7 @@ interface TranslatedProduct {
   description: string;
   brand?: string;
   specs?: Record<string, string>;
+  specLabels?: Record<string, string>;
 }
 
 export function useProductTranslation(productId: string) {

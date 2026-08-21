@@ -17,6 +17,8 @@ const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 const { localizeProductSpecFields } = require('../services/translationHelper');
+const { normalizeSpecs } = require('../utils/specNormalizer');
+const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 
@@ -585,6 +587,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
       description: null,
       brand: null,
       specs: {},
+      specLabels: {},
     };
 
     // Phase 3: Try to read from NEW schema first
@@ -597,11 +600,14 @@ exports.getProductCatalogTranslations = async (req, res) => {
     }).lean();
 
     if (newSchemaData) {
+      const localizedSpecData = await localizeProductSpecFields({
+        specs: newSchemaData.specs || {},
+      }, resolvedLang);
       Object.assign(result, {
         name: newSchemaData.name,
         description: newSchemaData.description,
         brand: newSchemaData.brand,
-        specs: newSchemaData.specs || {},
+        ...localizedSpecData,
       });
       res.set('Cache-Control', 'public, max-age=3600');
       return res.json({
@@ -641,7 +647,8 @@ exports.getProductCatalogTranslations = async (req, res) => {
     }
 
     if (hasSpecs) {
-      result.specs = specs;
+      const localizedSpecData = await localizeProductSpecFields({ specs }, resolvedLang);
+      Object.assign(result, localizedSpecData);
     }
 
     res.set('Cache-Control', 'public, max-age=3600');
@@ -878,6 +885,7 @@ const buildLegacyProductTranslation = (translations) => {
     }
   });
 
+  data.specs = normalizeSpecs(data.specs);
   return data;
 };
 
@@ -899,9 +907,15 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
     return false;
   }
 
-  const sourceSpecs = getSpecEntries(sourceProduct?.specs).filter(([, value]) => value !== null && value !== undefined && String(value).trim());
-  const translatedSpecs = getSpecEntries(translation?.specs).filter(([, value]) => typeof value === 'string' && value.trim());
-  return translatedSpecs.length >= sourceSpecs.length;
+  const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
+  const translatedSpecKeys = new Set(getSpecEntries(translation?.specs)
+    .filter(([, value]) => typeof value === 'string' && value.trim())
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
+  return [...sourceSpecKeys].every((key) => translatedSpecKeys.has(key));
 };
 
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
@@ -928,7 +942,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
       name: translation.name || undefined,
       description: translation.description || undefined,
       brand: translation.brand || undefined,
-      specs: translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {},
+      specs: normalizeSpecs(translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {}),
     };
     if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, data)) return null;
     return data;
@@ -1065,7 +1079,10 @@ exports.saveProductTranslation = async (req, res) => {
     if (!product) return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
 
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
-    const allowedTranslations = Object.fromEntries(fields.map((field) => [field, translations[field]]));
+    const allowedTranslations = Object.fromEntries(fields.map((field) => [
+      field,
+      field === 'specs' ? normalizeSpecs(translations[field]) : translations[field],
+    ]));
     const update = {
       ...allowedTranslations,
       name: allowedTranslations.name ?? existing?.name ?? product.name,
@@ -1190,7 +1207,10 @@ exports.importProductTranslationCache = async (req, res) => {
     const existingByKey = new Map(existingTranslations.map((translation) => [`${translation.entityId}:${translation.targetLang}`, translation]));
     const operations = normalizedRecords.map(({ productId, targetLang, translations, fields, manualFields }) => {
       const existing = existingByKey.get(`${productId}:${targetLang}`);
-      const importedFields = Object.fromEntries(fields.map((field) => [field, translations[field]]));
+      const importedFields = Object.fromEntries(fields.map((field) => [
+        field,
+        field === 'specs' ? normalizeSpecs(translations[field]) : translations[field],
+      ]));
       return {
         updateOne: {
           filter: { entityId: productId, targetLang },

@@ -80,6 +80,7 @@ export interface BackendProduct {
   numReviews?: number;
   countInStock?: number;
   specs?: Record<string, string | number>;
+  specLabels?: Record<string, string>;
   description?: string;
   specDisplay?: Array<{ field: string; label: string; value: string }>;
   featured?: boolean;

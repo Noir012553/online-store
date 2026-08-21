@@ -89,7 +89,8 @@ describe('Product translation cache controller', () => {
       name: 'Laptop source',
       description: 'Source description',
       brand: 'Source brand',
-      specs: { RAM: '16GB' },
+      specs: { ram: '16GB' },
+      specLabels: { ram: 'RAM' },
     });
   });
 

@@ -13,6 +13,11 @@ const SpecKeyTranslationCacheSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    normalizedKey: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     translatedLabel: {
       type: String,
       required: true,
@@ -24,10 +29,21 @@ const SpecKeyTranslationCacheSchema = new mongoose.Schema(
       default: 'success',
       index: true,
     },
+    qualityStatus: {
+      type: String,
+      enum: ['approved', 'pending', 'rejected'],
+      default: 'approved',
+      index: true,
+    },
     source: {
       type: String,
       enum: ['dynamic', 'static'],
       default: 'dynamic',
+    },
+    provider: {
+      type: String,
+      default: 'static',
+      trim: true,
     },
     lastTranslatedAt: {
       type: Date,
