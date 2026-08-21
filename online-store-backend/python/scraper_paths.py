@@ -65,10 +65,8 @@ def _has_price_class(tag, class_fragment):
 
 
 def extract_product_prices(soup, fallback_price="N/A"):
-    """Return sale and regular VND prices from GearVN's primary product summary."""
-    summary = soup.select_one('[data-product-summary-region="true"]')
-    if not summary:
-        return fallback_price, fallback_price
+    """Return sale and regular VND prices without inferring a missing regular price."""
+    summary = soup.select_one('[data-product-summary-region="true"]') or soup
 
     original_price_tag = summary.select_one('.line-through')
     regular_price = _parse_price_value(original_price_tag.get_text(" ", strip=True)) if original_price_tag else None
@@ -81,6 +79,7 @@ def extract_product_prices(soup, fallback_price="N/A"):
             and (
                 _has_price_class(tag, 'color-red-700')
                 or _has_price_class(tag, 'flash-price-sale')
+                or _has_price_class(tag, 'text-green-600')
             )
             and _parse_price_value(tag.get_text(" ", strip=True))
         ),
@@ -89,7 +88,7 @@ def extract_product_prices(soup, fallback_price="N/A"):
     sale_price = _parse_price_value(sale_price_tag.get_text(" ", strip=True)) if sale_price_tag else None
 
     normalized_fallback = _parse_price_value(fallback_price) or fallback_price
-    return sale_price or normalized_fallback, regular_price or sale_price or normalized_fallback
+    return sale_price or normalized_fallback, regular_price
 
 
 def extract_product_image_urls(soup):
