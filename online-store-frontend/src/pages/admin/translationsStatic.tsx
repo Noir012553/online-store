@@ -840,7 +840,7 @@ const TranslationsAdminTier1Content = () => {
                   className="tier1-btn tier1-pagination-btn"
                 >
                   <ChevronLeft size={16} aria-hidden="true" />
-                  {t('tier1_prev_page', 'admin-translation').replace(/^[←→]\s*/, '').replace(/\s*[←→]$/, '')}
+                  {t('tier1_prev_page', 'admin-translation')}
                 </button>
                 <span className="tier1-pagination-status">{t('tier1_page_info', 'admin-translation').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
                 <button
@@ -848,7 +848,7 @@ const TranslationsAdminTier1Content = () => {
                   disabled={pageIndex === totalPages - 1}
                   className="tier1-btn tier1-pagination-btn"
                 >
-                  {t('tier1_next_page', 'admin-translation').replace(/^[←→]\s*/, '').replace(/\s*[←→]$/, '')}
+                  {t('tier1_next_page', 'admin-translation')}
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
