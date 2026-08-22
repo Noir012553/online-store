@@ -21,6 +21,7 @@ const Product = require('../models/Product');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
+const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -39,8 +40,8 @@ const TRANSLATED_LANG_CODES = SUPPORTED_LANGUAGES
  * Aggregate product specs từ multiple LiveTranslationCache rows
  * thành 1 ProductCatalogTranslationCache document
  */
-async function seedSpecTranslations() {
-  console.time(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time`);
+async function seedSpecTranslations(repairAttempt = 0) {
+  console.time(`${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time${repairAttempt ? ` (repair ${repairAttempt})` : ''}`);
 
   try {
     console.log(`${CLI_SYMBOLS.seed} Starting spec translation aggregation...\n`);
@@ -167,12 +168,31 @@ async function seedSpecTranslations() {
       entry.qualityScore = validationErrors.length > 0 ? 0 : 100;
     });
 
+    const incompleteEntries = entries.filter((entry) => entry.qualityStatus !== 'approved');
+    if (incompleteEntries.length > 0 && repairAttempt === 0) {
+      console.log(`  ${CLI_SYMBOLS.progress} Retrying ${incompleteEntries.length} incomplete product-language translation(s)...`);
+      for (const entry of incompleteEntries) {
+        const sourceProduct = sourceProductById.get(entry.entityId);
+        if (sourceProduct) {
+          await ProductTranslationSeederService._translateProduct(
+            sourceProduct,
+            entry.targetLang,
+            SOURCE_LANG_CODE,
+            0
+          );
+        }
+      }
+      return seedSpecTranslations(1);
+    }
+
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
       const batch = entries.slice(i, i + BATCH_SIZE);
       const operations = batch.map(entry => ({
         updateOne: {
           filter: { entityId: entry.entityId, targetLang: entry.targetLang },
-          update: { $set: entry },
+          update: entry.qualityStatus === 'approved'
+            ? { $set: entry }
+            : { $setOnInsert: entry },
           upsert: true,
         }
       }));
@@ -212,7 +232,6 @@ async function seedSpecTranslations() {
       console.log(`    ${lang.padEnd(4)} ${CLI_SYMBOLS.arrowRight} ${total}/${products.length}`);
     });
 
-    const incompleteEntries = entries.filter((entry) => entry.qualityStatus !== 'approved');
     if (incompleteEntries.length > 0 || TRANSLATED_LANG_CODES.some((lang) => verifyByLang[lang] !== products.length)) {
       const error = `Product translation catalog incomplete: ${incompleteEntries.length}/${entries.length} product-language records need attention`;
       console.error(`  ${CLI_SYMBOLS.error} ${error}`);
