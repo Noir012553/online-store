@@ -218,6 +218,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
 
+  // Detect if hero carousel or footer is visible - hide banners when they are
+  const { isBannerVisible } = useBannerVisibility({
+    heroSelector: 'section.relative.bg-gray-900.overflow-hidden',
+    footerSelector: 'footer',
+    triggerThreshold: 0.3, // Hide banners when 30% of hero/footer is visible
+  });
+
   // Sticky banner scroll with constraints - confined within content wrapper
   // minBannerTopDocument = banner won't go above this distance from page top (px)
   // Adjust this value based on your hero section height
@@ -226,13 +233,7 @@ export default function Home() {
     minBannerTopDocument: 700, // Adjust this number to control minimum position
     headerHeight: 80,
     maxBottomOffset: 20,
-  });
-
-  // Detect if hero carousel or footer is visible - hide banners when they are
-  const { isBannerVisible } = useBannerVisibility({
-    heroSelector: 'section.relative.bg-gray-900.overflow-hidden',
-    footerSelector: 'footer',
-    triggerThreshold: 0.3, // Hide banners when 30% of hero/footer is visible
+    isVisible: isBannerVisible,
   });
 
   const getTextByLang = (field: any, currentLang: string): string => {
