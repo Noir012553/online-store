@@ -203,6 +203,7 @@ export default function Home() {
   const fallbackHeroSlides = buildHeroSlides();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
+  const [currentCategorySlides, setCurrentCategorySlides] = useState<Record<string, number>>({});
   const [dealCardsPerView, setDealCardsPerView] = useState(getDealCardsPerView);
   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
@@ -533,6 +534,20 @@ export default function Home() {
     setCurrentDealSlide((prev) => Math.max(prev - 1, 0));
   };
 
+  const nextCategorySlide = (categoryId: string, productCount: number) => {
+    setCurrentCategorySlides((prev) => ({
+      ...prev,
+      [categoryId]: Math.min((prev[categoryId] ?? 0) + 1, Math.max(productCount - 1, 0)),
+    }));
+  };
+
+  const prevCategorySlide = (categoryId: string) => {
+    setCurrentCategorySlides((prev) => ({
+      ...prev,
+      [categoryId]: Math.max((prev[categoryId] ?? 0) - 1, 0),
+    }));
+  };
+
   const categorySections = (Array.isArray(categories) ? categories as HomeCategory[] : [])
     .map((category) => ({
       category,
@@ -695,10 +710,47 @@ export default function Home() {
                           {t('view_all_products')}
                         </Link>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                      <div className="hidden lg:grid grid-cols-4 gap-4 sm:gap-6">
                         {products.map((product) => (
                           <ProductCard key={product._id} laptop={product} />
                         ))}
+                      </div>
+
+                      <div className="relative flex items-center gap-2 sm:gap-4 lg:hidden">
+                        {products.length > 1 && (
+                          <button
+                            onClick={() => prevCategorySlide(category._id)}
+                            className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black hover:bg-gray-800 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={(currentCategorySlides[category._id] ?? 0) === 0}
+                            aria-label={t('carousel_previous', 'components')}
+                          >
+                            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </button>
+                        )}
+
+                        <div className="flex-1 overflow-hidden">
+                          <div
+                            key={`${category._id}-${currentCategorySlides[category._id] ?? 0}`}
+                            className="grid grid-cols-1 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-1000 ease-out"
+                          >
+                            {products
+                              .slice(currentCategorySlides[category._id] ?? 0, (currentCategorySlides[category._id] ?? 0) + 1)
+                              .map((product) => (
+                                <ProductCard key={product._id} laptop={product} />
+                              ))}
+                          </div>
+                        </div>
+
+                        {products.length > 1 && (
+                          <button
+                            onClick={() => nextCategorySlide(category._id, products.length)}
+                            className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black hover:bg-gray-800 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={(currentCategorySlides[category._id] ?? 0) >= products.length - 1}
+                            aria-label={t('carousel_next', 'components')}
+                          >
+                            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
