@@ -3,10 +3,12 @@ const expect = chai.expect;
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
+const { buildUpsertProductUpdate } = require('../controllers/productImportController');
 const {
   getProductImagePublicId,
   uploadProductImage,
   assignInitialHighlights,
+  getInitialStock,
 } = require('../seeds/productSeedPipeline');
 
 describe('Import file validation', () => {
@@ -52,6 +54,37 @@ describe('Import file validation', () => {
       originalname: 'products.json',
       mimetype: 'application/json',
     }, 'json')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('Seed initial stock configuration', () => {
+  const originalInitialStock = process.env.SEED_INITIAL_STOCK;
+
+  afterEach(() => {
+    if (originalInitialStock === undefined) {
+      delete process.env.SEED_INITIAL_STOCK;
+      return;
+    }
+    process.env.SEED_INITIAL_STOCK = originalInitialStock;
+  });
+
+  it('reads a non-negative integer from SEED_INITIAL_STOCK', () => {
+    process.env.SEED_INITIAL_STOCK = '25';
+
+    expect(getInitialStock()).to.equal(25);
+  });
+
+  it('rejects an invalid SEED_INITIAL_STOCK value', () => {
+    process.env.SEED_INITIAL_STOCK = '-1';
+
+    expect(getInitialStock).to.throw('SEED_INITIAL_STOCK phải là số nguyên không âm');
+  });
+
+  it('preserves existing stock during seed upsert', () => {
+    const product = { productId: 'product-id', name: 'Keyboard', countInStock: 25 };
+
+    expect(buildUpsertProductUpdate(product, true)).to.deep.equal({ name: 'Keyboard' });
+    expect(buildUpsertProductUpdate(product, false)).to.deep.equal({ name: 'Keyboard', countInStock: 25 });
   });
 });
 

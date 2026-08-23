@@ -100,6 +100,12 @@ const withoutImportProductId = (product) => {
   return productData;
 };
 
+const buildUpsertProductUpdate = (product, preserveExistingStock) => {
+  const update = withoutImportProductId(product);
+  if (preserveExistingStock) delete update.countInStock;
+  return update;
+};
+
 const getProductImagePublicIds = (product) => [
   product.imagePublicId,
   ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
@@ -480,6 +486,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
  */
 const importProducts = asyncHandler(async (req, res) => {
   const { data, products, format = 'json', mode = 'upsert', dryRun = false } = req.body;
+  const preserveExistingStock = req.seedOptions?.preserveExistingStock === true;
   const adminUserId = req.user._id;
 
   // Validate input
@@ -592,7 +599,7 @@ const importProducts = asyncHandler(async (req, res) => {
         break;
       case 'upsert':
       default:
-        results = await handleUpsertMode(enrichedProducts);
+        results = await handleUpsertMode(enrichedProducts, preserveExistingStock);
     }
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
@@ -741,7 +748,7 @@ async function handleUpdateMode(productsWithEnrichedIds) {
  * FIX #4: Use bulkWrite for atomic operation and better performance
  * Single DB operation instead of N queries
  */
-async function handleUpsertMode(products) {
+async function handleUpsertMode(products, preserveExistingStock = false) {
   const filters = products.map(getProductLookupFilter);
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
@@ -767,7 +774,7 @@ async function handleUpsertMode(products) {
         filter: existing
           ? { _id: existing._id, isDeleted: false }
           : getProductLookupFilter(product),
-        update: { $set: withoutImportProductId(product) },
+        update: { $set: buildUpsertProductUpdate(product, preserveExistingStock && Boolean(existing)) },
         upsert: true,
       },
     };
@@ -1206,6 +1213,7 @@ const getExportStats = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  buildUpsertProductUpdate,
   importProducts,
   importProductsFromFile,
   getImportTemplate,
