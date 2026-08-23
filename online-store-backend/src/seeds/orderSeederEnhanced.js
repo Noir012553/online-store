@@ -1,98 +1,210 @@
-/**
- * Enhanced Database Seeder - Khởi tạo dữ liệu đơn hàng
- * Tạo ~300 đơn hàng mẫu phân phối across 12 months
- * Dữ liệu ĐỘNG liên kết với khách hàng và sản phẩm thực tế từ database
- */
-
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getActiveExchangeRates, getReportingCurrency } = require('../utils/orderRevenue');
 
+const ORDER_SEED_PREFIX = 'demo-orders-v2';
+const DEFAULT_ORDER_COUNT = 410;
+
 const getProductNameAsString = (name) => {
   if (typeof name === 'string') return name;
   if (typeof name === 'object' && name !== null) {
-    // Fallback: Use default language translation
-    const available = Object.values(name).find(v => v && typeof v === 'string');
+    const available = Object.values(name).find(value => value && typeof value === 'string');
     if (available) return available;
-
-    // No translation found - use generic fallback from i18n
-    const defaultLang = getDefaultLanguage().code.toUpperCase();
-    return getMessage(defaultLang, 'common.unknownProduct');
   }
+
   const defaultLang = getDefaultLanguage().code.toUpperCase();
   return getMessage(defaultLang, 'common.unknownProduct');
 };
 
-/**
- * Generate random date within a specific month/year
- * @param {Number} monthsAgo - Số tháng trước từ hôm nay
- * @returns {Date}
- */
+const randomInt = (min, max) => {
+  if (max <= min) return min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+const shuffle = (items) => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(0, index);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
 const getRandomDateInMonth = (monthsAgo) => {
   const now = new Date();
   const targetDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-
-  // Get last day of the month
   const lastDay = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
-  const randomDay = Math.floor(Math.random() * lastDay) + 1;
-  const randomHour = Math.floor(Math.random() * 24);
-  const randomMinute = Math.floor(Math.random() * 60);
 
-  return new Date(targetDate.getFullYear(), targetDate.getMonth(), randomDay, randomHour, randomMinute);
+  return new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    randomInt(1, lastDay),
+    randomInt(0, 23),
+    randomInt(0, 59),
+    randomInt(0, 59),
+  );
 };
 
-/**
- * Generate recent dates (last 1-2 days)
- * Giúp orders gần đây hiển thị trước trong admin dashboard
- * @param {Number} daysAgo - Số ngày trước từ hôm nay (0 = hôm nay, 1 = hôm qua)
- * @returns {Date}
- */
-const getRecentDate = (daysAgo = 0) => {
+const getRecentDate = (daysAgo) => {
   const now = new Date();
   const date = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-
-  // Random time in that day
-  const randomHour = Math.floor(Math.random() * 24);
-  const randomMinute = Math.floor(Math.random() * 60);
-  const randomSecond = Math.floor(Math.random() * 60);
 
   return new Date(
     date.getFullYear(),
     date.getMonth(),
     date.getDate(),
-    randomHour,
-    randomMinute,
-    randomSecond
+    randomInt(0, 23),
+    randomInt(0, 59),
+    randomInt(0, 59),
   );
 };
 
-/**
- * Seed dữ liệu đơn hàng mở rộng
- * Tạo ~300 đơn hàng với data spanning 12 months
- * 
- * @param {Array} products - Danh sách sản phẩm
- * @param {Array} users - Danh sách users
- * @param {Array} customers - Danh sách khách hàng (BẮTBUỘC)
- */
+const getOrderState = (createdAt, index) => {
+  const ageInDays = (Date.now() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
+  const stateIndex = index % 10;
+
+  if (ageInDays > 30 || stateIndex >= 7) {
+    return { isPaid: true, isDelivered: true, shipmentStatus: 'delivered' };
+  }
+
+  if (stateIndex < 2) {
+    return { isPaid: false, isDelivered: false, shipmentStatus: 'pending' };
+  }
+
+  return { isPaid: true, isDelivered: false, shipmentStatus: stateIndex % 2 === 0 ? 'ready' : 'in_transit' };
+};
+
+const getOrderItems = (categoryGroups, orderIndex) => {
+  const itemCount = categoryGroups.length === 1
+    ? 1
+    : orderIndex % 10 < 6
+      ? 1
+      : orderIndex % 10 < 9
+        ? 2
+        : 3;
+  const items = [];
+
+  for (let itemIndex = 0; itemIndex < itemCount; itemIndex += 1) {
+    const group = categoryGroups[(orderIndex + itemIndex) % categoryGroups.length];
+    const product = group.products[group.nextProductIndex % group.products.length];
+    group.nextProductIndex += 1;
+
+    const price = Number(product.price);
+    const originalPrice = Number(product.originalPrice);
+    const maxQuantity = Math.max(1, Math.min(4, Number(product.countInStock) || 1));
+    const quantity = randomInt(1, maxQuantity);
+    const hasDiscount = Number.isFinite(originalPrice) && originalPrice > price;
+
+    items.push({
+      name: getProductNameAsString(product.name),
+      qty: quantity,
+      image: product.image || '/placeholder.png',
+      price,
+      ...(hasDiscount ? {
+        originalPrice,
+        discountPercentage: Math.round(((originalPrice - price) / originalPrice) * 100),
+      } : {}),
+      product: product._id,
+    });
+  }
+
+  return items;
+};
+
+const createOrder = ({ customer, user, items, createdAt, currencyCode, exchangeRates, index }) => {
+  const itemsPrice = items.reduce((total, item) => total + item.price * item.qty, 0);
+  const taxPrice = Math.round(itemsPrice * 0.1);
+  const shippingFee = itemsPrice >= 1000000 ? 0 : [30000, 45000, 60000][index % 3];
+  const totalPrice = itemsPrice + taxPrice + shippingFee;
+  const state = getOrderState(createdAt, index);
+  const paidAt = state.isPaid ? new Date(Math.min(Date.now(), createdAt.getTime() + 6 * 60 * 60 * 1000)) : null;
+  const deliveredAt = state.isDelivered ? new Date(Math.min(Date.now(), createdAt.getTime() + 5 * 24 * 60 * 60 * 1000)) : null;
+  const paymentMethods = ['cod', 'card', 'bank_transfer', 'e_wallet', 'vnpay', 'momo'];
+  const paymentMethod = state.isPaid ? paymentMethods[index % paymentMethods.length] : 'cod';
+
+  return {
+    customer: customer._id,
+    user: user?._id || null,
+    orderItems: items,
+    itemsPrice,
+    taxPrice,
+    totalPrice,
+    discount: 0,
+    isPaid: state.isPaid,
+    paidAt,
+    paymentMethod,
+    isDelivered: state.isDelivered,
+    deliveredAt,
+    shippingAddress: {
+      name: customer.name,
+      phone: customer.phone,
+      address: `Địa chỉ demo ${index + 1}`,
+    },
+    shippingFee,
+    shipmentStatus: state.shipmentStatus,
+    shippingProvider: index % 3 === 0 ? 'ghn' : index % 3 === 1 ? 'ghtk' : 'viettel',
+    shippingService: index % 4 === 0 ? 'express' : 'standard',
+    idempotencyKey: `${ORDER_SEED_PREFIX}:${String(index).padStart(4, '0')}`,
+    currencyCode,
+    baseCurrencyCode: currencyCode,
+    baseItemsPrice: itemsPrice,
+    baseDiscount: 0,
+    baseTotalPrice: totalPrice,
+    baseShippingFee: shippingFee,
+    exchangeRateCapturedAt: createdAt,
+    exchangeRates,
+    createdAt,
+  };
+};
+
 const seedOrdersEnhanced = async (products, users, customers) => {
-  // ========== VALIDATE INPUTS ==========
-  if (!customers || !Array.isArray(customers)) {
-    throw new Error('❌ Customers must be an array');
+  if (!Array.isArray(customers) || customers.length === 0) {
+    throw new Error('No customers provided. Orders cannot be created without customers');
   }
 
-  if (customers.length === 0) {
-    throw new Error('❌ No customers provided. Orders cannot be created without customers!');
-  }
-
-  const validCustomers = customers.filter(c => c._id && c.name && c.email);
-
+  const validCustomers = customers.filter(customer => customer?._id && customer.name && customer.email);
   if (validCustomers.length === 0) {
-    throw new Error('❌ No valid customers found. All customers must have _id, name, and email');
+    throw new Error('No valid customers found');
   }
 
-  if (!products || products.length === 0) {
-    throw new Error('❌ No products provided');
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error('No products provided');
+  }
+
+  const productIds = products.map(product => product?._id).filter(Boolean);
+  const activeProducts = await Product.find({
+    _id: { $in: productIds },
+    isDeleted: false,
+    price: { $gt: 0 },
+  })
+    .populate({
+      path: 'category',
+      match: { isDeleted: false },
+      select: '_id name key slug',
+    })
+    .lean();
+
+  const productsByCategory = new Map();
+  activeProducts.forEach(product => {
+    if (!product.category?._id) return;
+    const categoryId = String(product.category._id);
+    if (!productsByCategory.has(categoryId)) productsByCategory.set(categoryId, []);
+    productsByCategory.get(categoryId).push(product);
+  });
+
+  const categoryGroups = shuffle(
+    [...productsByCategory.values()]
+      .filter(categoryProducts => categoryProducts.length > 0)
+      .map(categoryProducts => ({
+        products: shuffle(categoryProducts),
+        nextProductIndex: 0,
+      }))
+  );
+
+  if (categoryGroups.length === 0) {
+    throw new Error('No active products with valid categories found');
   }
 
   const [currencyCode, exchangeRates] = await Promise.all([
@@ -100,166 +212,39 @@ const seedOrdersEnhanced = async (products, users, customers) => {
     getActiveExchangeRates(),
   ]);
 
-  // ========== CLEAR EXISTING ORDERS ==========
-  const deletedCount = await Order.deleteMany({});
-  console.log(`🗑️  Deleted ${deletedCount.deletedCount} existing orders`);
-
-  // ========== GENERATE ORDERS DYNAMICALLY ==========
+  const orderCount = Math.max(1, Number(process.env.SEED_ORDER_COUNT) || DEFAULT_ORDER_COUNT);
+  const recentOrdersCount = Math.min(80, orderCount);
+  const historicalOrderCount = orderCount - recentOrdersCount;
   const orders = [];
+  const validUsers = Array.isArray(users) ? users.filter(user => user?._id) : [];
 
-  // Strategy: Tạo nhiều orders gần đây (last 2 days) để hiển thị trước trong admin
-  // + Orders từ các tháng trước để có dữ liệu lịch sử
+  await Order.deleteMany({ idempotencyKey: { $regex: `^${ORDER_SEED_PREFIX}:` } });
 
-  // Recent orders: 80 orders trong 2 ngày qua (để admin thấy ngay khi vào trang)
-  const recentOrdersCount = 80;
-  for (let i = 0; i < recentOrdersCount; i++) {
-    const orderIndex = i;
+  for (let index = 0; index < orderCount; index += 1) {
+    const createdAt = index < recentOrdersCount
+      ? getRecentDate(index % 2)
+      : getRandomDateInMonth(2 + Math.floor(((index - recentOrdersCount) / Math.max(1, historicalOrderCount)) * 22));
+    const customer = validCustomers[index % validCustomers.length];
+    const user = validUsers.length > 0 ? validUsers[index % validUsers.length] : null;
+    const items = getOrderItems(categoryGroups, index);
 
-    // Randomly choose 0 (today) or 1 (yesterday)
-    const daysAgo = Math.random() > 0.5 ? 0 : 1;
-
-    // Dynamically select customer (round-robin through valid customers)
-    const customerIndex = orderIndex % validCustomers.length;
-    const customer = validCustomers[customerIndex];
-
-    if (!customer._id) {
-      throw new Error(`❌ Recent Order ${orderIndex}: Customer has no _id`);
-    }
-
-    // Dynamically select product (vary products)
-    const productIndex = orderIndex % products.length;
-    const product = products[productIndex];
-    const qty = Math.floor(Math.random() * 4) + 1; // 1-4 items per order
-
-    // Calculate prices dynamically
-    const basePrice = product.price;
-    const taxPrice = Math.floor(basePrice * qty * 0.1);
-    const totalPrice = basePrice * qty + taxPrice;
-
-    const createdAt = getRecentDate(daysAgo);
-    const order = {
-      customer: customer._id,
-      user: users && users[0] ? users[0]._id : null,
-      orderItems: [
-        {
-          name: getProductNameAsString(product.name),
-          qty: qty,
-          image: product.image,
-          price: basePrice,
-          product: product._id,
-        }
-      ],
-      itemsPrice: basePrice * qty,
-      taxPrice,
-      totalPrice,
-      currencyCode,
-      baseCurrencyCode: currencyCode,
-      baseItemsPrice: basePrice * qty,
-      baseDiscount: 0,
-      baseTotalPrice: totalPrice,
-      baseShippingFee: 0,
-      exchangeRateCapturedAt: createdAt,
-      exchangeRates,
+    orders.push(createOrder({
+      customer,
+      user,
+      items,
       createdAt,
-    };
-
-    orders.push(order);
+      currencyCode,
+      exchangeRates,
+      index,
+    }));
   }
 
-  // Historical orders: Orders từ các tháng trước để có dữ liệu lịch sử cho chart
-  const ordersPerMonth = 15;
-  const monthsRange = 24; // Go back 24 months for year-based charts
-
-  for (let month = 2; month < monthsRange; month++) { // Start from month 2 to avoid duplicates with recent
-    for (let orderInMonth = 0; orderInMonth < ordersPerMonth; orderInMonth++) {
-      const orderIndex = recentOrdersCount + month * ordersPerMonth + orderInMonth;
-
-      // Dynamically select customer (round-robin through valid customers)
-      const customerIndex = orderIndex % validCustomers.length;
-      const customer = validCustomers[customerIndex];
-
-      if (!customer._id) {
-        throw new Error(`❌ Historical Order ${orderIndex}: Customer has no _id`);
-      }
-
-      // Dynamically select product (vary products)
-      const productIndex = orderIndex % products.length;
-      const product = products[productIndex];
-      const qty = Math.floor(Math.random() * 4) + 1; // 1-4 items per order
-
-      // Calculate prices dynamically
-      const basePrice = product.price;
-      const taxPrice = Math.floor(basePrice * qty * 0.1);
-      const totalPrice = basePrice * qty + taxPrice;
-
-      const createdAt = getRandomDateInMonth(month);
-      const order = {
-        customer: customer._id,
-        user: users && users[0] ? users[0]._id : null,
-        orderItems: [
-          {
-            name: getProductNameAsString(product.name),
-            qty: qty,
-            image: product.image,
-            price: basePrice,
-            product: product._id,
-          }
-        ],
-        itemsPrice: basePrice * qty,
-        taxPrice,
-        totalPrice,
-        currencyCode,
-        baseCurrencyCode: currencyCode,
-        baseItemsPrice: basePrice * qty,
-        baseDiscount: 0,
-        baseTotalPrice: totalPrice,
-        baseShippingFee: 0,
-        exchangeRateCapturedAt: createdAt,
-        exchangeRates,
-        createdAt,
-      };
-
-      orders.push(order);
-    }
-  }
-
-  console.log(`📦 Generated ${orders.length} orders (${recentOrdersCount} recent + ${orders.length - recentOrdersCount} historical)`);
-
-  // ========== CREATE ORDERS IN DATABASE ==========
   const createdOrders = await Order.create(orders);
-  console.log(`✅ Successfully created ${createdOrders.length} orders`);
+  const categoryDistribution = categoryGroups.map(group => group.products.length).join(', ');
+  console.log(`Generated ${createdOrders.length} orders across ${categoryGroups.length} product categories (${categoryDistribution} products per category group)`);
 
-  // ========== VERIFY LINKAGE & DATA DISTRIBUTION ==========
-  let successCount = 0;
-  const sampleOrders = createdOrders.slice(0, 10);
-
-  for (const order of sampleOrders) {
-    const linkedCustomer = validCustomers.find(c => c._id.toString() === order.customer.toString());
-    if (linkedCustomer && linkedCustomer.name) {
-      successCount++;
-    }
-  }
-
-  if (successCount === 0) {
-    throw new Error('❌ CRITICAL: No orders have customer linkage!');
-  }
-
-  // Log data distribution by month
-  console.log('\n📊 Order Distribution by Month:');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const now = new Date();
-  
-  for (let i = monthsRange - 1; i >= 0; i--) {
-    const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = monthNames[targetDate.getMonth()];
-    const year = targetDate.getFullYear();
-    
-    const monthOrders = createdOrders.filter(o => 
-      o.createdAt.getMonth() === targetDate.getMonth() &&
-      o.createdAt.getFullYear() === targetDate.getFullYear()
-    );
-    
-    console.log(`  ${monthName} ${year}: ${monthOrders.length} orders`);
+  if (!createdOrders.some(order => order.customer)) {
+    throw new Error('No orders have customer linkage');
   }
 
   return createdOrders;

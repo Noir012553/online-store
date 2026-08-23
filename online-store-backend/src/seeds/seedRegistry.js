@@ -108,7 +108,7 @@ const SEED_MODULES = {
     importance: 'MEDIUM',
   },
   orders: {
-    name: 'Orders (600 orders)',
+    name: 'Orders (dynamic demo dataset)',
     layer: 2,
     depends: ['users', 'customers', 'currencies'],
     seeder: require('./orderSeederEnhanced'),
@@ -140,7 +140,7 @@ const SEED_MODULES = {
     layer: 2,
     depends: [],
     seeder: require('./specTranslationSeeder'),
-    importance: 'CRITICAL',
+    importance: 'HIGH',
   },
 };
 
@@ -157,9 +157,10 @@ const SEED_PHASES = {
     'customers',
     'shippingProviders',
     'locations',
+    'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['specTranslations', 'reviews', 'orders', 'coupons'],
+  postProducts: ['reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
