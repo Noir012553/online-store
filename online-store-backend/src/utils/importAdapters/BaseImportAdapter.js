@@ -95,7 +95,12 @@ class BaseImportAdapter {
     normalized.description = product.Description;
     normalized.image = product.MainImage;
     normalized.images = product.GalleryImages;
-    normalized.countInStock = /^(in stock|còn hàng|true|1)$/i.test(String(product.InStock).trim()) ? 1 : 0;
+    const isInStock = /^(in stock|còn hàng|true|1)$/i.test(String(product.InStock).trim());
+    const configuredInitialStock = this.config.initialStock;
+    const initialStock = Number.isInteger(configuredInitialStock) && configuredInitialStock >= 0
+      ? configuredInitialStock
+      : 1;
+    normalized.countInStock = isInStock ? initialStock : 0;
     normalized.baseCurrencyCode = 'VND';
 
     return normalized;

@@ -151,12 +151,12 @@ export function SearchDropdown({
 
       const products = response.products || [];
       setSuggestions(products.slice(0, 10));
-      setIsOpen(products.length > 0);
+      setIsOpen(true);
       setSelectedIndex(-1);
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
       setSuggestions([]);
-      setIsOpen(false);
+      setIsOpen(true);
     } finally {
       if (searchControllerRef.current?.signal === controller?.signal) {
         searchControllerRef.current = null;

@@ -17,6 +17,8 @@ IMPORTANT:
 - Stock numbers, CPU/RAM/storage specs → Keep unchanged
 - Professional, formal tone for products`;
 
+const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
+
 class SimpleQueue {
   constructor(concurrency = 3) {
     this.concurrency = concurrency;
@@ -277,14 +279,16 @@ class CloudflareAiService {
         translatedText = String(translatedText || '');
       }
 
-      if (!translatedText.trim()) {
-        throw new Error('No translation returned from Cloudflare API');
+      const normalizedTranslation = translatedText.trim();
+
+      if (!normalizedTranslation || EMPTY_TRANSLATION_RESPONSE.test(normalizedTranslation)) {
+        throw new Error('No usable translation returned from Cloudflare API');
       }
 
       this.currentConfig.requestCount++;
       console.log(`[CloudflareAI] ${CLI_SYMBOLS.success} Translation success: { textLength: ${text.length}, sourceLang: '${sourceLang}', targetLang: '${targetLang}', duration: '${duration}ms', config: '#${this.currentConfig.index}/${this.configs.length}', totalRequests: ${this.currentConfig.requestCount} }`);
 
-      return translatedText.trim();
+      return normalizedTranslation;
     } catch (error) {
       // Detect permanent/non-retryable errors (API is down)
       const isDnsError =
