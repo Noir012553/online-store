@@ -27,6 +27,7 @@ import type { Locale } from "../../lib/i18n/types";
 
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
+const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 
 const getSafeProductTab = (value: unknown): ProductTab => {
   if (typeof value !== 'string') return 'specs';
@@ -56,7 +57,9 @@ const formatProductAmount = (
 const cleanProductDescription = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   const description = value.trim();
-  return /^(?:thông số|specifications?)\s*:\s*\{\s*\}$/i.test(description) ? '' : description;
+  return EMPTY_TRANSLATION_RESPONSE.test(description) || /^(?:thông số|specifications?)\s*:\s*\{\s*\}$/i.test(description)
+    ? ''
+    : description;
 };
 
 export const getServerSideProps = async () => {
