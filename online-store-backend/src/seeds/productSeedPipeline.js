@@ -300,6 +300,18 @@ const INITIAL_HIGHLIGHT_RATIO = 0.1;
 const DEAL_DURATION_DAYS = 7;
 const PRODUCT_HIGHLIGHTS_SEED_PHASE = 'PRODUCT_HIGHLIGHTS';
 
+const getInitialStock = () => {
+  const configuredValue = process.env.SEED_INITIAL_STOCK;
+  if (configuredValue === undefined || configuredValue.trim() === '') return undefined;
+
+  const initialStock = Number(configuredValue);
+  if (!Number.isInteger(initialStock) || initialStock < 0) {
+    throw new Error('SEED_INITIAL_STOCK phải là số nguyên không âm');
+  }
+
+  return initialStock;
+};
+
 const selectRandomItems = (items) => {
   const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
@@ -370,7 +382,7 @@ const importBatch = async ({ products, format, adminUser, dryRun }) => {
 
 const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initializeHighlights }) => {
   const format = path.extname(filePath).toLowerCase().slice(1);
-  const manager = new ImportAdapterManager();
+  const manager = new ImportAdapterManager({ initialStock: getInitialStock() });
   const content = fs.readFileSync(filePath, 'utf8');
   const parsedProducts = (await manager.parse(content, format)).map(product => ({
     ...product,

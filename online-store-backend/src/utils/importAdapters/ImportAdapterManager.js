@@ -15,17 +15,17 @@ const JSONAdapter = require('./JSONAdapter');
 const CSVAdapter = require('./CSVAdapter');
 
 class ImportAdapterManager {
-  constructor() {
+  constructor(config = {}) {
     this.adapters = new Map();
-    this.initDefaultAdapters();
+    this.initDefaultAdapters(config);
   }
 
   /**
    * Initialize default adapters
    */
-  initDefaultAdapters() {
-    this.register(new JSONAdapter());
-    this.register(new CSVAdapter());
+  initDefaultAdapters(config = {}) {
+    this.register(new JSONAdapter(config));
+    this.register(new CSVAdapter(config));
   }
 
   /**

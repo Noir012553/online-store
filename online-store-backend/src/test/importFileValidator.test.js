@@ -56,6 +56,50 @@ describe('Import file validation', () => {
 });
 
 describe('Crawler product field mapping', () => {
+  it('uses configured initial stock for crawler products marked in stock', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-stock-config',
+      Name: 'Configured stock product',
+      SKU: 'SKU-STOCK-CONFIG',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'In Stock',
+      Categories: 'Mouse',
+      Attributes: '{}',
+      Description: 'Source description',
+      MainImage: 'https://example.com/main.jpg',
+      GalleryImages: [],
+      URL: 'https://example.com/stock-config',
+    };
+
+    const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
+
+    expect(normalized.countInStock).to.equal(25);
+  });
+
+  it('keeps crawler products marked out of stock at zero', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-out-of-stock',
+      Name: 'Out of stock product',
+      SKU: 'SKU-OUT-OF-STOCK',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'Out of Stock',
+      Categories: 'Mouse',
+      Attributes: '{}',
+      Description: 'Source description',
+      MainImage: 'https://example.com/main.jpg',
+      GalleryImages: [],
+      URL: 'https://example.com/out-of-stock',
+    };
+
+    const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
+
+    expect(normalized.countInStock).to.equal(0);
+  });
+
   it('maps the exact crawler schema without inventing category data', async () => {
     const rawProduct = {
       Brand: 'Razer',
