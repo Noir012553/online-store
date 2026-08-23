@@ -433,12 +433,12 @@ export function Footer() {
                 </div>
 
                 {/* Shipping Units Column */}
-                <div>
+                <div className="text-center">
                   <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
                     {t('shippingPartners', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card">
+                  <div className="laminated-card mx-auto">
                     <img
                       src="/assets/ghnLogo.png"
                       alt={t('ghn_icon_alt', 'footer')}
@@ -448,12 +448,12 @@ export function Footer() {
                 </div>
 
                 {/* Payment Methods Column */}
-                <div>
+                <div className="text-center">
                   <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
                     {t('paymentMethods', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card">
+                  <div className="laminated-card mx-auto">
                     <img
                       src="/assets/vnpay.png"
                       alt={t('vnpay_logo_alt', 'footer')}
@@ -463,12 +463,12 @@ export function Footer() {
                 </div>
 
                 {/* App Store Column */}
-                <div>
+                <div className="text-center">
                   <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
                     {t('downloadApp', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="flex flex-col gap-2 sm:gap-3">
+                  <div className="flex flex-col items-center gap-2 sm:gap-3">
                     <a
                       href="#"
                       target="_blank"
@@ -500,8 +500,8 @@ export function Footer() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-white/10 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs sm:text-sm">
-            <div className="text-gray-400 text-center md:text-left">
+          <div className="border-t border-white/10 pt-6 sm:pt-8 flex flex-col md:flex-row justify-center items-center gap-4 text-xs sm:text-sm">
+            <div className="text-gray-400 text-center">
               <p>{t('copyright', 'footer')}</p>
               <p>{t('madeWith', 'footer')}</p>
             </div>

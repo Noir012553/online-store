@@ -368,6 +368,7 @@ const importBatch = async ({ products, format, adminUser, dryRun }) => {
       mode: 'upsert',
       dryRun,
     },
+    seedOptions: { preserveExistingStock: true },
     user: { _id: adminUser._id },
     lang: getDefaultLanguage().code,
   }, response);
@@ -539,6 +540,7 @@ module.exports = {
   uploadProductImage,
   uploadProductImages,
   assignInitialHighlights,
+  getInitialStock,
   getProductDataDirectory,
   runScraper,
   runProductSeedPipeline,
