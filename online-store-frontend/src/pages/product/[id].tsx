@@ -187,7 +187,7 @@ export default function ProductDetail() {
         }
       } catch (err) {
         if (!isCurrentRequest()) return;
-        setError(t('error_load_product', 'products'));
+        setError(t('error_load_product', 'products', 'Unable to load this product.'));
         setLaptop(null);
       } finally {
         if (isCurrentRequest()) {

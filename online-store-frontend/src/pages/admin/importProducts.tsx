@@ -158,8 +158,9 @@ function ImportProductsContent() {
         // Auto-clear input
         e.target.value = '';
       } else {
-        toast.error(data.message);
-        setResult(data);
+        const message = getUserFriendlyErrorMessage({ code: data.code }, t);
+        toast.error(message);
+        setResult({ ...data, message });
       }
     } catch (err) {
       toast.error(getUserFriendlyErrorMessage(err, t));
@@ -231,9 +232,12 @@ function ImportProductsContent() {
       const data = await res.json();
 
       if (!data.success) {
-        toast.error(data.message);
+        const message = getUserFriendlyErrorMessage({ code: data.code }, t);
+        toast.error(message);
         if (data.errors?.length > 0) {
-          setResult({ errors: data.errors.slice(0, 10) });
+          setResult({ ...data, message, errors: data.errors.slice(0, 10) });
+        } else {
+          setResult({ ...data, message });
         }
       } else {
         toast.success(data.message);
@@ -242,8 +246,8 @@ function ImportProductsContent() {
           setFileData('');
         }
       }
-    } catch {
-      toast.error(t('error_save_data'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsLoading(false);
     }
@@ -462,13 +466,15 @@ function ImportProductsContent() {
                 {result.errors.map((err: any, i: number) => {
                   let errorText = '';
                   if (typeof err === 'string') {
-                    errorText = err;
+                    errorText = getUserFriendlyErrorMessage({ message: err }, t);
                   } else if (typeof err === 'object' && err !== null) {
                     // Handle error objects with name, brand, reason, etc.
                     const parts = [];
                     if (err.name) parts.push(`${t('admin_product_name')}: ${err.name}`);
                     if (err.brand) parts.push(`${t('admin_brand')}: ${err.brand}`);
-                    if (err.reason) parts.push(`${t('reason_label')} ${err.reason}`);
+                    if (err.reason) {
+                      parts.push(`${t('reason_label')} ${getUserFriendlyErrorMessage({ code: err.code, message: err.reason }, t)}`);
+                    }
                     if (parts.length === 0 && err.message) {
                       errorText = t('error_generic_fallback', 'common', 'An unexpected error occurred. Please try again.');
                     } else {
@@ -488,14 +494,14 @@ function ImportProductsContent() {
                 {result.warnings.map((warn: any, i: number) => {
                   let warnText = '';
                   if (typeof warn === 'string') {
-                    warnText = warn;
+                    warnText = getUserFriendlyErrorMessage({ message: warn }, t);
                   } else if (typeof warn === 'object' && warn !== null) {
                     const parts = [];
                     if (warn.name) parts.push(`${t('admin_product_name')}: ${warn.name}`);
                     if (warn.brand) parts.push(`${t('admin_brand')}: ${warn.brand}`);
                     if (warn.reason) parts.push(`${t('reason_label')} ${warn.reason}`);
                     if (parts.length === 0 && warn.message) {
-                      warnText = warn.message;
+                      warnText = getUserFriendlyErrorMessage({ code: warn.code, message: warn.message }, t);
                     } else {
                       warnText = parts.join(', ');
                     }

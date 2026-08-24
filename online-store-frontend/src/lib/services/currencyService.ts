@@ -2,6 +2,8 @@
  * Currency Service - Gọi API quản lý tiền tệ từ frontend
  */
 
+import type { Locale } from '../i18n/types';
+
 export interface Currency {
   _id: string;
   code: string;
@@ -44,12 +46,15 @@ class CurrencyService {
   /**
    * Lấy danh sách tất cả mệnh giá
    */
-  async fetchCurrencies(isActive?: boolean): Promise<Currency[]> {
+  async fetchCurrencies(isActive?: boolean, locale?: Locale): Promise<Currency[]> {
     try {
       let url = `${this.baseUrl}/currencies`;
       const params = new URLSearchParams();
       if (isActive !== undefined) {
         params.append('isActive', String(isActive));
+      }
+      if (locale) {
+        params.append('lang', locale);
       }
       const queryString = params.toString();
       if (queryString) {

@@ -21,7 +21,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     setIsLoadingCurrency(true);
-    currencyService.fetchCurrencies(true)
+    currencyService.fetchCurrencies(true, locale)
       .then((currencies) => {
         if (isMounted) setActiveCurrencies(currencies);
       })
@@ -35,7 +35,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [localeConfigs]);
+  }, [locale, localeConfigs]);
 
   const localeCurrencyCode = localeConfigs.find((item) => item.code === locale)?.currencyCode;
   const currency = activeCurrencies.find((item) => item.code === localeCurrencyCode);

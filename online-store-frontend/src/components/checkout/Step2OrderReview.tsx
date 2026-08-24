@@ -14,6 +14,7 @@ import { orderAPI } from '../../lib/api';
 import { User, MapPin, Truck, ShoppingCart, Clock, Phone, Mail, TicketPercent, CheckCircle2, Trash2 } from 'lucide-react';
 import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import { getIntlLocale } from '../../lib/localeUtils';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 function OrderItemName({ itemLaptop }: { itemLaptop: any }) {
   const { locale } = useLanguage();
@@ -94,7 +95,7 @@ export function Step2OrderReview() {
       toast.success(t('coupon_apply_success'));
     } catch (error: any) {
       setCheckoutSummary(null);
-      const message = error?.message || t('coupon_apply_error_fallback');
+      const message = getUserFriendlyErrorMessage(error, t) || t('coupon_apply_error_fallback', 'checkout', 'Unable to apply this coupon.');
       setCouponError(message);
     } finally {
       setIsCouponApplying(false);
