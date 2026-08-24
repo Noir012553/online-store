@@ -23,6 +23,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/router';
 import { getAuthToken } from "../../../lib/api";
 import { UI_EMOJI } from "../../../lib/uiEmoji";
+import { formatNumber } from "../../../lib/utils";
 import { useCategories } from "../../../lib/context/CategoryContext";
 
 interface ProductsListProps {
@@ -394,7 +395,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       </td>
                       <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         <div className="flex items-center gap-1 whitespace-nowrap">
-                          <span className="font-medium">{(product.rating || 0).toFixed(1)}</span>
+                          <span className="font-medium">{formatNumber(product.rating || 0, locale)}</span>
                           <span>{UI_EMOJI.featured}</span>
                           {product.numReviews > 0 && (
                             <span className="text-sm text-gray-500">({product.numReviews})</span>

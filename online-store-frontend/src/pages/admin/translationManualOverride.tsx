@@ -4,6 +4,7 @@ import { Save, X, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { UI_EMOJI } from '../../lib/uiEmoji';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, AVAILABLE_LOCALES, Locale } from '../../lib/i18n/types';
 
@@ -135,10 +136,10 @@ const TranslationManualOverride = () => {
         reason: '',
       });
       setShowPreview(false);
-    } catch (error: any) {
+    } catch (error) {
       setMessage({
         type: 'error',
-        text: error.message || t('admin_override_error', 'admin-translation-override'),
+        text: getUserFriendlyErrorMessage(error, t),
       });
     } finally {
       setSubmitting(false);

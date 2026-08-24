@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useTranslation } from '@/lib/i18n';
 import { UI_EMOJI } from '@/lib/uiEmoji';
 import { ImageViewer } from '../../../components/ImageViewer';
+import { getUserFriendlyErrorMessage } from '../../../lib/errorHandler';
 
 interface FormData {
   email: string;
@@ -72,8 +73,8 @@ function EditUserContent() {
           });
           setProfileImage(response.profileImage || null);
         }
-      } catch (error: any) {
-        toast.error(error.message || t('error_load_data'));
+      } catch (error) {
+        toast.error(getUserFriendlyErrorMessage(error, t));
       } finally {
         setIsLoading(false);
       }
@@ -105,8 +106,8 @@ function EditUserContent() {
         updateUserProfileImage(nextProfileImage);
       }
       toast.success(t('avatar_uploaded_success', 'common'));
-    } catch (error: any) {
-      toast.error(error.message || t('upload_failed', 'common'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       event.target.value = '';
     }
@@ -150,8 +151,8 @@ function EditUserContent() {
         username: response.user?.username || formData.username,
       });
       setSuccessDialog(true);
-    } catch (error: any) {
-      toast.error(error.message || t('error_update_user'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

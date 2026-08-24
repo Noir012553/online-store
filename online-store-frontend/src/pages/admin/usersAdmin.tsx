@@ -23,6 +23,7 @@ import { PermissionDenied } from "../../components/admin/PermissionDenied";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useTranslation } from '@/lib/i18n';
 import { ImageViewer } from '../../components/ImageViewer';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 interface User {
   _id: string;
@@ -144,8 +145,8 @@ function UsersAdminContent() {
       } else {
         fetchUsers();
       }
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     }
   };
 
@@ -159,8 +160,8 @@ function UsersAdminContent() {
       setDeletedCurrentPage(1);
       fetchDeletedUsers();
       fetchUsers();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     }
   };
 
@@ -173,8 +174,8 @@ function UsersAdminContent() {
       toast.success(t('user_deleted_permanently'));
       setDeletedCurrentPage(1);
       fetchDeletedUsers();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     }
   };
 

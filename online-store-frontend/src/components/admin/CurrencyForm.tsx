@@ -7,6 +7,7 @@ import currencyService, { Currency } from '../../lib/services/currencyService';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 interface CurrencyFormProps {
   currency?: Currency | null;
@@ -97,8 +98,8 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
       }
 
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || t('error_save_data', 'admin'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

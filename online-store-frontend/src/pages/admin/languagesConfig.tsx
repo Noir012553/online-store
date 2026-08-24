@@ -13,6 +13,7 @@ import { AddLanguageModal } from '../../components/admin/AddLanguageModal';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 interface Language {
   _id: string;
@@ -166,8 +167,8 @@ const LanguagesConfigContent = () => {
       setIsModalOpen(false);
       setSelectedLangCode('');
       fetchLanguages();
-    } catch (error: any) {
-      showMessage('error', error.message || t('admin_error_add_language', 'admin-translation'));
+    } catch (error) {
+      showMessage('error', getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsProcessing(false);
     }
@@ -199,8 +200,8 @@ const LanguagesConfigContent = () => {
       await fetchLanguages();
       setEditingLanguage(null);
       showMessage('success', t('admin_language_status_updated', 'admin-translation'));
-    } catch (error: any) {
-      showMessage('error', error.message);
+    } catch (error) {
+      showMessage('error', getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsProcessing(false);
     }
@@ -225,8 +226,8 @@ const LanguagesConfigContent = () => {
       await fetchLanguages();
       setDeletingLanguage(null);
       showMessage('success', data.message || t('admin_language_deleted', 'admin-translation'));
-    } catch (error: any) {
-      showMessage('error', error.message);
+    } catch (error) {
+      showMessage('error', getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsProcessing(false);
     }
@@ -255,8 +256,8 @@ const LanguagesConfigContent = () => {
       window.localStorage.setItem('laptopstore_language_config_updated', String(Date.now()));
       window.dispatchEvent(new Event('language-config-updated'));
       showMessage('success', t('admin_language_status_updated', 'admin-translation'));
-    } catch (error: any) {
-      showMessage('error', error.message);
+    } catch (error) {
+      showMessage('error', getUserFriendlyErrorMessage(error, t));
     }
   };
 

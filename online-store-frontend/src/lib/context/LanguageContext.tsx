@@ -18,7 +18,7 @@ import { fetchActiveLocaleConfig, type ActiveLocaleConfig } from '../services/lo
 interface LanguageContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => Promise<void>;
-  t: (keyPath: string, defaultNamespace?: Namespace) => string;
+  t: (keyPath: string, defaultNamespace?: Namespace, fallback?: string) => string;
   loadNamespace: (ns: Namespace) => Promise<void>;
   isLoadingNamespace: (ns: Namespace) => boolean;
   isChangingLocale: boolean;
@@ -347,7 +347,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   );
 
   const t = useCallback(
-    (keyPath: string, defaultNamespace: Namespace = 'common'): string => {
+    (keyPath: string, defaultNamespace: Namespace = 'common', fallback?: string): string => {
       const namespace = defaultNamespace;
       const cacheKey = `${locale}_${namespace}`;
       const commonCacheKey = `${locale}_common`;
@@ -401,8 +401,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         }
       }
 
-      // Return key as fallback if not found in any namespace or fallback
-      return keyPath;
+      return fallback ?? keyPath;
     },
     [locale, loadedTranslations, fallbackTranslations, loadingNamespaces]
   );

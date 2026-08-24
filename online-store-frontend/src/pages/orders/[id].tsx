@@ -10,7 +10,7 @@ import {
   Mail,
   AlertCircle,
 } from 'lucide-react';
-import { formatDate } from '../../lib/utils';
+import { formatCurrency, formatDate } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
@@ -271,8 +271,8 @@ export default function OrderDetailsPage() {
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm text-gray-600">{item.formattedPrice}</p>
-                    <p className="font-semibold text-red-600">{item.formattedLineTotal}</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(item.price, item.formattedPrice, locale, order.currencyCode)}</p>
+                    <p className="font-semibold text-red-600">{formatCurrency(item.lineTotal, item.formattedLineTotal, locale, order.currencyCode)}</p>
                   </div>
                 </div>
               ))}
@@ -289,7 +289,7 @@ export default function OrderDetailsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">{t('subtotal_label', 'orders')}:</span>
                 <span className="font-medium text-gray-900">
-                  {order.formattedItemsPrice}
+                  {formatCurrency(order.itemsPrice, order.formattedItemsPrice, locale, order.currencyCode)}
                 </span>
               </div>
               {order.shippingFee > 0 && (
@@ -298,7 +298,7 @@ export default function OrderDetailsPage() {
                     {t('shipping_fee_label', 'orders')}:
                   </span>
                   <span className="font-medium text-blue-600">
-                    {order.formattedShippingFee}
+                    {formatCurrency(order.shippingFee, order.formattedShippingFee, locale, order.currencyCode)}
                   </span>
                 </div>
               )}
@@ -306,14 +306,14 @@ export default function OrderDetailsPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">{t('tax_label', 'orders')}:</span>
                   <span className="font-medium text-gray-900">
-                    {order.formattedTaxPrice}
+                    {formatCurrency(order.taxPrice, order.formattedTaxPrice, locale, order.currencyCode)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between font-semibold text-lg border-t pt-3">
                 <span className="text-gray-900">{t('total_label', 'orders')}:</span>
                 <span className="text-red-600">
-                  {order.formattedTotalPrice}
+                  {formatCurrency(order.totalPrice, order.formattedTotalPrice, locale, order.currencyCode)}
                 </span>
               </div>
             </div>

@@ -26,7 +26,7 @@ import {
   onProductRestored,
   onProductUpdated,
 } from '../../lib/socket';
-import { formatDate } from '../../lib/utils';
+import { formatCurrency, formatDate, formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { UI_EMOJI } from '../../lib/uiEmoji';
 import { useCurrencyContext } from '../../lib/context/CurrencyContext';
@@ -1271,7 +1271,7 @@ function StatisticsContent() {
                         <p className="text-sm text-gray-500">{product.countInStock} {t('admin_statistics_inventory')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-red-600">{product.formattedPrice}</p>
+                        <p className="text-sm font-semibold text-red-600">{formatCurrency(product.price, product.formattedPrice, locale, product.baseCurrencyCode || targetCurrency)}</p>
                       </div>
                     </button>
                   ))}
@@ -1334,10 +1334,10 @@ function StatisticsContent() {
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-gray-900">{getProductName(product, locale)}</p>
-                        <p className="text-sm text-gray-500">{product.rating.toFixed(1)} ⭐ ({product.numReviews} {t('admin_statistics_reviews')})</p>
+                        <p className="text-sm text-gray-500">{formatNumber(product.rating, locale)} ⭐ ({product.numReviews} {t('admin_statistics_reviews')})</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-red-600">{product.formattedPrice}</p>
+                        <p className="text-sm font-semibold text-red-600">{formatCurrency(product.price, product.formattedPrice, locale, product.baseCurrencyCode || targetCurrency)}</p>
                       </div>
                     </button>
                   ))}

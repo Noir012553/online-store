@@ -8,8 +8,9 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ChevronRight, Package, Wallet, Calendar, AlertCircle, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { onPaymentSuccess, onOrderUpdated, offEvent } from '../lib/socket';
-import { formatDate } from '../lib/utils';
+import { formatCurrency, formatDate } from '../lib/utils';
 import { useTranslation } from '../lib/i18n';
+import { DEFAULT_LOCALE, type Locale } from '../lib/i18n/types';
 import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
 import { interpolateTranslation } from '../lib/translationInterpolate';
@@ -62,20 +63,22 @@ interface Order {
 
 interface OrderCardProps {
   order: Order;
+  currencyCode: string;
   isExpanded: boolean;
   onToggle: () => void;
   onViewDetails: (orderId: string) => void;
-  locale?: string;
+  locale?: Locale;
 }
 
 interface OrderItemRowProps {
   item: OrderItem;
   t?: (key: string, ns?: string) => string;
-  locale?: string;
+  locale?: Locale;
+  currencyCode?: string;
 }
 
 // Memoized Order Item Row Component
-const OrderItemRow = ({ item, t }: OrderItemRowProps & { t: (key: string, ns?: string) => string }) => (
+const OrderItemRow = ({ item, t, locale, currencyCode }: OrderItemRowProps & { t: (key: string, ns?: string) => string }) => (
   <div className="flex items-center gap-3 p-3 bg-white rounded border border-gray-200">
     <img
       src={item.image}
@@ -91,14 +94,14 @@ const OrderItemRow = ({ item, t }: OrderItemRowProps & { t: (key: string, ns?: s
     </div>
     <div className="text-right shrink-0">
       <p className="font-semibold text-red-600">
-        {item.formattedLineTotal}
+        {formatCurrency(item.lineTotal, item.formattedLineTotal, locale ?? DEFAULT_LOCALE, currencyCode ?? 'VND')}
       </p>
     </div>
   </div>
 );
 
 // Memoized Order Card Component - extracted to avoid re-renders
-const OrderCard = ({ order, isExpanded, onToggle, onViewDetails, locale, t, getDeliveryStatusBadgeColor, getDeliveryStatusText, getPaymentStatusBadgeColor, getPaymentStatusText, getPaymentMethodLabel }: OrderCardProps & { t: (key: string, ns?: string) => string; getDeliveryStatusBadgeColor: (isDelivered: boolean) => string; getDeliveryStatusText: (isDelivered: boolean) => string; getPaymentStatusBadgeColor: (isPaid: boolean) => string; getPaymentStatusText: (isPaid: boolean, paymentMethod?: string) => string; getPaymentMethodLabel: (method?: string) => string }) => {
+const OrderCard = ({ order, currencyCode, isExpanded, onToggle, onViewDetails, locale, t, getDeliveryStatusBadgeColor, getDeliveryStatusText, getPaymentStatusBadgeColor, getPaymentStatusText, getPaymentMethodLabel }: OrderCardProps & { t: (key: string, ns?: string) => string; getDeliveryStatusBadgeColor: (isDelivered: boolean) => string; getDeliveryStatusText: (isDelivered: boolean) => string; getPaymentStatusBadgeColor: (isPaid: boolean) => string; getPaymentStatusText: (isPaid: boolean, paymentMethod?: string) => string; getPaymentMethodLabel: (method?: string) => string }) => {
   const itemCount = useMemo(() =>
     order.orderItems.reduce((sum, item) => sum + item.qty, 0),
     [order.orderItems]
@@ -132,7 +135,7 @@ const OrderCard = ({ order, isExpanded, onToggle, onViewDetails, locale, t, getD
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <Wallet className="w-4 h-4 shrink-0" />
-                <span className="font-semibold text-red-600">{order.formattedTotalPrice}</span>
+                <span className="font-semibold text-red-600">{formatCurrency(order.totalPrice, order.formattedTotalPrice, locale ?? DEFAULT_LOCALE, order.currencyCode || currencyCode)}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <Package className="w-4 h-4 shrink-0" />
@@ -157,7 +160,7 @@ const OrderCard = ({ order, isExpanded, onToggle, onViewDetails, locale, t, getD
             <h4 className="font-semibold text-gray-900 mb-3">{t('products_title', 'orders')}</h4>
             <div className="space-y-2">
               {order.orderItems.map((item, index) => (
-                <OrderItemRow key={index} item={item} t={t} />
+                <OrderItemRow key={index} item={item} t={t} locale={locale} currencyCode={order.currencyCode || currencyCode} />
               ))}
             </div>
           </div>
@@ -169,23 +172,23 @@ const OrderCard = ({ order, isExpanded, onToggle, onViewDetails, locale, t, getD
               <div className="divide-y divide-gray-200">
                 <div className="flex justify-between p-3 text-sm">
                   <span className="text-gray-700">{t('subtotal_label', 'orders')}:</span>
-                  <span className="font-medium text-gray-900">{order.formattedItemsPrice}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(order.itemsPrice, order.formattedItemsPrice, locale ?? DEFAULT_LOCALE, order.currencyCode || currencyCode)}</span>
                 </div>
                 {order.shippingFee > 0 && (
                   <div className="flex justify-between p-3 text-sm bg-blue-50">
                     <span className="text-gray-700">{t('shipping_fee_label', 'orders')}:</span>
-                    <span className="font-medium text-blue-600">{order.formattedShippingFee}</span>
+                    <span className="font-medium text-blue-600">{formatCurrency(order.shippingFee, order.formattedShippingFee, locale ?? DEFAULT_LOCALE, order.currencyCode || currencyCode)}</span>
                   </div>
                 )}
                 {order.taxPrice > 0 && (
                   <div className="flex justify-between p-3 text-sm">
                     <span className="text-gray-700">{t('tax_label', 'orders')}:</span>
-                    <span className="font-medium text-gray-900">{order.formattedTaxPrice}</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(order.taxPrice, order.formattedTaxPrice, locale ?? DEFAULT_LOCALE, order.currencyCode || currencyCode)}</span>
                   </div>
                 )}
                 <div className="flex justify-between p-3 font-semibold bg-linear-to-r from-red-50 to-orange-50">
                   <span className="text-gray-900">{t('total_label', 'orders')}:</span>
-                  <span className="text-red-600 text-lg">{order.formattedTotalPrice}</span>
+                  <span className="text-red-600 text-lg">{formatCurrency(order.totalPrice, order.formattedTotalPrice, locale ?? DEFAULT_LOCALE, order.currencyCode || currencyCode)}</span>
                 </div>
               </div>
             </div>
@@ -443,6 +446,7 @@ export default function MyOrders() {
             {orders.map((order) => (
               <OrderCard key={order._id}
                 order={order}
+                currencyCode={currencyCode}
                 isExpanded={expandedOrderId === order._id}
                 onToggle={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
                 onViewDetails={(orderId: string) => router.push(`/orders/${orderId}`)}

@@ -22,6 +22,7 @@ import { BannerSlot } from "../../components/BannerSlot";
 import { ImageViewer } from "../../components/ImageViewer";
 import { toast } from "sonner";
 import { getImageUrl, isLoginPath } from "../../lib/utils";
+import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 
@@ -241,11 +242,7 @@ export default function ProductDetail() {
       // Refresh reviews and total count
       await handleSubmitReviewSuccess();
     } catch (error) {
-      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-      const message = error instanceof Error && code !== 'REVIEW_CREATION_FAILED'
-        ? error.message
-        : t('review_error', 'products');
-      toast.error(message);
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmittingReview(false);
     }

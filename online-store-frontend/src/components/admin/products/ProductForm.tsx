@@ -429,10 +429,10 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
             </div>
             <div className="space-y-2">
               <Label htmlFor="product-base-currency" className="text-sm font-medium">
-                Currency gốc <span className="text-red-500">*</span>
+                {t('admin_currency_label', 'admin', 'Base currency')} <span className="text-red-500">*</span>
               </Label>
               <select id="product-base-currency" value={product.baseCurrencyCode || ""} onChange={(event) => setProduct({ ...product, baseCurrencyCode: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
-                <option value="" disabled>Chọn currency</option>
+                <option value="" disabled>{t('admin_select_currency', 'admin', 'Select currency')}</option>
                 {activeCurrencies.map((currency) => (
                   <option key={currency.code} value={currency.code}>
                     {currency.code} ({currency.symbol})

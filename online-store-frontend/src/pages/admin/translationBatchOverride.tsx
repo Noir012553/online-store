@@ -5,6 +5,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types'
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { UI_EMOJI } from '../../lib/uiEmoji';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
@@ -271,10 +272,10 @@ const TranslationBatchOverride = () => {
         type: 'success',
         text: t('admin_batch_process_success', 'admin-translation-batch'),
       });
-    } catch (error: any) {
+    } catch (error) {
       setMessage({
         type: 'error',
-        text: error.message || t('admin_batch_process_error', 'admin-translation-batch'),
+        text: getUserFriendlyErrorMessage(error, t),
       });
     } finally {
       setProcessing(false);

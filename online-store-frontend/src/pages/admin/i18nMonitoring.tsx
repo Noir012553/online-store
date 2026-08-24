@@ -3,6 +3,9 @@ import { RefreshCw, AlertCircle, CheckCircle, TrendingUp, TrendingDown, Activity
 import { useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
+import { formatNumber } from '../../lib/utils';
+import { getIntlLocale } from '../../lib/localeUtils';
 
 interface HealthMetrics {
   timestamp: string;
@@ -97,13 +100,13 @@ const I18nMonitoringContent = () => {
       });
 
       setLoading(false);
-    } catch (error: any) {
+    } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error(t('error_fetching_health_data', 'admin-errors'), error);
       }
       setMessage({
         type: 'error',
-        text: error.message || t('admin_monitoring_fetch_error'),
+        text: getUserFriendlyErrorMessage(error, t),
       });
       setLoading(false);
     }
@@ -214,7 +217,11 @@ const I18nMonitoringContent = () => {
             </div>
           </div>
           <div className="monitoring-status-time">
-            <small>{new Date(health.metrics.timestamp).toLocaleTimeString()}</small>
+            <small>{new Intl.DateTimeFormat(getIntlLocale(locale), {
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+            }).format(new Date(health.metrics.timestamp))}</small>
           </div>
         </div>
       </div>
@@ -231,7 +238,7 @@ const I18nMonitoringContent = () => {
             )}
           </div>
           <div className="monitoring-metric-value">
-            {health.metrics.errorRate.toFixed(2)}%
+            {formatNumber(health.metrics.errorRate, locale, 2)}%
           </div>
           <div className={`monitoring-metric-status ${health.metrics.errorRate > 5 ? 'critical' : health.metrics.errorRate > 1 ? 'warning' : 'healthy'}`}>
             {health.metrics.errorRate > 5
@@ -261,7 +268,7 @@ const I18nMonitoringContent = () => {
             )}
           </div>
           <div className="monitoring-metric-value">
-            {health.metrics.cacheHitRate.toFixed(2)}%
+            {formatNumber(health.metrics.cacheHitRate, locale, 2)}%
           </div>
           <div className={`monitoring-metric-status ${health.metrics.cacheHitRate < 80 ? 'critical' : health.metrics.cacheHitRate < 90 ? 'warning' : 'healthy'}`}>
             {health.metrics.cacheHitRate < 80
@@ -291,7 +298,7 @@ const I18nMonitoringContent = () => {
             )}
           </div>
           <div className="monitoring-metric-value">
-            {health.metrics.apiLatency.toFixed(0)}ms
+            {formatNumber(health.metrics.apiLatency, locale, 0)}ms
           </div>
           <div className={`monitoring-metric-status ${health.metrics.apiLatency > 2000 ? 'critical' : health.metrics.apiLatency > 1000 ? 'warning' : 'healthy'}`}>
             {health.metrics.apiLatency > 2000
@@ -347,7 +354,7 @@ const I18nMonitoringContent = () => {
             )}
           </div>
           <div className="monitoring-metric-value">
-            {health.metrics.databaseLatency.toFixed(0)}ms
+            {formatNumber(health.metrics.databaseLatency, locale, 0)}ms
           </div>
           <div className={`monitoring-metric-status ${health.metrics.databaseLatency > 500 ? 'critical' : health.metrics.databaseLatency > 200 ? 'warning' : 'healthy'}`}>
             {health.metrics.databaseLatency > 500
@@ -373,7 +380,7 @@ const I18nMonitoringContent = () => {
             <h3>{t('admin_monitoring_memory_usage')}</h3>
           </div>
           <div className="monitoring-metric-value">
-            {health.metrics.memoryUsage.toFixed(0)}MB
+            {formatNumber(health.metrics.memoryUsage, locale, 0)}MB
           </div>
           <div className={`monitoring-metric-status ${health.metrics.memoryUsage > 1024 ? 'critical' : health.metrics.memoryUsage > 512 ? 'warning' : 'healthy'}`}>
             {health.metrics.memoryUsage > 1024

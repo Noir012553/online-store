@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from '@/lib/i18n';
 import { UI_EMOJI } from '@/lib/uiEmoji';
+import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 interface FormData {
   email: string;
@@ -98,8 +99,8 @@ function CreateUserContent() {
         username: response.user?.username || formData.username,
       });
       setSuccessDialog(true);
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

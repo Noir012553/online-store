@@ -6,6 +6,7 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { apiCall, getAuthToken } from '../../lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { UI_EMOJI } from '@/lib/uiEmoji';
+import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 export const getServerSideProps = async () => {
   return {
@@ -160,8 +161,8 @@ function ImportProductsContent() {
         toast.error(data.message);
         setResult(data);
       }
-    } catch (err: any) {
-      toast.error(err.message || t('error_save_data'));
+    } catch (err) {
+      toast.error(getUserFriendlyErrorMessage(err, t));
     } finally {
       setIsLoading(false);
     }
@@ -469,7 +470,7 @@ function ImportProductsContent() {
                     if (err.brand) parts.push(`${t('admin_brand')}: ${err.brand}`);
                     if (err.reason) parts.push(`${t('reason_label')} ${err.reason}`);
                     if (parts.length === 0 && err.message) {
-                      errorText = err.message;
+                      errorText = t('error_generic_fallback', 'common', 'An unexpected error occurred. Please try again.');
                     } else {
                       errorText = parts.join(', ');
                     }
