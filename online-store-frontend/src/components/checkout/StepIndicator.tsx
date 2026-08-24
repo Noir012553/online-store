@@ -11,25 +11,25 @@ interface StepIndicatorProps {
 export function StepIndicator({ currentStep, totalSteps = 4 }: StepIndicatorProps) {
   const { t } = useTranslation();
 
-  const stepsMap: Record<number, Array<{ number: number; titleKey: string; descriptionKey: string }>> = {
+  const stepsMap: Record<number, Array<{ number: number; titleKey: string; titleFallback: string; descriptionKey: string; descriptionFallback: string }>> = {
     3: [
-      { number: 1, titleKey: 'step_cart', descriptionKey: 'customer_info_title' },
-      { number: 2, titleKey: 'step_shipping', descriptionKey: 'shipping_address_title' },
-      { number: 3, titleKey: 'step_payment', descriptionKey: 'payment_method_select' },
+      { number: 1, titleKey: 'step_cart', titleFallback: 'Giỏ hàng', descriptionKey: 'customer_info_title', descriptionFallback: 'Thông tin khách hàng' },
+      { number: 2, titleKey: 'step_shipping', titleFallback: 'Vận chuyển', descriptionKey: 'shipping_address_title', descriptionFallback: 'Địa chỉ giao hàng' },
+      { number: 3, titleKey: 'step_payment', titleFallback: 'Thanh toán', descriptionKey: 'payment_method_select', descriptionFallback: 'Chọn phương thức thanh toán' },
     ],
     4: [
-      { number: 1, titleKey: 'step_cart', descriptionKey: 'customer_info_title' },
-      { number: 2, titleKey: 'step_shipping', descriptionKey: 'shipping_address_title' },
-      { number: 3, titleKey: 'step_payment', descriptionKey: 'payment_method_select' },
-      { number: 4, titleKey: 'step_complete', descriptionKey: 'order_confirm' },
+      { number: 1, titleKey: 'step_cart', titleFallback: 'Giỏ hàng', descriptionKey: 'customer_info_title', descriptionFallback: 'Thông tin khách hàng' },
+      { number: 2, titleKey: 'step_shipping', titleFallback: 'Vận chuyển', descriptionKey: 'shipping_address_title', descriptionFallback: 'Địa chỉ giao hàng' },
+      { number: 3, titleKey: 'step_payment', titleFallback: 'Thanh toán', descriptionKey: 'payment_method_select', descriptionFallback: 'Chọn phương thức thanh toán' },
+      { number: 4, titleKey: 'step_complete', titleFallback: 'Hoàn tất', descriptionKey: 'order_confirm', descriptionFallback: 'Xác nhận đơn hàng' },
     ],
   };
 
   const stepsData = stepsMap[totalSteps] || stepsMap[3];
   const steps = stepsData.map(step => ({
     ...step,
-    title: t(step.titleKey),
-    description: t(step.descriptionKey),
+    title: t(step.titleKey, 'checkout', step.titleFallback),
+    description: t(step.descriptionKey, 'checkout', step.descriptionFallback),
   }));
 
   return (

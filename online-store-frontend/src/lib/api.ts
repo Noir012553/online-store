@@ -15,7 +15,7 @@
 import { BACKEND_URL, API_BASE_PATH } from '../config';
 import { handleApiError } from './errorHandler';
 import { productAdapter } from './adapters';
-import { DEFAULT_LOCALE, type Locale } from './i18n/types';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './i18n/types';
 
 // Export BACKEND_URL for use in other files (e.g., image URL construction)
 export { BACKEND_URL };
@@ -26,7 +26,10 @@ function getCurrentLang(): Locale {
   if (typeof window === 'undefined') return DEFAULT_LOCALE;
   try {
     const stored = localStorage.getItem('laptopstore_lang');
-    return (stored as Locale) || DEFAULT_LOCALE;
+    const normalized = stored?.toLowerCase().split('-')[0];
+    return normalized && SUPPORTED_LOCALES.includes(normalized as Locale)
+      ? normalized as Locale
+      : DEFAULT_LOCALE;
   } catch {
     return DEFAULT_LOCALE;
   }
@@ -910,6 +913,7 @@ export const productTranslationAPI = {
     records: Array<Record<string, unknown>>;
     idempotencyKey: string;
     replaceManualTranslations?: boolean;
+    dryRun?: boolean;
   }) => apiCall('/translations/admin/products/import', {
     method: 'POST',
     body: JSON.stringify(payload),

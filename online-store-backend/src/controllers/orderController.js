@@ -11,7 +11,6 @@ const Currency = require('../models/Currency');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { broadcastNewOrder, broadcastOrderStatusUpdate, broadcastOrderDeleted, broadcastOrderRestored } = require('../socket/socketHandler');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage } = require('../config/languageInventory');
 const { convertOrderAmount, getReportingCurrency } = require('../utils/orderRevenue');
 const { calculateSelectedShipping } = require('../services/shippingService');
 const { formatOrders, formatCheckoutSummary, formatReportingOrders } = require('../utils/currencyResponseFormatter');
@@ -647,41 +646,6 @@ const getOrderById = asyncHandler(async (req, res) => {
       throw new Error(getMessage(lang, 'order.notAuthorized'));
     }
 
-    // Apply translations to orderItems for the requested language
-    const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-
-    const productIds = new Set();
-    if (order.orderItems && Array.isArray(order.orderItems)) {
-      order.orderItems.forEach(item => {
-        if (item.product) {
-          productIds.add(item.product.toString());
-        }
-      });
-    }
-
-    let translationMap = {};
-    if (productIds.size > 0) {
-      const translations = await ProductCatalogTranslationCache.find({
-        entityId: { $in: Array.from(productIds) },
-        targetLang: lang
-      }).lean();
-
-      translations.forEach(t => {
-        translationMap[t.entityId] = t;
-      });
-    }
-
-    order = {
-      ...order.toObject ? order.toObject() : order,
-      orderItems: (order.orderItems || []).map(item => {
-        const translation = translationMap[item.product?.toString()];
-        return {
-          ...(item.toObject ? item.toObject() : item),
-          name: (translation && translation.name) ? translation.name : item.name
-        };
-      })
-    };
-
     res.json((await formatOrderResponse([order], req))[0]);
   } else {
     res.status(404);
@@ -699,7 +663,6 @@ const getOrderById = asyncHandler(async (req, res) => {
  * sẽ match orders theo customer email của user
  */
 const getMyOrders = asyncHandler(async (req, res) => {
-  const lang = req.lang;
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
 
@@ -802,48 +765,6 @@ const getMyOrders = asyncHandler(async (req, res) => {
     }
   }
 
-  // Apply translations to orderItems if lang is not default language
-  const defaultLang_order = getDefaultLanguage().code;
-  if (lang !== defaultLang_order) {
-    const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-
-    // Collect all product IDs from all orders
-    const productIds = new Set();
-    orders.forEach(order => {
-      if (order.orderItems && Array.isArray(order.orderItems)) {
-        order.orderItems.forEach(item => {
-          if (item.product) {
-            productIds.add(item.product.toString());
-          }
-        });
-      }
-    });
-
-    // Fetch translations if there are product IDs
-    let translationMap = {};
-    if (productIds.size > 0) {
-      const translations = await ProductCatalogTranslationCache.find({
-        entityId: { $in: Array.from(productIds) },
-        targetLang: lang
-      }).lean();
-
-      translations.forEach(t => {
-        translationMap[t.entityId] = t;
-      });
-    }
-
-    // Apply translations to orders
-    orders = orders.map(order => ({
-      ...order.toObject ? order.toObject() : order,
-      orderItems: (order.orderItems || []).map(item => {
-        const translation = translationMap[item.product?.toString()];
-        return {
-          ...(item.toObject ? item.toObject() : item),
-          name: (translation && translation.name) ? translation.name : item.name
-        };
-      })
-    }));
-  }
 
   const formattedOrders = await formatOrderResponse(orders, req);
   const totalsByCurrency = orders.reduce((totals, order) => {
@@ -882,7 +803,6 @@ const getMyOrders = asyncHandler(async (req, res) => {
 const getOrders = asyncHandler(async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
-  const lang = req.lang;
 
   const count = await withTimeout(Order.countDocuments({ isDeleted: false }), 8000);
   let orders = await withTimeout(
@@ -903,48 +823,6 @@ const getOrders = asyncHandler(async (req, res) => {
     8000
   );
 
-  // Apply translations to orderItems if lang is not default language
-  const defaultLang_order = getDefaultLanguage().code;
-  if (lang !== defaultLang_order) {
-    const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-
-    // Collect all product IDs from all orders
-    const productIds = new Set();
-    orders.forEach(order => {
-      if (order.orderItems && Array.isArray(order.orderItems)) {
-        order.orderItems.forEach(item => {
-          if (item.product) {
-            productIds.add(item.product.toString());
-          }
-        });
-      }
-    });
-
-    // Fetch translations if there are product IDs
-    let translationMap = {};
-    if (productIds.size > 0) {
-      const translations = await ProductCatalogTranslationCache.find({
-        entityId: { $in: Array.from(productIds) },
-        targetLang: lang
-      }).lean();
-
-      translations.forEach(t => {
-        translationMap[t.entityId] = t;
-      });
-    }
-
-    // Apply translations to orders
-    orders = orders.map(order => ({
-      ...order.toObject ? order.toObject() : order,
-      orderItems: (order.orderItems || []).map(item => {
-        const translation = translationMap[item.product?.toString()];
-        return {
-          ...(item.toObject ? item.toObject() : item),
-          name: (translation && translation.name) ? translation.name : item.name
-        };
-      })
-    }));
-  }
 
   res.json({
     orders: await formatOrderResponse(orders, req),
@@ -1044,7 +922,6 @@ const restoreOrder = asyncHandler(async (req, res) => {
 const getDeletedOrders = asyncHandler(async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
-  const lang = req.lang;
 
   const count = await withTimeout(Order.countDocuments({ isDeleted: true }), 8000);
   let orders = await withTimeout(
@@ -1064,46 +941,6 @@ const getDeletedOrders = asyncHandler(async (req, res) => {
       .skip(pageSize * (page - 1)),
     8000
   );
-
-  // Apply translations to orderItems if lang is not default language
-  const defaultLang_order = getDefaultLanguage().code;
-  if (lang !== defaultLang_order) {
-    const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-
-    const productIds = new Set();
-    orders.forEach(order => {
-      if (order.orderItems && Array.isArray(order.orderItems)) {
-        order.orderItems.forEach(item => {
-          if (item.product) {
-            productIds.add(item.product.toString());
-          }
-        });
-      }
-    });
-
-    let translationMap = {};
-    if (productIds.size > 0) {
-      const translations = await ProductCatalogTranslationCache.find({
-        entityId: { $in: Array.from(productIds) },
-        targetLang: lang
-      }).lean();
-
-      translations.forEach(t => {
-        translationMap[t.entityId] = t;
-      });
-    }
-
-    orders = orders.map(order => ({
-      ...order.toObject ? order.toObject() : order,
-      orderItems: (order.orderItems || []).map(item => {
-        const translation = translationMap[item.product?.toString()];
-        return {
-          ...(item.toObject ? item.toObject() : item),
-          name: (translation && translation.name) ? translation.name : item.name
-        };
-      })
-    }));
-  }
 
   res.json({
     orders: await formatOrderResponse(orders, req),
