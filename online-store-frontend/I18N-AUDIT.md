@@ -127,6 +127,58 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 - [ ] Kiểm tra contract snapshot tên sản phẩm trong order: giữ tên tại thời điểm đặt hàng hay thay đổi theo locale hiện tại.
 - [ ] Rà soát các chuỗi message chủ động trả từ API/CMS để phân biệt dữ liệu domain hợp lệ với UI message cần dịch.
 
+## Đề xuất export/import sản phẩm kèm bản dịch
+
+### Hiện trạng
+
+- Giao diện export sản phẩm hiện tải một file `products.json` hoặc `products.csv`.
+- Giao diện import sản phẩm nhận JSON/CSV sản phẩm gốc.
+- Bản dịch sản phẩm được lưu riêng trong `ProductCatalogTranslationCache` và có endpoint export/import riêng ở translation routes.
+- Chưa có bước gộp hai nguồn dữ liệu thành một file ZIP từ giao diện.
+
+### Luồng export đề xuất
+
+Khi admin hoặc super-admin chọn **Export kèm bản dịch**, backend nên tạo response `application/zip` dạng stream thay vì trả về một thư mục:
+
+```text
+products-export-<timestamp>.zip
+├── manifest.json
+├── products.json
+└── product-translations.json
+```
+
+- `products.json`: dữ liệu sản phẩm gốc gồm SKU, tên nguồn, brand, giá, currency, tồn kho, category, ảnh, specs, trạng thái và các field domain khác.
+- `product-translations.json`: chỉ chứa các record bản dịch thực sự tồn tại, theo `productId`, `targetLang` và các field đã dịch.
+- `manifest.json`: version format, thời điểm export, số sản phẩm, danh sách locale có dữ liệu và tên các file trong gói.
+- Có thể thay `products.json` bằng `products.csv` nếu admin chọn CSV; bản dịch vẫn nên giữ JSON vì có cấu trúc nhiều locale và nhiều field.
+- Backend nên stream ZIP trực tiếp qua response để không phải tạo thư mục tạm hoặc giữ toàn bộ file trong memory. Có thể dùng thư viện ZIP streaming như `archiver`.
+
+### Locale và field không đầy đủ
+
+- Không yêu cầu sản phẩm phải có đủ tất cả locale đang active.
+- Nếu sản phẩm chỉ có `en` và `ja`, `product-translations.json` chỉ chứa hai locale đó; không tạo record rỗng cho các locale còn thiếu.
+- Sản phẩm chưa có bản dịch vẫn phải xuất hiện trong `products.json`.
+- Bản dịch thiếu một số field vẫn hợp lệ; chỉ export các field thực sự có giá trị.
+- Các field không mang tính ngôn ngữ như giá, currency, tồn kho, SKU, category ID, ảnh, discount và specs domain vẫn nằm trong file sản phẩm gốc, không phụ thuộc translation cache.
+- Các field dịch sản phẩm hiện tại gồm `name`, `description`, `brand` và `specs`; không dùng bản dịch để thay thế giá trị nguồn.
+
+### Luồng import ZIP đề xuất
+
+1. Kiểm tra `manifest.json`, giới hạn kích thước và chỉ chấp nhận các file có trong manifest.
+2. Import/upsert sản phẩm gốc trước.
+3. Đối chiếu `productId` trong `product-translations.json` với sản phẩm đã import.
+4. Import các translation record hợp lệ theo từng `targetLang`; không bắt buộc đủ locale hoặc đủ field.
+5. Nếu import sản phẩm mới sang database khác, cần cơ chế mapping bằng SKU hoặc `sourceProductId`, vì `productId` MongoDB có thể thay đổi.
+6. Nếu không có `product-translations.json`, ZIP vẫn được chấp nhận như gói sản phẩm gốc.
+
+### Quy tắc quyền và tương thích
+
+- Chỉ `admin` và `super-admin` được export/import gói ZIP.
+- Export không lọc bỏ sản phẩm dựa trên trạng thái bản dịch.
+- Import sản phẩm gốc không được thất bại chỉ vì thiếu bản dịch.
+- Import/export JSON/CSV hiện tại vẫn phải giữ nguyên để tương thích ngược; ZIP là tùy chọn **kèm bản dịch**.
+- Đây là yêu cầu thiết kế, chưa triển khai code.
+
 ### Kiểm tra đã thực hiện
 
 - [x] `npx tsc --noEmit` đạt sau các thay đổi.
