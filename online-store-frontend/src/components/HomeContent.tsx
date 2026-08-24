@@ -119,7 +119,7 @@ const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
   if (/keyboard|bàn phím|teclado|clavier|tastatur|tangentbord/.test(categoryText)) return 'Keyboard';
   if (/mouse|chuột|souris|maus|mus/.test(categoryText)) return 'Mouse';
   if (/headphones?|tai nghe|casque|kopfhörer|hörlurar/.test(categoryText)) return 'Headphone';
-  if (/gaming laptop|laptop gaming|gaming-laptop|laptop chơi game/.test(categoryText)) return 'Gamepad2';
+  if (/gaming laptop|laptop gaming|gaming-laptop|laptop chơi game/.test(categoryText)) return 'Laptop';
   if (/office laptop|laptop office|laptop văn phòng|laptop bureau|office-laptop/.test(categoryText)) return 'LaptopMinimal';
   if (/audio|âm thanh|loa/.test(categoryText)) return 'Volume2';
   if (/gaming monitor|màn hình gaming/.test(categoryText)) return 'MonitorPlay';
