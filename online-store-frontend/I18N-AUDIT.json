@@ -1,0 +1,260 @@
+{
+  "report": {
+    "title": "Frontend i18n audit and optimization plan",
+    "language": "vi",
+    "scope": [
+      "Static UI strings and accessibility text",
+      "Dynamic product, category, brand, review and order data",
+      "Translation namespaces, fallback behavior and locale formatting",
+      "Storefront and admin routes"
+    ],
+    "generatedAt": "2026-08-06",
+    "existingReportContext": {
+      "file": "online-store-backend/src/i18n/key-consistency-report.json",
+      "result": "Locale JSON files are structurally consistent across 9 languages.",
+      "limitation": "That report does not validate frontend key usage, runtime namespace loading, hard-coded JSX text, accessibility labels or dynamic API data."
+    }
+  },
+  "architectureFindings": [
+    {
+      "id": "ARCH-001",
+      "severity": "medium",
+      "status": "observed",
+      "problem": "Translation values are not centralized in the frontend. Static values are split across backend locale files by language and namespace.",
+      "evidence": [
+        "online-store-backend/src/locales/vi/common.json",
+        "online-store-backend/src/locales/vi/products.json",
+        "online-store-backend/src/locales/vi/admin-common.json",
+        "online-store-backend/src/locales/en/common.json",
+        "online-store-backend/src/locales/en/products.json"
+      ],
+      "impact": "The split supports lazy loading, but makes key discovery, duplicate detection and cross-locale review harder.",
+      "optimization": "Keep locale and namespace files as the runtime source, then generate one machine-readable manifest and validate all namespaces in CI. Do not merge every namespace into one runtime bundle."
+    },
+    {
+      "id": "ARCH-002",
+      "severity": "medium",
+      "status": "observed",
+      "problem": "Translation keys are referenced throughout TSX files rather than being discoverable from a single typed registry.",
+      "evidence": [
+        "online-store-frontend/src/components/Header.tsx",
+        "online-store-frontend/src/components/HomeContent.tsx",
+        "online-store-frontend/src/components/ProductCard.tsx",
+        "online-store-frontend/src/pages/*.tsx"
+      ],
+      "impact": "It is easy to introduce a missing key, an incorrect namespace or a key collision without a build-time error.",
+      "optimization": "Extract t(...) usages into a report, validate each key against the selected namespace files, and standardize calls to t(key, namespace)."
+    },
+    {
+      "id": "ARCH-003",
+      "severity": "medium",
+      "status": "observed",
+      "problem": "The frontend messages module is empty and deprecated.",
+      "evidence": [
+        "online-store-frontend/src/lib/i18n/messages.ts:2-19"
+      ],
+      "impact": "There is no local typed fallback catalog when the translation API and IndexedDB cache are unavailable.",
+      "optimization": "Generate a small fallback catalog from the default locale during build, or make the backend fallback endpoint the explicit single fallback source. Avoid maintaining a second hand-written catalog."
+    },
+    {
+      "id": "ARCH-004",
+      "severity": "medium",
+      "status": "observed",
+      "problem": "Static labels, spec labels and dynamic entity translations are stored in different systems.",
+      "evidence": [
+        "online-store-backend/src/i18n/fallbackTranslations.json",
+        "online-store-backend/src/data/specKeyTranslations.json",
+        "online-store-backend/src/locales/vi/*.json",
+        "online-store-frontend/src/hooks/useProductTranslation.ts",
+        "online-store-frontend/src/hooks/useReviewTranslation.ts"
+      ],
+      "impact": "The same label can have different fallback behavior and validation rules depending on which translation path renders it.",
+      "optimization": "Define a translation ownership matrix: static UI in locale namespaces, specification keys in one shared catalog, and product/review content in dynamic translation storage. Expose consistent APIs and fallback rules for all three."
+    }
+  ],
+  "issues": [
+    {
+      "id": "I18N-001",
+      "severity": "high",
+      "area": "product-detail",
+      "problem": "Product specification labels can render raw keys such as processor, ram or screenSize.",
+      "evidence": [
+        "online-store-frontend/src/components/SpecsTable.tsx:20-27",
+        "online-store-frontend/src/components/product/ProductInformationTabs.tsx:52-54",
+        "online-store-frontend/src/pages/product/[id].tsx:300-302"
+      ],
+      "rootCause": "specLabels is prepared by the product page but SpecsTable receives only specs.",
+      "impact": "Translated specification labels are ignored in the full specification tab.",
+      "recommendedFix": "Pass specLabels to SpecsTable and resolve each key through specLabels before using the canonical key as fallback."
+    },
+    {
+      "id": "I18N-002",
+      "severity": "high",
+      "area": "admin",
+      "problem": "Visible English strings remain hard-coded in the coupon form and admin loading wrappers.",
+      "evidence": [
+        "online-store-frontend/src/components/admin/CouponManagementPage.tsx:818-820",
+        "online-store-frontend/src/pages/admin/orders/[id]/index.tsx:15-17"
+      ],
+      "relatedAreas": [
+        "admin customer detail wrapper",
+        "admin customer edit wrapper",
+        "admin coupon edit wrapper"
+      ],
+      "recommendedFix": "Replace Currency, Select currency and Loading... with namespaced translation keys."
+    },
+    {
+      "id": "I18N-003",
+      "severity": "high",
+      "area": "errors-and-toasts",
+      "problem": "Some routes display err.message directly.",
+      "evidence": [
+        "online-store-frontend/src/pages/my-orders.tsx:322-325",
+        "online-store-frontend/src/pages/orders/[id].tsx:112-116",
+        "online-store-frontend/src/pages/product/[id].tsx:187-190",
+        "online-store-frontend/src/pages/profile.tsx:143-152",
+        "online-store-frontend/src/pages/reset-password.tsx:98-100"
+      ],
+      "impact": "Backend English messages, internal error codes or technical details can bypass the selected locale and leak to users.",
+      "recommendedFix": "Map stable API error codes to namespaced translation keys. Use a generic localized fallback for unknown errors and keep raw messages in logs only."
+    },
+    {
+      "id": "I18N-004",
+      "severity": "high",
+      "area": "review-translation",
+      "problem": "Review translation uses a separate API base URL and localhost fallback.",
+      "evidence": [
+        "online-store-frontend/src/hooks/useReviewTranslation.ts:11-20"
+      ],
+      "impact": "Review translation can fail in production when NEXT_PUBLIC_API_BASE_URL is absent or points to a different origin.",
+      "recommendedFix": "Use the same /api proxy convention as the other translation requests and keep the API origin configuration in one place."
+    },
+    {
+      "id": "I18N-005",
+      "severity": "medium",
+      "area": "fallback",
+      "problem": "Missing translations return the key path itself.",
+      "evidence": [
+        "online-store-frontend/src/lib/context/LanguageContext.tsx:404-405",
+        "online-store-frontend/src/lib/translationService.ts:81-89"
+      ],
+      "impact": "Users can see values such as loading or filter_no_products_found when a namespace has not loaded or the translation service is unavailable.",
+      "recommendedFix": "Use the default locale or a generated fallback catalog before returning a key. Expose missing-key telemetry for development and monitoring."
+    },
+    {
+      "id": "I18N-006",
+      "severity": "medium",
+      "area": "dynamic-products",
+      "problem": "Product cards depend on localized API responses and do not have the same translation fallback as product detail.",
+      "evidence": [
+        "online-store-frontend/src/components/ProductCard.tsx:44-67",
+        "online-store-frontend/src/components/ProductCard.tsx:170-211",
+        "online-store-frontend/src/pages/product/[id].tsx:290-335"
+      ],
+      "impact": "Listing and detail pages can display different languages or untranslated product content when an API translation is missing.",
+      "recommendedFix": "Create one shared product display-localization adapter for name, brand, description, specs and specLabels. Keep API data as the primary source and apply deterministic fallback order."
+    },
+    {
+      "id": "I18N-007",
+      "severity": "medium",
+      "area": "search",
+      "problem": "Dynamic brand data is passed to the translation function as if it were a translation key.",
+      "evidence": [
+        "online-store-frontend/src/components/SearchDropdown.tsx:70-73"
+      ],
+      "impact": "A brand can collide with a UI key or appear as a raw key when no translation exists.",
+      "recommendedFix": "Render the brand value directly after API localization. Use t(...) only for the no_brand fallback."
+    },
+    {
+      "id": "I18N-008",
+      "severity": "medium",
+      "area": "formatting",
+      "problem": "Ratings use toFixed(1), and several date callers do not use the shared Intl locale mapping.",
+      "evidence": [
+        "online-store-frontend/src/components/ProductCard.tsx:175-180",
+        "online-store-frontend/src/components/product/ProductOverview.tsx:48-52",
+        "online-store-frontend/src/components/CategoryProductsList.tsx:522-525",
+        "online-store-frontend/src/lib/utils.ts:11-15"
+      ],
+      "impact": "Decimal separators and date conventions are not guaranteed to match the active locale.",
+      "recommendedFix": "Centralize number, rating, currency and date formatting with getIntlLocale(locale) and reuse the formatters everywhere."
+    },
+    {
+      "id": "A11Y-001",
+      "severity": "medium",
+      "area": "accessibility",
+      "problem": "Several icon-only controls have no translated accessible name.",
+      "evidence": [
+        "online-store-frontend/src/components/HomeContent.tsx:656-676",
+        "online-store-frontend/src/components/Header.tsx:138-147",
+        "online-store-frontend/src/components/Footer.tsx:276-310",
+        "online-store-frontend/src/components/product/ProductOverview.tsx:93-116",
+        "online-store-frontend/src/components/QuickViewModal.tsx:63-70",
+        "online-store-frontend/src/components/product/ProductReviews.tsx:85-100",
+        "online-store-frontend/src/pages/contact.tsx:230-240"
+      ],
+      "recommendedFix": "Add namespaced aria-label values for controls and a title for the map iframe. Use role=dialog and aria-modal for quick view."
+    }
+  ],
+  "optimizationPlan": {
+    "principles": [
+      "Preserve locale/namespace splitting for runtime performance.",
+      "Keep one owner for each translation category.",
+      "Make missing keys detectable before deployment.",
+      "Never use user-facing raw API errors as translated UI text.",
+      "Keep dynamic domain data separate from static UI labels."
+    ],
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Stabilize runtime behavior",
+        "actions": [
+          "Fix specLabels propagation.",
+          "Replace remaining admin hard-coded English strings.",
+          "Unify review translation with the /api proxy.",
+          "Add a default-locale fallback before returning a key path.",
+          "Map raw API errors to translation keys."
+        ]
+      },
+      {
+        "phase": 2,
+        "name": "Create a translation contract",
+        "actions": [
+          "Define a namespace registry with owner and allowed usage area.",
+          "Generate a manifest of all keys from backend locale JSON files.",
+          "Extract frontend t(...) calls and validate key plus namespace pairs.",
+          "Detect duplicate keys and missing locale values in CI.",
+          "Define ownership for static UI, spec labels and dynamic entity translations."
+        ]
+      },
+      {
+        "phase": 3,
+        "name": "Unify presentation helpers",
+        "actions": [
+          "Create one product localization adapter shared by cards, search, quick view and detail.",
+          "Create shared Intl formatters for rating, quantity, currency and date.",
+          "Normalize category and brand values when the API returns either a localized string or a locale map.",
+          "Add translated accessible names to all icon-only controls."
+        ]
+      },
+      {
+        "phase": 4,
+        "name": "Monitor quality",
+        "actions": [
+          "Log missing translation keys only in development and monitoring channels.",
+          "Track namespace load failures and fallback usage.",
+          "Add an automated smoke test for each supported locale on the main storefront routes."
+        ]
+      }
+    ]
+  },
+  "acceptanceCriteria": [
+    "No visible English hard-code remains in supported storefront or admin routes.",
+    "No product specification tab displays a canonical key when a localized spec label exists.",
+    "No user-facing error or toast renders a raw backend message by default.",
+    "Missing translation values fall back to a localized source instead of exposing a key path.",
+    "Frontend key usage and backend locale files are validated in CI.",
+    "All icon-only controls and embedded frames have an accessible localized name.",
+    "Rating, date and currency formatting follows the active locale."
+  ]
+}
