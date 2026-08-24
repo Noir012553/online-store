@@ -169,7 +169,7 @@ export const clearInMemoryAccessToken = () => {
  * 5. Nếu thất bại, logout ngay lập tức
  */
 const refreshAccessToken = async (): Promise<boolean> => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || isHandlingUnauthorized) return false;
 
   // Nếu đang refresh, chờ promise hiện tại thay vì refresh lại (prevent concurrent refresh)
   if (isRefreshing && refreshPromise) {
