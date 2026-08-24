@@ -502,7 +502,7 @@ const importProducts = asyncHandler(async (req, res) => {
   }
 
   // Check format support
-  if (data && !adapterManager.supports(format)) {
+  if (!adapterManager.supports(format)) {
     return res.status(400).json({
       success: false,
       code: 'IMPORT_FORMAT_UNSUPPORTED',
@@ -515,7 +515,9 @@ const importProducts = asyncHandler(async (req, res) => {
   try {
     // Parse every raw payload through the adapter so crawler field names are normalized.
     const adapter = adapterManager.getAdapter(format);
-    const parsedProducts = await adapter.parse(data || products);
+    const parsedProducts = Array.isArray(products) && !data
+      ? products
+      : await adapter.parse(data || products);
 
     // Validate format
     const validation = await adapterManager.validate(parsedProducts, format);

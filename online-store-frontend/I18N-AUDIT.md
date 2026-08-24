@@ -127,6 +127,95 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 - [ ] Kiểm tra contract snapshot tên sản phẩm trong order: giữ tên tại thời điểm đặt hàng hay thay đổi theo locale hiện tại.
 - [ ] Rà soát các chuỗi message chủ động trả từ API/CMS để phân biệt dữ liệu domain hợp lệ với UI message cần dịch.
 
+## Đề xuất export/import sản phẩm kèm bản dịch
+
+### Hiện trạng
+
+- Giao diện export sản phẩm hiện tải một file `products.json` hoặc `products.csv`.
+- Giao diện import sản phẩm nhận JSON/CSV sản phẩm gốc.
+- Bản dịch sản phẩm được lưu riêng trong `ProductCatalogTranslationCache` và có endpoint export/import riêng ở translation routes.
+- Chưa có bước gộp hai nguồn dữ liệu thành một file ZIP từ giao diện.
+
+### Luồng export đề xuất
+
+Khi admin hoặc super-admin chọn **Export kèm bản dịch**, backend nên tạo response `application/zip` dạng stream thay vì trả về một thư mục:
+
+```text
+products-export-<timestamp>.zip
+├── manifest.json
+├── products.json
+└── product-translations.json
+```
+
+- `products.json`: dữ liệu sản phẩm gốc gồm SKU, tên nguồn, brand, giá, currency, tồn kho, category, ảnh, specs, trạng thái và các field domain khác.
+- `product-translations.json`: chỉ chứa các record bản dịch thực sự tồn tại, theo `productId`, `targetLang` và các field đã dịch.
+- `manifest.json`: version format, thời điểm export, số sản phẩm, danh sách locale có dữ liệu và tên các file trong gói.
+- Có thể thay `products.json` bằng `products.csv` nếu admin chọn CSV; bản dịch vẫn nên giữ JSON vì có cấu trúc nhiều locale và nhiều field.
+- Backend nên stream ZIP trực tiếp qua response để không phải tạo thư mục tạm hoặc giữ toàn bộ file trong memory. Có thể dùng thư viện ZIP streaming như `archiver`.
+
+### Locale và field không đầy đủ
+
+- Không yêu cầu sản phẩm phải có đủ tất cả locale đang active.
+- Nếu sản phẩm chỉ có `en` và `ja`, `product-translations.json` chỉ chứa hai locale đó; không tạo record rỗng cho các locale còn thiếu.
+- Sản phẩm chưa có bản dịch vẫn phải xuất hiện trong `products.json`.
+- Bản dịch thiếu một số field vẫn hợp lệ; chỉ export các field thực sự có giá trị.
+- Các field không mang tính ngôn ngữ như giá, currency, tồn kho, SKU, category ID, ảnh, discount và specs domain vẫn nằm trong file sản phẩm gốc, không phụ thuộc translation cache.
+- Các field dịch sản phẩm hiện tại gồm `name`, `description`, `brand` và `specs`; không dùng bản dịch để thay thế giá trị nguồn.
+
+### Quy định import ZIP
+
+- **Không cho phép import ngược file ZIP.** ZIP là định dạng **export-only**, không có nút upload ZIP và không có endpoint import ZIP.
+- Import sản phẩm vẫn nhận `JSON` hoặc `CSV` như luồng hiện tại.
+- Import bản dịch dùng file JSON bản dịch qua luồng translation riêng; không nhúng hoặc tự giải nén ZIP ở phía import sản phẩm.
+- Nếu cần nhập lại một gói đã export, admin phải giải nén thủ công rồi import từng file đúng luồng.
+
+### Checklist validate import JSON/CSV và bản dịch
+
+#### 1. Import sản phẩm JSON/CSV
+
+- Chỉ nhận JSON/CSV; file ZIP phải bị từ chối rõ ràng với mã lỗi định dạng không được hỗ trợ.
+- Bắt buộc parse đúng format và validate toàn bộ dữ liệu trước khi ghi database.
+- Dùng chung schema hiện tại: `name`, `brand`, `price`, `category`, `baseCurrencyCode` và `image` là field nguồn bắt buộc; bản dịch không nằm trong nhóm bắt buộc.
+- Kiểm tra kiểu dữ liệu, số hữu hạn và giới hạn hợp lý cho giá, tồn kho, discount, chuỗi, URL ảnh và URL nguồn.
+- Chuẩn hóa/sanitize specs, tự canonicalize dynamic spec key nhưng không làm thay đổi value domain.
+- Phát hiện duplicate theo `productId`, SKU và cặp `name + brand`; không âm thầm chọn một record.
+- Kiểm tra mode `insert`, `update` hoặc `upsert`; `update` phải có định danh hợp lệ.
+- Các field translation nếu xuất hiện trong file sản phẩm không được tự ghi vào translation cache; phải dùng luồng import bản dịch riêng.
+
+#### 2. Import bản dịch riêng
+
+- File bản dịch là tùy chọn; không có file này vẫn import được sản phẩm gốc.
+- Mỗi record phải có `productId` hoặc định danh mapping hợp lệ, `targetLang` là locale được hỗ trợ và không phải locale mặc định.
+- Không yêu cầu đủ tất cả locale: chỉ có `en`, `ja` hoặc một locale được hỗ trợ đều hợp lệ.
+- Không yêu cầu đủ tất cả field: record có thể chỉ có `name`, chỉ có `description`, hoặc một phần `specs`.
+- Chỉ cho phép các field dịch `name`, `description`, `brand`, `specs`; validate string/object đúng kiểu, giới hạn độ dài và sanitize nội dung.
+- Không cho phép trùng cặp `productId + targetLang`, locale không hỗ trợ, record rỗng hoặc translation record trỏ tới sản phẩm không tồn tại.
+- Với specs, canonicalize key và giữ nguyên value kỹ thuật; thiếu một dynamic spec key không phải lỗi nếu record vẫn hợp lệ theo chính sách partial translation.
+
+#### 3. Mapping và tính toàn vẹn
+
+- Import cùng database có thể đối chiếu trực tiếp bằng `productId`.
+- Import sang database khác phải lập mapping từ `sourceProductId` hoặc SKU sang `_id` mới trước khi import bản dịch; không dùng mù quáng MongoDB `productId` cũ.
+- Không tạo translation mồ côi nếu sản phẩm bị skip, duplicate hoặc import thất bại.
+- Chạy dry-run sau toàn bộ bước parse/validate để trả preview, số record và lỗi theo file/dòng trước khi ghi.
+- Import lặp lại cùng dữ liệu phải idempotent theo `productId/SKU` và `productId + targetLang`.
+- Mặc định không ghi đè bản dịch thủ công nếu chưa có tùy chọn `replaceManualTranslations` rõ ràng.
+
+#### 4. Kết quả và audit
+
+- Trả báo cáo gồm số sản phẩm tạo/cập nhật/bỏ qua, số translation theo locale, số field thiếu và danh sách lỗi có mã ổn định.
+- Phân biệt rõ `missing translation` là trạng thái hợp lệ với `invalid translation record` là lỗi nhập liệu.
+- Ghi audit log người thực hiện, thời điểm, mode import và kết quả cuối cùng.
+
+### Quy tắc quyền và tương thích
+
+- Chỉ `admin` và `super-admin` được export gói ZIP hoặc import JSON/CSV và bản dịch theo luồng riêng.
+- ZIP là **export-only**; không cho phép upload/import ZIP.
+- Export không lọc bỏ sản phẩm dựa trên trạng thái bản dịch.
+- Import sản phẩm gốc không được thất bại chỉ vì thiếu bản dịch.
+- Import/export JSON/CSV hiện tại vẫn phải giữ nguyên để tương thích ngược; ZIP là tùy chọn **kèm bản dịch khi export**.
+- Đây là yêu cầu thiết kế, chưa triển khai code.
+
 ### Kiểm tra đã thực hiện
 
 - [x] `npx tsc --noEmit` đạt sau các thay đổi.
