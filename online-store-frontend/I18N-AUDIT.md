@@ -162,76 +162,58 @@ products-export-<timestamp>.zip
 - Các field không mang tính ngôn ngữ như giá, currency, tồn kho, SKU, category ID, ảnh, discount và specs domain vẫn nằm trong file sản phẩm gốc, không phụ thuộc translation cache.
 - Các field dịch sản phẩm hiện tại gồm `name`, `description`, `brand` và `specs`; không dùng bản dịch để thay thế giá trị nguồn.
 
-### Luồng import ZIP đề xuất
+### Quy định import ZIP
 
-1. Kiểm tra `manifest.json`, giới hạn kích thước và chỉ chấp nhận các file có trong manifest.
-2. Import/upsert sản phẩm gốc trước.
-3. Đối chiếu `productId` trong `product-translations.json` với sản phẩm đã import.
-4. Import các translation record hợp lệ theo từng `targetLang`; không bắt buộc đủ locale hoặc đủ field.
-5. Nếu import sản phẩm mới sang database khác, cần cơ chế mapping bằng SKU hoặc `sourceProductId`, vì `productId` MongoDB có thể thay đổi.
-6. Nếu không có `product-translations.json`, ZIP vẫn được chấp nhận như gói sản phẩm gốc.
+- **Không cho phép import ngược file ZIP.** ZIP là định dạng **export-only**, không có nút upload ZIP và không có endpoint import ZIP.
+- Import sản phẩm vẫn nhận `JSON` hoặc `CSV` như luồng hiện tại.
+- Import bản dịch dùng file JSON bản dịch qua luồng translation riêng; không nhúng hoặc tự giải nén ZIP ở phía import sản phẩm.
+- Nếu cần nhập lại một gói đã export, admin phải giải nén thủ công rồi import từng file đúng luồng.
 
-### Checklist validate import ZIP
+### Checklist validate import JSON/CSV và bản dịch
 
-Import phải validate toàn bộ gói trước khi ghi database; không được import sản phẩm trước rồi mới phát hiện bản dịch hoặc file ZIP không hợp lệ.
+#### 1. Import sản phẩm JSON/CSV
 
-#### 1. Validate archive và bảo mật file
-
-- Không tin `Content-Type` hoặc phần mở rộng; kiểm tra ZIP signature thực tế.
-- Giới hạn kích thước file upload, tổng dung lượng giải nén, số lượng entry và kích thước từng entry để tránh ZIP bomb.
-- Từ chối ZIP mã hóa bằng password, entry dạng symlink hoặc entry có path traversal như `../`, path tuyệt đối, backslash bất thường hoặc tên file trùng sau normalize.
-- Chỉ cho phép các file ở root với tên đã khai báo trong manifest; từ chối file thực thi, file lồng thư mục và file không xác định.
-- Không ghi file tạm vào đường dẫn do người dùng kiểm soát; nếu cần thư mục tạm thì phải dùng tên ngẫu nhiên và cleanup trong `finally`.
-
-#### 2. Validate `manifest.json`
-
-- Bắt buộc là JSON UTF-8 hợp lệ, đúng `version` được hỗ trợ và có danh sách file hợp lệ.
-- Tên file trong manifest phải khớp chính xác với entry trong ZIP; không cho phép khai báo thiếu file hoặc file thừa.
-- Đối chiếu số lượng sản phẩm, số lượng translation record và danh sách locale với dữ liệu thực tế.
-- Nếu manifest có checksum, phải kiểm tra checksum trước khi đọc dữ liệu; nên dùng SHA-256 cho từng file.
-- Không tin các thống kê trong manifest để phân quyền hoặc ghi database; đây chỉ là dữ liệu cần đối chiếu.
-
-#### 3. Validate `products.json` hoặc `products.csv`
-
-- Bắt buộc có file sản phẩm và parse đúng format đã khai báo.
-- Dùng chung schema import hiện tại: `name`, `brand`, `price`, `category`, `baseCurrencyCode` và `image` là các field nguồn bắt buộc; bản dịch không nằm trong nhóm bắt buộc.
+- Chỉ nhận JSON/CSV; file ZIP phải bị từ chối rõ ràng với mã lỗi định dạng không được hỗ trợ.
+- Bắt buộc parse đúng format và validate toàn bộ dữ liệu trước khi ghi database.
+- Dùng chung schema hiện tại: `name`, `brand`, `price`, `category`, `baseCurrencyCode` và `image` là field nguồn bắt buộc; bản dịch không nằm trong nhóm bắt buộc.
 - Kiểm tra kiểu dữ liệu, số hữu hạn và giới hạn hợp lý cho giá, tồn kho, discount, chuỗi, URL ảnh và URL nguồn.
 - Chuẩn hóa/sanitize specs, tự canonicalize dynamic spec key nhưng không làm thay đổi value domain.
 - Phát hiện duplicate theo `productId`, SKU và cặp `name + brand`; không âm thầm chọn một record.
-- Kiểm tra mode `insert`, `update` hoặc `upsert` trước khi ghi; `update` phải có định danh hợp lệ.
+- Kiểm tra mode `insert`, `update` hoặc `upsert`; `update` phải có định danh hợp lệ.
+- Các field translation nếu xuất hiện trong file sản phẩm không được tự ghi vào translation cache; phải dùng luồng import bản dịch riêng.
 
-#### 4. Validate `product-translations.json`
+#### 2. Import bản dịch riêng
 
 - File bản dịch là tùy chọn; không có file này vẫn import được sản phẩm gốc.
 - Mỗi record phải có `productId` hoặc định danh mapping hợp lệ, `targetLang` là locale được hỗ trợ và không phải locale mặc định.
-- Không yêu cầu đủ tất cả locale: chỉ có `en`, `ja` hoặc một locale bất kỳ được hỗ trợ đều hợp lệ.
+- Không yêu cầu đủ tất cả locale: chỉ có `en`, `ja` hoặc một locale được hỗ trợ đều hợp lệ.
 - Không yêu cầu đủ tất cả field: record có thể chỉ có `name`, chỉ có `description`, hoặc một phần `specs`.
 - Chỉ cho phép các field dịch `name`, `description`, `brand`, `specs`; validate string/object đúng kiểu, giới hạn độ dài và sanitize nội dung.
 - Không cho phép trùng cặp `productId + targetLang`, locale không hỗ trợ, record rỗng hoặc translation record trỏ tới sản phẩm không tồn tại.
-- Với specs, canonicalize key và giữ nguyên value kỹ thuật; không coi thiếu một dynamic spec key là lỗi nếu record vẫn hợp lệ theo chính sách partial translation.
+- Với specs, canonicalize key và giữ nguyên value kỹ thuật; thiếu một dynamic spec key không phải lỗi nếu record vẫn hợp lệ theo chính sách partial translation.
 
-#### 5. Mapping và tính toàn vẹn khi import
+#### 3. Mapping và tính toàn vẹn
 
 - Import cùng database có thể đối chiếu trực tiếp bằng `productId`.
-- Import sang database khác phải lập mapping từ `sourceProductId` hoặc SKU sang `_id` mới trước khi xử lý translation; không dùng mù quáng MongoDB `productId` cũ.
-- Không được tạo translation mồ côi nếu sản phẩm bị skip, duplicate hoặc import thất bại.
+- Import sang database khác phải lập mapping từ `sourceProductId` hoặc SKU sang `_id` mới trước khi import bản dịch; không dùng mù quáng MongoDB `productId` cũ.
+- Không tạo translation mồ côi nếu sản phẩm bị skip, duplicate hoặc import thất bại.
 - Chạy dry-run sau toàn bộ bước parse/validate để trả preview, số record và lỗi theo file/dòng trước khi ghi.
-- Ghi sản phẩm và bản dịch theo một transaction hoặc cơ chế rollback/compensation; lỗi ở translation không được để lại trạng thái nửa vời.
-- Import lặp lại cùng một ZIP phải idempotent theo `productId/SKU` và `productId + targetLang`.
+- Import lặp lại cùng dữ liệu phải idempotent theo `productId/SKU` và `productId + targetLang`.
 - Mặc định không ghi đè bản dịch thủ công nếu chưa có tùy chọn `replaceManualTranslations` rõ ràng.
 
-#### 6. Kết quả và audit
+#### 4. Kết quả và audit
 
 - Trả báo cáo gồm số sản phẩm tạo/cập nhật/bỏ qua, số translation theo locale, số field thiếu và danh sách lỗi có mã ổn định.
 - Phân biệt rõ `missing translation` là trạng thái hợp lệ với `invalid translation record` là lỗi nhập liệu.
-- Ghi audit log người thực hiện, thời điểm, checksum gói, mode import và kết quả cuối cùng.
+- Ghi audit log người thực hiện, thời điểm, mode import và kết quả cuối cùng.
 
 ### Quy tắc quyền và tương thích
 
-- Chỉ `admin` và `super-admin` được export/import gói ZIP.
+- Chỉ `admin` và `super-admin` được export gói ZIP hoặc import JSON/CSV và bản dịch theo luồng riêng.
+- ZIP là **export-only**; không cho phép upload/import ZIP.
 - Export không lọc bỏ sản phẩm dựa trên trạng thái bản dịch.
 - Import sản phẩm gốc không được thất bại chỉ vì thiếu bản dịch.
-- Import/export JSON/CSV hiện tại vẫn phải giữ nguyên để tương thích ngược; ZIP là tùy chọn **kèm bản dịch**.
+- Import/export JSON/CSV hiện tại vẫn phải giữ nguyên để tương thích ngược; ZIP là tùy chọn **kèm bản dịch khi export**.
 - Đây là yêu cầu thiết kế, chưa triển khai code.
 
 ### Kiểm tra đã thực hiện
