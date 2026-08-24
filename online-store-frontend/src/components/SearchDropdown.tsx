@@ -69,7 +69,7 @@ function SearchResultItem({
           )}
           {product.brand && (
             <span className="text-gray-600">
-              {product.brand}
+              {getTranslatedValue(product.brand, locale)}
             </span>
           )}
         </div>

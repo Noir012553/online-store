@@ -275,35 +275,35 @@ export function Footer() {
               <div className="flex gap-2 sm:gap-3">
                 <a
                   href="#"
-                  aria-label="Facebook"
+                  aria-label={t('social_facebook', 'footer', 'Facebook')}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <FacebookIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
-                  aria-label="Instagram"
+                  aria-label={t('social_instagram', 'footer', 'Instagram')}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <InstagramIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
-                  aria-label="YouTube"
+                  aria-label={t('social_youtube', 'footer', 'YouTube')}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <YoutubeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
-                  aria-label="Twitter"
+                  aria-label={t('social_twitter', 'footer', 'Twitter')}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <TwitterIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
-                  aria-label="Zalo"
+                  aria-label={t('social_zalo', 'footer', 'Zalo')}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <img

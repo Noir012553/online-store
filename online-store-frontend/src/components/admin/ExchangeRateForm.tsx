@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import currencyService, { ExchangeRate, Currency } from '../../lib/services/currencyService';
 import { useTranslation } from '../../lib/i18n';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { toast } from 'sonner';
 import { X, ArrowRight } from 'lucide-react';
 
@@ -118,8 +119,8 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
       }
 
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || t('error_save_data', 'admin'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

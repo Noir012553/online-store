@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
 const SpecKeyTranslationCache = require('../models/SpecKeyTranslationCache');
+const SpecKeyRegistry = require('../models/SpecKeyRegistry');
 const cloudflareAiService = require('./cloudflareAiService');
-const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
+const { getActiveLangCodes, getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const { normalizeSpecFieldName, sanitizeUnknownSpecKey } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 
@@ -12,6 +12,13 @@ const RETRY_WINDOW_MS = 60 * 60 * 1000;
 const MAX_LABEL_LENGTH = 80;
 
 const getCacheKey = (canonicalKey, targetLang) => `${canonicalKey}:${targetLang}`;
+
+const humanizeSpecKey = (canonicalKey) => String(canonicalKey || '')
+  .replace(/([a-z])([A-Z])/g, '$1 $2')
+  .replace(/[_-]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .replace(/^./, (character) => character.toUpperCase());
 
 const getCanonicalSpecKey = (rawKey) => {
   const key = String(rawKey || '').trim();
@@ -25,8 +32,8 @@ const getCanonicalSpecKey = (rawKey) => {
 
 const getStaticLabel = (canonicalKey, targetLang) => {
   const labels = specKeyTranslations[canonicalKey];
-  if (!labels) return canonicalKey;
-  return labels[targetLang] || labels.vi || labels.en || canonicalKey;
+  if (!labels) return humanizeSpecKey(canonicalKey);
+  return labels[targetLang] || labels.vi || labels.en || humanizeSpecKey(canonicalKey);
 };
 
 const isValidTranslatedLabel = (label) => (
@@ -84,18 +91,68 @@ const warmDynamicTranslation = (canonicalKey, targetLang, fallbackLabel) => {
   pendingTranslations.set(cacheKey, promise);
 };
 
+const getSpecEntries = (specs) => {
+  if (Array.isArray(specs)) {
+    return specs.flatMap((item) => getSpecEntries(item?.specs || item));
+  }
+  if (specs instanceof Map) return [...specs.entries()];
+  if (specs && typeof specs === 'object') return Object.entries(specs);
+  return [];
+};
+
+const registerUnknownSpecKeys = async (specs) => {
+  const unknownEntries = new Map();
+  getSpecEntries(specs).forEach(([rawKey]) => {
+    const sourceKey = String(rawKey || '').trim().slice(0, MAX_LABEL_LENGTH);
+    const canonicalKey = getCanonicalSpecKey(sourceKey);
+    if (!sourceKey || !canonicalKey || specKeyTranslations[canonicalKey]) return;
+
+    const sourceKeys = unknownEntries.get(canonicalKey) || new Set();
+    sourceKeys.add(sourceKey);
+    unknownEntries.set(canonicalKey, sourceKeys);
+  });
+
+  if (unknownEntries.size === 0 || SpecKeyRegistry.db.readyState !== 1) return [];
+
+  const now = new Date();
+  const registeredKeys = [...unknownEntries.keys()];
+  try {
+    await Promise.all(registeredKeys.map(async (canonicalKey) => {
+      await SpecKeyRegistry.updateOne(
+        { canonicalKey },
+        {
+          $set: { lastSeenAt: now },
+          $setOnInsert: {
+            canonicalKey,
+            status: 'pending',
+            firstSeenAt: now,
+          },
+          $addToSet: { sourceKeys: { $each: [...unknownEntries.get(canonicalKey)] } },
+        },
+        { upsert: true }
+      );
+
+      const fallbackLabel = humanizeSpecKey(canonicalKey);
+      getActiveLangCodes()
+        .filter((targetLang) => targetLang !== getDefaultLanguage().code)
+        .forEach((targetLang) => warmDynamicTranslation(canonicalKey, targetLang, fallbackLabel));
+    }));
+  } catch (error) {
+    console.error('[SpecKeyTranslationService] Registry write failed:', error.message);
+    return [];
+  }
+
+  return registeredKeys;
+};
+
 const getSpecKeyLabels = async (specs, targetLang) => {
-  const entries = specs instanceof Map
-    ? [...specs.entries()]
-    : specs && typeof specs === 'object'
-      ? Object.entries(specs)
-      : [];
+  const entries = getSpecEntries(specs);
   const canonicalKeys = [...new Set(entries.map(([key]) => getCanonicalSpecKey(key)).filter(Boolean))];
 
   if (canonicalKeys.length === 0) return {};
 
   const defaultLang = getDefaultLanguage().code;
-  if (targetLang === defaultLang || mongoose.connection.readyState !== 1) {
+  if (targetLang === defaultLang || SpecKeyTranslationCache.db.readyState !== 1) {
     return Object.fromEntries(canonicalKeys.map((canonicalKey) => {
       const cacheKey = getCacheKey(canonicalKey, targetLang);
       return [canonicalKey, memoryCache.get(cacheKey) || getStaticLabel(canonicalKey, targetLang)];
@@ -131,4 +188,6 @@ const getSpecKeyLabels = async (specs, targetLang) => {
 module.exports = {
   getCanonicalSpecKey,
   getSpecKeyLabels,
+  humanizeSpecKey,
+  registerUnknownSpecKeys,
 };

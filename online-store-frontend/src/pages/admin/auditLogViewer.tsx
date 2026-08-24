@@ -6,6 +6,7 @@ import { getIntlLocale } from '../../lib/localeUtils';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { UI_EMOJI } from '../../lib/uiEmoji';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 interface AuditLogRecord {
   _id: string;
@@ -117,13 +118,13 @@ const AuditLogViewerContent = () => {
           text: t('admin_audit_log_no_records', 'admin-audit-log'),
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error(t('error_fetching_logs', 'admin-errors'), error);
       }
       setMessage({
         type: 'error',
-        text: error.message || t('admin_audit_log_fetch_error'),
+        text: getUserFriendlyErrorMessage(error, t),
       });
     } finally {
       setLoading(false);

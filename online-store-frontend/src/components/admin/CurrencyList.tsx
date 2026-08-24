@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import currencyService, { Currency } from '../../lib/services/currencyService';
 import { useTranslation } from '../../lib/i18n';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { toast } from 'sonner';
 
 interface CurrencyListProps {
@@ -45,8 +46,8 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
       toast.success(t('success_delete', 'admin'));
       fetchCurrencies();
       onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || t('error_delete_data', 'admin'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     }
   };
 

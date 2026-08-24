@@ -3,6 +3,7 @@ const { normalizeSpecs } = require('../utils/specNormalizer');
 const {
   getCanonicalSpecKey,
   getSpecKeyLabels,
+  humanizeSpecKey,
 } = require('../services/specKeyTranslationService');
 const { localizeProductSpecFields } = require('../services/translationHelper');
 const specKeyCacheSeeder = require('../seeds/specKeyCacheSeeder');
@@ -12,12 +13,20 @@ describe('spec key translation rollout', () => {
     assert.equal(getCanonicalSpecKey('Kích thước/Layout'), 'layout');
     assert.equal(getCanonicalSpecKey('keycap_material'), 'keycapMaterial');
     assert.equal(getCanonicalSpecKey('CPU'), 'cpu');
+    assert.equal(getCanonicalSpecKey('mau_sac'), 'color');
+    assert.equal(getCanonicalSpecKey('kieu_tai_nghe'), 'headphoneType');
+    assert.equal(getCanonicalSpecKey('tuong_thich'), 'compatibility');
   });
 
   it('keeps sanitized unknown keys instead of dropping them', () => {
     assert.deepEqual(normalizeSpecs({ 'Màu sắc mới': 'Đen', '<script>': 'ignored' }), {
       mau_sac_moi: 'Đen',
     });
+  });
+
+  it('creates a readable fallback for unknown canonical keys', () => {
+    assert.equal(humanizeSpecKey('battery_life'), 'Battery life');
+    assert.equal(humanizeSpecKey('headphoneType'), 'Headphone Type');
   });
 
   it('returns static labels when MongoDB is unavailable', async () => {
@@ -27,11 +36,26 @@ describe('spec key translation rollout', () => {
 
   it('returns canonical specs separately from localized labels', async () => {
     const localized = await localizeProductSpecFields({
-      specs: { 'Kích thước/Layout': 'TKL' },
+      specs: {
+        'Kích thước/Layout': 'TKL',
+        mau_sac: 'Đen',
+        kieu_tai_nghe: 'Over-ear',
+        tuong_thich: 'PC/Laptop',
+      },
     }, 'en');
     assert.deepEqual(localized, {
-      specs: { layout: 'TKL' },
-      specLabels: { layout: 'Layout' },
+      specs: {
+        layout: 'TKL',
+        color: 'Đen',
+        headphoneType: 'Over-ear',
+        compatibility: 'PC/Laptop',
+      },
+      specLabels: {
+        layout: 'Layout',
+        color: 'Color',
+        headphoneType: 'Headphone Type',
+        compatibility: 'Compatibility',
+      },
     });
   });
 

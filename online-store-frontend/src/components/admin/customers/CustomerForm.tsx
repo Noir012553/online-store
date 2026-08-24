@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { MapPin, AlertCircle, ArrowLeft } from 'lucide-react';
 import { customerAPI } from '../../../lib/api';
 import { useTranslation, useLanguage } from '../../../lib/i18n';
+import { getUserFriendlyErrorMessage } from '../../../lib/errorHandler';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -109,8 +110,8 @@ export function CustomerForm({ mode, customerId, onSuccess, onCancel }: Customer
       }
 
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || t('error_save_data', 'common'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

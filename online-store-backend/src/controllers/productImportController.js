@@ -25,6 +25,7 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
+const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
@@ -263,6 +264,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
+    await registerUnknownSpecKeys(validation.validProducts);
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),
@@ -533,6 +535,7 @@ const importProducts = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
+    await registerUnknownSpecKeys(validation.validProducts);
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),

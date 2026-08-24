@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import currencyService, { ExchangeRate } from '../../lib/services/currencyService';
 import { useTranslation, useLanguage } from '../../lib/i18n';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { toast } from 'sonner';
 import { UI_EMOJI } from '../../lib/uiEmoji';
@@ -49,8 +50,8 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
       toast.success(t('success_delete', 'admin'));
       fetchExchangeRates();
       onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || t('error_delete_data', 'admin'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     }
   };
 

@@ -156,12 +156,15 @@ export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): stri
   const code = error && typeof error === 'object' ? error.code : undefined;
 
   if (code) {
-    return translate?.(code, 'common') || translate?.('error_generic', 'common') || '';
+    const translatedCode = translate?.(code, 'common');
+    if (translatedCode && translatedCode !== code) {
+      return translatedCode;
+    }
   }
 
-  if (error instanceof Error && error.message) {
-    return translate?.('error_generic_fallback', 'common') || translate?.('error_generic', 'common') || '';
-  }
-
-  return translate?.('error_generic_fallback', 'common') || translate?.('error_generic', 'common') || '';
+  return translate?.(
+    'error_generic_fallback',
+    'common',
+    'An unexpected error occurred. Please try again.'
+  ) || 'An unexpected error occurred. Please try again.';
 }

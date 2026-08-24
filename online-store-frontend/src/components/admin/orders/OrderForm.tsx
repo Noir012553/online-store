@@ -11,6 +11,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { toast } from 'sonner';
 import { getIntlLocale } from '../../../lib/localeUtils';
+import { getUserFriendlyErrorMessage } from '../../../lib/errorHandler';
 
 interface OrderItem {
   product: string;
@@ -231,8 +232,8 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
       toast.success(t('toast_order_created', 'admin'));
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || t('error_create_order', 'admin'));
+    } catch (error) {
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }

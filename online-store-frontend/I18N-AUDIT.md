@@ -92,20 +92,50 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 
 ## Rủi ro fallback i18n
 
-- `src/lib/context/LanguageContext.tsx:404-405` trả nguyên `keyPath` nếu translation namespace chưa tải hoặc API translation lỗi. Người dùng có thể thấy các key như `loading` hoặc `filter_no_products_found`.
-- Namespace được tải bất đồng bộ sau khi component render, nên cần kiểm soát trạng thái loading hoặc có fallback text phù hợp.
-- `src/lib/translationService.ts:81-89` bắt lỗi network và trả object rỗng, khiến lỗi có thể chỉ biểu hiện dưới dạng translation key.
+- `src/lib/context/LanguageContext.tsx:349-405` hỗ trợ fallback text tùy chọn; các call site không truyền fallback vẫn có thể trả nguyên `keyPath` nếu namespace chưa tải hoặc API translation lỗi.
+- Namespace được tải bất đồng bộ sau khi component render, nên các màn hình quan trọng vẫn cần truyền fallback text phù hợp.
+- `src/lib/translationService.ts:81-89` bắt lỗi network và trả object rỗng; cơ chế fallback cache đã có nhưng cần bảo đảm namespace được lưu đầy đủ.
 
-## Đề xuất thứ tự xử lý
+## Kế hoạch và trạng thái triển khai
 
-1. Truyền và render `specLabels` trong `SpecsTable`.
-2. Dịch các chuỗi `Currency`, `Select currency`, `Loading...` còn sót.
-3. Chuẩn hóa error handling để không render raw `error.message`.
-4. Đồng nhất API/proxy cho review translation.
-5. Bổ sung `aria-label`/`title` cho các control icon-only.
-6. Chuẩn hóa format rating, date và currency bằng locale mapping.
-7. Xác nhận contract backend cho product/category/brand: response đã localized hay là object đa ngôn ngữ.
+### Đã hoàn thành
+
+- [x] Truyền và render `specLabels` trong `SpecsTable`.
+- [x] Dịch các chuỗi currency/loading trong các vị trí admin đã kiểm tra, gồm `ProductForm`.
+- [x] Chuẩn hóa các toast/message admin và review để không render trực tiếp raw `error.message`; mã lỗi chưa có bản dịch dùng thông báo generic.
+- [x] Đồng nhất API/proxy cho review translation qua `API_BASE_PATH` `/api`.
+- [x] Bổ sung `aria-label`/`title` cho carousel, account, quantity, quick view, review stars, social links và Google Maps.
+- [x] Chuẩn hóa fallback format currency cho order/product và format rating, thời gian, số liệu monitoring bằng locale.
+- [x] Chuẩn hóa brand động trong search bằng `getTranslatedValue(...)`, không dùng brand làm translation key.
+
+### Vấn đề mới ghi nhận — Dynamic spec key
+
+- Catalog `specKeyTranslations` và `specKeyTranslationCache` vẫn là nguồn label chuẩn; seed không tự phát hiện hoặc dịch concept mới từ nguồn hàng.
+- Đã bổ sung alias/catalog cho `mau_sac`, `kieu_tai_nghe` và `tuong_thich`; các key này hiện được canonicalize thành `color`, `headphoneType` và `compatibility` thay vì hiển thị raw.
+- Không nên yêu cầu cập nhật JSON và chạy seed cho từng sản phẩm. Seed chỉ cần chạy khi thêm concept/alias mới hoặc cần đồng bộ lại cache.
+- Đã tự động hóa bước phát hiện/đăng ký trong import và request localization qua `src/services/specKeyTranslationService.js` và model `src/models/SpecKeyRegistry.js`; lỗi ghi registry không làm hỏng import.
+- Unknown key được lưu dạng canonical key, source key quan sát được và trạng thái `pending`; locale không mặc định được đưa vào dynamic translation/cache, còn locale mặc định dùng fallback human-readable.
+- Các key mới phải được sanitize an toàn và giữ value domain nguyên trạng; chỉ label/key được đưa qua quy trình dịch.
+
+### Còn lại / cần xác nhận
+
+- [ ] Bổ sung fallback text cho các call site `t(...)` quan trọng còn trả key khi namespace lỗi.
+- [x] Tự động phát hiện và đăng ký unknown spec key trong pipeline import/request thay vì phụ thuộc vào seed thủ công.
+- [ ] Hoàn thiện worker/queue duyệt và dịch chuẩn label pending cho locale mặc định, sau đó cập nhật `SpecKeyTranslationCache` mà không cần thao tác thủ công.
+- [x] Bổ sung alias/canonical key và label catalog cho `mau_sac`, `kieu_tai_nghe`, `tuong_thich`.
+- [ ] Xác nhận backend luôn trả product/category/brand theo locale hoặc object đa ngôn ngữ; tiếp tục normalize các route chưa truyền locale đầy đủ.
+- [ ] Kiểm tra contract snapshot tên sản phẩm trong order: giữ tên tại thời điểm đặt hàng hay thay đổi theo locale hiện tại.
+- [ ] Rà soát các chuỗi message chủ động trả từ API/CMS để phân biệt dữ liệu domain hợp lệ với UI message cần dịch.
+
+### Kiểm tra đã thực hiện
+
+- [x] `npx tsc --noEmit` đạt sau các thay đổi.
+- [x] `npm test` đạt 10/10 bài test offline.
+- [x] `git diff --check` không phát hiện lỗi whitespace.
+- [x] Syntax backend và catalog 9 locale đã được kiểm tra sau khi thêm registry.
+- [ ] Không chạy lại `npm run build` frontend theo yêu cầu; lần chạy trước đã qua bước TypeScript nhưng bị dừng ở bước tạo production bundle.
+- [ ] Backend i18n test chưa chạy được vì môi trường `online-store-backend` hiện thiếu package `dotenv`.
 
 ## Kết luận
 
-Static UI chính đã được phủ i18n tương đối tốt. Các vấn đề còn lại tập trung ở nhãn thông số, chuỗi admin, fallback khi translation lỗi, accessible labels và việc localization/format hóa dữ liệu động từ API/CMS.
+Static UI chính và các hạng mục P1 đã được phủ i18n tốt hơn: spec labels, currency/loading, error UI, accessibility labels và locale formatting đã được triển khai. Phần còn lại chủ yếu là fallback text tại các call site chưa đầy đủ và xác nhận contract localization của backend/CMS.
