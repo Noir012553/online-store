@@ -317,7 +317,7 @@ export default function ProductDetail() {
     id: laptop._id,
     name: localizedName,
     brand: localizedBrand ?? t('no_brand', 'products'),
-    category: categoryId ?? t('no_category', 'admin'),
+    category: categoryId ?? t('no_category', 'products'),
     price: laptop.price,
     formattedPrice,
     baseCurrencyCode: laptop.baseCurrencyCode,

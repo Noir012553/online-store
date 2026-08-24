@@ -228,8 +228,10 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       // (via seeder's flattenObject - all keys stored under namespace 'common')
       loadNamespace('common');
 
-      // Eagerly load 'products' namespace to avoid spec keys showing as fallback
+      // Eagerly load shared interface namespaces to avoid visible fallback keys.
       loadNamespace('products');
+      loadNamespace('components');
+      loadNamespace('pagination');
 
       // Rule #1: Load fallback translations asynchronously for offline support
       // This ensures translations are available even if namespace is not loaded yet

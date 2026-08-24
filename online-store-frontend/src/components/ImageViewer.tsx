@@ -79,14 +79,14 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
           onClick={onClose}
           className="absolute right-0 top-0 rounded-md bg-white px-4 py-2 text-sm font-medium text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
-          {t('dialog_close')}
+          {t('close', 'components')}
         </button>
         {hasGalleryNavigation && (
           <>
             <button
               type="button"
               onClick={() => setActiveIndex((index) => (index - 1 + imageSources.length) % imageSources.length)}
-              aria-label={t('previous')}
+              aria-label={t('previous', 'pagination')}
               className="absolute left-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               <ChevronLeft className="h-6 w-6" />
@@ -94,7 +94,7 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
             <button
               type="button"
               onClick={() => setActiveIndex((index) => (index + 1) % imageSources.length)}
-              aria-label={t('next')}
+              aria-label={t('next', 'pagination')}
               className="absolute right-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               <ChevronRight className="h-6 w-6" />
