@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Bannière Intégrée",
   "error_load_data": "Erreur lors du chargement des données",
   "admin_currency_management": "Gestion des Devises",
+  "admin_currency_label": "Devise",
+  "admin_select_currency": "Sélectionner une devise",
   "admin_currency_list": "Liste des Devises",
   "admin_add_currency": "Ajouter une Devise",
   "admin_edit_currency": "Modifier la Devise",

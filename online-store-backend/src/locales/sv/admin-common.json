@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Inline-banner",
   "error_load_data": "Fel vid inladdning av data",
   "admin_currency_management": "Valutahantering",
+  "admin_currency_label": "Valuta",
+  "admin_select_currency": "Välj valuta",
   "admin_currency_list": "Valutlista",
   "admin_add_currency": "Lägg Till Valuta",
   "admin_edit_currency": "Redigera Valuta",

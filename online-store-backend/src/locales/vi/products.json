@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Hết hàng",
   "section_specifications": "Thông số kỹ thuật",
   "label_quantity": "Số lượng",
+  "quantity_decrease": "Giảm số lượng",
+  "quantity_increase": "Tăng số lượng",
   "btn_add_to_cart": "Thêm vào Giỏ",
   "btn_add_mobile": "Thêm",
   "btn_buy_now": "Mua Ngay",

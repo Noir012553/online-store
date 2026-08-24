@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Inline-Banner",
   "error_load_data": "Fehler beim Laden von Daten",
   "admin_currency_management": "Währungsverwaltung",
+  "admin_currency_label": "Währung",
+  "admin_select_currency": "Währung auswählen",
   "admin_currency_list": "Währungsliste",
   "admin_add_currency": "Währung Hinzufügen",
   "admin_edit_currency": "Währung Bearbeiten",

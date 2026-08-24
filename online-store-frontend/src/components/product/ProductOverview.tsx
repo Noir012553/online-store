@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { interpolateTranslation } from '../../lib/translationInterpolate';
 import { UI_EMOJI } from '../../lib/uiEmoji';
+import { formatNumber } from '../../lib/utils';
 
 interface ProductOverviewProps {
   product: Laptop;
@@ -27,7 +28,7 @@ export function ProductOverview({
   onAddToCart,
   onBuyNow,
 }: ProductOverviewProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   return (
     <div>
@@ -46,7 +47,7 @@ export function ProductOverview({
               }`}
             />
           ))}
-          <span className="text-sm sm:text-base">{(product.rating || 0).toFixed(1)}</span>
+          <span className="text-sm sm:text-base">{formatNumber(product.rating || 0, locale)}</span>
         </div>
         <span className="text-xs sm:text-sm text-gray-500">
           {interpolateTranslation(t('reviews_count', 'product-ui'), { count: reviewCount })}
@@ -94,6 +95,7 @@ export function ProductOverview({
             type="button"
             onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
             className="p-1.5 sm:p-2 hover:bg-gray-100"
+            aria-label={t('quantity_decrease', 'products')}
           >
             <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
@@ -111,6 +113,7 @@ export function ProductOverview({
             type="button"
             onClick={() => onQuantityChange(quantity + 1)}
             className="p-1.5 sm:p-2 hover:bg-gray-100"
+            aria-label={t('quantity_increase', 'products')}
           >
             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>

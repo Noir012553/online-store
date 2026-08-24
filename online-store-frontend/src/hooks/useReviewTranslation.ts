@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { API_BASE_PATH } from '../config';
 import { useLanguage } from '../lib/context/LanguageContext';
 
 interface TranslatedReview {
@@ -8,8 +9,6 @@ interface TranslatedReview {
 
 export function useReviewTranslation(reviewId: string) {
   const { locale } = useLanguage();
-  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
-
   const { data, isLoading, error } = useQuery({
     queryKey: ['review-translation', reviewId, locale],
     queryFn: async () => {
@@ -17,7 +16,7 @@ export function useReviewTranslation(reviewId: string) {
         return null;
       }
       const response = await fetch(
-        `${apiBase}/api/translations/reviews/${reviewId}?lang=${locale}`
+        `${API_BASE_PATH}/translations/reviews/${encodeURIComponent(reviewId)}?lang=${encodeURIComponent(locale)}`
       );
       if (!response.ok) {
         return null;

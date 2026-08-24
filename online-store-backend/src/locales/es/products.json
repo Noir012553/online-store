@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Agotado",
   "section_specifications": "Especificaciones",
   "label_quantity": "Cantidad",
+  "quantity_decrease": "Disminuir cantidad",
+  "quantity_increase": "Aumentar cantidad",
   "btn_add_to_cart": "Añadir al Carrito",
   "btn_add_mobile": "Añadir",
   "btn_buy_now": "Comprar Ahora",

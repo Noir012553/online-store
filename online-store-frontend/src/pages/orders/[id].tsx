@@ -110,8 +110,7 @@ export default function OrderDetailsPage() {
         const orderData = response.order || response;
         setOrder(orderData);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : t('error_load_data', 'orders');
+        const errorMessage = t('error_load_data', 'orders');
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {

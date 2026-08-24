@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Out of Stock",
   "section_specifications": "Specifications",
   "label_quantity": "Quantity",
+  "quantity_decrease": "Decrease quantity",
+  "quantity_increase": "Increase quantity",
   "btn_add_to_cart": "Add to Cart",
   "btn_add_mobile": "Add",
   "btn_buy_now": "Buy Now",

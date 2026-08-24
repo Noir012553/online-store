@@ -275,30 +275,35 @@ export function Footer() {
               <div className="flex gap-2 sm:gap-3">
                 <a
                   href="#"
+                  aria-label="Facebook"
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <FacebookIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
+                  aria-label="Instagram"
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <InstagramIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
+                  aria-label="YouTube"
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <YoutubeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
+                  aria-label="Twitter"
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <TwitterIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="#"
+                  aria-label="Zalo"
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
                 >
                   <img
@@ -330,7 +335,7 @@ export function Footer() {
                     <ul className="space-y-2 sm:space-y-3 text-gray-400">
                       {categories.map((category) => {
                         const slug = category.slug || category._id;
-                        const displayName = getCategoryName(category);
+                        const displayName = getCategoryName(category, locale);
                         return (
                           <li key={category._id}>
                             <Link

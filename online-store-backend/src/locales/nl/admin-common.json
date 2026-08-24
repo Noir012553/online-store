@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Ingebedde Banner",
   "error_load_data": "Fout bij het laden van gegevens",
   "admin_currency_management": "Valutabeheer",
+  "admin_currency_label": "Valuta",
+  "admin_select_currency": "Valuta selecteren",
   "admin_currency_list": "Valutalist",
   "admin_add_currency": "Valuta Toevoegen",
   "admin_edit_currency": "Valuta Bewerken",

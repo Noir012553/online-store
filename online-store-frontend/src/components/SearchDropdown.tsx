@@ -30,11 +30,11 @@ function SearchResultItem({
   }, [product.name, translation, locale]);
 
   const displayCategory = useMemo(() => {
-    if (product.categoryName) return product.categoryName;
+    if (product.categoryName) return getTranslatedValue(product.categoryName, locale);
 
     const categoryObj = product.category && typeof product.category === 'object' ? product.category : null;
-    return categoryObj ? getCategoryName(categoryObj) : '';
-  }, [product.category, product.categoryName]);
+    return categoryObj ? getCategoryName(categoryObj, locale) : '';
+  }, [locale, product.category, product.categoryName]);
 
   return (
     <button
@@ -69,7 +69,7 @@ function SearchResultItem({
           )}
           {product.brand && (
             <span className="text-gray-600">
-              {!product.brand ? t('no_brand') : t(product.brand)}
+              {product.brand}
             </span>
           )}
         </div>
@@ -79,8 +79,8 @@ function SearchResultItem({
         {product.countInStock !== undefined && (
           <p className="text-xs text-gray-500 mt-0.5">
             {product.countInStock > 0
-              ? `${product.countInStock} ${t('items_count')} ${t('in_stock')}`
-              : t('out_of_stock')}
+              ? `${product.countInStock} ${t('items_count', 'products')} ${t('in_stock', 'products')}`
+              : t('out_of_stock', 'products')}
           </p>
         )}
       </div>

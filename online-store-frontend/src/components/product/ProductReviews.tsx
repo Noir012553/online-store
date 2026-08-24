@@ -87,6 +87,7 @@ export function ProductReviews({
                   key={star}
                   type="button"
                   onClick={() => onReviewFormChange({ rating: star })}
+                  aria-label={`${t('label_rating', 'products')} ${star}`}
                   className="p-1"
                 >
                   <Star

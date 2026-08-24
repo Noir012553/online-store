@@ -50,7 +50,7 @@ export function ProductInformationTabs({
         <TabsTrigger value="reviews" className="text-xs sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
       </TabsList>
       <TabsContent value="specs" id="product-specs-container" className="bg-white p-4 sm:p-6 border rounded-lg">
-        <SpecsTable specs={product.specs} />
+        <SpecsTable specs={product.specs} specLabels={product.specLabels} />
       </TabsContent>
       <TabsContent value="description" id="product-description-container" className="bg-white p-4 sm:p-6 border rounded-lg">
         <div className="space-y-8">

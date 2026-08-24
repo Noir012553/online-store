@@ -286,6 +286,7 @@ export default function Home() {
     loadNamespace('products');
     loadNamespace('components');
     loadNamespace('categories');
+    loadNamespace('banner');
   }, [loadNamespace]);
 
   useEffect(() => {
@@ -655,12 +656,14 @@ export default function Home() {
           <>
             <button
               onClick={prevSlide}
+              aria-label={t('banner_previous', 'banner')}
               className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
             >
               <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             <button
               onClick={nextSlide}
+              aria-label={t('banner_next', 'banner')}
               className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
             >
               <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -671,6 +674,8 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
+                  aria-label={`${t('banner_indicator', 'banner')} ${index + 1}`}
+                  aria-current={index === currentSlide ? 'true' : undefined}
                   className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors ${index === currentSlide ? "bg-red-600" : "bg-white/50"
                     }`}
                 />
@@ -707,7 +712,7 @@ export default function Home() {
                 {categories.map((category) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
-                  const displayName = getCategoryName(category);
+                  const displayName = getCategoryName(category, locale);
                   const slug = category.slug || category._id;
 
                   return (
@@ -741,7 +746,7 @@ export default function Home() {
                     <div key={category._id}>
                       <div className="flex items-center justify-between gap-4 mb-4 sm:mb-6">
                         <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                          {getCategoryName(category)}
+                          {getCategoryName(category, locale)}
                         </h2>
                         <Link
                           href={category._id === 'all-products' ? '/products' : `/products/${category.slug || category._id}`}

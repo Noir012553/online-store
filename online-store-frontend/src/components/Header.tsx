@@ -84,7 +84,7 @@ function HeaderComponent() {
                   {t('allProducts')}
                 </Link>
                 {categories.map((category, index) => {
-                  const displayName = getCategoryName(category);
+                  const displayName = getCategoryName(category, locale);
                   const slug = category.slug || category._id;
                   return (
                     <Link
@@ -139,6 +139,7 @@ function HeaderComponent() {
                   variant="ghost"
                   size="icon"
                   className="hover:text-red-600 p-1"
+                  aria-label={t('profile', 'common')}
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
                   onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
@@ -264,7 +265,7 @@ function HeaderComponent() {
                       {t('allProducts', 'common')}
                     </Link>
                     {categories.map((category) => {
-                      const displayName = getCategoryName(category);
+                      const displayName = getCategoryName(category, locale);
                       const slug = category.slug || category._id;
                       return (
                         <Link

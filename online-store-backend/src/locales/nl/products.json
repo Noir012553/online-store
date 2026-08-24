@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Uitverkocht",
   "section_specifications": "Specificaties",
   "label_quantity": "Hoeveelheid",
+  "quantity_decrease": "Hoeveelheid verlagen",
+  "quantity_increase": "Hoeveelheid verhogen",
   "btn_add_to_cart": "Toevoegen aan Winkelwagen",
   "btn_add_mobile": "Toevoegen",
   "btn_buy_now": "Nu Kopen",

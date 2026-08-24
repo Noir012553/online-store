@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { useTranslation } from '../../../../lib/i18n';
 import { withAdminLayout } from '../../../../components/admin/withAdminLayout';
 import { CouponForm } from '../../../../components/admin/coupons/CouponForm';
 
@@ -9,9 +10,10 @@ export const getServerSideProps = async () => {
 function EditCouponContent() {
   const router = useRouter();
   const { id } = router.query;
+  const { t } = useTranslation();
 
   if (!id || typeof id !== 'string') {
-    return <div>Loading...</div>;
+    return <div>{t('loading', 'admin')}</div>;
   }
 
   return (
