@@ -563,7 +563,7 @@ export default function Home() {
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
-      <section className="relative h-[calc(100vh-80px)] overflow-hidden bg-gray-900">
+      <section className="relative h-[320px] overflow-hidden bg-gray-900 sm:h-[calc(100vh-80px)]">
         {heroSlidesToRender.map((slide, index) => {
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
