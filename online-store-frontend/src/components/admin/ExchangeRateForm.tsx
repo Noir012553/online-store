@@ -15,7 +15,7 @@ interface ExchangeRateFormProps {
 }
 
 export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateFormProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [formData, setFormData] = useState({
     fromCode: '',
     toCode: '',
@@ -29,7 +29,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
   useEffect(() => {
     fetchCurrencies();
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (rate) {
@@ -45,7 +45,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
   const fetchCurrencies = async () => {
     try {
-      const data = await currencyService.fetchCurrencies(true);
+      const data = await currencyService.fetchCurrencies(true, locale);
       setCurrencies(data);
     } catch (error) {
       toast.error(t('error_load_data', 'admin'));

@@ -13,6 +13,7 @@ import {
 } from "../ui/popover";
 import { Button } from "../ui/button";
 import { UI_EMOJI } from "../../lib/uiEmoji";
+import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import {
   Dialog,
@@ -117,14 +118,16 @@ export function NotificationBell() {
       setSelectedOrder(null);
       await fetchPendingOrders();
     } catch (error: any) {
-      const errorMessage = error?.message || t('error_save_data', 'notifications');
+      const errorCode = error?.code;
+      const errorStatus = error?.status;
+      const errorMessage = getUserFriendlyErrorMessage(error, t);
 
       // Handle specific error cases
-      if (errorMessage.includes('Order not found') || errorMessage.includes('404')) {
+      if (errorCode === 'order_not_found' || errorStatus === 404) {
         setPendingOrders(prev => prev.filter(o => o._id !== selectedOrder._id));
         toast.error(t('error_order_not_found', 'notifications'));
         setSelectedOrder(null);
-      } else if (errorMessage.includes('Network') || errorMessage.includes('Failed')) {
+      } else if (errorCode === 'network_error_title' || errorStatus === 0) {
         toast.error(t('error_network', 'notifications'));
       } else {
         toast.error(errorMessage);

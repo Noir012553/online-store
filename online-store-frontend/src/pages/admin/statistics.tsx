@@ -29,6 +29,7 @@ import {
 import { formatCurrency, formatDate, formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { UI_EMOJI } from '../../lib/uiEmoji';
+import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import { getCategoryName, getProductCategoryName, getTranslatedValue, getProductName } from '../../lib/data';
 import { useProductTranslation } from '../../hooks/useProductTranslation';
@@ -561,7 +562,7 @@ function StatisticsContent() {
       closeDetail();
       await loadData(true);
     } catch (error: any) {
-      toast.error(error?.message || t('error_save_data'));
+      toast.error(getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSavingDetail(false);
     }

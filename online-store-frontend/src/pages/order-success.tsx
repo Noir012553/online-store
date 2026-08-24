@@ -13,6 +13,7 @@ import { UI_EMOJI } from '../lib/uiEmoji';
 import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
 import { interpolateTranslation } from '../lib/translationInterpolate';
+import { getUserFriendlyErrorMessage } from '../lib/errorHandler';
 
 export const getServerSideProps = async () => {
   return {
@@ -92,7 +93,7 @@ export default function OrderSuccess() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         ));
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('error_load_orders', 'orders');
+        const errorMessage = getUserFriendlyErrorMessage(err, t) || t('error_load_orders', 'orders', 'Unable to load orders.');
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {

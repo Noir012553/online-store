@@ -153,7 +153,11 @@ export function showSlowRequestWarning(endpoint: string, method: string, duratio
 
 export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): string {
   const translate = t ?? apiErrorTranslator;
-  const code = error && typeof error === 'object' ? error.code : undefined;
+  const rawMessage = error && typeof error === 'object' ? error.message : undefined;
+  const messageKey = typeof rawMessage === 'string' && /^[a-z][a-z0-9_.-]*$/i.test(rawMessage)
+    ? rawMessage
+    : undefined;
+  const code = error && typeof error === 'object' ? error.code || messageKey : messageKey;
 
   if (code) {
     const translatedCode = translate?.(code, 'common');

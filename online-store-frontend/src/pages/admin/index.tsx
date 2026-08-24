@@ -21,7 +21,7 @@ const AdminIndexPageContent = () => {
 
   return (
     <div className="flex items-center justify-center h-full">
-      <p>{t('loading_message')}</p>
+      <p>{t('loading_message', 'admin', 'Loading...')}</p>
     </div>
   );
 };

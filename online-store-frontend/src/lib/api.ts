@@ -464,9 +464,11 @@ async function executeRequest<T = any>(
       const apiError = new Error(errorMessage) as Error & {
         code?: string;
         params?: Record<string, unknown>;
+        status?: number;
       };
       apiError.code = errorCode;
       apiError.params = errorParams;
+      apiError.status = response.status;
       throw apiError;
     }
 
