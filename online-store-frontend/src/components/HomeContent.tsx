@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Command, MousePointerClick, Headset, Cpu, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
@@ -21,10 +21,7 @@ import { ProductSkeleton } from "../components/ProductSkeleton";
 
 
 const iconMap = {
-  Command,
-  MousePointerClick,
-  Headset,
-  Cpu,
+  Gamepad2,
   LaptopMinimal,
   Briefcase,
   Palette,
@@ -119,10 +116,10 @@ const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
     .map(normalizeCategoryKey)
     .join(' ');
 
-  if (/keyboard|bàn phím|teclado|clavier|tastatur|tangentbord/.test(categoryText)) return 'Command';
-  if (/mouse|chuột|souris|maus|mus/.test(categoryText)) return 'MousePointerClick';
-  if (/headphones?|tai nghe|casque|kopfhörer|hörlurar/.test(categoryText)) return 'Headset';
-  if (/gaming laptop|laptop gaming|gaming-laptop|laptop chơi game/.test(categoryText)) return 'Cpu';
+  if (/keyboard|bàn phím|teclado|clavier|tastatur|tangentbord/.test(categoryText)) return 'Keyboard';
+  if (/mouse|chuột|souris|maus|mus/.test(categoryText)) return 'Mouse';
+  if (/headphones?|tai nghe|casque|kopfhörer|hörlurar/.test(categoryText)) return 'Headphone';
+  if (/gaming laptop|laptop gaming|gaming-laptop|laptop chơi game/.test(categoryText)) return 'Gamepad2';
   if (/office laptop|laptop office|laptop văn phòng|laptop bureau|office-laptop/.test(categoryText)) return 'LaptopMinimal';
   if (/audio|âm thanh|loa/.test(categoryText)) return 'Volume2';
   if (/gaming monitor|màn hình gaming/.test(categoryText)) return 'MonitorPlay';
