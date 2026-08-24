@@ -13,6 +13,13 @@ const MAX_LABEL_LENGTH = 80;
 
 const getCacheKey = (canonicalKey, targetLang) => `${canonicalKey}:${targetLang}`;
 
+const humanizeSpecKey = (canonicalKey) => String(canonicalKey || '')
+  .replace(/([a-z])([A-Z])/g, '$1 $2')
+  .replace(/[_-]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .replace(/^./, (character) => character.toUpperCase());
+
 const getCanonicalSpecKey = (rawKey) => {
   const key = String(rawKey || '').trim();
   if (!key) return '';
@@ -25,8 +32,8 @@ const getCanonicalSpecKey = (rawKey) => {
 
 const getStaticLabel = (canonicalKey, targetLang) => {
   const labels = specKeyTranslations[canonicalKey];
-  if (!labels) return canonicalKey;
-  return labels[targetLang] || labels.vi || labels.en || canonicalKey;
+  if (!labels) return humanizeSpecKey(canonicalKey);
+  return labels[targetLang] || labels.vi || labels.en || humanizeSpecKey(canonicalKey);
 };
 
 const isValidTranslatedLabel = (label) => (
@@ -131,4 +138,5 @@ const getSpecKeyLabels = async (specs, targetLang) => {
 module.exports = {
   getCanonicalSpecKey,
   getSpecKeyLabels,
+  humanizeSpecKey,
 };

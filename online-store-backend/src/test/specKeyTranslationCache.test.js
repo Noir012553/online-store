@@ -12,6 +12,9 @@ describe('spec key translation rollout', () => {
     assert.equal(getCanonicalSpecKey('Kích thước/Layout'), 'layout');
     assert.equal(getCanonicalSpecKey('keycap_material'), 'keycapMaterial');
     assert.equal(getCanonicalSpecKey('CPU'), 'cpu');
+    assert.equal(getCanonicalSpecKey('mau_sac'), 'color');
+    assert.equal(getCanonicalSpecKey('kieu_tai_nghe'), 'headphoneType');
+    assert.equal(getCanonicalSpecKey('tuong_thich'), 'compatibility');
   });
 
   it('keeps sanitized unknown keys instead of dropping them', () => {
@@ -27,11 +30,26 @@ describe('spec key translation rollout', () => {
 
   it('returns canonical specs separately from localized labels', async () => {
     const localized = await localizeProductSpecFields({
-      specs: { 'Kích thước/Layout': 'TKL' },
+      specs: {
+        'Kích thước/Layout': 'TKL',
+        mau_sac: 'Đen',
+        kieu_tai_nghe: 'Over-ear',
+        tuong_thich: 'PC/Laptop',
+      },
     }, 'en');
     assert.deepEqual(localized, {
-      specs: { layout: 'TKL' },
-      specLabels: { layout: 'Layout' },
+      specs: {
+        layout: 'TKL',
+        color: 'Đen',
+        headphoneType: 'Over-ear',
+        compatibility: 'PC/Laptop',
+      },
+      specLabels: {
+        layout: 'Layout',
+        color: 'Color',
+        headphoneType: 'Headphone Type',
+        compatibility: 'Compatibility',
+      },
     });
   });
 

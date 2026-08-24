@@ -373,6 +373,28 @@
     "nl": "Geluidsniveau",
     "vi": "Mức tiếng ồn"
   },
+  "headphoneType": {
+    "en": "Headphone Type",
+    "de": "Kopfhörertyp",
+    "fr": "Type de casque",
+    "it": "Tipo di cuffia",
+    "pt": "Tipo de fone de ouvido",
+    "es": "Tipo de auriculares",
+    "sv": "Hörlurstyp",
+    "nl": "Hoofdtelefoontype",
+    "vi": "Loại tai nghe"
+  },
+  "compatibility": {
+    "en": "Compatibility",
+    "de": "Kompatibilität",
+    "fr": "Compatibilité",
+    "it": "Compatibilità",
+    "pt": "Compatibilidade",
+    "es": "Compatibilidad",
+    "sv": "Kompatibilitet",
+    "nl": "Compatibiliteit",
+    "vi": "Tương thích"
+  },
   "condition": {
     "en": "Condition",
     "de": "Zustand",

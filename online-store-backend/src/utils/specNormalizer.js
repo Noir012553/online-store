@@ -20,6 +20,10 @@ const vietnameseToEnglishSpecMap = {
   'wireless': 'connection',
   'wired': 'connection',
 
+  // ========== COLOR ==========
+  'mausac': 'color',
+  'color': 'color',
+
   // ========== SWITCH TYPE / KEYBOARD ==========
   'switchtype': 'switchType',
   'switch type': 'switchType',
@@ -70,6 +74,9 @@ const vietnameseToEnglishSpecMap = {
   'số lượng phím': 'buttons',
 
   // ========== HEADPHONE ==========
+  'kieutainghe': 'headphoneType',
+  'headphonetype': 'headphoneType',
+  'loaitainghe': 'headphoneType',
   'driver': 'driver',
   'kichthuocdriver': 'driver',
   'kích thước driver': 'driver',
@@ -157,6 +164,8 @@ const vietnameseToEnglishSpecMap = {
   'thời gian pin': 'battery',
 
   // ========== COMMON ==========
+  'tuongthich': 'compatibility',
+  'compatibility': 'compatibility',
   'condition': 'condition',
   'tinhnang': 'condition',
   'tình năng': 'condition',
@@ -193,8 +202,8 @@ const vietnameseToEnglishSpecMap = {
  * Any field not in this list will be discarded as "junk data"
  */
 const validSpecFields = new Set([
-  'cpu', 'ram', 'storage', 'display', 'gpu', 'os', 'weight', 'battery',
-  'switchType', 'layout', 'keycapMaterial', 'connection',
+  'cpu', 'ram', 'storage', 'display', 'gpu', 'os', 'weight', 'battery', 'color',
+  'switchType', 'layout', 'keycapMaterial', 'connection', 'headphoneType', 'compatibility',
   'maxDPI', 'pollRate', 'buttons', 'mouseType',
   'driver', 'frequency', 'impedance', 'cableLength',
   'type', 'tdp', 'fanSpeed', 'noiseLevel',

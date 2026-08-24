@@ -110,8 +110,8 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 
 ### Vấn đề mới ghi nhận — Dynamic spec key
 
-- Catalog `specKeyTranslations` và `specKeyTranslationCache` hiện chỉ bao phủ các canonical key đã biết; việc chạy seed không tự phát hiện hoặc dịch concept mới từ nguồn hàng.
-- Khi nguồn hàng thêm key mới như `mau_sac`, `kieu_tai_nghe` hoặc `tuong_thich`, key chưa có alias/catalog có thể bị sanitize rồi hiển thị nguyên dạng raw, đặc biệt ở locale mặc định `vi`.
+- Catalog `specKeyTranslations` và `specKeyTranslationCache` vẫn là nguồn label chuẩn; seed không tự phát hiện hoặc dịch concept mới từ nguồn hàng.
+- Đã bổ sung alias/catalog cho `mau_sac`, `kieu_tai_nghe` và `tuong_thich`; các key này hiện được canonicalize thành `color`, `headphoneType` và `compatibility` thay vì hiển thị raw.
 - Không nên yêu cầu cập nhật JSON và chạy seed cho từng sản phẩm. Seed chỉ cần chạy khi thêm concept/alias mới hoặc cần đồng bộ lại cache.
 - Cần tự động hóa trong import/request pipeline: phát hiện unknown key, normalize alias về canonical key cũ nếu có, tạo registry hoặc trạng thái pending cho concept mới, đưa label vào hàng đợi dịch, rồi lưu kết quả vào `SpecKeyTranslationCache`.
 - Các key mới phải được sanitize an toàn và giữ value domain nguyên trạng; chỉ label/key được đưa qua quy trình dịch.
@@ -119,8 +119,8 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 ### Còn lại / cần xác nhận
 
 - [ ] Bổ sung fallback text cho các call site `t(...)` quan trọng còn trả key khi namespace lỗi.
-- [ ] Tự động phát hiện, đăng ký và dịch unknown spec key trong pipeline import/request thay vì phụ thuộc vào seed thủ công.
-- [ ] Bổ sung alias/canonical key cho các spec hiện đang hiển thị raw: `mau_sac`, `kieu_tai_nghe`, `tuong_thich`.
+- [ ] Tự động phát hiện, đăng ký và dịch unknown spec key hoàn toàn mới trong pipeline import/request thay vì phụ thuộc vào seed thủ công; hiện đã có fallback human-readable và dynamic translation/cache cho locale không mặc định.
+- [x] Bổ sung alias/canonical key và label catalog cho `mau_sac`, `kieu_tai_nghe`, `tuong_thich`.
 - [ ] Xác nhận backend luôn trả product/category/brand theo locale hoặc object đa ngôn ngữ; tiếp tục normalize các route chưa truyền locale đầy đủ.
 - [ ] Kiểm tra contract snapshot tên sản phẩm trong order: giữ tên tại thời điểm đặt hàng hay thay đổi theo locale hiện tại.
 - [ ] Rà soát các chuỗi message chủ động trả từ API/CMS để phân biệt dữ liệu domain hợp lệ với UI message cần dịch.
@@ -131,6 +131,7 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 - [x] `npm test` đạt 10/10 bài test offline.
 - [x] `git diff --check` không phát hiện lỗi whitespace.
 - [ ] Không chạy lại `npm run build` frontend theo yêu cầu; lần chạy trước đã qua bước TypeScript nhưng bị dừng ở bước tạo production bundle.
+- [ ] Backend i18n test chưa chạy được vì môi trường `online-store-backend` hiện thiếu package `dotenv`.
 
 ## Kết luận
 
