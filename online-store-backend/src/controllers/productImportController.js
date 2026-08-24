@@ -18,6 +18,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
+const archiver = require('archiver');
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
@@ -44,6 +45,28 @@ const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
 const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'specs'];
 
 const isDryRun = (value) => value === true || value === 'true';
+const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
+
+const findDuplicateImportIssues = (products) => {
+  const seen = new Map();
+  const issues = [];
+  products.forEach((product, index) => {
+    const identities = [
+      ['productId', product.productId],
+      ['sku', product.sku],
+      ['name_brand', `${product.name}|${product.brand}`],
+    ].filter(([, value]) => value !== undefined && value !== null && value !== '');
+    identities.forEach(([field, value]) => {
+      const key = `${field}:${String(value)}`;
+      if (seen.has(key)) {
+        issues.push({ index: index + 1, code: 'IMPORT_DUPLICATE_INPUT', field, value });
+      } else {
+        seen.set(key, index + 1);
+      }
+    });
+  });
+  return issues;
+};
 
 const toCategorySlug = (value) => String(value || '')
   .normalize('NFD')
@@ -191,6 +214,15 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
  */
 const importProductsFromFile = asyncHandler(async (req, res) => {
   const { mode = 'upsert', dryRun = true } = req.body;
+  const normalizedMode = typeof mode === 'string' ? mode.toLowerCase() : '';
+  if (!IMPORT_MODES.has(normalizedMode)) {
+    return res.status(400).json({
+      success: false,
+      code: 'IMPORT_MODE_UNSUPPORTED',
+      message: getMessage(req.lang, 'errors.generic_error'),
+      supportedModes: [...IMPORT_MODES],
+    });
+  }
   const allowCreateReferences = req.body.allowCreateReferences === true || req.body.allowCreateReferences === 'true';
   const adminUserId = req.user._id;
 
@@ -264,12 +296,20 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
-    await registerUnknownSpecKeys(validation.validProducts);
+
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),
     }));
-    const normalizedMode = mode.toLowerCase();
+    const duplicateIssues = findDuplicateImportIssues(validProducts);
+    if (duplicateIssues.length > 0) {
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_DUPLICATE_INPUT',
+        message: getMessage(req.lang, 'errors.generic_error'),
+        errors: duplicateIssues,
+      });
+    }
 
     if (normalizedMode === 'update' && validProducts.some((product) => (
       !getImportProductId(product)
@@ -294,6 +334,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         preview: validProducts.slice(0, 3),
       });
     }
+
+    await registerUnknownSpecKeys(validProducts);
 
     // Map category names → IDs (Filter isDeleted = false)
     const categoryMap = {};
@@ -489,6 +531,15 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 const importProducts = asyncHandler(async (req, res) => {
   const { data, products, format = 'json', mode = 'upsert', dryRun = false } = req.body;
   const preserveExistingStock = req.seedOptions?.preserveExistingStock === true;
+  const normalizedMode = typeof mode === 'string' ? mode.toLowerCase() : '';
+  if (!IMPORT_MODES.has(normalizedMode)) {
+    return res.status(400).json({
+      success: false,
+      code: 'IMPORT_MODE_UNSUPPORTED',
+      message: getMessage(req.lang, 'errors.generic_error'),
+      supportedModes: [...IMPORT_MODES],
+    });
+  }
   const adminUserId = req.user._id;
 
   // Validate input
@@ -537,12 +588,20 @@ const importProducts = asyncHandler(async (req, res) => {
     if (validation.warnings.length > 0) {
     }
 
-    await registerUnknownSpecKeys(validation.validProducts);
+
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),
     }));
-    const normalizedMode = mode.toLowerCase();
+    const duplicateIssues = findDuplicateImportIssues(validProducts);
+    if (duplicateIssues.length > 0) {
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_DUPLICATE_INPUT',
+        message: getMessage(req.lang, 'errors.generic_error'),
+        errors: duplicateIssues,
+      });
+    }
 
     if (normalizedMode === 'update' && validProducts.some((product) => (
       !getImportProductId(product)
@@ -566,6 +625,8 @@ const importProducts = asyncHandler(async (req, res) => {
         preview: validProducts.slice(0, 3),
       });
     }
+
+    await registerUnknownSpecKeys(validProducts);
 
     // Map category names → IDs (FIX #1: Filter isDeleted = false)
     const categoryMap = {};
@@ -595,7 +656,7 @@ const importProducts = asyncHandler(async (req, res) => {
 
     // Xử lý theo mode
     let results;
-    switch (mode.toLowerCase()) {
+    switch (normalizedMode) {
       case 'insert':
         results = await handleInsertMode(enrichedProducts);
         break;
@@ -1116,6 +1177,131 @@ function convertProductsToCSV(products) {
 }
 
 /**
+ * Export products and their catalog translations as a ZIP bundle.
+ * @route GET /api/admin/products/export-bundle
+ * @access Private/Admin
+ */
+const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
+  const { category, brand, limit = 10000 } = req.query;
+  const parsedLimit = Number(limit);
+
+  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
+    return res.status(400).json({
+      success: false,
+      code: 'EXPORT_LIMIT_INVALID',
+      message: getMessage(req.lang, 'errors.generic_error'),
+    });
+  }
+
+  try {
+    const filter = { isDeleted: false };
+
+    if (category && category !== 'all') {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        filter.category = category;
+      } else {
+        const categoryDoc = await Category.findOne({ isDeleted: false, name: category });
+        if (!categoryDoc) {
+          return res.status(404).json({
+            success: false,
+            code: 'EXPORT_CATEGORY_NOT_FOUND',
+            message: getMessage(req.lang, 'admin-controllers-messages.product_category_not_found'),
+          });
+        }
+        filter.category = categoryDoc._id;
+      }
+    }
+
+    if (brand && brand !== 'all') filter.brand = brand;
+
+    const matchedTotal = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
+      .select('-reviews -createdAt -updatedAt -__v')
+      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+      .limit(parsedLimit + 1)
+      .lean();
+    const hasMore = products.length > parsedLimit;
+    const exportedProducts = products.slice(0, parsedLimit)
+      .filter(product => product.category)
+      .map(product => ({
+        productId: product._id.toString(),
+        sku: product.sku || undefined,
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        baseCurrencyCode: product.baseCurrencyCode,
+        originalPrice: product.originalPrice,
+        category: product.category.name,
+        description: product.description,
+        image: product.image || '',
+        countInStock: product.countInStock || 0,
+        specs: product.specs || {},
+        rating: product.rating || 0,
+        numReviews: product.numReviews || 0,
+        featured: product.featured || false,
+        deal: product.deal || false,
+      }));
+    const productIds = exportedProducts.map(product => product.productId);
+    const translations = await ProductCatalogTranslationCache.find({
+      entityId: { $in: productIds },
+    }).select('entityId targetLang name description brand specs manualFields updatedAt lastTranslatedAt').lean();
+    const translationFields = ['name', 'description', 'brand', 'specs'];
+    const records = translations.map(translation => ({
+      productId: String(translation.entityId),
+      targetLang: translation.targetLang,
+      translations: Object.fromEntries(
+        translationFields
+          .map(field => [field, translation[field]])
+          .filter(([, value]) => value !== undefined && value !== null)
+      ),
+      manualFields: (translation.manualFields || []).filter(field => translationFields.includes(field)),
+      updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
+    }));
+    const exportedAt = new Date().toISOString();
+    const manifest = {
+      version: 1,
+      exportedAt,
+      totalProducts: exportedProducts.length,
+      matchedTotal,
+      exportedTotal: exportedProducts.length,
+      hasMore,
+      filters: { category: category || null, brand: brand || null },
+      locales: [...new Set(records.map(record => record.targetLang))].sort(),
+      files: ['manifest.json', 'products.json', 'product-translations.json'],
+    };
+    const productsPayload = {
+      success: true,
+      exportedAt,
+      totalProducts: exportedProducts.length,
+      matchedTotal,
+      exportedTotal: exportedProducts.length,
+      hasMore,
+      format: 'json',
+      filters: { category: category || null, brand: brand || null },
+      products: exportedProducts,
+    };
+    const translationsPayload = { success: true, data: { records } };
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', error => {
+      if (res.headersSent) res.destroy(error);
+      else next(error);
+    });
+    archive.pipe(res);
+    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
+    archive.append(JSON.stringify(productsPayload, null, 2), { name: 'products.json' });
+    archive.append(JSON.stringify(translationsPayload, null, 2), { name: 'product-translations.json' });
+    await archive.finalize();
+  } catch (error) {
+    console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
+    if (res.headersSent) return res.destroy(error);
+    return next(error);
+  }
+});
+
+/**
  * Get export statistics (count by category, brand, etc.)
  * @route GET /api/admin/products/export-stats
  * @access Private/Admin
@@ -1225,5 +1411,6 @@ module.exports = {
   getImportGuide,
   getImportFormats,
   exportProducts,
+  exportProductsWithTranslations,
   getExportStats,
 };
