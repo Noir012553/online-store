@@ -3,6 +3,7 @@ const expect = chai.expect;
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
+const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
 const { buildUpsertProductUpdate } = require('../controllers/productImportController');
 const {
   getProductImagePublicId,
@@ -54,6 +55,17 @@ describe('Import file validation', () => {
       originalname: 'products.json',
       mimetype: 'application/json',
     }, 'json')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('Dynamic spec key import', () => {
+  it('keeps unknown spec columns for automatic registration during import', async () => {
+    const products = await new CSVAdapter().parse([
+      'name,brand,price,category,specs_battery_life_hours',
+      'Laptop,Brand,1000,Keyboard,80 hours',
+    ].join('\n'));
+
+    expect(products[0].specs).to.deep.equal({ battery_life_hours: '80 hours' });
   });
 });
 

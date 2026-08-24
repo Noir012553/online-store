@@ -145,6 +145,12 @@ const registerUnknownSpecKeys = async (specs) => {
   return registeredKeys;
 };
 
+const waitForPendingTranslations = async () => {
+  while (pendingTranslations.size > 0) {
+    await Promise.allSettled([...pendingTranslations.values()]);
+  }
+};
+
 const getSpecKeyLabels = async (specs, targetLang) => {
   const entries = getSpecEntries(specs);
   const canonicalKeys = [...new Set(entries.map(([key]) => getCanonicalSpecKey(key)).filter(Boolean))];
@@ -190,4 +196,5 @@ module.exports = {
   getSpecKeyLabels,
   humanizeSpecKey,
   registerUnknownSpecKeys,
+  waitForPendingTranslations,
 };

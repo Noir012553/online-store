@@ -12,6 +12,7 @@ const {
   isSupportedLanguage,
 } = require('../config/languageInventory');
 const ProductImportController = require('../controllers/productImportController');
+const { waitForPendingTranslations } = require('../services/specKeyTranslationService');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const SeedStatus = require('../models/SeedStatus');
@@ -507,6 +508,10 @@ const runProductSeedPipeline = async (options = {}) => {
       dryRun,
       initializeHighlights,
     }));
+  }
+
+  if (!dryRun) {
+    await waitForPendingTranslations();
   }
 
   if (initializeHighlights && await Product.exists({})) {
