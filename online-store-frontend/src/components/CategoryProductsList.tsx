@@ -18,6 +18,7 @@ import {
 } from "./ui/accordion";
 import { useTranslation, useLanguage } from "../lib/i18n";
 import { UI_EMOJI } from "../lib/uiEmoji";
+import { formatNumber } from "../lib/utils";
 
 interface CategoryProductsListProps {
   categoryId: string;
@@ -449,8 +450,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     />
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs font-medium text-gray-700">
-                        <span>{t('filter_min_discount')}</span>
-                        <span>{t('filter_max_discount')}</span>
+                        <span>{t('filter_min_discount', 'products')}</span>
+                        <span>{t('filter_max_discount', 'products')}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-900 font-semibold">
                         <span className="text-red-600">{(filters.discountRange[0] || discountStats.minDiscount)}%</span>
@@ -520,8 +521,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                       <span>{t('filter_max_rating', 'products')}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-900 font-semibold">
-                      <span className="text-red-600">{filters.ratingRange[0].toFixed(1)}</span>
-                      <span className="text-red-600">{filters.ratingRange[1].toFixed(1)}</span>
+                      <span className="text-red-600">{formatNumber(filters.ratingRange[0], locale)}</span>
+                      <span className="text-red-600">{formatNumber(filters.ratingRange[1], locale)}</span>
                     </div>
                   </div>
                 </div>
@@ -646,7 +647,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                 className="gap-1 cursor-pointer hover:bg-red-100"
                 onClick={() => setRatingRange([0, 5])}
               >
-                {t('filter_rating_range', 'products')}: {filters.ratingRange[0].toFixed(1)} - {filters.ratingRange[1].toFixed(1)}
+                {t('filter_rating_range', 'products')}: {formatNumber(filters.ratingRange[0], locale)} - {formatNumber(filters.ratingRange[1], locale)}
                 <X className="w-3 h-3" />
               </Badge>
             )}
@@ -686,7 +687,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                 className="gap-1 cursor-pointer hover:bg-red-100"
                 onClick={() => toggleStockFilter(undefined)}
               >
-                {filters.inStock ? t('filter_in_stock') : t('filter_out_of_stock')}
+                {filters.inStock ? t('filter_in_stock', 'products') : t('filter_out_of_stock', 'products')}
                 <X className="w-3 h-3" />
               </Badge>
             )}
@@ -715,8 +716,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                 <div className="col-span-full">
                   <EmptyState
                     icon={PackageSearch}
-                    title={t('filter_no_products_found')}
-                    description={t('filter_try_other_keywords')}
+                    title={t('filter_no_products_found', 'products')}
+                    description={t('filter_try_other_keywords', 'products')}
                   />
                 </div>
               )}

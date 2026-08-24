@@ -159,6 +159,8 @@
   "slot_homepage_inline": "Inline Banner",
   "error_load_data": "Error loading data",
   "admin_currency_management": "Currency Management",
+  "admin_currency_label": "Currency",
+  "admin_select_currency": "Select currency",
   "admin_currency_list": "Currency List",
   "admin_add_currency": "Add Currency",
   "admin_edit_currency": "Edit Currency",

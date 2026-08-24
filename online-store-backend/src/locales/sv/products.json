@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Slutsålt",
   "section_specifications": "Specifikationer",
   "label_quantity": "Mängd",
+  "quantity_decrease": "Minska mängd",
+  "quantity_increase": "Öka mängd",
   "btn_add_to_cart": "Lägg till i varukorgen",
   "btn_add_mobile": "Lägg Till",
   "btn_buy_now": "Köp Nu",

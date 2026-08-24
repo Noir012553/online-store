@@ -186,7 +186,7 @@ export default function ProductDetail() {
         }
       } catch (err) {
         if (!isCurrentRequest()) return;
-        setError(err instanceof Error ? err.message : t('error_load_product', 'products'));
+        setError(t('error_load_product', 'products'));
         setLaptop(null);
       } finally {
         if (isCurrentRequest()) {

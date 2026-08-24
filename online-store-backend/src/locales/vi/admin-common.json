@@ -160,6 +160,8 @@
   "slot_homepage_inline": "Banner Nội dung",
   "error_load_data": "Lỗi khi tải dữ liệu",
   "admin_currency_management": "Quản lý tiền tệ",
+  "admin_currency_label": "Tiền tệ",
+  "admin_select_currency": "Chọn tiền tệ",
   "admin_currency_list": "Danh sách tiền tệ",
   "admin_add_currency": "Thêm mệnh giá",
   "admin_edit_currency": "Sửa mệnh giá",

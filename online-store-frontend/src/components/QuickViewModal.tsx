@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { UI_EMOJI } from "../lib/uiEmoji";
+import { formatNumber } from "../lib/utils";
 import { ImageViewer } from "./ImageViewer";
 
 interface QuickViewModalProps {
@@ -56,15 +57,16 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
+    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
       <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
-          <h2 className="text-lg font-semibold text-black sm:text-xl">{t('quick_view_title', 'products')}</h2>
+          <h2 id="quick-view-title" className="text-lg font-semibold text-black sm:text-xl">{t('quick_view_title', 'products')}</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
             className="rounded-full text-black hover:bg-gray-200"
+            aria-label={t('close', 'components')}
           >
             <X className="w-5 h-5" />
           </Button>
@@ -117,7 +119,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1">
                     <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold text-black">{(laptop.rating || 0).toFixed(1)}</span>
+                    <span className="font-semibold text-black">{formatNumber(laptop.rating || 0, locale)}</span>
                   </div>
                   <span className="text-gray-600">({laptop.reviews} {t('reviews_text', 'products')})</span>
                 </div>

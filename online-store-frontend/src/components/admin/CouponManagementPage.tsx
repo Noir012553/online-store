@@ -815,9 +815,9 @@ export function CouponManagementPage({ title, description, mode = 'all' }: Coupo
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="coupon-currency">Currency</Label>
+                    <Label htmlFor="coupon-currency">{t('admin_currency_label', 'admin')}</Label>
                     <select id="coupon-currency" value={editingCoupon.currencyCode} onChange={(event) => setEditingCoupon({ ...editingCoupon, currencyCode: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
-                      <option value="" disabled>Select currency</option>
+                      <option value="" disabled>{t('admin_select_currency', 'admin')}</option>
                       {activeCurrencies.map((currency) => (
                         <option key={currency.code} value={currency.code}>
                           {currency.code} ({currency.symbol})

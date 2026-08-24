@@ -141,15 +141,14 @@ export default function Profile() {
         credentials: 'include',
       });
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || t('profile_avatar_error', 'profile'));
+        throw new Error(t('profile_avatar_error', 'profile'));
       }
 
       const updatedUser = await response.json();
       updateUserProfileImage(updatedUser.profileImage || uploadResult.secure_url);
       toast.success(t('profile_avatar_success', 'profile'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('profile_avatar_error', 'profile'));
+      toast.error(t('profile_avatar_error', 'profile'));
       setAvatarPreview(user?.profileImage || '');
     } finally {
       setIsUploadingAvatar(false);

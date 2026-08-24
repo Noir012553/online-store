@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Banner Embutido",
   "error_load_data": "Erro ao carregar dados",
   "admin_currency_management": "Gestão de Moedas",
+  "admin_currency_label": "Moeda",
+  "admin_select_currency": "Selecionar moeda",
   "admin_currency_list": "Lista de Moedas",
   "admin_add_currency": "Adicionar Moeda",
   "admin_edit_currency": "Editar Moeda",

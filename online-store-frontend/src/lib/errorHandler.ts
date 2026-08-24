@@ -160,8 +160,8 @@ export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): stri
   }
 
   if (error instanceof Error && error.message) {
-    return error.message;
+    return translate?.('error_generic_fallback', 'common') || translate?.('error_generic', 'common') || '';
   }
 
-  return translate?.('error_generic_fallback', 'common') || '';
+  return translate?.('error_generic_fallback', 'common') || translate?.('error_generic', 'common') || '';
 }

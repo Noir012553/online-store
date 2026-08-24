@@ -96,7 +96,7 @@ export default function ResetPassword() {
         router.push("/login");
       }, 2000);
     } catch (error: any) {
-      const errorMessage = error?.message || t('reset_password_error', 'login');
+      const errorMessage = t('reset_password_error', 'login');
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

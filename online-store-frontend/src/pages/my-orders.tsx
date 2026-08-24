@@ -320,7 +320,7 @@ export default function MyOrders() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       ));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('error_processing_order', 'orders');
+      const errorMessage = t('error_processing_order', 'orders');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

@@ -157,6 +157,8 @@
   "slot_homepage_inline": "Banner Integrado",
   "error_load_data": "Error al cargar datos",
   "admin_currency_management": "Gestión de Divisas",
+  "admin_currency_label": "Divisa",
+  "admin_select_currency": "Seleccionar divisa",
   "admin_currency_list": "Lista de Divisas",
   "admin_add_currency": "Agregar Divisa",
   "admin_edit_currency": "Editar Divisa",

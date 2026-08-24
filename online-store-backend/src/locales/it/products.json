@@ -113,6 +113,8 @@
   "stock_out_of_stock": "Esaurito",
   "section_specifications": "Specifiche",
   "label_quantity": "Quantità",
+  "quantity_decrease": "Diminuisci quantità",
+  "quantity_increase": "Aumenta quantità",
   "btn_add_to_cart": "Aggiungi al Carrello",
   "btn_add_mobile": "Aggiungi",
   "btn_buy_now": "Acquista Ora",

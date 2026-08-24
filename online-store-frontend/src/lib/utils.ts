@@ -1,4 +1,7 @@
-export function formatDate(date: Date | string | number | null | undefined, locale?: string): string {
+import { getIntlLocale } from './localeUtils';
+import { DEFAULT_LOCALE, type Locale } from './i18n/types';
+
+export function formatDate(date: Date | string | number | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
   if (date === null || date === undefined || date === '') {
     return '';
   }
@@ -8,11 +11,37 @@ export function formatDate(date: Date | string | number | null | undefined, loca
     return '';
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(getIntlLocale(locale as Parameters<typeof getIntlLocale>[0]), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   }).format(parsedDate);
+}
+
+export function formatNumber(value: number, locale: Locale, maximumFractionDigits = 1): string {
+  return new Intl.NumberFormat(getIntlLocale(locale), {
+    maximumFractionDigits,
+  }).format(value);
+}
+
+export function formatCurrency(
+  value: number | null | undefined,
+  formattedValue: string | undefined,
+  locale: Locale,
+  currencyCode: string,
+): string {
+  if (typeof formattedValue === 'string' && formattedValue.trim()) {
+    return formattedValue;
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '';
+  }
+
+  return new Intl.NumberFormat(getIntlLocale(locale), {
+    style: 'currency',
+    currency: currencyCode,
+  }).format(value);
 }
 
 export function calculateDiscount(original: number, current: number): number {

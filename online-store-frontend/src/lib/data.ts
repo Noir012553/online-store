@@ -99,11 +99,11 @@ export const getProductCategoryName = (product: any): string => {
  * @param categoryValue - Category object or string
  * @returns The category name or an empty string when no category is present
  */
-export const getCategoryName = (categoryValue: any): string => {
+export const getCategoryName = (categoryValue: any, locale?: string): string => {
   if (!categoryValue) return '';
 
   if (typeof categoryValue === 'object') {
-    return typeof categoryValue.name === 'string' ? categoryValue.name.trim() : '';
+    return getTranslatedValue(categoryValue.name, locale);
   }
 
   return typeof categoryValue === 'string' ? categoryValue.trim() : '';

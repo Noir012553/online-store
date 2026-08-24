@@ -1,8 +1,8 @@
 import { ShoppingCart, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Laptop, getCategoryName, isActiveDeal } from "../lib/data";
-import { getImageUrl } from "../lib/utils";
+import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal } from "../lib/data";
+import { formatCurrency, formatNumber, getImageUrl } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
@@ -32,7 +32,7 @@ const ProductDetailsContainer = ({ href, children, className, ...rest }: { href?
 
 export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [showQuickView, setShowQuickView] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
@@ -40,17 +40,17 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
   const convertedLaptop: Laptop = useMemo(() => {
     const categoryObj = laptop.category && typeof laptop.category === 'object' ? laptop.category : null;
     const categoryId = categoryObj ? (categoryObj._id ?? categoryObj.id) : (typeof laptop.category === 'string' ? laptop.category : undefined);
-    const displayCategoryName = categoryObj ? getCategoryName(categoryObj) : '';
-    const displayBrand = !laptop.brand ? t('no_brand', 'products') : laptop.brand;
+    const displayCategoryName = categoryObj ? getCategoryName(categoryObj, locale) : '';
+    const displayBrand = getTranslatedValue(laptop.brand, locale) || t('no_brand', 'products');
 
     return {
       id: laptop._id || laptop.id || '',
-      name: laptop.name,
+      name: getTranslatedValue(laptop.name, locale),
       brand: displayBrand,
       category: categoryId || t('no_category', 'admin'),
       categoryName: displayCategoryName || t('no_category', 'admin'),
       price: laptop.price,
-      formattedPrice: laptop.formattedPrice,
+      formattedPrice: formatCurrency(laptop.price, laptop.formattedPrice, locale, laptop.baseCurrencyCode),
       baseCurrencyCode: laptop.baseCurrencyCode,
       originalPrice: laptop.originalPrice,
       formattedOriginalPrice: laptop.formattedOriginalPrice,
@@ -68,7 +68,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       featured: laptop.featured || false,
       deal: laptop.deal,
     };
-  }, [laptop, t]);
+  }, [laptop, locale, t]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -175,7 +175,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
               <div className="flex items-center gap-2 mb-2 h-4 sm:h-5">
                 <div className="flex items-center gap-1">
                   <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs sm:text-sm text-black">{convertedLaptop.rating.toFixed(1)}</span>
+                  <span className="text-xs sm:text-sm text-black">{formatNumber(convertedLaptop.rating, locale)}</span>
                 </div>
                 <span className="text-xs sm:text-sm text-black">({convertedLaptop.reviews})</span>
               </div>
