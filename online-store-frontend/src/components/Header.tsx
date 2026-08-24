@@ -231,7 +231,7 @@ function HeaderComponent() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b shadow-md">
+        <div className="sticky top-20 z-[90] max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain lg:hidden bg-white border-b shadow-md">
           <div className="container mx-auto header-container-px py-4">
             <div className="mb-4">
               <SearchDropdown inputId="mobile-site-search" className="relative w-full" />
