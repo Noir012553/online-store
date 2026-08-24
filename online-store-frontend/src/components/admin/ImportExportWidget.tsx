@@ -14,6 +14,7 @@ export default function ImportExportWidget() {
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
+  const [includeTranslations, setIncludeTranslations] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -51,6 +52,18 @@ export default function ImportExportWidget() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
+      if (includeTranslations) {
+        const blob = await productAPI.exportProductBundle(selectedCategory, undefined, undefined, locale);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `products-export-${Date.now()}.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(t('export_bundle_success', 'export', 'Đã xuất sản phẩm kèm bản dịch'));
+        return;
+      }
+
       const data = await productAPI.exportProducts(selectedFormat, selectedCategory, undefined, undefined, locale);
 
       if (selectedFormat === 'csv') {
@@ -168,12 +181,29 @@ export default function ImportExportWidget() {
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'export')}</label>
               <select
                 value={selectedFormat}
+                disabled={includeTranslations}
                 onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
               >
                 <option value="json">{t('format_json', 'export')}</option>
                 <option value="csv">{t('format_csv', 'export')}</option>
               </select>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={includeTranslations}
+                  onChange={(e) => setIncludeTranslations(e.target.checked)}
+                />
+                {t('export_with_translations', 'export', 'Export kèm bản dịch')}
+              </label>
+              {includeTranslations && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {t('export_bundle_note', 'export', 'Tải xuống ZIP gồm manifest, sản phẩm và bản dịch hiện có.')}
+                </p>
+              )}
             </div>
 
             <div>
@@ -202,7 +232,7 @@ export default function ImportExportWidget() {
             disabled={isExporting}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
           >
-            {isExporting ? t('exporting', 'export') : t('export_btn', 'export')}
+            {isExporting ? t('exporting', 'export') : includeTranslations ? t('export_bundle_btn', 'export', 'Xuất ZIP kèm bản dịch') : t('export_btn', 'export')}
           </button>
         </div>
       </div>

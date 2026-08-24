@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
-import { apiCall, getAuthToken } from '../../lib/api';
+import { apiCall, getAuthToken, productTranslationAPI } from '../../lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { UI_EMOJI } from '@/lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
@@ -29,6 +29,8 @@ function ImportProductsContent() {
   const [result, setResult] = useState<any>(null);
   const [guide, setGuide] = useState<any>(null);
   const [formats, setFormats] = useState<any>(null);
+  const [replaceManualTranslations, setReplaceManualTranslations] = useState(false);
+  const [translationResult, setTranslationResult] = useState<any>(null);
 
   // Fetch guide & formats khi mount
   useEffect(() => {
@@ -164,6 +166,42 @@ function ImportProductsContent() {
       }
     } catch (err) {
       toast.error(getUserFriendlyErrorMessage(err, t));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTranslationFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      toast.error(t('import.translation_json_only', 'admin', 'File bản dịch phải có định dạng JSON.'));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const parsed = JSON.parse(await file.text());
+      const records = Array.isArray(parsed)
+        ? parsed
+        : parsed?.data?.records || parsed?.records;
+      if (!Array.isArray(records) || records.length === 0) {
+        throw new Error('translation_records_invalid');
+      }
+
+      const data = await productTranslationAPI.importProductTranslations({
+        records,
+        replaceManualTranslations,
+        idempotencyKey: `translation-import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
+      setTranslationResult(data);
+      toast.success(t('import.translation_success', 'admin', 'Đã import bản dịch sản phẩm.'));
+    } catch (error) {
+      const message = getUserFriendlyErrorMessage(error, t);
+      setTranslationResult({ success: false, message });
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -341,6 +379,39 @@ function ImportProductsContent() {
                 <li>{t('max_size_label')}</li>
               </ul>
             </div>
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <h3 className="font-bold mb-4">{t('import.translation_title', 'admin', 'Import bản dịch sản phẩm')}</h3>
+            <label htmlFor="translation-file-upload" className="block p-3 border-2 border-dashed border-purple-300 rounded bg-purple-50 hover:bg-purple-100 transition text-center cursor-pointer">
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleTranslationFileUpload}
+                className="hidden"
+                id="translation-file-upload"
+                disabled={isLoading}
+              />
+              <span className="text-sm text-purple-700 font-medium">
+                {t('import.translation_choose_file', 'admin', 'Chọn product-translations.json')}
+              </span>
+            </label>
+            <label className="flex items-center gap-2 mt-3 text-sm">
+              <input
+                type="checkbox"
+                checked={replaceManualTranslations}
+                onChange={(e) => setReplaceManualTranslations(e.target.checked)}
+              />
+              {t('import.replace_manual_translations', 'admin', 'Cho phép ghi đè bản dịch thủ công')}
+            </label>
+            <p className="text-xs text-gray-500 mt-2">
+              {t('import.translation_note', 'admin', 'Chỉ import JSON bản dịch; ZIP không được upload vào luồng này.')}
+            </p>
+            {translationResult?.success && (
+              <p className="text-xs text-green-700 mt-2">
+                {translationResult.data?.importedCount || 0} {t('import.translation_imported', 'admin', 'bản ghi đã xử lý')}
+              </p>
+            )}
           </div>
 
           {/* Cài đặt */}

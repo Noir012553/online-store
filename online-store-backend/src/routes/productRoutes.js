@@ -33,6 +33,7 @@ const {
   getImportGuide,
   getImportFormats,
   exportProducts,
+  exportProductsWithTranslations,
   getExportStats,
 } = require('../controllers/productImportController');
 const { getProductTranslations } = require('../controllers/translationController');
@@ -195,6 +196,7 @@ router.get('/admin/import-formats', protect, admin, getImportFormats);
  * Admin only - Hỗ trợ JSON, CSV formats
  */
 router.get('/admin/export', protect, admin, exportProducts);
+router.get('/admin/export-bundle', protect, admin, exportProductsWithTranslations);
 
 /**
  * GET /api/products/admin/export-stats - Lấy thống kê export

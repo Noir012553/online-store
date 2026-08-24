@@ -848,7 +848,8 @@ const PRODUCT_TRANSLATION_ENTITY_TYPES = [
   'product_description',
   'product_spec',
 ];
-const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'specs'];
+const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'specs'];
+const MAX_PRODUCT_TRANSLATION_RECORDS = 10000;
 
 const PRODUCT_TRANSLATION_QUALITY_STATUSES = new Set([
   'pending',
@@ -1061,7 +1062,7 @@ exports.saveProductTranslation = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
     const translations = req.body || {};
-    const allowedFields = ['name', 'description', 'specs'];
+    const allowedFields = ['name', 'description', 'brand', 'specs'];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
 
     if (!isProductId(productId) || fields.length === 0) {
@@ -1086,7 +1087,7 @@ exports.saveProductTranslation = async (req, res) => {
     const update = {
       ...allowedTranslations,
       name: allowedTranslations.name ?? existing?.name ?? product.name,
-      brand: product.brand,
+      brand: allowedTranslations.brand ?? existing?.brand ?? product.brand,
       status: 'success',
       qualityStatus: 'approved',
       validationErrors: [],
@@ -1139,7 +1140,8 @@ exports.importProductTranslationCache = async (req, res) => {
   let batchRequest;
   try {
     const { records, idempotencyKey } = req.body || {};
-    if (!Array.isArray(records) || records.length === 0 || records.length > 50) {
+    const replaceManualTranslations = req.body?.replaceManualTranslations === true;
+    if (!Array.isArray(records) || records.length === 0 || records.length > MAX_PRODUCT_TRANSLATION_RECORDS) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_IMPORT_RECORDS_INVALID', 'operation_failed');
     }
     if (typeof idempotencyKey !== 'string' || !/^[a-zA-Z0-9_-]{16,128}$/.test(idempotencyKey)) {
@@ -1179,7 +1181,7 @@ exports.importProductTranslationCache = async (req, res) => {
     }
 
     const userId = req.user?.id || req.user?._id?.toString() || 'anonymous';
-    const payloadHash = crypto.createHash('sha256').update(JSON.stringify(normalizedRecords)).digest('hex');
+    const payloadHash = crypto.createHash('sha256').update(JSON.stringify({ normalizedRecords, replaceManualTranslations })).digest('hex');
     try {
       batchRequest = await TranslationBatchRequest.create({ userId, idempotencyKey, payloadHash });
     } catch (error) {
@@ -1194,30 +1196,40 @@ exports.importProductTranslationCache = async (req, res) => {
 
     const productIds = normalizedRecords.map(({ productId }) => productId);
     const [products, existingTranslations] = await Promise.all([
-      Product.find({ _id: { $in: productIds }, isDeleted: false }).select('name').lean(),
+      Product.find({ _id: { $in: productIds }, isDeleted: false }).select('name brand').lean(),
       ProductCatalogTranslationCache.find({
         $or: normalizedRecords.map(({ productId, targetLang }) => ({ entityId: productId, targetLang })),
       }).lean(),
     ]);
     const productNames = new Map(products.map((product) => [product._id.toString(), product.name]));
+    const productBrands = new Map(products.map((product) => [product._id.toString(), product.brand]));
     if (productNames.size !== new Set(productIds).size) {
       await batchRequest.deleteOne();
       return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
     }
     const existingByKey = new Map(existingTranslations.map((translation) => [`${translation.entityId}:${translation.targetLang}`, translation]));
-    const operations = normalizedRecords.map(({ productId, targetLang, translations, fields, manualFields }) => {
+    let skippedManualFields = 0;
+    const operations = normalizedRecords.flatMap(({ productId, targetLang, translations, fields, manualFields }) => {
       const existing = existingByKey.get(`${productId}:${targetLang}`);
-      const importedFields = Object.fromEntries(fields.map((field) => [
+      const protectedFields = new Set(replaceManualTranslations ? [] : (existing?.manualFields || []));
+      const importableFields = fields.filter((field) => {
+        const isProtected = protectedFields.has(field);
+        if (isProtected) skippedManualFields++;
+        return !isProtected;
+      });
+      if (importableFields.length === 0) return [];
+      const importedFields = Object.fromEntries(importableFields.map((field) => [
         field,
         field === 'specs' ? normalizeSpecs(translations[field]) : translations[field],
       ]));
-      return {
+      return [{
         updateOne: {
           filter: { entityId: productId, targetLang },
           update: {
             $set: {
               ...importedFields,
               name: importedFields.name ?? existing?.name ?? productNames.get(productId),
+              brand: importedFields.brand ?? existing?.brand ?? productBrands.get(productId),
               status: 'success',
               qualityStatus: 'approved',
               validationErrors: [],
@@ -1227,15 +1239,20 @@ exports.importProductTranslationCache = async (req, res) => {
           },
           upsert: true,
         },
-      };
+      }];
     });
-    const result = await ProductCatalogTranslationCache.bulkWrite(operations);
+    const result = operations.length > 0
+      ? await ProductCatalogTranslationCache.bulkWrite(operations)
+      : { modifiedCount: 0, upsertedCount: 0 };
+    const responseData = {
+      totalProcessed: normalizedRecords.length,
+      importedCount: result.modifiedCount + result.upsertedCount,
+    };
+    if (skippedManualFields > 0) responseData.skippedManualFields = skippedManualFields;
+    if (replaceManualTranslations) responseData.replaceManualTranslations = true;
     const response = {
       success: true,
-      data: {
-        totalProcessed: normalizedRecords.length,
-        importedCount: result.modifiedCount + result.upsertedCount,
-      },
+      data: responseData,
     };
     await TranslationBatchRequest.updateOne({ _id: batchRequest._id }, { $set: { status: 'completed', response } });
     return res.json(response);

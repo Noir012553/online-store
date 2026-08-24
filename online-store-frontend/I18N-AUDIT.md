@@ -120,12 +120,16 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 ### Còn lại / cần xác nhận
 
 - [ ] Bổ sung fallback text cho các call site `t(...)` quan trọng còn trả key khi namespace lỗi.
+- [x] Export ZIP gồm `manifest.json`, `products.json` và `product-translations.json`, có filter danh mục và stream response.
+- [x] Bổ sung UI import `product-translations.json` riêng và lựa chọn export kèm bản dịch.
 - [x] Tự động phát hiện và đăng ký unknown spec key trong pipeline import/request thay vì phụ thuộc vào seed thủ công.
 - [ ] Hoàn thiện worker/queue duyệt và dịch chuẩn label pending cho locale mặc định, sau đó cập nhật `SpecKeyTranslationCache` mà không cần thao tác thủ công.
+- [ ] Bổ sung dry-run cho import bản dịch và báo cáo chi tiết theo file/dòng.
 - [x] Bổ sung alias/canonical key và label catalog cho `mau_sac`, `kieu_tai_nghe`, `tuong_thich`.
 - [ ] Xác nhận backend luôn trả product/category/brand theo locale hoặc object đa ngôn ngữ; tiếp tục normalize các route chưa truyền locale đầy đủ.
 - [ ] Kiểm tra contract snapshot tên sản phẩm trong order: giữ tên tại thời điểm đặt hàng hay thay đổi theo locale hiện tại.
 - [ ] Rà soát các chuỗi message chủ động trả từ API/CMS để phân biệt dữ liệu domain hợp lệ với UI message cần dịch.
+- [x] Đồng bộ contract bản dịch sản phẩm cho field `brand` và mặc định không ghi đè field thủ công khi import.
 
 ## Đề xuất export/import sản phẩm kèm bản dịch
 
@@ -134,7 +138,7 @@ Các control icon-only sau chưa có accessible label đầy đủ:
 - Giao diện export sản phẩm hiện tải một file `products.json` hoặc `products.csv`.
 - Giao diện import sản phẩm nhận JSON/CSV sản phẩm gốc.
 - Bản dịch sản phẩm được lưu riêng trong `ProductCatalogTranslationCache` và có endpoint export/import riêng ở translation routes.
-- Chưa có bước gộp hai nguồn dữ liệu thành một file ZIP từ giao diện.
+- Đã có tùy chọn gộp hai nguồn dữ liệu thành một file ZIP từ giao diện export.
 
 ### Luồng export đề xuất
 
@@ -164,7 +168,7 @@ products-export-<timestamp>.zip
 
 ### Quy định import ZIP
 
-- **Không cho phép import ngược file ZIP.** ZIP là định dạng **export-only**, không có nút upload ZIP và không có endpoint import ZIP.
+- **Không cho phép import ngược file ZIP.** ZIP là định dạng **export-only**, không có nút upload ZIP và không có endpoint import ZIP. Luồng import sản phẩm chỉ nhận JSON/CSV; luồng import bản dịch chỉ nhận JSON.
 - Import sản phẩm vẫn nhận `JSON` hoặc `CSV` như luồng hiện tại.
 - Import bản dịch dùng file JSON bản dịch qua luồng translation riêng; không nhúng hoặc tự giải nén ZIP ở phía import sản phẩm.
 - Nếu cần nhập lại một gói đã export, admin phải giải nén thủ công rồi import từng file đúng luồng.
@@ -214,7 +218,7 @@ products-export-<timestamp>.zip
 - Export không lọc bỏ sản phẩm dựa trên trạng thái bản dịch.
 - Import sản phẩm gốc không được thất bại chỉ vì thiếu bản dịch.
 - Import/export JSON/CSV hiện tại vẫn phải giữ nguyên để tương thích ngược; ZIP là tùy chọn **kèm bản dịch khi export**.
-- Đây là yêu cầu thiết kế, chưa triển khai code.
+- Đã triển khai export ZIP kèm bản dịch; import sản phẩm JSON/CSV và import bản dịch JSON vẫn là hai luồng riêng.
 
 ### Kiểm tra đã thực hiện
 

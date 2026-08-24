@@ -874,6 +874,56 @@ export const productAPI = {
     const finalEndpoint = locale ? `${endpoint}?lang=${locale}` : buildLocalizedUrl(endpoint);
     return apiCall(finalEndpoint);
   },
+
+  exportProductBundle: async (category?: string, brand?: string, limit?: number, locale?: string) => {
+    const params = new URLSearchParams();
+    if (locale) params.append('lang', locale);
+    if (category && category !== 'all') params.append('category', category);
+    if (brand && brand !== 'all') params.append('brand', brand);
+    if (limit) params.append('limit', limit.toString());
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/products/admin/export-bundle?${params.toString()}`, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'product_export_failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  },
+};
+
+export const productTranslationAPI = {
+  importProductTranslations: async (payload: {
+    records: Array<Record<string, unknown>>;
+    idempotencyKey: string;
+    replaceManualTranslations?: boolean;
+  }) => apiCall('/translations/admin/products/import', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    skipCache: true,
+  }),
+
+  exportProductTranslations: async (productIds: string[], languages: string[], fields?: string[]) => {
+    const params = new URLSearchParams({
+      productIds: productIds.join(','),
+      languages: languages.join(','),
+    });
+    if (fields?.length) params.set('fields', fields.join(','));
+    return apiCall(`/translations/admin/products/export?${params.toString()}`);
+  },
 };
 
 /**

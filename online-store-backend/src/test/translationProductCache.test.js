@@ -238,13 +238,14 @@ describe('Product translation cache controller', () => {
         targetLang: 'en',
         name: 'Laptop',
         description: 'Translated description',
+        brand: 'Translated brand',
         manualFields: ['name'],
       }]),
     });
     const res = createResponse();
 
     await exportProductTranslationCache({
-      query: { productIds: productId, languages: 'en', fields: 'name,description' },
+      query: { productIds: productId, languages: 'en', fields: 'name,description,brand' },
       lang: 'en',
     }, res);
 
@@ -253,7 +254,7 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].data.records).to.deep.equal([{
       productId,
       targetLang: 'en',
-      translations: { name: 'Laptop', description: 'Translated description' },
+      translations: { name: 'Laptop', description: 'Translated description', brand: 'Translated brand' },
       manualFields: ['name'],
       updatedAt: null,
     }]);
@@ -301,6 +302,49 @@ describe('Product translation cache controller', () => {
 
     expect(deleteOne.calledOnce).to.be.true;
     expect(res.status.calledWith(500)).to.be.true;
+  });
+
+  it('does not overwrite manual translation fields during import by default', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request' });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returns({
+        lean: sandbox.stub().resolves([{
+          _id: new mongoose.Types.ObjectId(productId),
+          name: 'Laptop source',
+          brand: 'Source brand',
+        }]),
+      }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      lean: sandbox.stub().resolves([{
+        entityId: productId,
+        targetLang: 'en',
+        name: 'Manual laptop',
+        manualFields: ['name'],
+      }]),
+    });
+    const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({ modifiedCount: 1, upsertedCount: 0 });
+    sandbox.stub(TranslationBatchRequest, 'updateOne').resolves();
+    const res = createResponse();
+
+    await importProductTranslationCache({
+      body: {
+        records: [{
+          productId,
+          targetLang: 'en',
+          translations: { name: 'Machine laptop', brand: 'Translated brand' },
+        }],
+        idempotencyKey: 'translation-import-0003',
+      },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    const update = bulkWrite.firstCall.args[0][0].updateOne.update.$set;
+    expect(update.name).to.equal('Manual laptop');
+    expect(update.brand).to.equal('Translated brand');
+    expect(res.json.firstCall.args[0].data.skippedManualFields).to.equal(1);
   });
 
   it('preserves specification keys containing dots', () => {
