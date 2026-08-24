@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Gamepad2, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
@@ -22,6 +22,7 @@ import { ProductSkeleton } from "../components/ProductSkeleton";
 
 const iconMap = {
   Gamepad2,
+  LaptopMinimal,
   Briefcase,
   Palette,
   GraduationCap,
@@ -115,7 +116,11 @@ const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
     .map(normalizeCategoryKey)
     .join(' ');
 
-  if (/headphones?|tai nghe/.test(categoryText)) return 'Headphone';
+  if (/keyboard|bàn phím|teclado|clavier|tastatur|tangentbord/.test(categoryText)) return 'Keyboard';
+  if (/mouse|chuột|souris|maus|mus/.test(categoryText)) return 'Mouse';
+  if (/headphones?|tai nghe|casque|kopfhörer|hörlurar/.test(categoryText)) return 'Headphone';
+  if (/gaming laptop|laptop gaming|gaming-laptop|laptop chơi game/.test(categoryText)) return 'Laptop';
+  if (/office laptop|laptop office|laptop văn phòng|laptop bureau|office-laptop/.test(categoryText)) return 'LaptopMinimal';
   if (/audio|âm thanh|loa/.test(categoryText)) return 'Volume2';
   if (/gaming monitor|màn hình gaming/.test(categoryText)) return 'MonitorPlay';
   if (/monitor|màn hình/.test(categoryText)) return 'Monitor';
@@ -217,6 +222,7 @@ export default function Home() {
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
+  const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Detect if hero carousel or footer is visible - hide banners when they are
   const { isBannerVisible } = useBannerVisibility({
@@ -527,6 +533,35 @@ export default function Home() {
     setCurrentSlide((prev) => (prev - 1 + heroSlidesToRender.length) % heroSlidesToRender.length);
   };
 
+  const handleHeroTouchStart = (event: TouchEvent<HTMLElement>) => {
+    if (window.innerWidth >= 1024) return;
+
+    const touch = event.touches[0];
+    heroTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleHeroTouchEnd = (event: TouchEvent<HTMLElement>) => {
+    if (window.innerWidth >= 1024) {
+      heroTouchStartRef.current = null;
+      return;
+    }
+
+    const start = heroTouchStartRef.current;
+    heroTouchStartRef.current = null;
+    if (!start) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    if (deltaX < 0) {
+      nextSlide();
+    } else {
+      prevSlide();
+    }
+  };
+
   const nextDealSlide = () => {
     setCurrentDealSlide((prev) => Math.min(prev + 1, Math.max(dealProducts.length - dealCardsPerView, 0)));
   };
@@ -563,7 +598,11 @@ export default function Home() {
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
-      <section className="relative h-[calc(100vh-80px)] overflow-hidden bg-gray-900">
+      <section
+        className="relative h-[420px] overflow-hidden bg-gray-900 sm:h-[calc(100vh-80px)]"
+        onTouchStart={handleHeroTouchStart}
+        onTouchEnd={handleHeroTouchEnd}
+      >
         {heroSlidesToRender.map((slide, index) => {
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
@@ -664,7 +703,7 @@ export default function Home() {
           </div>
           {Array.isArray(categories) && categories.length > 0 && (
             <section className="bg-white container mx-auto section-container-px py-4 sm:py-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 {categories.map((category) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
@@ -688,7 +727,7 @@ export default function Home() {
             </section>
           )}
 
-          <section className="bg-white pt-6 pb-6 sm:pt-8 sm:pb-8">
+          <section className="mt-4 bg-white pt-6 pb-6 sm:mt-0 sm:pt-8 sm:pb-8">
             <div className="container mx-auto section-container-px">
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
