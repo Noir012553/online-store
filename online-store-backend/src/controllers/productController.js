@@ -15,6 +15,7 @@ const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
+const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { sanitizePlainText, sanitizeDescriptionText } = require('../utils/plainTextSanitizer');
 const { broadcastNewProduct, broadcastProductUpdated, broadcastProductDeleted, broadcastProductRestored } = require('../socket/socketHandler');
 const { deleteImageFile } = require('../utils/fileUtils');
@@ -586,6 +587,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const normalizedName = sanitizePlainText(name);
   const normalizedBrand = sanitizePlainText(brand);
   const normalizedDescription = sanitizeDescriptionText(description);
+  await registerUnknownSpecKeys(specs || {});
   const normalizedSpecs = normalizeSpecs(specs || {});
   const normalizedBaseCurrencyCode = typeof baseCurrencyCode === 'string'
     ? baseCurrencyCode.trim().toUpperCase()
@@ -747,6 +749,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
   }
 
+  if (specs) await registerUnknownSpecKeys(specs);
   const normalizedSpecs = specs ? normalizeSpecs(specs) : product.specs;
 
   if (name !== undefined) {

@@ -21,7 +21,7 @@ const TestimonialTranslationCache = require('../models/TestimonialTranslationCac
 const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
-const { getCanonicalSpecKey, getSpecKeyLabels } = require('./specKeyTranslationService');
+const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -100,6 +100,7 @@ const getStaticSpecLabels = (specs, lang) => {
 };
 
 const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
+  await registerUnknownSpecKeys(specs);
   const labels = preloadedLabels || await getSpecKeyLabels(specs, lang);
   const localizedSpecs = {};
   const specLabels = {};

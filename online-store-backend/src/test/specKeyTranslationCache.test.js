@@ -3,6 +3,7 @@ const { normalizeSpecs } = require('../utils/specNormalizer');
 const {
   getCanonicalSpecKey,
   getSpecKeyLabels,
+  humanizeSpecKey,
 } = require('../services/specKeyTranslationService');
 const { localizeProductSpecFields } = require('../services/translationHelper');
 const specKeyCacheSeeder = require('../seeds/specKeyCacheSeeder');
@@ -21,6 +22,11 @@ describe('spec key translation rollout', () => {
     assert.deepEqual(normalizeSpecs({ 'Màu sắc mới': 'Đen', '<script>': 'ignored' }), {
       mau_sac_moi: 'Đen',
     });
+  });
+
+  it('creates a readable fallback for unknown canonical keys', () => {
+    assert.equal(humanizeSpecKey('battery_life'), 'Battery life');
+    assert.equal(humanizeSpecKey('headphoneType'), 'Headphone Type');
   });
 
   it('returns static labels when MongoDB is unavailable', async () => {
