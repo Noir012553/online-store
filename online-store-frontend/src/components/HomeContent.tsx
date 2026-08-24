@@ -747,7 +747,7 @@ export default function Home() {
                           href={category._id === 'all-products' ? '/products' : `/products/${category.slug || category._id}`}
                           className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline whitespace-nowrap"
                         >
-                          {t('view_all_products')}
+                          {t('view_all_products', 'components')}
                         </Link>
                       </div>
                       <div className="hidden lg:grid grid-cols-4 gap-4 sm:gap-6">

@@ -48,7 +48,7 @@ export const PandaRolling = () => {
           transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
           className="font-bold text-lg text-green-500 tracking-wide"
         >
-          {t('loading_wait', 'common')}
+          {t('loading_wait', 'components')}
         </motion.p>
         <motion.span
           animate={{ rotate: [5, -5, 5] }}
