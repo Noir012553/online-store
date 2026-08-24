@@ -703,7 +703,7 @@ export default function Home() {
           </div>
           {Array.isArray(categories) && categories.length > 0 && (
             <section className="bg-white container mx-auto section-container-px py-4 sm:py-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 {categories.map((category) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
