@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
@@ -217,6 +217,7 @@ export default function Home() {
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
+  const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Detect if hero carousel or footer is visible - hide banners when they are
   const { isBannerVisible } = useBannerVisibility({
@@ -527,6 +528,35 @@ export default function Home() {
     setCurrentSlide((prev) => (prev - 1 + heroSlidesToRender.length) % heroSlidesToRender.length);
   };
 
+  const handleHeroTouchStart = (event: TouchEvent<HTMLElement>) => {
+    if (window.innerWidth >= 1024) return;
+
+    const touch = event.touches[0];
+    heroTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleHeroTouchEnd = (event: TouchEvent<HTMLElement>) => {
+    if (window.innerWidth >= 1024) {
+      heroTouchStartRef.current = null;
+      return;
+    }
+
+    const start = heroTouchStartRef.current;
+    heroTouchStartRef.current = null;
+    if (!start) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    if (deltaX < 0) {
+      nextSlide();
+    } else {
+      prevSlide();
+    }
+  };
+
   const nextDealSlide = () => {
     setCurrentDealSlide((prev) => Math.min(prev + 1, Math.max(dealProducts.length - dealCardsPerView, 0)));
   };
@@ -563,7 +593,11 @@ export default function Home() {
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
-      <section className="relative h-[420px] overflow-hidden bg-gray-900 sm:h-[calc(100vh-80px)]">
+      <section
+        className="relative h-[420px] overflow-hidden bg-gray-900 sm:h-[calc(100vh-80px)]"
+        onTouchStart={handleHeroTouchStart}
+        onTouchEnd={handleHeroTouchEnd}
+      >
         {heroSlidesToRender.map((slide, index) => {
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
