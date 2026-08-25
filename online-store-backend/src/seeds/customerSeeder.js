@@ -9,7 +9,7 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 
 /**
  * Seed dữ liệu khách hàng
- * Tạo 50 khách hàng động
+ * Tạo 100 khách hàng động
  */
 const seedCustomers = async () => {
   await Customer.deleteMany({});
@@ -19,7 +19,7 @@ const seedCustomers = async () => {
 
   const customers = [];
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 100; i++) {
     const firstName = firstNames[i % firstNames.length];
     const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
     const name = `${firstName} ${lastName}`;

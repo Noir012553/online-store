@@ -224,19 +224,21 @@ function DashboardContent() {
       let dashboardData = cacheManagerRef.current.get(cacheKey);
       let topCustomersData, paidOrdersData;
 
-      // Only fetch from API if cache is empty
+      // Keep the dashboard summary cache separate from its supporting lists.
       if (!dashboardData) {
-        const [data, customers, orders] = await Promise.all([
-          analyticsAPI.getDashboardData(30, dashboardLocale, targetCurrency, getIntlLocale(dashboardLocale)),
-          analyticsAPI.getTopCustomers(5, 1, '-totalSpent', 0, dashboardLocale, targetCurrency, getIntlLocale(dashboardLocale)),
-          analyticsAPI.getPaidOrders(5, 1, '-createdAt', 30, dashboardLocale, getIntlLocale(dashboardLocale), targetCurrency),
-        ]);
-
-        dashboardData = data;
-        topCustomersData = customers;
-        paidOrdersData = orders;
-        cacheManagerRef.current.set(cacheKey, data);
+        dashboardData = await analyticsAPI.getDashboardData(
+          30,
+          dashboardLocale,
+          targetCurrency,
+          getIntlLocale(dashboardLocale)
+        );
+        cacheManagerRef.current.set(cacheKey, dashboardData);
       }
+
+      [topCustomersData, paidOrdersData] = await Promise.all([
+        analyticsAPI.getTopCustomers(5, 1, '-totalSpent', 0, dashboardLocale, targetCurrency, getIntlLocale(dashboardLocale)),
+        analyticsAPI.getPaidOrders(5, 1, '-createdAt', 30, dashboardLocale, getIntlLocale(dashboardLocale), targetCurrency),
+      ]);
 
       // Always update stats when data is available
       setStats({

@@ -73,7 +73,7 @@ const SEED_MODULES = {
     importance: 'MEDIUM',
   },
   customers: {
-    name: 'Customers (50 customers)',
+    name: 'Customers (100 customers)',
     layer: 2,
     depends: [],
     seeder: require('./customerSeeder'),
@@ -129,7 +129,7 @@ const SEED_MODULES = {
     importance: 'HIGH',
   },
   coupons: {
-    name: 'Coupons (4 coupons)',
+    name: 'Coupons (12 coupons)',
     layer: 2,
     depends: ['categories'],
     seeder: require('./couponSeeder'),
