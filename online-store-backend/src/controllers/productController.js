@@ -272,7 +272,15 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     ? { specs: { $type: 'object', $ne: {} } }
     : {};
 
-  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter, ...specsFilter };
+  const query = {
+    isDeleted: false,
+    featured: true,
+    ...category,
+    ...brand,
+    ...priceFilter,
+    ...stockFilter,
+    ...specsFilter,
+  };
   if (discountFilter) {
     query.$and = query.$and || [];
     query.$and.push(discountFilter);
@@ -281,7 +289,16 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     query.$or = keywordFilters;
   }
 
-  const visibleProductIds = await findStorefrontVisibleProductIds(query);
+  const candidateLimit = Math.min(Math.max(page * pageSize * 3, pageSize), 100);
+  const candidateProducts = await withTimeout(
+    Product.find(query)
+      .select('_id name description brand specs')
+      .sort({ featured: -1, createdAt: -1, _id: 1 })
+      .limit(candidateLimit)
+      .lean(),
+    15000
+  );
+  const visibleProductIds = await getStorefrontVisibleProductIds(candidateProducts);
   const count = visibleProductIds.size;
   const productQuery = { ...query, _id: { $in: [...visibleProductIds] } };
   const prioritizeSpecs = req.query.prioritizeSpecs === 'true';
