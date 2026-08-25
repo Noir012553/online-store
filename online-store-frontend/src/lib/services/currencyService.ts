@@ -76,7 +76,7 @@ class CurrencyService {
       const data = await response.json();
       return data.data || [];
     } catch (error) {
-      console.error('[CurrencyService] Error fetching currencies:', error);
+      console.warn('[CurrencyService] Unable to fetch currencies:', error);
       throw error;
     }
   }

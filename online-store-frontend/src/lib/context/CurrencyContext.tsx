@@ -12,6 +12,17 @@ interface CurrencyContextValue {
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
+const FALLBACK_CURRENCY: Currency = {
+  _id: 'fallback-vnd',
+  code: 'VND',
+  name: 'Vietnamese Dong',
+  symbol: '₫',
+  position: 'after',
+  decimalPlaces: 0,
+  isActive: true,
+  isDefault: true,
+};
+
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { locale, localeConfigs } = useLanguage();
   const [activeCurrencies, setActiveCurrencies] = useState<Currency[]>([]);
@@ -38,20 +49,18 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [locale, localeConfigs]);
 
   const localeCurrencyCode = localeConfigs.find((item) => item.code === locale)?.currencyCode;
-  const currency = activeCurrencies.find((item) => item.code === localeCurrencyCode);
+  const currency = activeCurrencies.find((item) => item.code === localeCurrencyCode)
+    ?? activeCurrencies.find((item) => item.isDefault)
+    ?? FALLBACK_CURRENCY;
 
-  const value = useMemo<CurrencyContextValue | undefined>(() => {
-    if (!currency) return undefined;
+  const value = useMemo<CurrencyContextValue>(() => ({
+    currency,
+    currencyCode: currency.code,
+    activeCurrencies,
+    isLoadingCurrency,
+  }), [currency, activeCurrencies, isLoadingCurrency]);
 
-    return {
-      currency,
-      currencyCode: currency.code,
-      activeCurrencies,
-      isLoadingCurrency,
-    };
-  }, [currency, activeCurrencies, isLoadingCurrency]);
-
-  if (!value) {
+  if (isLoadingCurrency) {
     return <LoadingGate />;
   }
 
