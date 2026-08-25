@@ -15,7 +15,6 @@ export function useStickyBannerScroll({
   maxBottomOffset = 20,
   isVisible = true,
 }: UseStickyBannerScrollProps) {
-  const [bannerTop, setBannerTop] = useState(96);
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,7 +42,7 @@ export function useStickyBannerScroll({
       const maxBannerTopDoc = containerBottomDoc - bannerHeight - maxBottomOffset;
       bannerTopDoc = Math.min(bannerTopDoc, maxBannerTopDoc);
 
-      setBannerTop(bannerTopDoc - scrollY);
+      bannerRef.current.style.setProperty('--banner-top', `${bannerTopDoc - scrollY}px`);
     };
 
     const bannerElement = bannerRef.current;
@@ -63,5 +62,5 @@ export function useStickyBannerScroll({
     };
   }, [containerSelector, minBannerTopDocument, headerHeight, maxBottomOffset, isVisible]);
 
-  return { bannerTop, bannerRef };
+  return { bannerRef };
 }

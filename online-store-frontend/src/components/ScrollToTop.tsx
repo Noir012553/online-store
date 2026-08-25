@@ -26,16 +26,7 @@ export function ScrollToTop() {
   if (!isVisible) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        left: "50%",
-        transform: "translateX(-50%)",
-        bottom: "32px",
-        zIndex: 50,
-      }}
-      className="transition-transform duration-300"
-    >
+    <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 transition-transform duration-300">
       <Button
         onClick={scrollToTop}
         size="icon"

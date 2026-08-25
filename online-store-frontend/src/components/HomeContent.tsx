@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
@@ -221,6 +221,7 @@ export default function Home() {
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasProductLoadError, setHasProductLoadError] = useState(false);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -234,7 +235,7 @@ export default function Home() {
   // Sticky banner scroll with constraints - confined within content wrapper
   // minBannerTopDocument = banner won't go above this distance from page top (px)
   // Adjust this value based on your hero section height
-  const { bannerTop, bannerRef } = useStickyBannerScroll({
+  const { bannerRef } = useStickyBannerScroll({
     containerSelector: '#homepage-content-wrapper',
     minBannerTopDocument: 700, // Adjust this number to control minimum position
     headerHeight: 80,
@@ -305,6 +306,7 @@ export default function Home() {
 
     const fetchData = async () => {
       setIsLoading(true);
+      setHasProductLoadError(false);
       try {
         // Fetch in-stock products using optimized featured endpoint (no reviews populate, faster)
         const productsResponse = await productAPI.getFeaturedProducts(
@@ -329,7 +331,7 @@ export default function Home() {
         const dealCategoryIds = categories
           .filter(isLaptopDealCategory)
           .map((category) => category._id);
-        const dealCategoryResults = await Promise.all(
+        const dealCategoryResults = await Promise.allSettled(
           dealCategoryIds.map((categoryId) => productAPI.getFeaturedProducts(
             1,
             undefined,
@@ -347,7 +349,9 @@ export default function Home() {
 
         if (!isMounted) return;
 
-        const dealCandidates = dealCategoryResults.flatMap((response) => response.products || []);
+        const dealCandidates = dealCategoryResults
+          .filter((result): result is PromiseFulfilledResult<{ products?: BackendProduct[] }> => result.status === 'fulfilled')
+          .flatMap((result) => result.value.products || []);
         const deals = dealCandidates
           .filter((product: BackendProduct) => isActiveDeal(product.deal))
           .sort((first: BackendProduct, second: BackendProduct) => {
@@ -366,7 +370,7 @@ export default function Home() {
         setDealProducts(deals);
         setDealEndTime(getDealEndTimestamp(deals[0]?.deal));
 
-        const categoryResults = await Promise.all(
+        const categoryResults = await Promise.allSettled(
           categories.map(async (category) => {
             const response = await productAPI.getFeaturedProducts(
               1,
@@ -390,9 +394,18 @@ export default function Home() {
 
         if (!isMounted) return;
 
-        setCategoryProducts(Object.fromEntries(categoryResults));
+        setCategoryProducts(Object.fromEntries(
+          categoryResults
+            .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
+            .map((result) => result.value),
+        ));
       } catch (error) {
-        // Error fetching products - will show empty state
+        if (isMounted) {
+          setAllProducts([]);
+          setCategoryProducts({});
+          setDealProducts([]);
+          setHasProductLoadError(true);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -691,8 +704,7 @@ export default function Home() {
           <div
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
-            className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
-            style={{ left: '5px', top: `${bannerTop}px` }}
+            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
           >
             <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
           </div>
@@ -700,8 +712,7 @@ export default function Home() {
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
           <div
             aria-hidden={!isBannerVisible}
-            className={`hidden xl:block fixed w-[240px] 2xl:w-[280px] h-fit z-30 pointer-events-none transition-opacity duration-300 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
-            style={{ right: '5px', top: `${bannerTop}px` }}
+            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
           >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
           </div>
@@ -799,7 +810,20 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
+                  <AlertCircle className="mx-auto mb-4 h-10 w-10 text-gray-400" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {hasProductLoadError ? t('products_unavailable_title') : t('no_products_found')}
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+                    {t('products_unavailable_description')}
+                  </p>
+                  <Link href="/products" className="mt-5 inline-flex text-sm font-medium text-red-600 hover:text-red-700 hover:underline">
+                    {t('view_all_products')}
+                  </Link>
+                </div>
+              )}
 
               <div className="mt-10 mb-8">
                 <BannerSlot slot="homepage_inline" variant="strip" limit={3} />
@@ -926,24 +950,36 @@ export default function Home() {
           </section>
 
           <section className="bg-white container mx-auto section-container-px py-8 sm:py-12">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
-              {brands.map((brand, index) => (
-                <div
-                  key={index}
-                  className="group flex items-center justify-center p-6 bg-white border-2 border-gray-100 rounded-lg hover:border-red-200 hover:shadow-xl transition-all duration-300 animate-in fade-in zoom-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="relative w-full h-20 flex items-center justify-center">
-                    <ImageWithFallback
-                      src={brand.logo}
-                      alt={brand.name || t('brand', 'common')}
-                      loading="lazy"
-                      className="max-w-full max-h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-300 group-hover:scale-110"
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="mb-5 flex items-end justify-between gap-4 sm:mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title')}</h2>
             </div>
+            {brands.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-6">
+                {brands.map((brand) => (
+                  <div
+                    key={brand._id}
+                    className="group flex items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl"
+                  >
+                    <div className="relative flex h-20 w-full items-center justify-center">
+                      {brand.logo ? (
+                        <ImageWithFallback
+                          src={brand.logo}
+                          alt={brand.name || t('brand', 'common')}
+                          loading="lazy"
+                          className="max-h-full max-w-full object-contain grayscale transition-all duration-300 group-hover:scale-110 group-hover:grayscale-0"
+                        />
+                      ) : (
+                        <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                {t('brands_empty')}
+              </p>
+            )}
           </section>
         </div>
       </div>

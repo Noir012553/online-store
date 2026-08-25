@@ -144,16 +144,18 @@ export function Footer() {
       <div className="absolute inset-0 bg-linear-to-br from-black via-gray-900 to-red-950/30" />
 
       {/* Animated Dots Pattern */}
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(239, 68, 68, 0.1) 1px, transparent 1px)',
-        backgroundSize: '50px 50px',
-        animation: 'movePattern 20s linear infinite'
-      }} />
+      <div className="footer-pattern absolute inset-0" />
 
       <style>{`
         @keyframes movePattern {
           0% { background-position: 0 0; }
           100% { background-position: 50px 50px; }
+        }
+
+        .footer-pattern {
+          background-image: radial-gradient(circle, rgba(239, 68, 68, 0.1) 1px, transparent 1px);
+          background-size: 50px 50px;
+          animation: movePattern 20s linear infinite;
         }
 
         .laminated-card {
