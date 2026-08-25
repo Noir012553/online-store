@@ -32,5 +32,15 @@
     "message": "Wir senden exklusive Angebote an Ihre E-Mail. Überprüfen Sie Ihren Posteingang!",
     "unsubscribe": "Abbestellen"
   },
+  "paymentSuccess": {
+    "subject": "Zahlung bestätigt - Bestellung {{orderId}}",
+    "title": "Zahlung erfolgreich",
+    "greeting": "Hallo {{customerName}},",
+    "body": "Wir haben Ihre Zahlung für die Bestellung {{orderId}} erhalten.",
+    "orderLabel": "Bestellnummer",
+    "totalLabel": "Bezahlter Gesamtbetrag",
+    "itemsLabel": "Artikel",
+    "thanks": "Vielen Dank für Ihren Einkauf bei LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. Alle Rechte vorbehalten."
 }

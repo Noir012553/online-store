@@ -239,7 +239,7 @@ const handleWebhook = asyncHandler(async (req, res) => {
   const io = req.app.get('io');
 
   // Xử lý webhook
-  const result = await paymentService.handleWebhook(gateway, webhookData, signature, io);
+  const result = await paymentService.handleWebhook(gateway, webhookData, signature, io, req.lang);
 
   if (!result.success) {
     // Vẫn trả về 200 để gateway biết webhook đã được nhận

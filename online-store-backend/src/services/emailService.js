@@ -5,7 +5,7 @@
 
 const nodemailer = require('nodemailer');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage } = require('../config/languageInventory');
+const { getDefaultLanguage, getIntlLocale } = require('../config/languageInventory');
 
 const createEmailDeliveryError = (code, cause) => {
   const error = new Error(code);
@@ -13,6 +13,13 @@ const createEmailDeliveryError = (code, cause) => {
   error.cause = cause;
   return error;
 };
+
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 const getAuthEmailMessages = (lang, type) => {
   const keyPrefix = `auth-messages.email_${type}_`;
@@ -396,9 +403,94 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
   }
 };
 
+const sendOrderPaymentSuccessEmail = async (order, lang) => {
+  try {
+    const recipient = order?.customer?.email || order?.user?.email;
+    if (!recipient) {
+      return { code: 'EMAIL_RECIPIENT_MISSING' };
+    }
+
+    const transporter = createTransporter();
+    if (!transporter) {
+      return { code: 'EMAIL_DISABLED' };
+    }
+
+    const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
+    const orderId = String(order._id || order.id || '');
+    const customerName = order?.customer?.name || order?.user?.name || '';
+    const currencyCode = order.currencyCode || 'VND';
+    const formattedTotal = new Intl.NumberFormat(getIntlLocale(emailLang), {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: currencyCode === 'VND' ? 0 : undefined,
+      maximumFractionDigits: currencyCode === 'VND' ? 0 : undefined,
+    }).format(Number(order.totalPrice) || 0);
+    const itemCount = (order.orderItems || []).reduce((total, item) => total + (Number(item.qty) || 0), 0);
+    const messagePath = 'email.paymentSuccess';
+    const message = (key) => getMessage(emailLang, `${messagePath}.${key}`, {
+      orderId,
+      customerName,
+    });
+    const subject = message('subject');
+    const title = message('title');
+    const greeting = message('greeting');
+    const body = message('body');
+    const orderLabel = message('orderLabel');
+    const totalLabel = message('totalLabel');
+    const itemsLabel = message('itemsLabel');
+    const thanks = message('thanks');
+    const itemRows = (order.orderItems || []).map((item) => {
+      const itemName = typeof item.name === 'object'
+        ? item.name[emailLang] || Object.values(item.name).find(Boolean) || ''
+        : item.name;
+      return `<li>${escapeHtml(itemName)} × ${Number(item.qty) || 0}</li>`;
+    }).join('');
+
+    const result = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: recipient,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #ef4444;">
+            <h1 style="color: #ef4444; margin: 0;">LaptopStore</h1>
+          </div>
+          <div style="padding: 24px 0;">
+            <h2 style="color: #333;">${escapeHtml(title)}</h2>
+            <p>${escapeHtml(greeting)}</p>
+            <p>${escapeHtml(body)}</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+              <tr><td style="padding: 8px 0;">${escapeHtml(orderLabel)}</td><td style="padding: 8px 0; text-align: right;">${escapeHtml(orderId)}</td></tr>
+              <tr><td style="padding: 8px 0;">${escapeHtml(totalLabel)}</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${escapeHtml(formattedTotal)}</td></tr>
+              <tr><td style="padding: 8px 0;">${escapeHtml(itemsLabel)}</td><td style="padding: 8px 0; text-align: right;">${itemCount}</td></tr>
+            </table>
+            ${itemRows ? `<p>${escapeHtml(itemsLabel)}:</p><ul>${itemRows}</ul>` : ''}
+            <p>${escapeHtml(thanks)}</p>
+          </div>
+          <p style="color: #999; font-size: 12px; text-align: center; border-top: 1px solid #eee; padding-top: 16px;">${escapeHtml(getMessage(emailLang, 'email.copyright'))}</p>
+        </div>
+      `,
+      text: [
+        title,
+        greeting,
+        body,
+        `${orderLabel}: ${orderId}`,
+        `${totalLabel}: ${formattedTotal}`,
+        `${itemsLabel}: ${itemCount}`,
+        thanks,
+      ].join('\n\n'),
+    });
+
+    return result;
+  } catch (error) {
+    throw createEmailDeliveryError('EMAIL_PAYMENT_SUCCESS_SEND_FAILED', error);
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendResetPasswordEmail,
   sendOTPEmail,
   sendNewsletterConfirmationEmail,
+  sendOrderPaymentSuccessEmail,
 };

@@ -16,6 +16,7 @@ const { broadcastPaymentSuccess, broadcastOrderStatusUpdate } = require('../sock
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
+const { sendOrderPaymentSuccessEmail } = require('./emailService');
 
 const createPaymentFailure = (code, params = {}) => ({
   success: false,
@@ -204,7 +205,7 @@ class PaymentService {
    *     transactionStatus?: String,
    *   }
    */
-  async handleWebhook(gateway, webhookData, signature, io = null) {
+  async handleWebhook(gateway, webhookData, signature, io = null, lang) {
     try {
       const adapter = this.adapters[gateway.toLowerCase()];
       if (!adapter) {
@@ -310,7 +311,15 @@ class PaymentService {
             paymentMethod: gateway.toLowerCase(),
           },
           { returnDocument: 'after' }
-        ).populate('customer', 'name email phone');
+        )
+          .populate('customer', 'name email phone')
+          .populate('user', 'name email');
+
+        try {
+          await sendOrderPaymentSuccessEmail(paidOrder, lang);
+        } catch (emailError) {
+          console.error('[PaymentService.handleWebhook] Payment confirmation email failed:', emailError.message);
+        }
 
         // Broadcast socket event cho admin thấy đơn hàng mới được thanh toán
         if (io) {

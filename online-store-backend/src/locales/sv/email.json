@@ -32,5 +32,15 @@
     "message": "Vi skickar exklusiva erbjudanden till din e-post. Kontrollera din inkorg!",
     "unsubscribe": "Avsluta prenumeration"
   },
+  "paymentSuccess": {
+    "subject": "Betalning bekräftad - Beställning {{orderId}}",
+    "title": "Betalningen lyckades",
+    "greeting": "Hej {{customerName}},",
+    "body": "Vi har tagit emot din betalning för beställning {{orderId}}.",
+    "orderLabel": "Beställningsnummer",
+    "totalLabel": "Totalt betalt",
+    "itemsLabel": "Artiklar",
+    "thanks": "Tack för att du handlar hos LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. Alla rättigheter förbehållna."
 }

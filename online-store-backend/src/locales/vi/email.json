@@ -32,5 +32,15 @@
     "message": "Bạn đã thành công đăng ký nhận bản tin mới nhất từ chúng tôi.",
     "unsubscribe": "Hủy đăng ký"
   },
+  "paymentSuccess": {
+    "subject": "Thanh toán thành công - Đơn hàng {{orderId}}",
+    "title": "Thanh toán thành công",
+    "greeting": "Xin chào {{customerName}},",
+    "body": "Chúng tôi đã nhận được thanh toán cho đơn hàng {{orderId}} của bạn.",
+    "orderLabel": "Mã đơn hàng",
+    "totalLabel": "Tổng tiền đã thanh toán",
+    "itemsLabel": "Số sản phẩm",
+    "thanks": "Cảm ơn bạn đã mua sắm tại LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. Tất cả các quyền được bảo lưu."
 }

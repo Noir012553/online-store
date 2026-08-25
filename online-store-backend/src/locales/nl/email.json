@@ -32,5 +32,15 @@
     "message": "We sturen exclusieve aanbiedingen naar uw e-mail. Controleer uw inbox!",
     "unsubscribe": "Uitschrijven"
   },
+  "paymentSuccess": {
+    "subject": "Betaling bevestigd - Bestelling {{orderId}}",
+    "title": "Betaling geslaagd",
+    "greeting": "Hallo {{customerName}},",
+    "body": "We hebben uw betaling voor bestelling {{orderId}} ontvangen.",
+    "orderLabel": "Bestelnummer",
+    "totalLabel": "Totaal betaald",
+    "itemsLabel": "Artikelen",
+    "thanks": "Bedankt voor uw aankoop bij LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. Alle rechten voorbehouden."
 }
