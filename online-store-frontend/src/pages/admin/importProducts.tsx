@@ -31,6 +31,10 @@ function ImportProductsContent() {
   const [formats, setFormats] = useState<any>(null);
   const [replaceManualTranslations, setReplaceManualTranslations] = useState(false);
   const [translationResult, setTranslationResult] = useState<any>(null);
+  const [translationImport, setTranslationImport] = useState<{
+    records: Array<Record<string, unknown>>;
+    idempotencyKey: string;
+  } | null>(null);
 
   // Fetch guide & formats khi mount
   useEffect(() => {
@@ -191,12 +195,37 @@ function ImportProductsContent() {
         throw new Error('translation_records_invalid');
       }
 
+      const idempotencyKey = `translation-import-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const data = await productTranslationAPI.importProductTranslations({
         records,
         replaceManualTranslations,
-        idempotencyKey: `translation-import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        idempotencyKey,
+        dryRun: true,
+      });
+      setTranslationImport({ records, idempotencyKey });
+      setTranslationResult(data);
+      toast.success(t('import.translation_preview_success', 'admin', 'Đã kiểm tra bản dịch; chưa có dữ liệu nào được ghi.'));
+    } catch (error) {
+      const message = getUserFriendlyErrorMessage(error, t);
+      setTranslationResult({ success: false, message });
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmTranslationImport = async () => {
+    if (!translationImport) return;
+
+    try {
+      setIsLoading(true);
+      const data = await productTranslationAPI.importProductTranslations({
+        ...translationImport,
+        replaceManualTranslations,
+        dryRun: false,
       });
       setTranslationResult(data);
+      setTranslationImport(null);
       toast.success(t('import.translation_success', 'admin', 'Đã import bản dịch sản phẩm.'));
     } catch (error) {
       const message = getUserFriendlyErrorMessage(error, t);
@@ -408,9 +437,26 @@ function ImportProductsContent() {
               {t('import.translation_note', 'admin', 'Chỉ import JSON bản dịch; ZIP không được upload vào luồng này.')}
             </p>
             {translationResult?.success && (
-              <p className="text-xs text-green-700 mt-2">
-                {translationResult.data?.importedCount || 0} {t('import.translation_imported', 'admin', 'bản ghi đã xử lý')}
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-green-700">
+                  {translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0}{' '}
+                  {translationResult.dryRun
+                    ? t('import.translation_previewed', 'admin', 'bản ghi đã kiểm tra')
+                    : t('import.translation_imported', 'admin', 'bản ghi đã import')}
+                </p>
+                {translationResult.dryRun && translationImport && (
+                  <Button
+                    type="button"
+                    onClick={confirmTranslationImport}
+                    disabled={isLoading}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    {isLoading
+                      ? t('processing', 'admin', 'Đang xử lý...')
+                      : t('import.translation_confirm', 'admin', 'Xác nhận import bản dịch')}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 

@@ -513,6 +513,7 @@ async function getRecentOrdersQuery(limit = 5, lang = null) {
         _id: 1,
         totalPrice: 1,
         currencyCode: 1,
+        paymentMethod: 1,
         isPaid: 1,
         isDelivered: 1,
         createdAt: 1,
@@ -787,7 +788,9 @@ const getSlowSellingProducts = asyncHandler(async (req, res) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ['$product', '$$productId'] },
+                $expr: {
+                  $in: ['$$productId', { $ifNull: ['$orderItems.product', []] }],
+                },
                 isDeleted: false,
                 createdAt: { $gte: startDate },
               },

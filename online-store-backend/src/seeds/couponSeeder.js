@@ -9,7 +9,7 @@ const CouponFactory = require('../factories/couponFactory');
 
 /**
  * Seed dữ liệu mã giảm giá
- * Tạo 4 coupons với relationships đến products và categories
+ * Tạo 12 coupons với relationships đến products và categories
  * @param {Array} products - Danh sách products
  * @param {Array} categories - Danh sách categories
  */
@@ -24,7 +24,7 @@ const seedCoupons = async (products, categories) => {
     throw new Error('An active default currency must be configured before seeding coupons');
   }
 
-  const coupons = CouponFactory.createMany(4, productIds, categoryIds, { currencyCode: baseCurrency.code });
+  const coupons = CouponFactory.createMany(12, productIds, categoryIds, { currencyCode: baseCurrency.code });
   const createdCoupons = await Coupon.create(coupons);
 
   return createdCoupons;

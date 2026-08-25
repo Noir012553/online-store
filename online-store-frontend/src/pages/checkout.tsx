@@ -33,7 +33,7 @@ function CheckoutContent() {
     if (!isInitialized) return;
 
     if (!user) {
-      toast.error(t('please_login', 'checkout'));
+      toast.error(t('please_login', 'checkout', 'Vui lòng đăng nhập để tiếp tục'));
       router.push('/login');
       return;
     }
@@ -41,7 +41,7 @@ function CheckoutContent() {
     if (items.length === 0 && router.isReady) {
       const paymentInProgress = sessionStorage.getItem('paymentInProgress');
       if (!paymentInProgress) {
-        toast.error(t('error_order_processing', 'checkout'));
+        toast.error(t('error_order_processing', 'checkout', 'Lỗi xử lý đơn hàng'));
         router.push('/cart');
       }
     }
@@ -69,17 +69,17 @@ function CheckoutContent() {
       <div className="container mx-auto px-4">
         <Breadcrumbs
           links={[
-            { label: t('step_cart'), href: '/cart' },
-            { label: t('step_payment') },
+            { label: t('step_cart', 'checkout', 'Giỏ hàng'), href: '/cart' },
+            { label: t('step_payment', 'checkout', 'Thanh toán') },
           ]}
         />
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t('step_payment')}</h1>
-            <p className="text-gray-600 mt-1">{t('step_payment')} {currentStep} / 3</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('step_payment', 'checkout', 'Thanh toán')}</h1>
+            <p className="text-gray-600 mt-1">{t('step_payment', 'checkout', 'Thanh toán')} {currentStep} / 3</p>
           </div>
-          <Badge className="bg-red-600 text-white px-4 py-2 text-sm font-medium">{items.length} {t('label_quantity')}</Badge>
+          <Badge className="bg-red-600 text-white px-4 py-2 text-sm font-medium">{items.length} {t('label_quantity', 'checkout', 'Số lượng')}</Badge>
         </div>
 
         <StepIndicator currentStep={currentStep} totalSteps={3} />

@@ -40,7 +40,7 @@ const parseNumber = (value, fallback = 0) => {
 // Get language from request with dynamic default (not hardcoded 'vi')
 const getBannerLanguage = (req) => {
   const defaultLang = getDefaultLanguage().code;
-  const requestedLang = req.query.lang || defaultLang;
+  const requestedLang = req.lang || req.query.lang || defaultLang;
   return isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
 };
 
@@ -133,8 +133,7 @@ const saveBannerTranslations = async (bannerId, multiLangData) => {
 };
 
 const getBanners = asyncHandler(async (req, res) => {
-  const { getDefaultLanguage } = require('../config/languageInventory');
-  const lang = (req.query.lang || getDefaultLanguage().code).toLowerCase();
+  const lang = getBannerLanguage(req);
   const pageSize = Math.min(Number(req.query.pageSize) || 10, 100);
   const page = Number(req.query.pageNumber) || 1;
   const slot = normalizeSlot(req.query.slot);
@@ -166,8 +165,7 @@ const getBanners = asyncHandler(async (req, res) => {
 });
 
 const getBannerById = asyncHandler(async (req, res) => {
-  const { getDefaultLanguage } = require('../config/languageInventory');
-  const lang = (req.query.lang || getDefaultLanguage().code).toLowerCase();
+  const lang = getBannerLanguage(req);
   const banner = await Banner.findOne({ _id: req.params.id, isDeleted: false });
 
   if (!banner) {
@@ -180,8 +178,7 @@ const getBannerById = asyncHandler(async (req, res) => {
 });
 
 const getDeletedBanners = asyncHandler(async (req, res) => {
-  const { getDefaultLanguage } = require('../config/languageInventory');
-  const lang = (req.query.lang || getDefaultLanguage().code).toLowerCase();
+  const lang = getBannerLanguage(req);
   const pageSize = Math.min(Number(req.query.pageSize) || 10, 100);
   const page = Number(req.query.pageNumber) || 1;
   const slot = normalizeSlot(req.query.slot);
@@ -204,13 +201,8 @@ const getDeletedBanners = asyncHandler(async (req, res) => {
 });
 
 const parseMultiLanguageField = (field) => {
-  const defaultLang = getDefaultLanguage().code.toUpperCase();
-  const langCodes = SUPPORTED_LANGUAGES.map(l => l.toUpperCase());
-
-  const defaultField = {};
-  langCodes.forEach(code => {
-    defaultField[code] = '';
-  });
+  const defaultLang = getDefaultLanguage().code;
+  const defaultField = Object.fromEntries(SUPPORTED_LANGUAGES.map(lang => [lang, '']));
 
   if (!field) return defaultField;
 
@@ -219,12 +211,10 @@ const parseMultiLanguageField = (field) => {
   }
 
   if (typeof field === 'object') {
-    const result = {};
-    langCodes.forEach(code => {
-      const lowerCode = code.toLowerCase();
-      result[code] = String(field[lowerCode] || field[code] || '').trim();
-    });
-    return result;
+    return SUPPORTED_LANGUAGES.reduce((result, lang) => {
+      result[lang] = String(field[lang] || field[lang.toUpperCase()] || '').trim();
+      return result;
+    }, defaultField);
   }
 
   return defaultField;
@@ -233,7 +223,7 @@ const parseMultiLanguageField = (field) => {
 const autoTranslateMissingLanguages = async (bannerId, bannerData) => {
   const supportedLanguages = SUPPORTED_LANGUAGES;
   const existingTranslations = await BannerTranslation.find({ bannerId }).lean();
-  const existingLangs = new Set(existingTranslations.map(t => t.language.toUpperCase()));
+  const existingLangs = new Set(existingTranslations.map(t => t.language.toLowerCase()));
   const langsToTranslate = supportedLanguages.filter(lang => !existingLangs.has(lang));
 
   if (langsToTranslate.length === 0) return;
@@ -333,7 +323,8 @@ const createBanner = asyncHandler(async (req, res) => {
   // Validate required fields based on slot type (check VI version)
   const isHeroSlot = nextSlot === 'homepage_hero';
   if (isHeroSlot) {
-    if (!nextTitle.VI || !nextSubtitle.VI || !nextDescription.VI || !nextCtaText.VI || !nextTargetUrl) {
+    const defaultLang = getDefaultLanguage().code;
+    if (!nextTitle[defaultLang] || !nextSubtitle[defaultLang] || !nextDescription[defaultLang] || !nextCtaText[defaultLang] || !nextTargetUrl) {
       res.status(400);
       throw new Error(getMessage(lang, 'admin-controllers-messages.hero_banner_requires_fields'));
     }
@@ -448,12 +439,7 @@ const updateBanner = asyncHandler(async (req, res) => {
     const requiredLangs = getActiveLangCodes();
 
     for (const langCode of requiredLangs) {
-      const titleKey = `title${langCode.toUpperCase()}`;
-      const subtitleKey = `subtitle${langCode.toUpperCase()}`;
-      const descriptionKey = `description${langCode.toUpperCase()}`;
-      const ctaTextKey = `ctaText${langCode.toUpperCase()}`;
-
-      if (!nextTitle[titleKey] || !nextSubtitle[subtitleKey] || !nextDescription[descriptionKey] || !nextCtaText[ctaTextKey]) {
+      if (!nextTitle[langCode] || !nextSubtitle[langCode] || !nextDescription[langCode] || !nextCtaText[langCode]) {
         res.status(400);
         throw new Error(getMessage(lang, 'admin-controllers-messages.hero_banner_requires_fields') + ` (${langCode})`);
       }

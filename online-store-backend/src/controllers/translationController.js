@@ -33,8 +33,8 @@ const getLanguageParam = (query = {}) => {
 
 const getRequestLanguage = (req) => req.lang || getLanguageParam(req.query);
 
-const sendTranslationError = (res, status, lang, code, messageKey, values = {}) => (
-  res.status(status).json({
+const sendTranslationError = (res, status, lang, code, messageKey, values = {}, details) => {
+  const response = {
     success: false,
     code,
     message: getMessage(
@@ -42,8 +42,10 @@ const sendTranslationError = (res, status, lang, code, messageKey, values = {}) 
       messageKey.includes('.') ? messageKey : `translation-messages.${messageKey}`,
       values
     ),
-  })
-);
+  };
+  if (details) response.details = details;
+  return res.status(status).json(response);
+};
 
 const ENTITY_TYPE_MAP = {
   product: 'product_name',
@@ -1140,6 +1142,7 @@ exports.importProductTranslationCache = async (req, res) => {
   let batchRequest;
   try {
     const { records, idempotencyKey } = req.body || {};
+    const dryRun = req.body?.dryRun === true;
     const replaceManualTranslations = req.body?.replaceManualTranslations === true;
     if (!Array.isArray(records) || records.length === 0 || records.length > MAX_PRODUCT_TRANSLATION_RECORDS) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_IMPORT_RECORDS_INVALID', 'operation_failed');
@@ -1148,9 +1151,11 @@ exports.importProductTranslationCache = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_IDEMPOTENCY_KEY_INVALID', 'operation_failed');
     }
 
-    const normalizedRecords = records.map((record) => {
+    const normalizedRecords = records.map((record, index) => {
       const productId = record?.productId;
-      const targetLang = record?.targetLang;
+      const targetLang = typeof record?.targetLang === 'string'
+        ? record.targetLang.toLowerCase()
+        : record?.targetLang;
       const translations = record?.translations;
       const fields = translations && typeof translations === 'object' && !Array.isArray(translations)
         ? Object.keys(translations).filter((field) => PRODUCT_TRANSLATION_FIELDS.includes(field))
@@ -1158,40 +1163,57 @@ exports.importProductTranslationCache = async (req, res) => {
       const manualFields = Array.isArray(record?.manualFields)
         ? record.manualFields.filter((field) => fields.includes(field))
         : fields;
-      return { productId, targetLang, translations, fields, manualFields };
+      return { line: index + 1, productId, targetLang, translations, fields, manualFields };
     });
     const recordKeys = new Set();
-    const isValid = normalizedRecords.every(({ productId, targetLang, translations, fields }) => {
+    const invalidRecords = [];
+    normalizedRecords.forEach(({ line, productId, targetLang, translations, fields }) => {
       const key = `${productId}:${targetLang}`;
-      if (recordKeys.has(key)) return false;
+      const reasons = [];
+      if (recordKeys.has(key)) reasons.push('duplicate_product_language');
       recordKeys.add(key);
-      return isProductId(productId)
-        && targetLang !== getDefaultLanguage().code
-        && SUPPORTED_LANG_CODES.includes(targetLang)
-        && fields.length > 0
-        && typeof translations === 'object'
-        && !Array.isArray(translations)
-        && (!('name' in translations) || typeof translations.name === 'string')
-        && (!('description' in translations) || typeof translations.description === 'string')
-        && (!('brand' in translations) || typeof translations.brand === 'string')
-        && (!('specs' in translations) || (translations.specs && typeof translations.specs === 'object' && !Array.isArray(translations.specs)));
+      if (!isProductId(productId)) reasons.push('invalid_product_id');
+      if (targetLang === getDefaultLanguage().code) reasons.push('default_language_not_allowed');
+      if (!SUPPORTED_LANG_CODES.includes(targetLang)) reasons.push('unsupported_language');
+      if (fields.length === 0) reasons.push('translation_fields_required');
+      if (!translations || typeof translations !== 'object' || Array.isArray(translations)) {
+        reasons.push('translations_object_required');
+      } else {
+        if ('name' in translations && typeof translations.name !== 'string') reasons.push('name_must_be_string');
+        if ('description' in translations && typeof translations.description !== 'string') reasons.push('description_must_be_string');
+        if ('brand' in translations && typeof translations.brand !== 'string') reasons.push('brand_must_be_string');
+        if ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs))) {
+          reasons.push('specs_must_be_object');
+        }
+      }
+      if (reasons.length > 0) invalidRecords.push({ line, reasons });
     });
-    if (!isValid) {
-      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_IMPORT_RECORD_INVALID', 'operation_failed');
+    if (invalidRecords.length > 0) {
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_IMPORT_RECORD_INVALID',
+        'operation_failed',
+        {},
+        { records: invalidRecords }
+      );
     }
 
     const userId = req.user?.id || req.user?._id?.toString() || 'anonymous';
     const payloadHash = crypto.createHash('sha256').update(JSON.stringify({ normalizedRecords, replaceManualTranslations })).digest('hex');
-    try {
-      batchRequest = await TranslationBatchRequest.create({ userId, idempotencyKey, payloadHash });
-    } catch (error) {
-      if (error?.code !== 11000) throw error;
-      const existingRequest = await TranslationBatchRequest.findOne({ userId, idempotencyKey }).lean();
-      if (!existingRequest || existingRequest.payloadHash !== payloadHash) {
-        return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_IDEMPOTENCY_KEY_CONFLICT', 'operation_failed');
+    if (!dryRun) {
+      try {
+        batchRequest = await TranslationBatchRequest.create({ userId, idempotencyKey, payloadHash });
+      } catch (error) {
+        if (error?.code !== 11000) throw error;
+        const existingRequest = await TranslationBatchRequest.findOne({ userId, idempotencyKey }).lean();
+        if (!existingRequest || existingRequest.payloadHash !== payloadHash) {
+          return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_IDEMPOTENCY_KEY_CONFLICT', 'operation_failed');
+        }
+        if (existingRequest.status === 'completed' && existingRequest.response) return res.json(existingRequest.response);
+        return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_BATCH_ALREADY_PROCESSING', 'operation_failed');
       }
-      if (existingRequest.status === 'completed' && existingRequest.response) return res.json(existingRequest.response);
-      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_BATCH_ALREADY_PROCESSING', 'operation_failed');
     }
 
     const productIds = normalizedRecords.map(({ productId }) => productId);
@@ -1204,12 +1226,29 @@ exports.importProductTranslationCache = async (req, res) => {
     const productNames = new Map(products.map((product) => [product._id.toString(), product.name]));
     const productBrands = new Map(products.map((product) => [product._id.toString(), product.brand]));
     if (productNames.size !== new Set(productIds).size) {
-      await batchRequest.deleteOne();
-      return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
+      if (batchRequest) await batchRequest.deleteOne();
+      const missingProductIds = [...new Set(productIds)].filter((productId) => !productNames.has(productId));
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_NOT_FOUND',
+        'product_not_found',
+        {},
+        {
+          records: normalizedRecords
+            .filter(({ productId }) => missingProductIds.includes(productId))
+            .map(({ line, productId }) => ({ line, productId })),
+        }
+      );
     }
     const existingByKey = new Map(existingTranslations.map((translation) => [`${translation.entityId}:${translation.targetLang}`, translation]));
     let skippedManualFields = 0;
-    const operations = normalizedRecords.flatMap(({ productId, targetLang, translations, fields, manualFields }) => {
+    let wouldInsert = 0;
+    let wouldUpdate = 0;
+    let wouldSkip = 0;
+    const importPlans = normalizedRecords.map((record) => {
+      const { productId, targetLang, fields } = record;
       const existing = existingByKey.get(`${productId}:${targetLang}`);
       const protectedFields = new Set(replaceManualTranslations ? [] : (existing?.manualFields || []));
       const importableFields = fields.filter((field) => {
@@ -1217,6 +1256,37 @@ exports.importProductTranslationCache = async (req, res) => {
         if (isProtected) skippedManualFields++;
         return !isProtected;
       });
+      const action = importableFields.length === 0 ? 'skip' : existing ? 'update' : 'insert';
+      if (action === 'insert') wouldInsert++;
+      if (action === 'update') wouldUpdate++;
+      if (action === 'skip') wouldSkip++;
+      return { ...record, existing, importableFields, action };
+    });
+
+    if (dryRun) {
+      return res.json({
+        success: true,
+        dryRun: true,
+        data: {
+          totalRecords: normalizedRecords.length,
+          validRecords: normalizedRecords.length,
+          wouldInsert,
+          wouldUpdate,
+          wouldSkip,
+          skippedManualFields,
+          preview: importPlans.map(({ line, productId, targetLang, fields, importableFields, action }) => ({
+            line,
+            productId,
+            targetLang,
+            fields,
+            importableFields,
+            action,
+          })),
+        },
+      });
+    }
+
+    const operations = importPlans.flatMap(({ productId, targetLang, translations, manualFields, existing, importableFields }) => {
       if (importableFields.length === 0) return [];
       const importedFields = Object.fromEntries(importableFields.map((field) => [
         field,

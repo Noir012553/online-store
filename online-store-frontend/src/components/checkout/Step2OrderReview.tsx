@@ -82,7 +82,7 @@ export function Step2OrderReview() {
   const handleApplyCoupon = async () => {
     const code = couponCode.trim();
     if (!code) {
-      setCouponError(t('coupon_empty_error'));
+      setCouponError(t('coupon_empty_error', 'checkout', 'Mã giảm giá không được để trống'));
       return;
     }
 
@@ -92,7 +92,7 @@ export function Step2OrderReview() {
       const summary = await fetchSummary(code);
       if (!summary) return;
       setCouponCode(summary.appliedCoupon?.code || code.toUpperCase());
-      toast.success(t('coupon_apply_success'));
+      toast.success(t('coupon_apply_success', 'checkout', 'Áp dụng mã giảm giá thành công'));
     } catch (error: any) {
       setCheckoutSummary(null);
       const message = getUserFriendlyErrorMessage(error, t) || t('coupon_apply_error_fallback', 'checkout', 'Unable to apply this coupon.');
@@ -105,7 +105,7 @@ export function Step2OrderReview() {
   const handleRemoveCoupon = () => {
     clearCoupon();
     fetchSummary().catch(() => setCheckoutSummary(null));
-    toast.success(t('coupon_remove_success'));
+    toast.success(t('coupon_remove_success', 'checkout', 'Xóa mã giảm giá thành công'));
   };
 
   const handleNext = () => {
@@ -118,7 +118,7 @@ export function Step2OrderReview() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <User className="w-6 h-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">{t('review_customer_info_title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('review_customer_info_title', 'checkout', 'Thông tin khách hàng')}</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -150,7 +150,7 @@ export function Step2OrderReview() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <MapPin className="w-6 h-6 text-green-600" />
-          <h2 className="text-2xl font-bold text-gray-900">{t('review_shipping_address_title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('review_shipping_address_title', 'checkout', 'Địa chỉ giao hàng')}</h2>
         </div>
 
         <div className="space-y-3">
@@ -185,14 +185,14 @@ export function Step2OrderReview() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <Truck className="w-6 h-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-gray-900">{t('review_shipping_service_title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('review_shipping_service_title', 'checkout', 'Dịch vụ vận chuyển')}</h2>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-white rounded-lg">
             <div className="flex items-center gap-2">
               <Truck className="w-5 h-5 text-gray-600" />
-              <p className="text-gray-700 font-medium">{t('review_carrier_label')}</p>
+              <p className="text-gray-700 font-medium">{t('review_carrier_label', 'checkout', 'Nhà vận chuyển')}</p>
             </div>
             <p className="font-semibold text-gray-900">
               {formData.selectedShipping?.providerName || formData.selectedShipping?.provider || ''}
@@ -201,7 +201,7 @@ export function Step2OrderReview() {
           <div className="flex items-center justify-between p-3 bg-white rounded-lg">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-gray-600" />
-              <p className="text-gray-700 font-medium">{t('review_service_label')}</p>
+              <p className="text-gray-700 font-medium">{t('review_service_label', 'checkout', 'Dịch vụ')}</p>
             </div>
             <p className="font-semibold text-gray-900">
               {formData.selectedShipping?.serviceName || formData.selectedShipping?.serviceType || ''}
@@ -210,14 +210,14 @@ export function Step2OrderReview() {
           <div className="flex items-center justify-between p-3 bg-white rounded-lg">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-gray-600" />
-              <p className="text-gray-700 font-medium">{t('review_estimated_delivery_label')}</p>
+              <p className="text-gray-700 font-medium">{t('review_estimated_delivery_label', 'checkout', 'Thời gian dự kiến')}</p>
             </div>
             <p className="font-semibold text-gray-900">
-              {t('estimated_delivery').replace('{{days}}', formData.selectedShipping?.estimatedDays || '0')}
+              {t('estimated_delivery', 'checkout', 'Dự kiến {{days}} ngày').replace('{{days}}', formData.selectedShipping?.estimatedDays || '0')}
             </p>
           </div>
           <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-gray-700 font-medium">{t('review_shipping_fee_label')}</p>
+            <p className="text-gray-700 font-medium">{t('review_shipping_fee_label', 'checkout', 'Phí vận chuyển')}</p>
             <p className="text-lg font-bold text-red-600">
               {checkoutSummary?.formattedShippingFee}
             </p>
@@ -229,13 +229,13 @@ export function Step2OrderReview() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <TicketPercent className="w-6 h-6 text-red-600" />
-          <h2 className="text-2xl font-bold text-gray-900">{t('coupon_title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('coupon_title', 'checkout', 'Mã giảm giá')}</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
           <div>
             <Label htmlFor="coupon-code" className="text-base font-medium mb-2 block">
-              {t('coupon_enter_code')}
+              {t('coupon_enter_code', 'checkout', 'Nhập mã giảm giá')}
             </Label>
             <Input
               id="coupon-code"
@@ -245,7 +245,7 @@ export function Step2OrderReview() {
                 setCouponError(null);
                 setCheckoutSummary(null);
               }}
-              placeholder={t('coupon_placeholder')}
+              placeholder={t('coupon_placeholder', 'checkout', 'Nhập mã giảm giá')}
               className="h-11 uppercase"
             />
           </div>
@@ -256,7 +256,7 @@ export function Step2OrderReview() {
             disabled={isCouponApplying}
             className="h-11 px-6 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
           >
-            {isCouponApplying ? t('coupon_applying') : t('coupon_apply_button')}
+            {isCouponApplying ? t('coupon_applying', 'checkout', 'Đang xử lý...') : t('coupon_apply_button', 'checkout', 'Áp dụng')}
           </Button>
         </div>
 
@@ -290,7 +290,7 @@ export function Step2OrderReview() {
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <ShoppingCart className="w-6 h-6 text-orange-600" />
-          <h2 className="text-2xl font-bold text-gray-900">{t('review_order_details_title')}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('review_order_details_title', 'checkout', 'Chi tiết đơn hàng')}</h2>
         </div>
 
         <div className="space-y-4">
@@ -348,14 +348,14 @@ export function Step2OrderReview() {
             variant="outline"
             className="flex-1 px-8 py-3 h-11"
           >
-            {t('back_button')}
+            {t('back_button', 'checkout', 'Quay lại')}
           </Button>
           <Button
             onClick={handleNext}
             disabled={isLoading || !checkoutSummary}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-3 h-11 disabled:opacity-50"
           >
-            {isLoading ? t('checkout_processing') : t('checkout_continue_payment')}
+            {isLoading ? t('checkout_processing', 'checkout', 'Đang xử lý...') : t('checkout_continue_payment', 'checkout', 'Tiếp tục thanh toán')}
           </Button>
         </div>
       </div>
