@@ -307,13 +307,12 @@ export default function Home() {
       setIsLoading(true);
       try {
         // Fetch in-stock products using optimized featured endpoint (no reviews populate, faster)
-        // Increased pageSize to 200 to ensure we get all demo products (laptops are often at the end)
         const productsResponse = await productAPI.getFeaturedProducts(
           1,
           undefined,
           undefined,
           undefined,
-          200,
+          12,
           undefined,
           undefined,
           true,
@@ -336,7 +335,7 @@ export default function Home() {
             undefined,
             categoryId,
             undefined,
-            200,
+            12,
             undefined,
             undefined,
             true,

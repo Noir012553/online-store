@@ -272,7 +272,15 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     ? { specs: { $type: 'object', $ne: {} } }
     : {};
 
-  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter, ...specsFilter };
+  const query = {
+    isDeleted: false,
+    featured: true,
+    ...category,
+    ...brand,
+    ...priceFilter,
+    ...stockFilter,
+    ...specsFilter,
+  };
   if (discountFilter) {
     query.$and = query.$and || [];
     query.$and.push(discountFilter);
