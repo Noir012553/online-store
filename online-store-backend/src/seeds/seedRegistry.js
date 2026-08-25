@@ -100,12 +100,19 @@ const SEED_MODULES = {
     seeder: require('./addressSeeder'),
     importance: 'MEDIUM',
   },
+  inventory: {
+    name: 'Product Inventory (25 units)',
+    layer: 2,
+    depends: [],
+    seeder: require('./inventorySeeder'),
+    importance: 'CRITICAL',
+  },
   reviews: {
     name: 'Product Reviews',
     layer: 2,
     depends: ['users'],
     seeder: require('./reviewSeeder'),
-    importance: 'MEDIUM',
+    importance: 'CRITICAL',
   },
   orders: {
     name: 'Orders (dynamic demo dataset)',
@@ -160,7 +167,7 @@ const SEED_PHASES = {
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['inventory', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**

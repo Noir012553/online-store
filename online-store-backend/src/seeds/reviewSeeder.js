@@ -14,7 +14,7 @@ const { ABOUT_MEDIA, getCloudinaryDeliveryUrl } = require('../config/aboutMedia'
 
 /**
  * Seed dữ liệu đánh giá
- * Tạo 8 đánh giá động từ users cho các products
+ * Tạo một đánh giá động cho mỗi product
  * @param {Array} products - Danh sách products
  * @param {Array} users - Danh sách users
  */
@@ -47,7 +47,7 @@ const seedReviews = async (products, users) => {
     comment: testimonialComments[index],
   }));
 
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < products.length; i++) {
     const productIdx = i % products.length;
     const userIdx = i % users.length;
     const reviewerIdx = i % testimonialReviewers.length;
@@ -71,6 +71,13 @@ const seedReviews = async (products, users) => {
   }
 
   const createdReviews = await Review.create(reviews);
+  const reviewIdsByProduct = new Map();
+  createdReviews.forEach((review) => {
+    const productId = review.product.toString();
+    const reviewIds = reviewIdsByProduct.get(productId) || [];
+    reviewIds.push(review._id);
+    reviewIdsByProduct.set(productId, reviewIds);
+  });
 
   // 🚀 OPTIMIZED: Use MongoDB Aggregation Pipeline to calculate ratings
   // BEFORE: Loop N products × 1 find = N DB queries + N save = 2N operations
@@ -101,6 +108,7 @@ const seedReviews = async (products, users) => {
             $set: {
               rating: Number(stat.avgRating.toFixed(1)),
               numReviews: stat.reviewCount,
+              reviews: reviewIdsByProduct.get(stat._id.toString()) || [],
             },
           },
         },
@@ -113,7 +121,7 @@ const seedReviews = async (products, users) => {
     console.timeEnd(`${CLI_SYMBOLS.duration} Bulk rating update`);
   } catch (error) {
     console.error(`${CLI_SYMBOLS.error} Error during aggregation-based rating update:`, error.message);
-    // Continue with translation even if rating update fails (non-blocking)
+    throw error;
   }
 
   // Tầng 2: Translate reviews to other supported languages
