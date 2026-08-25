@@ -32,5 +32,15 @@
     "message": "Enviaremos ofertas exclusivas para seu email. Verifique sua caixa de entrada!",
     "unsubscribe": "Cancelar inscrição"
   },
+  "paymentSuccess": {
+    "subject": "Pagamento confirmado - Pedido {{orderId}}",
+    "title": "Pagamento realizado com sucesso",
+    "greeting": "Olá {{customerName}},",
+    "body": "Recebemos o seu pagamento do pedido {{orderId}}.",
+    "orderLabel": "Número do pedido",
+    "totalLabel": "Total pago",
+    "itemsLabel": "Itens",
+    "thanks": "Obrigado por comprar na LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. Todos os direitos reservados."
 }

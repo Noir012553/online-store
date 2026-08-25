@@ -212,6 +212,10 @@ html body .layout-gutter-xwide {
   padding-right: var(--layout-gutter-xwide);
 }
 
+.sticky-side-banner {
+  top: var(--banner-top, 96px);
+}
+
 .header-container-px {
   padding-left: var(--container-padding-x);
   padding-right: var(--container-padding-x);

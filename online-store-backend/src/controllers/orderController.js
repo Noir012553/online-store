@@ -15,6 +15,7 @@ const { convertOrderAmount, getReportingCurrency } = require('../utils/orderReve
 const { calculateSelectedShipping } = require('../services/shippingService');
 const { formatOrders, formatCheckoutSummary, formatReportingOrders } = require('../utils/currencyResponseFormatter');
 const { getProductWeightInGrams } = require('../utils/productShippingWeight');
+const { sendOrderPaymentSuccessEmail } = require('../services/emailService');
 
 const formatOrderResponse = async (orders, req) => {
   if (!req.query.currencyCode) return formatOrders(orders, req.locale);
@@ -79,6 +80,17 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   if (updated) {
     const updatedOrder = await order.save();
+
+    if (isPaid === true && updatedOrder.isPaid === true) {
+      try {
+        const notificationOrder = await Order.findById(updatedOrder._id)
+          .populate('customer', 'name email phone')
+          .populate('user', 'name email');
+        await sendOrderPaymentSuccessEmail(notificationOrder, req.lang);
+      } catch (emailError) {
+        console.error('[OrderController.updateOrderStatus] Payment confirmation email failed:', emailError.message);
+      }
+    }
 
     // Real-time broadcast
     const io = req.app.get('io');

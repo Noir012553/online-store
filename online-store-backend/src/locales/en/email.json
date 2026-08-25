@@ -32,5 +32,15 @@
     "message": "We'll send exclusive offers to your email. Check your inbox!",
     "unsubscribe": "Unsubscribe"
   },
+  "paymentSuccess": {
+    "subject": "Payment confirmed - Order {{orderId}}",
+    "title": "Payment successful",
+    "greeting": "Hello {{customerName}},",
+    "body": "We have received your payment for order {{orderId}}.",
+    "orderLabel": "Order number",
+    "totalLabel": "Total paid",
+    "itemsLabel": "Items",
+    "thanks": "Thank you for shopping with LaptopStore."
+  },
   "copyright": "© 2024 LaptopStore. All rights reserved."
 }
