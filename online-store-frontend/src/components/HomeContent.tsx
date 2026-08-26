@@ -421,32 +421,7 @@ export default function Home() {
     };
   }, [categories, currencyCode, locale, isHydrated]);
 
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    let isMounted = true;
-
-    const fetchHomepageHeroBanners = async () => {
-      try {
-        const response = await bannerAPI.getBanners('homepage_hero', true, 1, 10, locale as any);
-        if (!isMounted) return;
-        const bannerList = Array.isArray(response.banners) ? response.banners : [];
-        setHomepageHeroBanners(bannerList);
-      } catch (error) {
-        if (isMounted) {
-          setHomepageHeroBanners([]);
-        }
-      }
-    };
-
-    void fetchHomepageHeroBanners();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [locale, isHydrated]);
-
-  // Listen for banner changes (create, update, delete, restore) and refetch
+  // Fetch homepage hero banners and refresh them when admin changes are broadcast.
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -464,12 +439,12 @@ export default function Home() {
       }
     };
 
-    // Subscribe to banner events
     const handleBannerCreated = () => refetchBanners();
     const handleBannerUpdated = () => refetchBanners();
     const handleBannerDeleted = () => refetchBanners();
     const handleBannerRestored = () => refetchBanners();
 
+    void refetchBanners();
     onBannerCreated(handleBannerCreated);
     onBannerUpdated(handleBannerUpdated);
     onBannerDeleted(handleBannerDeleted);

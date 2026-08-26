@@ -49,7 +49,7 @@ const warmDynamicTranslation = (canonicalKey, targetLang, fallbackLabel) => {
     !canonicalKey
     || targetLang === defaultLang
     || !isSupportedLanguage(targetLang)
-    || process.env.ENABLE_DYNAMIC_SPEC_KEY_TRANSLATION === 'false'
+    || process.env.ENABLE_DYNAMIC_SPEC_KEY_TRANSLATION !== 'true'
   ) {
     return;
   }
