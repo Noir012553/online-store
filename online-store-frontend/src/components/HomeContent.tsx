@@ -135,31 +135,6 @@ const getDealCardsPerView = (): number => {
   return 3;
 };
 
-const isLaptopDealCategory = (category: HomeCategory): boolean => {
-  const categoryIdentifiers = [
-    category.slug,
-    category.key,
-    category.translationKey,
-    category.name,
-    ...(category.sourceNames || []),
-  ]
-    .filter(Boolean)
-    .map(normalizeCategoryKey);
-
-  return categoryIdentifiers.some((identifier) => (
-    identifier === 'gaming-laptop'
-    || identifier === 'gaming_laptop'
-    || identifier === 'category_gaming_laptop'
-    || identifier === 'gaming laptop'
-    || identifier === 'laptop gaming'
-    || identifier === 'office-laptop'
-    || identifier === 'office_laptop'
-    || identifier === 'category_office_laptop'
-    || identifier === 'office laptop'
-    || identifier === 'laptop văn phòng'
-  ));
-};
-
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories } = useCategories();
@@ -308,34 +283,11 @@ export default function Home() {
       setIsLoading(true);
       setHasProductLoadError(false);
       try {
-        // Fetch in-stock products using optimized featured endpoint (no reviews populate, faster)
-        const productsResponse = await productAPI.getFeaturedProducts(
-          1,
-          undefined,
-          undefined,
-          undefined,
-          12,
-          undefined,
-          undefined,
-          true,
-          locale,
-          locale,
-          currencyCode,
-        );
-
-        if (!isMounted) return;
-
-        const allProductsList = productsResponse.products || [];
-        setAllProducts(allProductsList);
-
-        const dealCategoryIds = categories
-          .filter(isLaptopDealCategory)
-          .map((category) => category._id);
-        const dealCategoryResults = await Promise.allSettled(
-          dealCategoryIds.map((categoryId) => productAPI.getFeaturedProducts(
+        const [productsResult, dealsResult] = await Promise.allSettled([
+          productAPI.getFeaturedProducts(
             1,
             undefined,
-            categoryId,
+            undefined,
             undefined,
             12,
             undefined,
@@ -344,14 +296,33 @@ export default function Home() {
             locale,
             locale,
             currencyCode,
-          )),
-        );
+          ),
+          productAPI.getFeaturedProducts(
+            1,
+            undefined,
+            undefined,
+            undefined,
+            12,
+            undefined,
+            undefined,
+            true,
+            locale,
+            locale,
+            currencyCode,
+            undefined,
+            undefined,
+            true,
+          ),
+        ]);
 
         if (!isMounted) return;
+        if (productsResult.status === 'rejected') throw productsResult.reason;
 
-        const dealCandidates = dealCategoryResults
-          .filter((result): result is PromiseFulfilledResult<{ products?: BackendProduct[] }> => result.status === 'fulfilled')
-          .flatMap((result) => result.value.products || []);
+        setAllProducts(productsResult.value.products || []);
+
+        const dealCandidates: BackendProduct[] = dealsResult.status === 'fulfilled'
+          ? dealsResult.value.products || []
+          : [];
         const deals = dealCandidates
           .filter((product: BackendProduct) => isActiveDeal(product.deal))
           .sort((first: BackendProduct, second: BackendProduct) => {
@@ -368,7 +339,10 @@ export default function Home() {
           .slice(0, 10);
 
         setDealProducts(deals);
-        setDealEndTime(getDealEndTimestamp(deals[0]?.deal));
+        const dealEndTimes = deals
+          .map((product) => getDealEndTimestamp(product.deal))
+          .filter((endTime): endTime is number => endTime !== null);
+        setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
 
         const categoryResults = await Promise.allSettled(
           categories.map(async (category) => {

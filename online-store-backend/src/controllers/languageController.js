@@ -154,7 +154,7 @@ exports.createLanguage = async (req, res) => {
     const newLang = await Language.create({
       code: langCode,
       name,
-      isActive: true,
+      isActive: false,
       isReady: false,
       setupStartedAt: new Date(),
       nativeName: supportedLang.nativeName,
@@ -173,6 +173,7 @@ exports.createLanguage = async (req, res) => {
 
     // ============ 3-Phase Background Job ============
     setImmediate(async () => {
+      let setupFailed = false;
       try {
         if (process.env.NODE_ENV === 'development') {
           console.log(`\n[Language] ${CLI_SYMBOLS.duration}  Background Setup Timeline for ${langCode}:`);
@@ -198,15 +199,17 @@ exports.createLanguage = async (req, res) => {
             if (process.env.NODE_ENV === 'development') {
               console.log(`[Language] ${CLI_SYMBOLS.location} PHASE 1.5: Dịch UI strings (concurrency=5, throttle=1000ms)`);
             }
-            const translatedCount = await TranslationSeederService.translateStaticTranslations(
+            const { translatedCount, errorCount } = await TranslationSeederService.translateStaticTranslations(
               langCode,
               defaultLang
             );
+            if (errorCount > 0) setupFailed = true;
             if (process.env.NODE_ENV === 'development') {
-              console.log(`[Language] ${CLI_SYMBOLS.check} Dịch xong: ${translatedCount} UI keys`);
+              console.log(`[Language] ${CLI_SYMBOLS.check} Dịch xong: ${translatedCount} UI keys, ${errorCount} lỗi`);
             }
           }
         } catch (phase1Error) {
+          setupFailed = true;
           if (process.env.NODE_ENV === 'development') {
             console.error(`[Language] ${CLI_SYMBOLS.error} PHASE 1 lỗi: ${phase1Error.message}`);
           }
@@ -221,8 +224,9 @@ exports.createLanguage = async (req, res) => {
 
           const { getDefaultLanguage: getDefaultLang } = require('../config/languageInventory');
           const defaultSourceLang = getDefaultLang().code;
-          const { successCount, errorCount, totalProcessed } =
+          const { successCount, errorCount, rateLimitCount, totalProcessed } =
             await ProductTranslationSeederService.translateAllProducts(langCode, defaultSourceLang);
+          if (errorCount > 0 || rateLimitCount > 0) setupFailed = true;
 
           if (process.env.NODE_ENV === 'development') {
             console.log(`[Language] ${CLI_SYMBOLS.check} PHASE 2 hoàn tất:`);
@@ -231,6 +235,7 @@ exports.createLanguage = async (req, res) => {
             console.log(`    ${CLI_SYMBOLS.bullet} Tổng xử lý: ${totalProcessed} fields`);
           }
         } catch (phase2Error) {
+          setupFailed = true;
           if (process.env.NODE_ENV === 'development') {
             console.error(`[Language] ${CLI_SYMBOLS.error} PHASE 2 lỗi: ${phase2Error.message}`);
           }
@@ -240,6 +245,14 @@ exports.createLanguage = async (req, res) => {
         try {
           if (process.env.NODE_ENV === 'development') {
             console.log(`\n[Language] ${CLI_SYMBOLS.location} PHASE 3: Hoàn tất và kích hoạt`);
+          }
+
+          if (setupFailed) {
+            await Language.updateOne(
+              { code: langCode },
+              { $set: { isReady: false, isActive: false }, $unset: { setupCompletedAt: 1 } }
+            );
+            return;
           }
 
           LanguageService.invalidateCache();
@@ -252,6 +265,7 @@ exports.createLanguage = async (req, res) => {
             {
               $set: {
                 isReady: true,
+                isActive: true,
                 setupCompletedAt: new Date(),
               },
             }
@@ -267,7 +281,7 @@ exports.createLanguage = async (req, res) => {
           }
           await Language.updateOne(
             { code: langCode },
-            { $set: { isReady: false, setupCompletedAt: new Date() } }
+            { $set: { isReady: false, isActive: false }, $unset: { setupCompletedAt: 1 } }
           ).catch(err => {
             if (process.env.NODE_ENV === 'development') {
               console.error(`[Language] Cannot update language: ${err.message}`);
@@ -283,7 +297,7 @@ exports.createLanguage = async (req, res) => {
         try {
           await Language.updateOne(
             { code: langCode },
-            { $set: { isReady: false, setupCompletedAt: new Date() } }
+            { $set: { isReady: false, isActive: false }, $unset: { setupCompletedAt: 1 } }
           );
         } catch (updateErr) {
           if (process.env.NODE_ENV === 'development') {

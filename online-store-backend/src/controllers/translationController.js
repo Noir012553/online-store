@@ -22,6 +22,20 @@ const { getCanonicalSpecKey } = require('../services/specKeyTranslationService')
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 
+const getTranslationHashKey = (text, sourceLang, targetLang) => crypto
+  .createHash('md5')
+  .update(JSON.stringify([text, sourceLang, targetLang]))
+  .digest('hex');
+
+const saveTranslationCache = async (record) => {
+  const { hashKey, ...cacheData } = record;
+  return LiveTranslationCache.findOneAndUpdate(
+    { hashKey },
+    { $set: cacheData, $setOnInsert: { hashKey } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  ).lean();
+};
+
 // Helper to get language from request with dynamic default
 const getLanguageParam = (query = {}) => {
   const ACTIVE_LANGS = getActiveLangCodes();
@@ -280,10 +294,7 @@ exports.translateText = async (req, res) => {
 
       const translations = {};
       for (const lang of targetLangs) {
-        const hashKey = crypto
-          .createHash('md5')
-          .update(`${text}:${lang}`)
-          .digest('hex');
+        const hashKey = getTranslationHashKey(text, sourceLang, lang);
 
         // Check cache if enabled
         let translatedText;
@@ -304,12 +315,14 @@ exports.translateText = async (req, res) => {
         translatedText = await cloudflareAiService.translate(text, sourceLang, lang);
         translations[lang] = translatedText;
 
-        // Save to cache (OLD schema)
-        await LiveTranslationCache.create({
+        await saveTranslationCache({
           hashKey,
           originalText: text,
+          sourceLang,
           targetLang: lang,
           translatedText,
+          status: 'success',
+          qualityStatus: 'approved',
         });
 
         // Shadow write to NEW schema (Phase 1)
@@ -364,10 +377,7 @@ exports.translateText = async (req, res) => {
       });
     }
 
-    const hashKey = crypto
-      .createHash('md5')
-      .update(`${text}:${targetLang}`)
-      .digest('hex');
+    const hashKey = getTranslationHashKey(text, sourceLang, targetLang);
 
     // Check cache if enabled
     if (useCache) {
@@ -392,12 +402,14 @@ exports.translateText = async (req, res) => {
     // Translate using Cloudflare AI
     const translatedText = await cloudflareAiService.translate(text, sourceLang, targetLang);
 
-    // Save to cache (OLD schema)
-    await LiveTranslationCache.create({
+    await saveTranslationCache({
       hashKey,
       originalText: text,
+      sourceLang,
       targetLang,
       translatedText,
+      status: 'success',
+      qualityStatus: 'approved',
     });
 
     // Shadow write to NEW schema (Phase 1)
@@ -481,10 +493,7 @@ exports.translateProductAll9Languages = async (req, res) => {
 
     const translations = {};
     for (const lang of targetLangs) {
-      const hashKey = crypto
-        .createHash('md5')
-        .update(`${text}:${lang}`)
-        .digest('hex');
+      const hashKey = getTranslationHashKey(text, sourceLang, lang);
 
       // Check cache if enabled
       let translatedText;
@@ -505,15 +514,16 @@ exports.translateProductAll9Languages = async (req, res) => {
       translatedText = await cloudflareAiService.translate(text, sourceLang, lang);
       translations[lang] = translatedText;
 
-      // Save to cache (OLD schema)
-      await LiveTranslationCache.create({
+      await saveTranslationCache({
         hashKey,
         originalText: text,
+        sourceLang,
         targetLang: lang,
         translatedText,
         entityId,
         entityType,
         status: 'success',
+        qualityStatus: 'approved',
       });
 
       // Shadow write to NEW schema (Phase 1)

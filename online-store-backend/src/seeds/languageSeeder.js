@@ -47,16 +47,17 @@ const seedLanguages = async () => {
         existingLang.isSystemDefault !== lang.isSystemDefault ||
         existingLang.currencyCode !== lang.currencyCode ||
         existingLang.nativeName !== lang.nativeName ||
-        !existingLang.isReady
+        (!existingLang.isReady && !(existingLang.setupStartedAt && !existingLang.setupCompletedAt))
       ) {
+        const setupInProgress = existingLang.setupStartedAt && !existingLang.setupCompletedAt;
         await Language.updateOne(
           { code: lang.code },
           {
-            isActive: lang.isActive,
+            isActive: setupInProgress ? false : lang.isActive,
             isSystemDefault: lang.isSystemDefault,
             nativeName: lang.nativeName,
             currencyCode: lang.currencyCode,
-            isReady: true,
+            isReady: setupInProgress ? false : true,
           }
         );
         updatedCount++;

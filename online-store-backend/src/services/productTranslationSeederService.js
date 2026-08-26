@@ -12,11 +12,13 @@
 
 const Product = require('../models/Product');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
 const RateLimitHandler = require('./rateLimitHandler');
 const distributedLockService = require('./distributedLockService');
 const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 
@@ -153,6 +155,8 @@ class ProductTranslationSeederService {
         }
       }
 
+      await this._syncProductCatalogTranslations(targetLang);
+
       console.log(`\n[ProductSeeder] ${CLI_SYMBOLS.target} PHASE 2 hoàn tất:`);
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
@@ -169,6 +173,82 @@ class ProductTranslationSeederService {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi dịch sản phẩm: ${error.message}`);
       throw error;
     }
+  }
+
+  static async _syncProductCatalogTranslations(targetLang) {
+    const [products, translations] = await Promise.all([
+      Product.find({ isDeleted: false }).select('_id name description brand specs').lean(),
+      LiveTranslationCache.find({
+        targetLang,
+        status: 'success',
+        qualityStatus: 'approved',
+        entityType: { $in: ['product_name', 'product_description', 'product_spec'] },
+      }).select('entityId entityType specKey translatedText').lean(),
+    ]);
+
+    const translationsByProduct = new Map();
+    for (const translation of translations) {
+      const productId = String(translation.entityId);
+      const entry = translationsByProduct.get(productId) || {
+        name: null,
+        description: null,
+        specs: {},
+      };
+
+      if (translation.entityType === 'product_name') entry.name = translation.translatedText;
+      if (translation.entityType === 'product_description') entry.description = translation.translatedText;
+      if (translation.entityType === 'product_spec' && translation.specKey) {
+        const canonicalKey = getCanonicalSpecKey(translation.specKey);
+        if (canonicalKey) entry.specs[canonicalKey] = translation.translatedText;
+      }
+      translationsByProduct.set(productId, entry);
+    }
+
+    const entries = products.map((product) => {
+      const translated = translationsByProduct.get(product._id.toString()) || {
+        name: null,
+        description: null,
+        specs: {},
+      };
+      const validationErrors = [];
+      const sourceSpecKeys = Object.entries(product.specs || {})
+        .filter(([, value]) => typeof value === 'string' && value.trim())
+        .map(([key]) => getCanonicalSpecKey(key));
+
+      if (!String(translated.name || '').trim()) validationErrors.push('missing_name');
+      if (product.description?.trim() && !String(translated.description || '').trim()) {
+        validationErrors.push('missing_description');
+      }
+      if (sourceSpecKeys.some((key) => !key || !translated.specs[key])) {
+        validationErrors.push('incomplete_specs');
+      }
+
+      return {
+        entityId: product._id.toString(),
+        targetLang,
+        name: translated.name || product.name,
+        description: translated.description || null,
+        brand: product.brand || null,
+        specs: translated.specs,
+        status: 'success',
+        qualityStatus: validationErrors.length === 0 ? 'approved' : 'pending',
+        qualityScore: validationErrors.length === 0 ? 100 : 0,
+        validationErrors,
+        lastTranslatedAt: new Date(),
+      };
+    });
+
+    if (entries.length === 0) return;
+
+    await ProductCatalogTranslationCache.bulkWrite(entries.map((entry) => ({
+      updateOne: {
+        filter: { entityId: entry.entityId, targetLang },
+        update: entry.qualityStatus === 'approved'
+          ? { $set: entry }
+          : { $setOnInsert: entry },
+        upsert: true,
+      },
+    })));
   }
 
   /**

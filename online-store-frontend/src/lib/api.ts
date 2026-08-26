@@ -118,7 +118,8 @@ let inMemoryAccessToken: string | null = null;
 
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<boolean | 'rate_limited'> | null = null;
+let refreshBlockedUntil = 0;
 let isHandlingUnauthorized = false;
 
 // Create a signature for deduplication
@@ -171,8 +172,9 @@ export const clearInMemoryAccessToken = () => {
  * 4. Return true để retry request cũ
  * 5. Nếu thất bại, logout ngay lập tức
  */
-const refreshAccessToken = async (): Promise<boolean> => {
+const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
   if (typeof window === 'undefined' || isHandlingUnauthorized) return false;
+  if (Date.now() < refreshBlockedUntil) return 'rate_limited';
 
   // Nếu đang refresh, chờ promise hiện tại thay vì refresh lại (prevent concurrent refresh)
   if (isRefreshing && refreshPromise) {
@@ -196,6 +198,14 @@ const refreshAccessToken = async (): Promise<boolean> => {
           credentials: 'include', // Gửi refresh token từ httpOnly cookie
           signal: controller.signal,
         });
+
+        if (response.status === 429) {
+          const retryAfterSeconds = Number(response.headers.get('Retry-After'));
+          if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+            refreshBlockedUntil = Date.now() + retryAfterSeconds * 1000;
+          }
+          return 'rate_limited';
+        }
 
         if (!response.ok) {
           // Refresh failed → logout
@@ -412,9 +422,19 @@ async function executeRequest<T = any>(
       }
 
       // Try to refresh access token
-      const refreshSuccess = await refreshAccessToken();
+      const refreshResult = await refreshAccessToken();
 
-      if (!refreshSuccess) {
+      if (refreshResult === 'rate_limited') {
+        handleApiError({
+          status: 429,
+          message: 'error_rate_limited',
+          endpoint: endpointName,
+          method: methodName,
+        });
+        throw new Error('error_rate_limited');
+      }
+
+      if (!refreshResult) {
         // Refresh failed → logout
         // Show toast
         handleApiError({
@@ -665,6 +685,7 @@ export const productAPI = {
     currencyCode?: string,
     hasSpecs?: boolean,
     prioritizeSpecs?: boolean,
+    hasDeal?: boolean,
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -680,6 +701,7 @@ export const productAPI = {
     if (inStock !== undefined) params.append('inStock', inStock.toString());
     if (hasSpecs !== undefined) params.append('hasSpecs', hasSpecs.toString());
     if (prioritizeSpecs !== undefined) params.append('prioritizeSpecs', prioritizeSpecs.toString());
+    if (hasDeal !== undefined) params.append('hasDeal', hasDeal.toString());
 
     return apiCall(`/products/featured/list?${params.toString()}`, {
       adapter: (data) => ({
