@@ -4,6 +4,8 @@ import { useLanguage } from '../../lib/i18n';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { Button } from '../ui/button';
 import { TranslatedReview } from '../TranslatedReview';
+import { ImageWithFallback } from '../image/ImageWithFallback';
+import { getReviewerFallbackUrl } from '../../lib/aboutMedia';
 
 export interface ProductReview {
   _id?: string;
@@ -153,6 +155,7 @@ export function ProductReviews({
       {reviews.length > 0 ? (
         reviews.map((review) => {
           const reviewerName = review.name || review.user?.name || t('default_anonymous', 'products');
+          const reviewerFallback = getReviewerFallbackUrl(review.avatar);
           const reviewDate = review.createdAt
             ? new Date(review.createdAt).toLocaleDateString(getIntlLocale(locale))
             : t('not_available', 'common');
@@ -165,11 +168,16 @@ export function ProductReviews({
                   {review.avatar ? (
                     <button
                       type="button"
-                      onClick={() => onOpenImage(review.avatar || '', reviewerName)}
+                      onClick={() => onOpenImage(reviewerFallback || review.avatar || '', reviewerName)}
                       className="h-full w-full cursor-zoom-in"
                       aria-label={reviewerName}
                     >
-                      <img src={review.avatar} alt={reviewerName} className="w-full h-full object-cover" />
+                      <ImageWithFallback
+                        src={review.avatar}
+                        fallbackSrc={reviewerFallback}
+                        alt={reviewerName}
+                        className="w-full h-full object-cover"
+                      />
                     </button>
                   ) : (
                     <span>{initials}</span>

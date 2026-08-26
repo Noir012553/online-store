@@ -7,6 +7,7 @@ import { useLanguage } from "../lib/i18n";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
 import { UI_EMOJI } from '../lib/uiEmoji';
 import { ImageViewer } from '../components/ImageViewer';
+import { getReviewerFallbackUrl, getTeamFallbackUrl } from '../lib/aboutMedia';
 
 export const getServerSideProps = async () => {
   return {
@@ -235,11 +236,12 @@ function AboutContent() {
               const image = aboutMedia?.team.find(({ key }) => key === member.mediaKey);
 
               return (
-              <div key={index} className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                {image?.url && (
-                  <img
-                    src={image.url}
-                    srcSet={image.srcSet}
+                <div key={index} className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                {(image?.url || getTeamFallbackUrl(member.mediaKey)) && (
+                  <ImageWithFallback
+                    src={image?.url}
+                    fallbackSrc={getTeamFallbackUrl(member.mediaKey)}
+                    srcSet={image?.srcSet}
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     alt={t(member.nameKey, 'about')}
                     loading="lazy"
@@ -250,7 +252,7 @@ function AboutContent() {
                   <h3 className="mb-1">{t(member.nameKey, 'about')}</h3>
                   <p className="text-gray-600">{t(member.roleKey, 'about')}</p>
                 </div>
-              </div>
+                </div>
               );
             })}
           </div>
@@ -286,16 +288,20 @@ function AboutContent() {
           <div className="container mx-auto px-4">
             <h2 className="text-center text-white mb-12 font-bold">{t('testimonials_title', 'about')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className="bg-white rounded-lg p-6">
+              {testimonials.map((testimonial, index) => {
+                const reviewerFallback = getReviewerFallbackUrl(testimonial.avatar);
+
+                return (
+                  <div key={index} className="bg-white rounded-lg p-6">
                   <div className="flex items-center gap-4 mb-4">
                     <button
                       type="button"
-                      onClick={() => setViewerImage({ src: testimonial.avatar, alt: testimonial.name })}
+                      onClick={() => setViewerImage({ src: reviewerFallback || testimonial.avatar, alt: testimonial.name })}
                       className="cursor-zoom-in"
                     >
-                      <img
+                      <ImageWithFallback
                         src={testimonial.avatar}
+                        fallbackSrc={reviewerFallback}
                         alt={testimonial.name}
                         loading="lazy"
                         className="w-12 h-12 rounded-full object-cover"
@@ -308,9 +314,10 @@ function AboutContent() {
                       </p>
                     </div>
                   </div>
-                  <p className="text-black font-bold text-base italic">"{testimonial.content}"</p>
-                </div>
-              ))}
+                    <p className="text-black font-bold text-base italic">"{testimonial.content}"</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
