@@ -117,10 +117,77 @@ const REQUEST_CACHE_TTL = 5000; // 5 seconds - cache dedupe window
 let inMemoryAccessToken: string | null = null;
 
 // Flag to prevent multiple simultaneous refresh attempts
+let isHandlingUnauthorized = false;
 let isRefreshing = false;
 let refreshPromise: Promise<boolean | 'rate_limited'> | null = null;
 let refreshBlockedUntil = 0;
-let isHandlingUnauthorized = false;
+let authRefreshPromise: Promise<any> | null = null;
+const REFRESH_BLOCKED_UNTIL_KEY = 'laptopstore_refresh_blocked_until';
+
+const getPersistedRefreshBlockedUntil = () => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const blockedUntil = Number(localStorage.getItem(REFRESH_BLOCKED_UNTIL_KEY));
+    return Number.isFinite(blockedUntil) ? blockedUntil : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const persistRefreshBlockedUntil = (retryAfterSeconds: number) => {
+  if (typeof window === 'undefined' || !Number.isFinite(retryAfterSeconds) || retryAfterSeconds <= 0) return;
+  try {
+    localStorage.setItem(
+      REFRESH_BLOCKED_UNTIL_KEY,
+      String(Date.now() + retryAfterSeconds * 1000),
+    );
+  } catch {
+    return;
+  }
+};
+
+const clearPersistedRefreshBlock = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(REFRESH_BLOCKED_UNTIL_KEY);
+  } catch {
+    return;
+  }
+};
+
+const requestAuthRefresh = async () => {
+  if (typeof window === 'undefined' || Date.now() < getPersistedRefreshBlockedUntil()) {
+    return undefined;
+  }
+
+  if (authRefreshPromise) return authRefreshPromise;
+
+  if (isRefreshing && refreshPromise) {
+    const refreshed = await refreshPromise;
+    return refreshed === true ? { accessToken: getAuthToken() } : undefined;
+  }
+
+  authRefreshPromise = apiCall('/users/refresh', {
+    method: 'POST',
+    skipCache: true,
+    skipAuthRecovery: true,
+  })
+    .then((data) => {
+      clearPersistedRefreshBlock();
+      return data;
+    })
+    .catch((error: any) => {
+      if (error?.status === 429) {
+        persistRefreshBlockedUntil(Number(error.retryAfter));
+      }
+      throw error;
+    })
+    .finally(() => {
+      authRefreshPromise = null;
+    });
+
+  return authRefreshPromise;
+};
 
 // Create a signature for deduplication
 const createRequestSignature = (endpoint: string, options: FetchOptions): string => {
@@ -174,7 +241,26 @@ export const clearInMemoryAccessToken = () => {
  */
 const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
   if (typeof window === 'undefined' || isHandlingUnauthorized) return false;
-  if (Date.now() < refreshBlockedUntil) return 'rate_limited';
+  if (Date.now() < refreshBlockedUntil || Date.now() < getPersistedRefreshBlockedUntil()) {
+    return 'rate_limited';
+  }
+
+  if (authRefreshPromise) {
+    try {
+      const data = await authRefreshPromise;
+      const newAccessToken = data?.accessToken || data?.token;
+      if (newAccessToken) {
+        inMemoryAccessToken = newAccessToken;
+        return true;
+      }
+    } catch (error: any) {
+      if (error?.status === 429) return 'rate_limited';
+      handleUnauthorized();
+      return false;
+    }
+    handleUnauthorized();
+    return false;
+  }
 
   // Nếu đang refresh, chờ promise hiện tại thay vì refresh lại (prevent concurrent refresh)
   if (isRefreshing && refreshPromise) {
@@ -203,6 +289,7 @@ const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
           const retryAfterSeconds = Number(response.headers.get('Retry-After'));
           if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
             refreshBlockedUntil = Date.now() + retryAfterSeconds * 1000;
+            persistRefreshBlockedUntil(retryAfterSeconds);
           }
           return 'rate_limited';
         }
@@ -223,6 +310,7 @@ const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
         }
 
         inMemoryAccessToken = newAccessToken; // Update memory token (if using in-memory storage)
+        clearPersistedRefreshBlock();
         return true;
       } finally {
         clearTimeout(timeoutId);
@@ -488,10 +576,15 @@ async function executeRequest<T = any>(
         code?: string;
         params?: Record<string, unknown>;
         status?: number;
+        retryAfter?: number;
       };
       apiError.code = errorCode;
       apiError.params = errorParams;
       apiError.status = response.status;
+      const retryAfter = Number(response.headers.get('Retry-After'));
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        apiError.retryAfter = retryAfter;
+      }
       throw apiError;
     }
 
@@ -1015,13 +1108,7 @@ export const authAPI = {
    * Note: Hàm này được gọi tự động bởi executeRequest khi 401 xảy ra
    * Không cần gọi trực tiếp từ components (nó xử lý auto)
    */
-  refreshToken: async () => {
-    return apiCall('/users/refresh', {
-      method: 'POST',
-      skipCache: true, // Always refresh, never cache
-      skipAuthRecovery: true,
-    });
-  },
+  refreshToken: async () => requestAuthRefresh(),
 
   /**
    * Cập nhật thông tin user (name, email, phone, address, password)
