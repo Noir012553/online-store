@@ -83,11 +83,12 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   const { t } = useTranslation();
 
   const sanitizedText = sanitizeDescription(text || "");
-  const rawSpecsDescription = /^(.*?)(?:Thông số|Specifications?)\s*:\s*\{[\s\S]*\}\s*$/i.exec(sanitizedText);
+  const embeddedSpecsPattern = /(?:^|\n)\s*(?:Thông số|Specifications?)\s*:\s*\{[\s\S]*?\}(?=\s|$)/i;
   const specEntries = Object.entries(specs || {});
+  const hasEmbeddedSpecs = embeddedSpecsPattern.test(sanitizedText) && specEntries.length > 0;
+  const descriptionIntro = sanitizedText.replace(embeddedSpecsPattern, '').trim();
 
-  if (rawSpecsDescription && specEntries.length > 0) {
-    const descriptionIntro = rawSpecsDescription[1].trim();
+  if (hasEmbeddedSpecs) {
 
     return (
       <div className={className}>
@@ -105,7 +106,7 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
                 <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                   {specLabels?.[key] || key}
                 </dt>
-                <dd className="text-sm font-semibold text-gray-900">{String(value)}</dd>
+                <dd className="break-words text-sm font-semibold text-gray-900">{String(value)}</dd>
               </div>
             ))}
           </dl>
