@@ -8,11 +8,14 @@ const ERROR_IMG_SRC =
 type ImageWithFallbackProps = Omit<ImageProps, 'src' | 'alt'> & {
   src?: string | null;
   alt: string;
+  fallbackSrc?: string | null;
+  srcSet?: string;
 };
 
 export function ImageWithFallback({
   src,
   alt,
+  fallbackSrc,
   className,
   style,
   fill,
@@ -22,20 +25,30 @@ export function ImageWithFallback({
   ...rest
 }: ImageWithFallbackProps) {
   const [didError, setDidError] = useState(false);
+  const [didFallbackError, setDidFallbackError] = useState(false);
   const { t } = useTranslation();
 
+  const hasValidSrc = src && typeof src === 'string' && src.trim() !== '';
+  const hasValidFallback = fallbackSrc && typeof fallbackSrc === 'string' && fallbackSrc.trim() !== '';
+  const showFallback = Boolean(hasValidFallback && (didError || !hasValidSrc) && !didFallbackError);
+  const shouldShowError = !showFallback && (didError || !hasValidSrc || didFallbackError);
+  const currentSrc = showFallback ? fallbackSrc : src;
+  const isExternalImage = typeof currentSrc === 'string' && /^https?:\/\//i.test(currentSrc);
   const handleError = () => {
+    if (showFallback) {
+      setDidFallbackError(true);
+      return;
+    }
+
     setDidError(true);
   };
-
-  const hasValidSrc = src && typeof src === 'string' && src.trim() !== '';
-  const isExternalImage = typeof src === 'string' && /^https?:\/\//i.test(src);
-  const shouldShowError = didError || !hasValidSrc;
-  const { loading, ...restWithoutLoading } = rest as typeof rest & {
+  const { loading, srcSet, ...restWithoutImageSources } = rest as typeof rest & {
     loading?: 'lazy' | 'eager';
+    srcSet?: string;
   };
   void loading;
-  const imageRest = priority ? restWithoutLoading : rest;
+  void srcSet;
+  const imageRest = showFallback || priority ? restWithoutImageSources : rest;
 
   if (shouldShowError) {
     const errorAlt = t('image_load_error_alt', 'components');
@@ -54,13 +67,13 @@ export function ImageWithFallback({
       );
     }
 
-    return <img src={ERROR_IMG_SRC} alt={errorAlt} className={className} style={style} {...restWithoutLoading} />;
+    return <img src={ERROR_IMG_SRC} alt={errorAlt} className={className} style={style} {...restWithoutImageSources} />;
   }
 
   if (fill) {
     return (
       <Image
-        src={src!}
+        src={(showFallback ? fallbackSrc : src)!}
         alt={alt}
         fill
         sizes={sizes ?? '100vw'}
@@ -78,7 +91,7 @@ export function ImageWithFallback({
   if (typeof rest.width === 'number' && typeof rest.height === 'number') {
     return (
       <Image
-        src={src!}
+        src={(showFallback ? fallbackSrc : src)!}
         alt={alt}
         width={rest.width}
         height={rest.height}
@@ -94,5 +107,14 @@ export function ImageWithFallback({
     );
   }
 
-  return <img src={src!} alt={alt} className={className} style={style} onError={handleError} {...restWithoutLoading} />;
+  return (
+    <img
+      src={(showFallback ? fallbackSrc : src)!}
+      alt={alt}
+      className={className}
+      style={style}
+      onError={handleError}
+      {...(showFallback ? restWithoutImageSources : rest)}
+    />
+  );
 }
