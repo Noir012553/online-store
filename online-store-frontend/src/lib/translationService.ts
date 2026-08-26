@@ -1,6 +1,9 @@
 import { indexedDbService } from './services/indexedDbService';
 
 const API_BASE = '/api';
+const FALLBACK_CACHE_TTL_MS = 60 * 60 * 1000;
+const fallbackCache = new Map<string, { value: Record<string, Record<string, string>>; expiresAt: number }>();
+const pendingFallbackRequests = new Map<string, Promise<Record<string, Record<string, string>>>>();
 
 interface TranslationResponse {
   success: boolean;
@@ -165,33 +168,56 @@ class TranslationService {
   // QUY TẮC #1: Get fallback translations for offline support
   // Returns all static translations for a language from Backend
   async getFallbackTranslations(lang: string, signal?: AbortSignal): Promise<Record<string, Record<string, string>>> {
-    try {
-      const url = `${API_BASE}/translations/fallback?lang=${lang}`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal,
-      });
-
-      if (!response.ok) {
-        return {};
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        return {};
-      }
-
-      return data.data;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw error;
-      }
-      return {};
+    const cacheKey = lang.toLowerCase();
+    const cached = fallbackCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
     }
+    if (cached) fallbackCache.delete(cacheKey);
+
+    if (!signal) {
+      const pending = pendingFallbackRequests.get(cacheKey);
+      if (pending) return pending;
+    }
+
+    const request = (async () => {
+      try {
+        const url = `${API_BASE}/translations/fallback?lang=${lang}`;
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal,
+        });
+
+        if (!response.ok) return {};
+
+        const data = await response.json();
+        if (!data.success) return {};
+
+        const value = data.data as Record<string, Record<string, string>>;
+        fallbackCache.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + FALLBACK_CACHE_TTL_MS,
+        });
+        return value;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
+        return {};
+      }
+    })();
+
+    if (!signal) {
+      pendingFallbackRequests.set(cacheKey, request);
+      void request.then(
+        () => pendingFallbackRequests.delete(cacheKey),
+        () => pendingFallbackRequests.delete(cacheKey),
+      );
+    }
+
+    return request;
   }
 }
 
