@@ -172,6 +172,7 @@ const getSpecKeyLabels = async (specs, targetLang) => {
       canonicalKey: { $in: canonicalKeys },
       targetLang,
       status: 'success',
+      qualityStatus: 'approved',
     }).lean();
   } catch (error) {
     console.error('[SpecKeyTranslationService] Cache read failed:', error.message);

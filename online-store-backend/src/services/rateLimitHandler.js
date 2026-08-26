@@ -29,13 +29,14 @@ class RateLimitHandler {
     entityId,
     entityType,
     errorMessage,
-    status = 'failed_error'
+    status = 'failed_error',
+    sourceLang = null
   ) {
     try {
       const crypto = require('crypto');
       const hashKey = crypto
         .createHash('md5')
-        .update(`${originalText}:${targetLang}`)
+        .update(JSON.stringify([originalText, sourceLang, targetLang]))
         .digest('hex');
 
       const cacheEntry = await LiveTranslationCache.findOneAndUpdate(
@@ -43,6 +44,7 @@ class RateLimitHandler {
         {
           $set: {
             originalText,
+            sourceLang,
             targetLang,
             translatedText: originalText,
             entityId,
@@ -77,7 +79,8 @@ class RateLimitHandler {
     targetLang,
     entityId,
     entityType,
-    errorMessage
+    errorMessage,
+    sourceLang = null
   ) {
     return this.recordTranslationError(
       originalText,
@@ -85,7 +88,8 @@ class RateLimitHandler {
       entityId,
       entityType,
       errorMessage,
-      'failed_rate_limit'
+      'failed_rate_limit',
+      sourceLang
     );
   }
 

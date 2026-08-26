@@ -65,7 +65,7 @@ Một text có thể bị gọi Cloudflare AI lại dù đã có bản ghi trans
 
 - Đã thống nhất writer với reader: bản dịch thành công được ghi `status=success` và `qualityStatus=approved`.
 - Hash cache đã bao gồm `sourceLang`, tránh dùng nhầm bản dịch khi cùng text/target nhưng khác ngôn ngữ nguồn.
-- Đã chuyển ghi cache sang upsert theo `hashKey`; vẫn cần reservation/distributed lock nếu muốn loại bỏ hoàn toàn việc hai instance cùng gọi AI đồng thời.
+- Đã chuyển ghi cache sang upsert theo `hashKey` và thêm promise lock trong cùng process để tránh các request trùng gọi AI đồng thời; nhiều instance vẫn cần reservation/distributed lock dùng chung nếu muốn loại bỏ hoàn toàn race.
 - Endpoint vẫn cần được cân nhắc bảo vệ quyền truy cập nếu không muốn client public chủ động dùng `useCache=false`.
 
 ## 4. `429 RATE_LIMIT_TOKEN_REFRESH` ở `/api/users/refresh`
@@ -97,8 +97,8 @@ retryAfter: khoảng 3102–3103 giây
 
 - Frontend đã đọc `Retry-After` khi refresh nhận 429, tạm ngừng refresh trong thời gian server yêu cầu và không logout nhầm do rate limit.
 - Trong cùng tab, frontend tiếp tục gom các refresh đồng thời thành một promise.
-- Race giữa nhiều tab và bucket rate limit memory-local vẫn chưa được xử lý triệt để; cần shared store hoặc cơ chế rotation grace period cho production nhiều instance.
-- Kiểm tra lại key theo IP khi chạy sau proxy/tunnel để tránh nhiều client dùng chung một bucket không mong muốn.
+- Rate limiter hiện ưu tiên user id giải mã từ refresh cookie, fallback về IP khi chưa có cookie; race giữa nhiều tab, shared store cho nhiều backend instance và cơ chế rotation grace period vẫn chưa được xử lý triệt để.
+- Kiểm tra lại IP fallback khi chạy sau proxy/tunnel để tránh nhiều client dùng chung một bucket không mong muốn.
 
 ## 5. Background translation khi thêm ngôn ngữ
 
@@ -122,7 +122,8 @@ Job chạy sau khi response đã trả về nên việc tiếp tục xuất hi�
 - Phase 1/2 thất bại hoặc có field lỗi/rate limit sẽ không còn được đánh dấu `isReady=true`; language cũng chỉ được kích hoạt sau khi hoàn tất.
 - Language seeder không còn tự chuyển language đang setup dở thành ready sau restart.
 - Log `All 9 languages ready` chỉ cho biết các language record đã sẵn sàng, không khẳng định toàn bộ dynamic content đã được dịch.
-- Job vẫn chạy trong process và có thể bị gián đoạn khi backend restart; cần cơ chế queue/job bền vững để tự tiếp tục.
+- Job vẫn thực thi trong process, nhưng khi backend restart startup sẽ tìm các language có `isReady=false`, đã có `setupStartedAt` và chưa hoàn tất để tự xếp lại job.
+- Job setup dùng distributed lock theo language để tránh nhiều backend instance xử lý trùng khi Redis khả dụng; nếu Redis không khả dụng sẽ dùng fallback memory trong instance hiện tại.
 - Phase 2 hiện đã đồng bộ các bản ghi dịch approved sang `ProductCatalogTranslationCache` và chỉ đánh dấu language ready sau bước này thành công.
 
 ## 6. Flash Sale không hiển thị trên homepage
@@ -157,6 +158,7 @@ Vì vậy sản phẩm có deal trong các nhóm `Bàn phím`, `Chuột` hoặc 
 
 ## 7. Kiểm thử hiện tại
 
-- Đã kiểm tra cú pháp file backend liên quan đến spec-key translation.
+- Đã kiểm tra cú pháp các file backend liên quan đến language setup, translation cache, rate limit và product translation.
 - Đã kiểm tra diff không có lỗi whitespace.
-- Frontend build và backend test đã được khởi chạy nhưng bị dừng thủ công trước khi hoàn tất; cần chạy lại riêng để có kết quả đầy đủ.
+- Backend suite `i18n` đã chạy thành công: 4 test files, gồm `test-languages-flow.js`, `test-translation-api.js`, `translationProductCache.test.js` (12 tests) và `specKeyTranslationCache.test.js` (6 tests).
+- Frontend production build chưa chạy theo yêu cầu; chưa có thay đổi frontend trong lần xử lý này.
