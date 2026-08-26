@@ -119,7 +119,37 @@ Job chạy sau khi response đã trả về nên việc tiếp tục xuất hi�
 - Log `All 9 languages ready` chỉ cho biết các language record đã sẵn sàng, không khẳng định toàn bộ dynamic content đã được dịch.
 - Nếu tiến trình backend restart giữa background job, các tác vụ đang chạy có thể bị gián đoạn và cần cơ chế job bền vững để tiếp tục an toàn.
 
-## 6. Kiểm thử hiện tại
+## 6. Flash Sale không hiển thị trên homepage
+
+### Biểu hiện
+
+- Khu vực bên dưới nút `Xem tất cả sản phẩm` không có section Flash Sale.
+- Homepage chuyển trực tiếp xuống nhóm tiện ích như giao hàng, bảo hành, hỗ trợ và thanh toán.
+- Không có lỗi do ảnh upload; section không xuất hiện vì điều kiện render không được thỏa mãn.
+
+### Nguyên nhân đã xác định
+
+Section chỉ được render khi danh sách deal có sản phẩm:
+
+```tsx
+{dealProducts.length > 0 && (
+  <section>{/* Flash Sale */}</section>
+)}
+```
+
+Danh sách `dealProducts` hiện được xây dựng từ các sản phẩm thuộc nhóm `Laptop Gaming` và `Laptop Văn phòng`, sau đó chỉ giữ sản phẩm có deal đang hoạt động:
+
+- Discount lớn hơn 0.
+- Chưa quá thời gian kết thúc.
+- Được backend xác nhận đủ điều kiện hiển thị storefront.
+
+Vì vậy sản phẩm có deal trong các nhóm `Bàn phím`, `Chuột` hoặc `Tai nghe` hiện không được đưa vào Flash Sale. Sản phẩm laptop cũng có thể bị loại nếu deal hết hạn hoặc chưa đủ dữ liệu bản dịch theo điều kiện backend.
+
+### Hướng khắc phục
+
+Nếu Flash Sale cần áp dụng cho mọi danh mục, cần lấy và lọc toàn bộ sản phẩm có deal đang hoạt động, thay vì giới hạn theo hai category laptop. Nên giữ section có trạng thái rỗng hoặc thông báo phù hợp nếu yêu cầu giao diện luôn hiển thị tiêu đề Flash Sale.
+
+## 7. Kiểm thử hiện tại
 
 - Đã kiểm tra cú pháp file backend liên quan đến spec-key translation.
 - Đã kiểm tra diff không có lỗi whitespace.
