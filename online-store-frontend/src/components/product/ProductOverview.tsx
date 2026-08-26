@@ -35,7 +35,7 @@ export function ProductOverview({
       <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl">
         {product.name || ''}
       </h1>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+      <div className="flex flex-col gap-2 sm:gap-4 mb-4">
         <div className="flex items-center gap-1 sm:gap-2">
           {Array.from({ length: 5 }).map((_, index) => (
             <Star
