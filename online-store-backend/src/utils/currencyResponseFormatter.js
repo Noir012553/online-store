@@ -57,9 +57,15 @@ const formatProducts = async (products, lang) => {
         ? [['originalPrice', 'formattedOriginalPrice']]
         : []),
     ]);
-    const discountPercentage = Number.isFinite(data.originalPrice) && data.originalPrice > data.price
+    const originalPriceDiscount = Number.isFinite(data.originalPrice) && data.originalPrice > data.price
       ? Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100)
       : 0;
+    const dealDiscount = Number(data.deal?.discount);
+    const dealEndTime = data.deal?.endTime ? new Date(data.deal.endTime).getTime() : null;
+    const hasActiveDeal = Number.isFinite(dealDiscount)
+      && dealDiscount > 0
+      && (dealEndTime === null || (Number.isFinite(dealEndTime) && dealEndTime > Date.now()));
+    const discountPercentage = Math.max(originalPriceDiscount, hasActiveDeal ? dealDiscount : 0);
 
     return { ...formattedProduct, discountPercentage };
   });

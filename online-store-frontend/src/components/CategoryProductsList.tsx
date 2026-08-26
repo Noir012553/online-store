@@ -33,6 +33,7 @@ interface FilterState {
   inStock?: boolean;
   featuredOnly?: boolean;
   hotDealOnly?: boolean;
+  shockDealOnly?: boolean;
 }
 
 interface PersistedCategoryFilters {
@@ -49,6 +50,7 @@ const getDefaultFilters = (): FilterState => ({
   inStock: undefined,
   featuredOnly: undefined,
   hotDealOnly: undefined,
+  shockDealOnly: undefined,
 });
 
 const getFilterStorageKey = (categoryId: string) => `category-products-filters:${categoryId}`;
@@ -86,6 +88,7 @@ const normalizePersistedFilters = (value: unknown): PersistedCategoryFilters | n
   const inStock = (filtersSource as any).inStock;
   const featuredOnly = (filtersSource as any).featuredOnly;
   const hotDealOnly = (filtersSource as any).hotDealOnly;
+  const shockDealOnly = (filtersSource as any).shockDealOnly;
 
   return {
     filters: {
@@ -96,6 +99,7 @@ const normalizePersistedFilters = (value: unknown): PersistedCategoryFilters | n
       inStock: inStock === true || inStock === false ? inStock : undefined,
       featuredOnly: featuredOnly === true ? true : undefined,
       hotDealOnly: hotDealOnly === true ? true : undefined,
+      shockDealOnly: shockDealOnly === true ? true : undefined,
     },
     page: normalizedPage,
     sortBy,
@@ -285,7 +289,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           locale,
           currencyCode,
           { signal: controller.signal },
-          sortBy
+          sortBy,
+          filters.shockDealOnly
         );
 
         if (controller.signal.aborted) return;
@@ -315,7 +320,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     (filters.ratingRange[0] > 0 || filters.ratingRange[1] < 5) ||
     filters.inStock !== undefined ||
     filters.featuredOnly !== undefined ||
-    filters.hotDealOnly !== undefined;
+    filters.hotDealOnly !== undefined ||
+    filters.shockDealOnly !== undefined;
 
   const [minPrice, maxPrice] = filters.priceRange;
   const sliderMin = priceStats.minPrice || 0;
@@ -375,8 +381,16 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     setPage(1);
   };
 
+  const toggleShockDealFilter = () => {
+    setFilters((prev) => ({
+      ...prev,
+      shockDealOnly: prev.shockDealOnly === true ? undefined : true,
+    }));
+    setPage(1);
+  };
+
   const clearFilters = () => {
-    setFilters({ brands: [], priceRange: [0, 0], discountRange: [0, 0], ratingRange: [0, 5], inStock: undefined, featuredOnly: undefined, hotDealOnly: undefined });
+    setFilters({ brands: [], priceRange: [0, 0], discountRange: [0, 0], ratingRange: [0, 5], inStock: undefined, featuredOnly: undefined, hotDealOnly: undefined, shockDealOnly: undefined });
     setPage(1);
   };
 
@@ -494,6 +508,19 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                       className="text-sm cursor-pointer font-normal flex-1 truncate text-red-600 hover:text-red-700"
                     >
                       {t('badge_hot_deal', 'products')}
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                    <Checkbox
+                      id="highlight-shock-discount"
+                      checked={filters.shockDealOnly === true}
+                      onCheckedChange={toggleShockDealFilter}
+                    />
+                    <Label
+                      htmlFor="highlight-shock-discount"
+                      className="text-sm cursor-pointer font-normal flex-1 truncate text-red-600 hover:text-red-700"
+                    >
+                      {t('badge_shock_discount', 'products')}
                     </Label>
                   </div>
                 </div>
@@ -668,6 +695,16 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                 onClick={toggleHotDealFilter}
               >
                 {t('badge_hot_deal', 'products')}
+                <X className="w-3 h-3" />
+              </Badge>
+            )}
+            {filters.shockDealOnly && (
+              <Badge
+                variant="secondary"
+                className="gap-1 cursor-pointer hover:bg-red-100"
+                onClick={toggleShockDealFilter}
+              >
+                {t('badge_shock_discount', 'products')}
                 <X className="w-3 h-3" />
               </Badge>
             )}

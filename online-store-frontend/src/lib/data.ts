@@ -33,6 +33,13 @@ export interface Laptop {
 
 export type ProductDeal = Laptop['deal'];
 
+export const SHOCK_DISCOUNT_THRESHOLD = 30;
+
+export const isShockDiscount = (discountPercentage?: number): boolean => {
+  const discount = Number(discountPercentage);
+  return Number.isFinite(discount) && discount >= SHOCK_DISCOUNT_THRESHOLD;
+};
+
 export const getDealEndTimestamp = (deal?: ProductDeal): number | null => {
   if (!deal?.endTime) return null;
 

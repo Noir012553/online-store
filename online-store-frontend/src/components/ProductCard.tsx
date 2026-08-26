@@ -1,7 +1,7 @@
 import { ShoppingCart, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal } from "../lib/data";
+import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal, isShockDiscount } from "../lib/data";
 import { formatCurrency, formatNumber, getImageUrl } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -54,7 +54,10 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       baseCurrencyCode: laptop.baseCurrencyCode,
       originalPrice: laptop.originalPrice,
       formattedOriginalPrice: laptop.formattedOriginalPrice,
-      discountPercentage: laptop.discountPercentage,
+      discountPercentage: Math.max(
+        Number(laptop.discountPercentage) || 0,
+        isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) || 0 : 0,
+      ),
       image: getImageUrl(laptop.image) || '',
       images: (laptop.images || []).map((img: string) => getImageUrl(img) || ''),
       rating: laptop.rating || 0,
@@ -98,6 +101,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     && convertedLaptop.originalPrice > convertedLaptop.price
     && Boolean(convertedLaptop.formattedOriginalPrice);
   const hasActiveDeal = isActiveDeal(convertedLaptop.deal);
+  const hasShockDiscount = isShockDiscount(discount);
   const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 
   // Check if ID is valid MongoDB ObjectId (24 hex characters)
@@ -124,22 +128,24 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                   -{discount}%
                 </Badge>
               )}
-              {hasActiveDeal && (
+              {(hasActiveDeal || hasShockDiscount) && (
                 <Badge
                   className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
-                    isFeaturedHotDeal
-                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
-                      : 'bg-black'
+                    hasShockDiscount
+                      ? 'bg-red-600'
+                      : isFeaturedHotDeal
+                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
+                        : 'bg-black'
                   }`}
                 >
                   <EmojiSvg
                     emoji={UI_EMOJI.hotDeal}
-                    className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
+                    className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
                   />
-                  {t('hot_deal_badge', 'products')}
+                  {t(hasShockDiscount ? 'shock_discount_badge' : 'hot_deal_badge', 'products')}
                 </Badge>
               )}
-              {convertedLaptop.featured && !hasActiveDeal && (
+              {convertedLaptop.featured && !hasActiveDeal && !hasShockDiscount && (
                 <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
                   <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
                   {t('featured_badge', 'products')}

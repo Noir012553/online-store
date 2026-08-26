@@ -320,6 +320,10 @@ export default function ProductDetail() {
     baseCurrencyCode: laptop.baseCurrencyCode,
     originalPrice: laptop.originalPrice,
     formattedOriginalPrice,
+    discountPercentage: Math.max(
+      Number(laptop.discountPercentage) || 0,
+      isActiveDeal(laptop.deal) ? Number(laptop.deal?.discount) || 0 : 0,
+    ),
     image: images[0] ?? '',
     images,
     rating: laptop.rating ?? 0,
@@ -366,7 +370,7 @@ export default function ProductDetail() {
     router.push("/cart");
   };
 
-  const discount = Math.max(0, laptop.discountPercentage ?? 0);
+  const discount = Math.max(0, convertedLaptop.discountPercentage ?? 0);
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
@@ -392,7 +396,10 @@ export default function ProductDetail() {
           selectedImage={selectedImage}
           discount={discount}
           hasDeal={isActiveDeal(laptop.deal)}
-          dealLabel={t('badge_flash_deal', 'products')}
+          featured={convertedLaptop.featured ?? false}
+          featuredLabel={t('featured_badge', 'products')}
+          dealLabel={t('hot_deal_badge', 'products')}
+          shockDiscountLabel={t('shock_discount_badge', 'products')}
           noImageLabel={t('image_no_image_available', 'products')}
           onSelectImage={setSelectedImage}
           onOpenViewer={() => {

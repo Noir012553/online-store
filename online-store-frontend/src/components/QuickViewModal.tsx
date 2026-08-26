@@ -1,5 +1,5 @@
 import { Star, ShoppingCart, X } from "lucide-react";
-import { Laptop, isActiveDeal } from "../lib/data";
+import { Laptop, isActiveDeal, isShockDiscount } from "../lib/data";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
@@ -54,6 +54,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
 
   const discount = Math.max(0, laptop.discountPercentage ?? 0);
   const hasActiveDeal = isActiveDeal(laptop.deal);
+  const hasShockDiscount = isShockDiscount(discount);
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
@@ -88,19 +89,21 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   -{discount}%
                 </Badge>
               )}
-              {hasActiveDeal && (
+              {(hasActiveDeal || hasShockDiscount) && (
                 <Badge
                   className={`absolute top-3 left-3 flex items-center gap-1 text-white ${
-                    isFeaturedHotDeal
-                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
-                      : 'bg-black'
+                    hasShockDiscount
+                      ? 'bg-red-600'
+                      : isFeaturedHotDeal
+                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 shadow-lg shadow-red-500/30'
+                        : 'bg-black'
                   }`}
                 >
-                  <span className={`w-4 h-4 ${isFeaturedHotDeal ? 'motion-safe:animate-bounce' : ''}`}>{UI_EMOJI.hotDeal}</span>
-                  {t('hot_deal_badge', 'products')}
+                  <span className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce' : ''}`}>{UI_EMOJI.hotDeal}</span>
+                  {t(hasShockDiscount ? 'shock_discount_badge' : 'hot_deal_badge', 'products')}
                 </Badge>
               )}
-              {laptop.featured && !hasActiveDeal && (
+              {laptop.featured && !hasActiveDeal && !hasShockDiscount && (
                 <Badge className="absolute top-3 left-3 bg-red-600 text-white flex items-center gap-1">
                   <span className="w-4 h-4">{UI_EMOJI.featured}</span>
                   {t('featured_badge', 'products')}

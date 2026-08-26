@@ -2,6 +2,7 @@ import { Badge } from '../ui/badge';
 import { ImageWithFallback } from '../image/ImageWithFallback';
 import { EmojiSvg } from '../EmojiSvg';
 import { UI_EMOJI } from '../../lib/uiEmoji';
+import { isShockDiscount } from '../../lib/data';
 
 interface ProductGalleryProps {
   productName: string;
@@ -10,7 +11,10 @@ interface ProductGalleryProps {
   selectedImage: number;
   discount: number;
   hasDeal: boolean;
+  featured: boolean;
+  featuredLabel: string;
   dealLabel: string;
+  shockDiscountLabel: string;
   noImageLabel: string;
   onSelectImage: (index: number) => void;
   onOpenViewer: () => void;
@@ -23,7 +27,10 @@ export function ProductGallery({
   selectedImage,
   discount,
   hasDeal,
+  featured,
+  featuredLabel,
   dealLabel,
+  shockDiscountLabel,
   noImageLabel,
   onSelectImage,
   onOpenViewer,
@@ -60,10 +67,16 @@ export function ProductGallery({
             -{discount}%
           </Badge>
         )}
-        {hasDeal && (
-          <Badge className="absolute top-4 left-4 bg-black text-white text-lg px-4 py-2 animate-in zoom-in duration-300 flex items-center gap-1">
+        {(hasDeal || isShockDiscount(discount)) && (
+          <Badge className={`absolute top-4 left-4 text-white text-lg px-4 py-2 animate-in zoom-in duration-300 flex items-center gap-1 ${isShockDiscount(discount) ? 'bg-red-600' : 'bg-black'}`}>
             <EmojiSvg emoji={UI_EMOJI.hotDeal} className="w-5 h-5" />
-            {dealLabel}
+            {isShockDiscount(discount) ? shockDiscountLabel : dealLabel}
+          </Badge>
+        )}
+        {featured && !hasDeal && !isShockDiscount(discount) && (
+          <Badge className="absolute top-4 left-4 bg-red-600 text-white text-lg px-4 py-2 animate-in zoom-in duration-300 flex items-center gap-1">
+            <EmojiSvg emoji={UI_EMOJI.featured} className="w-5 h-5" />
+            {featuredLabel}
           </Badge>
         )}
       </div>
