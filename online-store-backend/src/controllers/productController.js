@@ -272,16 +272,31 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   const specsFilter = req.query.hasSpecs === 'true'
     ? { specs: { $type: 'object', $ne: {} } }
     : {};
+  const hasDeal = req.query.hasDeal === 'true';
+  const dealFilter = hasDeal
+    ? {
+      'deal.discount': { $gt: 0 },
+      $or: [
+        { 'deal.endTime': { $exists: false } },
+        { 'deal.endTime': null },
+        { 'deal.endTime': { $gt: new Date() } },
+      ],
+    }
+    : null;
 
   const query = {
     isDeleted: false,
-    featured: true,
+    ...(hasDeal ? {} : { featured: true }),
     ...category,
     ...brand,
     ...priceFilter,
     ...stockFilter,
     ...specsFilter,
   };
+  if (dealFilter) {
+    query.$and = query.$and || [];
+    query.$and.push(dealFilter);
+  }
   if (discountFilter) {
     query.$and = query.$and || [];
     query.$and.push(discountFilter);

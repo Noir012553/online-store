@@ -20,7 +20,8 @@ Tài liệu này ghi lại các lỗi và hiện tượng đã gặp khi chạy 
 ### Trạng thái xử lý
 
 - Đã gộp hai effect fetch banner thành một effect, tránh request banner trùng khi mount.
-- Việc giảm số request sản phẩm theo category vẫn là hướng tối ưu tiếp theo nếu homepage tiếp tục nặng.
+- Đã gộp việc lấy Flash Sale thành một request active-deal toàn hệ thống và chạy song song với request sản phẩm chính.
+- Homepage vẫn có request riêng cho từng category và từng slot banner; đây là tối ưu tiếp theo nếu cần giảm fan-out sâu hơn.
 
 ## 2. Homepage vô tình kích hoạt Cloudflare AI translation
 
@@ -38,6 +39,7 @@ Log có các request dịch tuần tự sang 8 ngôn ngữ phụ, ví dụ tổn
 ### Trạng thái xử lý
 
 - Dynamic spec-key translation đã chuyển sang chế độ opt-in.
+- Đã bổ sung import/cache bền vững cho `SpecKeyTranslationCache`; khi bật opt-in, bản dịch hợp lệ được upsert vào database.
 - Mặc định storefront không tự gọi Cloudflare AI. Chỉ bật khi cấu hình rõ:
 
 ```text
@@ -59,11 +61,12 @@ Một text có thể bị gọi Cloudflare AI lại dù đã có bản ghi trans
 - Lần request sau không chấp nhận bản ghi `pending`, dẫn đến cache miss và gọi AI lại.
 - Kiểu đọc/ghi này cũng có race condition nếu hai request giống nhau chạy đồng thời.
 
-### Hướng khắc phục
+### Trạng thái xử lý
 
-- Thống nhất contract giữa cache reader và writer.
-- Phân biệt rõ bản dịch đã tạo, bản dịch chờ duyệt và bản dịch đã approved.
-- Thêm cơ chế reservation hoặc upsert atomic theo `hashKey` để chống hai request cùng dịch một text.
+- Đã thống nhất writer với reader: bản dịch thành công được ghi `status=success` và `qualityStatus=approved`.
+- Hash cache đã bao gồm `sourceLang`, tránh dùng nhầm bản dịch khi cùng text/target nhưng khác ngôn ngữ nguồn.
+- Đã chuyển ghi cache sang upsert theo `hashKey`; vẫn cần reservation/distributed lock nếu muốn loại bỏ hoàn toàn việc hai instance cùng gọi AI đồng thời.
+- Endpoint vẫn cần được cân nhắc bảo vệ quyền truy cập nếu không muốn client public chủ động dùng `useCache=false`.
 
 ## 4. `429 RATE_LIMIT_TOKEN_REFRESH` ở `/api/users/refresh`
 
@@ -90,11 +93,11 @@ retryAfter: khoảng 3102–3103 giây
 - Frontend xóa access token trong memory và chuyển người dùng về trang đăng nhập.
 - Nếu một luồng request tiếp tục dùng token hết hạn, có thể tạo cảm giác ứng dụng bị chuyển trang hoặc tải lại liên tục.
 
-### Hướng khắc phục
+### Trạng thái xử lý
 
-- Khi nhận 429, đọc `Retry-After` và ngừng retry cho đến khi hết thời gian chờ.
-- Bảo đảm chỉ có một luồng xử lý unauthorized/refresh trên toàn bộ tab hiện tại.
-- Không gọi refresh lại nếu refresh request trước đó đã thất bại và phiên đã bị đánh dấu unauthorized.
+- Frontend đã đọc `Retry-After` khi refresh nhận 429, tạm ngừng refresh trong thời gian server yêu cầu và không logout nhầm do rate limit.
+- Trong cùng tab, frontend tiếp tục gom các refresh đồng thời thành một promise.
+- Race giữa nhiều tab và bucket rate limit memory-local vẫn chưa được xử lý triệt để; cần shared store hoặc cơ chế rotation grace period cho production nhiều instance.
 - Kiểm tra lại key theo IP khi chạy sau proxy/tunnel để tránh nhiều client dùng chung một bucket không mong muốn.
 
 ## 5. Background translation khi thêm ngôn ngữ
@@ -113,11 +116,14 @@ Backend dùng background job sau `POST /api/languages`:
 
 Job chạy sau khi response đã trả về nên việc tiếp tục xuất hiện log không có nghĩa request HTTP đang bị treo.
 
-### Lưu ý
+### Trạng thái xử lý và lưu ý
 
 - Startup seeder static hiện chỉ đọc JSON và upsert database; bản thân bước seed này không gọi Cloudflare AI.
+- Phase 1/2 thất bại hoặc có field lỗi/rate limit sẽ không còn được đánh dấu `isReady=true`; language cũng chỉ được kích hoạt sau khi hoàn tất.
+- Language seeder không còn tự chuyển language đang setup dở thành ready sau restart.
 - Log `All 9 languages ready` chỉ cho biết các language record đã sẵn sàng, không khẳng định toàn bộ dynamic content đã được dịch.
-- Nếu tiến trình backend restart giữa background job, các tác vụ đang chạy có thể bị gián đoạn và cần cơ chế job bền vững để tiếp tục an toàn.
+- Job vẫn chạy trong process và có thể bị gián đoạn khi backend restart; cần cơ chế queue/job bền vững để tự tiếp tục.
+- Phase 2 hiện đã đồng bộ các bản ghi dịch approved sang `ProductCatalogTranslationCache` và chỉ đánh dấu language ready sau bước này thành công.
 
 ## 6. Flash Sale không hiển thị trên homepage
 
@@ -147,7 +153,7 @@ Vì vậy sản phẩm có deal trong các nhóm `Bàn phím`, `Chuột` hoặc 
 
 ### Hướng khắc phục
 
-Nếu Flash Sale cần áp dụng cho mọi danh mục, cần lấy và lọc toàn bộ sản phẩm có deal đang hoạt động, thay vì giới hạn theo hai category laptop. Nên giữ section có trạng thái rỗng hoặc thông báo phù hợp nếu yêu cầu giao diện luôn hiển thị tiêu đề Flash Sale.
+Đã chuyển homepage sang request active deal trên toàn bộ danh mục. Backend lọc `deal.discount > 0` và `deal.endTime` hợp lệ trước khi giới hạn candidate/phân trang; endpoint này không còn ép `featured=true`. Section vẫn có thể ẩn khi không có active deal; nếu yêu cầu giao diện luôn hiển thị tiêu đề Flash Sale thì cần thêm empty state.
 
 ## 7. Kiểm thử hiện tại
 

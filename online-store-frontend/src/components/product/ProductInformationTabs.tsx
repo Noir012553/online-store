@@ -57,7 +57,11 @@ export function ProductInformationTabs({
           {product.description && (
             <div>
               <h3 className="text-lg font-bold mb-4 text-gray-900">{t('section_description', 'products')}</h3>
-              <ProductDescriptionFormatter text={product.description} />
+              <ProductDescriptionFormatter
+                text={product.description}
+                specs={product.specs}
+                specLabels={product.specLabels}
+              />
             </div>
           )}
 

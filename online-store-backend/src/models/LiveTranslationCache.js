@@ -13,6 +13,10 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    sourceLang: {
+      type: String,
+      index: true,
+    },
     targetLang: {
       type: String,
       required: true,
@@ -111,7 +115,9 @@ LiveTranslationCacheSchema.pre('save', function (next) {
   if (!this.hashKey) {
     const hash = crypto
       .createHash('md5')
-      .update(`${this.originalText}:${this.targetLang}`)
+      .update(this.sourceLang
+        ? `${this.originalText}:${this.sourceLang}:${this.targetLang}`
+        : `${this.originalText}:${this.targetLang}`)
       .digest('hex');
     this.hashKey = hash;
   }

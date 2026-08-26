@@ -175,7 +175,7 @@ class TranslationSeederService {
    *
    * @param {string} targetLang - Target language code (e.g., 'pt')
    * @param {string} sourceLang - Source language code (defaults to 'en')
-   * @returns {Promise<number>} Number of keys translated
+   * @returns {Promise<{translatedCount: number, errorCount: number}>} Translation result
    */
   static async translateStaticTranslations(targetLang, sourceLang = getDefaultLanguage().code) {
     if (!targetLang || targetLang === sourceLang) {
@@ -195,7 +195,7 @@ class TranslationSeederService {
 
       if (targetRecords.length === 0) {
         console.warn(`[TranslationSeeder] No records found for language ${targetLang} to translate`);
-        return 0;
+        return { translatedCount: 0, errorCount: 0 };
       }
 
       let totalTranslated = 0;
@@ -281,7 +281,7 @@ class TranslationSeederService {
         `[TranslationSeeder] PHASE 1 hoàn tất: ${totalTranslated} keys dịch, ${totalErrors} lỗi`
       );
 
-      return totalTranslated;
+      return { translatedCount: totalTranslated, errorCount: totalErrors };
     } catch (error) {
       console.error(`[TranslationSeeder] Lỗi dịch UI strings: ${error.message}`);
       throw error;

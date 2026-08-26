@@ -22,7 +22,7 @@ class LanguageService {
     try {
       // Query DB for active languages
       const languages = await Language.find(
-        { isActive: true },
+        { isActive: true, isReady: true },
         { code: 1 }
       ).lean();
 

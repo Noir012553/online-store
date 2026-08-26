@@ -202,16 +202,11 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
               </div>
 
               <div className="flex flex-col justify-end gap-0.5 mb-2 h-10 sm:h-12 mx-auto">
-                {(hasOriginalPrice || discount > 0) && (
+                {hasOriginalPrice && (
                   <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-                    {hasOriginalPrice && (
-                      <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
-                        {convertedLaptop.formattedOriginalPrice}
-                      </span>
-                    )}
-                    {discount > 0 && (
-                      <span className="text-red-600 text-xs sm:text-sm font-semibold">-{discount}%</span>
-                    )}
+                    <span className="text-red-600 line-through text-xs sm:text-sm font-medium">
+                      {convertedLaptop.formattedOriginalPrice}
+                    </span>
                   </div>
                 )}
                 <span className="text-green-600 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>

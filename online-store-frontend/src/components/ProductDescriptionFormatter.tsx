@@ -8,6 +8,8 @@ interface Props {
   text?: string;
   className?: string;
   maxLines?: number;
+  specs?: Record<string, string | number>;
+  specLabels?: Record<string, string>;
 }
 
 /**
@@ -73,13 +75,44 @@ const sanitizeDescription = (text: string): string => {
 export const ProductDescriptionFormatter: React.FC<Props> = ({
   text,
   className = "mb-4",
-  maxLines
+  maxLines,
+  specs,
+  specLabels,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useTranslation();
 
-  // Làm sạch text trước khi xử lý
   const sanitizedText = sanitizeDescription(text || "");
+  const rawSpecsDescription = /^(.*?)(?:Thông số|Specifications?)\s*:\s*\{[\s\S]*\}\s*$/i.exec(sanitizedText);
+  const specEntries = Object.entries(specs || {});
+
+  if (rawSpecsDescription && specEntries.length > 0) {
+    const descriptionIntro = rawSpecsDescription[1].trim();
+
+    return (
+      <div className={className}>
+        {descriptionIntro && (
+          <p className="mb-4 leading-relaxed text-gray-700">{descriptionIntro}</p>
+        )}
+        <section className="rounded-xl border border-red-100 bg-red-50/50 p-4 sm:p-5">
+          <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg">
+            <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden="true" />
+            {t('tab_specs', 'products')}
+          </h4>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {specEntries.map(([key, value]) => (
+              <div key={key} className="rounded-lg border border-gray-100 bg-white px-3 py-2.5 shadow-sm">
+                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {specLabels?.[key] || key}
+                </dt>
+                <dd className="text-sm font-semibold text-gray-900">{String(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
+    );
+  }
 
   if (!sanitizedText) {
     return <p className={className}>{t('no_description', 'products')}</p>;
