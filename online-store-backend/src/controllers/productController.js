@@ -34,6 +34,7 @@ const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrd
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
+const SHOCK_DISCOUNT_THRESHOLD = 30;
 
 const getActiveDealDiscount = (deal) => {
   const discount = Number(deal?.discount);
@@ -441,7 +442,6 @@ const getProducts = asyncHandler(async (req, res) => {
     }
   }
   const brand = req.query.brand ? { brand: req.query.brand } : {};
-  const featuredFilter = req.query.featured === 'true' ? { featured: true } : {};
   const dealFilter = req.query.hasDeal === 'true'
     ? {
       'deal.discount': { $gt: 0 },
@@ -453,7 +453,7 @@ const getProducts = asyncHandler(async (req, res) => {
         ],
       }],
     }
-    : {};
+    : null;
 
   // Price range filter
   const priceFilter = {};
@@ -475,10 +475,28 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   const discountFilter = buildDiscountFilter(req.query.minDiscount, req.query.maxDiscount);
+  const shockDiscountFilter = req.query.shockDeal === 'true'
+    ? buildDiscountFilter(SHOCK_DISCOUNT_THRESHOLD, undefined)
+    : null;
   const ratingFilter = buildRatingFilter(req.query.minRating, req.query.maxRating);
 
+  const highlightFilters = [];
+  if (req.query.featured === 'true') {
+    highlightFilters.push({ featured: true });
+  }
+  if (dealFilter) {
+    highlightFilters.push(dealFilter);
+  }
+  if (shockDiscountFilter) {
+    highlightFilters.push(shockDiscountFilter);
+  }
+
   // Build final query
-  const query = { isDeleted: false, ...category, ...brand, ...featuredFilter, ...dealFilter, ...priceFilter, ...stockFilter };
+  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter };
+  if (highlightFilters.length > 0) {
+    query.$and = query.$and || [];
+    query.$and.push({ $or: highlightFilters });
+  }
   if (discountFilter) {
     query.$and = query.$and || [];
     query.$and.push(discountFilter);

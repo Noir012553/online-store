@@ -222,6 +222,13 @@ class ProductTranslationSeederService {
             targetLang
           );
 
+          const validationResult = await translationValidator.validateTranslation(
+            entry.originalText,
+            translatedText,
+            targetLang,
+            entry.entityType || 'generic'
+          );
+
           // Cập nhật DB
           await LiveTranslationCache.updateOne(
             { _id: entry._id },
@@ -229,6 +236,10 @@ class ProductTranslationSeederService {
               $set: {
                 translatedText,
                 status: 'success',
+                qualityStatus: validationResult.qualityStatus,
+                qualityScore: validationResult.qualityScore,
+                validationErrors: validationResult.validationErrors,
+                lastErrorMessage: null,
                 lastRetryAt: new Date(),
               },
               $inc: { retryCount: 1 }
@@ -238,16 +249,21 @@ class ProductTranslationSeederService {
           successCount++;
         } catch (err) {
           // Vẫn lỗi? Cập nhật retry count
-          if (err.response?.status === 429) {
-            // Vẫn dính Rate Limit - chỉ tăng counter, không thay đổi status
-            await LiveTranslationCache.updateOne(
-              { _id: entry._id },
-              {
-                $set: { lastRetryAt: new Date() },
-                $inc: { retryCount: 1 }
-              }
-            );
-          }
+          const failedStatus = err.response?.status === 429
+            ? 'failed_rate_limit'
+            : 'failed_error';
+
+          await LiveTranslationCache.updateOne(
+            { _id: entry._id },
+            {
+              $set: {
+                status: failedStatus,
+                lastErrorMessage: err.message,
+                lastRetryAt: new Date(),
+              },
+              $inc: { retryCount: 1 }
+            }
+          );
 
           stillFailedCount++;
         }
@@ -401,6 +417,14 @@ class ProductTranslationSeederService {
             // ========== Xử lý lỗi khác ==========
             console.error(
               `[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi dịch field '${field.entityType}' của sản phẩm ${productId}: ${err.message}`
+            );
+            await RateLimitHandler.recordTranslationError(
+              field.originalText,
+              targetLang,
+              productId,
+              field.entityType,
+              err.message,
+              'failed_error'
             );
             otherErrorCount++;
           }

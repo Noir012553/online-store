@@ -592,6 +592,7 @@ export const productAPI = {
    * @param maxRating - Đánh giá tối đa
    * @param requestOptions - Tùy chọn hủy request
    * @param sortBy - Cách sắp xếp kết quả
+   * @param shockDeal - Lọc sản phẩm giảm từ 30% trở lên
    */
   getProducts: async (
     page = 1,
@@ -612,7 +613,8 @@ export const productAPI = {
     locale: string = lang || getCurrentLang(),
     currencyCode?: string,
     requestOptions?: Pick<FetchOptions, 'signal'>,
-    sortBy = 'featured'
+    sortBy = 'featured',
+    shockDeal?: boolean
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -633,6 +635,7 @@ export const productAPI = {
     if (minRating !== undefined) params.append('minRating', minRating.toString());
     if (maxRating !== undefined) params.append('maxRating', maxRating.toString());
     if (sortBy) params.append('sortBy', sortBy);
+    if (shockDeal !== undefined) params.append('shockDeal', shockDeal.toString());
 
     return apiCall(`/products?${params.toString()}`, {
       adapter: (data) => ({

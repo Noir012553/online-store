@@ -290,7 +290,7 @@ class CloudflareAiService {
 
       return normalizedTranslation;
     } catch (error) {
-      // Detect permanent/non-retryable errors (API is down)
+      // Detect DNS and network failures for retry classification
       const isDnsError =
         error.code === 'ENOTFOUND' ||
         error.code === 'EAI_AGAIN' ||
@@ -302,11 +302,10 @@ class CloudflareAiService {
         error.message?.includes('ENETUNREACH');
 
       if (isDnsError || isNetworkUnreachable) {
-        console.error('[CloudflareAI] Network error - API unavailable:', {
+        console.warn('[CloudflareAI] Network error - API unavailable:', {
           error: error.message,
           code: error.code,
         });
-        throw error;
       }
 
       const isRateLimited =
@@ -324,9 +323,11 @@ class CloudflareAiService {
         return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay);
       }
 
-      // Only retry transient errors (rate limit, timeout, connection reset, server errors)
+      // Retry transient network, rate limit, timeout, and server errors
       const isServerError = error.response?.status >= 500 && error.response?.status < 600;
       const isRetryable = (
+        isDnsError ||
+        isNetworkUnreachable ||
         isRateLimited ||
         isServerError ||
         error.code === 'ECONNRESET' ||

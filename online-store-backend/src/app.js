@@ -208,6 +208,8 @@ app.use(languageMiddleware);
  */
 let connectionAttempts = 0;
 const maxConnectionAttempts = 3;
+let reconnectTimer = null;
+let connectionInProgress = false;
 let serverStarted = false;
 let homepageHeroBannersSeeded = false;
 let translationsSeeded = false;
@@ -323,7 +325,33 @@ const migrateCouponCurrencies = async () => {
   couponCurrenciesMigrated = true;
 };
 
+const scheduleReconnect = (delay) => {
+  if (reconnectTimer) return;
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connectDB();
+  }, delay);
+};
+
+const assertMongoConnected = () => {
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error('MongoDB connection is not ready for startup initialization');
+  }
+};
+
 const connectDB = async () => {
+  if (connectionInProgress) {
+    return;
+  }
+
+  if (mongoose.connection.readyState === 2 || mongoose.connection.readyState === 3) {
+    scheduleReconnect(3000);
+    return;
+  }
+
+  connectionInProgress = true;
+
   try {
     if (!MONGO_URI) {
       if (process.env.NODE_ENV === 'development') {
@@ -334,13 +362,24 @@ const connectDB = async () => {
     }
 
     await connectMongo(MONGO_URI);
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     connectionAttempts = 0;
+    assertMongoConnected();
     await ensureHomepageHeroBanners();
+    assertMongoConnected();
     await ensureTranslationsSeeded();
+    assertMongoConnected();
     await ensureBrandsSeeded();
+    assertMongoConnected();
     await ensureCurrencySeeded();
+    assertMongoConnected();
     await ensureLanguagesSeeded();
+    assertMongoConnected();
     await migrateCouponCurrencies();
+    assertMongoConnected();
     startCloudinaryCleanupWorker();
     await startServer();
   } catch (err) {
@@ -356,13 +395,13 @@ const connectDB = async () => {
     }
 
     if (connectionAttempts < maxConnectionAttempts) {
-      setTimeout(connectDB, delay);
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[CRITICAL] Failed to connect to MongoDB after maximum attempts');
-        console.error('[HELP] Check MONGO_URI and MongoDB availability');
-      }
+      scheduleReconnect(delay);
+    } else if (process.env.NODE_ENV === 'development') {
+      console.error('[CRITICAL] Failed to connect to MongoDB after maximum attempts');
+      console.error('[HELP] Check MONGO_URI and MongoDB availability');
     }
+  } finally {
+    connectionInProgress = false;
   }
 };
 
@@ -373,7 +412,7 @@ mongoose.connection.on('disconnected', () => {
   if (process.env.NODE_ENV === 'development') {
     console.warn('[DB_WARN] MongoDB disconnected, attempting reconnect...');
   }
-  setTimeout(connectDB, 3000);
+  scheduleReconnect(3000);
 });
 
 mongoose.connection.on('connected', () => {
