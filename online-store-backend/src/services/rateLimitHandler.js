@@ -23,12 +23,13 @@ class RateLimitHandler {
    * @param {string} errorMessage - Chi tiết lỗi từ API
    * @returns {Promise<Object>} Document được lưu vào DB
    */
-  static async recordRateLimitError(
+  static async recordTranslationError(
     originalText,
     targetLang,
     entityId,
     entityType,
-    errorMessage
+    errorMessage,
+    status = 'failed_error'
   ) {
     try {
       const crypto = require('crypto');
@@ -37,34 +38,55 @@ class RateLimitHandler {
         .update(`${originalText}:${targetLang}`)
         .digest('hex');
 
-      // Upsert vào cache với status failed_rate_limit
       const cacheEntry = await LiveTranslationCache.findOneAndUpdate(
         { hashKey },
         {
           $set: {
             originalText,
             targetLang,
-            translatedText: originalText, // Fallback: giữ text gốc
+            translatedText: originalText,
             entityId,
             entityType,
-            status: 'failed_rate_limit',
+            status,
+            qualityStatus: 'pending',
+            qualityScore: null,
+            validationErrors: ['translation_failed'],
             lastErrorMessage: errorMessage,
             lastRetryAt: new Date(),
+          },
+          $setOnInsert: {
             retryCount: 1,
-          }
+          },
         },
         { upsert: true, returnDocument: 'after' }
       );
 
       console.log(
-        `[RateLimitHandler] ${CLI_SYMBOLS.pin} Ghi nhận 429 error: ${entityType} (${entityId})`
+        `[RateLimitHandler] ${CLI_SYMBOLS.pin} Ghi nhận ${status}: ${entityType} (${entityId})`
       );
 
       return cacheEntry;
     } catch (err) {
-      console.error(`[RateLimitHandler] Lỗi ghi nhận Rate Limit: ${err.message}`);
+      console.error(`[RateLimitHandler] Lỗi ghi nhận translation error: ${err.message}`);
       throw err;
     }
+  }
+
+  static async recordRateLimitError(
+    originalText,
+    targetLang,
+    entityId,
+    entityType,
+    errorMessage
+  ) {
+    return this.recordTranslationError(
+      originalText,
+      targetLang,
+      entityId,
+      entityType,
+      errorMessage,
+      'failed_rate_limit'
+    );
   }
 
   /**

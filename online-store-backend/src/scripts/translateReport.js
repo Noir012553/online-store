@@ -17,7 +17,7 @@ async function main() {
 
     // Parse options
     const options = {
-      status: 'needs_retranslate',
+      status: 'unresolved',
       lang: null,
       limit: 100,
       offset: 0,
@@ -25,14 +25,22 @@ async function main() {
     };
 
     const filter = {};
+    const failedStatuses = ['failed_rate_limit', 'failed_error', 'pending_retry'];
 
     // Parse status
     const statusArg = args.find(arg => arg.startsWith('--status='));
     if (statusArg) {
       options.status = statusArg.split('=')[1];
-      filter.qualityStatus = options.status;
+      if (failedStatuses.includes(options.status)) {
+        filter.status = options.status;
+      } else {
+        filter.qualityStatus = options.status;
+      }
     } else {
-      filter.qualityStatus = options.status;
+      filter.$or = [
+        { status: { $in: failedStatuses } },
+        { qualityStatus: 'needs_retranslate' },
+      ];
     }
 
     // Parse filter
@@ -122,7 +130,7 @@ async function main() {
 function printReport(report) {
   console.log(`\n${CLI_SYMBOLS.list} Translation Report`);
   console.log(CLI_SYMBOLS.divider.repeat(55));
-  console.log(`Status:  ${report.filter.qualityStatus || 'all'}`);
+  console.log(`Status:  ${report.filter.status || report.filter.qualityStatus || 'unresolved'}`);
   console.log(`Limit:   ${report.pagination.limit} results`);
   console.log(`Total:   ${report.pagination.total} | Page: ${report.pagination.offset / report.pagination.limit + 1}/${report.pagination.pages}\n`);
 
@@ -136,9 +144,11 @@ function printReport(report) {
     console.log(`${CLI_SYMBOLS.branch} Original:  "${t.original}"`);
     console.log(`${CLI_SYMBOLS.branch} Translated: "${t.translated}"`);
     console.log(`${CLI_SYMBOLS.branch} Language:   ${t.language}`);
-    console.log(`${CLI_SYMBOLS.branch} Status:     ${t.qualityStatus}`);
-    console.log(`${CLI_SYMBOLS.branch} Score:      ${t.qualityScore}/100`);
+    console.log(`${CLI_SYMBOLS.branch} Status:     ${t.status}`);
+    console.log(`${CLI_SYMBOLS.branch} Quality:    ${t.qualityStatus} (${t.qualityScore ?? 'N/A'}/100)`);
     console.log(`${CLI_SYMBOLS.branch} Errors:     ${t.validationErrors?.length > 0 ? t.validationErrors.join(', ') : 'None'}`);
+    console.log(`${CLI_SYMBOLS.branch} Last error: ${t.lastErrorMessage || 'None'}`);
+    console.log(`${CLI_SYMBOLS.branch} Retries:    ${t.retryCount || 0}`);
     console.log(`${CLI_SYMBOLS.lastBranch} Created:    ${new Date(t.createdAt).toLocaleDateString()}\n`);
   });
 
