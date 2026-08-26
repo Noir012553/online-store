@@ -58,7 +58,8 @@ const getExistingAsset = async (publicId, resourceType) => {
     const resource = await cloudinary.api.resource(publicId, { resource_type: resourceType });
     return verifyAsset(toAssetMetadata(resource), publicId, resourceType);
   } catch (error) {
-    if (error.http_code === 404) return null;
+    const httpCode = error.http_code ?? error.error?.http_code;
+    if (httpCode === 404) return null;
     throw error;
   }
 };
@@ -135,7 +136,7 @@ const main = async () => {
 
 main()
   .catch((error) => {
-    console.error(error.message);
+    console.error(error.message || error.error?.message || String(error));
     process.exitCode = 1;
   })
   .finally(async () => {
