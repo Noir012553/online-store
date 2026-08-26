@@ -1,6 +1,5 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
-const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Product = require('../models/Product');
@@ -22,6 +21,7 @@ const { normalizeSpecs } = require('../utils/specNormalizer');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
+const pendingTranslations = new Map();
 
 const getTranslationHashKey = (text, sourceLang, targetLang) => crypto
   .createHash('md5')
@@ -35,6 +35,41 @@ const saveTranslationCache = async (record) => {
     { $set: cacheData, $setOnInsert: { hashKey } },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ).lean();
+};
+
+const translateAndCache = async ({ text, sourceLang, targetLang, hashKey, useCache }) => {
+  const pending = pendingTranslations.get(hashKey);
+  if (pending) return pending;
+
+  const translationPromise = (async () => {
+    if (useCache) {
+      const cached = await LiveTranslationCache.findOne({
+        hashKey,
+        status: 'success',
+        qualityStatus: 'approved',
+      }).lean();
+      if (cached?.status === 'success' && cached?.qualityStatus === 'approved') {
+        return { translatedText: cached.translatedText, fromCache: true };
+      }
+    }
+
+    const translatedText = await cloudflareAiService.translate(text, sourceLang, targetLang);
+    await saveTranslationCache({
+      hashKey,
+      originalText: text,
+      sourceLang,
+      targetLang,
+      translatedText,
+      status: 'success',
+      qualityStatus: 'approved',
+    });
+    return { translatedText, fromCache: false };
+  })().finally(() => {
+    pendingTranslations.delete(hashKey);
+  });
+
+  pendingTranslations.set(hashKey, translationPromise);
+  return translationPromise;
 };
 
 // Helper to get language from request with dynamic default
@@ -297,40 +332,22 @@ exports.translateText = async (req, res) => {
       const targetLangs = activeLangCodes.filter(lang => lang !== normalizedSourceLang);
 
       const translations = {};
+      let allFromCache = targetLangs.length > 0;
       for (const lang of targetLangs) {
         const hashKey = getTranslationHashKey(text, normalizedSourceLang, lang);
 
-        // Check cache if enabled
-        let translatedText;
-        if (useCache) {
-          const cached = await LiveTranslationCache.findOne({
-            hashKey,
-            status: 'success',
-            qualityStatus: 'approved',
-          }).lean();
-          if (cached?.status === 'success' && cached?.qualityStatus === 'approved') {
-            translatedText = cached.translatedText;
-            translations[lang] = translatedText;
-            continue;
-          }
-        }
-
-        // Translate using Cloudflare AI
-        translatedText = await cloudflareAiService.translate(text, normalizedSourceLang, lang);
-        translations[lang] = translatedText;
-
-        await saveTranslationCache({
-          hashKey,
-          originalText: text,
+        const { translatedText, fromCache } = await translateAndCache({
+          text,
           sourceLang: normalizedSourceLang,
           targetLang: lang,
-          translatedText,
-          status: 'success',
-          qualityStatus: 'approved',
+          hashKey,
+          useCache,
         });
+        translations[lang] = translatedText;
+        allFromCache = allFromCache && fromCache;
 
         // Shadow write to NEW schema (Phase 1)
-        if (TranslationShadowWriteService.isShadowWriteEnabled()) {
+        if (!fromCache && TranslationShadowWriteService.isShadowWriteEnabled()) {
           await TranslationShadowWriteService.writeShadowUserContentTranslation(
             hashKey,
             'generic',
@@ -350,7 +367,7 @@ exports.translateText = async (req, res) => {
           originalText: text,
           translations,
           allLangs: true,
-          fromCache: false,
+          fromCache: allFromCache,
         },
       });
     }
@@ -383,45 +400,20 @@ exports.translateText = async (req, res) => {
 
     const hashKey = getTranslationHashKey(text, normalizedSourceLang, normalizedTargetLang);
 
-    // Check cache if enabled
-    if (useCache) {
-      const cached = await LiveTranslationCache.findOne({
-        hashKey,
-        status: 'success',
-        qualityStatus: 'approved',
-      }).lean();
-      if (cached?.status === 'success' && cached?.qualityStatus === 'approved') {
-        return res.json({
-          success: true,
-          data: {
-            originalText: text,
-            translatedText: cached.translatedText,
-            targetLang: normalizedTargetLang,
-            fromCache: true,
-          },
-        });
-      }
-    }
-
-    // Translate using Cloudflare AI
-    const translatedText = await cloudflareAiService.translate(text, normalizedSourceLang, normalizedTargetLang);
-
-    await saveTranslationCache({
-      hashKey,
-      originalText: text,
+    const { translatedText, fromCache } = await translateAndCache({
+      text,
       sourceLang: normalizedSourceLang,
       targetLang: normalizedTargetLang,
-      translatedText,
-      status: 'success',
-      qualityStatus: 'approved',
+      hashKey,
+      useCache,
     });
 
     // Shadow write to NEW schema (Phase 1)
-    if (TranslationShadowWriteService.isShadowWriteEnabled()) {
+    if (!fromCache && TranslationShadowWriteService.isShadowWriteEnabled()) {
       await TranslationShadowWriteService.writeShadowUserContentTranslation(
         hashKey,
         'generic',
-        targetLang,
+        normalizedTargetLang,
         {
           originalText: text,
           translatedText,
@@ -436,7 +428,7 @@ exports.translateText = async (req, res) => {
         originalText: text,
         translatedText,
         targetLang: normalizedTargetLang,
-        fromCache: false,
+        fromCache,
       },
     });
   } catch (error) {

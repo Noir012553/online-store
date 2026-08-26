@@ -104,7 +104,9 @@ describe('Product translation cache controller', () => {
       }),
     });
     const translate = sandbox.stub(cloudflareAiService, 'translate').resolves('Fresh translation');
-    sandbox.stub(LiveTranslationCache, 'create').resolves();
+    sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({}),
+    });
     const sourceLang = getDefaultLanguage().code;
     const targetLang = SUPPORTED_LANGUAGES.find(({ code }) => code !== sourceLang).code;
     const res = createResponse();

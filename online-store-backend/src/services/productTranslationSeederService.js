@@ -424,7 +424,7 @@ class ProductTranslationSeederService {
         try {
           const hashKey = crypto
             .createHash('md5')
-            .update(`${field.originalText}:${targetLang}`)
+            .update(JSON.stringify([field.originalText, sourceLang, targetLang]))
             .digest('hex');
 
           // Check cache trước
@@ -454,6 +454,7 @@ class ProductTranslationSeederService {
             hashKey,
             originalText: field.originalText,
             translatedText,
+            sourceLang,
             targetLang,
             entityId: productId,
             entityType: field.entityType,
@@ -464,11 +465,11 @@ class ProductTranslationSeederService {
             validationErrors: validationResult.validationErrors,
             retryCount: 0,
           };
-          if (cached) {
-            await LiveTranslationCache.updateOne({ _id: cached._id }, { $set: translationRecord });
-          } else {
-            await LiveTranslationCache.create(translationRecord);
-          }
+          await LiveTranslationCache.findOneAndUpdate(
+            { hashKey },
+            { $set: translationRecord },
+            { upsert: true, new: true, setDefaultsOnInsert: true },
+          );
 
           successCount++;
         } catch (err) {
@@ -485,7 +486,8 @@ class ProductTranslationSeederService {
                 targetLang,
                 productId,
                 field.entityType,
-                `429 Too Many Requests from Cloudflare AI`
+                `429 Too Many Requests from Cloudflare AI`,
+                sourceLang
               );
 
               rateLimitCount++;
@@ -504,7 +506,8 @@ class ProductTranslationSeederService {
               productId,
               field.entityType,
               err.message,
-              'failed_error'
+              'failed_error',
+              sourceLang
             );
             otherErrorCount++;
           }

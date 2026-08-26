@@ -4,6 +4,7 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { getMessage } = require('../i18n/messages');
 
 const rateLimitHandler = (code) => (req, res) => {
@@ -163,8 +164,17 @@ const refreshTokenLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Use user ID from cookie/token if available, otherwise use IP
-    return req.user?._id ? `user_${req.user._id}` : req.ip;
+    const refreshToken = req.cookies?.refreshToken;
+    let decoded = null;
+    try {
+      decoded = refreshToken ? jwt.decode(refreshToken) : null;
+    } catch (error) {
+      decoded = null;
+    }
+    if (typeof decoded?.id === 'string' && decoded.id) {
+      return `refresh_user_${decoded.id}`;
+    }
+    return req.ip;
   },
 });
 

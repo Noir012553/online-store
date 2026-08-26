@@ -37,7 +37,6 @@ class TranslationCacheService {
       return null;
     }
 
-    console.log(`[TranslationCacheService] Cache hit: ${key}`);
     return cached.value;
   }
 
