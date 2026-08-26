@@ -1,5 +1,6 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Product = require('../models/Product');
@@ -260,13 +261,15 @@ exports.getProductTranslations = async (req, res) => {
 exports.translateText = async (req, res) => {
   try {
     const { text, targetLang, sourceLang, useCache = true } = req.body;
+    const normalizedSourceLang = String(sourceLang || '').trim().toLowerCase();
+    const normalizedTargetLang = String(targetLang || '').trim().toLowerCase();
 
     // Validate required parameters
-    if (!targetLang) {
+    if (!normalizedTargetLang) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_REQUIRED', 'target_language_required');
     }
 
-    if (!sourceLang) {
+    if (!normalizedSourceLang) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_REQUIRED', 'source_language_required');
     }
 
@@ -275,7 +278,7 @@ exports.translateText = async (req, res) => {
     }
 
     // Check source language dynamically
-    const isSourceSupported = await LanguageService.isSupportedLanguage(sourceLang);
+    const isSourceSupported = await LanguageService.isSupportedLanguage(normalizedSourceLang);
     if (!isSourceSupported) {
       return sendTranslationError(
         res,
@@ -283,18 +286,19 @@ exports.translateText = async (req, res) => {
         getRequestLanguage(req),
         'TRANSLATION_SOURCE_LANGUAGE_UNSUPPORTED',
         'source_language_unsupported',
-        { language: sourceLang }
+        { language: normalizedSourceLang }
       );
     }
 
     // Layer 2 (Products): Translate to all 9 languages except source language
     // When targetLang === 'all', dịch cả 9 ngôn ngữ (excluding source lang)
-    if (targetLang === 'all') {
-      const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
+    if (normalizedTargetLang === 'all') {
+      const activeLangCodes = await LanguageService.getActiveLanguageCodes();
+      const targetLangs = activeLangCodes.filter(lang => lang !== normalizedSourceLang);
 
       const translations = {};
       for (const lang of targetLangs) {
-        const hashKey = getTranslationHashKey(text, sourceLang, lang);
+        const hashKey = getTranslationHashKey(text, normalizedSourceLang, lang);
 
         // Check cache if enabled
         let translatedText;
@@ -312,13 +316,13 @@ exports.translateText = async (req, res) => {
         }
 
         // Translate using Cloudflare AI
-        translatedText = await cloudflareAiService.translate(text, sourceLang, lang);
+        translatedText = await cloudflareAiService.translate(text, normalizedSourceLang, lang);
         translations[lang] = translatedText;
 
         await saveTranslationCache({
           hashKey,
           originalText: text,
-          sourceLang,
+          sourceLang: normalizedSourceLang,
           targetLang: lang,
           translatedText,
           status: 'success',
@@ -353,7 +357,7 @@ exports.translateText = async (req, res) => {
 
     // Layer 1 (UI): Translate to single language
     // Check target language dynamically
-    const isTargetSupported = await LanguageService.isSupportedLanguage(targetLang);
+    const isTargetSupported = await LanguageService.isSupportedLanguage(normalizedTargetLang);
     if (!isTargetSupported) {
       return sendTranslationError(
         res,
@@ -361,23 +365,23 @@ exports.translateText = async (req, res) => {
         getRequestLanguage(req),
         'TRANSLATION_TARGET_LANGUAGE_UNSUPPORTED',
         'target_language_unsupported',
-        { language: targetLang }
+        { language: normalizedTargetLang }
       );
     }
 
-    if (sourceLang === targetLang) {
+    if (normalizedSourceLang === normalizedTargetLang) {
       return res.json({
         success: true,
         data: {
           originalText: text,
           translatedText: text,
-          targetLang,
+          targetLang: normalizedTargetLang,
           fromCache: false,
         },
       });
     }
 
-    const hashKey = getTranslationHashKey(text, sourceLang, targetLang);
+    const hashKey = getTranslationHashKey(text, normalizedSourceLang, normalizedTargetLang);
 
     // Check cache if enabled
     if (useCache) {
@@ -392,7 +396,7 @@ exports.translateText = async (req, res) => {
           data: {
             originalText: text,
             translatedText: cached.translatedText,
-            targetLang,
+            targetLang: normalizedTargetLang,
             fromCache: true,
           },
         });
@@ -400,13 +404,13 @@ exports.translateText = async (req, res) => {
     }
 
     // Translate using Cloudflare AI
-    const translatedText = await cloudflareAiService.translate(text, sourceLang, targetLang);
+    const translatedText = await cloudflareAiService.translate(text, normalizedSourceLang, normalizedTargetLang);
 
     await saveTranslationCache({
       hashKey,
       originalText: text,
-      sourceLang,
-      targetLang,
+      sourceLang: normalizedSourceLang,
+      targetLang: normalizedTargetLang,
       translatedText,
       status: 'success',
       qualityStatus: 'approved',
@@ -431,7 +435,7 @@ exports.translateText = async (req, res) => {
       data: {
         originalText: text,
         translatedText,
-        targetLang,
+        targetLang: normalizedTargetLang,
         fromCache: false,
       },
     });
