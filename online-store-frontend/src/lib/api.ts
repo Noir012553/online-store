@@ -99,6 +99,7 @@ interface FetchOptions extends RequestInit {
   timeout?: number;
   skipCache?: boolean; // Option to skip deduplication for specific requests
   skipAuthRecovery?: boolean; // Auth endpoints handle their own 401 response
+  skipErrorToast?: boolean; // Optional requests render their own error state
   retry?: boolean; // Internal flag to prevent infinite retry loops
   adapter?: (data: any) => any; // Optional adapter to transform response data
 }
@@ -392,6 +393,7 @@ export async function apiCall<T = any>(
     timeout: customTimeout,
     skipCache = false,
     skipAuthRecovery = false,
+    skipErrorToast = false,
     adapter,
     signal: externalSignal,
     ...fetchOptions
@@ -415,7 +417,7 @@ export async function apiCall<T = any>(
     const requestPromise = executeRequest<T>(
       url,
       headers,
-      { ...fetchOptions, skipAuthRecovery, adapter, signal: externalSignal },
+      { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
       timeout,
       endpoint,
       method
@@ -436,7 +438,7 @@ export async function apiCall<T = any>(
   return executeRequest<T>(
     url,
     headers,
-    { ...fetchOptions, skipAuthRecovery, adapter, signal: externalSignal },
+    { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
     timeout,
     endpoint,
     method
@@ -568,15 +570,16 @@ async function executeRequest<T = any>(
         errorMessage = `http_error`;
       }
 
-      // Show toast notification for user
-      handleApiError({
-        status: response.status,
-        message: errorMessage,
-        code: errorCode,
-        params: errorParams,
-        endpoint: endpointName,
-        method: methodName,
-      });
+      if (!fetchOptions.skipErrorToast) {
+        handleApiError({
+          status: response.status,
+          message: errorMessage,
+          code: errorCode,
+          params: errorParams,
+          endpoint: endpointName,
+          method: methodName,
+        });
+      }
 
       const apiError = new Error(errorMessage) as Error & {
         code?: string;
@@ -631,13 +634,14 @@ async function executeRequest<T = any>(
     if (isAbortError) {
       const timeoutError = 'request_timeout';
 
-      // Show toast for timeout
-      handleApiError({
-        status: 408,
-        message: timeoutError,
-        endpoint: endpointName,
-        method: methodName,
-      });
+      if (!fetchOptions.skipErrorToast) {
+        handleApiError({
+          status: 408,
+          message: timeoutError,
+          endpoint: endpointName,
+          method: methodName,
+        });
+      }
 
       throw new Error(timeoutError);
     }
@@ -657,22 +661,26 @@ async function executeRequest<T = any>(
         try {
           return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
         } catch (retryError) {
-          handleApiError({
-            status: 0,
-            message: networkError,
-            endpoint: endpointName,
-            method: methodName,
-          });
+          if (!fetchOptions.skipErrorToast) {
+            handleApiError({
+              status: 0,
+              message: networkError,
+              endpoint: endpointName,
+              method: methodName,
+            });
+          }
           throw new Error(networkError);
         }
       }
 
-      handleApiError({
-        status: 0,
-        message: networkError,
-        endpoint: endpointName,
-        method: methodName,
-      });
+      if (!fetchOptions.skipErrorToast) {
+        handleApiError({
+          status: 0,
+          message: networkError,
+          endpoint: endpointName,
+          method: methodName,
+        });
+      }
 
       throw new Error(networkError);
     }
@@ -736,7 +744,7 @@ export const productAPI = {
     lang?: string,
     locale: string = lang || getCurrentLang(),
     currencyCode?: string,
-    requestOptions?: Pick<FetchOptions, 'signal'>,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
     sortBy = 'featured',
     shockDeal?: boolean
   ) => {
@@ -1464,7 +1472,11 @@ export const reviewAPI = {
   /**
    * Lấy reviews của sản phẩm
    */
-  getProductReviews: async (productId: string, lang?: Locale, requestOptions?: Pick<FetchOptions, 'signal'>) => {
+  getProductReviews: async (
+    productId: string,
+    lang?: Locale,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
+  ) => {
     const endpoint = `/reviews/products/${productId}/reviews`;
     const finalEndpoint = lang ? `${endpoint}?lang=${lang}` : buildLocalizedUrl(endpoint);
     const currentLang = lang || getCurrentLang();

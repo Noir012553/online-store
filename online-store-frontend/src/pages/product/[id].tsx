@@ -157,7 +157,11 @@ export default function ProductDetail() {
     setReviewsError(null);
 
     try {
-      const reviewsResponse = await reviewAPI.getProductReviews(productId, locale, { signal });
+      const reviewsResponse = await reviewAPI.getProductReviews(productId, locale, {
+        signal,
+        timeout: 8000,
+        skipErrorToast: true,
+      });
       if (!isCurrentReviewRequest()) return;
 
       if (reviewsResponse && typeof reviewsResponse === 'object' && 'reviews' in reviewsResponse) {
@@ -262,7 +266,11 @@ export default function ProductDetail() {
               locale,
               getIntlLocale(locale),
               currencyCode,
-              { signal: controller.signal },
+              {
+                signal: controller.signal,
+                timeout: 8000,
+                skipErrorToast: true,
+              },
             );
             if (!isCurrentRequest()) return;
             const currentProductId = String(product._id || product.id || productId);
