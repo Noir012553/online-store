@@ -543,7 +543,13 @@ async function executeRequest<T = any>(
       }
 
       // Retry with retry flag to prevent infinite loops
-      return executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+    }
+
+    const isRetry = Boolean((fetchOptions as FetchOptions).retry);
+    const isRetryableUpstreamStatus = [500, 502, 503, 504].includes(response.status);
+    if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry) {
+      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
     }
 
     if (!response.ok) {
@@ -636,15 +642,20 @@ async function executeRequest<T = any>(
       throw new Error(timeoutError);
     }
 
-    // Handle "Failed to fetch" - usually network error or CORS
-    if (error instanceof Error && error.message.includes('Failed to fetch')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const transportErrorCode = typeof error === 'object' && error !== null
+      ? String((error as any).code || (error as any).cause?.code || '')
+      : '';
+    const isNetworkTransportError = errorMessage.includes('Failed to fetch')
+      || errorMessage.includes('fetch failed')
+      || ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'UND_ERR_SOCKET'].includes(transportErrorCode);
+
+    if (isNetworkTransportError) {
       const networkError = 'network_error_title';
 
-      // Retry once for GET requests on network failures
-      const isGetRequest = methodName === 'GET';
-      if (isGetRequest && !(fetchOptions as FetchOptions).retry) {
+      if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry) {
         try {
-          return executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+          return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
         } catch (retryError) {
           handleApiError({
             status: 0,
