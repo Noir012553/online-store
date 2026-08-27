@@ -5,6 +5,8 @@
  */
 const { getMessage } = require('../i18n/messages');
 
+const API_DEBUG_ENABLED = ['1', 'true', 'yes'].includes(String(process.env.API_DEBUG || '').toLowerCase());
+
 const sendApiError = (res, req, statusCode, code, messageKey = 'common.error_request_title', params = {}) => {
   const message = getMessage(req.lang || req.query?.lang || req.body?.lang, messageKey, params);
   return res.status(statusCode).json({
@@ -55,6 +57,21 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 503;
     code = 'SERVICE_UNAVAILABLE';
     message = getMessage(req.lang, 'common.error_server_desc');
+  }
+
+  if (API_DEBUG_ENABLED) {
+    console.error('[API_DEBUG] request:error', {
+      requestId: req.apiRequestId,
+      method: req.method,
+      path: req.originalUrl,
+      query: req.query,
+      featuredDebugStage: req.featuredDebugStage,
+      statusCode,
+      code,
+      errorName: err.name,
+      message: err.message,
+      stack: err.stack,
+    });
   }
 
   if (process.env.NODE_ENV === 'development' && statusCode !== 401 && statusCode !== 403) {
