@@ -341,6 +341,21 @@ const assertMongoConnected = () => {
   }
 };
 
+const requireDatabase = (req, res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+
+  const message = getMessage(req.lang, 'common.error_server_desc');
+  return res.status(503).json({
+    success: false,
+    code: 'DATABASE_UNAVAILABLE',
+    message,
+    error: message,
+    timestamp: new Date().toISOString(),
+  });
+};
+
 const connectDB = async () => {
   if (connectionInProgress) {
     return;
@@ -561,6 +576,8 @@ app.all('/vnpay-api/webhook/:gateway', asyncHandler(paymentController.handleWebh
  * API Routes Mounting
  * Tất cả routes sử dụng /api/... prefix
  */
+app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
+app.use('/api', requireDatabase);
 app.use('/api/users', userRoutes);           // User authentication & admin
 app.use('/api/products', productRoutes);     // Product management
 app.use('/api/orders', orderRoutes);         // Order processing
@@ -582,7 +599,6 @@ app.use('/api/languages', languageRoutes); // Language management (admin - Tier 
 app.use('/api/currencies', currencyRoutes); // Currency management (admin)
 app.use('/api/exchange-rates', exchangeRateRoutes); // Exchange rate management (admin)
 app.use('/api/cloudinary', cloudinaryRoutes); // Cloudinary signed upload & validation
-app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
 
 // ==================== Error Handling Middleware ====================
 
@@ -697,6 +713,13 @@ socketHandler(io);
 // Make io accessible to other modules (paymentService, etc.)
 app.set('io', io);
 
+const listenServer = () => {
+  if (!serverStarted) {
+    serverStarted = true;
+    server.listen(PORT, '0.0.0.0');
+  }
+};
+
 const startServer = async () => {
   const schedulerService = require('./services/exchangeRateSchedulerService');
   if (!schedulerService.isRunning) {
@@ -706,10 +729,7 @@ const startServer = async () => {
     });
   }
 
-  if (!serverStarted) {
-    serverStarted = true;
-    server.listen(PORT, '0.0.0.0');
-  }
+  listenServer();
 };
 
 // Graceful shutdown handler
@@ -746,6 +766,7 @@ process.on('SIGINT', () => {
 });
 
 if (require.main === module) {
+  listenServer();
   connectDB();
 }
 
