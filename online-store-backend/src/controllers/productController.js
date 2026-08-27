@@ -35,6 +35,18 @@ const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
+const FEATURED_DEBUG_ENABLED = ['1', 'true', 'yes'].includes(String(process.env.API_DEBUG || '').toLowerCase());
+
+const debugFeatured = (event, details = {}) => {
+  if (FEATURED_DEBUG_ENABLED) {
+    console.log(`[FEATURED_DEBUG] ${event}`, details);
+  }
+};
+
+const summarizeProducts = (products) => ({
+  count: Array.isArray(products) ? products.length : undefined,
+  ids: Array.isArray(products) ? products.map((product) => String(product?._id || product?.id || '')).filter(Boolean) : undefined,
+});
 
 const getActiveDealDiscount = (deal) => {
   const discount = Number(deal?.discount);
@@ -214,6 +226,17 @@ const buildRatingFilter = (minRating, maxRating) => {
  * @access Public
  */
 const getFeaturedProducts = asyncHandler(async (req, res) => {
+  req.featuredDebugStage = 'request-received';
+  debugFeatured('request:received', {
+    requestId: req.apiRequestId,
+    method: req.method,
+    path: req.originalUrl,
+    query: req.query,
+    locale: req.locale,
+    lang: req.lang,
+  });
+
+  req.featuredDebugStage = 'parse-pagination-and-currency';
   const pageSize = Math.min(Number(req.query.pageSize) || 9, 500); // Max 500 products
   const page = Number(req.query.pageNumber) || 1;
   const lang = req.lang;
@@ -305,6 +328,28 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     query.$or = keywordFilters;
   }
 
+  debugFeatured('query:built', {
+    requestId: req.apiRequestId,
+    page,
+    pageSize,
+    lang,
+    locale: req.locale,
+    reportingCurrency: req.query.currencyCode || null,
+    filters: {
+      keyword: req.query.keyword || null,
+      category: req.query.category || null,
+      brand: req.query.brand || null,
+      minPrice: req.query.minPrice || null,
+      maxPrice: req.query.maxPrice || null,
+      inStock: req.query.inStock,
+      hasSpecs: req.query.hasSpecs,
+      prioritizeSpecs: req.query.prioritizeSpecs,
+      hasDeal: req.query.hasDeal,
+    },
+    mongoQuery: query,
+  });
+
+  req.featuredDebugStage = 'load-candidate-products';
   const candidateLimit = Math.min(Math.max(page * pageSize * 3, pageSize), 100);
   const candidateProducts = await withTimeout(
     Product.find(query)
@@ -314,10 +359,26 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
       .lean(),
     15000
   );
+  debugFeatured('query:candidates-loaded', {
+    requestId: req.apiRequestId,
+    candidateLimit,
+    ...summarizeProducts(candidateProducts),
+    candidates: candidateProducts,
+  });
+
+  req.featuredDebugStage = 'filter-storefront-visible-products';
   const visibleProductIds = await getStorefrontVisibleProductIds(candidateProducts);
   const count = visibleProductIds.size;
   const productQuery = { ...query, _id: { $in: [...visibleProductIds] } };
+  debugFeatured('products:visibility-filtered', {
+    requestId: req.apiRequestId,
+    candidateCount: candidateProducts.length,
+    visibleCount: count,
+    visibleIds: [...visibleProductIds].map((id) => String(id)),
+    productQuery,
+  });
   const prioritizeSpecs = req.query.prioritizeSpecs === 'true';
+  req.featuredDebugStage = prioritizeSpecs ? 'load-prioritized-products' : 'load-products';
   const products = await withTimeout(
     prioritizeSpecs
       ? Product.aggregate([
@@ -346,13 +407,49 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
         .skip(pageSize * (page - 1)),
     15000
   );
+  debugFeatured('query:products-loaded', {
+    requestId: req.apiRequestId,
+    prioritizeSpecs,
+    ...summarizeProducts(products),
+    products,
+  });
+
+  req.featuredDebugStage = 'populate-categories';
   const populatedProducts = prioritizeSpecs
     ? await Product.populate(products, { path: 'category' })
     : products;
+  debugFeatured('products:categories-populated', {
+    requestId: req.apiRequestId,
+    ...summarizeProducts(populatedProducts),
+    categories: populatedProducts.map((product) => ({
+      productId: String(product?._id || ''),
+      category: product?.category,
+    })),
+  });
 
+  req.featuredDebugStage = 'localize-products';
   const translatedProducts = await overlayTranslationBatchWithFallback(populatedProducts, 'product', lang);
+  debugFeatured('products:translated', {
+    requestId: req.apiRequestId,
+    ...summarizeProducts(translatedProducts),
+    products: translatedProducts,
+  });
   const localizedProducts = await localizeProductCategories(translatedProducts, lang);
-  res.json({ products: await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale), page, pages: Math.ceil(count / pageSize), total: count });
+  debugFeatured('products:localized', {
+    requestId: req.apiRequestId,
+    ...summarizeProducts(localizedProducts),
+    products: localizedProducts,
+  });
+
+  req.featuredDebugStage = 'format-response';
+  const formattedProducts = await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale);
+  const responsePayload = { products: formattedProducts, page, pages: Math.ceil(count / pageSize), total: count };
+  debugFeatured('response:ready', {
+    requestId: req.apiRequestId,
+    ...responsePayload,
+    products: formattedProducts,
+  });
+  res.json(responsePayload);
 });
 
 /**

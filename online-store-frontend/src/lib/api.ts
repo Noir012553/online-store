@@ -109,6 +109,8 @@ const describeResponse = (data: unknown) => ({
     : undefined,
 });
 
+const isFeaturedProductsEndpoint = (endpoint: string) => endpoint.includes('/products/featured/list');
+
 // Custom fetch options type that includes timeout
 interface FetchOptions extends RequestInit {
   timeout?: number;
@@ -533,6 +535,16 @@ async function executeRequest<T = any>(
       retry: Boolean(fetchOptions.retry),
     });
 
+    if (isFeaturedProductsEndpoint(endpointName)) {
+      const responseBody = await response.clone().text().catch((bodyError) => `[unreadable: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}]`);
+      debugApi('featured:response-body', {
+        requestId,
+        endpoint: endpointName,
+        status: response.status,
+        body: responseBody,
+      });
+    }
+
     // Handle 401 Unauthorized (token expired or invalid)
     if (response.status === 401 && !fetchOptions.skipAuthRecovery) {
       const errorCode = await response.clone().json()
@@ -669,6 +681,14 @@ async function executeRequest<T = any>(
       ...describeResponse(data),
     });
 
+    if (isFeaturedProductsEndpoint(endpointName)) {
+      debugApi('featured:parsed-payload', {
+        requestId,
+        endpoint: endpointName,
+        payload: data,
+      });
+    }
+
     // Apply adapter if provided
     if (fetchOptions.adapter) {
       try {
@@ -680,6 +700,14 @@ async function executeRequest<T = any>(
         });
         return adaptedData;
       } catch (adapterError) {
+        debugApi('response:adapter-error', {
+          requestId,
+          endpoint: endpointName,
+          errorName: adapterError instanceof Error ? adapterError.name : typeof adapterError,
+          message: adapterError instanceof Error ? adapterError.message : String(adapterError),
+          stack: adapterError instanceof Error ? adapterError.stack : undefined,
+          payload: data,
+        });
         // Fallback to raw data if adapter fails
         return data as T;
       }

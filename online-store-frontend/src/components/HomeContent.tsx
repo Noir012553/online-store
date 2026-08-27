@@ -90,6 +90,25 @@ type HomeCategory = {
   icon?: string;
 };
 
+const HOMEPAGE_DEBUG_ENABLED = process.env.NEXT_PUBLIC_API_DEBUG !== 'false';
+
+const debugHomepage = (event: string, details: Record<string, unknown> = {}) => {
+  if (!HOMEPAGE_DEBUG_ENABLED || typeof console === 'undefined') return;
+  console.log(`[HOMEPAGE_DEBUG] ${event}`, details);
+};
+
+const describeProductPayload = (payload: any) => ({
+  payloadType: Array.isArray(payload) ? 'array' : payload === null ? 'null' : typeof payload,
+  productCount: Array.isArray(payload?.products) ? payload.products.length : undefined,
+  productIds: Array.isArray(payload?.products)
+    ? payload.products.map((product: any) => product?._id || product?.id).filter(Boolean)
+    : undefined,
+  page: payload?.page,
+  pages: payload?.pages,
+  total: payload?.total,
+  keys: payload && typeof payload === 'object' ? Object.keys(payload) : undefined,
+});
+
 const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-gaming': '/products/gaming-laptop',
   '/products/laptop-van-phong': '/products/laptop-office',
@@ -273,6 +292,7 @@ export default function Home() {
   useEffect(() => {
     // Only fetch after hydration is complete to ensure locale is correct
     if (!isHydrated) {
+      debugHomepage('products:skipped-not-hydrated', { locale, currencyCode });
       setIsLoading(false);
       return;
     }
@@ -280,6 +300,22 @@ export default function Home() {
     let isMounted = true; // Track if component is still mounted
 
     const fetchData = async () => {
+      const fetchStartedAt = Date.now();
+      debugHomepage('products:fetch-start', {
+        locale,
+        currencyCode,
+        categoryCount: Array.isArray(categories) ? categories.length : 0,
+        categories: Array.isArray(categories)
+          ? categories.map((category) => ({
+            id: category._id,
+            name: category.name,
+            slug: category.slug,
+            key: category.key,
+            translationKey: category.translationKey,
+            sourceNames: (category as HomeCategory).sourceNames,
+          }))
+          : [],
+      });
       setIsLoading(true);
       setHasProductLoadError(false);
       try {
@@ -315,9 +351,36 @@ export default function Home() {
           ),
         ]);
 
-        if (!isMounted) return;
+        debugHomepage('base-requests:settled', {
+          durationMs: Date.now() - fetchStartedAt,
+          products: productsResult.status === 'fulfilled'
+            ? describeProductPayload(productsResult.value)
+            : {
+              status: 'rejected',
+              reason: productsResult.reason instanceof Error
+                ? { name: productsResult.reason.name, message: productsResult.reason.message, stack: productsResult.reason.stack }
+                : productsResult.reason,
+            },
+          deals: dealsResult.status === 'fulfilled'
+            ? describeProductPayload(dealsResult.value)
+            : {
+              status: 'rejected',
+              reason: dealsResult.reason instanceof Error
+                ? { name: dealsResult.reason.name, message: dealsResult.reason.message, stack: dealsResult.reason.stack }
+                : dealsResult.reason,
+            },
+        });
+
+        if (!isMounted) {
+          debugHomepage('products:ignored-unmounted', { stage: 'base-requests' });
+          return;
+        }
         if (productsResult.status === 'rejected') throw productsResult.reason;
 
+        debugHomepage('products:parsed', {
+          ...describeProductPayload(productsResult.value),
+          products: productsResult.value.products || [],
+        });
         setAllProducts(productsResult.value.products || []);
 
         const dealCandidates: BackendProduct[] = dealsResult.status === 'fulfilled'
@@ -338,14 +401,45 @@ export default function Home() {
           })
           .slice(0, 10);
 
+        debugHomepage('deals:transformed', {
+          candidateCount: dealCandidates.length,
+          activeDealCount: deals.length,
+          productIds: deals.map((product) => product._id || product.id),
+          deals,
+        });
         setDealProducts(deals);
         const dealEndTimes = deals
           .map((product) => getDealEndTimestamp(product.deal))
           .filter((endTime): endTime is number => endTime !== null);
         setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
 
+        debugHomepage('categories:fetch-start', {
+          count: categories.length,
+          categories: categories.map((category) => ({
+            id: category._id,
+            name: category.name,
+            slug: category.slug,
+            key: category.key,
+            translationKey: category.translationKey,
+            sourceNames: (category as HomeCategory).sourceNames,
+          })),
+        });
         const categoryResults = await Promise.allSettled(
           categories.map(async (category) => {
+            const requestDetails = {
+              categoryId: category._id,
+              categoryName: category.name,
+              categorySlug: category.slug,
+              pageNumber: 1,
+              pageSize: 8,
+              lang: locale,
+              locale,
+              currencyCode,
+              inStock: true,
+              hasSpecs: true,
+              prioritizeSpecs: true,
+            };
+            debugHomepage('category:request-start', requestDetails);
             const response = await productAPI.getFeaturedProducts(
               1,
               undefined,
@@ -362,18 +456,65 @@ export default function Home() {
               undefined,
             );
 
+            debugHomepage('category:response-success', {
+              ...requestDetails,
+              ...describeProductPayload(response),
+              products: response.products || [],
+            });
             return [category._id, response.products || []] as const;
           }),
         );
 
-        if (!isMounted) return;
+        debugHomepage('categories:settled', {
+          durationMs: Date.now() - fetchStartedAt,
+          results: categoryResults.map((result, index) => {
+            const category = categories[index];
+            return result.status === 'fulfilled'
+              ? {
+                status: result.status,
+                categoryId: category?._id,
+                categoryName: category?.name,
+                ...describeProductPayload({ products: result.value[1] }),
+              }
+              : {
+                status: result.status,
+                categoryId: category?._id,
+                categoryName: category?.name,
+                reason: result.reason instanceof Error
+                  ? { name: result.reason.name, message: result.reason.message, stack: result.reason.stack }
+                  : result.reason,
+              };
+          }),
+        });
 
-        setCategoryProducts(Object.fromEntries(
+        if (!isMounted) {
+          debugHomepage('products:ignored-unmounted', { stage: 'category-requests' });
+          return;
+        }
+
+        const categoryProductMap = Object.fromEntries(
           categoryResults
             .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
             .map((result) => result.value),
-        ));
+        );
+        debugHomepage('categories:transformed', {
+          categoryProductMap: Object.fromEntries(
+            Object.entries(categoryProductMap).map(([categoryId, products]) => [categoryId, {
+              count: products.length,
+              productIds: products.map((product) => product._id || product.id),
+              products,
+            }]),
+          ),
+        });
+        setCategoryProducts(categoryProductMap);
       } catch (error) {
+        debugHomepage('products:fetch-error', {
+          durationMs: Date.now() - fetchStartedAt,
+          isMounted,
+          errorName: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         if (isMounted) {
           setAllProducts([]);
           setCategoryProducts({});
@@ -381,6 +522,10 @@ export default function Home() {
           setHasProductLoadError(true);
         }
       } finally {
+        debugHomepage('products:fetch-finish', {
+          durationMs: Date.now() - fetchStartedAt,
+          isMounted,
+        });
         if (isMounted) {
           setIsLoading(false);
         }
@@ -394,6 +539,33 @@ export default function Home() {
       isMounted = false;
     };
   }, [categories, currencyCode, locale, isHydrated]);
+
+  useEffect(() => {
+    const handleRuntimeError = (event: ErrorEvent) => {
+      debugHomepage('runtime:error', {
+        message: event.message,
+        filename: event.filename,
+        lineNumber: event.lineno,
+        columnNumber: event.colno,
+        stack: event.error?.stack,
+      });
+    };
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      debugHomepage('runtime:unhandled-rejection', {
+        errorName: reason instanceof Error ? reason.name : typeof reason,
+        message: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined,
+      });
+    };
+
+    window.addEventListener('error', handleRuntimeError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => {
+      window.removeEventListener('error', handleRuntimeError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   // Fetch homepage hero banners and refresh them when admin changes are broadcast.
   useEffect(() => {
@@ -557,6 +729,25 @@ export default function Home() {
     : allProducts.length > 0
       ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 8) }]
       : [];
+
+  debugHomepage('render:sections', {
+    isLoading,
+    hasProductLoadError,
+    categoryCount: Array.isArray(categories) ? categories.length : 0,
+    categorySections: categorySections.map(({ category, products }) => ({
+      categoryId: category._id,
+      categoryName: category.name,
+      categorySlug: category.slug,
+      productCount: products.length,
+      productIds: products.map((product) => product._id || product.id),
+    })),
+    sectionsToRender: sectionsToRender.map(({ category, products }) => ({
+      categoryId: category._id,
+      categoryName: category.name,
+      productCount: products.length,
+      productIds: products.map((product) => product._id || product.id),
+    })),
+  });
 
   return (
     <div className="animate-in fade-in duration-500 bg-white">
