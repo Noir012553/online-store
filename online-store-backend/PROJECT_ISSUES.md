@@ -162,3 +162,91 @@ Vì vậy sản phẩm có deal trong các nhóm `Bàn phím`, `Chuột` hoặc 
 - Đã kiểm tra diff không có lỗi whitespace.
 - Backend suite `i18n` đã chạy thành công: 4 test files, gồm `test-languages-flow.js`, `test-translation-api.js`, `translationProductCache.test.js` (12 tests) và `specKeyTranslationCache.test.js` (6 tests).
 - Frontend production build chưa chạy theo yêu cầu; chưa có thay đổi frontend trong lần xử lý này.
+
+## 8. Homepage gửi sai category ID cho section Bàn phím
+
+### Biểu hiện
+
+- Section trên homepage hiển thị `Bàn phím`, nhưng có lần request featured dùng:
+
+```text
+category=6a8dac25c4e6879f6c9f0720
+```
+
+- API trả về các sản phẩm laptop Dell/Acer, khiến dữ liệu không khớp với section đang hiển thị.
+- Một số lần kiểm tra ban đầu ghi nhận `500`, nhưng request trực tiếp với cùng ID sau đó trả `200`; vì vậy cần phân biệt lỗi mapping category với lỗi 500 xảy ra theo thời điểm hoặc request khác.
+
+### Nguyên nhân đã xác định
+
+Danh sách category hiện tại từ:
+
+```text
+GET /api/categories?lang=vi&withProducts=true&pageSize=500
+```
+
+cho thấy:
+
+| Category | `_id` | `key` | `slug` |
+| --- | --- | --- | --- |
+| Bàn phím | `6a8dac25c4e6879f6c9f071b` | `keyboard` | `keyboard` |
+| Laptop Văn phòng | `6a8dac25c4e6879f6c9f0720` | `office_laptop` | `office-laptop` |
+
+Do đó ID `6a8dac25c4e6879f6c9f0720` không phải ID Bàn phím. API backend đã lọc đúng theo ID nhận được; không có bằng chứng cho thấy MongoDB hoặc controller featured tự đổi category.
+
+### Bằng chứng sau khi xử lý/xác minh
+
+Request đúng cho Bàn phím:
+
+```text
+GET /api/products/featured/list?pageNumber=1&pageSize=8&lang=vi&locale=vi&currencyCode=VND&category=6a8dac25c4e6879f6c9f071b&inStock=true&hasSpecs=true
+```
+
+Kết quả:
+
+- HTTP `200`.
+- `total: 24`, `pages: 3`.
+- Response category có `key: keyboard`, `name: Bàn phím`, `slug: keyboard`.
+- Các product đầu tiên khớp với DOM homepage: `6a8ddac9c4e6879f6c9f3664`, `6a8ddac9c4e6879f6c9f3666`, `6a8ddac9c4e6879f6c9f3671`.
+
+Log frontend mới nhất cũng xác nhận mapping đúng:
+
+```text
+categoryName: Bàn phím
+categoryId: 6a8dac25c4e6879f6c9f071b
+categorySlug: keyboard
+```
+
+### Trạng thái xử lý
+
+- Đã xác minh API và dữ liệu category đúng.
+- Đã xác minh homepage hiện gửi đúng ID động lấy từ danh sách category; frontend không hardcode hai ID này trong source hiện tại.
+- Không sửa controller hoặc query MongoDB vì backend đang trả đúng dữ liệu theo ID.
+- Request cũ dùng ID `0720` được xem là dữ liệu từ bundle/cache/trạng thái cũ hoặc bị đối chiếu nhầm với section khác; cần giữ lại request ID và response body nếu lỗi `500` tái diễn để truy đúng lần lỗi đó.
+
+### Instrumentation đã thêm
+
+Các log debug có điều kiện được thêm để điều tra mà không đổi behavior:
+
+- `online-store-frontend/src/lib/api.ts`: URL, params, request lifecycle, status, response body, parsed payload và adapter error.
+- `online-store-frontend/src/components/HomeContent.tsx`: category mapping, request từng category, payload, transform, unmount và runtime error.
+- `online-store-backend/src/controllers/productController.js`: query MongoDB, candidate products, visibility filter, populate, localization, format response và stage hiện tại.
+- `online-store-backend/src/middleware/errorMiddleware.js`: request ID, query, stage, error name, message và stack trace.
+
+Bật debug backend bằng:
+
+```text
+API_DEBUG=1
+```
+
+Các prefix cần lọc:
+
+```text
+[HOMEPAGE_DEBUG]
+[API_DEBUG]
+[FEATURED_DEBUG]
+```
+
+### Vấn đề còn theo dõi
+
+- Browser vẫn phát sinh nhiều request lặp tới `/products/stats/overview`, `/products/testimonials/featured`, `/products/about/media`, `/categories` và `/users/refresh`. Đây là vấn đề riêng về vòng đời component/effect hoặc nhiều instance trang, chưa được gộp vào lỗi category.
+- Nếu `500` tái diễn, cần lưu object `featured:response-body` có cùng `requestId`, `endpoint`, `status` và `body`, sau đó đối chiếu log backend `[API_DEBUG] request:error` để biết stage thất bại.
