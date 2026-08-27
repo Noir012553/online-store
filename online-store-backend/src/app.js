@@ -62,6 +62,14 @@ const { resumePendingLanguageSetups } = require('./services/languageSetupService
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
+const API_DEBUG_ENABLED = ['1', 'true', 'yes'].includes(String(process.env.API_DEBUG || '').toLowerCase());
+let apiRequestSequence = 0;
+
+const debugApi = (event, details = {}) => {
+  if (API_DEBUG_ENABLED) {
+    console.log(`[API_DEBUG] ${event}`, details);
+  }
+};
 
 // Initialize upload directories for local storage
 ensureUploadDir('users');
@@ -149,6 +157,46 @@ app.use(cors(corsOptions));
  * Cần thiết để refresh token được lưu trong secure cookies
  */
 app.use(cookieParser());
+
+app.use('/api', (req, res, next) => {
+  const requestId = ++apiRequestSequence;
+  const startedAt = Date.now();
+  req.apiRequestId = requestId;
+
+  debugApi('request:start', {
+    requestId,
+    method: req.method,
+    path: req.originalUrl,
+    userAgent: req.get('user-agent') || null,
+    contentLength: req.get('content-length') || null,
+    mongoReadyState: mongoose.connection.readyState,
+  });
+
+  res.on('finish', () => {
+    debugApi('request:finish', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      mongoReadyState: mongoose.connection.readyState,
+    });
+  });
+
+  res.on('close', () => {
+    debugApi('request:close', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      headersSent: res.headersSent,
+      writableEnded: res.writableEnded,
+    });
+  });
+
+  next();
+});
 
 /**
  * JSON Parser Middleware
@@ -345,6 +393,13 @@ const requireDatabase = (req, res, next) => {
   if (mongoose.connection.readyState === 1) {
     return next();
   }
+
+  debugApi('database:blocked', {
+    requestId: req.apiRequestId,
+    method: req.method,
+    path: req.originalUrl,
+    readyState: mongoose.connection.readyState,
+  });
 
   const message = getMessage(req.lang, 'common.error_server_desc');
   return res.status(503).json({

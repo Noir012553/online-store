@@ -93,6 +93,21 @@ export interface BackendProduct {
 
 // API Base URL = proxy path (cùng domain với frontend)
 const API_URL = API_BASE_PATH;
+const API_DEBUG_ENABLED = process.env.NEXT_PUBLIC_API_DEBUG !== 'false';
+let apiRequestSequence = 0;
+
+const debugApi = (event: string, details: Record<string, unknown> = {}) => {
+  if (!API_DEBUG_ENABLED || typeof console === 'undefined') return;
+  console.log(`[API_DEBUG] ${event}`, details);
+};
+
+const describeResponse = (data: unknown) => ({
+  type: Array.isArray(data) ? 'array' : data === null ? 'null' : typeof data,
+  arrayLength: Array.isArray(data) ? data.length : undefined,
+  keys: data && typeof data === 'object' && !Array.isArray(data)
+    ? Object.keys(data).slice(0, 20)
+    : undefined,
+});
 
 // Custom fetch options type that includes timeout
 interface FetchOptions extends RequestInit {
@@ -365,6 +380,19 @@ export async function apiCall<T = any>(
   const url = `${API_URL}${endpoint}`;
   const token = getAuthToken();
   const method = options.method || 'GET';
+  const requestId = ++apiRequestSequence;
+
+  debugApi('request:queued', {
+    requestId,
+    method,
+    endpoint,
+    url,
+    hasAuthToken: Boolean(token),
+    hasExternalSignal: Boolean(options.signal),
+    timeout: options.timeout || 30000,
+    retry: Boolean(options.retry),
+    skipCache: Boolean(options.skipCache),
+  });
 
   // Build headers properly to handle all HeadersInit types
   const headers = new Headers();
@@ -420,7 +448,8 @@ export async function apiCall<T = any>(
       { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
       timeout,
       endpoint,
-      method
+      method,
+      requestId,
     )
       .finally(() => {
         // Remove from cache when done
@@ -441,7 +470,8 @@ export async function apiCall<T = any>(
     { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
     timeout,
     endpoint,
-    method
+    method,
+    requestId,
   );
 }
 
@@ -455,7 +485,8 @@ async function executeRequest<T = any>(
   fetchOptions: FetchOptions,
   timeout: number,
   endpoint?: string,
-  method?: string
+  method?: string,
+  requestId?: number,
 ): Promise<T> {
   const controller = new AbortController();
   const externalSignal = fetchOptions.signal;
@@ -467,6 +498,15 @@ async function executeRequest<T = any>(
   const startTime = Date.now();
   const methodName = method || 'GET';
   const endpointName = endpoint || url;
+
+  debugApi('attempt:start', {
+    requestId,
+    method: methodName,
+    endpoint: endpointName,
+    timeout,
+    retry: Boolean(fetchOptions.retry),
+    signalAborted: Boolean(externalSignal?.aborted),
+  });
 
   try {
     const response = await fetch(url, {
@@ -481,6 +521,17 @@ async function executeRequest<T = any>(
 
     const duration = Date.now() - startTime;
     const responseSize = response.headers.get('content-length');
+
+    debugApi('attempt:response', {
+      requestId,
+      method: methodName,
+      endpoint: endpointName,
+      status: response.status,
+      ok: response.ok,
+      durationMs: duration,
+      responseSize,
+      retry: Boolean(fetchOptions.retry),
+    });
 
     // Handle 401 Unauthorized (token expired or invalid)
     if (response.status === 401 && !fetchOptions.skipAuthRecovery) {
@@ -544,14 +595,23 @@ async function executeRequest<T = any>(
         headers.set('Authorization', `Bearer ${newToken}`);
       }
 
-      // Retry with retry flag to prevent infinite loops
-      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+      debugApi('retry:auth-refresh', {
+        requestId,
+        endpoint: endpointName,
+        status: response.status,
+      });
+      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method, requestId);
     }
 
     const isRetry = Boolean((fetchOptions as FetchOptions).retry);
     const isRetryableUpstreamStatus = [500, 502, 503, 504].includes(response.status);
     if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry) {
-      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+      debugApi('retry:upstream-status', {
+        requestId,
+        endpoint: endpointName,
+        status: response.status,
+      });
+      return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method, requestId);
     }
 
     if (!response.ok) {
@@ -603,10 +663,22 @@ async function executeRequest<T = any>(
 
     const data = await response.json();
 
+    debugApi('response:parsed', {
+      requestId,
+      endpoint: endpointName,
+      ...describeResponse(data),
+    });
+
     // Apply adapter if provided
     if (fetchOptions.adapter) {
       try {
-        return fetchOptions.adapter(data);
+        const adaptedData = fetchOptions.adapter(data);
+        debugApi('response:adapted', {
+          requestId,
+          endpoint: endpointName,
+          ...describeResponse(adaptedData),
+        });
+        return adaptedData;
       } catch (adapterError) {
         // Fallback to raw data if adapter fails
         return data as T;
@@ -617,6 +689,19 @@ async function executeRequest<T = any>(
   } catch (error) {
     clearTimeout(timeoutId);
     externalSignal?.removeEventListener('abort', abortRequest);
+
+    debugApi('attempt:error', {
+      requestId,
+      method: methodName,
+      endpoint: endpointName,
+      durationMs: Date.now() - startTime,
+      retry: Boolean(fetchOptions.retry),
+      externalAborted: Boolean(externalSignal?.aborted),
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      code: typeof error === 'object' && error !== null ? String((error as any).code || '') : undefined,
+      causeCode: typeof error === 'object' && error !== null ? String((error as any).cause?.code || '') : undefined,
+    });
 
     const duration = Date.now() - startTime;
 
@@ -632,6 +717,12 @@ async function executeRequest<T = any>(
     );
 
     if (isAbortError) {
+      debugApi('timeout:detected', {
+        requestId,
+        endpoint: endpointName,
+        timeout,
+        externalAborted: Boolean(externalSignal?.aborted),
+      });
       const timeoutError = 'request_timeout';
 
       if (!fetchOptions.skipErrorToast) {
@@ -658,8 +749,14 @@ async function executeRequest<T = any>(
       const networkError = 'network_error_title';
 
       if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry) {
+        debugApi('retry:transport-error', {
+          requestId,
+          endpoint: endpointName,
+          message: errorMessage,
+          code: transportErrorCode,
+        });
         try {
-          return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method);
+          return await executeRequest<T>(url, headers, { ...fetchOptions, retry: true }, timeout, endpoint, method, requestId);
         } catch (retryError) {
           if (!fetchOptions.skipErrorToast) {
             handleApiError({
