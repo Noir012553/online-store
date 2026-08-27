@@ -28,6 +28,8 @@ export interface ProductReviewForm {
 
 interface ProductReviewsProps {
   reviews: ProductReview[];
+  isLoadingReviews: boolean;
+  reviewsError: string | null;
   user: { name?: string } | null;
   loginHref: string;
   showReviewForm: boolean;
@@ -36,12 +38,15 @@ interface ProductReviewsProps {
   onShowReviewForm: () => void;
   onReviewFormChange: (updates: Partial<ProductReviewForm>) => void;
   onReviewSubmit: () => void;
+  onRetryReviews: () => void;
   onReviewCancel: () => void;
   onOpenImage: (src: string, alt: string) => void;
 }
 
 export function ProductReviews({
   reviews,
+  isLoadingReviews,
+  reviewsError,
   user,
   loginHref,
   showReviewForm,
@@ -50,6 +55,7 @@ export function ProductReviews({
   onShowReviewForm,
   onReviewFormChange,
   onReviewSubmit,
+  onRetryReviews,
   onReviewCancel,
   onOpenImage,
 }: ProductReviewsProps) {
@@ -152,7 +158,16 @@ export function ProductReviews({
         </div>
       )}
 
-      {reviews.length > 0 ? (
+      {isLoadingReviews ? (
+        <p className="text-gray-500">{t('loading_reviews', 'products', 'Loading reviews...')}</p>
+      ) : reviewsError ? (
+        <div className="flex items-center gap-3">
+          <p className="text-red-600">{reviewsError}</p>
+          <Button type="button" variant="outline" onClick={onRetryReviews}>
+            {t('retry', 'common', 'Retry')}
+          </Button>
+        </div>
+      ) : reviews.length > 0 ? (
         reviews.map((review) => {
           const reviewerName = review.name || review.user?.name || t('default_anonymous', 'products');
           const reviewerFallback = getReviewerFallbackUrl(review.avatar);

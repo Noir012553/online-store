@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "../../lib/i18n";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -29,6 +29,12 @@ import type { Locale } from "../../lib/i18n/types";
 const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
+const PRODUCT_ID_PATTERN = /^[a-f\d]{24}$/i;
+
+const normalizeProductId = (value: string | string[] | undefined): string | null => {
+  const productId = Array.isArray(value) ? value[0] : value;
+  return productId && PRODUCT_ID_PATTERN.test(productId) ? productId : null;
+};
 
 const getSafeProductTab = (value: unknown): ProductTab => {
   if (typeof value !== 'string') return 'specs';
@@ -91,6 +97,8 @@ export default function ProductDetail() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState<ProductReviewForm>({ rating: 5, comment: '', avatar: null });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>('specs');
 
   useEffect(() => {
@@ -130,17 +138,92 @@ export default function ProductDetail() {
   };
 
   const productRequestIdRef = useRef(0);
+  const reviewsRequestIdRef = useRef(0);
+  const reviewAbortControllerRef = useRef<AbortController | null>(null);
+
+  const loadReviews = useCallback(async (
+    productId: string,
+    productRequestId: number,
+    signal: AbortSignal,
+  ) => {
+    const reviewsRequestId = ++reviewsRequestIdRef.current;
+    const isCurrentReviewRequest = () => (
+      productRequestId === productRequestIdRef.current
+      && reviewsRequestId === reviewsRequestIdRef.current
+      && !signal.aborted
+    );
+
+    setIsLoadingReviews(true);
+    setReviewsError(null);
+
+    try {
+      const reviewsResponse = await reviewAPI.getProductReviews(productId, locale, {
+        signal,
+        timeout: 8000,
+        skipErrorToast: true,
+      });
+      if (!isCurrentReviewRequest()) return;
+
+      if (reviewsResponse && typeof reviewsResponse === 'object' && 'reviews' in reviewsResponse) {
+        const reviewsList = Array.isArray(reviewsResponse.reviews) ? reviewsResponse.reviews : [];
+        setReviews(reviewsList);
+        setTotalReviews(
+          typeof reviewsResponse.totalReviews === 'number' && Number.isFinite(reviewsResponse.totalReviews)
+            ? reviewsResponse.totalReviews
+            : reviewsList.length,
+        );
+      } else {
+        const reviewsList = Array.isArray(reviewsResponse) ? reviewsResponse : [];
+        setReviews(reviewsList);
+        setTotalReviews(reviewsList.length);
+      }
+    } catch (reviewErr) {
+      if (!isCurrentReviewRequest()) return;
+      setReviewsError(t('error_load_reviews', 'products', 'Unable to load reviews.'));
+    } finally {
+      if (isCurrentReviewRequest()) {
+        setIsLoadingReviews(false);
+      }
+    }
+  }, [locale, t]);
+
+  const handleRetryReviews = useCallback(async () => {
+    const productId = normalizeProductId(router.query.id);
+    const productRequestId = productRequestIdRef.current;
+    if (!productId) return;
+
+    reviewAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    reviewAbortControllerRef.current = controller;
+    await loadReviews(productId, productRequestId, controller.signal);
+    if (reviewAbortControllerRef.current === controller) {
+      reviewAbortControllerRef.current = null;
+    }
+  }, [loadReviews, router.query.id]);
 
   // Fetch product detail from backend
   useEffect(() => {
-    if (!id || !isHydrated) return;
+    if (!router.isReady || !isHydrated) return;
 
+    const productId = normalizeProductId(id);
     const requestId = ++productRequestIdRef.current;
-    const productId = id as string;
     const controller = new AbortController();
     const isCurrentRequest = () => requestId === productRequestIdRef.current && !controller.signal.aborted;
 
+    setRelatedLaptops([]);
+    setReviews([]);
+    setTotalReviews(0);
+    setReviewsError(null);
+
     const fetchProduct = async () => {
+      if (!productId) {
+        setError(t('error_no_products_found', 'products', 'Product not found.'));
+        setLaptop(null);
+        setIsLoading(false);
+        setIsLoadingReviews(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         const product = await productAPI.getProductById(
@@ -155,33 +238,55 @@ export default function ProductDetail() {
         setSelectedImage(0);
         setQuantity(1);
 
-        // Fetch related products (same category)
-        const categoryId = product.category?._id || product.category;
+        const rawCategoryId = product.categoryId
+          || (typeof product.category === 'object' && product.category !== null
+            ? product.category._id || product.category.id
+            : undefined);
+        const categoryId = typeof rawCategoryId === 'string' && PRODUCT_ID_PATTERN.test(rawCategoryId)
+          ? rawCategoryId
+          : null;
+
         if (categoryId) {
-          const allProducts = await productAPI.getProducts(1, undefined, categoryId, undefined, 4, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale, getIntlLocale(locale), currencyCode, { signal: controller.signal });
-          if (!isCurrentRequest()) return;
-          setRelatedLaptops(allProducts.products.filter((p: any) => p._id !== product._id).slice(0, 4));
-        }
-
-        // Fetch product reviews
-        try {
-          const reviewsResponse = await reviewAPI.getProductReviews(productId, locale, { signal: controller.signal });
-          if (!isCurrentRequest()) return;
-          if (reviewsResponse && typeof reviewsResponse === 'object' && 'reviews' in reviewsResponse) {
-            const reviewsList = Array.isArray(reviewsResponse.reviews) ? reviewsResponse.reviews : [];
-            setReviews(reviewsList);
-            setTotalReviews(reviewsResponse.totalReviews !== undefined ? reviewsResponse.totalReviews : reviewsList.length);
-          } else {
-            const reviewsList = Array.isArray(reviewsResponse) ? reviewsResponse : [];
-            setReviews(reviewsList);
-            setTotalReviews(reviewsList.length);
+          try {
+            const allProducts = await productAPI.getProducts(
+              1,
+              undefined,
+              categoryId,
+              undefined,
+              4,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              locale,
+              getIntlLocale(locale),
+              currencyCode,
+              {
+                signal: controller.signal,
+                timeout: 8000,
+                skipErrorToast: true,
+              },
+            );
+            if (!isCurrentRequest()) return;
+            const currentProductId = String(product._id || product.id || productId);
+            setRelatedLaptops(
+              (Array.isArray(allProducts.products) ? allProducts.products : [])
+                .filter((relatedProduct: any) => String(relatedProduct._id || relatedProduct.id) !== currentProductId)
+                .slice(0, 4),
+            );
+          } catch (relatedErr) {
+            if (!isCurrentRequest()) return;
+            setRelatedLaptops([]);
           }
-        } catch (reviewErr) {
-          if (!isCurrentRequest()) return;
-          setReviews([]);
-          setTotalReviews(0);
         }
 
+        if (!isCurrentRequest()) return;
+        await loadReviews(productId, requestId, controller.signal);
         if (isCurrentRequest()) {
           setError(null);
         }
@@ -200,8 +305,9 @@ export default function ProductDetail() {
 
     return () => {
       controller.abort();
+      reviewAbortControllerRef.current?.abort();
     };
-  }, [currencyCode, id, isHydrated, locale]);
+  }, [currencyCode, id, isHydrated, loadReviews, locale, router.isReady, t]);
 
   const recentlyViewedProducts = useRecentlyViewedProducts(laptop);
 
@@ -217,34 +323,56 @@ export default function ProductDetail() {
       return;
     }
 
+    const productId = normalizeProductId(id);
+    const productRequestId = productRequestIdRef.current;
+    if (!productId) return;
+
+    const isCurrentProduct = () => (
+      productRequestId === productRequestIdRef.current
+      && normalizeProductId(router.query.id) === productId
+    );
+    const controller = new AbortController();
+    reviewAbortControllerRef.current?.abort();
+    reviewAbortControllerRef.current = controller;
+
     try {
       setIsSubmittingReview(true);
       const uploadResult = reviewForm.avatar
         ? await uploadToCloudinary(reviewForm.avatar, 'reviewers')
         : null;
 
+      if (!isCurrentProduct()) return;
       if (reviewForm.avatar && (!uploadResult || !uploadResult.claimId || !await validateUploadedImage(uploadResult))) {
         return;
       }
+      if (!isCurrentProduct()) return;
 
       await reviewAPI.createReview(
-        id as string,
+        productId,
         reviewForm.rating,
         reviewForm.comment,
         uploadResult?.claimId
           ? { url: uploadResult.secure_url, publicId: uploadResult.public_id, claimId: uploadResult.claimId }
-          : undefined
+          : undefined,
+        { signal: controller.signal },
       );
+      if (!isCurrentProduct()) return;
+
       toast.success(t('review_success', 'products'));
       setReviewForm({ rating: 5, comment: '', avatar: null });
       setShowReviewForm(false);
-
-      // Refresh reviews and total count
-      await handleSubmitReviewSuccess();
+      await handleSubmitReviewSuccess(productId, productRequestId);
     } catch (error) {
-      toast.error(getUserFriendlyErrorMessage(error, t));
+      if (isCurrentProduct() && !controller.signal.aborted) {
+        toast.error(getUserFriendlyErrorMessage(error, t));
+      }
     } finally {
-      setIsSubmittingReview(false);
+      if (reviewAbortControllerRef.current === controller) {
+        reviewAbortControllerRef.current = null;
+      }
+      if (isCurrentProduct()) {
+        setIsSubmittingReview(false);
+      }
     }
   };
 
@@ -345,21 +473,13 @@ export default function ProductDetail() {
     toast.success(interpolateTranslation(t('added_to_cart', 'products'), { quantity }));
   };
 
-  const handleSubmitReviewSuccess = async () => {
-    // Refresh reviews and total count
-    try {
-      const reviewsResponse = await reviewAPI.getProductReviews(id as string, locale);
-      if (reviewsResponse && typeof reviewsResponse === 'object' && 'reviews' in reviewsResponse) {
-        const reviewsList = Array.isArray(reviewsResponse.reviews) ? reviewsResponse.reviews : [];
-        setReviews(reviewsList);
-        setTotalReviews(reviewsResponse.totalReviews !== undefined ? reviewsResponse.totalReviews : reviewsList.length);
-      } else {
-        const reviewsList = Array.isArray(reviewsResponse) ? reviewsResponse : [];
-        setReviews(reviewsList);
-        setTotalReviews(reviewsList.length);
-      }
-    } catch (err) {
-      // Error refreshing reviews - will keep existing reviews
+  const handleSubmitReviewSuccess = async (productId: string, productRequestId: number) => {
+    reviewAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    reviewAbortControllerRef.current = controller;
+    await loadReviews(productId, productRequestId, controller.signal);
+    if (reviewAbortControllerRef.current === controller) {
+      reviewAbortControllerRef.current = null;
     }
   };
 
@@ -434,6 +554,9 @@ export default function ProductDetail() {
         onShowReviewForm={() => setShowReviewForm(true)}
         onReviewFormChange={(updates) => setReviewForm((current) => ({ ...current, ...updates }))}
         onReviewSubmit={handleSubmitReview}
+        onRetryReviews={handleRetryReviews}
+        isLoadingReviews={isLoadingReviews}
+        reviewsError={reviewsError}
         onReviewCancel={() => setShowReviewForm(false)}
         onOpenImage={(src, alt) => {
           setViewerImage({ src, alt });

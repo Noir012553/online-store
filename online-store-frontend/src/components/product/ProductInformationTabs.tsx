@@ -11,6 +11,8 @@ interface ProductInformationTabsProps {
   product: Laptop;
   reviewCount: number;
   reviews: ProductReview[];
+  isLoadingReviews: boolean;
+  reviewsError: string | null;
   user: { name?: string } | null;
   loginHref: string;
   showReviewForm: boolean;
@@ -19,6 +21,7 @@ interface ProductInformationTabsProps {
   onShowReviewForm: () => void;
   onReviewFormChange: (updates: Partial<ProductReviewForm>) => void;
   onReviewSubmit: () => void;
+  onRetryReviews: () => void;
   onReviewCancel: () => void;
   onOpenImage: (src: string, alt: string) => void;
 }
@@ -29,6 +32,8 @@ export function ProductInformationTabs({
   product,
   reviewCount,
   reviews,
+  isLoadingReviews,
+  reviewsError,
   user,
   loginHref,
   showReviewForm,
@@ -37,6 +42,7 @@ export function ProductInformationTabs({
   onShowReviewForm,
   onReviewFormChange,
   onReviewSubmit,
+  onRetryReviews,
   onReviewCancel,
   onOpenImage,
 }: ProductInformationTabsProps) {
@@ -73,6 +79,9 @@ export function ProductInformationTabs({
       <TabsContent value="reviews" className="bg-white p-6 border rounded-lg">
         <ProductReviews
           reviews={reviews}
+          isLoadingReviews={isLoadingReviews}
+          reviewsError={reviewsError}
+          onRetryReviews={onRetryReviews}
           user={user}
           loginHref={loginHref}
           showReviewForm={showReviewForm}
