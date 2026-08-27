@@ -355,10 +355,13 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
 
   req.featuredDebugStage = 'load-candidate-products';
   const candidateLimit = Math.min(Math.max(page * pageSize, pageSize), 50);
+  const candidateSort = hasDeal
+    ? { 'deal.discount': -1, 'deal.endTime': 1, _id: 1 }
+    : { featured: -1, createdAt: -1, _id: 1 };
   const candidateProducts = await withTimeout(
     Product.find(query)
       .select('_id name description brand specs')
-      .sort({ featured: -1, createdAt: -1, _id: 1 })
+      .sort(candidateSort)
       .limit(candidateLimit)
       .maxTimeMS(12000)
       .lean(),
@@ -404,6 +407,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
         { $limit: pageSize },
         { $project: { hasSpecs: 0 } },
       ])
+        .option({ maxTimeMS: 12000 })
       : Product.find(productQuery)
         .populate('category')
         .lean()
