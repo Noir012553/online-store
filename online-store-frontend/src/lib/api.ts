@@ -617,7 +617,7 @@ async function executeRequest<T = any>(
 
     const isRetry = Boolean((fetchOptions as FetchOptions).retry);
     const isRetryableUpstreamStatus = [500, 502, 503, 504].includes(response.status);
-    if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry) {
+    if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry && !isFeaturedProductsEndpoint(endpointName)) {
       debugApi('retry:upstream-status', {
         requestId,
         endpoint: endpointName,
@@ -776,7 +776,7 @@ async function executeRequest<T = any>(
     if (isNetworkTransportError) {
       const networkError = 'network_error_title';
 
-      if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry) {
+      if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry && !isFeaturedProductsEndpoint(endpointName)) {
         debugApi('retry:transport-error', {
           requestId,
           endpoint: endpointName,

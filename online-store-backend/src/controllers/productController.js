@@ -91,9 +91,13 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
     return formatProducts(products, locale);
   }
 
+  const needsConversion = products.some((product) => {
+    const data = product.toObject ? product.toObject() : product;
+    return data.baseCurrencyCode?.toUpperCase() !== reportingCurrency.toUpperCase();
+  });
   const [currencies, activeRates] = await Promise.all([
     getCurrencyMetadata([reportingCurrency]),
-    getActiveExchangeRates(),
+    needsConversion ? getActiveExchangeRates() : Promise.resolve([]),
   ]);
 
   return products.map((product) => {
@@ -350,14 +354,15 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   });
 
   req.featuredDebugStage = 'load-candidate-products';
-  const candidateLimit = Math.min(Math.max(page * pageSize * 3, pageSize), 100);
+  const candidateLimit = Math.min(Math.max(page * pageSize, pageSize), 50);
   const candidateProducts = await withTimeout(
     Product.find(query)
       .select('_id name description brand specs')
       .sort({ featured: -1, createdAt: -1, _id: 1 })
       .limit(candidateLimit)
+      .maxTimeMS(12000)
       .lean(),
-    15000
+    13000
   );
   debugFeatured('query:candidates-loaded', {
     requestId: req.apiRequestId,
@@ -404,8 +409,9 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
         .lean()
         .sort({ featured: -1, createdAt: -1, _id: 1 })
         .limit(pageSize)
-        .skip(pageSize * (page - 1)),
-    15000
+        .skip(pageSize * (page - 1))
+        .maxTimeMS(12000),
+    13000
   );
   debugFeatured('query:products-loaded', {
     requestId: req.apiRequestId,
