@@ -1467,19 +1467,13 @@ export const reviewAPI = {
     productId: string,
     rating: number,
     comment: string,
-    avatar?: { url: string; publicId: string; claimId: string }
+    avatar?: { url: string; publicId: string; claimId: string },
+    requestOptions?: Pick<FetchOptions, 'signal'>,
   ) => {
-    const token = getAuthToken();
-    const endpoint = `/reviews/products/${productId}/reviews`;
-    const finalEndpoint = buildLocalizedUrl(endpoint);
-    const url = `${API_URL}${finalEndpoint}`;
+    const endpoint = buildLocalizedUrl(`/reviews/products/${productId}/reviews`);
 
-    const response = await fetch(url, {
+    return apiCall(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
       body: JSON.stringify({
         rating,
         comment,
@@ -1489,16 +1483,8 @@ export const reviewAPI = {
           avatarClaimId: avatar.claimId,
         }),
       }),
+      ...requestOptions,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || 'REVIEW_CREATION_FAILED');
-      Object.assign(error, { code: errorData.code || 'REVIEW_CREATION_FAILED' });
-      throw error;
-    }
-
-    return response.json();
   },
 };
 
