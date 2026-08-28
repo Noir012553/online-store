@@ -1,4 +1,6 @@
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+const { withTimeout } = require('../utils/mongooseUtils');
+
 const localizeCategories = async (categories, lang) => {
   if (!Array.isArray(categories) || categories.length === 0 || !lang) {
     return categories;
@@ -10,11 +12,17 @@ const localizeCategories = async (categories, lang) => {
 
   if (categoryIds.length === 0) return categories;
 
-  const translations = await CategoryCatalogTranslationCache.find({
-    entityId: { $in: categoryIds },
-    targetLang: lang,
-    status: 'success',
-  }).lean();
+  const translations = await withTimeout(
+    CategoryCatalogTranslationCache.find({
+      entityId: { $in: categoryIds },
+      targetLang: lang,
+      status: 'success',
+    })
+      .select('entityId name description -_id')
+      .maxTimeMS(5000)
+      .lean(),
+    7000
+  );
   const translationsById = new Map(translations.map(translation => [translation.entityId, translation]));
 
   return categories.map(category => {

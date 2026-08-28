@@ -240,33 +240,292 @@ Trong `src/lib/api.ts`:
 
 Việc tắt retry giúp tránh nhân đôi tải khi backend đang quá tải.
 
-## 10. Trạng thái kiểm thử code
+## 10. Cập nhật triển khai sau khi debug
+
+Các thay đổi dưới đây đã được áp dụng sau khi test local cho thấy request product có thể treo khoảng 45 giây dù MongoDB đã `readyState=1`.
+
+### 10.1. Ngăn startup race trong `src/app.js`
+
+Đã thêm cờ `startupReady` để phân biệt MongoDB đã kết nối với toàn bộ backend đã khởi tạo xong.
+
+- API chỉ đi qua `requireDatabase` khi MongoDB đang connected và startup/seed đã hoàn tất.
+- `startupReady` được đặt `true` sau khi hoàn tất seed, resume pending language setup, migration và scheduler initialization.
+- Khi MongoDB disconnect, `startupReady` được đặt lại `false`.
+- Request trong lúc startup không còn chạy vào controller product khi database mới chỉ ở trạng thái `connecting`.
+
+Thay đổi này xử lý lỗi:
+
+```text
+readyState: 2
+[API_DEBUG] database:blocked
+HTTP 503
+```
+
+### 10.2. Giới hạn và rút gọn query translation trong `src/services/translationHelper.js`
+
+Các query translation cache liên quan tới visibility và product overlay đã được cập nhật:
+
+- Thêm projection, chỉ lấy các field cần thiết thay vì hydrate toàn bộ translation document.
+- Thêm `maxTimeMS(5000)` để MongoDB chủ động dừng query quá lâu.
+- Bọc query bằng `withTimeout(..., 7000)` để backend không chờ vô hạn.
+- Áp dụng cho:
+  - `ProductCatalogTranslationCache` dùng trong storefront visibility.
+  - `LiveTranslationCache` dùng cho legacy fallback.
+  - Product translation overlay.
+
+Mục tiêu là giảm kích thước dữ liệu truyền qua Mongoose và tránh tình trạng query translation giữ connection quá lâu.
+
+### 10.3. Giới hạn query category trong `src/services/categoryLocalizationService.js`
+
+Query `CategoryCatalogTranslationCache` đã được cập nhật với:
+
+```text
+projection: entityId, name, description
+maxTimeMS: 5000ms
+application timeout: 7000ms
+```
+
+Category localization không còn được phép chờ vô hạn khi cache translation gặp vấn đề.
+
+### 10.4. Bảo vệ product query trong `src/controllers/productController.js`
+
+Đã cập nhật các query product:
+
+- Product visibility scan có `maxTimeMS(10000)` và application timeout 12 giây.
+- Product query sau khi visibility-filter có `maxTimeMS(10000)` và application timeout 12 giây.
+
+Các thay đổi này không thay đổi nghiệp vụ lọc sản phẩm hoặc thứ tự phân trang; chúng chỉ giới hạn thời gian database được phép xử lý.
+
+### 10.5. Cập nhật unit test mock
+
+Mock query trong các test translation/category đã được cập nhật để hỗ trợ chain Mongoose mới:
+
+```text
+.select().maxTimeMS().lean()
+```
+
+Không thay đổi các kỳ vọng nghiệp vụ của test.
+
+### 10.6. Lý do chưa thêm index mới
+
+MongoDB Atlas `explain("executionStats")` cho thấy:
+
+```text
+topRated:          4ms, IXSCAN → FETCH → SORT
+translationCache:  8ms, IXSCAN → FETCH
+products:          IXSCAN trên isDeleted_1
+```
+
+Do đó chưa thêm index mới một cách mù quáng. Bottleneck đo được nằm ở toàn bộ helper/Mongoose visibility pipeline, không nằm ở thời gian execution của query MongoDB thô.
+
+## 11. Trạng thái kiểm thử code
 
 - Kiểm tra cú pháp các file backend đã sửa: thành công.
 - Frontend TypeScript và production compilation theo log đã cung cấp: thành công.
 - Backend test suite trong một môi trường kiểm tra không chạy được do môi trường đó thiếu package `dotenv`; không phải lỗi assertion của test.
-- Endpoint production vẫn trả timeout `20000ms` trong log, cho thấy backend đang chạy chưa chắc đã nhận các thay đổi local mới.
+- Các test dưới đây được thực hiện bằng PowerShell và Node.js inline, không tạo file diagnostic mới.
 
-## 11. Kết luận cuối cùng
+### 11.1. Đo trực tiếp production bằng PowerShell
 
-Đây không phải sự cố giao diện đơn thuần và cũng không phải lỗi WARP đơn thuần.
+Đã đo 5 lần các endpoint production `https://backend.manln.online` với timeout client 35 giây:
 
-Nguyên nhân chính là sự kết hợp của:
+| Endpoint | Kết quả | Thời gian quan sát được |
+| --- | --- | --- |
+| `/api/products?pageSize=10` | 0/5 thành công; 4 lần transport timeout, 1 lần HTTP 503 | khoảng 20–35 giây |
+| `/api/products/top/rated` | 0/5 thành công; 2 lần HTTP 500, 3 lần transport timeout | khoảng 20–35 giây |
+| `/api/products/featured/list?pageSize=3` | 5/5 HTTP 200 | khoảng 3,0–10,0 giây; trung bình khoảng 4,7 giây |
+| `/api/banners` | 5/5 HTTP 200 | khoảng 0,6–21,6 giây; trung bình bị kéo lên bởi một lần chậm |
 
-1. Truy vấn backend quá nặng, đặc biệt với `/api/products` và `/api/products/top/rated`.
-2. Kiểm tra translation/visibility trên quá nhiều sản phẩm và ngôn ngữ.
-3. Nhiều request homepage chạy gần như đồng thời.
-4. MongoDB connection/query có thời điểm bị reset hoặc timeout.
-5. Backend không trả response kịp thời, khiến Cloudflare Tunnel và Next.js phát sinh `ECONNRESET` hoặc `socket hang up`.
+Một response production `top/rated` trả về:
 
-## 12. Việc cần làm tiếp theo
+```json
+{
+  "success": false,
+  "message": "Lỗi khi lấy sản phẩm được đánh giá cao",
+  "error": "Database operation timed out after 20000ms"
+}
+```
 
-1. Đảm bảo backend đang chạy đúng phiên bản code đã tối ưu.
-2. Dừng backend cũ và khởi động lại sau khi MongoDB ping ổn định.
-3. Kiểm tra backend không còn log `MongoDB disconnected`, `querySrv ECONNREFUSED` hoặc `MongoNetworkTimeoutError`.
-4. Chạy lại API `top/rated`, `products` và `featured` ít nhất 5 lần liên tiếp.
-5. Kiểm tra index MongoDB cho các truy vấn product, rating, deal và translation cache.
-6. Nếu vẫn timeout dù MongoDB ping ổn định, tiếp tục đo từng stage backend: product query, visibility translation, localization và currency formatting.
+Production cũng từng trả Cloudflare error `1033`. Lỗi này cho thấy Cloudflare Tunnel không có connector hoạt động tại thời điểm kiểm tra; nó là vấn đề deployment/tunnel riêng với lỗi query backend.
+
+### 11.2. Kiểm tra backend local sau khi MongoDB và seed hoàn tất
+
+Backend local kết nối thành công tới MongoDB Atlas:
+
+```text
+[MONGO_DEBUG] event:connected
+[MONGO_DEBUG] connect:mongoose-resolved
+[MONGO_DEBUG] connect:ready
+readyStateName: 'connected'
+```
+
+Các tác vụ khởi tạo cũng hoàn tất:
+
+```text
+[SEED] Translations seeded successfully
+[SEED] Brands seeded successfully
+[SEED] Currency and Exchange Rates seeded successfully
+[SEED] Languages seeded successfully
+[ExchangeRateScheduler] Cập nhật thành công: 0 tỷ giá
+```
+
+Health check local:
+
+```text
+Test-NetConnection localhost -Port 5000
+TcpTestSucceeded: True
+```
+
+Sau khi MongoDB đã ở `readyState=1` và seed hoàn tất, kết quả API local là:
+
+| Endpoint | Kết quả local | Thời gian quan sát được |
+| --- | --- | --- |
+| `/api/products/featured/list?pageSize=3&lang=en` | HTTP 200 | khoảng 4,0–5,0 giây ở server; PowerShell khoảng 8,5 giây |
+| `/api/products/top/rated?lang=en` | không gửi response trong 45 giây | backend log khoảng 42,9 giây; client timeout khoảng 46,5 giây |
+| `/api/products?pageSize=1` | không gửi response trong 45 giây | backend log khoảng 45,0 giây; client timeout khoảng 46,7 giây |
+| `/api/banners` | HTTP 200 | khoảng 0,6 giây trong lần kiểm tra gần nhất |
+
+Trong log của hai request bị treo có dạng:
+
+```text
+[API_DEBUG] request:start ... mongoReadyState: 1
+[API_DEBUG] request:close ... headersSent: false writableEnded: false
+```
+
+`status: 200` trong log `request:close` không chứng minh request thành công; đây là status mặc định vì backend chưa gửi header/response khi client đóng kết nối.
+
+Một request chạy trước khi MongoDB kết nối xong từng bị chặn như sau:
+
+```text
+mongoReadyState: 2
+[API_DEBUG] database:blocked
+status: 503
+```
+
+Đây là startup race riêng. Nó đã được loại trừ khỏi các test timeout sau khi chờ `connect:ready` và toàn bộ seed hoàn tất.
+
+### 11.3. Kiểm tra query và index bằng MongoDB Atlas qua Mongoose
+
+Query `explain` read-only trên database `online-store` cho kết quả:
+
+```json
+{
+  "candidateCount": 30,
+  "topRated": {
+    "executionTimeMillis": 4,
+    "totalKeysExamined": 557,
+    "totalDocsExamined": 557,
+    "nReturned": 30,
+    "stages": ["SORT", "FETCH", "IXSCAN"]
+  },
+  "translationCache": {
+    "executionTimeMillis": 8,
+    "totalKeysExamined": 270,
+    "totalDocsExamined": 240,
+    "nReturned": 240,
+    "stages": ["FETCH", "IXSCAN"]
+  }
+}
+```
+
+Query visibility product sử dụng index:
+
+```text
+indexName: isDeleted_1
+stage: IXSCAN → FETCH
+```
+
+Các kết quả này cho thấy MongoDB Atlas không mất hàng chục giây để thực thi các query thô và không có bằng chứng hiện tại cho thấy thiếu index product là nguyên nhân trực tiếp.
+
+### 11.4. Đo từng stage của flow `top/rated`
+
+Đã chạy diagnostic trực tiếp bằng Mongoose:
+
+```text
+mongo.connect                         OK
+1.product.candidates                  OK, 1.359 giây, 30 candidate
+2.visibility.translation-cache        OK, 17.057 giây
+3.product.details                     diagnostic error sau 200 ms
+```
+
+Stage thứ ba của diagnostic bị lỗi vì script inline chưa đăng ký model `Category` trước khi gọi `populate('category')`:
+
+```text
+Schema hasn't been registered for model "Category"
+```
+
+Đây là lỗi của script diagnostic, không phải kết luận rằng production thiếu model `Category`.
+
+Điểm đáng chú ý là query `explain` translation cache chỉ báo 8 ms, trong khi toàn bộ helper `getStorefrontVisibleProductIds()` mất 17 giây. Vì vậy cần tách riêng thời gian lấy dữ liệu qua Mongoose, chờ connection pool, deserialize document và vòng lặp kiểm tra visibility; không thể chỉ nhìn vào `executionTimeMillis` của MongoDB.
+
+### 11.5. Memory và cấu hình runtime
+
+Health check local đã trả:
+
+```json
+{
+  "status": "critical",
+  "heapUsedMB": "60.43",
+  "heapTotalMB": "64.50",
+  "heapPercent": "93.7",
+  "rssMB": "82.51"
+}
+```
+
+Đây là dấu hiệu áp lực heap cao và có thể làm tăng thời gian garbage collection, nhưng chưa đủ để kết luận là nguyên nhân duy nhất.
+
+Production health response cũng từng báo:
+
+```json
+"environment": "development"
+```
+
+Production cần được kiểm tra lại cấu hình `NODE_ENV` và cách deploy. Đây có thể làm thay đổi logging/runtime, nhưng chưa phải bằng chứng trực tiếp cho timeout query.
+
+## 12. Kết luận cập nhật
+
+Đã xác nhận đây không phải sự cố frontend đơn thuần, cũng không phải lỗi WARP đơn thuần.
+
+Các kết luận đã có bằng chứng:
+
+1. Backend local và MongoDB Atlas có thể kết nối thành công.
+2. Startup race tồn tại: backend mở port và nhận request trước khi MongoDB/seed hoàn tất.
+3. Sau khi startup hoàn tất, `/api/products/top/rated` và `/api/products` vẫn treo khoảng 45 giây.
+4. MongoDB query thô cho top-rated và translation cache chạy nhanh và có sử dụng index.
+5. Featured chỉ xử lý 3 candidate nên vẫn trả HTTP 200, dù mất khoảng 4–5 giây.
+6. Stage `getStorefrontVisibleProductIds()` trong diagnostic end-to-end mất khoảng 17 giây, là điểm nghi vấn lớn nhất hiện tại.
+7. `withTimeout()` chỉ ngắt việc chờ ở Node.js, không đảm bảo hủy query MongoDB đang chạy; các request timeout có thể tiếp tục gây áp lực lên connection pool.
+8. Production còn có sự cố Cloudflare Tunnel `1033`, cần xử lý riêng sau khi backend ổn định.
+
+Nguyên nhân chính hiện được khoanh vùng là sự kết hợp của:
+
+1. Visibility/translation pipeline xử lý product trước khi API hoàn tất.
+2. `/api/products` thực hiện visibility scan trước phân trang.
+3. Một số bước translation/cache không có timeout hoặc projection đủ chặt.
+4. Connection pool có thể bị chờ khi nhiều query timeout không được hủy thực sự.
+5. Heap runtime cao có thể làm tăng độ trễ.
+6. Production có thể chưa chạy đúng phiên bản code tối ưu hoặc đang cấu hình `NODE_ENV` không phù hợp.
+
+Chưa thể tuyên bố 100% stage MongoDB cụ thể nào gây treo cho tới khi diagnostic được chạy lại với model `Category` đã đăng ký và có timing riêng cho từng query/helper.
+
+## 13. Việc cần làm tiếp theo
+
+1. Không tiếp tục bắn nhiều request nặng bằng PS1 khi backend còn request treo.
+2. Chạy lại diagnostic stage sau khi thêm `require('./src/models/Category')` vào script inline.
+3. Đo riêng các bước:
+   - `ProductCatalogTranslationCache.find()`;
+   - vòng lặp `hasValidProductTranslation()`;
+   - `LiveTranslationCache.find()`;
+   - `SpecKeyTranslationCache.find()`;
+   - `CategoryCatalogTranslationCache.find()`;
+   - `populate('category')`.
+4. Chạy lại PS1 sau khi restart backend để so sánh trước và sau tối ưu.
+5. Kiểm tra connection pool thực tế và các query còn chạy sau khi client timeout.
+6. Kiểm tra production đã deploy đúng code tối ưu và đổi `NODE_ENV=production`.
+7. Khắc phục Cloudflare Tunnel `1033`, sau đó đo lại production.
+8. Chỉ thêm index mới sau khi có `explain` chứng minh query cần index đó.
+
+Các thay đổi projection và `maxTimeMS` đã được áp dụng ở local; cần xác nhận hiệu quả trên production sau khi deploy đúng phiên bản.
 
 Mục tiêu vận hành:
 
@@ -274,5 +533,5 @@ Mục tiêu vận hành:
 /api/products/top/rated     < 2 giây
 /api/products               < 3 giây
 /api/products/featured/list < 3 giây ổn định
-Không còn 500, 503, status=000 hoặc ECONNRESET
+Không còn 500, 503, status=000, 1033 hoặc ECONNRESET
 ```

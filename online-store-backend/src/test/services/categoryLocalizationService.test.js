@@ -25,7 +25,9 @@ describe('categoryLocalizationService', () => {
       { _id: new mongoose.Types.ObjectId(), category: { _id: categoryId, name: 'Máy tính', description: 'Mô tả gốc' } },
       { _id: new mongoose.Types.ObjectId(), category: { _id: categoryId, name: 'Máy tính', description: 'Mô tả gốc' } },
     ];
-    const find = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
+    const query = {
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([{
         entityId: categoryId.toString(),
         targetLang: 'en',
@@ -33,7 +35,8 @@ describe('categoryLocalizationService', () => {
         name: 'Computers',
         description: 'Translated description',
       }]),
-    });
+    };
+    const find = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns(query);
 
     const localizedProducts = await localizeProductCategories(products, 'en');
 
@@ -58,9 +61,12 @@ describe('categoryLocalizationService', () => {
       _id: new mongoose.Types.ObjectId(),
       category: { _id: categoryId, name: 'Máy tính', description: 'Mô tả gốc' },
     };
-    const find = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
+    const query = {
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
-    });
+    };
+    const find = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns(query);
 
     const localizedProduct = await localizeProductCategory(product, 'en');
 
