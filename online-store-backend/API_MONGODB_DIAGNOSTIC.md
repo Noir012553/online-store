@@ -1194,3 +1194,34 @@ product.storefrontReady
 
 Sau khi backend đã chạy ổn định, refresh Homepage một lần và không chạy đồng thời nhiều phiên bản backend/tunnel trên cùng port. Chỉ kết luận Homepage đã xử lý hoàn toàn khi các category có product hợp lệ và `categorySections` không còn rỗng.
 
+### 21.7. Backfill timeout trong bản sao `copy 49`
+
+Đã chạy lại trong thư mục `online-store-backend` thuộc bản sao `copy 49`:
+
+```powershell
+npm run backfill:storefront
+```
+
+Kết quả:
+
+```text
+injected env (69) from .env
+Connected to MongoDB
+Product indexes synchronized
+Backfilling storefront readiness...
+Error setting up indexes: Database operation timed out after 35000ms
+```
+
+Lần chạy này xác nhận:
+
+1. `.env` được nạp.
+2. MongoDB kết nối thành công.
+3. Các index được kiểm tra/đồng bộ thành công.
+4. Timeout xảy ra trong bước `refreshStorefrontReadiness()`, sau khi bắt đầu backfill, không phải ở bước kết nối hoặc tạo index.
+5. Timeout `35000ms` là timeout ứng dụng dành riêng cho batch backfill; việc tăng timeout thêm không phải giải pháp gốc nếu query Mongoose hoặc connection pool tiếp tục bị treo.
+6. Do command dừng trước dòng `Readiness batch: ... products processed`, chưa có bằng chứng batch nào hoàn tất trong lần chạy `copy 49` này.
+
+Lần chạy thành công trước đó trong `copy 48` đã xử lý đủ 557 product. Nếu `copy 49` sử dụng cùng `MONGO_URI` và cùng database, cần kiểm tra xem timeout là do kết nối/runtime của máy `copy 49` hay do trạng thái database tại thời điểm chạy; không nên kết luận rằng dữ liệu readiness đã bị mất hoặc bị reset chỉ từ lỗi timeout này.
+
+Cần giữ lại log backend cùng thời điểm để đối chiếu các sự kiện `MONGO_DEBUG`, `DB_ERROR`, `DB_WARN` và kiểm tra connection pool. Không nên chạy đồng thời nhiều tiến trình backfill hoặc nhiều backend dùng cùng MongoDB connection pool trong lúc chẩn đoán.
+
