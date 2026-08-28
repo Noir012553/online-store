@@ -9,6 +9,9 @@
  * Chạy: node scripts/setup-production-indexes.js
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
 const mongoose = require('mongoose');
 const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');
@@ -44,7 +47,12 @@ const backfillStorefrontReadiness = async () => {
 
 async function setupIndexes() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) {
+      throw new Error('MONGO_URI chưa được cấu hình trong .env hoặc biến môi trường');
+    }
+
+    await mongoose.connect(mongoUri);
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // ========== PHASE 1: Languages Collection ==========
