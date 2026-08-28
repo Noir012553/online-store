@@ -14,12 +14,16 @@
 const DEFAULT_TIMEOUT = parseInt(process.env.DB_OPERATION_TIMEOUT || '15000', 10);
 
 const withTimeout = (operation, timeoutMs = DEFAULT_TIMEOUT) => {
-  return Promise.race([
-    operation,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Database operation timed out after ${timeoutMs}ms`)), timeoutMs)
-    ),
-  ]);
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Database operation timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([operation, timeout]).finally(() => {
+    clearTimeout(timeoutId);
+  });
 };
 
 module.exports = {

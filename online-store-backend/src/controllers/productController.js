@@ -91,9 +91,13 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
     return formatProducts(products, locale);
   }
 
+  const needsConversion = products.some((product) => {
+    const data = product.toObject ? product.toObject() : product;
+    return data.baseCurrencyCode?.toUpperCase() !== reportingCurrency.toUpperCase();
+  });
   const [currencies, activeRates] = await Promise.all([
     getCurrencyMetadata([reportingCurrency]),
-    getActiveExchangeRates(),
+    needsConversion ? getActiveExchangeRates() : Promise.resolve([]),
   ]);
 
   return products.map((product) => {
@@ -350,14 +354,18 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   });
 
   req.featuredDebugStage = 'load-candidate-products';
-  const candidateLimit = Math.min(Math.max(page * pageSize * 3, pageSize), 100);
+  const candidateLimit = Math.min(Math.max(page * pageSize, pageSize), 50);
+  const candidateSort = hasDeal
+    ? { 'deal.discount': -1, 'deal.endTime': 1, _id: 1 }
+    : { featured: -1, createdAt: -1, _id: 1 };
   const candidateProducts = await withTimeout(
     Product.find(query)
       .select('_id name description brand specs')
-      .sort({ featured: -1, createdAt: -1, _id: 1 })
+      .sort(candidateSort)
       .limit(candidateLimit)
+      .maxTimeMS(12000)
       .lean(),
-    15000
+    13000
   );
   debugFeatured('query:candidates-loaded', {
     requestId: req.apiRequestId,
@@ -399,13 +407,15 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
         { $limit: pageSize },
         { $project: { hasSpecs: 0 } },
       ])
+        .option({ maxTimeMS: 12000 })
       : Product.find(productQuery)
         .populate('category')
         .lean()
         .sort({ featured: -1, createdAt: -1, _id: 1 })
         .limit(pageSize)
-        .skip(pageSize * (page - 1)),
-    15000
+        .skip(pageSize * (page - 1))
+        .maxTimeMS(12000),
+    13000
   );
   debugFeatured('query:products-loaded', {
     requestId: req.apiRequestId,
@@ -1259,39 +1269,37 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
  * @access Public
  */
 const getTopRatedProducts = asyncHandler(async (req, res) => {
-  try {
-    const lang = req.lang;
+  const lang = req.lang;
+  const candidateProducts = await withTimeout(
+    Product.find({ isDeleted: false })
+      .select('_id name description brand specs')
+      .sort({ rating: -1, createdAt: -1, _id: 1 })
+      .limit(30)
+      .maxTimeMS(10000)
+      .lean(),
+    11000
+  );
+  const visibleProductIds = await getStorefrontVisibleProductIds(candidateProducts);
+  const products = await withTimeout(
+    Product.find({ isDeleted: false, _id: { $in: [...visibleProductIds] } })
+      .populate('category')
+      .sort({ rating: -1, createdAt: -1, _id: 1 })
+      .limit(3)
+      .lean()
+      .maxTimeMS(6000),
+    7000
+  );
 
-    const visibleProductIds = await findStorefrontVisibleProductIds({ isDeleted: false });
-    const products = await withTimeout(
-      Product.find({ isDeleted: false, _id: { $in: [...visibleProductIds] } })
-        .populate('category')
-        .sort({ rating: -1 })
-        .limit(3)
-        .lean(),
-      8000
-    );
-
-    if (!products || products.length === 0) {
-      return res.json([]);
-    }
-
-    const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
-    const localizedProducts = await localizeProductCategories(translatedProducts, lang);
-    const reportingCurrency = req.query.currencyCode
-      ? await getReportingCurrency(req.query.currencyCode)
-      : null;
-    res.json(await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale));
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[PRODUCT_TOP_RATED] Error:', error);
-    }
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy sản phẩm được đánh giá cao',
-      error: error.message
-    });
+  if (products.length === 0) {
+    return res.json([]);
   }
+
+  const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);
+  const localizedProducts = await localizeProductCategories(translatedProducts, lang);
+  const reportingCurrency = req.query.currencyCode
+    ? await getReportingCurrency(req.query.currencyCode)
+    : null;
+  res.json(await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale));
 });
 
 /**
