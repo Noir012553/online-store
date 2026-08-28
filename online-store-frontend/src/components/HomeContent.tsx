@@ -96,7 +96,20 @@ const HOMEPAGE_ERROR_DEBUG_EVENTS = new Set([
   'runtime:error',
   'runtime:unhandled-rejection',
 ]);
+const HOMEPAGE_DEBUG_OMIT_KEYS = new Set([
+  'durationMs',
+  'categories',
+  'content',
+  'flashSale',
+  'products',
+  'stack',
+]);
 const loggedHomepageErrors = new Set<string>();
+const loggedHomepageDebugEntries = new Set<string>();
+
+const getHomepageDebugDetails = (details: Record<string, unknown>) => Object.fromEntries(
+  Object.entries(details).filter(([key]) => !HOMEPAGE_DEBUG_OMIT_KEYS.has(key)),
+);
 
 const getHomepageErrorKey = (event: string, details: Record<string, unknown>) => JSON.stringify([
   event,
@@ -115,7 +128,12 @@ const debugHomepage = (event: string, details: Record<string, unknown> = {}) => 
     loggedHomepageErrors.add(errorKey);
   }
 
-  console.log(`[HOMEPAGE_DEBUG] ${event}`, details);
+  const debugDetails = getHomepageDebugDetails(details);
+  const debugKey = `${event}:${JSON.stringify(debugDetails)}`;
+  if (loggedHomepageDebugEntries.has(debugKey)) return;
+  loggedHomepageDebugEntries.add(debugKey);
+
+  console.log(`[HOMEPAGE_DEBUG] ${event}`, debugDetails);
 };
 
 const describeProductPayload = (payload: any) => ({

@@ -99,8 +99,21 @@ const API_ERROR_DEBUG_EVENTS = new Set([
   'timeout:detected',
   'response:adapter-error',
 ]);
+const API_DEBUG_OMIT_KEYS = new Set([
+  'requestId',
+  'durationMs',
+  'responseSize',
+  'payload',
+  'body',
+  'stack',
+]);
 const loggedApiErrors = new Set<string>();
+const loggedApiDebugEntries = new Set<string>();
 let apiRequestSequence = 0;
+
+const getDebugDetails = (details: Record<string, unknown>) => Object.fromEntries(
+  Object.entries(details).filter(([key]) => !API_DEBUG_OMIT_KEYS.has(key)),
+);
 
 const getApiErrorKey = (event: string, details: Record<string, unknown>) => {
   const endpoint = String(details.endpoint || '');
@@ -131,7 +144,12 @@ const debugApi = (event: string, details: Record<string, unknown> = {}) => {
     loggedApiErrors.add(errorKey);
   }
 
-  console.log(`[API_DEBUG] ${event}`, details);
+  const debugDetails = getDebugDetails(details);
+  const debugKey = `${event}:${JSON.stringify(debugDetails)}`;
+  if (loggedApiDebugEntries.has(debugKey)) return;
+  loggedApiDebugEntries.add(debugKey);
+
+  console.log(`[API_DEBUG] ${event}`, debugDetails);
 };
 
 const describeResponse = (data: unknown) => ({
