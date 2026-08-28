@@ -13,7 +13,34 @@ const mongoose = require('mongoose');
 const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const Product = require('../models/Product');
+const { refreshStorefrontReadiness } = require('../services/translationHelper');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const backfillStorefrontReadiness = async () => {
+  let lastId = null;
+  let processed = 0;
+  let ready = 0;
+
+  while (true) {
+    const query = lastId ? { _id: { $gt: lastId } } : {};
+    const products = await Product.find(query)
+      .select('_id')
+      .sort({ _id: 1 })
+      .limit(100)
+      .lean();
+
+    if (products.length === 0) break;
+
+    const result = await refreshStorefrontReadiness(products.map(({ _id }) => _id));
+    processed += products.length;
+    ready += result.modifiedCount;
+    lastId = products[products.length - 1]._id;
+    console.log(`   ${CLI_SYMBOLS.progress} Readiness batch: ${processed} products processed`);
+  }
+
+  console.log(`   ${CLI_SYMBOLS.check} Storefront readiness backfill completed: ${processed} products processed, ${ready} changed`);
+};
 
 async function setupIndexes() {
   try {
@@ -88,6 +115,14 @@ async function setupIndexes() {
     );
     console.log(`   ${CLI_SYMBOLS.check} Index on targetLang (for language cache operations)`);
 
+    await Product.createIndexes();
+    console.log(`   ${CLI_SYMBOLS.check} Product indexes synchronized`);
+
+    if (process.argv.includes('--backfill-storefront')) {
+      console.log(`\n${CLI_SYMBOLS.location} Backfilling storefront readiness...`);
+      await backfillStorefrontReadiness();
+    }
+
     console.log(`\n${CLI_SYMBOLS.sparkles} All production indexes created successfully!\n`);
 
     // ========== Verify Indexes ==========
@@ -101,6 +136,9 @@ async function setupIndexes() {
 
     const liveIndexes = await LiveTranslationCache.collection.getIndexes();
     console.log('LiveTranslationCache indexes:', Object.keys(liveIndexes));
+
+    const productIndexes = await Product.collection.getIndexes();
+    console.log('Product indexes:', Object.keys(productIndexes));
 
     console.log(`\n${CLI_SYMBOLS.celebration} Setup complete!`);
     process.exit(0);

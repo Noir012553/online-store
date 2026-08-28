@@ -13,6 +13,7 @@ const Category = require('../models/Category');
 const Currency = require('../models/Currency');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
@@ -315,6 +316,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
 
   const query = {
     isDeleted: false,
+    storefrontReady: true,
     ...category,
     ...brand,
     ...priceFilter,
@@ -389,7 +391,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   });
 
   req.featuredDebugStage = 'filter-storefront-visible-products';
-  const visibleProductIds = await getStorefrontVisibleProductIds(candidateProducts);
+  const visibleProductIds = new Set(candidateProducts.map((product) => String(product._id)));
   const count = visibleProductIds.size;
   const productQuery = { ...query, _id: { $in: [...visibleProductIds] } };
   debugFeatured('products:visibility-filtered', {
@@ -628,7 +630,7 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   // Build final query
-  const query = { isDeleted: false, ...category, ...brand, ...priceFilter, ...stockFilter };
+  const query = { isDeleted: false, storefrontReady: true, ...category, ...brand, ...priceFilter, ...stockFilter };
   if (highlightFilters.length > 0) {
     query.$and = query.$and || [];
     query.$and.push({ $or: highlightFilters });
@@ -645,10 +647,9 @@ const getProducts = asyncHandler(async (req, res) => {
     query.$or = keywordFilters;
   }
 
-  const visibleProductIds = await findStorefrontVisibleProductIds(query);
-  const count = visibleProductIds.size;
+  const count = await withTimeout(Product.countDocuments(query).maxTimeMS(8000), 8000);
   const products = await withTimeout(
-    Product.find({ ...query, _id: { $in: [...visibleProductIds] } })
+    Product.find(query)
       .populate('category')
       .lean()
       .sort(getProductSort(req.query.sortBy))
@@ -895,6 +896,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     name, price, description, brand, category, countInStock,
     originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
   } = req.body;
+  const sourceFieldsChanged = [name, description, brand, specs].some((value) => value !== undefined);
 
   const product = await withTimeout(Product.findById(req.params.id), 8000);
 
@@ -997,6 +999,11 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.deal = parseDealInput(deal);
   }
 
+  if (sourceFieldsChanged) {
+    product.storefrontReady = false;
+    product.storefrontReadinessCheckedAt = null;
+  }
+
   const previousImagePublicId = product.imagePublicId;
   let uploadedImagePublicId = null;
   let imageClaim = null;
@@ -1058,6 +1065,13 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   if (imageClaim) await CloudinaryUploadClaim.attach(imageClaim._id, req.user._id);
+
+  if (sourceFieldsChanged) {
+    await ProductCatalogTranslationCache.updateMany(
+      { entityId: String(updatedProduct._id) },
+      { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+    );
+  }
 
   if (previousImagePublicId && previousImagePublicId !== updatedProduct.imagePublicId) {
     await enqueueCloudinaryCleanup(previousImagePublicId);
@@ -1253,7 +1267,11 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 
   try {
     await withTimeout(Product.findByIdAndDelete(req.params.id), 8000);
-    console.log('[PRODUCT_HARD_DELETE] Product document deleted from database');
+    await withTimeout(
+      ProductCatalogTranslationCache.deleteMany({ entityId: String(req.params.id) }),
+      8000
+    );
+    console.log('[PRODUCT_HARD_DELETE] Product document and catalog translations deleted');
   } catch (dbError) {
     console.error('[PRODUCT_HARD_DELETE] Failed to delete product from database:', dbError.message);
     res.status(500);
@@ -1286,7 +1304,7 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 const getTopRatedProducts = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const candidateProducts = await withTimeout(
-    Product.find({ isDeleted: false })
+    Product.find({ isDeleted: false, storefrontReady: true })
       .select('_id name description brand specs')
       .sort({ rating: -1, createdAt: -1, _id: 1 })
       .limit(30)
@@ -1294,9 +1312,9 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
       .lean(),
     11000
   );
-  const visibleProductIds = await getStorefrontVisibleProductIds(candidateProducts);
+  const visibleProductIds = new Set(candidateProducts.map((product) => String(product._id)));
   const products = await withTimeout(
-    Product.find({ isDeleted: false, _id: { $in: [...visibleProductIds] } })
+    Product.find({ isDeleted: false, storefrontReady: true, _id: { $in: [...visibleProductIds] } })
       .populate('category')
       .sort({ rating: -1, createdAt: -1, _id: 1 })
       .limit(3)
