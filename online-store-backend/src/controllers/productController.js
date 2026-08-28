@@ -301,29 +301,42 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     ? { specs: { $type: 'object', $ne: {} } }
     : {};
   const hasDeal = req.query.hasDeal === 'true';
-  const dealFilter = hasDeal
-    ? {
-      'deal.discount': { $gt: 0 },
-      $or: [
-        { 'deal.endTime': { $exists: false } },
-        { 'deal.endTime': null },
-        { 'deal.endTime': { $gt: new Date() } },
-      ],
-    }
-    : null;
+  const highlighted = req.query.highlighted === 'true';
+  const featuredOnly = req.query.featuredOnly === 'true';
+  const shockDeal = req.query.shockDeal === 'true';
+  const activeDealFilter = {
+    'deal.discount': { $gt: 0 },
+    $or: [
+      { 'deal.endTime': { $exists: false } },
+      { 'deal.endTime': null },
+      { 'deal.endTime': { $gt: new Date() } },
+    ],
+  };
 
   const query = {
     isDeleted: false,
-    ...(hasDeal ? {} : { featured: true }),
     ...category,
     ...brand,
     ...priceFilter,
     ...stockFilter,
     ...specsFilter,
   };
-  if (dealFilter) {
+  if (featuredOnly) {
+    query.featured = true;
+  } else if (!hasDeal && !highlighted) {
+    query.featured = true;
+  }
+  if (highlighted) {
     query.$and = query.$and || [];
-    query.$and.push(dealFilter);
+    query.$and.push({ $or: [{ featured: true }, activeDealFilter] });
+  }
+  if (hasDeal) {
+    query.$and = query.$and || [];
+    query.$and.push(activeDealFilter);
+  }
+  if (shockDeal) {
+    query.$and = query.$and || [];
+    query.$and.push(buildDiscountFilter(SHOCK_DISCOUNT_THRESHOLD, undefined));
   }
   if (discountFilter) {
     query.$and = query.$and || [];

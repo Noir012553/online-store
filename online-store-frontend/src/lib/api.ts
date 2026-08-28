@@ -923,6 +923,9 @@ export const productAPI = {
     hasSpecs?: boolean,
     prioritizeSpecs?: boolean,
     hasDeal?: boolean,
+    highlighted?: boolean,
+    featuredOnly?: boolean,
+    shockDeal?: boolean,
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -939,6 +942,9 @@ export const productAPI = {
     if (hasSpecs !== undefined) params.append('hasSpecs', hasSpecs.toString());
     if (prioritizeSpecs !== undefined) params.append('prioritizeSpecs', prioritizeSpecs.toString());
     if (hasDeal !== undefined) params.append('hasDeal', hasDeal.toString());
+    if (highlighted !== undefined) params.append('highlighted', highlighted.toString());
+    if (featuredOnly !== undefined) params.append('featuredOnly', featuredOnly.toString());
+    if (shockDeal !== undefined) params.append('shockDeal', shockDeal.toString());
 
     return apiCall(`/products/featured/list?${params.toString()}`, {
       adapter: (data) => ({
