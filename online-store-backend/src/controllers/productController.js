@@ -79,8 +79,9 @@ const findStorefrontVisibleProductIds = async (query) => {
   const products = await withTimeout(
     Product.find(query)
       .select('_id name description brand specs')
+      .maxTimeMS(10000)
       .lean(),
-    20000
+    12000
   );
 
   return getStorefrontVisibleProductIds(products);
@@ -639,8 +640,9 @@ const getProducts = asyncHandler(async (req, res) => {
       .lean()
       .sort(getProductSort(req.query.sortBy))
       .limit(pageSize)
-      .skip(pageSize * (page - 1)),
-    20000
+      .skip(pageSize * (page - 1))
+      .maxTimeMS(10000),
+    12000
   );
 
   const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', lang);

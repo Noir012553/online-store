@@ -18,6 +18,7 @@ const CouponTranslationCache = require('../models/CouponTranslationCache');
 const OrderTranslationCache = require('../models/OrderTranslationCache');
 const BannerTranslationCache = require('../models/BannerTranslationCache');
 const TestimonialTranslationCache = require('../models/TestimonialTranslationCache');
+const { withTimeout } = require('../utils/mongooseUtils');
 const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
@@ -178,12 +179,18 @@ async function getStorefrontVisibleProductIds(products) {
 
   if (productIds.length === 0) return new Set();
 
-  const translations = await CACHE_MODELS.product.find({
-    entityId: { $in: productIds },
-    targetLang: { $in: requiredLanguages },
-    status: 'success',
-    qualityStatus: 'approved',
-  }).lean();
+  const translations = await withTimeout(
+    CACHE_MODELS.product.find({
+      entityId: { $in: productIds },
+      targetLang: { $in: requiredLanguages },
+      status: 'success',
+      qualityStatus: 'approved',
+    })
+      .select('entityId targetLang status qualityStatus name brand description specs -_id')
+      .maxTimeMS(5000)
+      .lean(),
+    7000
+  );
   const validLanguagesByProduct = new Map();
 
   translations
@@ -245,13 +252,19 @@ const getLegacyProductTranslationMap = async (entityIds, targetLang) => {
   if (!entityIds.length) return new Map();
 
   try {
-    const records = await LiveTranslationCache.find({
-      entityId: { $in: entityIds },
-      targetLang,
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
-      status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
-    }).lean();
+    const records = await withTimeout(
+      LiveTranslationCache.find({
+        entityId: { $in: entityIds },
+        targetLang,
+        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
+        status: 'success',
+        qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      })
+        .select('entityId entityType specKey translatedText -_id')
+        .maxTimeMS(5000)
+        .lean(),
+      7000
+    );
     const grouped = new Map();
     records.forEach((record) => {
       const translations = grouped.get(String(record.entityId)) || [];
@@ -701,12 +714,18 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
   try {
     const entityIds = entities.map(e => e._id?.toString() || e.id);
 
-    const translations = await CacheModel.find({
-      entityId: { $in: entityIds },
-      targetLang,
-      status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
-    }).lean();
+    const translations = await withTimeout(
+      CacheModel.find({
+        entityId: { $in: entityIds },
+        targetLang,
+        status: 'success',
+        ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      })
+        .select('entityId targetLang status qualityStatus name brand description specs -_id')
+        .maxTimeMS(5000)
+        .lean(),
+      7000
+    );
 
     const translationMap = {};
     translations.forEach(t => {

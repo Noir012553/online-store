@@ -17,7 +17,12 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 function createQueryMock() {
   const mock = (query) => {
     mock.calls.push(query);
-    return { lean: () => mock.result };
+    const chain = {
+      select: () => chain,
+      maxTimeMS: () => chain,
+      lean: () => mock.result,
+    };
+    return chain;
   };
 
   mock.calls = [];

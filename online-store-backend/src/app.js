@@ -259,6 +259,7 @@ let connectionAttempts = 0;
 const maxConnectionAttempts = 3;
 let reconnectTimer = null;
 let connectionInProgress = false;
+let startupReady = false;
 let serverStarted = false;
 let homepageHeroBannersSeeded = false;
 let translationsSeeded = false;
@@ -390,7 +391,7 @@ const assertMongoConnected = () => {
 };
 
 const requireDatabase = (req, res, next) => {
-  if (mongoose.connection.readyState === 1) {
+  if (mongoose.connection.readyState === 1 && (startupReady || require.main !== module)) {
     return next();
   }
 
@@ -399,6 +400,7 @@ const requireDatabase = (req, res, next) => {
     method: req.method,
     path: req.originalUrl,
     readyState: mongoose.connection.readyState,
+    startupReady,
   });
 
   const message = getMessage(req.lang, 'common.error_server_desc');
@@ -455,6 +457,7 @@ const connectDB = async () => {
     assertMongoConnected();
     startCloudinaryCleanupWorker();
     await startServer();
+    startupReady = true;
   } catch (err) {
     connectionAttempts++;
     const delay = Math.min(1000 * Math.pow(2, connectionAttempts - 1), 30000);
@@ -479,6 +482,7 @@ const connectDB = async () => {
 };
 
 mongoose.connection.on('disconnected', () => {
+  startupReady = false;
   if (require.main !== module) {
     return;
   }
