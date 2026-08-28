@@ -391,14 +391,16 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   });
 
   req.featuredDebugStage = 'filter-storefront-visible-products';
-  const visibleProductIds = new Set(candidateProducts.map((product) => String(product._id)));
-  const count = visibleProductIds.size;
-  const productQuery = { ...query, _id: { $in: [...visibleProductIds] } };
+  const visibleProductIds = [...new Map(
+    candidateProducts.map((product) => [String(product._id), product._id]),
+  ).values()];
+  const count = visibleProductIds.length;
+  const productQuery = { ...query, _id: { $in: visibleProductIds } };
   debugFeatured('products:visibility-filtered', {
     requestId: req.apiRequestId,
     candidateCount: candidateProducts.length,
     visibleCount: count,
-    visibleIds: [...visibleProductIds].map((id) => String(id)),
+    visibleIds: visibleProductIds.map((id) => String(id)),
     productQuery,
   });
   const prioritizeSpecs = req.query.prioritizeSpecs === 'true';
