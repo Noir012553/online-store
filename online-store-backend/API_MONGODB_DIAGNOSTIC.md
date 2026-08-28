@@ -240,14 +240,92 @@ Trong `src/lib/api.ts`:
 
 Việc tắt retry giúp tránh nhân đôi tải khi backend đang quá tải.
 
-## 10. Trạng thái kiểm thử code
+## 10. Cập nhật triển khai sau khi debug
+
+Các thay đổi dưới đây đã được áp dụng sau khi test local cho thấy request product có thể treo khoảng 45 giây dù MongoDB đã `readyState=1`.
+
+### 10.1. Ngăn startup race trong `src/app.js`
+
+Đã thêm cờ `startupReady` để phân biệt MongoDB đã kết nối với toàn bộ backend đã khởi tạo xong.
+
+- API chỉ đi qua `requireDatabase` khi MongoDB đang connected và startup/seed đã hoàn tất.
+- `startupReady` được đặt `true` sau khi hoàn tất seed, resume pending language setup, migration và scheduler initialization.
+- Khi MongoDB disconnect, `startupReady` được đặt lại `false`.
+- Request trong lúc startup không còn chạy vào controller product khi database mới chỉ ở trạng thái `connecting`.
+
+Thay đổi này xử lý lỗi:
+
+```text
+readyState: 2
+[API_DEBUG] database:blocked
+HTTP 503
+```
+
+### 10.2. Giới hạn và rút gọn query translation trong `src/services/translationHelper.js`
+
+Các query translation cache liên quan tới visibility và product overlay đã được cập nhật:
+
+- Thêm projection, chỉ lấy các field cần thiết thay vì hydrate toàn bộ translation document.
+- Thêm `maxTimeMS(5000)` để MongoDB chủ động dừng query quá lâu.
+- Bọc query bằng `withTimeout(..., 7000)` để backend không chờ vô hạn.
+- Áp dụng cho:
+  - `ProductCatalogTranslationCache` dùng trong storefront visibility.
+  - `LiveTranslationCache` dùng cho legacy fallback.
+  - Product translation overlay.
+
+Mục tiêu là giảm kích thước dữ liệu truyền qua Mongoose và tránh tình trạng query translation giữ connection quá lâu.
+
+### 10.3. Giới hạn query category trong `src/services/categoryLocalizationService.js`
+
+Query `CategoryCatalogTranslationCache` đã được cập nhật với:
+
+```text
+projection: entityId, name, description
+maxTimeMS: 5000ms
+application timeout: 7000ms
+```
+
+Category localization không còn được phép chờ vô hạn khi cache translation gặp vấn đề.
+
+### 10.4. Bảo vệ product query trong `src/controllers/productController.js`
+
+Đã cập nhật các query product:
+
+- Product visibility scan có `maxTimeMS(10000)` và application timeout 12 giây.
+- Product query sau khi visibility-filter có `maxTimeMS(10000)` và application timeout 12 giây.
+
+Các thay đổi này không thay đổi nghiệp vụ lọc sản phẩm hoặc thứ tự phân trang; chúng chỉ giới hạn thời gian database được phép xử lý.
+
+### 10.5. Cập nhật unit test mock
+
+Mock query trong các test translation/category đã được cập nhật để hỗ trợ chain Mongoose mới:
+
+```text
+.select().maxTimeMS().lean()
+```
+
+Không thay đổi các kỳ vọng nghiệp vụ của test.
+
+### 10.6. Lý do chưa thêm index mới
+
+MongoDB Atlas `explain("executionStats")` cho thấy:
+
+```text
+topRated:          4ms, IXSCAN → FETCH → SORT
+translationCache:  8ms, IXSCAN → FETCH
+products:          IXSCAN trên isDeleted_1
+```
+
+Do đó chưa thêm index mới một cách mù quáng. Bottleneck đo được nằm ở toàn bộ helper/Mongoose visibility pipeline, không nằm ở thời gian execution của query MongoDB thô.
+
+## 11. Trạng thái kiểm thử code
 
 - Kiểm tra cú pháp các file backend đã sửa: thành công.
 - Frontend TypeScript và production compilation theo log đã cung cấp: thành công.
 - Backend test suite trong một môi trường kiểm tra không chạy được do môi trường đó thiếu package `dotenv`; không phải lỗi assertion của test.
 - Các test dưới đây được thực hiện bằng PowerShell và Node.js inline, không tạo file diagnostic mới.
 
-### 10.1. Đo trực tiếp production bằng PowerShell
+### 11.1. Đo trực tiếp production bằng PowerShell
 
 Đã đo 5 lần các endpoint production `https://backend.manln.online` với timeout client 35 giây:
 
@@ -270,7 +348,7 @@ Một response production `top/rated` trả về:
 
 Production cũng từng trả Cloudflare error `1033`. Lỗi này cho thấy Cloudflare Tunnel không có connector hoạt động tại thời điểm kiểm tra; nó là vấn đề deployment/tunnel riêng với lỗi query backend.
 
-### 10.2. Kiểm tra backend local sau khi MongoDB và seed hoàn tất
+### 11.2. Kiểm tra backend local sau khi MongoDB và seed hoàn tất
 
 Backend local kết nối thành công tới MongoDB Atlas:
 
@@ -326,7 +404,7 @@ status: 503
 
 Đây là startup race riêng. Nó đã được loại trừ khỏi các test timeout sau khi chờ `connect:ready` và toàn bộ seed hoàn tất.
 
-### 10.3. Kiểm tra query và index bằng MongoDB Atlas qua Mongoose
+### 11.3. Kiểm tra query và index bằng MongoDB Atlas qua Mongoose
 
 Query `explain` read-only trên database `online-store` cho kết quả:
 
@@ -359,7 +437,7 @@ stage: IXSCAN → FETCH
 
 Các kết quả này cho thấy MongoDB Atlas không mất hàng chục giây để thực thi các query thô và không có bằng chứng hiện tại cho thấy thiếu index product là nguyên nhân trực tiếp.
 
-### 10.4. Đo từng stage của flow `top/rated`
+### 11.4. Đo từng stage của flow `top/rated`
 
 Đã chạy diagnostic trực tiếp bằng Mongoose:
 
@@ -380,7 +458,7 @@ Schema hasn't been registered for model "Category"
 
 Điểm đáng chú ý là query `explain` translation cache chỉ báo 8 ms, trong khi toàn bộ helper `getStorefrontVisibleProductIds()` mất 17 giây. Vì vậy cần tách riêng thời gian lấy dữ liệu qua Mongoose, chờ connection pool, deserialize document và vòng lặp kiểm tra visibility; không thể chỉ nhìn vào `executionTimeMillis` của MongoDB.
 
-### 10.5. Memory và cấu hình runtime
+### 11.5. Memory và cấu hình runtime
 
 Health check local đã trả:
 
@@ -404,7 +482,7 @@ Production health response cũng từng báo:
 
 Production cần được kiểm tra lại cấu hình `NODE_ENV` và cách deploy. Đây có thể làm thay đổi logging/runtime, nhưng chưa phải bằng chứng trực tiếp cho timeout query.
 
-## 11. Kết luận cập nhật
+## 12. Kết luận cập nhật
 
 Đã xác nhận đây không phải sự cố frontend đơn thuần, cũng không phải lỗi WARP đơn thuần.
 
@@ -430,7 +508,7 @@ Nguyên nhân chính hiện được khoanh vùng là sự kết hợp của:
 
 Chưa thể tuyên bố 100% stage MongoDB cụ thể nào gây treo cho tới khi diagnostic được chạy lại với model `Category` đã đăng ký và có timing riêng cho từng query/helper.
 
-## 12. Việc cần làm tiếp theo
+## 13. Việc cần làm tiếp theo
 
 1. Không tiếp tục bắn nhiều request nặng bằng PS1 khi backend còn request treo.
 2. Chạy lại diagnostic stage sau khi thêm `require('./src/models/Category')` vào script inline.
@@ -441,11 +519,13 @@ Chưa thể tuyên bố 100% stage MongoDB cụ thể nào gây treo cho tới k
    - `SpecKeyTranslationCache.find()`;
    - `CategoryCatalogTranslationCache.find()`;
    - `populate('category')`.
-4. Bổ sung projection và `maxTimeMS` cho các query translation/cache phù hợp.
+4. Chạy lại PS1 sau khi restart backend để so sánh trước và sau tối ưu.
 5. Kiểm tra connection pool thực tế và các query còn chạy sau khi client timeout.
 6. Kiểm tra production đã deploy đúng code tối ưu và đổi `NODE_ENV=production`.
 7. Khắc phục Cloudflare Tunnel `1033`, sau đó đo lại production.
 8. Chỉ thêm index mới sau khi có `explain` chứng minh query cần index đó.
+
+Các thay đổi projection và `maxTimeMS` đã được áp dụng ở local; cần xác nhận hiệu quả trên production sau khi deploy đúng phiên bản.
 
 Mục tiêu vận hành:
 
