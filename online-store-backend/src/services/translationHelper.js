@@ -169,7 +169,8 @@ const hasValidProductTranslation = (translation, sourceProduct) => (
   && hasCompleteProductTranslation(sourceProduct, translation)
 );
 
-async function getStorefrontVisibleProductIds(products) {
+async function getStorefrontVisibleProductIds(products, options = {}) {
+  const { maxTimeMS = 5000, timeoutMs = 7000 } = options;
   const requiredLanguages = SUPPORTED_LANGUAGES.map(({ code }) => code);
   const productsById = new Map(
     products
@@ -188,9 +189,9 @@ async function getStorefrontVisibleProductIds(products) {
       qualityStatus: 'approved',
     })
       .select('entityId targetLang status qualityStatus name brand description specs -_id')
-      .maxTimeMS(5000)
+      .maxTimeMS(maxTimeMS)
       .lean(),
-    7000
+    timeoutMs
   );
   const validLanguagesByProduct = new Map();
 
@@ -217,14 +218,14 @@ async function getStorefrontVisibleProductIds(products) {
   }));
 }
 
-const refreshStorefrontReadiness = async (productIds) => {
+const refreshStorefrontReadiness = async (productIds, options = {}) => {
   const ids = [...new Set((productIds || []).map((id) => String(id)).filter(Boolean))];
   if (ids.length === 0) return { matchedCount: 0, modifiedCount: 0 };
 
   const products = await Product.find({ _id: { $in: ids } })
     .select('_id name description brand specs')
     .lean();
-  const visibleIds = await getStorefrontVisibleProductIds(products);
+  const visibleIds = await getStorefrontVisibleProductIds(products, options);
   const visibleIdSet = new Set([...visibleIds].map(String));
 
   const result = await Product.bulkWrite(products.map((product) => ({

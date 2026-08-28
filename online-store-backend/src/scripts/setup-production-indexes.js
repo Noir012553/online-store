@@ -9,6 +9,9 @@
  * Chạy: node scripts/setup-production-indexes.js
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
 const mongoose = require('mongoose');
 const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');
@@ -16,6 +19,42 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const Product = require('../models/Product');
 const { refreshStorefrontReadiness } = require('../services/translationHelper');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const hasSameIndexKeys = (existingKeys, requestedKeys) => {
+  const existingEntries = Object.entries(existingKeys || {});
+  const requestedEntries = Object.entries(requestedKeys || {});
+
+  return existingEntries.length === requestedEntries.length
+    && existingEntries.every(([key, direction], index) => {
+      const [requestedKey, requestedDirection] = requestedEntries[index] || [];
+      return key === requestedKey && direction === requestedDirection;
+    });
+};
+
+const ensureIndex = async (collection, keys, options) => {
+  const indexes = await collection.listIndexes().toArray();
+  const existingIndex = indexes.find(index => hasSameIndexKeys(index.key, keys));
+
+  if (!existingIndex) {
+    return collection.createIndex(keys, options);
+  }
+
+  if (options.unique !== undefined && Boolean(existingIndex.unique) !== Boolean(options.unique)) {
+    throw new Error(`Existing index ${existingIndex.name} has a different unique option`);
+  }
+
+  if (options.expireAfterSeconds !== undefined
+    && existingIndex.expireAfterSeconds !== options.expireAfterSeconds) {
+    throw new Error(`Existing index ${existingIndex.name} has a different TTL option`);
+  }
+
+  return existingIndex.name;
+};
+
+const STOREFRONT_BACKFILL_OPTIONS = {
+  maxTimeMS: 30000,
+  timeoutMs: 35000,
+};
 
 const backfillStorefrontReadiness = async () => {
   let lastId = null;
@@ -27,12 +66,15 @@ const backfillStorefrontReadiness = async () => {
     const products = await Product.find(query)
       .select('_id')
       .sort({ _id: 1 })
-      .limit(100)
+      .limit(25)
       .lean();
 
     if (products.length === 0) break;
 
-    const result = await refreshStorefrontReadiness(products.map(({ _id }) => _id));
+    const result = await refreshStorefrontReadiness(
+      products.map(({ _id }) => _id),
+      STOREFRONT_BACKFILL_OPTIONS,
+    );
     processed += products.length;
     ready += result.modifiedCount;
     lastId = products[products.length - 1]._id;
@@ -44,19 +86,24 @@ const backfillStorefrontReadiness = async () => {
 
 async function setupIndexes() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) {
+      throw new Error('MONGO_URI chưa được cấu hình trong .env hoặc biến môi trường');
+    }
+
+    await mongoose.connect(mongoUri);
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // ========== PHASE 1: Languages Collection ==========
     console.log(`${CLI_SYMBOLS.location} Setting up indexes for "languages" collection...`);
     
-    await Language.collection.createIndex(
+    await ensureIndex(Language.collection,
       { code: 1 },
       { unique: true, name: 'idx_code_unique' }
     );
     console.log(`   ${CLI_SYMBOLS.check} Index on code (unique)`);
 
-    await Language.collection.createIndex(
+    await ensureIndex(Language.collection,
       { isReady: 1 },
       { name: 'idx_isReady' }
     );
@@ -66,19 +113,19 @@ async function setupIndexes() {
     console.log(`\n${CLI_SYMBOLS.location} Setting up indexes for "statictranslations" collection...`);
     
     // Compound index: code + namespace (CRITICAL for frontend)
-    await StaticTranslation.collection.createIndex(
+    await ensureIndex(StaticTranslation.collection,
       { code: 1, namespace: 1 },
       { unique: true, name: 'idx_code_namespace_unique' }
     );
     console.log(`   ${CLI_SYMBOLS.check} Compound index on code + namespace (unique, CRITICAL)`);
 
-    await StaticTranslation.collection.createIndex(
+    await ensureIndex(StaticTranslation.collection,
       { isDeleted: 1 },
       { name: 'idx_isDeleted' }
     );
     console.log(`   ${CLI_SYMBOLS.check} Index on isDeleted (for soft delete queries)`);
 
-    await StaticTranslation.collection.createIndex(
+    await ensureIndex(StaticTranslation.collection,
       { code: 1, isDeleted: 1 },
       { name: 'idx_code_isDeleted' }
     );
@@ -88,28 +135,28 @@ async function setupIndexes() {
     console.log(`\n${CLI_SYMBOLS.location} Setting up indexes for "livetranslationcaches" collection...`);
     
     // Unique hashKey for deduplication
-    await LiveTranslationCache.collection.createIndex(
+    await ensureIndex(LiveTranslationCache.collection,
       { hashKey: 1 },
       { unique: true, name: 'idx_hashKey_unique' }
     );
     console.log(`   ${CLI_SYMBOLS.check} Index on hashKey (unique, for deduplication)`);
 
     // Composite index for product translation lookups
-    await LiveTranslationCache.collection.createIndex(
+    await ensureIndex(LiveTranslationCache.collection,
       { entityId: 1, targetLang: 1, entityType: 1 },
       { name: 'idx_entity_lookup' }
     );
     console.log(`   ${CLI_SYMBOLS.check} Compound index on entityId + targetLang + entityType (for product translations)`);
 
     // TTL index for automatic cleanup (30 days = 2592000 seconds)
-    await LiveTranslationCache.collection.createIndex(
+    await ensureIndex(LiveTranslationCache.collection,
       { createdAt: 1 },
       { expireAfterSeconds: 2592000, name: 'idx_ttl_createdAt' }
     );
     console.log(`   ${CLI_SYMBOLS.check} TTL index on createdAt (auto-delete after 30 days)`);
 
     // Additional index for language lookups
-    await LiveTranslationCache.collection.createIndex(
+    await ensureIndex(LiveTranslationCache.collection,
       { targetLang: 1 },
       { name: 'idx_targetLang' }
     );

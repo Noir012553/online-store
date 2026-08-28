@@ -91,10 +91,49 @@ type HomeCategory = {
 };
 
 const HOMEPAGE_DEBUG_ENABLED = process.env.NEXT_PUBLIC_API_DEBUG !== 'false';
+const HOMEPAGE_ERROR_DEBUG_EVENTS = new Set([
+  'products:fetch-error',
+  'runtime:error',
+  'runtime:unhandled-rejection',
+]);
+const HOMEPAGE_DEBUG_OMIT_KEYS = new Set([
+  'durationMs',
+  'categories',
+  'content',
+  'flashSale',
+  'products',
+  'stack',
+]);
+const loggedHomepageErrors = new Set<string>();
+const loggedHomepageDebugEntries = new Set<string>();
+
+const getHomepageDebugDetails = (details: Record<string, unknown>) => Object.fromEntries(
+  Object.entries(details).filter(([key]) => !HOMEPAGE_DEBUG_OMIT_KEYS.has(key)),
+);
+
+const getHomepageErrorKey = (event: string, details: Record<string, unknown>) => JSON.stringify([
+  event,
+  details.message,
+  details.errorName,
+  details.filename,
+  details.lineNumber,
+]);
 
 const debugHomepage = (event: string, details: Record<string, unknown> = {}) => {
   if (!HOMEPAGE_DEBUG_ENABLED || typeof console === 'undefined') return;
-  console.log(`[HOMEPAGE_DEBUG] ${event}`, details);
+
+  if (HOMEPAGE_ERROR_DEBUG_EVENTS.has(event)) {
+    const errorKey = getHomepageErrorKey(event, details);
+    if (loggedHomepageErrors.has(errorKey)) return;
+    loggedHomepageErrors.add(errorKey);
+  }
+
+  const debugDetails = getHomepageDebugDetails(details);
+  const debugKey = `${event}:${JSON.stringify(debugDetails)}`;
+  if (loggedHomepageDebugEntries.has(debugKey)) return;
+  loggedHomepageDebugEntries.add(debugKey);
+
+  console.log(`[HOMEPAGE_DEBUG] ${event}`, debugDetails);
 };
 
 const describeProductPayload = (payload: any) => ({

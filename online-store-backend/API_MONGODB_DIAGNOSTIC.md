@@ -1009,3 +1009,219 @@ Không còn 500, 503, status=000, 1033 hoặc ECONNRESET
 
 Chỉ được kết luận sự cố đã xử lý hoàn toàn sau khi backfill, restart, đo lại production và kiểm tra trực tiếp Homepage thành công.
 
+## 21. Cập nhật kiểm tra production sau backfill
+
+### 21.1. Backfill readiness
+
+Đã chạy trong `online-store-backend`:
+
+```powershell
+npm run backfill:storefront
+```
+
+Kết quả:
+
+```text
+Connected to MongoDB
+Product indexes synchronized
+Storefront readiness backfill completed: 557 products processed, 557 changed
+All production indexes created successfully
+Setup complete
+```
+
+Các index đã tồn tại với tên mặc định của MongoDB như `code_1`, `hashKey_1` được giữ lại khi key và tùy chọn tương đương. Backfill đã cập nhật `storefrontReady` cho toàn bộ 557 product trong database được chỉ định bởi `MONGO_URI`.
+
+### 21.2. Khởi động backend, tunnel và frontend
+
+Backend được khởi động bằng:
+
+```powershell
+npm start
+```
+
+Log cho thấy seed translation, brand, currency và 9 system languages hoàn tất. Frontend được khởi động bằng:
+
+```powershell
+npm start
+```
+
+và Next.js production server báo `Ready` trên port `3000`.
+
+Cloudflare Tunnel được khởi động bằng:
+
+```powershell
+npm run tunnel
+```
+
+Tunnel đã đăng ký hai connector:
+
+```text
+Registered tunnel connection connIndex=0 ... protocol=quic
+Registered tunnel connection connIndex=1 ... protocol=quic
+```
+
+Tunnel đồng thời ghi nhận các cảnh báo định kỳ:
+
+```text
+Failed to refresh DNS local resolver
+lookup region1.v2.argotunnel.com: i/o timeout
+```
+
+Các cảnh báo này xảy ra khi refresh DNS control-plane. Tại thời điểm kiểm tra chưa có `1033`; hai connector vẫn được đăng ký. Nếu `1033` xuất hiện lại, cần kiểm tra DNS/mạng của máy chạy `cloudflared` riêng với lỗi MongoDB/API.
+
+### 21.3. Lệnh PowerShell kiểm tra backend qua tunnel
+
+Kiểm tra root health:
+
+```powershell
+Invoke-RestMethod https://backend.manln.online/
+```
+
+Kết quả:
+
+```text
+message     : Backend đang chạy
+database    : @{status=connected; connected=True}
+environment : development
+```
+
+Kiểm tra product list:
+
+```powershell
+Invoke-RestMethod "https://backend.manln.online/api/products?pageSize=1&lang=vi"
+```
+
+Kết quả: request thành công và trả về product. Kiểm tra top-rated:
+
+```powershell
+Invoke-RestMethod "https://backend.manln.online/api/products/top/rated?lang=vi"
+```
+
+Kết quả: request thành công và trả về 3 product. Các product quan sát được có:
+
+```text
+storefrontReady : True
+storefrontReadinessCheckedAt : 2026-08-28T12:15:45.560Z hoặc gần thời điểm backfill
+```
+
+Hai lệnh trên xác nhận backend production qua Cloudflare Tunnel hiện có thể truy vấn product và `storefrontReady` đã được sử dụng đúng.
+
+### 21.4. Vấn đề quan sát trên Homepage
+
+Trong browser console, một đợt tải Homepage ban đầu nhận `503` ở nhiều endpoint:
+
+```text
+/api/currencies?isActive=true&lang=vi
+/api/languages/active-config
+/api/translations?lang=vi&ns=ui-loading
+/api/translations?lang=vi&ns=footer
+/api/translations?lang=vi&ns=home
+/api/translations?lang=vi&ns=products
+/api/translations?lang=vi&ns=common
+/api/translations?lang=vi&ns=newsletter
+/api/translations?lang=vi&ns=categories
+/api/translations?lang=vi&ns=banner
+/api/translations/fallback?lang=vi
+/api/categories?lang=vi&withProducts=true&pageSize=500
+/api/brands?lang=vi
+/api/banners/*
+/api/users/refresh
+```
+
+Sau đó, khi backend đã sẵn sàng, nhiều request chuyển sang `200`, gồm:
+
+```text
+/api/banners/*
+/api/brands?lang=vi
+/api/categories?lang=vi&withProducts=true&pageSize=500
+/api/users/refresh
+/api/products/featured/list?...  → 200
+```
+
+Log Homepage ghi nhận trình tự:
+
+```text
+products:skipped-not-hydrated
+products:fetch-start, categoryCount: 0
+categories:settled
+products:fetch-finish
+...
+categoryCount: 5
+category:response-success       → các category đều có response
+products:fetch-finish
+render:sections ...
+categorySections: []
+sectionsToRender: []
+```
+
+Giao diện vì vậy hiển thị:
+
+```text
+Không tìm thấy sản phẩm
+Không thể tải dữ liệu sản phẩm lúc này.
+```
+
+### 21.5. Khoanh vùng vấn đề Homepage
+
+Các kết quả hiện tại cho thấy:
+
+1. Backend và MongoDB không còn lỗi kết nối trong phép kiểm tra trực tiếp.
+2. `/api/products` và `/api/products/top/rated` trả dữ liệu hợp lệ.
+3. Lỗi `503` ban đầu có khả năng liên quan tới request chạy trước khi frontend hydration/backend readiness hoàn tất; cần đối chiếu thời điểm `database:blocked` trong backend log.
+4. Sau khi category API trả `200`, Homepage vẫn có lúc giữ `categorySections=[]`. Chưa thể kết luận đây là lỗi backend hay frontend vì console hiện đang hiển thị object đã collapse, chưa có `productCount` và payload đầy đủ của từng `category:response-success`.
+5. Cần xác minh riêng mỗi response `/api/products/featured/list` theo category có `products.length` bằng bao nhiêu. Nếu `products.length=0`, cần kiểm tra điều kiện `highlighted`, `inStock`, `hasSpecs`, `storefrontReady` và active deal/featured. Nếu response có product nhưng `categorySections` vẫn rỗng, cần kiểm tra mapping `categoryProducts[category._id]` trong `HomeContent.tsx`.
+6. Các log `request:queued`, `attempt:start`, `attempt:response` là log của từng request khác nhau, không phải một request bị gửi lặp vô hạn. Debug dedupe đã giảm các entry giống hệt; browser vẫn tự in dòng `Failed to load resource` cho từng HTTP response lỗi.
+
+### 21.6. Lệnh kiểm tra tiếp theo
+
+Chạy từng request category trực tiếp, thay `<CATEGORY_ID>` bằng ID thực tế:
+
+```powershell
+Invoke-RestMethod "https://backend.manln.online/api/products/featured/list?pageNumber=1&pageSize=8&category=<CATEGORY_ID>&lang=vi&locale=vi&currencyCode=VND&inStock=true&hasSpecs=true&prioritizeSpecs=true&highlighted=true"
+```
+
+Cần ghi lại cho từng category:
+
+```text
+HTTP status
+products.length
+total
+pages
+product._id
+product.category._id
+product.storefrontReady
+```
+
+Sau khi backend đã chạy ổn định, refresh Homepage một lần và không chạy đồng thời nhiều phiên bản backend/tunnel trên cùng port. Chỉ kết luận Homepage đã xử lý hoàn toàn khi các category có product hợp lệ và `categorySections` không còn rỗng.
+
+### 21.7. Backfill timeout trong bản sao `copy 49`
+
+Đã chạy lại trong thư mục `online-store-backend` thuộc bản sao `copy 49`:
+
+```powershell
+npm run backfill:storefront
+```
+
+Kết quả:
+
+```text
+injected env (69) from .env
+Connected to MongoDB
+Product indexes synchronized
+Backfilling storefront readiness...
+Error setting up indexes: Database operation timed out after 35000ms
+```
+
+Lần chạy này xác nhận:
+
+1. `.env` được nạp.
+2. MongoDB kết nối thành công.
+3. Các index được kiểm tra/đồng bộ thành công.
+4. Timeout xảy ra trong bước `refreshStorefrontReadiness()`, sau khi bắt đầu backfill, không phải ở bước kết nối hoặc tạo index.
+5. Timeout `35000ms` là timeout ứng dụng dành riêng cho batch backfill; việc tăng timeout thêm không phải giải pháp gốc nếu query Mongoose hoặc connection pool tiếp tục bị treo.
+6. Do command dừng trước dòng `Readiness batch: ... products processed`, chưa có bằng chứng batch nào hoàn tất trong lần chạy `copy 49` này.
+
+Lần chạy thành công trước đó trong `copy 48` đã xử lý đủ 557 product. Nếu `copy 49` sử dụng cùng `MONGO_URI` và cùng database, cần kiểm tra xem timeout là do kết nối/runtime của máy `copy 49` hay do trạng thái database tại thời điểm chạy; không nên kết luận rằng dữ liệu readiness đã bị mất hoặc bị reset chỉ từ lỗi timeout này.
+
+Cần giữ lại log backend cùng thời điểm để đối chiếu các sự kiện `MONGO_DEBUG`, `DB_ERROR`, `DB_WARN` và kiểm tra connection pool. Không nên chạy đồng thời nhiều tiến trình backfill hoặc nhiều backend dùng cùng MongoDB connection pool trong lúc chẩn đoán.
+

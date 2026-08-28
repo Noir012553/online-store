@@ -94,11 +94,62 @@ export interface BackendProduct {
 // API Base URL = proxy path (cùng domain với frontend)
 const API_URL = API_BASE_PATH;
 const API_DEBUG_ENABLED = process.env.NEXT_PUBLIC_API_DEBUG !== 'false';
+const API_ERROR_DEBUG_EVENTS = new Set([
+  'attempt:error',
+  'timeout:detected',
+  'response:adapter-error',
+]);
+const API_DEBUG_OMIT_KEYS = new Set([
+  'requestId',
+  'durationMs',
+  'responseSize',
+  'payload',
+  'body',
+  'stack',
+]);
+const loggedApiErrors = new Set<string>();
+const loggedApiDebugEntries = new Set<string>();
 let apiRequestSequence = 0;
+
+const getDebugDetails = (details: Record<string, unknown>) => Object.fromEntries(
+  Object.entries(details).filter(([key]) => !API_DEBUG_OMIT_KEYS.has(key)),
+);
+
+const getApiErrorKey = (event: string, details: Record<string, unknown>) => {
+  const endpoint = String(details.endpoint || '');
+  const isTimeout = event === 'timeout:detected'
+    || details.name === 'AbortError'
+    || details.name === 'TimeoutError'
+    || String(details.message || '').includes('timeout');
+
+  if (isTimeout) return `timeout:${endpoint}`;
+
+  return JSON.stringify([
+    event,
+    endpoint,
+    details.status,
+    details.code,
+    details.causeCode,
+    details.name,
+    details.message,
+  ]);
+};
 
 const debugApi = (event: string, details: Record<string, unknown> = {}) => {
   if (!API_DEBUG_ENABLED || typeof console === 'undefined') return;
-  console.log(`[API_DEBUG] ${event}`, details);
+
+  if (API_ERROR_DEBUG_EVENTS.has(event)) {
+    const errorKey = getApiErrorKey(event, details);
+    if (loggedApiErrors.has(errorKey)) return;
+    loggedApiErrors.add(errorKey);
+  }
+
+  const debugDetails = getDebugDetails(details);
+  const debugKey = `${event}:${JSON.stringify(debugDetails)}`;
+  if (loggedApiDebugEntries.has(debugKey)) return;
+  loggedApiDebugEntries.add(debugKey);
+
+  console.log(`[API_DEBUG] ${event}`, debugDetails);
 };
 
 const describeResponse = (data: unknown) => ({
