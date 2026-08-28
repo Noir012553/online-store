@@ -51,6 +51,11 @@ const ensureIndex = async (collection, keys, options) => {
   return existingIndex.name;
 };
 
+const STOREFRONT_BACKFILL_OPTIONS = {
+  maxTimeMS: 30000,
+  timeoutMs: 35000,
+};
+
 const backfillStorefrontReadiness = async () => {
   let lastId = null;
   let processed = 0;
@@ -61,12 +66,15 @@ const backfillStorefrontReadiness = async () => {
     const products = await Product.find(query)
       .select('_id')
       .sort({ _id: 1 })
-      .limit(100)
+      .limit(25)
       .lean();
 
     if (products.length === 0) break;
 
-    const result = await refreshStorefrontReadiness(products.map(({ _id }) => _id));
+    const result = await refreshStorefrontReadiness(
+      products.map(({ _id }) => _id),
+      STOREFRONT_BACKFILL_OPTIONS,
+    );
     processed += products.length;
     ready += result.modifiedCount;
     lastId = products[products.length - 1]._id;
