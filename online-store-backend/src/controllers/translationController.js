@@ -16,7 +16,7 @@ const seedTranslations = require('../seeds/translationSeeder');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
-const { localizeProductSpecFields } = require('../services/translationHelper');
+const { localizeProductSpecFields, refreshStorefrontReadiness } = require('../services/translationHelper');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 
@@ -1107,6 +1107,7 @@ exports.saveProductTranslation = async (req, res) => {
       { $set: update },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     ).lean();
+    await refreshStorefrontReadiness([productId]);
 
     return res.json({ success: true, data: translation });
   } catch (error) {
@@ -1320,6 +1321,7 @@ exports.importProductTranslationCache = async (req, res) => {
     const result = operations.length > 0
       ? await ProductCatalogTranslationCache.bulkWrite(operations)
       : { modifiedCount: 0, upsertedCount: 0 };
+    await refreshStorefrontReadiness([...new Set(importPlans.map(({ productId }) => productId))]);
     const responseData = {
       totalProcessed: normalizedRecords.length,
       importedCount: result.modifiedCount + result.upsertedCount,
@@ -1417,6 +1419,7 @@ exports.retranslateProduct = async (req, res) => {
       { $set: translated },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     ).lean();
+    await refreshStorefrontReadiness([productId]);
 
     return res.json({
       success: true,

@@ -52,6 +52,7 @@
     "repair:product-currencies": "node src/scripts/repair-product-currencies.js",
     "repair:product-currencies:dry-run": "node src/scripts/repair-product-currencies.js --dry-run",
     "setup-i18n-indexes": "node src/scripts/setup-production-indexes.js",
+    "backfill:storefront": "node src/scripts/setup-production-indexes.js --backfill-storefront",
     "test:blueprint": "node src/test/test-blueprint-3phase.js",
     "test:translation-quality": "node src/scripts/test-translation-quality.js",
     "check:translation-keys": "node src/scripts/verify-frontend-translation-keys.js",

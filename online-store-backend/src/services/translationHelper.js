@@ -10,6 +10,7 @@
  * 3. Advanced: applyTranslationCache({ data, type, lang, cacheFields })
  */
 
+const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
@@ -215,6 +216,34 @@ async function getStorefrontVisibleProductIds(products) {
         .every((language) => validLanguages.has(language));
   }));
 }
+
+const refreshStorefrontReadiness = async (productIds) => {
+  const ids = [...new Set((productIds || []).map((id) => String(id)).filter(Boolean))];
+  if (ids.length === 0) return { matchedCount: 0, modifiedCount: 0 };
+
+  const products = await Product.find({ _id: { $in: ids } })
+    .select('_id name description brand specs')
+    .lean();
+  const visibleIds = await getStorefrontVisibleProductIds(products);
+  const visibleIdSet = new Set([...visibleIds].map(String));
+
+  const result = await Product.bulkWrite(products.map((product) => ({
+    updateOne: {
+      filter: { _id: product._id },
+      update: {
+        $set: {
+          storefrontReady: visibleIdSet.has(String(product._id)),
+          storefrontReadinessCheckedAt: new Date(),
+        },
+      },
+    },
+  })));
+
+  return {
+    matchedCount: result.matchedCount || 0,
+    modifiedCount: result.modifiedCount || 0,
+  };
+};
 
 /**
  * Overlay translation cho single entity
@@ -853,4 +882,5 @@ module.exports = {
   CACHE_MODELS,
   TRANSLATABLE_FIELDS,
   getStorefrontVisibleProductIds,
+  refreshStorefrontReadiness,
 };

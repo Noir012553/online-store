@@ -197,6 +197,11 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
 
+  await Product.updateMany(
+    { _id: { $in: productIds } },
+    { $set: { storefrontReady: false, storefrontReadinessCheckedAt: null } },
+  );
+
   return {
     markedForRetranslation: operations.length,
     preservedManualTranslations,

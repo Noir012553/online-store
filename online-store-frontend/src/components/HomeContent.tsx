@@ -114,6 +114,27 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-van-phong': '/products/laptop-office',
 };
 
+const FLASH_SALE_CATEGORY_KEYS = new Set([
+  'gaming-laptop',
+  'office-laptop',
+  'laptop-gaming',
+  'laptop-office',
+  'category-gaming-laptop',
+  'category-office-laptop',
+  'laptop-chơi-game',
+  'laptop-văn-phòng',
+]);
+
+const normalizeCategoryLookupValue = (value: unknown): string => (
+  String(value || '').trim().toLowerCase().replace(/[\\s_]+/g, '-')
+);
+
+const isFlashSaleCategory = (category: HomeCategory): boolean => (
+  [category.slug, category.key, category.translationKey, category.name, ...(category.sourceNames || [])]
+    .map(normalizeCategoryLookupValue)
+    .some((value) => FLASH_SALE_CATEGORY_KEYS.has(value))
+);
+
 const normalizeHomepageTargetUrl = (targetUrl?: string): string => {
   if (!targetUrl) return '';
 
@@ -210,7 +231,6 @@ export default function Home() {
     seconds: 0,
   });
   const [dealEndTime, setDealEndTime] = useState<number | null>(null);
-  const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
   const [categoryProducts, setCategoryProducts] = useState<Record<string, BackendProduct[]>>({});
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
@@ -290,105 +310,98 @@ export default function Home() {
 
   // Fetch products from backend
   useEffect(() => {
-    // Only fetch after hydration is complete to ensure locale is correct
     if (!isHydrated) {
       debugHomepage('products:skipped-not-hydrated', { locale, currencyCode });
       setIsLoading(false);
       return;
     }
 
-    let isMounted = true; // Track if component is still mounted
+    let isMounted = true;
+    const contentCategories = Array.isArray(categories) ? categories : [];
+    const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
+
+    const fetchCategoryProducts = async (category: HomeCategory, mode: 'content' | 'flash') => {
+      const requestDetails = {
+        categoryId: category._id,
+        categoryName: category.name,
+        categorySlug: category.slug,
+        mode,
+        pageNumber: 1,
+        pageSize: 8,
+        lang: locale,
+        locale,
+        currencyCode,
+        inStock: true,
+        hasSpecs: true,
+        prioritizeSpecs: true,
+        ...(mode === 'content'
+          ? { highlighted: true }
+          : { hasDeal: true, featuredOnly: true, shockDeal: true }),
+      };
+      debugHomepage('category:request-start', requestDetails);
+
+      const response = await productAPI.getFeaturedProducts(
+        1,
+        undefined,
+        category._id,
+        undefined,
+        8,
+        undefined,
+        undefined,
+        true,
+        locale,
+        locale,
+        currencyCode,
+        true,
+        true,
+        mode === 'flash',
+        mode === 'content' ? true : undefined,
+        mode === 'flash' ? true : undefined,
+        mode === 'flash' ? true : undefined,
+      );
+
+      debugHomepage('category:response-success', {
+        ...requestDetails,
+        ...describeProductPayload(response),
+        products: response.products || [],
+      });
+      return [category._id, response.products || []] as const;
+    };
 
     const fetchData = async () => {
       const fetchStartedAt = Date.now();
       debugHomepage('products:fetch-start', {
         locale,
         currencyCode,
-        categoryCount: Array.isArray(categories) ? categories.length : 0,
-        categories: Array.isArray(categories)
-          ? categories.map((category) => ({
-            id: category._id,
-            name: category.name,
-            slug: category.slug,
-            key: category.key,
-            translationKey: category.translationKey,
-            sourceNames: (category as HomeCategory).sourceNames,
-          }))
-          : [],
+        categoryCount: contentCategories.length,
+        flashSaleCategoryCount: flashSaleCategories.length,
+        categories: contentCategories,
       });
       setIsLoading(true);
       setHasProductLoadError(false);
+
       try {
-        const [productsResult, dealsResult] = await Promise.allSettled([
-          productAPI.getFeaturedProducts(
-            1,
-            undefined,
-            undefined,
-            undefined,
-            12,
-            undefined,
-            undefined,
-            true,
-            locale,
-            locale,
-            currencyCode,
-          ),
-          productAPI.getFeaturedProducts(
-            1,
-            undefined,
-            undefined,
-            undefined,
-            12,
-            undefined,
-            undefined,
-            true,
-            locale,
-            locale,
-            currencyCode,
-            undefined,
-            undefined,
-            true,
-          ),
+        const [categoryResults, flashResults] = await Promise.all([
+          Promise.allSettled(contentCategories.map((category) => fetchCategoryProducts(category, 'content'))),
+          Promise.allSettled(flashSaleCategories.map((category) => fetchCategoryProducts(category, 'flash'))),
         ]);
 
-        debugHomepage('base-requests:settled', {
-          durationMs: Date.now() - fetchStartedAt,
-          products: productsResult.status === 'fulfilled'
-            ? describeProductPayload(productsResult.value)
-            : {
-              status: 'rejected',
-              reason: productsResult.reason instanceof Error
-                ? { name: productsResult.reason.name, message: productsResult.reason.message, stack: productsResult.reason.stack }
-                : productsResult.reason,
-            },
-          deals: dealsResult.status === 'fulfilled'
-            ? describeProductPayload(dealsResult.value)
-            : {
-              status: 'rejected',
-              reason: dealsResult.reason instanceof Error
-                ? { name: dealsResult.reason.name, message: dealsResult.reason.message, stack: dealsResult.reason.stack }
-                : dealsResult.reason,
-            },
-        });
+        if (!isMounted) return;
 
-        if (!isMounted) {
-          debugHomepage('products:ignored-unmounted', { stage: 'base-requests' });
-          return;
-        }
-        if (productsResult.status === 'rejected') throw productsResult.reason;
-
-        debugHomepage('products:parsed', {
-          ...describeProductPayload(productsResult.value),
-          products: productsResult.value.products || [],
-        });
-        setAllProducts(productsResult.value.products || []);
-
-        const dealCandidates: BackendProduct[] = dealsResult.status === 'fulfilled'
-          ? dealsResult.value.products || []
-          : [];
-        const deals = dealCandidates
-          .filter((product: BackendProduct) => isActiveDeal(product.deal))
-          .sort((first: BackendProduct, second: BackendProduct) => {
+        const categoryProductMap = Object.fromEntries(
+          categoryResults
+            .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
+            .map((result) => result.value),
+        );
+        const dealCandidates = flashResults
+          .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
+          .flatMap((result) => result.value[1]);
+        const uniqueDeals = [...new Map(
+          dealCandidates.map((product) => [product._id || product.id, product]),
+        ).values()];
+        const deals = uniqueDeals
+          .filter((product) => isActiveDeal(product.deal))
+          .sort((first, second) => {
             const specsDifference = Number(hasProductSpecs(second)) - Number(hasProductSpecs(first));
             if (specsDifference !== 0) return specsDifference;
 
@@ -401,122 +414,31 @@ export default function Home() {
           })
           .slice(0, 10);
 
+        debugHomepage('categories:settled', {
+          durationMs: Date.now() - fetchStartedAt,
+          content: categoryResults,
+          flashSale: flashResults,
+        });
         debugHomepage('deals:transformed', {
           candidateCount: dealCandidates.length,
           activeDealCount: deals.length,
           productIds: deals.map((product) => product._id || product.id),
-          deals,
         });
+
+        setCategoryProducts(categoryProductMap);
         setDealProducts(deals);
         const dealEndTimes = deals
           .map((product) => getDealEndTimestamp(product.deal))
           .filter((endTime): endTime is number => endTime !== null);
         setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
-
-        debugHomepage('categories:fetch-start', {
-          count: categories.length,
-          categories: categories.map((category) => ({
-            id: category._id,
-            name: category.name,
-            slug: category.slug,
-            key: category.key,
-            translationKey: category.translationKey,
-            sourceNames: (category as HomeCategory).sourceNames,
-          })),
-        });
-        const categoryResults = await Promise.allSettled(
-          categories.map(async (category) => {
-            const requestDetails = {
-              categoryId: category._id,
-              categoryName: category.name,
-              categorySlug: category.slug,
-              pageNumber: 1,
-              pageSize: 8,
-              lang: locale,
-              locale,
-              currencyCode,
-              inStock: true,
-              hasSpecs: true,
-              prioritizeSpecs: true,
-            };
-            debugHomepage('category:request-start', requestDetails);
-            const response = await productAPI.getFeaturedProducts(
-              1,
-              undefined,
-              category._id,
-              undefined,
-              8,
-              undefined,
-              undefined,
-              true,
-              locale,
-              locale,
-              currencyCode,
-              true,
-              undefined,
-            );
-
-            debugHomepage('category:response-success', {
-              ...requestDetails,
-              ...describeProductPayload(response),
-              products: response.products || [],
-            });
-            return [category._id, response.products || []] as const;
-          }),
-        );
-
-        debugHomepage('categories:settled', {
-          durationMs: Date.now() - fetchStartedAt,
-          results: categoryResults.map((result, index) => {
-            const category = categories[index];
-            return result.status === 'fulfilled'
-              ? {
-                status: result.status,
-                categoryId: category?._id,
-                categoryName: category?.name,
-                ...describeProductPayload({ products: result.value[1] }),
-              }
-              : {
-                status: result.status,
-                categoryId: category?._id,
-                categoryName: category?.name,
-                reason: result.reason instanceof Error
-                  ? { name: result.reason.name, message: result.reason.message, stack: result.reason.stack }
-                  : result.reason,
-              };
-          }),
-        });
-
-        if (!isMounted) {
-          debugHomepage('products:ignored-unmounted', { stage: 'category-requests' });
-          return;
-        }
-
-        const categoryProductMap = Object.fromEntries(
-          categoryResults
-            .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
-            .map((result) => result.value),
-        );
-        debugHomepage('categories:transformed', {
-          categoryProductMap: Object.fromEntries(
-            Object.entries(categoryProductMap).map(([categoryId, products]) => [categoryId, {
-              count: products.length,
-              productIds: products.map((product) => product._id || product.id),
-              products,
-            }]),
-          ),
-        });
-        setCategoryProducts(categoryProductMap);
+        setHasProductLoadError(categoryResults.every((result) => result.status === 'rejected'));
       } catch (error) {
         debugHomepage('products:fetch-error', {
           durationMs: Date.now() - fetchStartedAt,
-          isMounted,
           errorName: error instanceof Error ? error.name : typeof error,
           message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
         });
         if (isMounted) {
-          setAllProducts([]);
           setCategoryProducts({});
           setDealProducts([]);
           setHasProductLoadError(true);
@@ -526,15 +448,11 @@ export default function Home() {
           durationMs: Date.now() - fetchStartedAt,
           isMounted,
         });
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchData();
-
-    // Cleanup function: mark component as unmounted
     return () => {
       isMounted = false;
     };
@@ -724,11 +642,7 @@ export default function Home() {
       products: (categoryProducts[category._id] || []).slice(0, 8),
     }))
     .filter(({ products }) => products.length > 0);
-  const sectionsToRender = categorySections.length > 0
-    ? categorySections
-    : allProducts.length > 0
-      ? [{ category: { _id: 'all-products', name: t('view_all_products') }, products: allProducts.slice(0, 8) }]
-      : [];
+  const sectionsToRender = categorySections;
 
   debugHomepage('render:sections', {
     isLoading,
