@@ -11,6 +11,7 @@ const indexes = [
   { collection: 'orders', name: 'idx_dashboard_customer_orders', keys: { customer: 1, isDeleted: 1, createdAt: -1 } },
   { collection: 'products', name: 'idx_dashboard_low_inventory', keys: { isDeleted: 1, countInStock: 1 } },
   { collection: 'products', name: 'idx_dashboard_low_rating', keys: { isDeleted: 1, rating: 1, numReviews: 1 } },
+  { collection: 'products', name: 'idx_product_source_product_id', keys: { sourceProductId: 1 }, options: { sparse: true } },
   { collection: 'customers', name: 'idx_dashboard_customer_created', keys: { isDeleted: 1, createdAt: -1 } },
   { collection: 'coupons', name: 'idx_dashboard_unused_coupons', keys: { isDeleted: 1, isActive: 1, endDate: 1, currentUses: 1 } },
 ];
@@ -44,7 +45,7 @@ const main = async () => {
 
   for (const index of indexes) {
     if (existing.some((item) => item.collection === index.collection && item.name === index.name && item.exists)) continue;
-    await mongoose.connection.collection(index.collection).createIndex(index.keys, { name: index.name });
+    await mongoose.connection.collection(index.collection).createIndex(index.keys, { name: index.name, ...index.options });
   }
 };
 

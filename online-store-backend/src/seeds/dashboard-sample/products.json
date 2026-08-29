@@ -4,7 +4,7 @@
     "name": "Laptop Ultrabook Pro 14",
     "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80",
     "images": ["https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80"],
-    "brand": "NovaTech",
+
     "description": "Laptop mỏng nhẹ cho công việc hằng ngày.",
     "specs": { "cpu": "Intel Core Ultra 7", "ram": "16GB", "storage": "512GB SSD", "display": "14 inch 2.8K", "os": "Windows 11" },
     "price": 28990000,
@@ -19,7 +19,7 @@
     "name": "Laptop Creator Studio 16",
     "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80",
     "images": ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80"],
-    "brand": "NovaTech",
+
     "description": "Hiệu năng cao cho thiết kế và dựng nội dung.",
     "specs": { "cpu": "AMD Ryzen 9", "ram": "32GB", "storage": "1TB SSD", "display": "16 inch 3.2K", "gpu": "RTX 4060" },
     "price": 42990000,
@@ -34,7 +34,7 @@
     "name": "Laptop Office Air 13",
     "image": "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=1200&q=80",
     "images": ["https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=1200&q=80"],
-    "brand": "NovaTech",
+
     "description": "Thiết bị gọn nhẹ, phù hợp văn phòng.",
     "specs": { "cpu": "Intel Core i5", "ram": "16GB", "storage": "512GB SSD", "display": "13.3 inch FHD", "os": "Windows 11" },
     "price": 19490000,
@@ -49,7 +49,7 @@
     "name": "Laptop Gaming Edge 15",
     "image": "https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=1200&q=80",
     "images": ["https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=1200&q=80"],
-    "brand": "NovaTech",
+
     "description": "Laptop chơi game hiệu năng mạnh.",
     "specs": { "cpu": "Intel Core i7", "ram": "16GB", "storage": "1TB SSD", "display": "15.6 inch 165Hz", "gpu": "RTX 4060" },
     "price": 35990000,
@@ -64,7 +64,7 @@
     "name": "Laptop Workstation Mini 14",
     "image": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
     "images": ["https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80"],
-    "brand": "NovaTech",
+
     "description": "Mẫu workstation tồn kho cao để theo dõi bán chậm.",
     "specs": { "cpu": "AMD Ryzen 7", "ram": "32GB", "storage": "1TB SSD", "display": "14 inch QHD", "gpu": "RTX A1000" },
     "price": 33490000,

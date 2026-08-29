@@ -9,6 +9,7 @@
     "minOrderAmount": 1000000,
     "startDaysAgo": 30,
     "endDaysFromNow": 180,
+    "scope": "category",
     "isActive": true
   },
   {
@@ -21,6 +22,7 @@
     "minOrderAmount": 5000000,
     "startDaysAgo": 10,
     "endDaysFromNow": 90,
+    "scope": "category",
     "isActive": true
   },
   {
@@ -33,6 +35,7 @@
     "minOrderAmount": 2000000,
     "startDaysAgo": 7,
     "endDaysFromNow": 120,
+    "scope": "category",
     "isActive": true
   }
 ]

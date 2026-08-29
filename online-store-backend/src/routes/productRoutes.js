@@ -69,6 +69,14 @@ router.get('/featured/list', getFeaturedProducts);
  * GET /api/products/admin/translations - Lấy toàn bộ sản phẩm cho trang quản lý bản dịch
  */
 router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
+router.post('/admin/import', protect, admin, importProducts);
+router.post('/admin/import-file', protect, admin, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
+router.get('/admin/import-template', protect, admin, getImportTemplate);
+router.get('/admin/import-guide', protect, admin, getImportGuide);
+router.get('/admin/import-formats', protect, admin, getImportFormats);
+router.get('/admin/export', protect, admin, exportProducts);
+router.get('/admin/export-bundle', protect, admin, exportProductsWithTranslations);
+router.get('/admin/export-stats', protect, admin, getExportStats);
 
 /**
  * GET /api/products - Lấy danh sách sản phẩm (phân trang, tìm kiếm, lọc)
@@ -159,50 +167,6 @@ router.put('/:id/restore', protect, admin, restoreProduct);
  * Hard delete (vĩnh viễn xóa + cleanup file) dành cho admin/super-admin
  */
 router.delete('/:id/hard', protect, admin, hardDeleteProduct);
-
-/**
- * POST /api/products/admin/import - Import products từ JSON/CSV text data
- * Admin only - Hỗ trợ insert, update, upsert modes
- */
-router.post('/admin/import', protect, admin, importProducts);
-
-/**
- * POST /api/products/admin/import-file - Import products từ file upload (FormData)
- * Admin only - Hỗ trợ insert, update, upsert modes
- * Accepts multipart/form-data with file field (JSON or CSV, max 100MB)
- */
-router.post('/admin/import-file', protect, admin, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
-
-/**
- * GET /api/products/admin/import-template - Lấy template import
- * Admin only
- */
-router.get('/admin/import-template', protect, admin, getImportTemplate);
-
-/**
- * GET /api/products/admin/import-guide - Lấy hướng dẫn import
- * Admin only
- */
-router.get('/admin/import-guide', protect, admin, getImportGuide);
-
-/**
- * GET /api/products/admin/import-formats - Lấy list supported formats
- * Admin only
- */
-router.get('/admin/import-formats', protect, admin, getImportFormats);
-
-/**
- * GET /api/products/admin/export - Export products từ database
- * Admin only - Hỗ trợ JSON, CSV formats
- */
-router.get('/admin/export', protect, admin, exportProducts);
-router.get('/admin/export-bundle', protect, admin, exportProductsWithTranslations);
-
-/**
- * GET /api/products/admin/export-stats - Lấy thống kê export
- * Admin only - Dùng để hiển thị available categories và brands
- */
-router.get('/admin/export-stats', protect, admin, getExportStats);
 
 /**
  * POST /api/products/upload - Tải lên ảnh sản phẩm lên Cloudinary (Admin only)
