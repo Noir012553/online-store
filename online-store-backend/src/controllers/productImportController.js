@@ -37,6 +37,46 @@ const buildCategoryNameQuery = (name) => {
   return { name: name.trim() };
 };
 
+const resolveProductExportFilter = async (category, brand) => {
+  const filter = { isDeleted: false };
+
+  if (category && category !== 'all') {
+    if (mongoose.Types.ObjectId.isValid(category)) {
+      filter.category = new mongoose.Types.ObjectId(category);
+    } else {
+      const categoryQuery = buildCategoryNameQuery(category);
+      const categoryDoc = categoryQuery
+        ? await Category.findOne({ ...categoryQuery, isDeleted: false }).select('_id').lean()
+        : null;
+      if (!categoryDoc) return null;
+      filter.category = categoryDoc._id;
+    }
+  }
+
+  if (brand && brand !== 'all') {
+    filter.brand = brand.trim();
+  }
+
+  return filter;
+};
+
+const getExportProducts = async (filter, limit) => {
+  const matchedTotal = await Product.countDocuments(filter);
+  const products = await Product.find(filter)
+    .select('-reviews -createdAt -updatedAt -__v')
+    .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+    .sort({ _id: 1 })
+    .limit(limit + 1)
+    .lean();
+  const hasMore = products.length > limit;
+
+  return {
+    matchedTotal,
+    hasMore,
+    products: hasMore ? products.slice(0, limit) : products,
+  };
+};
+
 // Initialize adapter manager
 const adapterManager = new ImportAdapterManager();
 
@@ -100,6 +140,13 @@ const getImportErrorMessage = (lang, code, params) => getMessage(
   lang,
   importErrorMessageKeys[code] || 'admin-controllers-messages.error_importing_products',
   params
+);
+
+const getImportErrorStatus = (error) => (
+  error?.name === 'ValidationError'
+  || (typeof error?.code === 'string' && error.code.startsWith('IMPORT_'))
+    ? 400
+    : 500
 );
 
 const getImportProductId = (product) => (
@@ -514,7 +561,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
   } catch (error) {
 
     console.error('[IMPORT_FILE_ERROR]', error);
-    res.status(500).json({
+    res.status(getImportErrorStatus(error)).json({
       success: false,
       code: error.code || 'IMPORT_FILE_FAILED',
       params: error.params,
@@ -695,7 +742,7 @@ const importProducts = asyncHandler(async (req, res) => {
       console.error('[IMPORT_TEXT_ERROR]', error);
       console.error('[IMPORT_TEXT_ERROR_STACK]', error.stack);
     }
-    res.status(500).json({
+    res.status(getImportErrorStatus(error)).json({
       success: false,
       code: error.code || 'IMPORT_FAILED',
       params: error.params,
@@ -1009,51 +1056,24 @@ const exportProducts = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Build filter
-    const filter = { isDeleted: false };
-
-    // Resolve category name → ID
-    if (category && category !== 'all') {
-      // Try to use category as-is first (it might be an ObjectId)
-      if (mongoose.Types.ObjectId.isValid(category)) {
-        filter.category = category;
-      } else {
-        // If not ObjectId, search by category name
-        const categoryDoc = await Category.findOne({
-          isDeleted: false,
-          name: category,
-        });
-        if (categoryDoc) {
-          filter.category = categoryDoc._id;
-        } else {
-          // Category not found, return empty result
-          return res.json({
-            success: true,
-            exportedAt: new Date().toISOString(),
-            totalProducts: 0,
-            format,
-            filters: { category, brand },
-            products: [],
-            warningCode: 'EXPORT_CATEGORY_NOT_FOUND',
-          });
-        }
-      }
+    const filter = await resolveProductExportFilter(category, brand);
+    if (!filter) {
+      return res.json({
+        success: true,
+        exportedAt: new Date().toISOString(),
+        totalProducts: 0,
+        format,
+        filters: { category, brand },
+        products: [],
+        warningCode: 'EXPORT_CATEGORY_NOT_FOUND',
+      });
     }
 
-    if (brand && brand !== 'all') {
-      filter.brand = brand;
-    }
-
-    const matchedTotal = await Product.countDocuments(filter);
-
-    const products = await Product.find(filter)
-      .select('-reviews -createdAt -updatedAt -__v')
-      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-      .sort({ _id: 1 })
-      .limit(parsedLimit + 1)
-      .lean();
-    const hasMore = products.length > parsedLimit;
-    const exportedProducts = hasMore ? products.slice(0, parsedLimit) : products;
+    const {
+      matchedTotal,
+      hasMore,
+      products: exportedProducts,
+    } = await getExportProducts(filter, parsedLimit);
 
     const transformedProducts = exportedProducts
       .filter(product => product.category)
@@ -1202,34 +1222,21 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const filter = { isDeleted: false };
-
-    if (category && category !== 'all') {
-      if (mongoose.Types.ObjectId.isValid(category)) {
-        filter.category = category;
-      } else {
-        const categoryDoc = await Category.findOne({ isDeleted: false, name: category });
-        if (!categoryDoc) {
-          return res.status(404).json({
-            success: false,
-            code: 'EXPORT_CATEGORY_NOT_FOUND',
-            message: getMessage(req.lang, 'admin-controllers-messages.product_category_not_found'),
-          });
-        }
-        filter.category = categoryDoc._id;
-      }
+    const filter = await resolveProductExportFilter(category, brand);
+    if (!filter) {
+      return res.status(404).json({
+        success: false,
+        code: 'EXPORT_CATEGORY_NOT_FOUND',
+        message: getMessage(req.lang, 'admin-controllers-messages.product_category_not_found'),
+      });
     }
 
-    if (brand && brand !== 'all') filter.brand = brand;
-
-    const matchedTotal = await Product.countDocuments(filter);
-    const products = await Product.find(filter)
-      .select('-reviews -createdAt -updatedAt -__v')
-      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-      .limit(parsedLimit + 1)
-      .lean();
-    const hasMore = products.length > parsedLimit;
-    const exportedProducts = products.slice(0, parsedLimit)
+    const {
+      matchedTotal,
+      hasMore,
+      products: productsToExport,
+    } = await getExportProducts(filter, parsedLimit);
+    const exportedProducts = productsToExport
       .filter(product => product.category)
       .map(product => ({
         productId: product._id.toString(),

@@ -294,6 +294,7 @@ function ImportProductsContent() {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
+        credentials: 'include',
       });
 
       const data = await res.json();
