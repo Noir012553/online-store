@@ -26,7 +26,7 @@ export function useBrands() {
     const fetchBrands = async () => {
       try {
         setIsLoading(true);
-        const response = await brandAPI.getBrands(locale);
+        const response = await brandAPI.getBrands(locale, { skipErrorToast: true });
         if (!isMounted) return;
         setBrands(response.brands || []);
         setError(null);

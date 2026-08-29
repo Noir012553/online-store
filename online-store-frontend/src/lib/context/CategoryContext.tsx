@@ -30,23 +30,52 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (!isHydrated) {
-      setIsLoading(false);
+      setIsLoading(true);
       return;
     }
 
     const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
+    const retryDelayMs = 1000;
+
     const fetchCategories = async () => {
       setIsLoading(true);
+
       try {
-        const response = await categoryAPI.getCategories(locale, undefined, true);
-        if (requestId !== requestIdRef.current) return;
+        let response;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            response = await categoryAPI.getCategories(
+              locale,
+              { signal: controller.signal, skipErrorToast: true },
+              true,
+            );
+            break;
+          } catch (error) {
+            const status = typeof error === 'object' && error !== null && 'status' in error
+              ? Number(error.status)
+              : undefined;
+            const isRetryable = status === undefined || status >= 500;
+            if (controller.signal.aborted || attempt === 1 || !isRetryable) throw error;
+
+            await new Promise<void>((resolve, reject) => {
+              const timeoutId = window.setTimeout(resolve, retryDelayMs);
+              controller.signal.addEventListener('abort', () => {
+                window.clearTimeout(timeoutId);
+                reject(controller.signal.reason);
+              }, { once: true });
+            });
+          }
+        }
+
+        if (requestId !== requestIdRef.current || !response) return;
 
         const cats = response.categories || response;
         const finalCats = Array.isArray(cats) ? cats : [];
-
         setCategories(finalCats);
-      } catch (err) {
-        if (requestId !== requestIdRef.current) return;
+      } catch (error) {
+        if (requestId !== requestIdRef.current || controller.signal.aborted) return;
+        setCategories([]);
       } finally {
         if (requestId === requestIdRef.current) {
           setIsLoading(false);
@@ -54,7 +83,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    fetchCategories();
+    void fetchCategories();
+    return () => controller.abort();
   }, [locale, isHydrated]);
 
   return (

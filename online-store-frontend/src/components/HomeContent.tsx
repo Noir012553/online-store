@@ -216,7 +216,7 @@ const getDealCardsPerView = (): number => {
 
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
-  const { categories } = useCategories();
+  const { categories, isLoading: isLoadingCategories } = useCategories();
   const { currencyCode } = useCurrencyContext();
   const { brands } = useBrands();
 
@@ -349,9 +349,15 @@ export default function Home() {
 
   // Fetch products from backend
   useEffect(() => {
-    if (!isHydrated) {
-      debugHomepage('products:skipped-not-hydrated', { locale, currencyCode });
-      setIsLoading(false);
+    if (!isHydrated || isLoadingCategories) {
+      debugHomepage('products:skipped-not-ready', {
+        locale,
+        currencyCode,
+        isHydrated,
+        isLoadingCategories,
+      });
+      setIsLoading(true);
+      setHasProductLoadError(false);
       return;
     }
 
@@ -372,7 +378,6 @@ export default function Home() {
         currencyCode,
         inStock: true,
         hasSpecs: true,
-        prioritizeSpecs: true,
         ...(mode === 'content'
           ? { highlighted: true }
           : { hasDeal: true, featuredOnly: true, shockDeal: true }),
@@ -392,11 +397,12 @@ export default function Home() {
         locale,
         currencyCode,
         true,
-        true,
+        undefined,
         mode === 'flash',
         mode === 'content' ? true : undefined,
         mode === 'flash' ? true : undefined,
         mode === 'flash' ? true : undefined,
+        { skipErrorToast: true },
       );
 
       debugHomepage('category:response-success', {
@@ -470,7 +476,9 @@ export default function Home() {
           .map((product) => getDealEndTimestamp(product.deal))
           .filter((endTime): endTime is number => endTime !== null);
         setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
-        setHasProductLoadError(categoryResults.every((result) => result.status === 'rejected'));
+        setHasProductLoadError(
+          categoryResults.length > 0 && categoryResults.every((result) => result.status === 'rejected'),
+        );
       } catch (error) {
         debugHomepage('products:fetch-error', {
           durationMs: Date.now() - fetchStartedAt,
@@ -495,7 +503,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [categories, currencyCode, locale, isHydrated]);
+  }, [categories, currencyCode, isHydrated, isLoadingCategories, locale]);
 
   useEffect(() => {
     const handleRuntimeError = (event: ErrorEvent) => {
