@@ -58,7 +58,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
+    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
       <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
           <h2 id="quick-view-title" className="text-lg font-semibold text-black sm:text-xl">{t('quick_view_title', 'products')}</h2>
