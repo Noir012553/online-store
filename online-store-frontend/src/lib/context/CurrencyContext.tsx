@@ -46,7 +46,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [locale, localeConfigs]);
+  }, [locale]);
 
   const localeCurrencyCode = localeConfigs.find((item) => item.code === locale)?.currencyCode;
   const currency = activeCurrencies.find((item) => item.code === localeCurrencyCode)

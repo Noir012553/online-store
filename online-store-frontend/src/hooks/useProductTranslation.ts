@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE_PATH } from '../config';
+import { apiCall } from '../lib/api';
 import { useLanguage } from '../lib/context/LanguageContext';
 
 interface TranslatedProduct {
@@ -10,27 +10,30 @@ interface TranslatedProduct {
   specLabels?: Record<string, string>;
 }
 
-export function useProductTranslation(productId: string) {
+export function useProductTranslation(productId: string | null) {
   const { locale, isHydrated } = useLanguage();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product-translation', productId, locale],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!productId) {
         return null;
       }
-      const response = await fetch(
-        `${API_BASE_PATH}/products/${productId}/translations?lang=${locale}`
+
+      const response = await apiCall<{ data?: TranslatedProduct }>(
+        `/products/${encodeURIComponent(productId)}/translations?lang=${encodeURIComponent(locale)}`,
+        {
+          signal,
+          timeout: 8000,
+          skipErrorToast: true,
+        },
       );
-      if (!response.ok) {
-        return null;
-      }
-      const json = await response.json();
-      return json.data as TranslatedProduct;
+      return response?.data ?? null;
     },
     gcTime: 5 * 60 * 1000,
     staleTime: 1 * 60 * 1000,
-    enabled: !!productId && isHydrated,
+    retry: false,
+    enabled: Boolean(productId) && isHydrated,
   });
 
   return {

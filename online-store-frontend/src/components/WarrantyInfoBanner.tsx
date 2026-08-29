@@ -94,10 +94,8 @@ export function WarrantyInfoBanner() {
                 }
               }
             }
-          } catch (err) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Translation fetch error, falling back to banner fields');
-            }
+          } catch {
+            // Use the banner fields when translation lookup fails.
           }
 
           // Fallback to banner fields if translations not found

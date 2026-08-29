@@ -81,7 +81,6 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { loadNamespace, t, locale, isHydrated, isLoadingNamespace } = useLanguage();
-  const { translation } = useProductTranslation(id as string);
   const { currencyCode } = useCurrencyContext();
   const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
   const [laptop, setLaptop] = useState<any>(null);
@@ -100,6 +99,8 @@ export default function ProductDetail() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>('specs');
+  const productId = normalizeProductId(id);
+  const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
 
   useEffect(() => {
     loadNamespace('products');
@@ -179,13 +180,13 @@ export default function ProductDetail() {
       }
     } catch (reviewErr) {
       if (!isCurrentReviewRequest()) return;
-      setReviewsError(t('error_load_reviews', 'products', 'Unable to load reviews.'));
+      setReviewsError('error_load_reviews');
     } finally {
       if (isCurrentReviewRequest()) {
         setIsLoadingReviews(false);
       }
     }
-  }, [locale, t]);
+  }, [locale]);
 
   const handleRetryReviews = useCallback(async () => {
     const productId = normalizeProductId(router.query.id);
@@ -205,27 +206,27 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!router.isReady || !isHydrated) return;
 
-    const productId = normalizeProductId(id);
     const requestId = ++productRequestIdRef.current;
     const controller = new AbortController();
     const isCurrentRequest = () => requestId === productRequestIdRef.current && !controller.signal.aborted;
 
+    setLaptop(null);
     setRelatedLaptops([]);
     setReviews([]);
     setTotalReviews(0);
     setReviewsError(null);
+    setError(null);
+    setIsLoading(true);
+    setIsLoadingReviews(false);
 
     const fetchProduct = async () => {
       if (!productId) {
-        setError(t('error_no_products_found', 'products', 'Product not found.'));
-        setLaptop(null);
+        setError('error_no_products_found');
         setIsLoading(false);
-        setIsLoadingReviews(false);
         return;
       }
 
       try {
-        setIsLoading(true);
         const product = await productAPI.getProductById(
           productId,
           locale,
@@ -237,6 +238,7 @@ export default function ProductDetail() {
         setLaptop(product);
         setSelectedImage(0);
         setQuantity(1);
+        setIsLoading(false);
 
         const rawCategoryId = product.categoryId
           || (typeof product.category === 'object' && product.category !== null
@@ -284,15 +286,9 @@ export default function ProductDetail() {
             setRelatedLaptops([]);
           }
         }
-
-        if (!isCurrentRequest()) return;
-        await loadReviews(productId, requestId, controller.signal);
-        if (isCurrentRequest()) {
-          setError(null);
-        }
       } catch (err) {
         if (!isCurrentRequest()) return;
-        setError(t('error_load_product', 'products', 'Unable to load this product.'));
+        setError('error_load_product');
         setLaptop(null);
       } finally {
         if (isCurrentRequest()) {
@@ -301,13 +297,35 @@ export default function ProductDetail() {
       }
     };
 
-    fetchProduct();
+    void fetchProduct();
 
     return () => {
       controller.abort();
       reviewAbortControllerRef.current?.abort();
     };
-  }, [currencyCode, id, isHydrated, loadReviews, locale, router.isReady, t]);
+  }, [currencyCode, isHydrated, locale, productId, router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady || !isHydrated || !laptop || !productId) return;
+
+    const requestId = productRequestIdRef.current;
+    reviewAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    reviewAbortControllerRef.current = controller;
+
+    void loadReviews(productId, requestId, controller.signal).finally(() => {
+      if (reviewAbortControllerRef.current === controller) {
+        reviewAbortControllerRef.current = null;
+      }
+    });
+
+    return () => {
+      controller.abort();
+      if (reviewAbortControllerRef.current === controller) {
+        reviewAbortControllerRef.current = null;
+      }
+    };
+  }, [isHydrated, laptop, loadReviews, productId, router.isReady]);
 
   const recentlyViewedProducts = useRecentlyViewedProducts(laptop);
 
@@ -556,7 +574,7 @@ export default function ProductDetail() {
         onReviewSubmit={handleSubmitReview}
         onRetryReviews={handleRetryReviews}
         isLoadingReviews={isLoadingReviews}
-        reviewsError={reviewsError}
+        reviewsError={reviewsError ? t(reviewsError, 'products') : null}
         onReviewCancel={() => setShowReviewForm(false)}
         onOpenImage={(src, alt) => {
           setViewerImage({ src, alt });

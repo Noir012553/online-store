@@ -62,14 +62,8 @@ const { resumePendingLanguageSetups } = require('./services/languageSetupService
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
-const API_DEBUG_ENABLED = ['1', 'true', 'yes'].includes(String(process.env.API_DEBUG || '').toLowerCase());
 let apiRequestSequence = 0;
-
-const debugApi = (event, details = {}) => {
-  if (API_DEBUG_ENABLED) {
-    console.log(`[API_DEBUG] ${event}`, details);
-  }
-};
+const debugApi = () => {};
 
 // Initialize upload directories for local storage
 ensureUploadDir('users');

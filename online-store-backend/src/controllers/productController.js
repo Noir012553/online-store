@@ -36,13 +36,7 @@ const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
-const FEATURED_DEBUG_ENABLED = ['1', 'true', 'yes'].includes(String(process.env.API_DEBUG || '').toLowerCase());
-
-const debugFeatured = (event, details = {}) => {
-  if (FEATURED_DEBUG_ENABLED) {
-    console.log(`[FEATURED_DEBUG] ${event}`, details);
-  }
-};
+const debugFeatured = () => {};
 
 const summarizeProducts = (products) => ({
   count: Array.isArray(products) ? products.length : undefined,
