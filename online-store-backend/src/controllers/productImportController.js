@@ -1046,33 +1046,15 @@ const exportProducts = asyncHandler(async (req, res) => {
 
     const matchedTotal = await Product.countDocuments(filter);
 
-    // Fetch one extra record to determine whether the export was truncated.
-    const products = await Product.aggregate([
-      { $match: filter },
-      {
-        $lookup: {
-          from: 'categories',
-          let: { categoryId: '$category' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$_id', '$$categoryId'] },
-                isDeleted: false,
-              },
-            },
-            { $project: { name: 1 } },
-          ],
-          as: 'category',
-        },
-      },
-      { $unwind: { path: '$category', preserveNullAndEmptyArrays: false } },
-      { $project: { reviews: 0, createdAt: 0, updatedAt: 0, __v: 0 } },
-      { $limit: parsedLimit + 1 },
-    ]);
+    const products = await Product.find(filter)
+      .select('-reviews -createdAt -updatedAt -__v')
+      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+      .sort({ _id: 1 })
+      .limit(parsedLimit + 1)
+      .lean();
     const hasMore = products.length > parsedLimit;
     const exportedProducts = hasMore ? products.slice(0, parsedLimit) : products;
 
-    // Transform products, skipping products with deleted categories.
     const transformedProducts = exportedProducts
       .filter(product => product.category)
       .map(product => ({
