@@ -23,8 +23,12 @@ export const SpecsTable: React.FC<SpecsTableProps> = ({ specs, specLabels = {} }
               <td className="px-4 py-3 font-medium text-gray-600 w-1/3 border-b border-gray-50">
                 {specLabels[key] || key}
               </td>
-              <td className="px-4 py-3 text-gray-900 border-b border-gray-50">
-                {String(value)}
+              <td className="space-y-0.5 px-4 py-3 text-gray-900 leading-5 border-b border-gray-50">
+                {String(value).split(';').map((item, index) => (
+                  <span key={`${item}-${index}`} className="block">
+                    {item.trim()}
+                  </span>
+                ))}
               </td>
             </tr>
           ))}

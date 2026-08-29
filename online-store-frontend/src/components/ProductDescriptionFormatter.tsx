@@ -106,7 +106,13 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
                 <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                   {specLabels?.[key] || key}
                 </dt>
-                <dd className="break-words text-sm font-semibold text-gray-900">{String(value)}</dd>
+                <dd className="space-y-0.5 break-words text-sm font-semibold leading-5 text-gray-900">
+                  {String(value).split(';').map((item, index) => (
+                    <span key={`${item}-${index}`} className="block">
+                      {item.trim()}
+                    </span>
+                  ))}
+                </dd>
               </div>
             ))}
           </dl>
