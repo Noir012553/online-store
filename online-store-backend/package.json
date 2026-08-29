@@ -15,7 +15,7 @@
     "test:vnpay:watch": "nodemon src/test/test-vnpay-quick.js",
     "test:vnpay:signature": "node src/test/test-vnpay-signature-fix.js",
     "test:flow": "node src/test/test-with-order.js",
-    "seed": "node --expose-gc src/seeds/index.js",
+    "seed": "node --expose-gc src/seeds/index.js && npm run check:dashboard-data",
     "seed:list": "node --expose-gc src/seeds/index.js -- --list",
     "seed:modules": "node --expose-gc src/seeds/index.js -- --modules",
     "seed:only": "node --expose-gc src/seeds/index.js -- --only-module",
