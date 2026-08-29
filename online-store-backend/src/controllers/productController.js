@@ -36,6 +36,8 @@ const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
+const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
+const EXCLUDED_BRAND_FILTER = { brand: { $not: EXCLUDED_BRAND_PATTERN } };
 const debugFeatured = () => {};
 
 const summarizeProducts = (products) => ({
@@ -316,6 +318,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     ...priceFilter,
     ...stockFilter,
     ...specsFilter,
+    ...EXCLUDED_BRAND_FILTER,
   };
   if (featuredOnly) {
     query.featured = true;
@@ -626,7 +629,7 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   // Build final query
-  const query = { isDeleted: false, storefrontReady: true, ...category, ...brand, ...priceFilter, ...stockFilter };
+  const query = { isDeleted: false, storefrontReady: true, ...category, ...brand, ...priceFilter, ...stockFilter, ...EXCLUDED_BRAND_FILTER };
   if (highlightFilters.length > 0) {
     query.$and = query.$and || [];
     query.$and.push({ $or: highlightFilters });
@@ -685,7 +688,7 @@ const getProductById = asyncHandler(async (req, res) => {
     15000
   );
 
-  if (product && !product.isDeleted) {
+  if (product && !product.isDeleted && !EXCLUDED_BRAND_PATTERN.test(product.brand || '')) {
     let productObj = product.toObject ? product.toObject() : product;
     const visibleProductIds = await getStorefrontVisibleProductIds([productObj]);
 
@@ -755,6 +758,10 @@ const createProduct = asyncHandler(async (req, res) => {
 
   const normalizedName = sanitizePlainText(name);
   const normalizedBrand = sanitizePlainText(brand);
+  if (EXCLUDED_BRAND_PATTERN.test(normalizedBrand)) {
+    res.status(400);
+    throw new Error('This brand is not allowed');
+  }
   const normalizedDescription = sanitizeDescriptionText(description);
   await registerUnknownSpecKeys(specs || {});
   const normalizedSpecs = normalizeSpecs(specs || {});
@@ -957,7 +964,12 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   if (brand !== undefined) {
-    product.brand = sanitizePlainText(brand);
+    const normalizedBrand = sanitizePlainText(brand);
+    if (EXCLUDED_BRAND_PATTERN.test(normalizedBrand)) {
+      res.status(400);
+      throw new Error('This brand is not allowed');
+    }
+    product.brand = normalizedBrand;
   }
 
   if (category !== undefined) {
@@ -1300,7 +1312,7 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 const getTopRatedProducts = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const candidateProducts = await withTimeout(
-    Product.find({ isDeleted: false, storefrontReady: true })
+    Product.find({ isDeleted: false, storefrontReady: true, ...EXCLUDED_BRAND_FILTER })
       .select('_id name description brand specs')
       .sort({ rating: -1, createdAt: -1, _id: 1 })
       .limit(30)
@@ -1310,7 +1322,7 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
   );
   const visibleProductIds = new Set(candidateProducts.map((product) => String(product._id)));
   const products = await withTimeout(
-    Product.find({ isDeleted: false, storefrontReady: true, _id: { $in: [...visibleProductIds] } })
+    Product.find({ isDeleted: false, storefrontReady: true, ...EXCLUDED_BRAND_FILTER, _id: { $in: [...visibleProductIds] } })
       .populate('category')
       .sort({ rating: -1, createdAt: -1, _id: 1 })
       .limit(3)

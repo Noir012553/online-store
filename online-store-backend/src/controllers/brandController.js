@@ -5,12 +5,14 @@ const { overlayTranslationBatch, overlayTranslation } = require('../services/tra
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 
+const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
+
 const getBrands = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
 
   const brands = await withTimeout(
-    Brand.find({ isDeleted: false }).lean(),
+    Brand.find({ isDeleted: false, name: { $not: EXCLUDED_BRAND_PATTERN } }).lean(),
     8000
   );
 
@@ -39,6 +41,11 @@ const createBrand = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
 
+  if (EXCLUDED_BRAND_PATTERN.test(String(name || '').trim())) {
+    res.status(400);
+    throw new Error('This brand is not allowed');
+  }
+
   const brandExists = await Brand.findOne({ name: { $regex: name, $options: 'i' }, isDeleted: false });
 
   if (brandExists) {
@@ -65,6 +72,10 @@ const updateBrand = asyncHandler(async (req, res) => {
   const brand = await Brand.findById(req.params.id);
 
   if (brand) {
+    if (name && EXCLUDED_BRAND_PATTERN.test(String(name).trim())) {
+      res.status(400);
+      throw new Error('This brand is not allowed');
+    }
     if (name) brand.name = name;
     if (logo !== undefined) brand.logo = logo;
     if (description !== undefined) brand.description = description;

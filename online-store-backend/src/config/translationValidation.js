@@ -5,7 +5,7 @@ module.exports = {
     'ASUS', 'MSI', 'Lenovo', 'Dell', 'Apple', 'Samsung',
     'Intel', 'AMD', 'NVIDIA', 'Kingston', 'Crucial',
     'HyperX', 'Plantronics', 'JBL', 'Akko', 'Varmilo',
-    'Keychron', 'Leopold', 'Ducky', 'Filco', 'iKBC',
+    'Keychron', 'Leopold', 'Ducky', 'Filco',
     'Realforce', 'CHERRY', 'Topre', 'Matias', 'Das Keyboard',
     'Cooler Master', 'ROG', 'Alienware', 'Omen', 'ThinkPad',
     'MacBook', 'iPad', 'iPhone', 'AirPods', 'Sony', 'Anker',

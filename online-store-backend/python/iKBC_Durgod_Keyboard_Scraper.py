@@ -57,6 +57,9 @@ def get_all_collection_urls():
 
 
 def scrape_full():
+  print('>>> Scraper iKBC & Durgod đã bị vô hiệu hóa.')
+  return
+
   print('>>> Bắt đầu quét danh sách Bàn phím iKBC & Durgod...')
   product_urls = get_all_collection_urls()
   print(f'>>> Đã tìm thấy {len(product_urls)} sản phẩm. Tiến hành cào chi tiết...')
