@@ -100,7 +100,7 @@ export default function ProductDetail() {
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>('specs');
   const productId = normalizeProductId(id);
-  const { translation } = useProductTranslation(laptop ? productId : null);
+  const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
 
   useEffect(() => {
     loadNamespace('products');
