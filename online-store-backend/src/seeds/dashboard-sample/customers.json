@@ -1,6 +1,0 @@
-[
-  { "key": "minh-anh", "name": "Nguyễn Minh Anh", "email": "seed.dashboard+minh-anh@example.test", "phone": "0900001001", "daysAgo": 120 },
-  { "key": "thu-ha", "name": "Trần Thu Hà", "email": "seed.dashboard+thu-ha@example.test", "phone": "0900001002", "daysAgo": 75 },
-  { "key": "quang-huy", "name": "Lê Quang Huy", "email": "seed.dashboard+quang-huy@example.test", "phone": "0900001003", "daysAgo": 40 },
-  { "key": "lan-phuong", "name": "Phạm Lan Phương", "email": "seed.dashboard+lan-phuong@example.test", "phone": "0900001004", "daysAgo": 130 }
-]
