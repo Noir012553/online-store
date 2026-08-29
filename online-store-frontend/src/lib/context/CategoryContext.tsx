@@ -45,7 +45,11 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
         let response;
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
-            response = await categoryAPI.getCategories(locale, { signal: controller.signal }, true);
+            response = await categoryAPI.getCategories(
+              locale,
+              { signal: controller.signal, skipErrorToast: true },
+              true,
+            );
             break;
           } catch (error) {
             const status = typeof error === 'object' && error !== null && 'status' in error

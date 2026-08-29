@@ -240,6 +240,7 @@ const requestAuthRefresh = async () => {
     method: 'POST',
     skipCache: true,
     skipAuthRecovery: true,
+    skipErrorToast: true,
   })
     .then((data) => {
       clearPersistedRefreshBlock();
@@ -862,7 +863,7 @@ async function executeRequest<T = any>(
     }
 
     // Show toast for other network errors
-    if (error instanceof Error && !error.message.includes('API Error')) {
+    if (!fetchOptions.skipErrorToast && error instanceof Error && !error.message.includes('API Error')) {
       if (error.message.includes('Network')) {
         handleApiError({
           status: 0,
@@ -977,6 +978,7 @@ export const productAPI = {
     highlighted?: boolean,
     featuredOnly?: boolean,
     shockDeal?: boolean,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -998,6 +1000,7 @@ export const productAPI = {
     if (shockDeal !== undefined) params.append('shockDeal', shockDeal.toString());
 
     return apiCall(`/products/featured/list?${params.toString()}`, {
+      ...requestOptions,
       adapter: (data) => ({
         ...data,
         products: productAdapter.transformArray(data.products)
@@ -1350,7 +1353,7 @@ export const categoryAPI = {
    */
   getCategories: async (
     lang?: Locale,
-    requestOptions?: Pick<FetchOptions, 'signal'>,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
     withProducts = false,
   ) => {
     const endpoint = `/categories`;
@@ -1380,10 +1383,13 @@ export const brandAPI = {
   /**
    * Lấy danh sách thương hiệu
    */
-  getBrands: async (lang?: Locale) => {
+  getBrands: async (
+    lang?: Locale,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
+  ) => {
     const endpoint = `/brands`;
     const finalEndpoint = lang ? `${endpoint}?lang=${lang}` : buildLocalizedUrl(endpoint);
-    return await apiCall(finalEndpoint);
+    return await apiCall(finalEndpoint, requestOptions);
   },
 
   /**

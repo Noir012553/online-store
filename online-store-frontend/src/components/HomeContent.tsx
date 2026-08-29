@@ -402,6 +402,7 @@ export default function Home() {
         mode === 'content' ? true : undefined,
         mode === 'flash' ? true : undefined,
         mode === 'flash' ? true : undefined,
+        { skipErrorToast: true },
       );
 
       debugHomepage('category:response-success', {
