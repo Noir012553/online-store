@@ -10,6 +10,7 @@ const Order = require('../src/models/Order');
 const Coupon = require('../src/models/Coupon');
 const User = require('../src/models/User');
 const Category = require('../src/models/Category');
+const Brand = require('../src/models/Brand');
 const Currency = require('../src/models/Currency');
 
 const SAMPLE_PREFIX = 'dashboard-sample:';
@@ -65,17 +66,21 @@ const getExistingCounts = async () => {
 };
 
 const assertDependencies = async () => {
-  const [user, category, currency] = await Promise.all([
+  const [user, categories, catalogBrands, productBrands, currency] = await Promise.all([
     User.findOne({ isDeleted: false, role: { $in: ['admin', 'super-admin'] } }).sort({ createdAt: 1 }).lean(),
-    Category.findOne({ isDeleted: false }).sort({ createdAt: 1 }).lean(),
+    Category.find({ isDeleted: false }).sort({ createdAt: 1 }).lean(),
+    Brand.distinct('name', { isDeleted: false, name: { $type: 'string', $ne: '' } }),
+    Product.distinct('brand', { isDeleted: false, brand: { $type: 'string', $ne: '' } }),
     Currency.findOne({ isActive: true, isDefault: true }).lean(),
   ]);
+  const brands = [...new Set([...catalogBrands, ...productBrands].map((brand) => brand.trim()).filter(Boolean))].sort();
 
   if (!user) throw new Error('Cần có ít nhất một admin hoặc super-admin đang hoạt động.');
-  if (!category) throw new Error('Cần có ít nhất một category chưa bị xóa.');
+  if (categories.length === 0) throw new Error('Cần có ít nhất một category chưa bị xóa.');
+  if (brands.length === 0) throw new Error('Cần có ít nhất một brand đang được dùng hoặc chưa bị xóa.');
   if (!currency) throw new Error('Cần có một currency mặc định đang hoạt động.');
 
-  return { user, category, currency };
+  return { user, categories, brands, currency };
 };
 
 const assertCouponOwnership = async (coupons) => {
@@ -88,20 +93,37 @@ const assertCouponOwnership = async (coupons) => {
   }
 };
 
+const assertCustomerOwnership = async (customers) => {
+  const existing = await Customer.find({
+    $or: [
+      { email: { $in: customers.map((customer) => customer.email) } },
+      { phone: { $in: customers.map((customer) => customer.phone) } },
+    ],
+  }).lean();
+  const foreignCustomer = existing.find((customer) => !customers.some((sample) => (
+    customer.email === sample.email && customer.phone === sample.phone
+  )));
+
+  if (foreignCustomer) {
+    throw new Error('Email hoặc số điện thoại customer sample đã thuộc về dữ liệu hiện có.');
+  }
+};
+
 const upsertSamples = async ({ products, customers, orders, coupons, dependencies }) => {
-  const { user, category, currency } = dependencies;
+  const { user, categories, brands, currency } = dependencies;
 
-  await assertCouponOwnership(coupons);
+  await Promise.all([assertCouponOwnership(coupons), assertCustomerOwnership(customers)]);
 
-  await Product.bulkWrite(products.map((product) => ({
+  await Product.bulkWrite(products.map(({ key, ...product }, index) => ({
     updateOne: {
-      filter: { sourceProductId: `${SAMPLE_PREFIX}${product.key}` },
+      filter: { sourceProductId: `${SAMPLE_PREFIX}${key}` },
       update: {
         $setOnInsert: {
           user: user._id,
-          category: category._id,
-          sourceProductId: `${SAMPLE_PREFIX}${product.key}`,
           ...product,
+          category: categories[index % categories.length]._id,
+          brand: brands[index % brands.length],
+          sourceProductId: `${SAMPLE_PREFIX}${key}`,
           baseCurrencyCode: currency.code,
           isDeleted: false,
         },
@@ -126,13 +148,14 @@ const upsertSamples = async ({ products, customers, orders, coupons, dependencie
     },
   })));
 
-  await Coupon.bulkWrite(coupons.map(({ startDaysAgo, endDaysFromNow, ...coupon }) => ({
+  await Coupon.bulkWrite(coupons.map(({ startDaysAgo, endDaysFromNow, scope = 'all', ...coupon }, index) => ({
     updateOne: {
       filter: { code: coupon.code },
       update: {
         $setOnInsert: {
           ...coupon,
           currencyCode: currency.code,
+          applicableCategories: scope === 'category' ? [categories[index % categories.length]._id] : [],
           startDate: dateDaysFromNow(-startDaysAgo),
           endDate: dateDaysFromNow(endDaysFromNow),
           isDeleted: false,
@@ -151,6 +174,15 @@ const upsertSamples = async ({ products, customers, orders, coupons, dependencie
   const productsByKey = new Map(storedProducts.map((product) => [product.sourceProductId.slice(SAMPLE_PREFIX.length), product]));
   const customersByKey = new Map(customers.map((customer) => [customer.key, storedCustomers.find((stored) => stored.email === customer.email)]));
   const couponsByCode = new Map(storedCoupons.map((coupon) => [coupon.code, coupon]));
+
+  await Coupon.bulkWrite(coupons.filter((coupon) => coupon.scope === 'product').map((coupon) => ({
+    updateOne: {
+      filter: { code: coupon.code },
+      update: {
+        $set: { applicableProducts: [productsByKey.get(coupon.productKey)._id] },
+      },
+    },
+  })));
 
   const orderOperations = orders.map((order) => {
     const customer = customersByKey.get(order.customerKey);
@@ -246,9 +278,10 @@ const upsertSamples = async ({ products, customers, orders, coupons, dependencie
 
 const rollbackSamples = async (customers) => {
   const customerEmails = customers.map((customer) => customer.email);
+  const [products, , , coupons] = ['products.json', 'customers.json', 'orders.json', 'coupons.json'].map(readJson);
   const sampleOrders = await Order.deleteMany({ idempotencyKey: { $regex: `^${SAMPLE_PREFIX}` } });
-  const sampleProducts = await Product.deleteMany({ sourceProductId: { $regex: `^${SAMPLE_PREFIX}` } });
-  const sampleCoupons = await Coupon.deleteMany({ description: { $regex: '^\\[dashboard-sample\\]' } });
+  const sampleProducts = await Product.deleteMany({ sourceProductId: { $in: products.map((product) => `${SAMPLE_PREFIX}${product.key}`) } });
+  const sampleCoupons = await Coupon.deleteMany({ code: { $in: coupons.map((coupon) => coupon.code) }, description: { $regex: '^\\[dashboard-sample\\]' } });
   const sampleCustomers = await Customer.find({ email: { $in: customerEmails } }).lean();
   const customerIds = sampleCustomers.map((customer) => customer._id);
   const referencedCustomerIds = await Order.distinct('customer', { customer: { $in: customerIds } });

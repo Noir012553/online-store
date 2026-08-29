@@ -29,6 +29,7 @@
     "seed:i18n": "node --expose-gc src/seeds/index.js -- --i18n-only",
     "seed:pre-products": "node --expose-gc src/seeds/index.js -- --phase=pre-products",
     "seed:post-products": "node --expose-gc src/seeds/index.js -- --phase=post-products",
+    "seed:with-dashboard-sample": "npm run seed && npm run indexes:dashboard:apply && npm run seed:dashboard-sample:apply",
     "media:upload": "node src/scripts/uploadScrapedImages.js",
     "test:ghn-ward": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ghn-ward.ps1",
     "cleanup:inventory": "node src/scripts/inventory-product-cleanup.js",

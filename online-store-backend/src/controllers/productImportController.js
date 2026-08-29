@@ -979,15 +979,23 @@ const getImportGuide = asyncHandler(async (req, res) => {
  * 3. Export limited products: GET /api/admin/products/export?format=json&limit=100
  */
 const exportProducts = asyncHandler(async (req, res) => {
-  const { format = 'json', category, brand, limit = 10000 } = req.query;
+  const { format: requestedFormat = 'json', category, brand, limit = '10000' } = req.query;
+  if ([requestedFormat, category, brand, limit].some((value) => value !== undefined && typeof value !== 'string')) {
+    return res.status(400).json({
+      success: false,
+      code: 'EXPORT_QUERY_INVALID',
+      message: getMessage(req.lang, 'errors.generic_error'),
+    });
+  }
+
+  const format = requestedFormat.toLowerCase();
   const parsedLimit = Number(limit);
 
-  // Validate format
-  if (!['json', 'csv'].includes(format.toLowerCase())) {
+  if (!['json', 'csv'].includes(format)) {
     return res.status(400).json({
       success: false,
       code: 'EXPORT_FORMAT_UNSUPPORTED',
-      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format: requestedFormat }),
       supportedFormats: ['json', 'csv'],
     });
   }
@@ -1039,15 +1047,28 @@ const exportProducts = asyncHandler(async (req, res) => {
     const matchedTotal = await Product.countDocuments(filter);
 
     // Fetch one extra record to determine whether the export was truncated.
-    const products = await Product.find(filter)
-      .select('-reviews -createdAt -updatedAt -__v')
-      .populate({
-        path: 'category',
-        select: 'name',
-        match: { isDeleted: false }  // FIX #3: Filter deleted categories
-      })
-      .limit(parsedLimit + 1)
-      .lean();
+    const products = await Product.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: 'categories',
+          let: { categoryId: '$category' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$_id', '$$categoryId'] },
+                isDeleted: false,
+              },
+            },
+            { $project: { name: 1 } },
+          ],
+          as: 'category',
+        },
+      },
+      { $unwind: { path: '$category', preserveNullAndEmptyArrays: false } },
+      { $project: { reviews: 0, createdAt: 0, updatedAt: 0, __v: 0 } },
+      { $limit: parsedLimit + 1 },
+    ]);
     const hasMore = products.length > parsedLimit;
     const exportedProducts = hasMore ? products.slice(0, parsedLimit) : products;
 
