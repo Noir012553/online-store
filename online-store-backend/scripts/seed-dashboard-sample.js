@@ -118,15 +118,11 @@ const assertCustomerOwnership = async (customers) => {
   }
 };
 
-const upsertSamples = async ({ productDefinitions, customers, orders, coupons, dependencies }) => {
+const upsertSamples = async ({ customers, orders, coupons, dependencies }) => {
   const { user, products, currency } = dependencies;
+  const usedProductIds = new Set();
 
   await Promise.all([assertCouponOwnership(coupons), assertCustomerOwnership(customers)]);
-
-  const productsByKey = new Map(productDefinitions.map((definition, index) => [
-    definition.key,
-    products[index % products.length],
-  ]));
 
   await Customer.bulkWrite(customers.map((customer) => ({
     updateOne: {
@@ -145,7 +141,8 @@ const upsertSamples = async ({ productDefinitions, customers, orders, coupons, d
   })));
 
   await Coupon.bulkWrite(coupons.map(({ startDaysAgo, endDaysFromNow, scope = 'all', ...coupon }, index) => {
-    const product = productsByKey.get(coupon.productKey) || products[index % products.length];
+    const product = products[index % products.length];
+    usedProductIds.add(product._id.toString());
     return {
       updateOne: {
         filter: { code: coupon.code },
@@ -172,21 +169,23 @@ const upsertSamples = async ({ productDefinitions, customers, orders, coupons, d
   const customersByKey = new Map(customers.map((customer) => [customer.key, storedCustomers.find((stored) => stored.email === customer.email)]));
   const couponsByCode = new Map(storedCoupons.map((coupon) => [coupon.code, coupon]));
 
-  await Coupon.bulkWrite(coupons.filter((coupon) => coupon.scope === 'product').map((coupon) => ({
+  await Coupon.bulkWrite(coupons.filter((coupon) => coupon.scope === 'product').map((coupon, index) => ({
     updateOne: {
       filter: { code: coupon.code },
       update: {
-        $set: { applicableProducts: [productsByKey.get(coupon.productKey)._id] },
+        $set: { applicableProducts: [products[index % products.length]._id] },
       },
     },
   })));
 
+  let productCursor = 0;
   const orderOperations = orders.map((order) => {
     const customer = customersByKey.get(order.customerKey);
     const coupon = order.couponCode ? couponsByCode.get(order.couponCode) : null;
-    const orderItems = order.items.map(({ productKey, qty }) => {
-      const product = productsByKey.get(productKey);
-      if (!product) throw new Error(`Không tìm thấy product sample: ${productKey}`);
+    const orderItems = order.items.map(({ qty }) => {
+      const product = products[productCursor % products.length];
+      productCursor += 1;
+      usedProductIds.add(product._id.toString());
 
       return {
         name: product.name,
@@ -273,7 +272,7 @@ const upsertSamples = async ({ productDefinitions, customers, orders, coupons, d
   await Order.bulkWrite(orderOperations);
 
   return {
-    productsReused: new Set([...productsByKey.values()].map((product) => product._id.toString())).size,
+    productsReused: usedProductIds.size,
   };
 };
 
@@ -309,7 +308,7 @@ const main = async () => {
   }
 
   assertSafeEnvironment(options);
-  const [productDefinitions, customers, orders, coupons] = ['products.json', 'customers.json', 'orders.json', 'coupons.json'].map(readJson);
+  const [customers, orders, coupons] = ['customers.json', 'orders.json', 'coupons.json'].map(readJson);
 
   await connectMongo();
   const counts = await getExistingCounts();
@@ -320,7 +319,7 @@ const main = async () => {
   }
 
   if (!options.apply) {
-    console.log(JSON.stringify({ planned: { productReferences: productDefinitions.length, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
+    console.log(JSON.stringify({ planned: { productsSource: 'database', customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
     return;
   }
 
@@ -330,7 +329,7 @@ const main = async () => {
   }
 
   const dependencies = await assertDependencies();
-  const seeded = await upsertSamples({ productDefinitions, customers, orders, coupons, dependencies });
+  const seeded = await upsertSamples({ customers, orders, coupons, dependencies });
   console.log(JSON.stringify({ seeded: { ...seeded, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
 };
 
