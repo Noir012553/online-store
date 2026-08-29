@@ -186,7 +186,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 <span className="text-xs sm:text-sm text-black">({convertedLaptop.reviews})</span>
               </div>
 
-              <div className="h-20 sm:h-32 mb-3 text-xs sm:text-sm text-gray-600 space-y-0.5 overflow-hidden">
+              <div className="mb-3 min-h-20 space-y-1.5 text-xs leading-4 text-gray-600 sm:min-h-32">
                 {(() => {
                   const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
                   if (specEntries.length === 0) {
@@ -194,14 +194,19 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                   }
 
                   return specEntries.map(([key, value]) => (
-                    <p key={key} className="truncate text-xs">
-                      <span className="text-gray-500">{convertedLaptop.specLabels?.[key] || key}:</span> {String(value)}
-                    </p>
+                    <div key={key} className="space-y-0.5">
+                      <span className="block font-medium text-gray-500">{convertedLaptop.specLabels?.[key] || key}:</span>
+                      <span className="block space-y-0.5 pl-2 text-gray-700">
+                        {String(value).split(';').map((item, index) => (
+                          <span key={`${item}-${index}`} className="block">{item.trim()}</span>
+                        ))}
+                      </span>
+                    </div>
                   ));
                 })()}
               </div>
 
-              <div className="flex flex-col justify-end gap-0.5 mb-2 h-10 sm:h-12 mx-auto">
+              <div className="mt-auto mb-2 flex h-10 w-full flex-col items-center justify-end gap-0.5 border-t border-gray-100 pt-2 sm:h-12">
                 {hasOriginalPrice && (
                   <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
                     <span className="text-red-600 line-through text-xs sm:text-sm font-medium">

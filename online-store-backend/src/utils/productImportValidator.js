@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
 
 const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
+const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
 
 /**
  * Required fields khi import products
@@ -50,6 +51,10 @@ function validateProduct(product, rowIndex = 0) {
     } else {
       cleaned[field] = value;
     }
+  }
+
+  if (EXCLUDED_BRAND_PATTERN.test(cleaned.brand || '')) {
+    errors.push(`Row ${rowIndex}: Brand is not allowed`);
   }
 
   const baseCurrencyCode = String(product.baseCurrencyCode || '').trim().toUpperCase();
@@ -441,4 +446,5 @@ module.exports = {
   sanitizeCategoryName,
   REQUIRED_FIELDS,
   OPTIONAL_FIELDS,
+  EXCLUDED_BRAND_PATTERN,
 };

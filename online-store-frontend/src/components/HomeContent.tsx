@@ -63,7 +63,9 @@ interface BackendProduct {
     _id?: string;
     id?: string;
     name?: string;
+    slug?: string;
   } | string;
+  categoryId?: string;
   specs?: Record<string, string | number>;
   description?: string;
   [key: string]: any;
@@ -109,25 +111,14 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-van-phong': '/products/laptop-office',
 };
 
-const FLASH_SALE_CATEGORY_KEYS = new Set([
-  'gaming-laptop',
-  'office-laptop',
-  'laptop-gaming',
-  'laptop-office',
-  'category-gaming-laptop',
-  'category-office-laptop',
-  'laptop-chơi-game',
-  'laptop-văn-phòng',
-]);
+const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
 
-const normalizeCategoryLookupValue = (value: unknown): string => (
-  String(value || '').trim().toLowerCase().replace(/[\\s_]+/g, '-')
+const normalizeCategorySlug = (value: unknown): string => (
+  typeof value === 'string' ? value.trim().toLowerCase() : ''
 );
 
 const isFlashSaleCategory = (category: HomeCategory): boolean => (
-  [category.slug, category.key, category.translationKey, category.name, ...(category.sourceNames || [])]
-    .map(normalizeCategoryLookupValue)
-    .some((value) => FLASH_SALE_CATEGORY_KEYS.has(value))
+  FLASH_SALE_CATEGORY_SLUGS.has(normalizeCategorySlug(category.slug))
 );
 
 const normalizeHomepageTargetUrl = (targetUrl?: string): string => {
@@ -318,15 +309,17 @@ export default function Home() {
     }
 
     let isMounted = true;
+    const requestController = new AbortController();
     const contentCategories = Array.isArray(categories) ? categories : [];
     const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
+    const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
 
-    const fetchCategoryProducts = async (category: HomeCategory, mode: 'content' | 'flash') => {
+    const fetchCategoryProducts = async (category: HomeCategory) => {
       const requestDetails = {
         categoryId: category._id,
         categoryName: category.name,
         categorySlug: category.slug,
-        mode,
+        mode: 'content',
         pageNumber: 1,
         pageSize: 8,
         lang: locale,
@@ -334,9 +327,7 @@ export default function Home() {
         currencyCode,
         inStock: true,
         hasSpecs: true,
-        ...(mode === 'content'
-          ? { highlighted: true }
-          : { hasDeal: true, featuredOnly: true, shockDeal: true }),
+        highlighted: true,
       };
       debugHomepage('category:request-start', requestDetails);
 
@@ -354,11 +345,11 @@ export default function Home() {
         currencyCode,
         true,
         undefined,
-        mode === 'flash',
-        mode === 'content' ? true : undefined,
-        mode === 'flash' ? true : undefined,
-        mode === 'flash' ? true : undefined,
-        { skipErrorToast: true },
+        undefined,
+        true,
+        undefined,
+        undefined,
+        { skipErrorToast: true, signal: requestController.signal },
       );
 
       debugHomepage('category:response-success', {
@@ -367,6 +358,52 @@ export default function Home() {
         products: response.products || [],
       });
       return [category._id, response.products || []] as const;
+    };
+
+    const fetchFlashSaleProducts = async (category: HomeCategory) => {
+      const requestDetails = {
+        categoryId: category._id,
+        categoryName: category.name,
+        categorySlug: category.slug,
+        mode: 'flash',
+        pageNumber: 1,
+        pageSize: 8,
+        lang: locale,
+        locale,
+        currencyCode,
+        inStock: true,
+        hasSpecs: true,
+        hasDeal: true,
+      };
+      debugHomepage('flash-sale:request-start', requestDetails);
+
+      const response = await productAPI.getFeaturedProducts(
+        1,
+        undefined,
+        category._id,
+        undefined,
+        8,
+        undefined,
+        undefined,
+        true,
+        locale,
+        locale,
+        currencyCode,
+        true,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        { skipErrorToast: true, signal: requestController.signal },
+      );
+
+      debugHomepage('flash-sale:response-success', {
+        ...requestDetails,
+        ...describeProductPayload(response),
+        products: response.products || [],
+      });
+      return response.products || [];
     };
 
     const fetchData = async () => {
@@ -383,8 +420,8 @@ export default function Home() {
 
       try {
         const [categoryResults, flashResults] = await Promise.all([
-          Promise.allSettled(contentCategories.map((category) => fetchCategoryProducts(category, 'content'))),
-          Promise.allSettled(flashSaleCategories.map((category) => fetchCategoryProducts(category, 'flash'))),
+          Promise.allSettled(contentCategories.map((category) => fetchCategoryProducts(category))),
+          Promise.allSettled(flashSaleCategories.map((category) => fetchFlashSaleProducts(category))),
         ]);
 
         if (!isMounted) return;
@@ -395,8 +432,12 @@ export default function Home() {
             .map((result) => result.value),
         );
         const dealCandidates = flashResults
-          .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
-          .flatMap((result) => result.value[1]);
+          .filter((result): result is PromiseFulfilledResult<BackendProduct[]> => result.status === 'fulfilled')
+          .flatMap((result) => result.value)
+          .filter((product) => (
+            typeof product.categoryId === 'string'
+            && flashSaleCategoryIds.has(product.categoryId)
+          ));
         const uniqueDeals = [...new Map(
           dealCandidates.map((product) => [product._id || product.id, product]),
         ).values()];
@@ -458,6 +499,7 @@ export default function Home() {
     fetchData();
     return () => {
       isMounted = false;
+      requestController.abort();
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale]);
 
