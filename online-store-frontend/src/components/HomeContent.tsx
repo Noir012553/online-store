@@ -63,6 +63,7 @@ interface BackendProduct {
     _id?: string;
     id?: string;
     name?: string;
+    slug?: string;
   } | string;
   specs?: Record<string, string | number>;
   description?: string;
@@ -108,6 +109,16 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-gaming': '/products/gaming-laptop',
   '/products/laptop-van-phong': '/products/laptop-office',
 };
+
+const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
+
+const normalizeCategorySlug = (value: unknown): string => (
+  typeof value === 'string' ? value.trim().toLowerCase() : ''
+);
+
+const isFlashSaleCategory = (category: HomeCategory): boolean => (
+  FLASH_SALE_CATEGORY_SLUGS.has(normalizeCategorySlug(category.slug))
+);
 
 const normalizeHomepageTargetUrl = (targetUrl?: string): string => {
   if (!targetUrl) return '';
@@ -297,7 +308,9 @@ export default function Home() {
     }
 
     let isMounted = true;
+    const requestController = new AbortController();
     const contentCategories = Array.isArray(categories) ? categories : [];
+    const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
 
     const fetchCategoryProducts = async (category: HomeCategory) => {
       const requestDetails = {
@@ -334,7 +347,7 @@ export default function Home() {
         true,
         undefined,
         undefined,
-        { skipErrorToast: true },
+        { skipErrorToast: true, signal: requestController.signal },
       );
 
       debugHomepage('category:response-success', {
@@ -345,11 +358,14 @@ export default function Home() {
       return [category._id, response.products || []] as const;
     };
 
-    const fetchFlashSaleProducts = async () => {
+    const fetchFlashSaleProducts = async (category: HomeCategory) => {
       const requestDetails = {
+        categoryId: category._id,
+        categoryName: category.name,
+        categorySlug: category.slug,
         mode: 'flash',
         pageNumber: 1,
-        pageSize: 10,
+        pageSize: 8,
         lang: locale,
         locale,
         currencyCode,
@@ -362,9 +378,9 @@ export default function Home() {
       const response = await productAPI.getFeaturedProducts(
         1,
         undefined,
+        category._id,
         undefined,
-        undefined,
-        10,
+        8,
         undefined,
         undefined,
         true,
@@ -377,7 +393,7 @@ export default function Home() {
         undefined,
         undefined,
         undefined,
-        { skipErrorToast: true },
+        { skipErrorToast: true, signal: requestController.signal },
       );
 
       debugHomepage('flash-sale:response-success', {
@@ -394,6 +410,7 @@ export default function Home() {
         locale,
         currencyCode,
         categoryCount: contentCategories.length,
+        flashSaleCategoryCount: flashSaleCategories.length,
         categories: contentCategories,
       });
       setIsLoading(true);
@@ -402,7 +419,7 @@ export default function Home() {
       try {
         const [categoryResults, flashResults] = await Promise.all([
           Promise.allSettled(contentCategories.map((category) => fetchCategoryProducts(category))),
-          Promise.allSettled([fetchFlashSaleProducts()]),
+          Promise.allSettled(flashSaleCategories.map((category) => fetchFlashSaleProducts(category))),
         ]);
 
         if (!isMounted) return;
@@ -414,7 +431,12 @@ export default function Home() {
         );
         const dealCandidates = flashResults
           .filter((result): result is PromiseFulfilledResult<BackendProduct[]> => result.status === 'fulfilled')
-          .flatMap((result) => result.value);
+          .flatMap((result) => result.value)
+          .filter((product) => (
+            typeof product.category === 'object'
+            && product.category !== null
+            && FLASH_SALE_CATEGORY_SLUGS.has(normalizeCategorySlug(product.category.slug))
+          ));
         const uniqueDeals = [...new Map(
           dealCandidates.map((product) => [product._id || product.id, product]),
         ).values()];
@@ -476,6 +498,7 @@ export default function Home() {
     fetchData();
     return () => {
       isMounted = false;
+      requestController.abort();
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale]);
 
