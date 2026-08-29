@@ -1092,7 +1092,6 @@ const getInactiveCustomers = asyncHandler(async (req, res) => {
       {
         $match: {
           isDeleted: false,
-          role: 'user',
         },
       },
       {
@@ -1465,7 +1464,7 @@ const getTopCustomers = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   // Tính startDate nếu có days
-  const matchStage = { isDeleted: false, role: 'user' };
+  const matchStage = { isDeleted: false };
   if (days > 0) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
