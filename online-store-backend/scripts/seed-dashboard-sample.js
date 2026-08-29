@@ -9,8 +9,6 @@ const Customer = require('../src/models/Customer');
 const Order = require('../src/models/Order');
 const Coupon = require('../src/models/Coupon');
 const User = require('../src/models/User');
-const Category = require('../src/models/Category');
-const Brand = require('../src/models/Brand');
 const Currency = require('../src/models/Currency');
 
 const SAMPLE_PREFIX = 'dashboard-sample:';
@@ -66,21 +64,32 @@ const getExistingCounts = async () => {
 };
 
 const assertDependencies = async () => {
-  const [user, categories, catalogBrands, productBrands, currency] = await Promise.all([
+  const [user, products, currency] = await Promise.all([
     User.findOne({ isDeleted: false, role: { $in: ['admin', 'super-admin'] } }).sort({ createdAt: 1 }).lean(),
-    Category.find({ isDeleted: false }).sort({ createdAt: 1 }).lean(),
-    Brand.distinct('name', { isDeleted: false, name: { $type: 'string', $ne: '' } }),
-    Product.distinct('brand', { isDeleted: false, brand: { $type: 'string', $ne: '' } }),
+    Product.find({
+      isDeleted: false,
+      brand: { $type: 'string', $ne: '' },
+      image: { $type: 'string', $ne: '' },
+      price: { $gt: 0 },
+      category: { $exists: true },
+      $nor: [{ sourceProductId: { $regex: `^${SAMPLE_PREFIX}` } }],
+    })
+      .select('name image price originalPrice brand category')
+      .sort({ _id: 1 })
+      .populate({ path: 'category', select: '_id name', match: { isDeleted: false } })
+      .lean(),
     Currency.findOne({ isActive: true, isDefault: true }).lean(),
   ]);
-  const brands = [...new Set([...catalogBrands, ...productBrands].map((brand) => brand.trim()).filter(Boolean))].sort();
+
+  const productsWithCategories = products.filter((product) => product.category);
 
   if (!user) throw new Error('Cần có ít nhất một admin hoặc super-admin đang hoạt động.');
-  if (categories.length === 0) throw new Error('Cần có ít nhất một category chưa bị xóa.');
-  if (brands.length === 0) throw new Error('Cần có ít nhất một brand đang được dùng hoặc chưa bị xóa.');
+  if (productsWithCategories.length === 0) {
+    throw new Error('Cần có ít nhất một product đang hoạt động với brand và category hợp lệ.');
+  }
   if (!currency) throw new Error('Cần có một currency mặc định đang hoạt động.');
 
-  return { user, categories, brands, currency };
+  return { user, products: productsWithCategories, currency };
 };
 
 const assertCouponOwnership = async (coupons) => {
@@ -109,28 +118,15 @@ const assertCustomerOwnership = async (customers) => {
   }
 };
 
-const upsertSamples = async ({ products, customers, orders, coupons, dependencies }) => {
-  const { user, categories, brands, currency } = dependencies;
+const upsertSamples = async ({ productDefinitions, customers, orders, coupons, dependencies }) => {
+  const { user, products, currency } = dependencies;
 
   await Promise.all([assertCouponOwnership(coupons), assertCustomerOwnership(customers)]);
 
-  await Product.bulkWrite(products.map(({ key, ...product }, index) => ({
-    updateOne: {
-      filter: { sourceProductId: `${SAMPLE_PREFIX}${key}` },
-      update: {
-        $setOnInsert: {
-          user: user._id,
-          ...product,
-          category: categories[index % categories.length]._id,
-          brand: brands[index % brands.length],
-          sourceProductId: `${SAMPLE_PREFIX}${key}`,
-          baseCurrencyCode: currency.code,
-          isDeleted: false,
-        },
-      },
-      upsert: true,
-    },
-  })));
+  const productsByKey = new Map(productDefinitions.map((definition, index) => [
+    definition.key,
+    products[index % products.length],
+  ]));
 
   await Customer.bulkWrite(customers.map((customer) => ({
     updateOne: {
@@ -148,30 +144,31 @@ const upsertSamples = async ({ products, customers, orders, coupons, dependencie
     },
   })));
 
-  await Coupon.bulkWrite(coupons.map(({ startDaysAgo, endDaysFromNow, scope = 'all', ...coupon }, index) => ({
-    updateOne: {
-      filter: { code: coupon.code },
-      update: {
-        $setOnInsert: {
-          ...coupon,
-          currencyCode: currency.code,
-          applicableCategories: scope === 'category' ? [categories[index % categories.length]._id] : [],
-          startDate: dateDaysFromNow(-startDaysAgo),
-          endDate: dateDaysFromNow(endDaysFromNow),
-          isDeleted: false,
+  await Coupon.bulkWrite(coupons.map(({ startDaysAgo, endDaysFromNow, scope = 'all', ...coupon }, index) => {
+    const product = productsByKey.get(coupon.productKey) || products[index % products.length];
+    return {
+      updateOne: {
+        filter: { code: coupon.code },
+        update: {
+          $setOnInsert: {
+            ...coupon,
+            currencyCode: currency.code,
+            applicableCategories: scope === 'category' ? [product.category._id] : [],
+            startDate: dateDaysFromNow(-startDaysAgo),
+            endDate: dateDaysFromNow(endDaysFromNow),
+            isDeleted: false,
+          },
         },
+        upsert: true,
       },
-      upsert: true,
-    },
-  })));
+    };
+  }));
 
-  const [storedProducts, storedCustomers, storedCoupons] = await Promise.all([
-    Product.find({ sourceProductId: { $in: products.map((product) => `${SAMPLE_PREFIX}${product.key}`) }, isDeleted: false }).lean(),
+  const [storedCustomers, storedCoupons] = await Promise.all([
     Customer.find({ email: { $in: customers.map((customer) => customer.email) }, isDeleted: false }).lean(),
     Coupon.find({ code: { $in: coupons.map((coupon) => coupon.code) }, isDeleted: false }).lean(),
   ]);
 
-  const productsByKey = new Map(storedProducts.map((product) => [product.sourceProductId.slice(SAMPLE_PREFIX.length), product]));
   const customersByKey = new Map(customers.map((customer) => [customer.key, storedCustomers.find((stored) => stored.email === customer.email)]));
   const couponsByCode = new Map(storedCoupons.map((coupon) => [coupon.code, coupon]));
 
@@ -274,13 +271,17 @@ const upsertSamples = async ({ products, customers, orders, coupons, dependencie
   });
 
   await Order.bulkWrite(orderOperations);
+
+  return {
+    productsReused: new Set([...productsByKey.values()].map((product) => product._id.toString())).size,
+  };
 };
 
 const rollbackSamples = async (customers) => {
   const customerEmails = customers.map((customer) => customer.email);
-  const [products, , , coupons] = ['products.json', 'customers.json', 'orders.json', 'coupons.json'].map(readJson);
+  const coupons = readJson('coupons.json');
   const sampleOrders = await Order.deleteMany({ idempotencyKey: { $regex: `^${SAMPLE_PREFIX}` } });
-  const sampleProducts = await Product.deleteMany({ sourceProductId: { $in: products.map((product) => `${SAMPLE_PREFIX}${product.key}`) } });
+  const sampleProducts = await Product.deleteMany({ sourceProductId: { $regex: `^${SAMPLE_PREFIX}` } });
   const sampleCoupons = await Coupon.deleteMany({ code: { $in: coupons.map((coupon) => coupon.code) }, description: { $regex: '^\\[dashboard-sample\\]' } });
   const sampleCustomers = await Customer.find({ email: { $in: customerEmails } }).lean();
   const customerIds = sampleCustomers.map((customer) => customer._id);
@@ -308,7 +309,7 @@ const main = async () => {
   }
 
   assertSafeEnvironment(options);
-  const [products, customers, orders, coupons] = ['products.json', 'customers.json', 'orders.json', 'coupons.json'].map(readJson);
+  const [productDefinitions, customers, orders, coupons] = ['products.json', 'customers.json', 'orders.json', 'coupons.json'].map(readJson);
 
   await connectMongo();
   const counts = await getExistingCounts();
@@ -319,7 +320,7 @@ const main = async () => {
   }
 
   if (!options.apply) {
-    console.log(JSON.stringify({ planned: { products: products.length, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
+    console.log(JSON.stringify({ planned: { productReferences: productDefinitions.length, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
     return;
   }
 
@@ -329,8 +330,8 @@ const main = async () => {
   }
 
   const dependencies = await assertDependencies();
-  await upsertSamples({ products, customers, orders, coupons, dependencies });
-  console.log(JSON.stringify({ seeded: { products: products.length, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
+  const seeded = await upsertSamples({ productDefinitions, customers, orders, coupons, dependencies });
+  console.log(JSON.stringify({ seeded: { ...seeded, customers: customers.length, orders: orders.length, coupons: coupons.length } }, null, 2));
 };
 
 main()
