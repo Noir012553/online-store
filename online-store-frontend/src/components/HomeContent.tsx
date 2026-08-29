@@ -65,6 +65,7 @@ interface BackendProduct {
     name?: string;
     slug?: string;
   } | string;
+  categoryId?: string;
   specs?: Record<string, string | number>;
   description?: string;
   [key: string]: any;
@@ -311,6 +312,7 @@ export default function Home() {
     const requestController = new AbortController();
     const contentCategories = Array.isArray(categories) ? categories : [];
     const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
+    const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
 
     const fetchCategoryProducts = async (category: HomeCategory) => {
       const requestDetails = {
@@ -433,9 +435,8 @@ export default function Home() {
           .filter((result): result is PromiseFulfilledResult<BackendProduct[]> => result.status === 'fulfilled')
           .flatMap((result) => result.value)
           .filter((product) => (
-            typeof product.category === 'object'
-            && product.category !== null
-            && FLASH_SALE_CATEGORY_SLUGS.has(normalizeCategorySlug(product.category.slug))
+            typeof product.categoryId === 'string'
+            && flashSaleCategoryIds.has(product.categoryId)
           ));
         const uniqueDeals = [...new Map(
           dealCandidates.map((product) => [product._id || product.id, product]),
