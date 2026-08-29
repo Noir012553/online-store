@@ -7,6 +7,9 @@
 - Giao diện hiển thị:
   - `Không tìm thấy sản phẩm`
   - `Lỗi tải sản phẩm`
+- Ngoài lỗi dữ liệu và timeout được mô tả bên dưới, trang product cũng được ghi nhận có cảm giác tự F5/tải lại.
+- Hiện tượng tương tự đã xuất hiện trên Homepage `/`; Builder interactive preview chỉ là một môi trường tái hiện, không phải phạm vi duy nhất.
+- Cần đối chiếu riêng request `Document` của route `/product/:id` với các request API phụ để phân biệt reload thật, auth redirect, remount của ứng dụng và reload do preview/hosting.
 
 ## Kết luận
 

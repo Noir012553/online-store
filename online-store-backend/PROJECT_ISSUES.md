@@ -2,13 +2,22 @@
 
 Tài liệu này ghi lại các lỗi và hiện tượng đã gặp khi chạy online store. Không lưu secret, token hoặc địa chỉ IP cụ thể.
 
-## 1. Homepage có cảm giác reload hoặc tải lại liên tục
+## 1. Homepage và trang product có cảm giác reload hoặc tải lại liên tục
+
+### Phạm vi tái hiện cập nhật
+
+- Hiện tượng không chỉ xảy ra trong Builder interactive preview.
+- Homepage `/` trong Builder preview có thể xuất hiện request document dạng `/?reload=...&builder.preview=interact`; đây có thể là cơ chế reload iframe của Builder.
+- Trang chi tiết sản phẩm `/product/:id` cũng được ghi nhận có cảm giác tự F5/tải lại, nên không thể quy kết toàn bộ hiện tượng cho Builder preview.
+- Các product card trên Homepage dẫn tới các route như `/product/6a8ddac9c4e6879f6c9f3664` và `/product/6a8ddac9c4e6879f6c9f3671`; cần kiểm tra riêng vòng đời request khi mở các route này.
+- Phạm vi cần theo dõi gồm cả Builder preview, Homepage production và trang product trực tiếp.
 
 ### Biểu hiện
 
-- Trang chủ có cảm giác tự F5 hoặc liên tục cập nhật nội dung.
-- Network/log xuất hiện nhiều request lấy sản phẩm, banner và bản dịch.
-- Không tìm thấy lệnh `window.location.reload()` hoặc `router.reload()` trong luồng trang chủ.
+- Homepage hoặc trang product có cảm giác tự F5 hoặc liên tục cập nhật nội dung.
+- Network/log xuất hiện nhiều request document, sản phẩm, banner, bản dịch hoặc refresh token.
+- Không tìm thấy lệnh `window.location.reload()` hoặc `router.reload()` trong luồng Homepage.
+- Chưa đủ bằng chứng để kết luận request document do Builder, hosting, auth redirect hay ứng dụng tự điều hướng trong mọi môi trường.
 
 ### Nguyên nhân đã xác định
 
