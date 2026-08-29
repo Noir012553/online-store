@@ -414,7 +414,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
             )}
           </div>
 
-          <Accordion type="multiple" defaultValue={["price", "highlights", "rating", "specs", "brands"]} className="w-full">
+          <Accordion type="multiple" defaultValue={["price", "discount", "highlights", "rating", "brands", "stock"]} className="w-full">
             {/* Price Range Filter */}
             {sliderMax > sliderMin && (
               <AccordionItem value="price">
