@@ -54,7 +54,7 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4 sm:p-6"
+      className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/80 p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label={alt}

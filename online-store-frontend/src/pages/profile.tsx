@@ -488,7 +488,7 @@ export default function Profile() {
 
       {/* Change Password Modal */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2147483647] p-4 sm:p-6">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
             <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 sm:px-8 py-6 rounded-t-2xl">
               <div className="flex items-center gap-3">
