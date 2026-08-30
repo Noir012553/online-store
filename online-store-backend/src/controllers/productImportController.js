@@ -27,7 +27,11 @@ const { validateCategoryName, sanitizeCategoryName } = require('../utils/product
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
+const {
+  getActiveLangCodes,
+  getDefaultLanguage,
+  isSupportedLanguage,
+} = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 
@@ -83,7 +87,58 @@ const getExportProducts = async (filter, limit) => {
   };
 };
 
-const serializeProductForExport = (product) => {
+const getProductTranslationsForExport = async (products) => {
+  const activeLanguages = getActiveLangCodes();
+  const defaultLanguage = getDefaultLanguage().code;
+  const productIds = products.map(product => product._id.toString());
+  const translationDocuments = await ProductCatalogTranslationCache.find({
+    entityId: { $in: productIds },
+    targetLang: { $in: activeLanguages.filter(language => language !== defaultLanguage) },
+    status: 'success',
+    qualityStatus: 'approved',
+  }).lean();
+  const translationsByProduct = new Map();
+
+  translationDocuments.forEach((translation) => {
+    const productTranslations = translationsByProduct.get(translation.entityId) || new Map();
+    productTranslations.set(translation.targetLang, translation);
+    translationsByProduct.set(translation.entityId, productTranslations);
+  });
+
+  return products.map((product) => {
+    const sourceTranslation = {
+      name: product.name,
+      description: product.description,
+      brand: product.brand,
+      specs: product.specs || {},
+    };
+    const productTranslations = translationsByProduct.get(product._id.toString()) || new Map();
+    const translations = Object.fromEntries(activeLanguages.map((language) => {
+      if (language === defaultLanguage) return [language, sourceTranslation];
+
+      const translation = productTranslations.get(language);
+      if (translation) {
+        return [language, {
+          name: translation.name,
+          description: translation.description,
+          brand: translation.brand,
+          specs: translation.specs || {},
+          manualFields: translation.manualFields || [],
+        }];
+      }
+
+      return [language, {
+        ...sourceTranslation,
+        fallback: true,
+        fallbackLanguage: defaultLanguage,
+      }];
+    }));
+
+    return { product, translations };
+  });
+};
+
+const serializeProductForExport = (product, translations = {}) => {
   const {
     _id,
     user,
@@ -102,6 +157,7 @@ const serializeProductForExport = (product) => {
     category: category.name,
     images: Array.isArray(productData.images) ? productData.images : [],
     imagePublicIds: Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : [],
+    translations,
   };
 };
 
@@ -195,7 +251,7 @@ const getChangedTranslatableFields = (existing, product) => (
 );
 
 const withoutImportProductId = (product) => {
-  const { productId, ...productData } = product;
+  const { productId, translations, ...productData } = product;
   return productData;
 };
 
@@ -203,6 +259,57 @@ const buildUpsertProductUpdate = (product, preserveExistingStock) => {
   const update = withoutImportProductId(product);
   if (preserveExistingStock) delete update.countInStock;
   return update;
+};
+
+const getProductTranslationImportRecords = (products) => {
+  const defaultLanguage = getDefaultLanguage().code;
+  return products.flatMap((product) => {
+    if (!product.productId || !product.translations || typeof product.translations !== 'object') return [];
+
+    return Object.entries(product.translations)
+      .filter(([targetLang, translation]) => (
+        targetLang !== defaultLanguage
+        && isSupportedLanguage(targetLang)
+        && translation
+        && typeof translation === 'object'
+        && !Array.isArray(translation)
+        && translation.fallback !== true
+      ))
+      .map(([targetLang, translation]) => ({
+        productId: String(product.productId),
+        targetLang,
+        translations: Object.fromEntries(
+          ['name', 'description', 'brand', 'specs']
+            .map(field => [field, translation[field]])
+            .filter(([, value]) => value !== undefined && value !== null)
+        ),
+        manualFields: Array.isArray(translation.manualFields) ? translation.manualFields : [],
+      }));
+  });
+};
+
+const importProductTranslations = async (products) => {
+  const records = getProductTranslationImportRecords(products);
+  if (records.length === 0) return { imported: 0 };
+
+  const operations = records.map(({ productId, targetLang, translations, manualFields }) => ({
+    updateOne: {
+      filter: { entityId: productId, targetLang },
+      update: {
+        $set: {
+          ...translations,
+          status: 'success',
+          qualityStatus: 'approved',
+          validationErrors: [],
+          manualFields,
+          lastTranslatedAt: new Date(),
+        },
+      },
+      upsert: true,
+    },
+  }));
+  await ProductCatalogTranslationCache.bulkWrite(operations);
+  return { imported: records.length };
 };
 
 const getProductImagePublicIds = (product) => [
@@ -570,6 +677,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
+    const importedTranslationSummary = await importProductTranslations(validProducts);
     res.json({
       success: true,
       code: 'IMPORT_COMPLETED',
@@ -750,6 +858,7 @@ const importProducts = asyncHandler(async (req, res) => {
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
+    const importedTranslationSummary = await importProductTranslations(validProducts);
     res.json({
       success: true,
       message: getMessage(req.lang, 'frontend-import.import_success'),
@@ -762,6 +871,7 @@ const importProducts = asyncHandler(async (req, res) => {
       },
 
       translationSummary,
+      importedTranslationSummary,
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
@@ -1103,9 +1213,12 @@ const exportProducts = asyncHandler(async (req, res) => {
       products: exportedProducts,
     } = await getExportProducts(filter, parsedLimit);
 
-    const transformedProducts = exportedProducts
-      .filter(product => product.category)
-      .map(serializeProductForExport);
+    const productsWithTranslations = await getProductTranslationsForExport(
+      exportedProducts.filter(product => product.category)
+    );
+    const transformedProducts = productsWithTranslations.map(({ product, translations }) => (
+      serializeProductForExport(product, translations)
+    ));
 
     if (format.toLowerCase() === 'json') {
       res.setHeader('Content-Type', 'application/json');
@@ -1217,9 +1330,12 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       hasMore,
       products: productsToExport,
     } = await getExportProducts(filter, parsedLimit);
-    const exportedProducts = productsToExport
-      .filter(product => product.category)
-      .map(serializeProductForExport);
+    const productsWithTranslations = await getProductTranslationsForExport(
+      productsToExport.filter(product => product.category)
+    );
+    const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
+      serializeProductForExport(product, translations)
+    ));
     const exportedAt = new Date().toISOString();
     const productsPayload = {
       success: true,
