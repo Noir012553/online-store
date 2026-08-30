@@ -6,9 +6,9 @@ const parseDnsServers = value => value
 const mongooseOptions = Object.freeze({
   maxPoolSize: 10,
   minPoolSize: 5,
-  serverSelectionTimeoutMS: 8000,
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 8000,
+  serverSelectionTimeoutMS: 20000,
+  socketTimeoutMS: 60000,
+  connectTimeoutMS: 20000,
   retryWrites: true,
   w: 'majority',
   family: 4,

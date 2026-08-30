@@ -177,7 +177,10 @@ function validateProduct(product, rowIndex = 0) {
   }
 
   if (product.images && Array.isArray(product.images)) {
-    cleaned.images = product.images.map(img => String(img).trim());
+    cleaned.images = product.images
+      .map(image => (typeof image === 'string' ? image : image?.url))
+      .filter(Boolean)
+      .map(image => String(image).trim());
   } else if (product.images && typeof product.images === 'string') {
     // Parse pipe-separated images
     cleaned.images = product.images.split('|').map(img => String(img).trim()).filter(img => img);
