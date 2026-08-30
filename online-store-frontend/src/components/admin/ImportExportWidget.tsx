@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import Link from 'next/link';
-import { productAPI, categoryAPI } from '../../lib/api';
+import { productAPI } from '../../lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/lib/i18n';
 import { getCategoryName } from '../../lib/data';
@@ -20,12 +20,8 @@ export default function ImportExportWidget() {
 
     const fetchData = async () => {
       setIsLoading(true);
-      const [statsResult, categoriesResult] = await Promise.allSettled([
+      const [statsResult] = await Promise.allSettled([
         productAPI.getExportStats(locale, {
-          signal: controller.signal,
-          skipErrorToast: true,
-        }),
-        categoryAPI.getCategories(locale, {
           signal: controller.signal,
           skipErrorToast: true,
         }),
@@ -39,9 +35,8 @@ export default function ImportExportWidget() {
         toast.error(t('error_loading_export_data', 'export'));
       }
 
-      if (categoriesResult.status === 'fulfilled') {
-        const categoriesList = categoriesResult.value.categories || categoriesResult.value;
-        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
+      if (statsResult.status === 'fulfilled') {
+        setCategories(Array.isArray(statsResult.value.categories) ? statsResult.value.categories : []);
       }
 
       setIsLoading(false);
@@ -167,14 +162,11 @@ export default function ImportExportWidget() {
               >
                 <option value="all">{t('all_categories', 'export')}</option>
                 {categories?.map((cat: any) => {
-                  const catDisplayName = getCategoryName(cat);
-                  const categoryId = cat._id || cat.id;
-                  const catStats = exportStats?.categories?.find(
-                    (s: any) => String(s.categoryId) === String(categoryId),
-                  );
+                  const categoryId = cat.categoryId || cat._id || cat.id;
+                  const catDisplayName = getCategoryName(cat.category || cat.categoryName || cat);
                   return (
                     <option key={categoryId} value={categoryId}>
-                      {catDisplayName}{catStats ? ` (${catStats.count})` : ''}
+                      {catDisplayName} ({cat.count})
                     </option>
                   );
                 })}

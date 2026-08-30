@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { useTranslation, useLanguage } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
-import { productAPI, categoryAPI } from '../../lib/api';
+import { productAPI } from '../../lib/api';
 import { toast } from 'sonner';
 import { getCategoryName } from '../../lib/data';
 
@@ -31,12 +31,8 @@ function ExportProductsContent() {
 
     const fetchData = async () => {
       setIsLoading(true);
-      const [statsResult, categoriesResult] = await Promise.allSettled([
+      const [statsResult] = await Promise.allSettled([
         productAPI.getExportStats(locale, {
-          signal: controller.signal,
-          skipErrorToast: true,
-        }),
-        categoryAPI.getCategories(locale, {
           signal: controller.signal,
           skipErrorToast: true,
         }),
@@ -50,9 +46,8 @@ function ExportProductsContent() {
         toast.error(t('error_load_data', 'admin'));
       }
 
-      if (categoriesResult.status === 'fulfilled') {
-        const categoriesList = categoriesResult.value.categories || categoriesResult.value;
-        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
+      if (statsResult.status === 'fulfilled') {
+        setCategories(Array.isArray(statsResult.value.categories) ? statsResult.value.categories : []);
       } else {
         setCategories([]);
       }
@@ -143,14 +138,14 @@ function ExportProductsContent() {
                 >
                   <option value="all">{t('all_categories')}</option>
                   {categories?.map((cat: any) => {
-                    const catDisplayName = getCategoryDisplayName(cat, locale);
-                    const categoryId = cat._id || cat.id;
-                    const catStats = exportStats?.categories?.find(
-                      (s: any) => String(s.categoryId) === String(categoryId),
+                    const categoryId = cat.categoryId || cat._id || cat.id;
+                    const catDisplayName = getCategoryDisplayName(
+                      cat.category || cat.categoryName || cat,
+                      locale,
                     );
                     return (
                       <option key={categoryId} value={categoryId}>
-                        {catDisplayName}{catStats ? ` (${catStats.count})` : ''}
+                        {catDisplayName} ({cat.count})
                       </option>
                     );
                   })}

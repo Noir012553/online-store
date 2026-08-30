@@ -19,7 +19,16 @@
 
 const asyncHandler = require('express-async-handler');
 const archiverModule = require('archiver');
-const createArchive = archiverModule.default || archiverModule.create || archiverModule;
+const createArchive = [
+  archiverModule,
+  archiverModule.default,
+  archiverModule.create,
+  archiverModule.default?.create,
+].find(candidate => typeof candidate === 'function');
+
+if (!createArchive) {
+  throw new TypeError('The archiver package does not expose a factory function');
+}
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
