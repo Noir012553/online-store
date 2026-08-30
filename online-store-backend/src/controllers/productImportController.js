@@ -28,7 +28,10 @@ const { validateCategoryName, sanitizeCategoryName } = require('../utils/product
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage } = require('../config/languageInventory');
+const {
+  getDefaultLanguage,
+  isSupportedLanguage,
+} = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 
