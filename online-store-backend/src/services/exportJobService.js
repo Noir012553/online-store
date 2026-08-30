@@ -7,12 +7,15 @@ const ExportJob = require('../models/ExportJob');
 const MAX_ATTEMPTS = 3;
 const POLL_INTERVAL_MS = 5000;
 const EXPORT_LEASE_MS = 10 * 60 * 1000;
+const EXPORT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const EXPORT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const EXPORT_DIR = path.resolve(
   process.env.EXPORT_JOB_DIR || path.join(os.tmpdir(), 'online-store-export-jobs'),
 );
 
 let timer = null;
 let isProcessing = false;
+let lastCleanupAt = 0;
 
 const createJobError = (statusCode, code, details = {}) => {
   const error = new Error(code);
@@ -89,22 +92,81 @@ const markCancelled = async (job) => {
   );
 };
 
+const isManagedExportPath = (filePath) => {
+  if (typeof filePath !== 'string') return false;
+  const relativePath = path.relative(EXPORT_DIR, path.resolve(filePath));
+  return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+};
+
+const cleanupExpiredExportFiles = async (cutoff) => {
+  let entries;
+  try {
+    entries = await fs.promises.readdir(EXPORT_DIR, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return;
+    throw error;
+  }
+
+  await Promise.all(entries
+    .filter(entry => entry.isFile() && path.extname(entry.name) === '.zip')
+    .map(async (entry) => {
+      const filePath = path.join(EXPORT_DIR, entry.name);
+      const stats = await fs.promises.stat(filePath).catch(() => null);
+      if (stats && stats.mtime <= cutoff) await fs.promises.unlink(filePath).catch(() => {});
+    }));
+};
+
+const cleanupExpiredExportJobs = async () => {
+  const cutoff = new Date(Date.now() - EXPORT_RETENTION_MS);
+  await cleanupExpiredExportFiles(cutoff);
+
+  const staleJobs = ExportJob.find({
+    status: { $in: ['ready', 'failed', 'cancelled'] },
+    finishedAt: { $ne: null, $lte: cutoff },
+  }).select('_id filePath status finishedAt').lean().cursor();
+
+  for await (const job of staleJobs) {
+    if (job.filePath && isManagedExportPath(job.filePath)) {
+      await fs.promises.unlink(job.filePath).catch(() => {});
+    }
+    await ExportJob.deleteOne({
+      _id: job._id,
+      status: job.status,
+      finishedAt: { $lte: cutoff },
+    });
+  }
+};
+
+const maybeCleanupExpiredExportJobs = async () => {
+  if (Date.now() - lastCleanupAt < EXPORT_CLEANUP_INTERVAL_MS) return;
+  lastCleanupAt = Date.now();
+  try {
+    await cleanupExpiredExportJobs();
+  } catch (error) {
+    console.error('[EXPORT_JOB_CLEANUP_ERROR]', { message: error.message, stack: error.stack });
+  }
+};
+
 const processExportJob = async (job) => {
   const { createExportPayload, writeExportZipFile } = require('../controllers/productImportController');
   const filePath = path.join(EXPORT_DIR, `${job._id.toString()}-${job.attempts}.zip`);
   let fileCreated = false;
+  const startedAt = Date.now();
 
   try {
+    console.info('[EXPORT_JOB_STARTED]', { jobId: job._id.toString(), attempt: job.attempts });
     if (await isCancelRequested(job._id)) {
       await markCancelled(job);
       return;
     }
 
     const request = { ...job.request, async: false };
-    const payload = await createExportPayload(
-      { aborted: false, destroyed: false },
-      request,
-    );
+    const fakeReq = {
+      aborted: false,
+      destroyed: false,
+      user: job.userId ? { _id: job.userId } : null,
+    };
+    const payload = await createExportPayload(fakeReq, request);
 
     if (await isCancelRequested(job._id)) {
       await markCancelled(job);
@@ -129,11 +191,23 @@ const processExportJob = async (job) => {
     if (result.modifiedCount !== 1) {
       await fs.promises.unlink(filePath).catch(() => {});
       if (await isCancelRequested(job._id)) await markCancelled(job);
+    } else {
+      console.info('[EXPORT_JOB_READY]', {
+        jobId: job._id.toString(),
+        durationMs: Date.now() - startedAt,
+      });
     }
   } catch (error) {
     if (fileCreated) await fs.promises.unlink(filePath).catch(() => {});
     const cancelled = await isCancelRequested(job._id);
     const retryable = job.attempts < MAX_ATTEMPTS;
+    console.error('[EXPORT_JOB_FAILED]', {
+      jobId: job._id.toString(),
+      attempt: job.attempts,
+      durationMs: Date.now() - startedAt,
+      message: error.message,
+      stack: error.stack,
+    });
     await ExportJob.updateOne(
       { _id: job._id, status: 'processing', leaseExpiresAt: job.leaseExpiresAt },
       {
@@ -180,6 +254,7 @@ const processExportJobs = async () => {
   isProcessing = true;
 
   try {
+    await maybeCleanupExpiredExportJobs();
     await recoverExpiredExportJobs();
     let job = await claimNextExportJob();
     while (job) {
@@ -259,7 +334,9 @@ const retryExportJob = async (jobId) => {
 const downloadExportJob = async (jobId, res, next) => {
   assertJobId(jobId);
   const job = await ExportJob.findOne({ _id: jobId, status: 'ready' }).lean();
-  if (!job || !job.filePath) throw createJobError(404, 'EXPORT_FILE_NOT_READY');
+  if (!job || !job.filePath || !isManagedExportPath(job.filePath)) {
+    throw createJobError(404, 'EXPORT_FILE_NOT_READY');
+  }
 
   res.download(job.filePath, `products-export-${job._id}.zip`, (error) => {
     if (error && !res.headersSent) next(error);

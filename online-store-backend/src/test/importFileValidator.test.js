@@ -47,15 +47,15 @@ describe('Product export serialization', () => {
       category: 'Keyboard',
       customField: 'preserved',
     });
-    expect(exported.images).to.deep.equal(product.images);
+    expect(exported.images.map(image => image.url)).to.deep.equal(product.images);
     expect(exported.imagePublicIds).to.deep.equal(product.imagePublicIds);
     expect(exported).to.include({
       user: 'internal-user-id',
-      reviews: ['internal-review-id'],
       isDeleted: false,
       storefrontReady: true,
       storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
     });
+    expect(exported.reviews).to.deep.equal(['internal-review-id']);
   });
 
   it('includes the main image when the gallery only contains attached images', () => {
@@ -65,7 +65,7 @@ describe('Product export serialization', () => {
       imagePublicIds: ['products/gallery'],
     });
 
-    expect(exported.images).to.deep.equal([
+    expect(exported.images.map(image => image.url)).to.deep.equal([
       'https://example.com/main.jpg',
       'https://example.com/gallery.jpg',
     ]);
