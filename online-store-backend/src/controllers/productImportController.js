@@ -37,7 +37,12 @@ if (!createZipArchive) {
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+let CategoryCatalogTranslationCache = null;
+try {
+  CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+} catch (error) {
+  console.error('[EXPORT_CATEGORY_TRANSLATION_CACHE_UNAVAILABLE]', { message: error.message });
+}
 const Language = require('../models/Language');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
@@ -49,6 +54,7 @@ const {
   getDefaultLanguage,
   isSupportedLanguage,
 } = require('../config/languageInventory');
+const LanguageService = require('../services/languageService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
@@ -128,85 +134,190 @@ const getExportProducts = async (filter, limit) => {
   };
 };
 
-const getProductTranslationsForExport = async (products) => {
+const normalizeExportLocale = (locale) => (
+  typeof locale === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(locale.trim())
+    ? locale.trim().toLowerCase()
+    : null
+);
+
+const uniqueValues = (values) => [...new Set(values.filter(Boolean))];
+
+const getConfiguredExportLocales = () => (
+  String(process.env.EXPORT_LOCALES || '')
+    .split(',')
+    .map(normalizeExportLocale)
+    .filter(Boolean)
+);
+
+const getExportFallbacks = () => {
+  const rawFallbacks = process.env.EXPORT_TRANSLATION_FALLBACKS;
+  if (!rawFallbacks) return {};
+
+  try {
+    const parsedFallbacks = JSON.parse(rawFallbacks);
+    if (!parsedFallbacks || typeof parsedFallbacks !== 'object' || Array.isArray(parsedFallbacks)) {
+      throw new TypeError('EXPORT_TRANSLATION_FALLBACKS must be a JSON object');
+    }
+
+    return Object.fromEntries(Object.entries(parsedFallbacks)
+      .map(([locale, fallbacks]) => [
+        normalizeExportLocale(locale),
+        Array.isArray(fallbacks)
+          ? fallbacks.map(normalizeExportLocale).filter(Boolean)
+          : [],
+      ])
+      .filter(([locale]) => locale));
+  } catch (error) {
+    console.error('[EXPORT_TRANSLATION_FALLBACK_CONFIG_INVALID]', { message: error.message });
+    return {};
+  }
+};
+
+const getTranslationWithFallback = (translations, locale, fallbacks, defaultLocale) => {
+  const fallbackChain = uniqueValues([
+    locale,
+    ...(fallbacks[locale] || []),
+    defaultLocale,
+  ]);
+
+  for (const candidate of fallbackChain) {
+    const translation = translations.get(candidate);
+    if (!translation) continue;
+
+    return {
+      ...translation,
+      appliedLocale: candidate,
+      fallback: candidate !== locale,
+    };
+  }
+
+  return null;
+};
+
+const toExportTranslation = (translation) => ({
+  name: translation.name,
+  description: translation.description,
+  brand: translation.brand,
+  specs: translation.specs || {},
+  manualFields: translation.manualFields || [],
+  status: translation.status,
+  qualityStatus: translation.qualityStatus,
+  qualityScore: translation.qualityScore,
+  validationErrors: translation.validationErrors || [],
+  lastTranslatedAt: translation.lastTranslatedAt,
+  retryCount: translation.retryCount,
+  lastErrorMessage: translation.lastErrorMessage,
+  lastRetryAt: translation.lastRetryAt,
+});
+
+const getTranslationLookupLocales = (locales, fallbacks, defaultLocale) => uniqueValues(
+  locales.flatMap(locale => [locale, ...(fallbacks[locale] || []), defaultLocale])
+);
+
+const getProductTranslationsForExport = async (products, locales, fallbacks, defaultLocale) => {
   if (products.length === 0) return [];
 
   const productIds = products.map(product => product._id.toString());
-  const [defaultLanguage, translationDocuments] = await Promise.all([
-    withExportTimeout(
-      Language.findOne({ isSystemDefault: true }, { code: 1 })
-        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
-        .lean(),
-    ),
-    withExportTimeout(
-      ProductCatalogTranslationCache.find({ entityId: { $in: productIds } })
-        .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
-        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
-        .lean(),
-    ),
-  ]);
-  const translationsByProduct = new Map();
+  const lookupLocales = getTranslationLookupLocales(locales, fallbacks, defaultLocale)
+    .filter(locale => locale !== defaultLocale);
+  let translationDocuments = [];
 
+  if (lookupLocales.length > 0) {
+    try {
+      translationDocuments = await withExportTimeout(
+        ProductCatalogTranslationCache.find({
+          entityId: { $in: productIds },
+          targetLang: { $in: lookupLocales },
+          status: 'success',
+        })
+          .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
+          .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+          .lean(),
+      );
+    } catch (error) {
+      console.error('[EXPORT_TRANSLATION_CACHE_ERROR]', {
+        productCount: products.length,
+        locales: lookupLocales,
+        message: error.message,
+      });
+    }
+  }
+
+  const translationsByProduct = new Map();
   translationDocuments.forEach((translation) => {
     if (!translation.targetLang) return;
     const productTranslations = translationsByProduct.get(translation.entityId) || new Map();
-    productTranslations.set(translation.targetLang, translation);
+    productTranslations.set(translation.targetLang, toExportTranslation(translation));
     translationsByProduct.set(translation.entityId, productTranslations);
   });
 
   return products.map((product) => {
-    const translations = {};
-    if (defaultLanguage?.code) {
-      translations[defaultLanguage.code] = {
-        name: product.name,
-        description: product.description,
-        brand: product.brand,
-        specs: product.specs || {},
-      };
-    }
-
     const productTranslations = translationsByProduct.get(product._id.toString()) || new Map();
-    productTranslations.forEach((translation, language) => {
-      if (language === defaultLanguage?.code) return;
-      translations[language] = {
-        name: translation.name,
-        description: translation.description,
-        brand: translation.brand,
-        specs: translation.specs || {},
-        manualFields: translation.manualFields || [],
-        status: translation.status,
-        qualityStatus: translation.qualityStatus,
-        qualityScore: translation.qualityScore,
-        validationErrors: translation.validationErrors || [],
-        lastTranslatedAt: translation.lastTranslatedAt,
-        retryCount: translation.retryCount,
-        lastErrorMessage: translation.lastErrorMessage,
-        lastRetryAt: translation.lastRetryAt,
-      };
+    productTranslations.set(defaultLocale, {
+      name: product.name,
+      description: product.description,
+      brand: product.brand,
+      specs: product.specs || {},
     });
 
-    return { product, translations };
+    return {
+      product,
+      translations: Object.fromEntries(locales.map(locale => [
+        locale,
+        getTranslationWithFallback(productTranslations, locale, fallbacks, defaultLocale),
+      ]).filter(([, translation]) => translation)),
+    };
   });
+};
+
+const getExportImages = (productData) => {
+  const imageEntries = [];
+  const addImage = ({ url, publicId, alt, type }) => {
+    if (!url || imageEntries.some(image => image.url === url)) return;
+    imageEntries.push({
+      url,
+      alt: alt || productData.name || '',
+      position: imageEntries.length,
+      type,
+      ...(publicId ? { publicId } : {}),
+    });
+  };
+
+  addImage({
+    url: productData.image,
+    publicId: productData.imagePublicId,
+    type: 'main',
+  });
+
+  const galleryImages = Array.isArray(productData.images) ? productData.images : [];
+  const galleryPublicIds = Array.isArray(productData.imagePublicIds)
+    ? productData.imagePublicIds
+    : [];
+
+  galleryImages.forEach((image, index) => {
+    const source = typeof image === 'string' ? { url: image } : image || {};
+    addImage({
+      url: source.url,
+      publicId: source.publicId || galleryPublicIds[index],
+      alt: source.alt,
+      type: source.type || 'gallery',
+    });
+  });
+
+  return imageEntries;
 };
 
 const serializeProductForExport = (product, translations = {}) => {
   const { _id, category, ...productData } = product;
-  const imageUrls = [
-    productData.image,
-    ...(Array.isArray(productData.images) ? productData.images : []),
-  ].filter(Boolean);
-  const imagePublicIds = [
-    productData.imagePublicId,
-    ...(Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : []),
-  ].filter(Boolean);
+  const images = getExportImages(productData);
 
   return {
     ...productData,
     productId: _id.toString(),
     categoryId: category?._id?.toString(),
     category: category?.name,
-    images: [...new Set(imageUrls)],
-    imagePublicIds: [...new Set(imagePublicIds)],
+    images,
+    imagePublicIds: uniqueValues(images.map(image => image.publicId)),
     translations,
   };
 };
@@ -1213,94 +1324,195 @@ const getImportGuide = asyncHandler(async (req, res) => {
  * 2. Export CSV by category: GET /api/admin/products/export?format=csv&category=Keyboard
  * 3. Export limited products: GET /api/admin/products/export?format=json&limit=100
  */
-const exportProducts = asyncHandler(async (req, res) => {
-  const { format: requestedFormat = 'json', category, brand, limit = '10000' } = req.query;
-  if ([requestedFormat, category, brand, limit].some((value) => value !== undefined && typeof value !== 'string')) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_QUERY_INVALID',
-      message: getMessage(req.lang, 'errors.generic_error'),
-    });
+const createExportError = (statusCode, code, details = {}) => {
+  const error = new Error(code);
+  error.statusCode = statusCode;
+  error.errorCode = code;
+  error.details = details;
+  return error;
+};
+
+const sendExportError = (req, res, error) => {
+  if (res.headersSent) {
+    res.destroy(error);
+    return;
   }
 
-  const format = requestedFormat.toLowerCase();
-  const parsedLimit = Number(limit);
+  const isTimeout = /timed out|timeout/i.test(error.message || '');
+  const statusCode = error.statusCode || (isTimeout ? 503 : 500);
+  const code = error.errorCode || (isTimeout ? 'EXPORT_SERVICE_UNAVAILABLE' : 'EXPORT_FAILED');
+  const message = getMessage(req.lang, isTimeout ? 'common.error_server_desc' : 'errors.generic_error');
 
-  if (!['json', 'csv'].includes(format)) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_FORMAT_UNSUPPORTED',
-      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format: requestedFormat }),
-      supportedFormats: ['json', 'csv'],
-    });
+  res.status(statusCode).json({
+    success: false,
+    code,
+    message,
+    error: message,
+    details: error.details || { reason: error.message || error.name },
+    timestamp: new Date().toISOString(),
+  });
+};
+
+const getRequestedExportLocales = async (requestedLocales) => {
+  const configuredLocales = getConfiguredExportLocales();
+  const requested = requestedLocales === undefined
+    ? []
+    : requestedLocales.split(',').map(normalizeExportLocale);
+
+  if (requested.some(locale => !locale)) {
+    throw createExportError(400, 'EXPORT_LOCALES_INVALID', { locales: requestedLocales });
   }
 
-  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_LIMIT_INVALID',
-      message: getMessage(req.lang, 'errors.generic_error'),
-    });
+  let activeLocales = [];
+  try {
+    activeLocales = await withExportTimeout(LanguageService.getActiveLanguageCodes());
+  } catch (error) {
+    console.error('[EXPORT_LANGUAGE_LOOKUP_ERROR]', { message: error.message });
   }
+
+  let defaultLocale = getDefaultLanguage().code;
+  try {
+    const databaseDefaultLanguage = await withExportTimeout(
+      Language.findOne({ isSystemDefault: true }, { code: 1 })
+        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+        .lean(),
+    );
+    defaultLocale = normalizeExportLocale(databaseDefaultLanguage?.code) || defaultLocale;
+  } catch (error) {
+    console.error('[EXPORT_DEFAULT_LANGUAGE_LOOKUP_ERROR]', { message: error.message });
+  }
+
+  const locales = uniqueValues([
+    ...(requested.length ? requested : configuredLocales.length ? configuredLocales : activeLocales),
+    defaultLocale,
+  ]);
+
+  return { locales, defaultLocale };
+};
+
+const streamExportZip = async (req, res, payload, contentFormat) => {
+  if (req.aborted || res.destroyed) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
+  res.setHeader('X-Export-Content-Format', contentFormat);
+  res.setHeader('X-Matched-Total', payload.matchedTotal);
+  res.setHeader('X-Exported-Total', payload.exportedTotal);
+  res.setHeader('X-Has-More', String(payload.hasMore));
+
+  const archive = createZipArchive({ zlib: { level: 1 } });
+  let archiveFinished = false;
+  const abortArchive = () => {
+    if (!archiveFinished && typeof archive.abort === 'function') archive.abort();
+  };
+  const streamFinished = new Promise((resolve, reject) => {
+    archive.once('error', reject);
+    res.once('error', reject);
+    res.once('finish', resolve);
+  });
+
+  req.once('aborted', abortArchive);
+  res.once('close', abortArchive);
+  archive.on('warning', warning => {
+    console.error('[EXPORT_ZIP_WARNING]', { code: warning.code, message: warning.message });
+  });
 
   try {
-    const filter = await resolveProductExportFilter(category, brand);
-    if (!filter) {
-      return res.json({
-        success: true,
-        exportedAt: new Date().toISOString(),
-        totalProducts: 0,
-        format,
-        filters: { category, brand },
-        products: [],
-        warningCode: 'EXPORT_CATEGORY_NOT_FOUND',
-      });
+    archive.pipe(res);
+    if (contentFormat === 'csv') {
+      archive.append(`\uFEFF${convertProductsToCSV(payload.products)}`, { name: 'products.csv' });
+    } else {
+      archive.append(JSON.stringify(payload), { name: 'products.json' });
     }
+    archive.finalize();
+    await streamFinished;
+    archiveFinished = true;
+  } finally {
+    req.off('aborted', abortArchive);
+    res.off('close', abortArchive);
+  }
+};
 
-    const {
-      matchedTotal,
-      hasMore,
-      products: exportedProducts,
-    } = await getExportProducts(filter, parsedLimit);
+const createExportPayload = async (req, { category, brand, parsedLimit, requestedLocales, contentFormat }) => {
+  if (req.aborted || req.destroyed) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
 
-    const productsWithTranslations = await getProductTranslationsForExport(
-      exportedProducts.filter(product => product.category)
-    );
-    const transformedProducts = productsWithTranslations.map(({ product, translations }) => (
-      serializeProductForExport(product, translations)
-    ));
+  const filter = await resolveProductExportFilter(category, brand);
+  if (!filter) {
+    throw createExportError(404, 'EXPORT_CATEGORY_NOT_FOUND', { category });
+  }
 
-    if (format.toLowerCase() === 'json') {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.json"`);
-      res.json({
-        success: true,
-        exportedAt: new Date().toISOString(),
-        totalProducts: transformedProducts.length,
-        matchedTotal,
-        exportedTotal: transformedProducts.length,
-        hasMore,
-        format: 'json',
-        filters: { category, brand },
-        products: transformedProducts,
-      });
-    } else if (format.toLowerCase() === 'csv') {
-      // Convert to CSV
-      const csv = convertProductsToCSV(transformedProducts);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.csv"`);
-      res.setHeader('X-Matched-Total', matchedTotal);
-      res.setHeader('X-Exported-Total', transformedProducts.length);
-      res.setHeader('X-Has-More', String(hasMore));
-      res.send('\uFEFF' + csv); // UTF-8 BOM for proper Vietnamese character encoding
-    }
-  } catch (error) {
-    console.error('[EXPORT_PRODUCTS_ERROR]', error);
-    res.status(500).json({
-      success: false,
-      code: 'EXPORT_FAILED',
-      message: getMessage(req.lang, 'errors.generic_error'),
+  const { matchedTotal, hasMore, products } = await getExportProducts(filter, parsedLimit);
+  if (req.aborted || req.destroyed) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
+
+  const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
+  const fallbacks = getExportFallbacks();
+  const productsWithTranslations = await getProductTranslationsForExport(
+    products,
+    locales,
+    fallbacks,
+    defaultLocale,
+  );
+  const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
+    serializeProductForExport(product, translations)
+  ));
+
+  return {
+    success: true,
+    exportedAt: new Date().toISOString(),
+    totalProducts: exportedProducts.length,
+    matchedTotal,
+    exportedTotal: exportedProducts.length,
+    hasMore,
+    format: 'zip',
+    contentFormat,
+    locales,
+    filters: { category: category || null, brand: brand || null },
+    products: exportedProducts,
+  };
+};
+
+const parseExportRequest = (req) => {
+  const { category, brand, format = 'zip', limit = '10000', locales } = req.query;
+  if ([category, brand, format, limit, locales].some(value => value !== undefined && typeof value !== 'string')) {
+    throw createExportError(400, 'EXPORT_QUERY_INVALID', { fields: ['category', 'brand', 'format', 'limit', 'locales'] });
+  }
+
+  const parsedLimit = Number(limit);
+  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
+    throw createExportError(400, 'EXPORT_LIMIT_INVALID', { limit });
+  }
+
+  const normalizedFormat = format.toLowerCase();
+  if (!['zip', 'json', 'csv'].includes(normalizedFormat)) {
+    throw createExportError(400, 'EXPORT_FORMAT_UNSUPPORTED', {
+      requestedFormat: format,
+      supportedFormats: ['zip', 'json', 'csv'],
     });
+  }
+
+  return {
+    category,
+    brand,
+    parsedLimit,
+    requestedLocales: locales,
+    contentFormat: normalizedFormat === 'csv' ? 'csv' : 'json',
+  };
+};
+
+const exportProducts = asyncHandler(async (req, res) => {
+  try {
+    const request = parseExportRequest(req);
+    const payload = await createExportPayload(req, request);
+    await streamExportZip(req, res, payload, request.contentFormat);
+  } catch (error) {
+    console.error('[EXPORT_PRODUCTS_ERROR]', { code: error.errorCode, message: error.message });
+    sendExportError(req, res, error);
   }
 });
 
@@ -1340,6 +1552,7 @@ function convertProductsToCSV(products) {
     rows.push(allHeaders.map(header => {
       if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
       if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
+      if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image));
       if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
       return escapeCSV(product[header]);
     }).join(','));
@@ -1353,102 +1566,14 @@ function convertProductsToCSV(products) {
  * @route GET /api/admin/products/export-bundle
  * @access Private/Admin
  */
-const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
-  const { category, brand, format = 'json', limit = '10000' } = req.query;
-  if ([category, brand, format, limit].some((value) => value !== undefined && typeof value !== 'string')) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_QUERY_INVALID',
-      message: getMessage(req.lang, 'errors.generic_error'),
-    });
-  }
-
-  const parsedLimit = Number(limit);
-
-  if (!['json', 'csv'].includes(format)) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_FORMAT_UNSUPPORTED',
-      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
-      supportedFormats: ['json', 'csv'],
-    });
-  }
-
-  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
-    return res.status(400).json({
-      success: false,
-      code: 'EXPORT_LIMIT_INVALID',
-      message: getMessage(req.lang, 'errors.generic_error'),
-    });
-  }
-
+const exportProductsWithTranslations = asyncHandler(async (req, res) => {
   try {
-    const filter = await resolveProductExportFilter(category, brand);
-    if (!filter) {
-      return res.status(404).json({
-        success: false,
-        code: 'EXPORT_CATEGORY_NOT_FOUND',
-        message: getMessage(req.lang, 'admin-controllers-messages.product_category_not_found'),
-      });
-    }
-
-    const {
-      matchedTotal,
-      hasMore,
-      products: productsToExport,
-    } = await getExportProducts(filter, parsedLimit);
-    const productsWithTranslations = await getProductTranslationsForExport(
-      productsToExport.filter(product => product.category)
-    );
-    const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
-      serializeProductForExport(product, translations)
-    ));
-    const exportedAt = new Date().toISOString();
-    const productsPayload = {
-      success: true,
-      exportedAt,
-      totalProducts: exportedProducts.length,
-      matchedTotal,
-      exportedTotal: exportedProducts.length,
-      hasMore,
-      format,
-      filters: { category: category || null, brand: brand || null },
-      products: exportedProducts,
-    };
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
-    const archive = createZipArchive({ zlib: { level: 1 } });
-    let archiveErrorHandler;
-    const archiveError = new Promise((_, reject) => {
-      archiveErrorHandler = reject;
-      archive.once('error', archiveErrorHandler);
-    });
-    let archiveFinished = false;
-    const abortArchive = () => {
-      if (!archiveFinished && typeof archive.abort === 'function') archive.abort();
-    };
-    req.once('aborted', abortArchive);
-    res.once('close', abortArchive);
-
-    try {
-      archive.pipe(res);
-      if (format === 'json') {
-        archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-      } else {
-        archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
-      }
-      const finalizePromise = Promise.resolve(archive.finalize());
-      await Promise.race([finalizePromise, archiveError]);
-      archiveFinished = true;
-    } finally {
-      archive.off('error', archiveErrorHandler);
-      req.off('aborted', abortArchive);
-      res.off('close', abortArchive);
-    }
+    const request = parseExportRequest(req);
+    const payload = await createExportPayload(req, request);
+    await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
-    console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
-    if (res.headersSent) return res.destroy(error);
-    return next(error);
+    console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', { code: error.errorCode, message: error.message });
+    sendExportError(req, res, error);
   }
 });
 
@@ -1505,6 +1630,9 @@ const getExportStats = asyncHandler(async (req, res) => {
     const categoryIds = categoriesWithCounts.map(category => category.categoryId.toString());
     let translationMap = new Map();
     try {
+      if (!CategoryCatalogTranslationCache) {
+        throw new Error('CategoryCatalogTranslationCache is unavailable');
+      }
       const translations = categoryIds.length === 0
         ? []
         : await withExportTimeout(
@@ -1547,6 +1675,7 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  getTranslationWithFallback,
   serializeProductForExport,
   convertProductsToCSV,
   importProducts,
