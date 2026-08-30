@@ -1,5 +1,8 @@
 const chai = require('chai');
 const expect = chai.expect;
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
@@ -8,6 +11,7 @@ const {
   buildUpsertProductUpdate,
   serializeProductForExport,
   convertProductsToCSV,
+  writeExportZipFile,
 } = require('../controllers/productImportController');
 const {
   getProductImagePublicId,
@@ -70,6 +74,21 @@ describe('Product export serialization', () => {
       'https://example.com/gallery.jpg',
     ]);
     expect(exported.imagePublicIds).to.deep.equal(['products/main', 'products/gallery']);
+  });
+
+  it('writes a completed JSON ZIP file', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+
+    try {
+      await writeExportZipFile(filePath, { products: [{ productId: 'product-id' }] }, 'json');
+      const archive = await fs.promises.readFile(filePath);
+
+      expect(archive.subarray(0, 2).toString()).to.equal('PK');
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
   });
 
   it('includes dynamic fields and gallery images in CSV output', () => {
