@@ -1354,7 +1354,7 @@ function convertProductsToCSV(products) {
  * @access Private/Admin
  */
 const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
-  const { category, brand, format = 'json', limit = 10000 } = req.query;
+  const { category, brand, format = 'json', limit = '10000' } = req.query;
   if ([category, brand, format, limit].some((value) => value !== undefined && typeof value !== 'string')) {
     return res.status(400).json({
       success: false,
