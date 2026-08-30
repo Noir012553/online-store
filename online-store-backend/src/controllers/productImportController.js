@@ -27,7 +27,11 @@ const { validateCategoryName, sanitizeCategoryName } = require('../utils/product
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
-const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
+const {
+  getActiveLangCodes,
+  getDefaultLanguage,
+  isSupportedLanguage,
+} = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 
@@ -60,10 +64,15 @@ const resolveProductExportFilter = async (category, brand) => {
 };
 
 const getExportProducts = async (filter, limit) => {
+  const activeCategoryIds = await Category.find({ isDeleted: false }).distinct('_id');
+  const exportFilter = {
+    ...filter,
+    category: { $in: filter.category ? [filter.category] : activeCategoryIds },
+  };
   const [matchedTotal, products] = await Promise.all([
-    Product.countDocuments(filter),
-    Product.find(filter)
-      .select('sku name brand price baseCurrencyCode originalPrice category description image countInStock specs rating numReviews featured deal')
+    Product.countDocuments(exportFilter),
+    Product.find(exportFilter)
+      .select('-__v')
       .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
       .sort({ _id: 1 })
       .limit(limit + 1)
@@ -75,6 +84,80 @@ const getExportProducts = async (filter, limit) => {
     matchedTotal,
     hasMore,
     products: hasMore ? products.slice(0, limit) : products,
+  };
+};
+
+const getProductTranslationsForExport = async (products) => {
+  const activeLanguages = getActiveLangCodes();
+  const defaultLanguage = getDefaultLanguage().code;
+  const productIds = products.map(product => product._id.toString());
+  const translationDocuments = await ProductCatalogTranslationCache.find({
+    entityId: { $in: productIds },
+    targetLang: { $in: activeLanguages.filter(language => language !== defaultLanguage) },
+    status: 'success',
+    qualityStatus: 'approved',
+  }).lean();
+  const translationsByProduct = new Map();
+
+  translationDocuments.forEach((translation) => {
+    const productTranslations = translationsByProduct.get(translation.entityId) || new Map();
+    productTranslations.set(translation.targetLang, translation);
+    translationsByProduct.set(translation.entityId, productTranslations);
+  });
+
+  return products.map((product) => {
+    const sourceTranslation = {
+      name: product.name,
+      description: product.description,
+      brand: product.brand,
+      specs: product.specs || {},
+    };
+    const productTranslations = translationsByProduct.get(product._id.toString()) || new Map();
+    const translations = Object.fromEntries(activeLanguages.map((language) => {
+      if (language === defaultLanguage) return [language, sourceTranslation];
+
+      const translation = productTranslations.get(language);
+      if (translation) {
+        return [language, {
+          name: translation.name,
+          description: translation.description,
+          brand: translation.brand,
+          specs: translation.specs || {},
+          manualFields: translation.manualFields || [],
+        }];
+      }
+
+      return [language, {
+        ...sourceTranslation,
+        fallback: true,
+        fallbackLanguage: defaultLanguage,
+      }];
+    }));
+
+    return { product, translations };
+  });
+};
+
+const serializeProductForExport = (product, translations = {}) => {
+  const {
+    _id,
+    user,
+    reviews,
+    isDeleted,
+    storefrontReady,
+    storefrontReadinessCheckedAt,
+    category,
+    ...productData
+  } = product;
+
+  return {
+    ...productData,
+    productId: _id.toString(),
+    categoryId: category._id.toString(),
+    category: category.name,
+    images: Array.isArray(productData.images) ? productData.images : [],
+    imagePublicIds: Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : [],
+    translations,
   };
 };
 
@@ -168,7 +251,7 @@ const getChangedTranslatableFields = (existing, product) => (
 );
 
 const withoutImportProductId = (product) => {
-  const { productId, ...productData } = product;
+  const { productId, translations, ...productData } = product;
   return productData;
 };
 
@@ -176,6 +259,57 @@ const buildUpsertProductUpdate = (product, preserveExistingStock) => {
   const update = withoutImportProductId(product);
   if (preserveExistingStock) delete update.countInStock;
   return update;
+};
+
+const getProductTranslationImportRecords = (products) => {
+  const defaultLanguage = getDefaultLanguage().code;
+  return products.flatMap((product) => {
+    if (!product.productId || !product.translations || typeof product.translations !== 'object') return [];
+
+    return Object.entries(product.translations)
+      .filter(([targetLang, translation]) => (
+        targetLang !== defaultLanguage
+        && isSupportedLanguage(targetLang)
+        && translation
+        && typeof translation === 'object'
+        && !Array.isArray(translation)
+        && translation.fallback !== true
+      ))
+      .map(([targetLang, translation]) => ({
+        productId: String(product.productId),
+        targetLang,
+        translations: Object.fromEntries(
+          ['name', 'description', 'brand', 'specs']
+            .map(field => [field, translation[field]])
+            .filter(([, value]) => value !== undefined && value !== null)
+        ),
+        manualFields: Array.isArray(translation.manualFields) ? translation.manualFields : [],
+      }));
+  });
+};
+
+const importProductTranslations = async (products) => {
+  const records = getProductTranslationImportRecords(products);
+  if (records.length === 0) return { imported: 0 };
+
+  const operations = records.map(({ productId, targetLang, translations, manualFields }) => ({
+    updateOne: {
+      filter: { entityId: productId, targetLang },
+      update: {
+        $set: {
+          ...translations,
+          status: 'success',
+          qualityStatus: 'approved',
+          validationErrors: [],
+          manualFields,
+          lastTranslatedAt: new Date(),
+        },
+      },
+      upsert: true,
+    },
+  }));
+  await ProductCatalogTranslationCache.bulkWrite(operations);
+  return { imported: records.length };
 };
 
 const getProductImagePublicIds = (product) => [
@@ -543,6 +677,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
+    const importedTranslationSummary = await importProductTranslations(validProducts);
     res.json({
       success: true,
       code: 'IMPORT_COMPLETED',
@@ -723,6 +858,7 @@ const importProducts = asyncHandler(async (req, res) => {
 
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
+    const importedTranslationSummary = await importProductTranslations(validProducts);
     res.json({
       success: true,
       message: getMessage(req.lang, 'frontend-import.import_success'),
@@ -735,6 +871,7 @@ const importProducts = asyncHandler(async (req, res) => {
       },
 
       translationSummary,
+      importedTranslationSummary,
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
@@ -987,7 +1124,7 @@ const getImportGuide = asyncHandler(async (req, res) => {
     },
     requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category'],
     optionalFields: [
-      'productId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+      'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {
@@ -1076,26 +1213,12 @@ const exportProducts = asyncHandler(async (req, res) => {
       products: exportedProducts,
     } = await getExportProducts(filter, parsedLimit);
 
-    const transformedProducts = exportedProducts
-      .filter(product => product.category)
-      .map(product => ({
-        productId: product._id.toString(),
-        sku: product.sku || undefined,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        baseCurrencyCode: product.baseCurrencyCode,
-        originalPrice: product.originalPrice,
-        category: product.category?.name || 'Unknown',  // Fallback to avoid null
-        description: product.description,
-        image: product.image || '',
-        countInStock: product.countInStock || 0,
-        specs: product.specs || {},
-        rating: product.rating || 0,
-        numReviews: product.numReviews || 0,
-        featured: product.featured || false,
-        deal: product.deal || false,
-      }));
+    const productsWithTranslations = await getProductTranslationsForExport(
+      exportedProducts.filter(product => product.category)
+    );
+    const transformedProducts = productsWithTranslations.map(({ product, translations }) => (
+      serializeProductForExport(product, translations)
+    ));
 
     if (format.toLowerCase() === 'json') {
       res.setHeader('Content-Type', 'application/json');
@@ -1136,77 +1259,47 @@ const exportProducts = asyncHandler(async (req, res) => {
  * Handles nested objects and special characters
  */
 function convertProductsToCSV(products) {
-  if (!products || products.length === 0) {
-    return 'productId,sku,name,brand,price,baseCurrencyCode,originalPrice,category,description,image,countInStock,rating,numReviews,featured,deal_discount,deal_endTime';
-  }
-
-  // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
-  const headers = [
-    'productId', 'sku', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category',
-    'description', 'image', 'countInStock', 'rating', 'numReviews',
-    'featured', 'deal_discount', 'deal_endTime'
+  const standardHeaders = [
+    'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
+    'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
+    'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime',
   ];
+  const dynamicHeaders = [...new Set(products.flatMap(product => Object.keys(product)))]
+    .filter(header => !standardHeaders.includes(header) && header !== 'deal' && header !== 'specs')
+    .sort();
+  const specKeys = [...new Set(products.flatMap(product => (
+    product.specs && typeof product.specs === 'object' ? Object.keys(product.specs) : []
+  )))].sort().map(key => `specs_${key}`);
+  const allHeaders = [...standardHeaders, ...dynamicHeaders, ...specKeys];
 
-  // Add dynamic spec headers
-  const specKeys = new Set();
-  products.forEach(product => {
-    if (product.specs && typeof product.specs === 'object') {
-      Object.keys(product.specs).forEach(key => specKeys.add(key));
-    }
-  });
-
-  const dynamicSpecHeaders = Array.from(specKeys).sort().map((key) => `specs_${key}`);
-  const allHeaders = [...headers, ...dynamicSpecHeaders];
-
-  // Escape CSV values
-  const escapeCSV = (value) => {
+  const serializeCSVValue = (value) => {
     if (value === null || value === undefined) return '';
-    const stringValue = String(value);
-    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-      return `"${stringValue.replace(/"/g, '""')}"`;
-    }
-    return stringValue;
+    if (Array.isArray(value)) return value.map(item => serializeCSVValue(item)).join('|');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  };
+  const escapeCSV = (value) => {
+    const stringValue = serializeCSVValue(value);
+    return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+      ? `"${stringValue.replace(/"/g, '""')}"`
+      : stringValue;
   };
 
-  // Build CSV rows
-  const rows = [allHeaders.join(',')]; // Header row
-
+  const rows = [allHeaders.join(',')];
   products.forEach(product => {
-    const row = allHeaders.map(header => {
-      // Handle standard fields
-      if (headers.includes(header)) {
-        let value;
-
-        // Special handling for deal fields
-        if (header === 'deal_discount' && product.deal) {
-          value = product.deal.discount || '';
-        } else if (header === 'deal_endTime' && product.deal) {
-          value = product.deal.endTime || '';
-        } else {
-          value = product[header];
-
-        }
-
-        return escapeCSV(value);
-      }
-
-      // Handle dynamic spec fields (specs_*)
-      const specKey = header.slice('specs_'.length);
-      if (product.specs && product.specs[specKey] !== undefined) {
-        return escapeCSV(product.specs[specKey]);
-      }
-
-      return '';
-    });
-
-    rows.push(row.join(','));
+    rows.push(allHeaders.map(header => {
+      if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
+      if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
+      if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
+      return escapeCSV(product[header]);
+    }).join(','));
   });
 
   return rows.join('\n');
 }
 
 /**
- * Export products and their catalog translations as a ZIP bundle.
+ * Export products as an importable ZIP bundle.
  * @route GET /api/admin/products/export-bundle
  * @access Private/Admin
  */
@@ -1237,58 +1330,13 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       hasMore,
       products: productsToExport,
     } = await getExportProducts(filter, parsedLimit);
-    const exportedProducts = productsToExport
-      .filter(product => product.category)
-      .map(product => ({
-        productId: product._id.toString(),
-        sku: product.sku || undefined,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        baseCurrencyCode: product.baseCurrencyCode,
-        originalPrice: product.originalPrice,
-        category: product.category.name,
-        description: product.description,
-        image: product.image || '',
-        countInStock: product.countInStock || 0,
-        specs: product.specs || {},
-        rating: product.rating || 0,
-        numReviews: product.numReviews || 0,
-        featured: product.featured || false,
-        deal: product.deal || false,
-      }));
-    const productIds = exportedProducts.map(product => product.productId);
-    const defaultLang = getDefaultLanguage().code;
-    const requestedLang = req.lang || defaultLang;
-    const targetLang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
-    const translations = await ProductCatalogTranslationCache.find({
-      entityId: { $in: productIds },
-      targetLang,
-    }).select('entityId targetLang name description brand specs manualFields updatedAt lastTranslatedAt').lean();
-    const translationFields = ['name', 'description', 'brand', 'specs'];
-    const records = translations.map(translation => ({
-      productId: String(translation.entityId),
-      targetLang: translation.targetLang,
-      translations: Object.fromEntries(
-        translationFields
-          .map(field => [field, translation[field]])
-          .filter(([, value]) => value !== undefined && value !== null)
-      ),
-      manualFields: (translation.manualFields || []).filter(field => translationFields.includes(field)),
-      updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
-    }));
+    const productsWithTranslations = await getProductTranslationsForExport(
+      productsToExport.filter(product => product.category)
+    );
+    const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
+      serializeProductForExport(product, translations)
+    ));
     const exportedAt = new Date().toISOString();
-    const manifest = {
-      version: 1,
-      exportedAt,
-      totalProducts: exportedProducts.length,
-      matchedTotal,
-      exportedTotal: exportedProducts.length,
-      hasMore,
-      filters: { category: category || null, brand: brand || null },
-      locales: [...new Set(records.map(record => record.targetLang))].sort(),
-      files: ['manifest.json', 'products.json', 'product-translations.json'],
-    };
     const productsPayload = {
       success: true,
       exportedAt,
@@ -1300,8 +1348,6 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       filters: { category: category || null, brand: brand || null },
       products: exportedProducts,
     };
-    const translationsPayload = { success: true, data: { records } };
-
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
     const { ZipArchive } = await import('archiver');
@@ -1311,9 +1357,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       else next(error);
     });
     archive.pipe(res);
-    archive.append(JSON.stringify(manifest), { name: 'manifest.json' });
     archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-    archive.append(JSON.stringify(translationsPayload), { name: 'product-translations.json' });
     await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
@@ -1423,6 +1467,8 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  serializeProductForExport,
+  convertProductsToCSV,
   importProducts,
   importProductsFromFile,
   getImportTemplate,

@@ -12,6 +12,7 @@
 
 const mongoose = require('mongoose');
 const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
+const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
 const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
@@ -26,7 +27,7 @@ const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode
  */
 const OPTIONAL_FIELDS = [
   'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
-  'rating', 'numReviews', 'featured', 'deal'
+  'rating', 'numReviews', 'featured', 'deal', 'translations'
 ];
 
 /**
@@ -237,6 +238,53 @@ function validateProduct(product, rowIndex = 0) {
       }
     } catch (err) {
       warnings.push(`Row ${rowIndex}: Failed to parse deal object, skipped. Error: ${err.message}`);
+    }
+  }
+
+  if (product.translations !== undefined) {
+    const activeLanguages = getActiveLangCodes();
+    const defaultLanguage = getDefaultLanguage().code;
+    if (!product.translations || typeof product.translations !== 'object' || Array.isArray(product.translations)) {
+      errors.push(`Row ${rowIndex}: translations must be an object`);
+    } else {
+      const cleanedTranslations = {};
+      Object.entries(product.translations).forEach(([targetLang, translation]) => {
+        if (targetLang === defaultLanguage || !activeLanguages.includes(targetLang)) return;
+        if (translation?.fallback === true) return;
+        if (!translation || typeof translation !== 'object' || Array.isArray(translation)) {
+          errors.push(`Row ${rowIndex}: Invalid translation for language "${targetLang}"`);
+          return;
+        }
+
+        const cleanedTranslation = {};
+        ['name', 'description', 'brand'].forEach((field) => {
+          if (translation[field] !== undefined && translation[field] !== null) {
+            if (typeof translation[field] !== 'string') {
+              errors.push(`Row ${rowIndex}: Translation field "${field}" must be a string`);
+              return;
+            }
+            cleanedTranslation[field] = field === 'description'
+              ? sanitizeDescriptionText(translation[field])
+              : sanitizePlainText(translation[field]);
+          }
+        });
+        if (translation.specs !== undefined) {
+          if (!translation.specs || typeof translation.specs !== 'object' || Array.isArray(translation.specs)) {
+            errors.push(`Row ${rowIndex}: Translation specs must be an object`);
+          } else {
+            cleanedTranslation.specs = translation.specs;
+          }
+        }
+        if (Array.isArray(translation.manualFields)) {
+          cleanedTranslation.manualFields = translation.manualFields.filter(field => (
+            ['name', 'description', 'brand', 'specs'].includes(field)
+          ));
+        }
+        if (Object.keys(cleanedTranslation).some(field => field !== 'manualFields')) {
+          cleanedTranslations[targetLang] = cleanedTranslation;
+        }
+      });
+      cleaned.translations = cleanedTranslations;
     }
   }
 
