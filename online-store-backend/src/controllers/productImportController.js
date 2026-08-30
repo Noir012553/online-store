@@ -51,6 +51,11 @@ const {
 } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
+const { withTimeout } = require('../utils/mongooseUtils');
+
+const EXPORT_QUERY_TIMEOUT_MS = 30000;
+
+const withExportTimeout = (operation) => withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS);
 
 const buildCategoryNameQuery = (name) => {
   if (!name || typeof name !== 'string') return null;
@@ -62,11 +67,21 @@ const resolveProductExportFilter = async (category, brand) => {
 
   if (category && category !== 'all') {
     if (mongoose.Types.ObjectId.isValid(category)) {
-      filter.category = new mongoose.Types.ObjectId(category);
+      const categoryId = new mongoose.Types.ObjectId(category);
+      const categoryExists = await withExportTimeout(
+        Category.exists({ _id: categoryId, isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+      );
+      if (!categoryExists) return null;
+      filter.category = categoryId;
     } else {
       const categoryQuery = buildCategoryNameQuery(category);
       const categoryDoc = categoryQuery
-        ? await Category.findOne({ ...categoryQuery, isDeleted: false }).select('_id').lean()
+        ? await withExportTimeout(
+          Category.findOne({ ...categoryQuery, isDeleted: false })
+            .select('_id')
+            .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+            .lean(),
+        )
         : null;
       if (!categoryDoc) return null;
       filter.category = categoryDoc._id;
@@ -81,19 +96,28 @@ const resolveProductExportFilter = async (category, brand) => {
 };
 
 const getExportProducts = async (filter, limit) => {
-  const activeCategoryIds = await Category.find({ isDeleted: false }).distinct('_id');
+  const activeCategoryIds = filter.category
+    ? null
+    : await withExportTimeout(
+      Category.distinct('_id', { isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+    );
   const exportFilter = {
     ...filter,
     category: { $in: filter.category ? [filter.category] : activeCategoryIds },
   };
   const [matchedTotal, products] = await Promise.all([
-    Product.countDocuments(exportFilter),
-    Product.find(exportFilter)
-      .select('-__v')
-      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-      .sort({ _id: 1 })
-      .limit(limit + 1)
-      .lean(),
+    withExportTimeout(
+      Product.countDocuments(exportFilter).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+    ),
+    withExportTimeout(
+      Product.find(exportFilter)
+        .select('-__v')
+        .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+        .sort({ _id: 1 })
+        .limit(limit + 1)
+        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+        .lean(),
+    ),
   ]);
   const hasMore = products.length > limit;
 
@@ -105,10 +129,21 @@ const getExportProducts = async (filter, limit) => {
 };
 
 const getProductTranslationsForExport = async (products) => {
+  if (products.length === 0) return [];
+
   const productIds = products.map(product => product._id.toString());
   const [defaultLanguage, translationDocuments] = await Promise.all([
-    Language.findOne({ isSystemDefault: true }, { code: 1 }).lean(),
-    ProductCatalogTranslationCache.find({ entityId: { $in: productIds } }).lean(),
+    withExportTimeout(
+      Language.findOne({ isSystemDefault: true }, { code: 1 })
+        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+        .lean(),
+    ),
+    withExportTimeout(
+      ProductCatalogTranslationCache.find({ entityId: { $in: productIds } })
+        .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
+        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+        .lean(),
+    ),
   ]);
   const translationsByProduct = new Map();
 
@@ -1319,7 +1354,15 @@ function convertProductsToCSV(products) {
  * @access Private/Admin
  */
 const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
-  const { category, brand, format = 'json', limit = 10000 } = req.query;
+  const { category, brand, format = 'json', limit = '10000' } = req.query;
+  if ([category, brand, format, limit].some((value) => value !== undefined && typeof value !== 'string')) {
+    return res.status(400).json({
+      success: false,
+      code: 'EXPORT_QUERY_INVALID',
+      message: getMessage(req.lang, 'errors.generic_error'),
+    });
+  }
+
   const parsedLimit = Number(limit);
 
   if (!['json', 'csv'].includes(format)) {
@@ -1375,17 +1418,33 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
     const archive = createZipArchive({ zlib: { level: 1 } });
-    archive.on('error', error => {
-      if (res.headersSent) res.destroy(error);
-      else next(error);
+    let archiveErrorHandler;
+    const archiveError = new Promise((_, reject) => {
+      archiveErrorHandler = reject;
+      archive.once('error', archiveErrorHandler);
     });
-    archive.pipe(res);
-    if (format === 'json') {
-      archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-    } else {
-      archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+    let archiveFinished = false;
+    const abortArchive = () => {
+      if (!archiveFinished && typeof archive.abort === 'function') archive.abort();
+    };
+    req.once('aborted', abortArchive);
+    res.once('close', abortArchive);
+
+    try {
+      archive.pipe(res);
+      if (format === 'json') {
+        archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
+      } else {
+        archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+      }
+      const finalizePromise = Promise.resolve(archive.finalize());
+      await Promise.race([finalizePromise, archiveError]);
+      archiveFinished = true;
+    } finally {
+      archive.off('error', archiveErrorHandler);
+      req.off('aborted', abortArchive);
+      res.off('close', abortArchive);
     }
-    await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
     if (res.headersSent) return res.destroy(error);
@@ -1404,18 +1463,29 @@ const getExportStats = asyncHandler(async (req, res) => {
     const requestedLang = req.lang || defaultLang;
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
     const [totalProducts, categoryCounts, activeCategories, brandCounts] = await Promise.all([
-      Product.countDocuments({ isDeleted: false }),
-      Product.aggregate([
-        { $match: { isDeleted: false, category: { $ne: null } } },
-        { $group: { _id: '$category', count: { $sum: 1 } } },
-      ]),
-      Category.find({ isDeleted: false }).select('_id name').lean(),
-      Product.aggregate([
-        { $match: { isDeleted: false } },
-        { $group: { _id: '$brand', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 20 }
-      ]),
+      withExportTimeout(
+        Product.countDocuments({ isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+      ),
+      withExportTimeout(
+        Product.aggregate([
+          { $match: { isDeleted: false, category: { $ne: null } } },
+          { $group: { _id: '$category', count: { $sum: 1 } } },
+        ]).option({ maxTimeMS: EXPORT_QUERY_TIMEOUT_MS }),
+      ),
+      withExportTimeout(
+        Category.find({ isDeleted: false })
+          .select('_id name')
+          .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+          .lean(),
+      ),
+      withExportTimeout(
+        Product.aggregate([
+          { $match: { isDeleted: false } },
+          { $group: { _id: '$brand', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 20 }
+        ]).option({ maxTimeMS: EXPORT_QUERY_TIMEOUT_MS }),
+      ),
     ]);
 
     const categoryCountById = new Map(
@@ -1435,11 +1505,18 @@ const getExportStats = asyncHandler(async (req, res) => {
     const categoryIds = categoriesWithCounts.map(category => category.categoryId.toString());
     let translationMap = new Map();
     try {
-      const translations = await CategoryCatalogTranslationCache.find({
-        entityId: { $in: categoryIds },
-        targetLang: lang,
-        status: 'success',
-      }).lean();
+      const translations = categoryIds.length === 0
+        ? []
+        : await withExportTimeout(
+          CategoryCatalogTranslationCache.find({
+            entityId: { $in: categoryIds },
+            targetLang: lang,
+            status: 'success',
+          })
+            .select('entityId name')
+            .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+            .lean(),
+        );
       translationMap = new Map(
         translations.map(translation => [translation.entityId.toString(), translation.name]),
       );

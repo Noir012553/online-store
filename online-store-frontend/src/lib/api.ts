@@ -1155,6 +1155,7 @@ export const productAPI = {
     limit?: number,
     locale?: string,
     format: 'json' | 'csv' = 'json',
+    requestOptions?: Pick<FetchOptions, 'signal' | 'timeout'>,
   ) => {
     const params = new URLSearchParams();
     params.append('format', format);
@@ -1164,35 +1165,51 @@ export const productAPI = {
     if (limit) params.append('limit', limit.toString());
 
     const token = getAuthToken();
-    const response = await fetch(`${API_URL}/products/admin/export-bundle?${params.toString()}`, {
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      credentials: 'include',
-    });
+    const controller = new AbortController();
+    const externalSignal = requestOptions?.signal;
+    const abortRequest = () => controller.abort(externalSignal?.reason);
+    const timeoutId = window.setTimeout(
+      () => controller.abort(new Error('request_timeout')),
+      requestOptions?.timeout ?? 120000,
+    );
+    externalSignal?.addEventListener('abort', abortRequest, { once: true });
+    if (externalSignal?.aborted) abortRequest();
 
-    if (!response.ok) {
-      let errorMessage = 'product_export_failed';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
+    try {
+      const response = await fetch(`${API_URL}/products/admin/export-bundle?${params.toString()}`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'product_export_failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/zip')) {
-      throw new Error('product_export_invalid_file');
-    }
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/zip')) {
+        throw new Error('product_export_invalid_file');
+      }
 
-    const blob = await response.blob();
-    if (blob.size === 0) {
-      throw new Error('product_export_empty_file');
-    }
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('product_export_empty_file');
+      }
 
-    return blob;
+      return blob;
+    } finally {
+      window.clearTimeout(timeoutId);
+      externalSignal?.removeEventListener('abort', abortRequest);
+    }
   },
 };
 
