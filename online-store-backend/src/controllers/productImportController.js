@@ -18,6 +18,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
+const archiver = require('archiver');
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
@@ -1348,8 +1349,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
     };
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
-    const { ZipArchive } = await import('archiver');
-    const archive = new ZipArchive({ zlib: { level: 1 } });
+    const archive = archiver('zip', { zlib: { level: 1 } });
     archive.on('error', error => {
       if (res.headersSent) res.destroy(error);
       else next(error);
