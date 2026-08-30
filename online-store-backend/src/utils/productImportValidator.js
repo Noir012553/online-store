@@ -12,7 +12,7 @@
 
 const mongoose = require('mongoose');
 const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
-const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
+const { getDefaultLanguage } = require('../config/languageInventory');
 
 const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
@@ -242,14 +242,13 @@ function validateProduct(product, rowIndex = 0) {
   }
 
   if (product.translations !== undefined) {
-    const activeLanguages = getActiveLangCodes();
     const defaultLanguage = getDefaultLanguage().code;
     if (!product.translations || typeof product.translations !== 'object' || Array.isArray(product.translations)) {
       errors.push(`Row ${rowIndex}: translations must be an object`);
     } else {
       const cleanedTranslations = {};
       Object.entries(product.translations).forEach(([targetLang, translation]) => {
-        if (targetLang === defaultLanguage || !activeLanguages.includes(targetLang)) return;
+        if (targetLang === defaultLanguage || !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(targetLang)) return;
         if (translation?.fallback === true) return;
         if (!translation || typeof translation !== 'object' || Array.isArray(translation)) {
           errors.push(`Row ${rowIndex}: Invalid translation for language "${targetLang}"`);
