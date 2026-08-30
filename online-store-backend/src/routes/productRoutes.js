@@ -78,6 +78,25 @@ router.get('/admin/export', protect, admin, exportProducts);
 router.get('/admin/export-bundle', protect, admin, exportProductsWithTranslations);
 router.get('/admin/export-stats', protect, admin, getExportStats);
 
+const {
+  getExportJob,
+  cancelExportJob,
+  retryExportJob,
+  downloadExportJob,
+} = require('../services/exportJobService');
+router.get('/admin/export-jobs/:id', protect, admin, asyncHandler(async (req, res) => {
+  res.json({ success: true, job: await getExportJob(req.params.id) });
+}));
+router.post('/admin/export-jobs/:id/cancel', protect, admin, asyncHandler(async (req, res) => {
+  res.json({ success: true, job: await cancelExportJob(req.params.id) });
+}));
+router.post('/admin/export-jobs/:id/retry', protect, admin, asyncHandler(async (req, res) => {
+  res.status(202).json({ success: true, job: await retryExportJob(req.params.id) });
+}));
+router.get('/admin/export-jobs/:id/download', protect, admin, asyncHandler(async (req, res, next) => {
+  await downloadExportJob(req.params.id, res, next);
+}));
+
 /**
  * GET /api/products - Lấy danh sách sản phẩm (phân trang, tìm kiếm, lọc)
  * POST /api/products - Tạo sản phẩm mới (Admin only, upload ảnh bắt buộc)
