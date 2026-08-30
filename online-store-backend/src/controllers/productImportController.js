@@ -1371,34 +1371,13 @@ const getExportStats = asyncHandler(async (req, res) => {
     const defaultLang = getDefaultLanguage().code;
     const requestedLang = req.lang || defaultLang;
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
-    const [totalProducts, categoryCounts, brandCounts] = await Promise.all([
+    const [totalProducts, categoryCounts, activeCategories, brandCounts] = await Promise.all([
       Product.countDocuments({ isDeleted: false }),
       Product.aggregate([
         { $match: { isDeleted: false } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
-        { $lookup: {
-          from: 'categories',
-          let: { categoryId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$_id', '$$categoryId'] },
-                isDeleted: false,
-              },
-            },
-          ],
-          as: 'categoryInfo'
-        }},
-        { $unwind: { path: '$categoryInfo', preserveNullAndEmptyArrays: false } },
-        { $project: {
-          categoryId: '$_id',
-          categoryName: '$categoryInfo.name',
-          count: 1,
-          _id: 0
-        } },
-        { $sort: { count: -1 } },
-        { $limit: 50 }
       ]),
+      Category.find({ isDeleted: false }).select('_id name').lean(),
       Product.aggregate([
         { $match: { isDeleted: false } },
         { $group: { _id: '$brand', count: { $sum: 1 } } },
@@ -1407,11 +1386,22 @@ const getExportStats = asyncHandler(async (req, res) => {
       ]),
     ]);
 
+    const categoryCountById = new Map(
+      categoryCounts.map(category => [category._id.toString(), category.count]),
+    );
+    const categoriesWithCounts = activeCategories
+      .map(category => ({
+        categoryId: category._id,
+        categoryName: category.name,
+        count: categoryCountById.get(category._id.toString()) ?? 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
     // Apply category translations (Rule #2: Dynamic Database Translations)
-    let processedCategories = categoryCounts;
+    let processedCategories = categoriesWithCounts;
     if (lang !== defaultLang) {
       const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
-      const categoryIds = categoryCounts.map(c => c.categoryId.toString());
+      const categoryIds = categoriesWithCounts.map(c => c.categoryId.toString());
       const translations = await CategoryCatalogTranslationCache.find({
         entityId: { $in: categoryIds },
         targetLang: lang,
@@ -1423,7 +1413,7 @@ const getExportStats = asyncHandler(async (req, res) => {
         translationMap[t.entityId.toString()] = t;
       });
 
-      processedCategories = categoryCounts.map(cat => {
+      processedCategories = categoriesWithCounts.map(cat => {
         const categoryId = cat.categoryId.toString();
         const categoryTranslation = translationMap[categoryId];
 
@@ -1437,7 +1427,7 @@ const getExportStats = asyncHandler(async (req, res) => {
         };
       });
     } else {
-      processedCategories = categoryCounts.map(cat => ({
+      processedCategories = categoriesWithCounts.map(cat => ({
         categoryId: cat.categoryId.toString(),
         category: cat.categoryName,
         count: cat.count,

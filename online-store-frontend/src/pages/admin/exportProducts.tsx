@@ -157,8 +157,8 @@ function ExportProductsContent() {
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label')}</p>
                 <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
-                  <div>{t('total_label')} <span className="font-bold">{exportStats.totalProducts}</span></div>
-                  <div>{t('categories_label')} <span className="font-bold">{exportStats.categories?.length || 0}</span></div>
+                  <div>{t('total_label')} <span className="font-bold">{exportStats.totalProducts ?? '—'}</span></div>
+                  <div>{t('categories_label')} <span className="font-bold">{exportStats.categories?.length ?? '—'}</span></div>
                 </div>
               </div>
             )}
@@ -203,10 +203,14 @@ function ExportProductsContent() {
                   <option value="all">{t('all_categories')}</option>
                   {categories?.map((cat: any) => {
                     const catDisplayName = getCategoryDisplayName(cat, locale);
-                    const catStats = exportStats?.categories?.find((s: any) => s.category === catDisplayName);
+                    const categoryId = cat._id || cat.id;
+                    const catStats = exportStats?.categories?.find(
+                      (s: any) => String(s.categoryId) === String(categoryId),
+                    );
+                    const categoryCount = catStats?.count;
                     return (
-                      <option key={cat._id || cat.id} value={cat._id || cat.id}>
-                        {catDisplayName} ({catStats?.count || 0})
+                      <option key={categoryId} value={categoryId}>
+                        {catDisplayName} ({categoryCount === undefined ? '—' : categoryCount})
                       </option>
                     );
                   })}
