@@ -50,7 +50,7 @@ const localizeProductCategories = async (products, lang) => {
 
   const categoryMap = new Map();
   products.forEach(product => {
-    if (product.category?._id) {
+    if (product.category?._id && product.category !== product.category._id) {
       categoryMap.set(product.category._id.toString(), product.category);
     }
   });
@@ -60,14 +60,14 @@ const localizeProductCategories = async (products, lang) => {
 
   return products.map(product => ({
     ...product,
-    category: product.category?._id
+    category: product.category?._id && product.category !== product.category._id
       ? localizedById.get(product.category._id.toString()) || product.category
       : product.category,
   }));
 };
 
 const localizeProductCategory = async (product, lang) => {
-  if (!product?.category?._id || !lang) return product;
+  if (!product?.category?._id || product.category === product.category._id || !lang) return product;
   return {
     ...product,
     category: await localizeCategory(product.category, lang),
