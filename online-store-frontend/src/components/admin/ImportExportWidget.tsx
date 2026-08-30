@@ -244,7 +244,11 @@ export default function ImportExportWidget() {
             disabled={isExporting}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
           >
-            {isExporting ? t('exporting', 'export') : exportAsZip ? t('export_zip_btn', 'export', 'Xuất ZIP (products.json)') : t('export_btn', 'export')}
+            {isExporting
+              ? t('exporting', 'export')
+              : exportAsZip
+                ? t('export_zip_btn', 'export', 'Xuất ZIP (products.json)')
+                : `${t('export_btn', 'export')} ${t(selectedFormat === 'csv' ? 'format_csv' : 'format_json', 'export')}`}
           </button>
         </div>
       </div>

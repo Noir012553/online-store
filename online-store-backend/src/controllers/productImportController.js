@@ -1387,7 +1387,9 @@ const getExportStats = asyncHandler(async (req, res) => {
     ]);
 
     const categoryCountById = new Map(
-      categoryCounts.map(category => [category._id.toString(), category.count]),
+      categoryCounts
+        .filter(category => category._id)
+        .map(category => [category._id.toString(), category.count]),
     );
     const categoriesWithCounts = activeCategories
       .map(category => ({
