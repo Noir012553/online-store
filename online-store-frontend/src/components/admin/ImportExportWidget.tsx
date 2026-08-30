@@ -49,7 +49,11 @@ export default function ImportExportWidget() {
       setIsLoading(false);
     };
 
-    fetchData();
+    void fetchData().catch(() => {
+      if (!controller.signal.aborted) {
+        toast.error(t('error_loading_export_data', 'export'));
+      }
+    });
 
     return () => {
       isCurrentRequest = false;
