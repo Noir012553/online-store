@@ -37,6 +37,7 @@ if (!createZipArchive) {
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Language = require('../models/Language');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
@@ -1318,8 +1319,17 @@ function convertProductsToCSV(products) {
  * @access Private/Admin
  */
 const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
-  const { category, brand, limit = 10000 } = req.query;
+  const { category, brand, format = 'json', limit = 10000 } = req.query;
   const parsedLimit = Number(limit);
+
+  if (!['json', 'csv'].includes(format)) {
+    return res.status(400).json({
+      success: false,
+      code: 'EXPORT_FORMAT_UNSUPPORTED',
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
+      supportedFormats: ['json', 'csv'],
+    });
+  }
 
   if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
     return res.status(400).json({
@@ -1358,7 +1368,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       matchedTotal,
       exportedTotal: exportedProducts.length,
       hasMore,
-      format: 'json',
+      format,
       filters: { category: category || null, brand: brand || null },
       products: exportedProducts,
     };
@@ -1370,8 +1380,11 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       else next(error);
     });
     archive.pipe(res);
-    archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-    archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+    if (format === 'json') {
+      archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
+    } else {
+      archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+    }
     await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
@@ -1420,14 +1433,19 @@ const getExportStats = asyncHandler(async (req, res) => {
       .sort((a, b) => b.count - a.count);
 
     const categoryIds = categoriesWithCounts.map(category => category.categoryId.toString());
-    const translations = await CategoryCatalogTranslationCache.find({
-      entityId: { $in: categoryIds },
-      targetLang: lang,
-      status: 'success',
-    }).lean();
-    const translationMap = new Map(
-      translations.map(translation => [translation.entityId.toString(), translation.name]),
-    );
+    let translationMap = new Map();
+    try {
+      const translations = await CategoryCatalogTranslationCache.find({
+        entityId: { $in: categoryIds },
+        targetLang: lang,
+        status: 'success',
+      }).lean();
+      translationMap = new Map(
+        translations.map(translation => [translation.entityId.toString(), translation.name]),
+      );
+    } catch (error) {
+      console.error('[EXPORT_STATS_TRANSLATION_ERROR]', error);
+    }
     const processedCategories = categoriesWithCounts.map(category => ({
       categoryId: category.categoryId.toString(),
       category: translationMap.get(category.categoryId.toString()) || category.categoryName,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import Link from 'next/link';
-import { productAPI } from '../../lib/api';
+import { productAPI, categoryAPI } from '../../lib/api';
 import { toast } from 'sonner';
 import { useLanguage } from '@/lib/i18n';
 import { getCategoryName } from '../../lib/data';
@@ -13,6 +13,7 @@ export default function ImportExportWidget() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -20,11 +21,15 @@ export default function ImportExportWidget() {
 
     const fetchData = async () => {
       setIsLoading(true);
-      const [statsResult] = await Promise.allSettled([
+      const [statsResult, categoriesResult] = await Promise.allSettled([
         productAPI.getExportStats(locale, {
           signal: controller.signal,
           skipErrorToast: true,
         }),
+        categoryAPI.getCategories(locale, {
+          signal: controller.signal,
+          skipErrorToast: true,
+        }, true),
       ]);
 
       if (!isCurrentRequest) return;
@@ -35,8 +40,13 @@ export default function ImportExportWidget() {
         toast.error(t('error_loading_export_data', 'export'));
       }
 
-      if (statsResult.status === 'fulfilled') {
+      if (categoriesResult.status === 'fulfilled') {
+        const categoriesList = categoriesResult.value.categories || categoriesResult.value;
+        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
+      } else if (statsResult.status === 'fulfilled') {
         setCategories(Array.isArray(statsResult.value.categories) ? statsResult.value.categories : []);
+      } else {
+        setCategories([]);
       }
 
       setIsLoading(false);
@@ -58,7 +68,13 @@ export default function ImportExportWidget() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const blob = await productAPI.exportProductBundle(selectedCategory, undefined, undefined, locale);
+      const blob = await productAPI.exportProductBundle(
+        selectedCategory,
+        undefined,
+        undefined,
+        locale,
+        selectedFormat,
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -162,16 +178,31 @@ export default function ImportExportWidget() {
               >
                 <option value="all">{t('all_categories', 'export')}</option>
                 {categories?.map((cat: any) => {
-                  const categoryId = cat.categoryId || cat._id || cat.id;
-                  const catDisplayName = getCategoryName(cat.category || cat.categoryName || cat);
+                  const categoryId = cat._id || cat.id || cat.categoryId;
+                  const categoryStats = exportStats?.categories?.find(
+                    (stat: any) => String(stat.categoryId) === String(categoryId),
+                  );
+                  const catDisplayName = getCategoryName(cat);
                   return (
                     <option key={categoryId} value={categoryId}>
-                      {catDisplayName} ({cat.count})
+                      {catDisplayName}{categoryStats ? ` (${categoryStats.count})` : ''}
                     </option>
                   );
                 })}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'export')}</label>
+            <select
+              value={selectedFormat}
+              onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="json">{t('format_json_extension', 'export')}</option>
+              <option value="csv">{t('format_csv_extension', 'export')}</option>
+            </select>
           </div>
 
           <button
