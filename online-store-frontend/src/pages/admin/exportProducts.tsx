@@ -21,7 +21,7 @@ function ExportProductsContent() {
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
-  const [includeTranslations, setIncludeTranslations] = useState(false);
+  const [exportAsZip, setExportAsZip] = useState(false);
 
   useEffect(() => {
     loadNamespace('admin');
@@ -82,7 +82,7 @@ function ExportProductsContent() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      if (includeTranslations) {
+      if (exportAsZip) {
         const blob = await productAPI.exportProductBundle(selectedCategory, undefined, undefined, locale);
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -90,7 +90,7 @@ function ExportProductsContent() {
         link.download = `products-export-${Date.now()}.zip`;
         link.click();
         URL.revokeObjectURL(url);
-        toast.success(t('export_bundle_success', 'admin', 'Đã xuất sản phẩm kèm bản dịch'));
+        toast.success(t('export_zip_success', 'admin', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
         return;
       }
 
@@ -168,7 +168,7 @@ function ExportProductsContent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label')}</label>
                 <select
                   value={selectedFormat}
-                  disabled={includeTranslations}
+                  disabled={exportAsZip}
                   onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
                 >
@@ -181,14 +181,14 @@ function ExportProductsContent() {
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <input
                     type="checkbox"
-                    checked={includeTranslations}
-                    onChange={(e) => setIncludeTranslations(e.target.checked)}
+                    checked={exportAsZip}
+                    onChange={(e) => setExportAsZip(e.target.checked)}
                   />
-                  {t('export_with_translations', 'admin', 'Export kèm bản dịch')}
+                  {t('export_as_zip', 'admin', 'Xuất ZIP để nhập lại')}
                 </label>
-                {includeTranslations && (
+                {exportAsZip && (
                   <p className="mt-1 text-xs text-gray-500">
-                    {t('export_bundle_note', 'admin', 'Tải xuống ZIP gồm manifest, sản phẩm và bản dịch hiện có.')}
+                    {t('export_zip_note', 'admin', 'ZIP chỉ chứa products.json, có thể giải nén và nhập lại ở trang Nhập sản phẩm.')}
                   </p>
                 )}
               </div>
@@ -219,7 +219,7 @@ function ExportProductsContent() {
               disabled={isExporting}
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
             >
-              {isExporting ? t('exporting') : includeTranslations ? t('export_bundle_btn', 'admin', 'Xuất ZIP kèm bản dịch') : t('export_btn')}
+              {isExporting ? t('exporting') : exportAsZip ? t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)') : t('export_btn')}
             </button>
           </div>
         </div>

@@ -1186,7 +1186,7 @@ function convertProductsToCSV(products) {
 }
 
 /**
- * Export products and their catalog translations as a ZIP bundle.
+ * Export products as an importable ZIP bundle.
  * @route GET /api/admin/products/export-bundle
  * @access Private/Admin
  */
@@ -1220,38 +1220,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
     const exportedProducts = productsToExport
       .filter(product => product.category)
       .map(serializeProductForExport);
-    const productIds = exportedProducts.map(product => product.productId);
-    const defaultLang = getDefaultLanguage().code;
-    const requestedLang = req.lang || defaultLang;
-    const targetLang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
-    const translations = await ProductCatalogTranslationCache.find({
-      entityId: { $in: productIds },
-      targetLang,
-    }).select('entityId targetLang name description brand specs manualFields updatedAt lastTranslatedAt').lean();
-    const translationFields = ['name', 'description', 'brand', 'specs'];
-    const records = translations.map(translation => ({
-      productId: String(translation.entityId),
-      targetLang: translation.targetLang,
-      translations: Object.fromEntries(
-        translationFields
-          .map(field => [field, translation[field]])
-          .filter(([, value]) => value !== undefined && value !== null)
-      ),
-      manualFields: (translation.manualFields || []).filter(field => translationFields.includes(field)),
-      updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
-    }));
     const exportedAt = new Date().toISOString();
-    const manifest = {
-      version: 1,
-      exportedAt,
-      totalProducts: exportedProducts.length,
-      matchedTotal,
-      exportedTotal: exportedProducts.length,
-      hasMore,
-      filters: { category: category || null, brand: brand || null },
-      locales: [...new Set(records.map(record => record.targetLang))].sort(),
-      files: ['manifest.json', 'products.json', 'product-translations.json'],
-    };
     const productsPayload = {
       success: true,
       exportedAt,
@@ -1263,8 +1232,6 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       filters: { category: category || null, brand: brand || null },
       products: exportedProducts,
     };
-    const translationsPayload = { success: true, data: { records } };
-
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
     const { ZipArchive } = await import('archiver');
@@ -1274,9 +1241,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       else next(error);
     });
     archive.pipe(res);
-    archive.append(JSON.stringify(manifest), { name: 'manifest.json' });
     archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-    archive.append(JSON.stringify(translationsPayload), { name: 'product-translations.json' });
     await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
