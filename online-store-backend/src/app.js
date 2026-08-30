@@ -56,6 +56,7 @@ const Currency = require('./models/Currency');
 const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
 const { startCloudinaryCleanupWorker } = require('./services/cloudinaryCleanupOutbox');
+const { startExportJobWorker } = require('./services/exportJobService');
 const { resumePendingLanguageSetups } = require('./services/languageSetupService');
 
 // ==================== Initialize Express App ====================
@@ -450,6 +451,7 @@ const connectDB = async () => {
     await migrateCouponCurrencies();
     assertMongoConnected();
     startCloudinaryCleanupWorker();
+    startExportJobWorker();
     await startServer();
     startupReady = true;
   } catch (err) {

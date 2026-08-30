@@ -35,6 +35,8 @@ if (!createZipArchive) {
   throw new TypeError('The archiver package does not expose a ZIP archive factory');
 }
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 let CategoryCatalogTranslationCache = null;
@@ -1390,6 +1392,31 @@ const getRequestedExportLocales = async (requestedLocales) => {
   return { locales, defaultLocale };
 };
 
+const writeExportZipFile = async (filePath, payload, contentFormat) => {
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+  const output = fs.createWriteStream(filePath, { flags: 'wx' });
+  const archive = createZipArchive({ zlib: { level: 1 } });
+  const streamFinished = new Promise((resolve, reject) => {
+    output.once('error', reject);
+    archive.once('error', reject);
+    output.once('finish', resolve);
+  });
+
+  try {
+    archive.pipe(output);
+    if (contentFormat === 'csv') {
+      archive.append(`\uFEFF${convertProductsToCSV(payload.products)}`, { name: 'products.csv' });
+    } else {
+      archive.append(JSON.stringify(payload), { name: 'products.json' });
+    }
+    await Promise.resolve(archive.finalize());
+    await streamFinished;
+  } catch (error) {
+    await fs.promises.unlink(filePath).catch(() => {});
+    throw error;
+  }
+};
+
 const streamExportZip = async (req, res, payload, contentFormat) => {
   if (req.aborted || res.destroyed) {
     throw createExportError(499, 'EXPORT_CANCELLED');
@@ -1478,9 +1505,12 @@ const createExportPayload = async (req, { category, brand, parsedLimit, requeste
 };
 
 const parseExportRequest = (req) => {
-  const { category, brand, format = 'zip', limit = '10000', locales } = req.query;
-  if ([category, brand, format, limit, locales].some(value => value !== undefined && typeof value !== 'string')) {
-    throw createExportError(400, 'EXPORT_QUERY_INVALID', { fields: ['category', 'brand', 'format', 'limit', 'locales'] });
+  const { category, brand, format = 'zip', limit = '10000', locales, async: asyncMode } = req.query;
+  if ([category, brand, format, limit, locales, asyncMode].some(value => value !== undefined && typeof value !== 'string')) {
+    throw createExportError(400, 'EXPORT_QUERY_INVALID', { fields: ['category', 'brand', 'format', 'limit', 'locales', 'async'] });
+  }
+  if (asyncMode !== undefined && !['true', 'false'].includes(asyncMode)) {
+    throw createExportError(400, 'EXPORT_ASYNC_INVALID', { async: asyncMode });
   }
 
   const parsedLimit = Number(limit);
@@ -1501,6 +1531,7 @@ const parseExportRequest = (req) => {
     brand,
     parsedLimit,
     requestedLocales: locales,
+    async: asyncMode === 'true',
     contentFormat: normalizedFormat === 'csv' ? 'csv' : 'json',
   };
 };
@@ -1508,6 +1539,12 @@ const parseExportRequest = (req) => {
 const exportProducts = asyncHandler(async (req, res) => {
   try {
     const request = parseExportRequest(req);
+    if (request.async) {
+      const { enqueueExportJob } = require('../services/exportJobService');
+      const job = await enqueueExportJob({ request, userId: req.user?._id });
+      res.status(202).json({ success: true, ...job });
+      return;
+    }
     const payload = await createExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
@@ -1569,6 +1606,12 @@ function convertProductsToCSV(products) {
 const exportProductsWithTranslations = asyncHandler(async (req, res) => {
   try {
     const request = parseExportRequest(req);
+    if (request.async) {
+      const { enqueueExportJob } = require('../services/exportJobService');
+      const job = await enqueueExportJob({ request, userId: req.user?._id });
+      res.status(202).json({ success: true, ...job });
+      return;
+    }
     const payload = await createExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
@@ -1686,4 +1729,6 @@ module.exports = {
   exportProducts,
   exportProductsWithTranslations,
   getExportStats,
+  createExportPayload,
+  writeExportZipFile,
 };
