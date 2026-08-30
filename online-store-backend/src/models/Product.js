@@ -247,7 +247,9 @@ const productSchema = mongoose.Schema(
 // Indexes để tối ưu query
 productSchema.index({ name: 1, isDeleted: 1 });
 productSchema.index({ category: 1, isDeleted: 1 });
+productSchema.index({ isDeleted: 1, category: 1 });
 productSchema.index({ brand: 1, isDeleted: 1 });
+productSchema.index({ isDeleted: 1, brand: 1 });
 productSchema.index({ isDeleted: 1 });
 productSchema.index({ isDeleted: 1, _id: 1 });
 productSchema.index({ price: 1, isDeleted: 1 });

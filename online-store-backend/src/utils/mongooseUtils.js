@@ -11,14 +11,20 @@
  * @param {number} timeoutMs - Timeout in milliseconds (default: 15000)
  * @returns {Promise} - Original operation or timeout error
  */
-const DEFAULT_TIMEOUT = parseInt(process.env.DB_OPERATION_TIMEOUT || '15000', 10);
+const configuredTimeout = Number(process.env.DB_OPERATION_TIMEOUT);
+const DEFAULT_TIMEOUT = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+  ? configuredTimeout
+  : 15000;
 
 const withTimeout = (operation, timeoutMs = DEFAULT_TIMEOUT) => {
+  const effectiveTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0
+    ? timeoutMs
+    : DEFAULT_TIMEOUT;
   let timeoutId;
   const timeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(new Error(`Database operation timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
+      reject(new Error(`Database operation timed out after ${effectiveTimeout}ms`));
+    }, effectiveTimeout);
   });
 
   return Promise.race([operation, timeout]).finally(() => {

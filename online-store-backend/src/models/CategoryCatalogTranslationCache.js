@@ -67,6 +67,7 @@ CategoryCatalogTranslationCacheSchema.index(
 
 // Index for filtering by status
 CategoryCatalogTranslationCacheSchema.index({ status: 1, targetLang: 1 });
+CategoryCatalogTranslationCacheSchema.index({ targetLang: 1, status: 1, entityId: 1 });
 
 
 module.exports = mongoose.model(

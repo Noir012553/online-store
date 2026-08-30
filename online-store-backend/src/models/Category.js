@@ -66,6 +66,7 @@ const categorySchema = mongoose.Schema(
 
 // Indexes để tối ưu query
 categorySchema.index({ name: 1, isDeleted: 1 });
+categorySchema.index({ isDeleted: 1, _id: 1 });
 
 const Category = mongoose.model('Category', categorySchema);
 
