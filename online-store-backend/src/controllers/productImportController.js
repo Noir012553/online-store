@@ -1257,8 +1257,12 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
         deal: product.deal || false,
       }));
     const productIds = exportedProducts.map(product => product.productId);
+    const defaultLang = getDefaultLanguage().code;
+    const requestedLang = req.lang || defaultLang;
+    const targetLang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
     const translations = await ProductCatalogTranslationCache.find({
       entityId: { $in: productIds },
+      targetLang,
     }).select('entityId targetLang name description brand specs manualFields updatedAt lastTranslatedAt').lean();
     const translationFields = ['name', 'description', 'brand', 'specs'];
     const records = translations.map(translation => ({
