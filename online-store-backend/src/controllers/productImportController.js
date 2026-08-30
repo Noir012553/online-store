@@ -21,17 +21,14 @@ const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Language = require('../models/Language');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
-const {
-  getActiveLangCodes,
-  getDefaultLanguage,
-  isSupportedLanguage,
-} = require('../config/languageInventory');
+const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 
@@ -88,75 +85,73 @@ const getExportProducts = async (filter, limit) => {
 };
 
 const getProductTranslationsForExport = async (products) => {
-  const activeLanguages = getActiveLangCodes();
-  const defaultLanguage = getDefaultLanguage().code;
   const productIds = products.map(product => product._id.toString());
-  const translationDocuments = await ProductCatalogTranslationCache.find({
-    entityId: { $in: productIds },
-    targetLang: { $in: activeLanguages.filter(language => language !== defaultLanguage) },
-    status: 'success',
-    qualityStatus: 'approved',
-  }).lean();
+  const [defaultLanguage, translationDocuments] = await Promise.all([
+    Language.findOne({ isSystemDefault: true }, { code: 1 }).lean(),
+    ProductCatalogTranslationCache.find({ entityId: { $in: productIds } }).lean(),
+  ]);
   const translationsByProduct = new Map();
 
   translationDocuments.forEach((translation) => {
+    if (!translation.targetLang) return;
     const productTranslations = translationsByProduct.get(translation.entityId) || new Map();
     productTranslations.set(translation.targetLang, translation);
     translationsByProduct.set(translation.entityId, productTranslations);
   });
 
   return products.map((product) => {
-    const sourceTranslation = {
-      name: product.name,
-      description: product.description,
-      brand: product.brand,
-      specs: product.specs || {},
-    };
+    const translations = {};
+    if (defaultLanguage?.code) {
+      translations[defaultLanguage.code] = {
+        name: product.name,
+        description: product.description,
+        brand: product.brand,
+        specs: product.specs || {},
+      };
+    }
+
     const productTranslations = translationsByProduct.get(product._id.toString()) || new Map();
-    const translations = Object.fromEntries(activeLanguages.map((language) => {
-      if (language === defaultLanguage) return [language, sourceTranslation];
-
-      const translation = productTranslations.get(language);
-      if (translation) {
-        return [language, {
-          name: translation.name,
-          description: translation.description,
-          brand: translation.brand,
-          specs: translation.specs || {},
-          manualFields: translation.manualFields || [],
-        }];
-      }
-
-      return [language, {
-        ...sourceTranslation,
-        fallback: true,
-        fallbackLanguage: defaultLanguage,
-      }];
-    }));
+    productTranslations.forEach((translation, language) => {
+      if (language === defaultLanguage?.code) return;
+      translations[language] = {
+        name: translation.name,
+        description: translation.description,
+        brand: translation.brand,
+        specs: translation.specs || {},
+        manualFields: translation.manualFields || [],
+        status: translation.status,
+        qualityStatus: translation.qualityStatus,
+        qualityScore: translation.qualityScore,
+        validationErrors: translation.validationErrors || [],
+        lastTranslatedAt: translation.lastTranslatedAt,
+        retryCount: translation.retryCount,
+        lastErrorMessage: translation.lastErrorMessage,
+        lastRetryAt: translation.lastRetryAt,
+      };
+    });
 
     return { product, translations };
   });
 };
 
 const serializeProductForExport = (product, translations = {}) => {
-  const {
-    _id,
-    user,
-    reviews,
-    isDeleted,
-    storefrontReady,
-    storefrontReadinessCheckedAt,
-    category,
-    ...productData
-  } = product;
+  const { _id, category, ...productData } = product;
+  const imageUrls = [
+    productData.image,
+    ...(Array.isArray(productData.images) ? productData.images : []),
+  ].filter(Boolean);
+  const imagePublicIds = [
+    productData.imagePublicId,
+    ...(Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : []),
+  ].filter(Boolean);
 
   return {
     ...productData,
     productId: _id.toString(),
-    categoryId: category._id.toString(),
-    category: category.name,
-    images: Array.isArray(productData.images) ? productData.images : [],
-    imagePublicIds: Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : [],
+    categoryId: category?._id?.toString(),
+    category: category?.name,
+    images: [...new Set(imageUrls)],
+    imagePublicIds: [...new Set(imagePublicIds)],
     translations,
   };
 };
@@ -269,7 +264,7 @@ const getProductTranslationImportRecords = (products) => {
     return Object.entries(product.translations)
       .filter(([targetLang, translation]) => (
         targetLang !== defaultLanguage
-        && isSupportedLanguage(targetLang)
+        && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(targetLang)
         && translation
         && typeof translation === 'object'
         && !Array.isArray(translation)

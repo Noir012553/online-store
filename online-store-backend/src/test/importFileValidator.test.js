@@ -35,9 +35,10 @@ describe('Product export serialization', () => {
     reviews: ['internal-review-id'],
     isDeleted: false,
     storefrontReady: true,
+    storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
   };
 
-  it('preserves dynamic product fields and all image data without internal fields', () => {
+  it('preserves all product fields and all image data', () => {
     const exported = serializeProductForExport(product);
 
     expect(exported).to.include({
@@ -48,10 +49,27 @@ describe('Product export serialization', () => {
     });
     expect(exported.images).to.deep.equal(product.images);
     expect(exported.imagePublicIds).to.deep.equal(product.imagePublicIds);
-    expect(exported).not.to.have.property('user');
-    expect(exported).not.to.have.property('reviews');
-    expect(exported).not.to.have.property('isDeleted');
-    expect(exported).not.to.have.property('storefrontReady');
+    expect(exported).to.include({
+      user: 'internal-user-id',
+      reviews: ['internal-review-id'],
+      isDeleted: false,
+      storefrontReady: true,
+      storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
+    });
+  });
+
+  it('includes the main image when the gallery only contains attached images', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      images: ['https://example.com/gallery.jpg'],
+      imagePublicIds: ['products/gallery'],
+    });
+
+    expect(exported.images).to.deep.equal([
+      'https://example.com/main.jpg',
+      'https://example.com/gallery.jpg',
+    ]);
+    expect(exported.imagePublicIds).to.deep.equal(['products/main', 'products/gallery']);
   });
 
   it('includes dynamic fields and gallery images in CSV output', () => {
