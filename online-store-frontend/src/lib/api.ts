@@ -1112,6 +1112,7 @@ export const productAPI = {
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
       },
+      credentials: 'include',
     });
 
     if (!response.ok) {
