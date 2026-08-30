@@ -1149,8 +1149,15 @@ export const productAPI = {
     return apiCall(finalEndpoint, requestOptions);
   },
 
-  exportProductBundle: async (category?: string, brand?: string, limit?: number, locale?: string) => {
+  exportProductBundle: async (
+    category?: string,
+    brand?: string,
+    limit?: number,
+    locale?: string,
+    format: 'json' | 'csv' = 'json',
+  ) => {
     const params = new URLSearchParams();
+    params.append('format', format);
     if (locale) params.append('lang', locale);
     if (category && category !== 'all') params.append('category', category);
     if (brand && brand !== 'all') params.append('brand', brand);
@@ -1175,7 +1182,17 @@ export const productAPI = {
       throw new Error(errorMessage);
     }
 
-    return response.blob();
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/zip')) {
+      throw new Error('product_export_invalid_file');
+    }
+
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('product_export_empty_file');
+    }
+
+    return blob;
   },
 };
 

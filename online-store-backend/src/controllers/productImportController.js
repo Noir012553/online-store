@@ -19,10 +19,25 @@
 
 const asyncHandler = require('express-async-handler');
 const archiverModule = require('archiver');
-const createArchive = archiverModule.default || archiverModule.create || archiverModule;
+const archiveFactory = [
+  archiverModule.create,
+  archiverModule.default?.create,
+  archiverModule,
+  archiverModule.default,
+].find(candidate => typeof candidate === 'function');
+const createZipArchive = archiveFactory
+  ? (options) => archiveFactory('zip', options)
+  : typeof archiverModule.ZipArchive === 'function'
+    ? (options) => new archiverModule.ZipArchive(options)
+    : null;
+
+if (!createZipArchive) {
+  throw new TypeError('The archiver package does not expose a ZIP archive factory');
+}
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Language = require('../models/Language');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
@@ -1304,8 +1319,17 @@ function convertProductsToCSV(products) {
  * @access Private/Admin
  */
 const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
-  const { category, brand, limit = 10000 } = req.query;
+  const { category, brand, format = 'json', limit = 10000 } = req.query;
   const parsedLimit = Number(limit);
+
+  if (!['json', 'csv'].includes(format)) {
+    return res.status(400).json({
+      success: false,
+      code: 'EXPORT_FORMAT_UNSUPPORTED',
+      message: getMessage(req.lang, 'admin-controllers-messages.format_not_supported', { format }),
+      supportedFormats: ['json', 'csv'],
+    });
+  }
 
   if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000) {
     return res.status(400).json({
@@ -1344,20 +1368,23 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
       matchedTotal,
       exportedTotal: exportedProducts.length,
       hasMore,
-      format: 'json',
+      format,
       filters: { category: category || null, brand: brand || null },
       products: exportedProducts,
     };
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
-    const archive = createArchive('zip', { zlib: { level: 1 } });
+    const archive = createZipArchive({ zlib: { level: 1 } });
     archive.on('error', error => {
       if (res.headersSent) res.destroy(error);
       else next(error);
     });
     archive.pipe(res);
-    archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
-    archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+    if (format === 'json') {
+      archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
+    } else {
+      archive.append(`\uFEFF${convertProductsToCSV(exportedProducts)}`, { name: 'products.csv' });
+    }
     await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
@@ -1379,7 +1406,7 @@ const getExportStats = asyncHandler(async (req, res) => {
     const [totalProducts, categoryCounts, activeCategories, brandCounts] = await Promise.all([
       Product.countDocuments({ isDeleted: false }),
       Product.aggregate([
-        { $match: { isDeleted: false } },
+        { $match: { isDeleted: false, category: { $ne: null } } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
       ]),
       Category.find({ isDeleted: false }).select('_id name').lean(),
@@ -1402,44 +1429,28 @@ const getExportStats = asyncHandler(async (req, res) => {
         categoryName: category.name,
         count: categoryCountById.get(category._id.toString()) ?? 0,
       }))
+      .filter(category => category.count > 0)
       .sort((a, b) => b.count - a.count);
 
-    // Apply category translations (Rule #2: Dynamic Database Translations)
-    let processedCategories = categoriesWithCounts;
-    if (lang !== defaultLang) {
-      const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
-      const categoryIds = categoriesWithCounts.map(c => c.categoryId.toString());
+    const categoryIds = categoriesWithCounts.map(category => category.categoryId.toString());
+    let translationMap = new Map();
+    try {
       const translations = await CategoryCatalogTranslationCache.find({
         entityId: { $in: categoryIds },
         targetLang: lang,
         status: 'success',
       }).lean();
-
-      const translationMap = {};
-      translations.forEach(t => {
-        translationMap[t.entityId.toString()] = t;
-      });
-
-      processedCategories = categoriesWithCounts.map(cat => {
-        const categoryId = cat.categoryId.toString();
-        const categoryTranslation = translationMap[categoryId];
-
-        // Return translated name OR fallback to Vietnamese name
-        const displayName = categoryTranslation?.name || cat.categoryName;
-
-        return {
-          categoryId,
-          category: displayName,
-          count: cat.count,
-        };
-      });
-    } else {
-      processedCategories = categoriesWithCounts.map(cat => ({
-        categoryId: cat.categoryId.toString(),
-        category: cat.categoryName,
-        count: cat.count,
-      }));
+      translationMap = new Map(
+        translations.map(translation => [translation.entityId.toString(), translation.name]),
+      );
+    } catch (error) {
+      console.error('[EXPORT_STATS_TRANSLATION_ERROR]', error);
     }
+    const processedCategories = categoriesWithCounts.map(category => ({
+      categoryId: category.categoryId.toString(),
+      category: translationMap.get(category.categoryId.toString()) || category.categoryName,
+      count: category.count,
+    }));
 
     res.json({
       success: true,
