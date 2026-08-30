@@ -17,36 +17,45 @@ export default function ImportExportWidget() {
   const [includeTranslations, setIncludeTranslations] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [locale]);
+    const controller = new AbortController();
+    let isCurrentRequest = true;
 
-  const fetchData = async () => {
-    try {
+    const fetchData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchExportStats(), fetchCategories()]);
-    } finally {
+      const [statsResult, categoriesResult] = await Promise.allSettled([
+        productAPI.getExportStats(locale, {
+          signal: controller.signal,
+          skipErrorToast: true,
+        }),
+        categoryAPI.getCategories(locale, {
+          signal: controller.signal,
+          skipErrorToast: true,
+        }),
+      ]);
+
+      if (!isCurrentRequest) return;
+
+      if (statsResult.status === 'fulfilled') {
+        setExportStats(statsResult.value);
+      } else if (!controller.signal.aborted) {
+        toast.error(t('error_loading_export_data', 'export'));
+      }
+
+      if (categoriesResult.status === 'fulfilled') {
+        const categoriesList = categoriesResult.value.categories || categoriesResult.value;
+        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
+      }
+
       setIsLoading(false);
-    }
-  };
+    };
 
-  const fetchExportStats = async () => {
-    try {
-      const stats = await productAPI.getExportStats(locale);
-      setExportStats(stats);
-    } catch (error) {
-      toast.error(t('error_loading_export_data', 'export'));
-    }
-  };
+    fetchData();
 
-  const fetchCategories = async () => {
-    try {
-      const response = await categoryAPI.getCategories(locale);
-      const categoriesList = response.categories || response;
-      setCategories(Array.isArray(categoriesList) ? categoriesList : []);
-    } catch (error) {
-      // Failed to fetch categories
-    }
-  };
+    return () => {
+      isCurrentRequest = false;
+      controller.abort();
+    };
+  }, [locale]);
 
 
   const handleExport = async () => {

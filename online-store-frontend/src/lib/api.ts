@@ -1140,10 +1140,13 @@ export const productAPI = {
   /**
    * Lấy thống kê export (categories, brands, total count)
    */
-  getExportStats: async (locale?: string) => {
+  getExportStats: async (
+    locale?: string,
+    requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
+  ) => {
     const endpoint = '/products/admin/export-stats';
     const finalEndpoint = locale ? `${endpoint}?lang=${locale}` : buildLocalizedUrl(endpoint);
-    return apiCall(finalEndpoint);
+    return apiCall(finalEndpoint, requestOptions);
   },
 
   exportProductBundle: async (category?: string, brand?: string, limit?: number, locale?: string) => {

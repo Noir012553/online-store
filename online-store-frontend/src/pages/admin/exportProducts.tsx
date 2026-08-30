@@ -28,36 +28,47 @@ function ExportProductsContent() {
   }, [loadNamespace]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let isCurrentRequest = true;
+
     const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        await Promise.all([fetchExportStats(), fetchCategories()]);
-      } finally {
-        setIsLoading(false);
+      setIsLoading(true);
+      const [statsResult, categoriesResult] = await Promise.allSettled([
+        productAPI.getExportStats(locale, {
+          signal: controller.signal,
+          skipErrorToast: true,
+        }),
+        categoryAPI.getCategories(locale, {
+          signal: controller.signal,
+          skipErrorToast: true,
+        }),
+      ]);
+
+      if (!isCurrentRequest) return;
+
+      if (statsResult.status === 'fulfilled') {
+        setExportStats(statsResult.value);
+      } else if (!controller.signal.aborted) {
+        toast.error(t('error_load_data', 'admin'));
       }
+
+      if (categoriesResult.status === 'fulfilled') {
+        const categoriesList = categoriesResult.value.categories || categoriesResult.value;
+        setCategories(Array.isArray(categoriesList) ? categoriesList : []);
+      } else {
+        setCategories([]);
+      }
+
+      setIsLoading(false);
     };
 
     fetchData();
+
+    return () => {
+      isCurrentRequest = false;
+      controller.abort();
+    };
   }, [locale]);
-
-  const fetchExportStats = async () => {
-    try {
-      const stats = await productAPI.getExportStats(locale);
-      setExportStats(stats);
-    } catch (error) {
-      toast.error(t('error_load_data', 'admin'));
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await categoryAPI.getCategories(locale);
-      const categoriesList = response.categories || response;
-      setCategories(Array.isArray(categoriesList) ? categoriesList : []);
-    } catch (error) {
-      setCategories([]);
-    }
-  };
 
   const getCategoryDisplayName = (catObj: any, locale: string) => {
     try {
