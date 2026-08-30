@@ -1481,18 +1481,11 @@ const getTopCustomers = asyncHandler(async (req, res) => {
           from: 'orders',
           localField: '_id',
           foreignField: 'customer',
-          as: 'orders',
-        },
-      },
-      {
-        $addFields: {
-          ordersList: {
-            $filter: {
-              input: '$orders',
-              as: 'order',
-              cond: { $eq: ['$$order.isDeleted', false] },
-            },
-          },
+          pipeline: [
+            { $match: { isDeleted: false } },
+            { $project: { totalPrice: 1, currencyCode: 1, exchangeRates: 1 } },
+          ],
+          as: 'ordersList',
         },
       },
       {

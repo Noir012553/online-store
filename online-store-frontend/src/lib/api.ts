@@ -112,6 +112,7 @@ interface FetchOptions extends RequestInit {
   skipAuthRecovery?: boolean; // Auth endpoints handle their own 401 response
   skipErrorToast?: boolean; // Optional requests render their own error state
   retry?: boolean; // Internal flag to prevent infinite retry loops
+  skipRetry?: boolean; // Skip automatic retry for expensive endpoints
   adapter?: (data: any) => any; // Optional adapter to transform response data
 }
 
@@ -419,6 +420,7 @@ export async function apiCall<T = any>(
     skipCache = false,
     skipAuthRecovery = false,
     skipErrorToast = false,
+    skipRetry = false,
     adapter,
     signal: externalSignal,
     ...fetchOptions
@@ -442,7 +444,7 @@ export async function apiCall<T = any>(
     const requestPromise = executeRequest<T>(
       url,
       headers,
-      { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
+      { ...fetchOptions, skipAuthRecovery, skipErrorToast, skipRetry, adapter, signal: externalSignal },
       timeout,
       endpoint,
       method,
@@ -464,7 +466,7 @@ export async function apiCall<T = any>(
   return executeRequest<T>(
     url,
     headers,
-    { ...fetchOptions, skipAuthRecovery, skipErrorToast, adapter, signal: externalSignal },
+    { ...fetchOptions, skipAuthRecovery, skipErrorToast, skipRetry, adapter, signal: externalSignal },
     timeout,
     endpoint,
     method,
@@ -612,7 +614,7 @@ async function executeRequest<T = any>(
 
     const isRetry = Boolean((fetchOptions as FetchOptions).retry);
     const isRetryableUpstreamStatus = [500, 502, 503, 504].includes(response.status);
-    if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry && !isFeaturedProductsEndpoint(endpointName)) {
+    if (methodName === 'GET' && isRetryableUpstreamStatus && !isRetry && !fetchOptions.skipRetry && !isFeaturedProductsEndpoint(endpointName)) {
       debugApi('retry:upstream-status', {
         requestId,
         endpoint: endpointName,
@@ -771,7 +773,7 @@ async function executeRequest<T = any>(
     if (isNetworkTransportError) {
       const networkError = 'network_error_title';
 
-      if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry && !isFeaturedProductsEndpoint(endpointName)) {
+      if (methodName === 'GET' && !(fetchOptions as FetchOptions).retry && !fetchOptions.skipRetry && !isFeaturedProductsEndpoint(endpointName)) {
         debugApi('retry:transport-error', {
           requestId,
           endpoint: endpointName,
@@ -2102,7 +2104,7 @@ export const analyticsAPI = {
     params.append('lang', lang);
     params.append('locale', locale);
     if (currencyCode) params.append('currencyCode', currencyCode);
-    return apiCall(`/analytics/top-customers?${params.toString()}`);
+    return apiCall(`/analytics/top-customers?${params.toString()}`, { skipRetry: true });
   },
 
   /**

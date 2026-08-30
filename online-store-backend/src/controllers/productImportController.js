@@ -60,13 +60,15 @@ const resolveProductExportFilter = async (category, brand) => {
 };
 
 const getExportProducts = async (filter, limit) => {
-  const matchedTotal = await Product.countDocuments(filter);
-  const products = await Product.find(filter)
-    .select('-reviews -createdAt -updatedAt -__v')
-    .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-    .sort({ _id: 1 })
-    .limit(limit + 1)
-    .lean();
+  const [matchedTotal, products] = await Promise.all([
+    Product.countDocuments(filter),
+    Product.find(filter)
+      .select('sku name brand price baseCurrencyCode originalPrice category description image countInStock specs rating numReviews featured deal')
+      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+      .sort({ _id: 1 })
+      .limit(limit + 1)
+      .lean(),
+  ]);
   const hasMore = products.length > limit;
 
   return {
@@ -1303,15 +1305,15 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
     const { ZipArchive } = await import('archiver');
-    const archive = new ZipArchive({ zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 1 } });
     archive.on('error', error => {
       if (res.headersSent) res.destroy(error);
       else next(error);
     });
     archive.pipe(res);
-    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
-    archive.append(JSON.stringify(productsPayload, null, 2), { name: 'products.json' });
-    archive.append(JSON.stringify(translationsPayload, null, 2), { name: 'product-translations.json' });
+    archive.append(JSON.stringify(manifest), { name: 'manifest.json' });
+    archive.append(JSON.stringify(productsPayload), { name: 'products.json' });
+    archive.append(JSON.stringify(translationsPayload), { name: 'product-translations.json' });
     await archive.finalize();
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', error);
@@ -1330,43 +1332,40 @@ const getExportStats = asyncHandler(async (req, res) => {
     const defaultLang = getDefaultLanguage().code;
     const requestedLang = req.lang || defaultLang;
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
-    const totalProducts = await Product.countDocuments({ isDeleted: false });
-
-    // Add filters for deleted categories and limit aggregation size.
-    const categoryCounts = await Product.aggregate([
-      { $match: { isDeleted: false } },
-      { $group: { _id: '$category', count: { $sum: 1 } } },
-      // FIX #5: Only lookup non-deleted categories
-      { $lookup: {
-        from: 'categories',
-        let: { categoryId: '$_id' },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ['$_id', '$$categoryId'] },
-              isDeleted: false,
+    const [totalProducts, categoryCounts, brandCounts] = await Promise.all([
+      Product.countDocuments({ isDeleted: false }),
+      Product.aggregate([
+        { $match: { isDeleted: false } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $lookup: {
+          from: 'categories',
+          let: { categoryId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$_id', '$$categoryId'] },
+                isDeleted: false,
+              },
             },
-          },
-        ],
-        as: 'categoryInfo'
-      }},
-      // FIX #5: Use $unwind with preserveNullAndEmptyArrays to handle deleted categories
-      { $unwind: { path: '$categoryInfo', preserveNullAndEmptyArrays: false } },
-      { $project: {
-        categoryId: '$_id',
-        categoryName: '$categoryInfo.name',
-        count: 1,
-        _id: 0
-      } },
-      { $sort: { count: -1 } },
-      { $limit: 50 }  // FIX #5: Add limit to prevent timeout
-    ]);
-
-    const brandCounts = await Product.aggregate([
-      { $match: { isDeleted: false } },
-      { $group: { _id: '$brand', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 20 }
+          ],
+          as: 'categoryInfo'
+        }},
+        { $unwind: { path: '$categoryInfo', preserveNullAndEmptyArrays: false } },
+        { $project: {
+          categoryId: '$_id',
+          categoryName: '$categoryInfo.name',
+          count: 1,
+          _id: 0
+        } },
+        { $sort: { count: -1 } },
+        { $limit: 50 }
+      ]),
+      Product.aggregate([
+        { $match: { isDeleted: false } },
+        { $group: { _id: '$brand', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 }
+      ]),
     ]);
 
     // Apply category translations (Rule #2: Dynamic Database Translations)
