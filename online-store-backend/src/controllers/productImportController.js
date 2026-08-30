@@ -18,6 +18,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
+const { finished } = require('stream/promises');
 const archiverModule = require('archiver');
 const archiveFactory = [
   archiverModule.create,
@@ -1396,11 +1397,8 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   const output = fs.createWriteStream(filePath, { flags: 'wx' });
   const archive = createZipArchive({ zlib: { level: 1 } });
-  const streamFinished = new Promise((resolve, reject) => {
-    output.once('error', reject);
-    archive.once('error', reject);
-    output.once('finish', resolve);
-  });
+  const streamFinished = finished(output);
+  archive.once('error', error => output.destroy(error));
 
   try {
     archive.pipe(output);
@@ -1409,7 +1407,7 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
     } else {
       archive.append(JSON.stringify(payload), { name: 'products.json' });
     }
-    await Promise.resolve(archive.finalize());
+    archive.finalize();
     await streamFinished;
   } catch (error) {
     await fs.promises.unlink(filePath).catch(() => {});

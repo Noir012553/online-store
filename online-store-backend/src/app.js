@@ -386,7 +386,7 @@ const assertMongoConnected = () => {
 };
 
 const requireDatabase = (req, res, next) => {
-  if (mongoose.connection.readyState === 1 && (startupReady || require.main !== module)) {
+  if (mongoose.connection.readyState === 1) {
     return next();
   }
 
