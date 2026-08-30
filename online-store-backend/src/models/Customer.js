@@ -53,6 +53,7 @@ const CustomerSchema = new mongoose.Schema({
 // Indexes để tối ưu query
 // Compound index for upsert by phone operation
 CustomerSchema.index({ phone: 1, isDeleted: 1 });
+CustomerSchema.index({ isDeleted: 1 });
 
 // Partial unique index: email unique only for non-deleted customers
 // This allows reusing emails of deleted customers
