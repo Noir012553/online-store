@@ -89,7 +89,7 @@ function ExportProductsContent() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success(t('export_zip_success', 'admin', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
     } catch (error) {
       toast.error(t('error_exporting_file'));
@@ -165,7 +165,7 @@ function ExportProductsContent() {
             >
               {isExporting
                 ? t('exporting')
-                : t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)')}
+                : t('export_products')}
             </button>
           </div>
         </div>

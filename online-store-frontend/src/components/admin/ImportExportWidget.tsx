@@ -72,7 +72,7 @@ export default function ImportExportWidget() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success(t('export_zip_success', 'export', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
     } catch (error) {
       toast.error(t('error_exporting_file', 'export'));
@@ -189,7 +189,7 @@ export default function ImportExportWidget() {
           >
             {isExporting
               ? t('exporting', 'export')
-              : t('export_zip_btn', 'export', 'Xuất ZIP (products.json)')}
+              : t('export_products', 'export')}
           </button>
         </div>
       </div>

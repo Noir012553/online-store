@@ -1175,7 +1175,17 @@ export const productAPI = {
       throw new Error(errorMessage);
     }
 
-    return response.blob();
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/zip')) {
+      throw new Error('product_export_invalid_file');
+    }
+
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('product_export_empty_file');
+    }
+
+    return blob;
   },
 };
 
