@@ -63,7 +63,7 @@ const getExportProducts = async (filter, limit) => {
   const [matchedTotal, products] = await Promise.all([
     Product.countDocuments(filter),
     Product.find(filter)
-      .select('sku name brand price baseCurrencyCode originalPrice category description image countInStock specs rating numReviews featured deal')
+      .select('-__v')
       .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
       .sort({ _id: 1 })
       .limit(limit + 1)
@@ -77,6 +77,15 @@ const getExportProducts = async (filter, limit) => {
     products: hasMore ? products.slice(0, limit) : products,
   };
 };
+
+const serializeProductForExport = (product) => ({
+  ...product,
+  productId: product._id.toString(),
+  categoryId: product.category._id.toString(),
+  category: product.category.name,
+  images: Array.isArray(product.images) ? product.images : [],
+  imagePublicIds: Array.isArray(product.imagePublicIds) ? product.imagePublicIds : [],
+});
 
 // Initialize adapter manager
 const adapterManager = new ImportAdapterManager();
@@ -987,7 +996,7 @@ const getImportGuide = asyncHandler(async (req, res) => {
     },
     requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category'],
     optionalFields: [
-      'productId', 'sku', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+      'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {
@@ -1078,24 +1087,7 @@ const exportProducts = asyncHandler(async (req, res) => {
 
     const transformedProducts = exportedProducts
       .filter(product => product.category)
-      .map(product => ({
-        productId: product._id.toString(),
-        sku: product.sku || undefined,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        baseCurrencyCode: product.baseCurrencyCode,
-        originalPrice: product.originalPrice,
-        category: product.category?.name || 'Unknown',  // Fallback to avoid null
-        description: product.description,
-        image: product.image || '',
-        countInStock: product.countInStock || 0,
-        specs: product.specs || {},
-        rating: product.rating || 0,
-        numReviews: product.numReviews || 0,
-        featured: product.featured || false,
-        deal: product.deal || false,
-      }));
+      .map(serializeProductForExport);
 
     if (format.toLowerCase() === 'json') {
       res.setHeader('Content-Type', 'application/json');
@@ -1239,24 +1231,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res, next) => {
     } = await getExportProducts(filter, parsedLimit);
     const exportedProducts = productsToExport
       .filter(product => product.category)
-      .map(product => ({
-        productId: product._id.toString(),
-        sku: product.sku || undefined,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        baseCurrencyCode: product.baseCurrencyCode,
-        originalPrice: product.originalPrice,
-        category: product.category.name,
-        description: product.description,
-        image: product.image || '',
-        countInStock: product.countInStock || 0,
-        specs: product.specs || {},
-        rating: product.rating || 0,
-        numReviews: product.numReviews || 0,
-        featured: product.featured || false,
-        deal: product.deal || false,
-      }));
+      .map(serializeProductForExport);
     const productIds = exportedProducts.map(product => product.productId);
     const defaultLang = getDefaultLanguage().code;
     const requestedLang = req.lang || defaultLang;
