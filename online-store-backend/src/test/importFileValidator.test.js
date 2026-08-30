@@ -4,13 +4,66 @@ const { validateImportFile } = require('../utils/fileUtils');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
-const { buildUpsertProductUpdate } = require('../controllers/productImportController');
+const {
+  buildUpsertProductUpdate,
+  serializeProductForExport,
+  convertProductsToCSV,
+} = require('../controllers/productImportController');
 const {
   getProductImagePublicId,
   uploadProductImage,
   assignInitialHighlights,
   getInitialStock,
 } = require('../seeds/productSeedPipeline');
+
+describe('Product export serialization', () => {
+  const product = {
+    _id: { toString: () => 'product-id' },
+    category: {
+      _id: { toString: () => 'category-id' },
+      name: 'Keyboard',
+    },
+    name: 'Keyboard Pro',
+    brand: 'Brand',
+    image: 'https://example.com/main.jpg',
+    images: ['https://example.com/main.jpg', 'https://example.com/gallery.jpg'],
+    imagePublicId: 'products/main',
+    imagePublicIds: ['products/main', 'products/gallery'],
+    customField: 'preserved',
+    deal: { discount: 0 },
+    user: 'internal-user-id',
+    reviews: ['internal-review-id'],
+    isDeleted: false,
+    storefrontReady: true,
+  };
+
+  it('preserves dynamic product fields and all image data without internal fields', () => {
+    const exported = serializeProductForExport(product);
+
+    expect(exported).to.include({
+      productId: 'product-id',
+      categoryId: 'category-id',
+      category: 'Keyboard',
+      customField: 'preserved',
+    });
+    expect(exported.images).to.deep.equal(product.images);
+    expect(exported.imagePublicIds).to.deep.equal(product.imagePublicIds);
+    expect(exported).not.to.have.property('user');
+    expect(exported).not.to.have.property('reviews');
+    expect(exported).not.to.have.property('isDeleted');
+    expect(exported).not.to.have.property('storefrontReady');
+  });
+
+  it('includes dynamic fields and gallery images in CSV output', () => {
+    const csv = convertProductsToCSV([serializeProductForExport(product)]);
+
+    expect(csv).to.include('images');
+    expect(csv).to.include('imagePublicIds');
+    expect(csv).to.include('customField');
+    expect(csv).to.include('https://example.com/main.jpg|https://example.com/gallery.jpg');
+    expect(csv).to.include('products/main|products/gallery');
+  });
+});
 
 describe('Import file validation', () => {
   const createFile = (content, originalname, mimetype) => ({

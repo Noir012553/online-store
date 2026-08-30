@@ -60,9 +60,14 @@ const resolveProductExportFilter = async (category, brand) => {
 };
 
 const getExportProducts = async (filter, limit) => {
+  const activeCategoryIds = await Category.find({ isDeleted: false }).distinct('_id');
+  const exportFilter = {
+    ...filter,
+    category: { $in: filter.category ? [filter.category] : activeCategoryIds },
+  };
   const [matchedTotal, products] = await Promise.all([
-    Product.countDocuments(filter),
-    Product.find(filter)
+    Product.countDocuments(exportFilter),
+    Product.find(exportFilter)
       .select('-__v')
       .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
       .sort({ _id: 1 })
@@ -78,14 +83,27 @@ const getExportProducts = async (filter, limit) => {
   };
 };
 
-const serializeProductForExport = (product) => ({
-  ...product,
-  productId: product._id.toString(),
-  categoryId: product.category._id.toString(),
-  category: product.category.name,
-  images: Array.isArray(product.images) ? product.images : [],
-  imagePublicIds: Array.isArray(product.imagePublicIds) ? product.imagePublicIds : [],
-});
+const serializeProductForExport = (product) => {
+  const {
+    _id,
+    user,
+    reviews,
+    isDeleted,
+    storefrontReady,
+    storefrontReadinessCheckedAt,
+    category,
+    ...productData
+  } = product;
+
+  return {
+    ...productData,
+    productId: _id.toString(),
+    categoryId: category._id.toString(),
+    category: category.name,
+    images: Array.isArray(productData.images) ? productData.images : [],
+    imagePublicIds: Array.isArray(productData.imagePublicIds) ? productData.imagePublicIds : [],
+  };
+};
 
 // Initialize adapter manager
 const adapterManager = new ImportAdapterManager();
@@ -1128,70 +1146,40 @@ const exportProducts = asyncHandler(async (req, res) => {
  * Handles nested objects and special characters
  */
 function convertProductsToCSV(products) {
-  if (!products || products.length === 0) {
-    return 'productId,sku,name,brand,price,baseCurrencyCode,originalPrice,category,description,image,countInStock,rating,numReviews,featured,deal_discount,deal_endTime';
-  }
-
-  // Headers (removed 'deal', will use deal_discount and deal_endTime instead)
-  const headers = [
-    'productId', 'sku', 'name', 'brand', 'price', 'baseCurrencyCode', 'originalPrice', 'category',
-    'description', 'image', 'countInStock', 'rating', 'numReviews',
-    'featured', 'deal_discount', 'deal_endTime'
+  const standardHeaders = [
+    'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
+    'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
+    'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime',
   ];
+  const dynamicHeaders = [...new Set(products.flatMap(product => Object.keys(product)))]
+    .filter(header => !standardHeaders.includes(header) && header !== 'deal' && header !== 'specs')
+    .sort();
+  const specKeys = [...new Set(products.flatMap(product => (
+    product.specs && typeof product.specs === 'object' ? Object.keys(product.specs) : []
+  )))].sort().map(key => `specs_${key}`);
+  const allHeaders = [...standardHeaders, ...dynamicHeaders, ...specKeys];
 
-  // Add dynamic spec headers
-  const specKeys = new Set();
-  products.forEach(product => {
-    if (product.specs && typeof product.specs === 'object') {
-      Object.keys(product.specs).forEach(key => specKeys.add(key));
-    }
-  });
-
-  const dynamicSpecHeaders = Array.from(specKeys).sort().map((key) => `specs_${key}`);
-  const allHeaders = [...headers, ...dynamicSpecHeaders];
-
-  // Escape CSV values
-  const escapeCSV = (value) => {
+  const serializeCSVValue = (value) => {
     if (value === null || value === undefined) return '';
-    const stringValue = String(value);
-    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-      return `"${stringValue.replace(/"/g, '""')}"`;
-    }
-    return stringValue;
+    if (Array.isArray(value)) return value.map(item => serializeCSVValue(item)).join('|');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  };
+  const escapeCSV = (value) => {
+    const stringValue = serializeCSVValue(value);
+    return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+      ? `"${stringValue.replace(/"/g, '""')}"`
+      : stringValue;
   };
 
-  // Build CSV rows
-  const rows = [allHeaders.join(',')]; // Header row
-
+  const rows = [allHeaders.join(',')];
   products.forEach(product => {
-    const row = allHeaders.map(header => {
-      // Handle standard fields
-      if (headers.includes(header)) {
-        let value;
-
-        // Special handling for deal fields
-        if (header === 'deal_discount' && product.deal) {
-          value = product.deal.discount || '';
-        } else if (header === 'deal_endTime' && product.deal) {
-          value = product.deal.endTime || '';
-        } else {
-          value = product[header];
-
-        }
-
-        return escapeCSV(value);
-      }
-
-      // Handle dynamic spec fields (specs_*)
-      const specKey = header.slice('specs_'.length);
-      if (product.specs && product.specs[specKey] !== undefined) {
-        return escapeCSV(product.specs[specKey]);
-      }
-
-      return '';
-    });
-
-    rows.push(row.join(','));
+    rows.push(allHeaders.map(header => {
+      if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
+      if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
+      if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
+      return escapeCSV(product[header]);
+    }).join(','));
   });
 
   return rows.join('\n');
@@ -1398,6 +1386,8 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  serializeProductForExport,
+  convertProductsToCSV,
   importProducts,
   importProductsFromFile,
   getImportTemplate,
