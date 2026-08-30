@@ -18,10 +18,8 @@ function ExportProductsContent() {
   const [exportStats, setExportStats] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
-  const [exportAsZip, setExportAsZip] = useState(false);
 
   useEffect(() => {
     loadNamespace('admin');
@@ -82,45 +80,17 @@ function ExportProductsContent() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      if (exportAsZip) {
-        const blob = await productAPI.exportProductBundle(selectedCategory, undefined, undefined, locale);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `products-export-${Date.now()}.zip`;
-        link.click();
-        URL.revokeObjectURL(url);
-        toast.success(t('export_zip_success', 'admin', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
-        return;
-      }
-
-      const data = await productAPI.exportProducts(selectedFormat, selectedCategory, undefined, undefined, locale);
-
-      if (selectedFormat === 'csv') {
-        const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `products-${Date.now()}.csv`);
-        link.className = 'sr-only';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } else {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `products-${Date.now()}.json`);
-        link.className = 'sr-only';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-
-      toast.success(t('exporting', 'admin'));
+      const blob = await productAPI.exportProductBundle(selectedCategory, undefined, undefined, locale);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `products-export-${Date.now()}.zip`;
+      link.className = 'sr-only';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(t('export_zip_success', 'admin', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
     } catch (error) {
       toast.error(t('error_exporting_file'));
     } finally {
@@ -165,35 +135,6 @@ function ExportProductsContent() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label')}</label>
-                <select
-                  value={selectedFormat}
-                  disabled={exportAsZip}
-                  onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
-                >
-                  <option value="json">{t('format_json')}</option>
-                  <option value="csv">{t('format_csv')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={exportAsZip}
-                    onChange={(e) => setExportAsZip(e.target.checked)}
-                  />
-                  {t('export_as_zip', 'admin', 'Xuất ZIP để nhập lại')}
-                </label>
-                {exportAsZip && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    {t('export_zip_note', 'admin', 'ZIP chỉ chứa products.json, có thể giải nén và nhập lại ở trang Nhập sản phẩm.')}
-                  </p>
-                )}
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('category_optional')}</label>
                 <select
                   value={selectedCategory}
@@ -224,9 +165,7 @@ function ExportProductsContent() {
             >
               {isExporting
                 ? t('exporting')
-                : exportAsZip
-                  ? t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)')
-                  : `${t('export_btn')} ${t(selectedFormat === 'csv' ? 'format_csv' : 'format_json')}`}
+                : t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)')}
             </button>
           </div>
         </div>
