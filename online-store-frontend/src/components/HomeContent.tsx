@@ -496,7 +496,14 @@ export default function Home() {
       }
     };
 
-    fetchData();
+    void fetchData().catch((error) => {
+      if (!requestController.signal.aborted) {
+        debugHomepage('products:unhandled-fetch-error', {
+          errorName: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
     return () => {
       isMounted = false;
       requestController.abort();

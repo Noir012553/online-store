@@ -158,7 +158,7 @@ function ExportProductsContent() {
                 <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label')}</p>
                 <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
                   <div>{t('total_label')} <span className="font-bold">{exportStats.totalProducts}</span></div>
-                  <div>{t('categories_label')} <span className="font-bold">{exportStats.categories?.length || 0}</span></div>
+                  <div>{t('categories_label')} <span className="font-bold">{exportStats.categories.length}</span></div>
                 </div>
               </div>
             )}
@@ -203,10 +203,13 @@ function ExportProductsContent() {
                   <option value="all">{t('all_categories')}</option>
                   {categories?.map((cat: any) => {
                     const catDisplayName = getCategoryDisplayName(cat, locale);
-                    const catStats = exportStats?.categories?.find((s: any) => s.category === catDisplayName);
+                    const categoryId = cat._id || cat.id;
+                    const catStats = exportStats?.categories?.find(
+                      (s: any) => String(s.categoryId) === String(categoryId),
+                    );
                     return (
-                      <option key={cat._id || cat.id} value={cat._id || cat.id}>
-                        {catDisplayName} ({catStats?.count || 0})
+                      <option key={categoryId} value={categoryId}>
+                        {catDisplayName}{catStats ? ` (${catStats.count})` : ''}
                       </option>
                     );
                   })}
@@ -219,7 +222,11 @@ function ExportProductsContent() {
               disabled={isExporting}
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
             >
-              {isExporting ? t('exporting') : exportAsZip ? t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)') : t('export_btn')}
+              {isExporting
+                ? t('exporting')
+                : exportAsZip
+                  ? t('export_zip_btn', 'admin', 'Xuất ZIP (products.json)')
+                  : `${t('export_btn')} ${t(selectedFormat === 'csv' ? 'format_csv' : 'format_json')}`}
             </button>
           </div>
         </div>

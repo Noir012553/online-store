@@ -49,7 +49,11 @@ export default function ImportExportWidget() {
       setIsLoading(false);
     };
 
-    fetchData();
+    void fetchData().catch(() => {
+      if (!controller.signal.aborted) {
+        toast.error(t('error_loading_export_data', 'export'));
+      }
+    });
 
     return () => {
       isCurrentRequest = false;
@@ -180,7 +184,7 @@ export default function ImportExportWidget() {
               <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label', 'export')}</p>
               <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
                 <div>{t('total_label', 'export')} <span className="font-bold">{exportStats.totalProducts}</span></div>
-                <div>{t('categories_label', 'export')} <span className="font-bold">{exportStats.categories?.length || 0}</span></div>
+                <div>{t('categories_label', 'export')} <span className="font-bold">{exportStats.categories.length}</span></div>
               </div>
             </div>
           )}
@@ -225,10 +229,13 @@ export default function ImportExportWidget() {
                 <option value="all">{t('all_categories', 'export')}</option>
                 {categories?.map((cat: any) => {
                   const catDisplayName = getCategoryName(cat);
-                  const catStats = exportStats?.categories?.find((s: any) => s.category === catDisplayName);
+                  const categoryId = cat._id || cat.id;
+                  const catStats = exportStats?.categories?.find(
+                    (s: any) => String(s.categoryId) === String(categoryId),
+                  );
                   return (
-                    <option key={cat._id || cat.id} value={cat._id || cat.id}>
-                      {catDisplayName} ({catStats?.count || 0})
+                    <option key={categoryId} value={categoryId}>
+                      {catDisplayName}{catStats ? ` (${catStats.count})` : ''}
                     </option>
                   );
                 })}
@@ -241,7 +248,11 @@ export default function ImportExportWidget() {
             disabled={isExporting}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
           >
-            {isExporting ? t('exporting', 'export') : exportAsZip ? t('export_zip_btn', 'export', 'Xuất ZIP (products.json)') : t('export_btn', 'export')}
+            {isExporting
+              ? t('exporting', 'export')
+              : exportAsZip
+                ? t('export_zip_btn', 'export', 'Xuất ZIP (products.json)')
+                : `${t('export_btn', 'export')} ${t(selectedFormat === 'csv' ? 'format_csv' : 'format_json', 'export')}`}
           </button>
         </div>
       </div>
