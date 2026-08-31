@@ -18,7 +18,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
-const { finished, pipeline } = require('stream/promises');
+const { finished } = require('stream/promises');
 const { Readable } = require('stream');
 const archiverModule = require('archiver');
 const archiveFactory = [
@@ -1723,7 +1723,12 @@ const streamExportZip = async (req, res, payload, contentFormat) => {
     res.setHeader('X-Exported-Total', payload.exportedTotal);
     res.setHeader('X-Has-More', String(payload.hasMore));
 
-    await pipeline(fs.createReadStream(filePath), res);
+    await new Promise((resolve, reject) => {
+      res.download(filePath, `products-export-${Date.now()}.zip`, error => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
   } finally {
     await fs.promises.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => {});
   }
@@ -1868,8 +1873,14 @@ const exportProducts = asyncHandler(async (req, res) => {
     const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
-    console.error('[EXPORT_PRODUCTS_ERROR]', { code: error.errorCode, message: error.message });
-    sendExportError(req, res, error);
+    const clientDisconnected = req.aborted
+      || res.destroyed
+      || ['ERR_STREAM_PREMATURE_CLOSE', 'ECONNRESET', 'EPIPE'].includes(error.code);
+    console[clientDisconnected ? 'warn' : 'error']('[EXPORT_PRODUCTS_ERROR]', {
+      code: error.errorCode || error.code,
+      message: error.message,
+    });
+    if (!clientDisconnected) sendExportError(req, res, error);
   }
 });
 
@@ -1938,8 +1949,14 @@ const exportProductsWithTranslations = asyncHandler(async (req, res) => {
     const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
-    console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', { code: error.errorCode, message: error.message });
-    sendExportError(req, res, error);
+    const clientDisconnected = req.aborted
+      || res.destroyed
+      || ['ERR_STREAM_PREMATURE_CLOSE', 'ECONNRESET', 'EPIPE'].includes(error.code);
+    console[clientDisconnected ? 'warn' : 'error']('[EXPORT_PRODUCTS_BUNDLE_ERROR]', {
+      code: error.errorCode || error.code,
+      message: error.message,
+    });
+    if (!clientDisconnected) sendExportError(req, res, error);
   }
 });
 
