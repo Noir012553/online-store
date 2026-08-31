@@ -1550,16 +1550,27 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
-        assetPromise = downloadExportImage(image.url, requestSignal).then(({ buffer, extension }) => {
-          const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
-          archive.append(buffer, { name: assetPath });
-          return assetPath;
-        });
+        assetPromise = downloadExportImage(image.url, requestSignal)
+          .then(({ buffer, extension }) => {
+            const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
+            archive.append(buffer, { name: assetPath });
+            return assetPath;
+          })
+          .catch((error) => {
+            if (requestSignal?.aborted) throw error;
+            console.warn('[EXPORT_IMAGE_ASSET_SKIPPED]', {
+              url: image.url,
+              code: error.errorCode,
+              message: error.message,
+              reason: error.details?.reason,
+            });
+            return null;
+          });
         assetsByUrl.set(image.url, assetPromise);
       }
 
       const assetPath = await assetPromise;
-      preparedImages.push({ ...image, assetPath });
+      preparedImages.push(assetPath ? { ...image, assetPath } : image);
     }
 
     preparedBatch.push({
