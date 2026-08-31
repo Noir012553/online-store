@@ -9,6 +9,8 @@ describe('Application readiness', () => {
 
     expect(response.status).to.equal(503);
     expect(response.body).to.include({ status: 'not_ready', startupReady: false });
+    expect(response.body.storage.required).to.equal(false);
+    expect(response.body.storage.configured).to.equal(true);
   });
 
   it('keeps the root endpoint available as a liveness check', async () => {

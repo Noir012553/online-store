@@ -43,6 +43,7 @@ const getS3Client = () => {
 
 const getStorageStatus = () => ({
   mode: STORAGE_MODE,
+  required: STORAGE_MODE === 's3',
   configured: STORAGE_MODE === 'local'
     || (STORAGE_MODE === 's3' && Boolean(S3_BUCKET && S3_REGION)),
   bucket: STORAGE_MODE === 's3' ? S3_BUCKET : undefined,
