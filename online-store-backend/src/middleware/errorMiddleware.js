@@ -61,6 +61,11 @@ const errorHandler = (err, req, res, next) => {
     console.error('[ErrorHandler]', err);
   }
 
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+
   res.status(statusCode).json({
     success: false,
     code,
