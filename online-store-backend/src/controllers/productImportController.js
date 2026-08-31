@@ -55,6 +55,7 @@ const { registerUnknownSpecKeys } = require('../services/specKeyTranslationServi
 const { getMessage } = require('../i18n/messages');
 const {
   getDefaultLanguage,
+  getActiveLangCodes,
   isSupportedLanguage,
 } = require('../config/languageInventory');
 const LanguageService = require('../services/languageService');
@@ -63,6 +64,7 @@ const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbo
 const { withTimeout } = require('../utils/mongooseUtils');
 
 const EXPORT_QUERY_TIMEOUT_MS = 30000;
+const MAX_EXPORT_LOCALES = getActiveLangCodes().length;
 
 const withExportTimeout = (operation) => withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS);
 
@@ -166,10 +168,10 @@ const getExportFallbacks = () => {
       .map(([locale, fallbacks]) => [
         normalizeExportLocale(locale),
         Array.isArray(fallbacks)
-          ? fallbacks.map(normalizeExportLocale).filter(Boolean)
+          ? fallbacks.map(normalizeExportLocale).filter(isSupportedLanguage)
           : [],
       ])
-      .filter(([locale]) => locale));
+      .filter(([locale]) => locale && isSupportedLanguage(locale)));
   } catch (error) {
     console.error('[EXPORT_TRANSLATION_FALLBACK_CONFIG_INVALID]', { message: error.message });
     return {};
@@ -1357,7 +1359,7 @@ const sendExportError = (req, res, error) => {
 };
 
 const getRequestedExportLocales = async (requestedLocales) => {
-  const configuredLocales = getConfiguredExportLocales();
+  const configuredLocales = getConfiguredExportLocales().filter(isSupportedLanguage);
   const requested = requestedLocales === undefined
     ? []
     : requestedLocales.split(',').map(normalizeExportLocale);
@@ -1366,9 +1368,16 @@ const getRequestedExportLocales = async (requestedLocales) => {
     throw createExportError(400, 'EXPORT_LOCALES_INVALID', { locales: requestedLocales });
   }
 
+  const unsupportedLocales = requested.filter(locale => !isSupportedLanguage(locale));
+  if (unsupportedLocales.length > 0) {
+    throw createExportError(400, 'EXPORT_LOCALES_UNSUPPORTED', { locales: unsupportedLocales });
+  }
+
   let activeLocales = [];
   try {
-    activeLocales = await withExportTimeout(LanguageService.getActiveLanguageCodes());
+    activeLocales = (await withExportTimeout(LanguageService.getActiveLanguageCodes()))
+      .map(normalizeExportLocale)
+      .filter(isSupportedLanguage);
   } catch (error) {
     console.error('[EXPORT_LANGUAGE_LOOKUP_ERROR]', { message: error.message });
   }
@@ -1380,7 +1389,10 @@ const getRequestedExportLocales = async (requestedLocales) => {
         .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
         .lean(),
     );
-    defaultLocale = normalizeExportLocale(databaseDefaultLanguage?.code) || defaultLocale;
+    const databaseDefaultLocale = normalizeExportLocale(databaseDefaultLanguage?.code);
+    if (databaseDefaultLocale && isSupportedLanguage(databaseDefaultLocale)) {
+      defaultLocale = databaseDefaultLocale;
+    }
   } catch (error) {
     console.error('[EXPORT_DEFAULT_LANGUAGE_LOOKUP_ERROR]', { message: error.message });
   }
@@ -1388,7 +1400,14 @@ const getRequestedExportLocales = async (requestedLocales) => {
   const locales = uniqueValues([
     ...(requested.length ? requested : configuredLocales.length ? configuredLocales : activeLocales),
     defaultLocale,
-  ]);
+  ]).filter(isSupportedLanguage);
+
+  if (locales.length > MAX_EXPORT_LOCALES) {
+    throw createExportError(400, 'EXPORT_LOCALES_TOO_MANY', {
+      maxLocales: MAX_EXPORT_LOCALES,
+      locales,
+    });
+  }
 
   return { locales, defaultLocale };
 };
@@ -1398,7 +1417,18 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   const output = fs.createWriteStream(filePath, { flags: 'wx' });
   const archive = createZipArchive({ zlib: { level: 1 } });
   const streamFinished = finished(output);
-  archive.once('error', error => output.destroy(error));
+  const onArchiveError = (error) => {
+    if (!output.destroyed) output.destroy(error);
+  };
+  const onArchiveWarning = (warning) => {
+    console.error('[EXPORT_ZIP_WARNING]', { code: warning.code, message: warning.message });
+  };
+  const onOutputError = (error) => {
+    console.error('[EXPORT_ZIP_OUTPUT_ERROR]', { message: error.message });
+  };
+  archive.once('error', onArchiveError);
+  archive.on('warning', onArchiveWarning);
+  output.once('error', onOutputError);
 
   try {
     archive.pipe(output);
@@ -1412,6 +1442,9 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   } catch (error) {
     await fs.promises.unlink(filePath).catch(() => {});
     throw error;
+  } finally {
+    archive.off('warning', onArchiveWarning);
+    output.off('error', onOutputError);
   }
 };
 
@@ -1476,6 +1509,10 @@ const createExportPayload = async (req, { category, brand, parsedLimit, requeste
   }
 
   const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
+  if (req.aborted || req.destroyed) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
+
   const fallbacks = getExportFallbacks();
   const productsWithTranslations = await getProductTranslationsForExport(
     products,
@@ -1483,6 +1520,10 @@ const createExportPayload = async (req, { category, brand, parsedLimit, requeste
     fallbacks,
     defaultLocale,
   );
+  if (req.aborted || req.destroyed) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
+
   const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
     serializeProductForExport(product, translations)
   ));

@@ -9,6 +9,7 @@ const POLL_INTERVAL_MS = 5000;
 const EXPORT_LEASE_MS = 10 * 60 * 1000;
 const EXPORT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const EXPORT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const EXPORT_LEASE_HEARTBEAT_MS = Math.max(1000, Math.floor(EXPORT_LEASE_MS / 3));
 const EXPORT_DIR = path.resolve(
   process.env.EXPORT_JOB_DIR || path.join(os.tmpdir(), 'online-store-export-jobs'),
 );
@@ -147,10 +148,28 @@ const maybeCleanupExpiredExportJobs = async () => {
   }
 };
 
+const startExportJobLeaseHeartbeat = (job) => {
+  const heartbeatTimer = setInterval(async () => {
+    const nextLeaseExpiresAt = new Date(Date.now() + EXPORT_LEASE_MS);
+    try {
+      const result = await ExportJob.updateOne(
+        { _id: job._id, status: 'processing', leaseExpiresAt: job.leaseExpiresAt },
+        { $set: { leaseExpiresAt: nextLeaseExpiresAt } },
+      );
+      if (result.modifiedCount === 1) job.leaseExpiresAt = nextLeaseExpiresAt;
+    } catch (error) {
+      console.error('[EXPORT_JOB_HEARTBEAT_ERROR]', { jobId: job._id.toString(), message: error.message });
+    }
+  }, EXPORT_LEASE_HEARTBEAT_MS);
+  heartbeatTimer.unref();
+  return () => clearInterval(heartbeatTimer);
+};
+
 const processExportJob = async (job) => {
   const { createExportPayload, writeExportZipFile } = require('../controllers/productImportController');
   const filePath = path.join(EXPORT_DIR, `${job._id.toString()}-${job.attempts}.zip`);
   let fileCreated = false;
+  let stopLeaseHeartbeat = () => {};
   const startedAt = Date.now();
 
   try {
@@ -160,6 +179,7 @@ const processExportJob = async (job) => {
       return;
     }
 
+    stopLeaseHeartbeat = startExportJobLeaseHeartbeat(job);
     const request = { ...job.request, async: false };
     const fakeReq = {
       aborted: false,
@@ -198,7 +218,9 @@ const processExportJob = async (job) => {
       });
     }
   } catch (error) {
-    if (fileCreated) await fs.promises.unlink(filePath).catch(() => {});
+    if (fileCreated || await fs.promises.stat(filePath).catch(() => null)) {
+      await fs.promises.unlink(filePath).catch(() => {});
+    }
     const cancelled = await isCancelRequested(job._id);
     const retryable = job.attempts < MAX_ATTEMPTS;
     console.error('[EXPORT_JOB_FAILED]', {
@@ -222,6 +244,8 @@ const processExportJob = async (job) => {
         },
       },
     );
+  } finally {
+    stopLeaseHeartbeat();
   }
 };
 
@@ -250,6 +274,7 @@ const recoverExpiredExportJobs = async () => {
 };
 
 const processExportJobs = async () => {
+  if (mongoose.connection.readyState !== 1) return;
   if (isProcessing) return;
   isProcessing = true;
 
@@ -350,5 +375,8 @@ module.exports = {
   retryExportJob,
   downloadExportJob,
   processExportJobs,
+  processExportJob,
   startExportJobWorker,
+  isManagedExportPath,
+  cleanupExpiredExportJobs,
 };

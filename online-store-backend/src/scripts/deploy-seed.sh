@@ -105,7 +105,7 @@ echo -e "\n${YELLOW}Step 4: Verifying server health...${NC}"
 sleep 2
 
 for i in {1..10}; do
-    if curl -s http://localhost:5000/health > /dev/null 2>&1; then
+    if curl --fail --silent http://localhost:5000/readyz > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Server is healthy${NC}\n"
         break
     fi
