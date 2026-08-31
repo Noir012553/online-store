@@ -1159,7 +1159,7 @@ export const productAPI = {
   ) => {
     const params = new URLSearchParams();
     params.append('format', format);
-    if (locale) params.append('lang', locale);
+    if (locale) params.append('locales', locale);
     if (category && category !== 'all') params.append('category', category);
     if (brand && brand !== 'all') params.append('brand', brand);
     if (limit) params.append('limit', limit.toString());

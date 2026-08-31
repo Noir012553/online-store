@@ -328,6 +328,7 @@ const serializeProductForExport = (product, translations = {}) => {
     category: category?.name,
     images,
     imagePublicIds: uniqueValues(images.map(image => image.publicId)),
+    imageAssetPaths: [],
     translations,
   };
 };
@@ -1423,6 +1424,146 @@ const getPayloadBatches = payload => payload.products
     ? payload.productBatches()
     : (async function* () { yield []; }());
 
+const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const EXPORT_IMAGE_EXTENSIONS = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/avif': 'avif',
+  'image/svg+xml': 'svg',
+};
+
+const downloadExportImage = async (sourceUrl) => {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(sourceUrl);
+  } catch {
+    throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
+  }
+
+  let response;
+  try {
+    response = await fetch(parsedUrl, {
+      headers: {
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'User-Agent': 'LaptopStoreExport/1.0',
+      },
+      signal: AbortSignal.timeout(30000),
+      redirect: 'follow',
+    });
+  } catch (error) {
+    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+      url: sourceUrl,
+      reason: error.message,
+    });
+  }
+
+  if (!response.ok) {
+    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+      url: sourceUrl,
+      status: response.status,
+    });
+  }
+
+  const contentType = String(response.headers.get('content-type') || '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  const extension = EXPORT_IMAGE_EXTENSIONS[contentType];
+  if (!extension) {
+    throw createExportError(502, 'EXPORT_IMAGE_TYPE_UNSUPPORTED', {
+      url: sourceUrl,
+      contentType,
+    });
+  }
+
+  const contentLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > EXPORT_IMAGE_MAX_BYTES) {
+    throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
+      url: sourceUrl,
+      maxBytes: EXPORT_IMAGE_MAX_BYTES,
+    });
+  }
+
+  if (!response.body) {
+    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+      url: sourceUrl,
+      reason: 'empty_response_body',
+    });
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > EXPORT_IMAGE_MAX_BYTES) {
+        await reader.cancel();
+        throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
+          url: sourceUrl,
+          maxBytes: EXPORT_IMAGE_MAX_BYTES,
+        });
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } catch (error) {
+    if (error.errorCode) throw error;
+    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+      url: sourceUrl,
+      reason: error.message,
+    });
+  }
+
+  return {
+    buffer: Buffer.concat(chunks, totalBytes),
+    extension,
+  };
+};
+
+const prepareExportBatchForArchive = async (archive, batch, assetsByUrl) => {
+  const preparedBatch = [];
+
+  for (const product of batch) {
+    const preparedImages = [];
+    for (const image of Array.isArray(product.images) ? product.images : []) {
+      if (!image?.url) {
+        preparedImages.push(image);
+        continue;
+      }
+
+      let assetPromise = assetsByUrl.get(image.url);
+      if (!assetPromise) {
+        assetPromise = downloadExportImage(image.url).then(({ buffer, extension }) => {
+          const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
+          archive.append(buffer, { name: assetPath });
+          return assetPath;
+        });
+        assetsByUrl.set(image.url, assetPromise);
+      }
+
+      const assetPath = await assetPromise;
+      preparedImages.push({ ...image, assetPath });
+    }
+
+    preparedBatch.push({
+      ...product,
+      images: preparedImages,
+      imageAssetPaths: uniqueValues(preparedImages.map(image => image?.assetPath)),
+    });
+  }
+
+  return preparedBatch;
+};
+
 const getCSVHeadersFromBatches = async payload => {
   const headers = new Set(STANDARD_CSV_HEADERS);
   const specKeys = new Set();
@@ -1444,20 +1585,25 @@ const getCSVHeadersFromBatches = async payload => {
 };
 
 const appendExportContent = async (archive, payload, contentFormat) => {
+  const assetsByUrl = new Map();
+
   if (contentFormat === 'csv') {
     const headers = await getCSVHeadersFromBatches(payload);
     const csvStream = Readable.from((async function* () {
       yield `\uFEFF${headers.join(',')}\n`;
       let firstRow = true;
       for await (const batch of getPayloadBatches(payload)) {
-        const rows = batch.map(product => convertProductToCSVRow(product, headers));
+        const preparedBatch = await prepareExportBatchForArchive(archive, batch, assetsByUrl);
+        const rows = preparedBatch.map(product => convertProductToCSVRow(product, headers));
         if (rows.length) {
           yield `${firstRow ? '' : '\n'}${rows.join('\n')}`;
           firstRow = false;
         }
       }
     }()));
+    const streamDone = finished(csvStream);
     archive.append(csvStream, { name: 'products.csv' });
+    await streamDone;
     return;
   }
 
@@ -1472,7 +1618,8 @@ const appendExportContent = async (archive, payload, contentFormat) => {
     yield jsonPrefix;
     let firstProduct = true;
     for await (const batch of getPayloadBatches(payload)) {
-      const serializedBatch = batch.map(product => JSON.stringify(product)).join(',');
+      const preparedBatch = await prepareExportBatchForArchive(archive, batch, assetsByUrl);
+      const serializedBatch = preparedBatch.map(product => JSON.stringify(product)).join(',');
       if (serializedBatch) {
         yield `${firstProduct ? '' : ','}${serializedBatch}`;
         firstProduct = false;
@@ -1480,7 +1627,9 @@ const appendExportContent = async (archive, payload, contentFormat) => {
     }
     yield ']}';
   }()));
+  const streamDone = finished(jsonStream);
   archive.append(jsonStream, { name: 'products.json' });
+  await streamDone;
 };
 
 const writeExportZipFile = async (filePath, payload, contentFormat) => {
@@ -1637,8 +1786,18 @@ const createExportPayload = async (req, request) => {
 const createStreamingExportPayload = createExportContext;
 
 const parseExportRequest = (req) => {
-  const { category, brand, format = 'zip', limit = '10000', locales, async: asyncMode } = req.query;
-  if ([category, brand, format, limit, locales, asyncMode].some(value => value !== undefined && typeof value !== 'string')) {
+  const {
+    category,
+    brand,
+    format = 'zip',
+    limit = '10000',
+    locales: requestedLocales,
+    lang: legacyLocale,
+    async: asyncMode,
+  } = req.query;
+  const locales = requestedLocales ?? legacyLocale;
+  if ([category, brand, format, limit, requestedLocales, legacyLocale, asyncMode]
+    .some(value => value !== undefined && typeof value !== 'string')) {
     throw createExportError(400, 'EXPORT_QUERY_INVALID', { fields: ['category', 'brand', 'format', 'limit', 'locales', 'async'] });
   }
   if (asyncMode !== undefined && !['true', 'false'].includes(asyncMode)) {
@@ -1692,7 +1851,7 @@ const exportProducts = asyncHandler(async (req, res) => {
 const STANDARD_CSV_HEADERS = [
   'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
   'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
-  'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime',
+  'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime', 'imageAssetPaths',
 ];
 
 const getExportCSVHeaders = products => {
@@ -1723,6 +1882,7 @@ const convertProductToCSVRow = (product, headers) => headers.map(header => {
   if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
   if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
   if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image));
+  if (header === 'imageAssetPaths') return escapeCSV((product.imageAssetPaths || []).join('|'));
   if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
   return escapeCSV(product[header]);
 }).join(',');
