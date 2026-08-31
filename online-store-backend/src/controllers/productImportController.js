@@ -1630,7 +1630,8 @@ const createExportPayload = async (req, request) => {
   const context = await createExportContext(req, request);
   const products = [];
   for await (const batch of context.productBatches()) products.push(...batch);
-  return { ...context, products };
+  const { productBatches, ...payload } = context;
+  return { ...payload, products };
 };
 
 const createStreamingExportPayload = createExportContext;
