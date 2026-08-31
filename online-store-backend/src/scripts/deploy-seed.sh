@@ -11,6 +11,35 @@
 
 set -e  # Exit on error
 
+if [ -f .env ]; then
+    set -a
+    . ./.env
+    set +a
+fi
+
+PORT="${PORT:-5000}"
+EXPORT_STORAGE="${EXPORT_STORAGE:-local}"
+EXPORT_JOB_DIR="${EXPORT_JOB_DIR:-/var/lib/laptop-store/export-jobs}"
+READY_BASE_URL="${BACKEND_URL:-http://localhost:${PORT}}"
+READY_BASE_URL="${READY_BASE_URL%/}"
+export PORT EXPORT_STORAGE EXPORT_JOB_DIR
+
+if [ "$EXPORT_STORAGE" = "local" ]; then
+    mkdir -p "$EXPORT_JOB_DIR"
+    if [ ! -w "$EXPORT_JOB_DIR" ]; then
+        echo "Export directory is not writable: $EXPORT_JOB_DIR"
+        exit 1
+    fi
+elif [ "$EXPORT_STORAGE" = "s3" ]; then
+    if [ -z "${EXPORT_S3_BUCKET:-}" ] || [ -z "${EXPORT_S3_REGION:-${AWS_REGION:-}}" ]; then
+        echo "EXPORT_S3_BUCKET and EXPORT_S3_REGION/AWS_REGION are required for S3 export storage"
+        exit 1
+    fi
+else
+    echo "Unsupported EXPORT_STORAGE: $EXPORT_STORAGE"
+    exit 1
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,7 +56,7 @@ fi
 
 # Function to check if port is in use
 check_port() {
-    if lsof -i :5000 >/dev/null 2>&1; then
+    if lsof -i :"$PORT" >/dev/null 2>&1; then
         return 0  # Port in use
     else
         return 1  # Port free
@@ -37,7 +66,7 @@ check_port() {
 # Step 1: Stop API server (if running)
 echo -e "${YELLOW}Step 1: Stopping API server...${NC}"
 if check_port; then
-    echo -e "${YELLOW}  Port 5000 is in use, attempting to stop...${NC}"
+    echo -e "${YELLOW}  Port $PORT is in use, attempting to stop...${NC}"
     
     # Try different methods to stop
     if command -v systemctl &> /dev/null && systemctl is-active --quiet laptop-store-backend; then
@@ -49,8 +78,8 @@ if check_port; then
         pm2 stop laptop-store-backend || true
         sleep 2
     else
-        echo -e "${YELLOW}  Killing process on port 5000...${NC}"
-        lsof -i :5000 | grep LISTEN | awk '{print $2}' | xargs kill -9 2>/dev/null || true
+        echo -e "${YELLOW}  Killing process on port $PORT...${NC}"
+        lsof -i :"$PORT" | grep LISTEN | awk '{print $2}' | xargs kill -9 2>/dev/null || true
         sleep 2
     fi
     
@@ -61,7 +90,7 @@ if check_port; then
     fi
     echo -e "${GREEN}✅ API server stopped${NC}\n"
 else
-    echo -e "${GREEN}✅ Port 5000 is free${NC}\n"
+    echo -e "${GREEN}✅ Port $PORT is free${NC}\n"
 fi
 
 # Step 2: Run seed with exposed GC
@@ -105,7 +134,7 @@ echo -e "\n${YELLOW}Step 4: Verifying server health...${NC}"
 sleep 2
 
 for i in {1..10}; do
-    if curl --fail --silent http://localhost:5000/readyz > /dev/null 2>&1; then
+    if curl --fail --silent "$READY_BASE_URL/readyz" > /dev/null 2>&1; then
         echo -e "${GREEN}✅ Server is healthy${NC}\n"
         break
     fi
@@ -119,7 +148,7 @@ done
 
 # Step 5: Show cache status
 echo -e "${YELLOW}Step 5: Checking cache status...${NC}"
-CACHE_STATUS=$(curl -s http://localhost:5000/health/cache)
+CACHE_STATUS=$(curl -s "$READY_BASE_URL/health/cache")
 
 if [ ! -z "$CACHE_STATUS" ]; then
     echo -e "${GREEN}Cache Status:${NC}"
@@ -135,6 +164,6 @@ echo -e "  ✅ API server restarted"
 echo -e "  ✅ Health check passed"
 echo -e "\n${YELLOW}Recommendations:${NC}"
 echo -e "  • Monitor server logs: tail -f /tmp/backend.log"
-echo -e "  • Check cache status: curl http://localhost:5000/health/cache | jq ."
+echo -e "  • Check cache status: curl $READY_BASE_URL/health/cache | jq ."
 echo -e "  • Monitor memory: watch -n 5 'curl -s http://localhost:5000/health/cache | jq .memory'"
-echo -e "  • Test API: curl http://localhost:5000/"
+echo -e "  • Test API: curl $READY_BASE_URL/"
