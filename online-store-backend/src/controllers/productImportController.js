@@ -19,6 +19,7 @@
 
 const asyncHandler = require('express-async-handler');
 const { finished } = require('stream/promises');
+const { Readable } = require('stream');
 const archiverModule = require('archiver');
 const archiveFactory = [
   archiverModule.create,
@@ -106,36 +107,40 @@ const resolveProductExportFilter = async (category, brand) => {
   return filter;
 };
 
-const getExportProducts = async (filter, limit) => {
+const EXPORT_BATCH_SIZE = 250;
+
+const getExportProductQuery = async filter => {
   const activeCategoryIds = filter.category
     ? null
     : await withExportTimeout(
       Category.distinct('_id', { isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
     );
-  const exportFilter = {
+  return {
     ...filter,
     category: { $in: filter.category ? [filter.category] : activeCategoryIds },
   };
-  const [matchedTotal, products] = await Promise.all([
-    withExportTimeout(
-      Product.countDocuments(exportFilter).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
-    ),
-    withExportTimeout(
-      Product.find(exportFilter)
-        .select('-__v')
-        .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-        .sort({ _id: 1 })
-        .limit(limit + 1)
-        .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
-        .lean(),
-    ),
-  ]);
-  const hasMore = products.length > limit;
+};
+
+const createExportProductCursor = (exportFilter, limit) => Product.find(exportFilter)
+  .select('-__v')
+  .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+  .sort({ _id: 1 })
+  .limit(limit)
+  .batchSize(EXPORT_BATCH_SIZE)
+  .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+  .lean()
+  .cursor();
+
+const createExportProductBatchStream = async (filter, limit) => {
+  const exportFilter = await getExportProductQuery(filter);
+  const matchedTotal = await withExportTimeout(
+    Product.countDocuments(exportFilter).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+  );
 
   return {
     matchedTotal,
-    hasMore,
-    products: hasMore ? products.slice(0, limit) : products,
+    hasMore: matchedTotal > limit,
+    exportFilter,
   };
 };
 
@@ -1412,6 +1417,72 @@ const getRequestedExportLocales = async (requestedLocales) => {
   return { locales, defaultLocale };
 };
 
+const getPayloadBatches = payload => payload.products
+  ? (async function* () { yield payload.products; }())
+  : payload.productBatches
+    ? payload.productBatches()
+    : (async function* () { yield []; }());
+
+const getCSVHeadersFromBatches = async payload => {
+  const headers = new Set(STANDARD_CSV_HEADERS);
+  const specKeys = new Set();
+  for await (const batch of getPayloadBatches(payload)) {
+    batch.forEach(product => {
+      Object.keys(product).forEach(key => {
+        if (!STANDARD_CSV_HEADERS.includes(key) && key !== 'deal' && key !== 'specs') headers.add(key);
+      });
+      if (product.specs && typeof product.specs === 'object') {
+        Object.keys(product.specs).forEach(key => specKeys.add(`specs_${key}`));
+      }
+    });
+  }
+  return [
+    ...STANDARD_CSV_HEADERS,
+    ...[...headers].filter(header => !STANDARD_CSV_HEADERS.includes(header)).sort(),
+    ...[...specKeys].sort(),
+  ];
+};
+
+const appendExportContent = async (archive, payload, contentFormat) => {
+  if (contentFormat === 'csv') {
+    const headers = await getCSVHeadersFromBatches(payload);
+    const csvStream = Readable.from((async function* () {
+      yield `\uFEFF${headers.join(',')}\n`;
+      let firstRow = true;
+      for await (const batch of getPayloadBatches(payload)) {
+        const rows = batch.map(product => convertProductToCSVRow(product, headers));
+        if (rows.length) {
+          yield `${firstRow ? '' : '\n'}${rows.join('\n')}`;
+          firstRow = false;
+        }
+      }
+    }()));
+    archive.append(csvStream, { name: 'products.csv' });
+    return;
+  }
+
+  const metadata = { ...payload };
+  delete metadata.products;
+  delete metadata.productBatches;
+  const metadataJSON = JSON.stringify(metadata);
+  const jsonPrefix = metadataJSON === '{}'
+    ? '{"products":['
+    : `${metadataJSON.slice(0, -1)},"products":[`;
+  const jsonStream = Readable.from((async function* () {
+    yield jsonPrefix;
+    let firstProduct = true;
+    for await (const batch of getPayloadBatches(payload)) {
+      const serializedBatch = batch.map(product => JSON.stringify(product)).join(',');
+      if (serializedBatch) {
+        yield `${firstProduct ? '' : ','}${serializedBatch}`;
+        firstProduct = false;
+      }
+    }
+    yield ']}';
+  }()));
+  archive.append(jsonStream, { name: 'products.json' });
+};
+
 const writeExportZipFile = async (filePath, payload, contentFormat) => {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   const output = fs.createWriteStream(filePath, { flags: 'wx' });
@@ -1432,11 +1503,7 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
 
   try {
     archive.pipe(output);
-    if (contentFormat === 'csv') {
-      archive.append(`\uFEFF${convertProductsToCSV(payload.products)}`, { name: 'products.csv' });
-    } else {
-      archive.append(JSON.stringify(payload), { name: 'products.json' });
-    }
+    await appendExportContent(archive, payload, contentFormat);
     archive.finalize();
     await streamFinished;
   } catch (error) {
@@ -1479,11 +1546,7 @@ const streamExportZip = async (req, res, payload, contentFormat) => {
 
   try {
     archive.pipe(res);
-    if (contentFormat === 'csv') {
-      archive.append(`\uFEFF${convertProductsToCSV(payload.products)}`, { name: 'products.csv' });
-    } else {
-      archive.append(JSON.stringify(payload), { name: 'products.json' });
-    }
+    await appendExportContent(archive, payload, contentFormat);
     archive.finalize();
     await streamFinished;
     archiveFinished = true;
@@ -1493,55 +1556,85 @@ const streamExportZip = async (req, res, payload, contentFormat) => {
   }
 };
 
-const createExportPayload = async (req, { category, brand, parsedLimit, requestedLocales, contentFormat }) => {
+const assertExportRequestActive = req => {
   if (req.aborted || req.destroyed) {
     throw createExportError(499, 'EXPORT_CANCELLED');
   }
+};
 
+const createExportContext = async (req, { category, brand, parsedLimit, requestedLocales, contentFormat }) => {
+  assertExportRequestActive(req);
   const filter = await resolveProductExportFilter(category, brand);
   if (!filter) {
     throw createExportError(404, 'EXPORT_CATEGORY_NOT_FOUND', { category });
   }
 
-  const { matchedTotal, hasMore, products } = await getExportProducts(filter, parsedLimit);
-  if (req.aborted || req.destroyed) {
-    throw createExportError(499, 'EXPORT_CANCELLED');
-  }
-
+  const { matchedTotal, hasMore, exportFilter } = await createExportProductBatchStream(filter, parsedLimit);
+  assertExportRequestActive(req);
   const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
-  if (req.aborted || req.destroyed) {
-    throw createExportError(499, 'EXPORT_CANCELLED');
-  }
-
+  assertExportRequestActive(req);
   const fallbacks = getExportFallbacks();
-  const productsWithTranslations = await getProductTranslationsForExport(
-    products,
-    locales,
-    fallbacks,
-    defaultLocale,
-  );
-  if (req.aborted || req.destroyed) {
-    throw createExportError(499, 'EXPORT_CANCELLED');
-  }
 
-  const exportedProducts = productsWithTranslations.map(({ product, translations }) => (
-    serializeProductForExport(product, translations)
-  ));
+  const productBatches = async function* () {
+    let batch = [];
+    const cursor = createExportProductCursor(exportFilter, parsedLimit);
+    try {
+      for await (const product of cursor) {
+        assertExportRequestActive(req);
+        batch.push(product);
+        if (batch.length >= EXPORT_BATCH_SIZE) {
+          const productsWithTranslations = await getProductTranslationsForExport(
+            batch,
+            locales,
+            fallbacks,
+            defaultLocale,
+          );
+          yield productsWithTranslations.map(({ product: currentProduct, translations }) => (
+            serializeProductForExport(currentProduct, translations)
+          ));
+          batch = [];
+        }
+      }
+      if (batch.length) {
+        const productsWithTranslations = await getProductTranslationsForExport(
+          batch,
+          locales,
+          fallbacks,
+          defaultLocale,
+        );
+        yield productsWithTranslations.map(({ product: currentProduct, translations }) => (
+          serializeProductForExport(currentProduct, translations)
+        ));
+      }
+    } finally {
+      await cursor.close().catch(() => {});
+    }
+  };
 
   return {
     success: true,
     exportedAt: new Date().toISOString(),
-    totalProducts: exportedProducts.length,
+    totalProducts: Math.min(matchedTotal, parsedLimit),
     matchedTotal,
-    exportedTotal: exportedProducts.length,
+    exportedTotal: Math.min(matchedTotal, parsedLimit),
     hasMore,
     format: 'zip',
     contentFormat,
     locales,
     filters: { category: category || null, brand: brand || null },
-    products: exportedProducts,
+    productBatches,
   };
 };
+
+const createExportPayload = async (req, request) => {
+  const context = await createExportContext(req, request);
+  const products = [];
+  for await (const batch of context.productBatches()) products.push(...batch);
+  const { productBatches, ...payload } = context;
+  return { ...payload, products };
+};
+
+const createStreamingExportPayload = createExportContext;
 
 const parseExportRequest = (req) => {
   const { category, brand, format = 'zip', limit = '10000', locales, async: asyncMode } = req.query;
@@ -1584,7 +1677,7 @@ const exportProducts = asyncHandler(async (req, res) => {
       res.status(202).json({ success: true, ...job });
       return;
     }
-    const payload = await createExportPayload(req, request);
+    const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_ERROR]', { code: error.errorCode, message: error.message });
@@ -1596,45 +1689,47 @@ const exportProducts = asyncHandler(async (req, res) => {
  * Convert products array to CSV format
  * Handles nested objects and special characters
  */
-function convertProductsToCSV(products) {
-  const standardHeaders = [
-    'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
-    'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
-    'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime',
-  ];
+const STANDARD_CSV_HEADERS = [
+  'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
+  'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
+  'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime',
+];
+
+const getExportCSVHeaders = products => {
   const dynamicHeaders = [...new Set(products.flatMap(product => Object.keys(product)))]
-    .filter(header => !standardHeaders.includes(header) && header !== 'deal' && header !== 'specs')
+    .filter(header => !STANDARD_CSV_HEADERS.includes(header) && header !== 'deal' && header !== 'specs')
     .sort();
   const specKeys = [...new Set(products.flatMap(product => (
     product.specs && typeof product.specs === 'object' ? Object.keys(product.specs) : []
   )))].sort().map(key => `specs_${key}`);
-  const allHeaders = [...standardHeaders, ...dynamicHeaders, ...specKeys];
+  return [...STANDARD_CSV_HEADERS, ...dynamicHeaders, ...specKeys];
+};
 
-  const serializeCSVValue = (value) => {
-    if (value === null || value === undefined) return '';
-    if (Array.isArray(value)) return value.map(item => serializeCSVValue(item)).join('|');
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-  };
-  const escapeCSV = (value) => {
-    const stringValue = serializeCSVValue(value);
-    return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
-      ? `"${stringValue.replace(/"/g, '""')}"`
-      : stringValue;
-  };
+const serializeCSVValue = value => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.map(item => serializeCSVValue(item)).join('|');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
 
-  const rows = [allHeaders.join(',')];
-  products.forEach(product => {
-    rows.push(allHeaders.map(header => {
-      if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
-      if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
-      if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image));
-      if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
-      return escapeCSV(product[header]);
-    }).join(','));
-  });
+const escapeCSV = value => {
+  const stringValue = serializeCSVValue(value);
+  return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+    ? `"${stringValue.replace(/"/g, '""')}"`
+    : stringValue;
+};
 
-  return rows.join('\n');
+const convertProductToCSVRow = (product, headers) => headers.map(header => {
+  if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
+  if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
+  if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image));
+  if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
+  return escapeCSV(product[header]);
+}).join(',');
+
+function convertProductsToCSV(products) {
+  const headers = getExportCSVHeaders(products);
+  return [headers.join(','), ...products.map(product => convertProductToCSVRow(product, headers))].join('\n');
 }
 
 /**
@@ -1651,7 +1746,7 @@ const exportProductsWithTranslations = asyncHandler(async (req, res) => {
       res.status(202).json({ success: true, ...job });
       return;
     }
-    const payload = await createExportPayload(req, request);
+    const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
     console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', { code: error.errorCode, message: error.message });
@@ -1769,5 +1864,6 @@ module.exports = {
   exportProductsWithTranslations,
   getExportStats,
   createExportPayload,
+  createStreamingExportPayload,
   writeExportZipFile,
 };

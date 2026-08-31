@@ -57,6 +57,7 @@ const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
 const { startCloudinaryCleanupWorker } = require('./services/cloudinaryCleanupOutbox');
 const { startExportJobWorker } = require('./services/exportJobService');
+const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
 const { resumePendingLanguageSetups } = require('./services/languageSetupService');
 
 // ==================== Initialize Express App ====================
@@ -451,6 +452,7 @@ const connectDB = async () => {
     assertMongoConnected();
     await migrateCouponCurrencies();
     assertMongoConnected();
+    assertStorageConfigured();
     await startServer();
     startCloudinaryCleanupWorker();
     startExportJobWorker();
@@ -555,11 +557,13 @@ app.get('/', (req, res) => {
  * GET /health/cache - Monitor memory usage
  */
 app.get('/readyz', (req, res) => {
-  const ready = startupReady && mongoose.connection.readyState === 1;
+  const storage = getStorageStatus();
+  const ready = startupReady && mongoose.connection.readyState === 1 && storage.configured;
   res.status(ready ? 200 : 503).json({
     status: ready ? 'ready' : 'not_ready',
     databaseConnected: mongoose.connection.readyState === 1,
     startupReady,
+    storage,
     timestamp: new Date().toISOString(),
   });
 });

@@ -3,6 +3,7 @@ const sinon = require('sinon');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const zlib = require('zlib');
 const mongoose = require('mongoose');
 const ExportJob = require('../models/ExportJob');
 const productImportController = require('../controllers/productImportController');
@@ -17,6 +18,18 @@ const createLeanQuery = value => ({
     lean: async () => value,
   }),
 });
+
+const extractFirstZipEntry = archive => {
+  const localHeaderOffset = archive.indexOf(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+  const centralHeaderOffset = archive.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  const compressionMethod = archive.readUInt16LE(centralHeaderOffset + 10);
+  const compressedSize = archive.readUInt32LE(centralHeaderOffset + 20);
+  const fileNameLength = archive.readUInt16LE(localHeaderOffset + 26);
+  const extraLength = archive.readUInt16LE(localHeaderOffset + 28);
+  const dataStart = localHeaderOffset + 30 + fileNameLength + extraLength;
+  const data = archive.subarray(dataStart, dataStart + compressedSize);
+  return compressionMethod === 8 ? zlib.inflateRawSync(data) : data;
+};
 
 describe('Export job workflow', () => {
   afterEach(() => {
@@ -88,8 +101,17 @@ describe('Export job workflow', () => {
     };
     const filePath = path.join(exportDirectory, `${jobId.toString()}-1.zip`);
 
-    sinon.stub(productImportController, 'createExportPayload').resolves({
-      products: [{ productId: 'product-id' }],
+    sinon.stub(productImportController, 'createStreamingExportPayload').resolves({
+      matchedTotal: 1,
+      exportedTotal: 1,
+      hasMore: false,
+      productBatches: async function* () {
+        yield [{
+          productId: 'product-id',
+          images: [{ url: 'https://example.com/product.jpg', type: 'main' }],
+          translations: { vi: { name: 'Bàn phím Pro' } },
+        }];
+      },
     });
     sinon.stub(ExportJob, 'findOne').returns(createLeanQuery({
       status: 'processing',
@@ -100,8 +122,14 @@ describe('Export job workflow', () => {
     try {
       await exportJobService.processExportJob(job);
       const archive = await fs.promises.readFile(filePath);
+      const exportedPayload = JSON.parse(extractFirstZipEntry(archive));
 
       expect(archive.subarray(0, 2).toString()).to.equal('PK');
+      expect(exportedPayload.products).to.deep.equal([{
+        productId: 'product-id',
+        images: [{ url: 'https://example.com/product.jpg', type: 'main' }],
+        translations: { vi: { name: 'Bàn phím Pro' } },
+      }]);
       expect(updateOne.calledOnce).to.equal(true);
       expect(updateOne.firstCall.args[0]).to.deep.include({
         _id: jobId,
@@ -185,5 +213,26 @@ describe('Export job workflow', () => {
     expect(response.download.firstCall.args[0]).to.equal(filePath);
     expect(response.download.firstCall.args[1]).to.equal(`products-export-${jobId}.zip`);
     expect(response.download.firstCall.args[2]).to.be.a('function');
+  });
+
+  it('records lifecycle metrics for enqueue and retry', async () => {
+    const metrics = require('../services/exportMetrics');
+    const jobId = new mongoose.Types.ObjectId();
+    const job = {
+      _id: jobId,
+      status: 'queued',
+      attempts: 0,
+      createdAt: new Date(),
+      startedAt: null,
+      finishedAt: null,
+      errorMessage: null,
+    };
+    sinon.stub(ExportJob, 'create').resolves(job);
+    await exportJobService.enqueueExportJob({ request: { contentFormat: 'json' } });
+    sinon.stub(ExportJob, 'findOneAndUpdate').resolves({ ...job, status: 'queued' });
+    await exportJobService.retryExportJob(jobId.toString());
+
+    expect(metrics.getExportMetrics().counters.enqueued).to.be.greaterThan(0);
+    expect(metrics.getExportMetrics().counters.retried).to.be.greaterThan(0);
   });
 });
