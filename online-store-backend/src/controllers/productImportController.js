@@ -1601,7 +1601,9 @@ const appendExportContent = async (archive, payload, contentFormat) => {
         }
       }
     }()));
+    const streamDone = finished(csvStream);
     archive.append(csvStream, { name: 'products.csv' });
+    await streamDone;
     return;
   }
 
@@ -1625,7 +1627,9 @@ const appendExportContent = async (archive, payload, contentFormat) => {
     }
     yield ']}';
   }()));
+  const streamDone = finished(jsonStream);
   archive.append(jsonStream, { name: 'products.json' });
+  await streamDone;
 };
 
 const writeExportZipFile = async (filePath, payload, contentFormat) => {
