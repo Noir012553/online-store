@@ -1637,8 +1637,18 @@ const createExportPayload = async (req, request) => {
 const createStreamingExportPayload = createExportContext;
 
 const parseExportRequest = (req) => {
-  const { category, brand, format = 'zip', limit = '10000', locales, async: asyncMode } = req.query;
-  if ([category, brand, format, limit, locales, asyncMode].some(value => value !== undefined && typeof value !== 'string')) {
+  const {
+    category,
+    brand,
+    format = 'zip',
+    limit = '10000',
+    locales: requestedLocales,
+    lang: legacyLocale,
+    async: asyncMode,
+  } = req.query;
+  const locales = requestedLocales ?? legacyLocale;
+  if ([category, brand, format, limit, requestedLocales, legacyLocale, asyncMode]
+    .some(value => value !== undefined && typeof value !== 'string')) {
     throw createExportError(400, 'EXPORT_QUERY_INVALID', { fields: ['category', 'brand', 'format', 'limit', 'locales', 'async'] });
   }
   if (asyncMode !== undefined && !['true', 'false'].includes(asyncMode)) {
