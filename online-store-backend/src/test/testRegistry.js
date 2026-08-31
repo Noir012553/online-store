@@ -48,6 +48,7 @@ const TEST_SUITES = {
     files: [
       'test-phase4-e2e-simplified.js',
       'importFileValidator.test.js',
+      'exportJobService.test.js',
       'translationHelper.test.js',
     ],
   },
@@ -82,6 +83,7 @@ const TEST_SUITES = {
     files: [
       'test-backend-endpoints-phase3.js',
       'test-phase4-e2e-simplified.js',
+      'appReadiness.test.js',
     ],
   },
 

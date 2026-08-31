@@ -386,7 +386,7 @@ const assertMongoConnected = () => {
 };
 
 const requireDatabase = (req, res, next) => {
-  if (mongoose.connection.readyState === 1) {
+  if (startupReady && mongoose.connection.readyState === 1) {
     return next();
   }
 
@@ -401,7 +401,7 @@ const requireDatabase = (req, res, next) => {
   const message = getMessage(req.lang, 'common.error_server_desc');
   return res.status(503).json({
     success: false,
-    code: 'DATABASE_UNAVAILABLE',
+    code: mongoose.connection.readyState === 1 ? 'SERVICE_NOT_READY' : 'DATABASE_UNAVAILABLE',
     message,
     error: message,
     timestamp: new Date().toISOString(),
@@ -419,6 +419,7 @@ const connectDB = async () => {
   }
 
   connectionInProgress = true;
+  startupReady = false;
 
   try {
     if (!MONGO_URI) {
@@ -450,9 +451,9 @@ const connectDB = async () => {
     assertMongoConnected();
     await migrateCouponCurrencies();
     assertMongoConnected();
+    await startServer();
     startCloudinaryCleanupWorker();
     startExportJobWorker();
-    await startServer();
     startupReady = true;
   } catch (err) {
     connectionAttempts++;
@@ -553,6 +554,16 @@ app.get('/', (req, res) => {
  * Health check endpoint - Memory Status
  * GET /health/cache - Monitor memory usage
  */
+app.get('/readyz', (req, res) => {
+  const ready = startupReady && mongoose.connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not_ready',
+    databaseConnected: mongoose.connection.readyState === 1,
+    startupReady,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/health/cache', (req, res) => {
   try {
     const memUsage = process.memoryUsage();
