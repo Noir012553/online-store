@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLanguage } from './LanguageContext';
 import currencyService, { type Currency } from '../services/currencyService';
-import { LoadingGate } from '../../components/LoadingGate';
 
 interface CurrencyContextValue {
   currency: Currency;
@@ -59,10 +58,6 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     activeCurrencies,
     isLoadingCurrency,
   }), [currency, activeCurrencies, isLoadingCurrency]);
-
-  if (isLoadingCurrency) {
-    return <LoadingGate />;
-  }
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }

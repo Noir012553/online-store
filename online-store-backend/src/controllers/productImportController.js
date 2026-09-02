@@ -38,6 +38,7 @@ if (!createZipArchive) {
 }
 const mongoose = require('mongoose');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
@@ -1344,8 +1345,9 @@ const createExportError = (statusCode, code, details = {}) => {
 };
 
 const sendExportError = (req, res, error) => {
+  if (req.aborted || res.destroyed) return;
   if (res.headersSent) {
-    res.destroy(error);
+    if (!res.writableEnded) res.destroy(error);
     return;
   }
 
@@ -1403,10 +1405,14 @@ const getRequestedExportLocales = async (requestedLocales) => {
     console.error('[EXPORT_DEFAULT_LANGUAGE_LOOKUP_ERROR]', { message: error.message });
   }
 
-  const locales = uniqueValues([
-    ...(requested.length ? requested : configuredLocales.length ? configuredLocales : activeLocales),
-    defaultLocale,
-  ]).filter(isSupportedLanguage);
+  const locales = uniqueValues(
+    requested.length
+      ? requested
+      : [
+        ...(configuredLocales.length ? configuredLocales : activeLocales),
+        defaultLocale,
+      ],
+  ).filter(isSupportedLanguage);
 
   if (locales.length > MAX_EXPORT_LOCALES) {
     throw createExportError(400, 'EXPORT_LOCALES_TOO_MANY', {
@@ -1434,7 +1440,7 @@ const EXPORT_IMAGE_EXTENSIONS = {
   'image/svg+xml': 'svg',
 };
 
-const downloadExportImage = async (sourceUrl) => {
+const downloadExportImage = async (sourceUrl, requestSignal) => {
   let parsedUrl;
   try {
     parsedUrl = new URL(sourceUrl);
@@ -1453,7 +1459,9 @@ const downloadExportImage = async (sourceUrl) => {
         Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'User-Agent': 'LaptopStoreExport/1.0',
       },
-      signal: AbortSignal.timeout(30000),
+      signal: requestSignal
+        ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
+        : AbortSignal.timeout(30000),
       redirect: 'follow',
     });
   } catch (error) {
@@ -1529,7 +1537,7 @@ const downloadExportImage = async (sourceUrl) => {
   };
 };
 
-const prepareExportBatchForArchive = async (archive, batch, assetsByUrl) => {
+const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, requestSignal) => {
   const preparedBatch = [];
 
   for (const product of batch) {
@@ -1542,16 +1550,27 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl) => {
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
-        assetPromise = downloadExportImage(image.url).then(({ buffer, extension }) => {
-          const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
-          archive.append(buffer, { name: assetPath });
-          return assetPath;
-        });
+        assetPromise = downloadExportImage(image.url, requestSignal)
+          .then(({ buffer, extension }) => {
+            const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
+            archive.append(buffer, { name: assetPath });
+            return assetPath;
+          })
+          .catch((error) => {
+            if (requestSignal?.aborted) throw error;
+            console.warn('[EXPORT_IMAGE_ASSET_SKIPPED]', {
+              url: image.url,
+              code: error.errorCode,
+              message: error.message,
+              reason: error.details?.reason,
+            });
+            return null;
+          });
         assetsByUrl.set(image.url, assetPromise);
       }
 
       const assetPath = await assetPromise;
-      preparedImages.push({ ...image, assetPath });
+      preparedImages.push(assetPath ? { ...image, assetPath } : image);
     }
 
     preparedBatch.push({
@@ -1593,7 +1612,12 @@ const appendExportContent = async (archive, payload, contentFormat) => {
       yield `\uFEFF${headers.join(',')}\n`;
       let firstRow = true;
       for await (const batch of getPayloadBatches(payload)) {
-        const preparedBatch = await prepareExportBatchForArchive(archive, batch, assetsByUrl);
+        const preparedBatch = await prepareExportBatchForArchive(
+          archive,
+          batch,
+          assetsByUrl,
+          payload.exportAbortSignal,
+        );
         const rows = preparedBatch.map(product => convertProductToCSVRow(product, headers));
         if (rows.length) {
           yield `${firstRow ? '' : '\n'}${rows.join('\n')}`;
@@ -1601,7 +1625,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
         }
       }
     }()));
-    const streamDone = finished(csvStream);
+    const streamDone = finished(csvStream, { cleanup: true });
     archive.append(csvStream, { name: 'products.csv' });
     await streamDone;
     return;
@@ -1610,6 +1634,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
   const metadata = { ...payload };
   delete metadata.products;
   delete metadata.productBatches;
+  delete metadata.exportAbortSignal;
   const metadataJSON = JSON.stringify(metadata);
   const jsonPrefix = metadataJSON === '{}'
     ? '{"products":['
@@ -1618,7 +1643,12 @@ const appendExportContent = async (archive, payload, contentFormat) => {
     yield jsonPrefix;
     let firstProduct = true;
     for await (const batch of getPayloadBatches(payload)) {
-      const preparedBatch = await prepareExportBatchForArchive(archive, batch, assetsByUrl);
+      const preparedBatch = await prepareExportBatchForArchive(
+        archive,
+        batch,
+        assetsByUrl,
+        payload.exportAbortSignal,
+      );
       const serializedBatch = preparedBatch.map(product => JSON.stringify(product)).join(',');
       if (serializedBatch) {
         yield `${firstProduct ? '' : ','}${serializedBatch}`;
@@ -1627,7 +1657,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
     }
     yield ']}';
   }()));
-  const streamDone = finished(jsonStream);
+  const streamDone = finished(jsonStream, { cleanup: true });
   archive.append(jsonStream, { name: 'products.json' });
   await streamDone;
 };
@@ -1636,7 +1666,7 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   const output = fs.createWriteStream(filePath, { flags: 'wx' });
   const archive = createZipArchive({ zlib: { level: 1 } });
-  const streamFinished = finished(output);
+  const streamFinished = finished(output, { cleanup: true });
   const onArchiveError = (error) => {
     if (!output.destroyed) output.destroy(error);
   };
@@ -1653,12 +1683,16 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   try {
     archive.pipe(output);
     await appendExportContent(archive, payload, contentFormat);
-    archive.finalize();
+    await archive.finalize();
     await streamFinished;
   } catch (error) {
+    if (typeof archive.abort === 'function') archive.abort();
+    if (!output.destroyed) output.destroy(error);
+    await streamFinished.catch(() => {});
     await fs.promises.unlink(filePath).catch(() => {});
     throw error;
   } finally {
+    archive.off('error', onArchiveError);
     archive.off('warning', onArchiveWarning);
     output.off('error', onOutputError);
   }
@@ -1669,39 +1703,34 @@ const streamExportZip = async (req, res, payload, contentFormat) => {
     throw createExportError(499, 'EXPORT_CANCELLED');
   }
 
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
-  res.setHeader('X-Export-Content-Format', contentFormat);
-  res.setHeader('X-Matched-Total', payload.matchedTotal);
-  res.setHeader('X-Exported-Total', payload.exportedTotal);
-  res.setHeader('X-Has-More', String(payload.hasMore));
-
-  const archive = createZipArchive({ zlib: { level: 1 } });
-  let archiveFinished = false;
-  const abortArchive = () => {
-    if (!archiveFinished && typeof archive.abort === 'function') archive.abort();
-  };
-  const streamFinished = new Promise((resolve, reject) => {
-    archive.once('error', reject);
-    res.once('error', reject);
-    res.once('finish', resolve);
-  });
-
-  req.once('aborted', abortArchive);
-  res.once('close', abortArchive);
-  archive.on('warning', warning => {
-    console.error('[EXPORT_ZIP_WARNING]', { code: warning.code, message: warning.message });
-  });
+  const temporaryDirectory = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), 'online-store-export-http-'),
+  );
+  const filePath = path.join(temporaryDirectory, 'products-export.zip');
 
   try {
-    archive.pipe(res);
-    await appendExportContent(archive, payload, contentFormat);
-    archive.finalize();
-    await streamFinished;
-    archiveFinished = true;
+    await writeExportZipFile(filePath, payload, contentFormat);
+    if (req.aborted || res.destroyed) {
+      throw createExportError(499, 'EXPORT_CANCELLED');
+    }
+
+    const { size } = await fs.promises.stat(filePath);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Length', size);
+    res.setHeader('Content-Disposition', `attachment; filename="products-export-${Date.now()}.zip"`);
+    res.setHeader('X-Export-Content-Format', contentFormat);
+    res.setHeader('X-Matched-Total', payload.matchedTotal);
+    res.setHeader('X-Exported-Total', payload.exportedTotal);
+    res.setHeader('X-Has-More', String(payload.hasMore));
+
+    await new Promise((resolve, reject) => {
+      res.download(filePath, `products-export-${Date.now()}.zip`, error => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
   } finally {
-    req.off('aborted', abortArchive);
-    res.off('close', abortArchive);
+    await fs.promises.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => {});
   }
 };
 
@@ -1723,6 +1752,9 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
   const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
   assertExportRequestActive(req);
   const fallbacks = getExportFallbacks();
+  const exportAbortController = new AbortController();
+  const abortExport = () => exportAbortController.abort();
+  if (typeof req.once === 'function') req.once('aborted', abortExport);
 
   const productBatches = async function* () {
     let batch = [];
@@ -1757,6 +1789,7 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
       }
     } finally {
       await cursor.close().catch(() => {});
+      if (typeof req.off === 'function') req.off('aborted', abortExport);
     }
   };
 
@@ -1771,6 +1804,7 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
     contentFormat,
     locales,
     filters: { category: category || null, brand: brand || null },
+    exportAbortSignal: exportAbortController.signal,
     productBatches,
   };
 };
@@ -1839,8 +1873,14 @@ const exportProducts = asyncHandler(async (req, res) => {
     const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
-    console.error('[EXPORT_PRODUCTS_ERROR]', { code: error.errorCode, message: error.message });
-    sendExportError(req, res, error);
+    const clientDisconnected = req.aborted
+      || res.destroyed
+      || ['ERR_STREAM_PREMATURE_CLOSE', 'ECONNRESET', 'EPIPE'].includes(error.code);
+    console[clientDisconnected ? 'warn' : 'error']('[EXPORT_PRODUCTS_ERROR]', {
+      code: error.errorCode || error.code,
+      message: error.message,
+    });
+    if (!clientDisconnected) sendExportError(req, res, error);
   }
 });
 
@@ -1909,8 +1949,14 @@ const exportProductsWithTranslations = asyncHandler(async (req, res) => {
     const payload = await createStreamingExportPayload(req, request);
     await streamExportZip(req, res, payload, request.contentFormat);
   } catch (error) {
-    console.error('[EXPORT_PRODUCTS_BUNDLE_ERROR]', { code: error.errorCode, message: error.message });
-    sendExportError(req, res, error);
+    const clientDisconnected = req.aborted
+      || res.destroyed
+      || ['ERR_STREAM_PREMATURE_CLOSE', 'ECONNRESET', 'EPIPE'].includes(error.code);
+    console[clientDisconnected ? 'warn' : 'error']('[EXPORT_PRODUCTS_BUNDLE_ERROR]', {
+      code: error.errorCode || error.code,
+      message: error.message,
+    });
+    if (!clientDisconnected) sendExportError(req, res, error);
   }
 });
 
