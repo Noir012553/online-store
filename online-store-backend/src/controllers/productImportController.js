@@ -1431,6 +1431,7 @@ const getPayloadBatches = payload => payload.products
     : (async function* () { yield []; }());
 
 const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
 const EXPORT_IMAGE_EXTENSIONS = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -1538,15 +1539,26 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
 };
 
 const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, requestSignal) => {
-  const preparedBatch = [];
+  const preparedImagesByProduct = batch.map(product => (
+    Array.isArray(product.images) ? [...product.images] : []
+  ));
+  const imageTasks = [];
 
-  for (const product of batch) {
-    const preparedImages = [];
-    for (const image of Array.isArray(product.images) ? product.images : []) {
-      if (!image?.url) {
-        preparedImages.push(image);
-        continue;
+  batch.forEach((product, productIndex) => {
+    const images = Array.isArray(product.images) ? product.images : [];
+    images.forEach((image, imageIndex) => {
+      if (image?.url) {
+        imageTasks.push({ product, productIndex, image, imageIndex });
       }
+    });
+  });
+
+  let nextTaskIndex = 0;
+  const processImageTasks = async () => {
+    while (nextTaskIndex < imageTasks.length) {
+      const task = imageTasks[nextTaskIndex];
+      nextTaskIndex += 1;
+      const { product, productIndex, image, imageIndex } = task;
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
@@ -1570,17 +1582,28 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
       }
 
       const assetPath = await assetPromise;
-      preparedImages.push(assetPath ? { ...image, assetPath } : image);
+      preparedImagesByProduct[productIndex][imageIndex] = assetPath
+        ? { ...image, assetPath }
+        : image;
     }
+  };
 
-    preparedBatch.push({
+  const workerCount = Math.min(
+    EXPORT_IMAGE_DOWNLOAD_CONCURRENCY,
+    imageTasks.length,
+  );
+  await Promise.all(
+    Array.from({ length: workerCount }, processImageTasks),
+  );
+
+  return batch.map((product, productIndex) => {
+    const preparedImages = preparedImagesByProduct[productIndex];
+    return {
       ...product,
       images: preparedImages,
       imageAssetPaths: uniqueValues(preparedImages.map(image => image?.assetPath)),
-    });
-  }
-
-  return preparedBatch;
+    };
+  });
 };
 
 const getCSVHeadersFromBatches = async payload => {

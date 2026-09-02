@@ -91,6 +91,35 @@ describe('Product export serialization', () => {
     }
   });
 
+  it('keeps the ZIP valid when a remote image cannot be downloaded', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    global.fetch = async () => {
+      throw new Error('remote image unavailable');
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://example.com/missing.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+      const archive = await fs.promises.readFile(filePath);
+
+      expect(archive.subarray(0, 2).toString()).to.equal('PK');
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it('includes dynamic fields and gallery images in CSV output', () => {
     const csv = convertProductsToCSV([serializeProductForExport(product)]);
 
