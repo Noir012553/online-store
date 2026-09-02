@@ -29,8 +29,8 @@ describe('Product export serialization', () => {
     },
     name: 'Keyboard Pro',
     brand: 'Brand',
-    image: 'https://example.com/main.jpg',
-    images: ['https://example.com/main.jpg', 'https://example.com/gallery.jpg'],
+    image: 'https://example.invalid/main.jpg',
+    images: ['https://example.invalid/main.jpg', 'https://example.invalid/gallery.jpg'],
     imagePublicId: 'products/main',
     imagePublicIds: ['products/main', 'products/gallery'],
     customField: 'preserved',
@@ -65,13 +65,13 @@ describe('Product export serialization', () => {
   it('includes the main image when the gallery only contains attached images', () => {
     const exported = serializeProductForExport({
       ...product,
-      images: ['https://example.com/gallery.jpg'],
+      images: ['https://example.invalid/gallery.jpg'],
       imagePublicIds: ['products/gallery'],
     });
 
     expect(exported.images.map(image => image.url)).to.deep.equal([
-      'https://example.com/main.jpg',
-      'https://example.com/gallery.jpg',
+      'https://example.invalid/main.jpg',
+      'https://example.invalid/gallery.jpg',
     ]);
     expect(exported.imagePublicIds).to.deep.equal(['products/main', 'products/gallery']);
   });
@@ -104,7 +104,7 @@ describe('Product export serialization', () => {
         products: [{
           productId: 'product-id',
           images: [{
-            url: 'https://example.com/missing.jpg',
+            url: 'https://missing-image.invalid/missing.jpg',
             position: 0,
             type: 'main',
           }],
@@ -126,7 +126,7 @@ describe('Product export serialization', () => {
     expect(csv).to.include('images');
     expect(csv).to.include('imagePublicIds');
     expect(csv).to.include('customField');
-    expect(csv).to.include('https://example.com/main.jpg|https://example.com/gallery.jpg');
+    expect(csv).to.include('https://example.invalid/main.jpg|https://example.invalid/gallery.jpg');
     expect(csv).to.include('products/main|products/gallery');
   });
 });
@@ -232,9 +232,9 @@ describe('Crawler product field mapping', () => {
       Categories: 'Mouse',
       Attributes: '{}',
       Description: 'Source description',
-      MainImage: 'https://example.com/main.jpg',
+      MainImage: 'https://example.invalid/main.jpg',
       GalleryImages: [],
-      URL: 'https://example.com/stock-config',
+      URL: 'https://example.invalid/stock-config',
     };
 
     const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
@@ -254,9 +254,9 @@ describe('Crawler product field mapping', () => {
       Categories: 'Mouse',
       Attributes: '{}',
       Description: 'Source description',
-      MainImage: 'https://example.com/main.jpg',
+      MainImage: 'https://example.invalid/main.jpg',
       GalleryImages: [],
-      URL: 'https://example.com/out-of-stock',
+      URL: 'https://example.invalid/out-of-stock',
     };
 
     const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
@@ -276,9 +276,9 @@ describe('Crawler product field mapping', () => {
       Categories: 'Headphone',
       Attributes: '{"Color":"Black"}',
       Description: 'Source description',
-      MainImage: 'https://example.com/main.jpg',
-      GalleryImages: ['https://example.com/1.jpg'],
-      URL: 'https://example.com/product',
+      MainImage: 'https://example.invalid/main.jpg',
+      GalleryImages: ['https://example.invalid/1.jpg'],
+      URL: 'https://example.invalid/product',
     };
 
     const [normalized] = await new JSONAdapter().parse(JSON.stringify([rawProduct]));
@@ -288,19 +288,19 @@ describe('Crawler product field mapping', () => {
       name: 'Product name',
       sku: 'SKU-001',
       sourceProductId: 'source-id-001',
-      sourceUrl: 'https://example.com/product',
+      sourceUrl: 'https://example.invalid/product',
       price: 100000,
       originalPrice: 120000,
       countInStock: 1,
       category: 'Headphone',
       specs: '{"Color":"Black"}',
       description: 'Source description',
-      image: 'https://example.com/main.jpg',
+      image: 'https://example.invalid/main.jpg',
       baseCurrencyCode: 'VND',
     });
-    expect(normalized.images).to.deep.equal(['https://example.com/1.jpg']);
+    expect(normalized.images).to.deep.equal(['https://example.invalid/1.jpg']);
     expect(normalized.ID).to.equal('source-id-001');
-    expect(normalized.URL).to.equal('https://example.com/product');
+    expect(normalized.URL).to.equal('https://example.invalid/product');
   });
 });
 
