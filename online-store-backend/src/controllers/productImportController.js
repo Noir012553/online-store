@@ -1432,6 +1432,7 @@ const getPayloadBatches = payload => payload.products
 
 const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
+const EXPORT_DEBUG_IMAGES = process.env.EXPORT_DEBUG_IMAGES === 'true';
 const EXPORT_IMAGE_EXTENSIONS = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -1442,100 +1443,129 @@ const EXPORT_IMAGE_EXTENSIONS = {
 };
 
 const downloadExportImage = async (sourceUrl, requestSignal) => {
+  const startedAt = Date.now();
   let parsedUrl;
+  let responseStatus = null;
+  let outcome = 'failed';
+
   try {
-    parsedUrl = new URL(sourceUrl);
-  } catch {
-    throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
-  }
-
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
-  }
-
-  let response;
-  try {
-    response = await fetch(parsedUrl, {
-      headers: {
-        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'User-Agent': 'LaptopStoreExport/1.0',
-      },
-      signal: requestSignal
-        ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
-        : AbortSignal.timeout(30000),
-      redirect: 'follow',
-    });
-  } catch (error) {
-    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
-      url: sourceUrl,
-      reason: error.message,
-    });
-  }
-
-  if (!response.ok) {
-    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
-      url: sourceUrl,
-      status: response.status,
-    });
-  }
-
-  const contentType = String(response.headers.get('content-type') || '')
-    .split(';')[0]
-    .trim()
-    .toLowerCase();
-  const extension = EXPORT_IMAGE_EXTENSIONS[contentType];
-  if (!extension) {
-    throw createExportError(502, 'EXPORT_IMAGE_TYPE_UNSUPPORTED', {
-      url: sourceUrl,
-      contentType,
-    });
-  }
-
-  const contentLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > EXPORT_IMAGE_MAX_BYTES) {
-    throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
-      url: sourceUrl,
-      maxBytes: EXPORT_IMAGE_MAX_BYTES,
-    });
-  }
-
-  if (!response.body) {
-    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
-      url: sourceUrl,
-      reason: 'empty_response_body',
-    });
-  }
-
-  const reader = response.body.getReader();
-  const chunks = [];
-  let totalBytes = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      totalBytes += value.byteLength;
-      if (totalBytes > EXPORT_IMAGE_MAX_BYTES) {
-        await reader.cancel();
-        throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
-          url: sourceUrl,
-          maxBytes: EXPORT_IMAGE_MAX_BYTES,
-        });
-      }
-      chunks.push(Buffer.from(value));
+    try {
+      parsedUrl = new URL(sourceUrl);
+    } catch {
+      throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
     }
-  } catch (error) {
-    if (error.errorCode) throw error;
-    throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
-      url: sourceUrl,
-      reason: error.message,
-    });
-  }
 
-  return {
-    buffer: Buffer.concat(chunks, totalBytes),
-    extension,
-  };
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID', { url: sourceUrl });
+    }
+
+    const debugContext = {
+      host: parsedUrl.hostname,
+      path: parsedUrl.pathname,
+    };
+    if (EXPORT_DEBUG_IMAGES) {
+      console.info('[EXPORT_IMAGE_DOWNLOAD_START]', debugContext);
+    }
+
+    let response;
+    try {
+      response = await fetch(parsedUrl, {
+        headers: {
+          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'User-Agent': 'LaptopStoreExport/1.0',
+        },
+        signal: requestSignal
+          ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
+          : AbortSignal.timeout(30000),
+        redirect: 'follow',
+      });
+      responseStatus = response.status;
+    } catch (error) {
+      throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+        url: sourceUrl,
+        reason: error.message,
+      });
+    }
+
+    if (!response.ok) {
+      throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+        url: sourceUrl,
+        status: response.status,
+      });
+    }
+
+    const contentType = String(response.headers.get('content-type') || '')
+      .split(';')[0]
+      .trim()
+      .toLowerCase();
+    const extension = EXPORT_IMAGE_EXTENSIONS[contentType];
+    if (!extension) {
+      throw createExportError(502, 'EXPORT_IMAGE_TYPE_UNSUPPORTED', {
+        url: sourceUrl,
+        contentType,
+      });
+    }
+
+    const contentLength = Number(response.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > EXPORT_IMAGE_MAX_BYTES) {
+      throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
+        url: sourceUrl,
+        maxBytes: EXPORT_IMAGE_MAX_BYTES,
+      });
+    }
+
+    if (!response.body) {
+      throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+        url: sourceUrl,
+        reason: 'empty_response_body',
+      });
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    let totalBytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        totalBytes += value.byteLength;
+        if (totalBytes > EXPORT_IMAGE_MAX_BYTES) {
+          await reader.cancel();
+          throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
+            url: sourceUrl,
+            maxBytes: EXPORT_IMAGE_MAX_BYTES,
+          });
+        }
+        chunks.push(Buffer.from(value));
+      }
+    } catch (error) {
+      if (error.errorCode) throw error;
+      throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+        url: sourceUrl,
+        reason: error.message,
+      });
+    }
+
+    outcome = 'success';
+    return {
+      buffer: Buffer.concat(chunks, totalBytes),
+      extension,
+    };
+  } catch (error) {
+    outcome = error.errorCode || error.code || 'failed';
+    throw error;
+  } finally {
+    if (EXPORT_DEBUG_IMAGES) {
+      console.info('[EXPORT_IMAGE_DOWNLOAD_END]', {
+        host: parsedUrl?.hostname || null,
+        path: parsedUrl?.pathname || null,
+        status: responseStatus,
+        outcome,
+        elapsedMs: Date.now() - startedAt,
+      });
+    }
+  }
 };
 
 const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, requestSignal) => {
