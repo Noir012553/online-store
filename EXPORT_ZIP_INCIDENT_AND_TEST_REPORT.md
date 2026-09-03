@@ -1131,7 +1131,48 @@ Nếu job retry, backend có thể ghi nhiều lần `STARTED`/`FAILED` theo `at
 
 ---
 
-## 13. Kết luận và quyết định kiến trúc
+## 13. Trạng thái xử lý theo từng vấn đề
+
+Mỗi vấn đề được tách thành một hạng mục độc lập. Khi hạng mục đạt tiêu chí pass và không có thay đổi liên quan, hạng mục được đóng và không chạy lại toàn bộ test cũ.
+
+| Hạng mục | Bằng chứng | Trạng thái |
+|---|---|---|
+| Production là runtime mặc định | `src/config.ts`, `next.config.ts`, `.env.local` dùng production fallback | Đã đóng |
+| Credential test an toàn | Đọc từ file DPAPI, không hard-code và không ghi token | Đã đóng |
+| Login admin | Backend local trả HTTP 200 và access token hợp lệ | Đã đóng |
+| ZIP đồng bộ nhỏ | `limit=10`, ZIP hợp lệ, `products.json`, 64 ảnh, không thiếu asset | Đã đóng |
+| Locale và alias | `locales=vi` và `lang=vi` đều pass | Đã đóng |
+| Frontend local rewrite | Frontend local proxy đúng tới backend local với `limit=10` | Đã đóng |
+| Cloudinary image download | Các ảnh kiểm tra trả `200`, outcome `success` | Đã đóng |
+| Sync export quy mô lớn | `limit=100` timeout sau 180 giây | Đã xác định: không dùng sync cho export lớn |
+| Async enqueue/poll/download | `limit=100`, `202`, `queued -> processing -> ready`, ZIP hợp lệ | Đã đóng ở local |
+| Frontend async flow | Đã thêm enqueue, polling và download Blob | Đã đóng ở source code; cần xác nhận sau deploy |
+| Production availability | Từng gặp Cloudflare `530/1033/524` và `ECONNRESET` | Đang theo dõi |
+| Analytics database | `top-customers` trả `503` do database timeout | Việc riêng, chưa xử lý |
+| Async production quy mô lớn | Chưa chạy bằng `limit=10000` | Chưa kiểm tra |
+
+### Quy tắc không chạy lại
+
+- Không chạy lại hạng mục đã đóng chỉ vì đang kiểm tra một hạng mục khác.
+- Chỉ chạy lại khi file/code liên quan thay đổi, cấu hình môi trường thay đổi, deploy mới hoặc xuất hiện regression.
+- Lỗi Cloudflare chỉ mở lại hạng mục production availability; không mở lại kết luận ZIP local.
+- Lỗi analytics/database chỉ xử lý trong hạng mục analytics; không dùng nó làm lý do chạy lại export ZIP.
+- Khi kiểm tra async lớn, chỉ ghi `jobId`, lần chuyển trạng thái và kết quả ZIP; không bật log từng ảnh.
+- Một lần test chỉ tạo một job, tránh test frontend và backend đồng thời làm phát sinh job trùng.
+
+### Thứ tự xử lý còn lại
+
+```text
+1. Production availability
+2. Frontend production async flow sau deploy
+3. Async production limit=100 hoặc limit=500
+4. Async production limit=10000 nếu các bước trước pass
+5. Analytics/database xử lý riêng
+```
+
+---
+
+## 14. Kết luận và quyết định kiến trúc
 
 ### Đã giải quyết
 
