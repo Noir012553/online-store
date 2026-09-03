@@ -1117,7 +1117,7 @@ if (-not (Test-Path $frontendRoot)) {
 
 Set-Location $frontendRoot
 Write-Host "Frontend: $((Get-Location).Path)"
-npm start
+npm run dev
 ```
 
 #### Terminal tunnel
@@ -1180,6 +1180,347 @@ Log script:
 - Tự dọn biến môi trường sau khi chạy.
 - Không tự gọi `exit`.
 - Cho phép `MaxWaitMinutes` tối đa 720 phút.
+
+### 9.2. Vấn đề xác định khi dùng thư mục workspace copy và cách chạy dynamic
+
+#### Vấn đề đã gặp
+
+Khi chuyển code sang workspace mới, lệnh PowerShell từng tạo sai đường dẫn:
+
+```text
+E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\test-export-production.ps1
+```
+
+Nguyên nhân là lệnh lấy thư mục backend hiện tại làm workspace root rồi nối thêm `online-store-backend`:
+
+```powershell
+$workspaceRoot = (Get-Location).Path
+$backendRoot = Join-Path $workspaceRoot "online-store-backend"
+```
+
+Lệnh này chỉ đúng khi vị trí hiện tại là workspace root. Nếu prompt đã đứng sẵn tại `online-store-backend`, kết quả sẽ bị lặp thư mục. Tương tự, nếu chạy `npm run dev` trong backend thì Next.js không được khởi động; backend sẽ cố chiếm port `5000` lần nữa và có thể báo:
+
+```text
+EADDRINUSE: address already in use 0.0.0.0:5000
+```
+
+Các lỗi PowerShell khác xảy ra khi dán từng phần của `try/catch/finally` vào console:
+
+```text
+else : The term 'else' is not recognized
+finally : The term 'finally' is not recognized
+```
+
+Không nên dùng đường dẫn workspace hard-code vì bản copy, ổ đĩa hoặc tên thư mục có thể thay đổi.
+
+#### Cách xử lý thống nhất
+
+- Dùng thư mục hiện tại làm điểm bắt đầu, sau đó thử các vị trí hợp lệ: chính nó, thư mục con `online-store-backend`, backend cùng cấp hoặc thư mục cha.
+- Chỉ chọn thư mục có `scripts\test-export-production.ps1` để tránh chọn nhầm frontend.
+- Tự suy ra `online-store-frontend` từ thư mục cha của backend.
+- Kiểm tra `Test-Path` trước khi `Set-Location` hoặc chạy script.
+- Dùng `& $exportScript` để gọi file `.ps1` bằng đường dẫn đã resolve.
+- Chạy frontend ở terminal riêng bằng `npm run dev`; không chạy frontend từ backend.
+- Dùng file `.ps1` hoàn chỉnh thay vì dán rời `else` hoặc `finally`.
+- Không chạy `npm run build` trong quy trình kiểm thử này.
+
+#### Block resolve backend dùng được từ nhiều vị trí
+
+Block dưới đây chạy được khi prompt đang ở workspace root, `online-store-backend`, `online-store-frontend` hoặc `online-store-backend\scripts`:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy online-store-backend từ thư mục hiện tại: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$workspaceRoot = Split-Path $backendRoot -Parent
+$frontendRoot = Join-Path $workspaceRoot "online-store-frontend"
+
+if (-not (Test-Path $frontendRoot)) {
+    throw "Không tìm thấy frontend: $frontendRoot"
+}
+
+Write-Host "Workspace: $workspaceRoot"
+Write-Host "Backend:   $backendRoot"
+Write-Host "Frontend:  $frontendRoot"
+```
+
+Block này không gửi credential, không tạo job và không khởi động process; nó chỉ resolve và kiểm tra thư mục.
+
+#### Terminal 1 — khởi động backend local
+
+Mở terminal mới, dán nguyên block sau:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "package.json") -and
+            Test-Path (Join-Path $_ "src\app.js")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy thư mục backend từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+Set-Location $backendRoot
+Write-Host "Backend: $((Get-Location).Path)"
+npm start
+```
+
+Terminal này giữ process backend ở foreground. Đây là hành vi bình thường; không phải terminal bị treo. Dừng bằng `Ctrl+C` khi cần.
+
+#### Terminal 2 — kiểm tra readiness
+
+Có thể chạy từ bất kỳ thư mục nào:
+
+```powershell
+$port = if ($env:PORT) { [int]$env:PORT } else { 5000 }
+$readyUrl = "http://127.0.0.1:$port/readyz"
+$ready = $false
+
+1..720 | ForEach-Object {
+    try {
+        $body = Invoke-RestMethod -Uri $readyUrl -TimeoutSec 10
+        Write-Host "Backend status: $($body.status)"
+
+        if ($body.status -eq "ready") {
+            $body | ConvertTo-Json -Depth 5
+            $ready = $true
+            break
+        }
+    } catch {
+        Write-Host "Backend chưa ready, chờ 5 giây..."
+    }
+
+    Start-Sleep -Seconds 5
+}
+
+if (-not $ready) {
+    throw "Backend chưa ready sau thời gian chờ"
+}
+```
+
+`/readyz` phải trả `status: ready`, `databaseConnected: true`, `startupReady: true` và storage đã configured trước khi chạy export.
+
+#### Terminal 3 — khởi động frontend local
+
+Mở terminal mới, không dùng lại terminal backend:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy backend từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$workspaceRoot = Split-Path $backendRoot -Parent
+$frontendRoot = Join-Path $workspaceRoot "online-store-frontend"
+
+if (-not (Test-Path (Join-Path $frontendRoot "package.json"))) {
+    throw "Không tìm thấy frontend package.json: $frontendRoot"
+}
+
+Set-Location $frontendRoot
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:5000"
+Write-Host "Frontend: $((Get-Location).Path)"
+Write-Host "Backend proxy: $env:NEXT_PUBLIC_API_BASE_URL"
+npm run dev
+```
+
+Dùng `npm run dev` để frontend đọc source hiện tại và proxy tới backend local. Không dùng `npm start` cho lần kiểm thử source local nếu chưa có build tương ứng.
+
+#### Terminal 4 — test async backend local bằng PS1
+
+Mở terminal mới. Lệnh này tự tìm script và credential, không hard-code `E:\Dev Camp\...`:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy backend script từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$exportScript = Join-Path $backendRoot "scripts\test-export-production.ps1"
+$credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
+
+if (-not (Test-Path $exportScript)) {
+    throw "Không tìm thấy script: $exportScript"
+}
+
+if (-not (Test-Path $credentialPath)) {
+    throw "Không tìm thấy credential DPAPI: $credentialPath"
+}
+
+Write-Host "Script:     $exportScript"
+Write-Host "Credential: $credentialPath"
+
+& $exportScript `
+    -Environment local `
+    -Target backend `
+    -BackendBaseUrl "http://127.0.0.1:5000" `
+    -Limit 500 `
+    -MaxWaitMinutes 179 `
+    -RequestTimeoutSeconds 120 `
+    -CredentialPath $credentialPath
+```
+
+Kết quả cần quan sát:
+
+```text
+[LOGIN RESULT] PASS
+[ENQUEUE STATUS] 202
+[JOB STATUS] queued
+[JOB STATUS] processing
+[JOB STATUS] ready
+[DOWNLOAD STATUS] 200
+[ZIP RESULT] ok: true
+missingAssetPaths: []
+[FINAL RESULT] PASS
+```
+
+Nếu chỉ muốn kiểm tra nhanh trước khi chạy `limit=500`, đổi `-Limit 500` thành `-Limit 10` hoặc `-Limit 100`. Mỗi lần chạy chỉ tạo một async job; không chạy đồng thời backend và frontend test.
+
+#### Terminal 4 — test qua frontend local và Next.js proxy
+
+Chỉ chạy sau khi backend local và frontend local đã sẵn sàng:
+
+```powershell
+& $exportScript `
+    -Environment local `
+    -Target frontend `
+    -FrontendBaseUrl "http://127.0.0.1:3000" `
+    -BackendBaseUrl "http://127.0.0.1:5000" `
+    -Limit 500 `
+    -MaxWaitMinutes 179 `
+    -RequestTimeoutSeconds 120 `
+    -CredentialPath $credentialPath
+```
+
+Trong lần test này:
+
+```text
+Target: frontend
+Request target: http://127.0.0.1:3000
+Backend config: http://127.0.0.1:5000
+```
+
+Script vẫn gọi endpoint `/api/...`; Next.js local rewrite chuyển request tới backend local. Nếu log cho thấy request đi tới `https://manln.online` hoặc `https://backend.manln.online` thì đó không còn là test frontend local.
+
+#### Nếu cần chạy tunnel
+
+Tunnel cũng resolve config từ backend root:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ ".cloudflared\config.windows.yml")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy tunnel config từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+Set-Location $backendRoot
+Write-Host "Tunnel config: $(Join-Path $backendRoot '.cloudflared\config.windows.yml')"
+npm run tunnel
+```
+
+Thứ tự đầy đủ:
+
+```text
+Terminal 1: backend
+Terminal 2: /readyz
+Terminal 3: frontend hoặc tunnel
+Terminal 4: một lệnh PS1 test
+```
+
+Không dùng lại biến `$backendRoot` từ terminal khác vì mỗi PowerShell window có session riêng. Không dán riêng dòng `else`/`finally`; nếu cần thay đổi tham số, sửa block hoàn chỉnh hoặc gọi trực tiếp file `.ps1` bằng `& $exportScript`.
 
 ---
 
