@@ -68,7 +68,7 @@ export default function ImportExportWidget() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const blob = await productAPI.exportProductBundle(
+      const blob = await productAPI.exportProductBundleAsync(
         selectedCategory,
         undefined,
         undefined,

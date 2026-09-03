@@ -14,7 +14,10 @@
  * - Direct image URL construction
  * - Any direct backend requests
  */
-export const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.manln.online';
+export const PRODUCTION_BACKEND_URL = 'https://backend.manln.online';
+export const BACKEND_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || PRODUCTION_BACKEND_URL
+).replace(/\/+$/, '');
 
 /**
  * Frontend port (Development)

@@ -116,6 +116,14 @@ interface FetchOptions extends RequestInit {
   adapter?: (data: any) => any; // Optional adapter to transform response data
 }
 
+interface ExportJobResponse {
+  jobId: string;
+  status: 'queued' | 'processing' | 'ready' | 'failed' | 'cancelled';
+  attempts: number;
+  downloadUrl?: string | null;
+  errorMessage?: string | null;
+}
+
 // Cache for pending requests - prevent duplicate API calls
 // Key: request signature (method + endpoint + body)
 // Value: Promise that resolves to response data
@@ -1210,6 +1218,80 @@ export const productAPI = {
       window.clearTimeout(timeoutId);
       externalSignal?.removeEventListener('abort', abortRequest);
     }
+  },
+
+  exportProductBundleAsync: async (
+    category?: string,
+    brand?: string,
+    limit?: number,
+    locale?: string,
+    format: 'json' | 'csv' = 'json',
+    requestOptions?: Pick<FetchOptions, 'signal' | 'timeout'>,
+  ): Promise<Blob> => {
+    const params = new URLSearchParams({ format, async: 'true' });
+    if (locale) params.append('locales', locale);
+    if (category && category !== 'all') params.append('category', category);
+    if (brand && brand !== 'all') params.append('brand', brand);
+    if (limit) params.append('limit', limit.toString());
+
+    const token = getAuthToken();
+    const externalSignal = requestOptions?.signal;
+    const timeout = requestOptions?.timeout ?? 30 * 60 * 1000;
+    const deadline = Date.now() + timeout;
+    const fetchJob = async (endpoint: string, init: RequestInit = {}) => {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...init,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...init.headers,
+        },
+        credentials: 'include',
+        signal: externalSignal,
+      });
+      if (!response.ok) {
+        let errorMessage = 'product_export_failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      return response;
+    };
+
+    const enqueueResponse = await fetchJob(`/products/admin/export-bundle?${params.toString()}`);
+    if (enqueueResponse.status !== 202) {
+      throw new Error('product_export_async_enqueue_failed');
+    }
+
+    const enqueueData = await enqueueResponse.json() as ExportJobResponse;
+    if (!enqueueData.jobId) throw new Error('product_export_job_missing');
+
+    let job = enqueueData;
+    while (job.status !== 'ready') {
+      if (job.status === 'failed' || job.status === 'cancelled') {
+        throw new Error(job.errorMessage || 'product_export_job_failed');
+      }
+      if (Date.now() >= deadline) throw new Error('product_export_job_timeout');
+      await new Promise(resolve => window.setTimeout(resolve, 5000));
+      const statusResponse = await fetchJob(`/products/admin/export-jobs/${job.jobId}`);
+      const statusData = await statusResponse.json() as { job: ExportJobResponse };
+      job = statusData.job;
+    }
+
+    const downloadResponse = await fetchJob(
+      job.downloadUrl || `/products/admin/export-jobs/${job.jobId}/download`,
+    );
+    const contentType = downloadResponse.headers.get('content-type') || '';
+    if (!contentType.includes('application/zip')) {
+      throw new Error('product_export_invalid_file');
+    }
+
+    const blob = await downloadResponse.blob();
+    if (blob.size === 0) throw new Error('product_export_empty_file');
+    return blob;
   },
 };
 
