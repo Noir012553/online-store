@@ -12,6 +12,7 @@ const {
   serializeProductForExport,
   convertProductsToCSV,
   writeExportZipFile,
+  getExportProductBatchFilter,
 } = require('../controllers/productImportController');
 const {
   getProductImagePublicId,
@@ -21,6 +22,17 @@ const {
 } = require('../seeds/productSeedPipeline');
 
 describe('Product export serialization', () => {
+  it('advances export batches with an exclusive _id boundary', () => {
+    const exportFilter = { isDeleted: false, category: { $in: ['category-id'] } };
+    const lastId = 'product-id-250';
+
+    expect(getExportProductBatchFilter(exportFilter)).to.equal(exportFilter);
+    expect(getExportProductBatchFilter(exportFilter, lastId)).to.deep.equal({
+      ...exportFilter,
+      _id: { $gt: lastId },
+    });
+  });
+
   const product = {
     _id: { toString: () => 'product-id' },
     category: {

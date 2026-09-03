@@ -195,7 +195,7 @@ Luồng hiện tại:
 ```text
 Parse query
 -> resolve filter/category/brand
--> truy vấn products theo batch
+-> truy vấn products theo batch bằng keyset pagination `_id`
 -> lấy translation cache
 -> serialize product
 -> tải ảnh remote
@@ -705,6 +705,30 @@ Kết luận:
 - TypeScript vẫn có thể kiểm tra độc lập bằng `npx --no-install tsc --noEmit`.
 - Không chạy `npm run build` chỉ để kiểm tra TypeScript theo quy trình đã thống nhất.
 
+### 6.12. MongoDB cursor hết hạn trong async export
+
+Khi chạy job cũ với nhiều ảnh remote, backend ghi nhận:
+
+```text
+[EXPORT_ZIP_OUTPUT_ERROR] { message: 'cursor id 7613744106173969536 not found' }
+[EXPORT_ZIP_OUTPUT_ERROR] { message: 'cursor id 6229555173115654491 not found' }
+```
+
+Hai attempt đều chạy khoảng 17-19 phút và kết thúc bằng `MongoServerError` trong `FindCursor.getMore`. Đây là lỗi logic trong luồng xử lý, không phải lỗi PS1 theo sai job.
+
+Nguyên nhân là MongoDB cursor được mở tại `productImportController.js` rồi giữ qua các lần `yield`, translation và tải ảnh remote. Mỗi ảnh có timeout tối đa 30 giây; khi có nhiều ảnh timeout, cursor không được đọc trong thời gian đủ dài và MongoDB đóng cursor.
+
+Đã sửa trong source:
+
+- Bỏ cursor stream dài hạn.
+- Đọc từng batch độc lập bằng keyset pagination theo `_id` tăng dần.
+- Mỗi batch hoàn tất truy vấn trước khi xử lý translation và ảnh.
+- Batch tiếp theo dùng điều kiện `_id: { $gt: lastId }`, tránh trùng hoặc bỏ sót product trong cùng luồng export.
+- Worker kiểm tra yêu cầu cancel giữa các batch.
+- API job trả thêm `cancelRequested` để phân biệt `processing` với đang chờ hủy.
+
+Không dùng `noCursorTimeout` hoặc chỉ tăng timeout cursor như một cách khắc phục, vì các cách đó giữ resource MongoDB lâu hơn và chỉ che nguyên nhân.
+
 ---
 
 ## 7. Cập nhật frontend async
@@ -867,6 +891,7 @@ Log script:
 - Không log từng URL ảnh.
 - Chỉ log khi job đổi trạng thái.
 - Tự lưu report trên Desktop.
+- Khi timeout lúc poll, tự gửi cancel cho đúng `jobId` để không để job test treo trong queue.
 - Tự dọn biến môi trường sau khi chạy.
 - Không tự gọi `exit`.
 - Cho phép `MaxWaitMinutes` tối đa 720 phút.
@@ -1149,7 +1174,9 @@ Mỗi vấn đề được tách thành một hạng mục độc lập. Khi h�
 | Frontend async flow | Đã thêm enqueue, polling và download Blob | Đã đóng ở source code; cần xác nhận sau deploy |
 | Production availability | Từng gặp Cloudflare `530/1033/524` và `ECONNRESET` | Đang theo dõi |
 | Analytics database | `top-customers` trả `503` do database timeout | Việc riêng, chưa xử lý |
-| Async production quy mô lớn | Chưa chạy bằng `limit=10000` | Chưa kiểm tra |
+| MongoDB cursor trong export lớn | Reproduced `cursor id not found` sau khoảng 17-19 phút; đã chuyển sang keyset pagination | Đã sửa trong source; cần test hồi quy |
+| Async production `limit=10` | Login/enqueue/poll pass, job `6a98ed3fa7fb9820e29e5d39` ready sau 31 giây; PS1 timeout trước download | Tạo ZIP pass; download/validate chưa chạy |
+| Async production quy mô lớn | Chưa chạy bằng `limit=10000` sau khi sửa pagination | Chưa kiểm tra |
 
 ### Quy tắc không chạy lại
 
@@ -1185,7 +1212,8 @@ Asset paths: PASS
 locales=vi: PASS
 lang=vi: PASS
 Local frontend rewrite: PASS
-Async enqueue/poll/download: PASS
+Async enqueue/poll/download: PASS ở local; production `limit=10` mới xác nhận đến `ready`
+Keyset pagination tránh giữ MongoDB cursor qua I/O dài: đã áp dụng trong source
 ```
 
 ### Đã xác định
@@ -1197,6 +1225,8 @@ Async limit=100: hoạt động tốt nhưng mất khoảng 4 phút
 Cloudinary URL hợp lệ: không phải nguyên nhân chính
 Analytics database 503: lỗi riêng
 Cloudflare 530/1033/524: lỗi hạ tầng/proxy
+MongoDB `cursor id not found`: lỗi logic do giữ cursor qua remote I/O; đã tái hiện và đã chuyển sang keyset pagination
+PS1 `ASYNC_JOB_TIMEOUT`: timeout phía client không tự hủy job; cần theo dõi `cancelRequested` và tránh tạo job trùng
 ```
 
 ### Quyết định sử dụng
@@ -1216,4 +1246,4 @@ Local/staging:
   Chỉ dùng khi override explicit bằng biến môi trường hoặc tham số PS1.
 ```
 
-Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất.
+Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất. Trong worker, product được đọc theo các batch keyset độc lập; không giữ MongoDB cursor trong lúc tải ảnh hoặc ghi ZIP.

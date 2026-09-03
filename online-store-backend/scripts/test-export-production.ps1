@@ -303,6 +303,27 @@ const waitForReady = async (token, jobId) => {
   }
 };
 
+const cancelJob = async (token, jobId) => {
+  const context = await request.newContext({
+    baseURL: targetBaseUrl,
+    timeout: 30000,
+    extraHTTPHeaders: { Authorization: `Bearer ${token}` },
+  });
+
+  try {
+    const response = await context.post(`/api/products/admin/export-jobs/${jobId}/cancel`);
+    console.log('[CANCEL STATUS]', response.status());
+    if (response.status() === 200) {
+      const body = await response.json().catch(() => ({}));
+      console.log('[CANCEL RESULT]', JSON.stringify(body));
+    } else {
+      console.log('[CANCEL RESULT] SKIPPED', await response.text().catch(() => ''));
+    }
+  } finally {
+    await context.dispose();
+  }
+};
+
 const downloadAndValidate = async (token, job) => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
@@ -336,14 +357,24 @@ const downloadAndValidate = async (token, job) => {
   console.log('[QUERY]', exportQuery);
   console.log('[POLL LOGGING] status changes only');
 
+  let token = null;
+  let jobId = null;
+
   try {
-    const token = await login();
-    const jobId = await enqueue(token);
+    token = await login();
+    jobId = await enqueue(token);
     const job = await waitForReady(token, jobId);
     console.log('[JOB READY] PASS');
     await downloadAndValidate(token, { ...job, jobId });
     console.log('[FINAL RESULT] PASS');
   } catch (error) {
+    if (token && jobId && error.message === 'ASYNC_JOB_TIMEOUT') {
+      try {
+        await cancelJob(token, jobId);
+      } catch (cancelError) {
+        console.log('[CANCEL RESULT] FAIL', safeErrorMessage(cancelError));
+      }
+    }
     console.log('[FINAL RESULT] FAIL');
     console.log('[ERROR]', safeErrorMessage(error));
   }
