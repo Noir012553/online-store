@@ -47,6 +47,7 @@ const toJobResponse = (job) => ({
   startedAt: job.startedAt,
   finishedAt: job.finishedAt,
   errorMessage: job.status === 'failed' ? job.errorMessage : null,
+  cancelRequested: Boolean(job.cancelRequested),
   downloadUrl: job.status === 'ready' ? getDownloadUrl(job._id) : null,
 });
 
@@ -191,6 +192,7 @@ const processExportJob = async (job) => {
       aborted: false,
       destroyed: false,
       user: job.userId ? { _id: job.userId } : null,
+      isExportCancellationRequested: () => isCancelRequested(job._id),
     };
     const payload = await createStreamingExportPayload(fakeReq, request);
 

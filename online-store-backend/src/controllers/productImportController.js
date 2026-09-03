@@ -122,15 +122,21 @@ const getExportProductQuery = async filter => {
   };
 };
 
-const createExportProductCursor = (exportFilter, limit) => Product.find(exportFilter)
-  .select('-__v')
-  .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
-  .sort({ _id: 1 })
-  .limit(limit)
-  .batchSize(EXPORT_BATCH_SIZE)
-  .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
-  .lean()
-  .cursor();
+const getExportProductBatchFilter = (exportFilter, lastId = null) => (
+  lastId ? { ...exportFilter, _id: { $gt: lastId } } : exportFilter
+);
+
+const getExportProductBatch = async (exportFilter, limit, lastId = null) => (
+  withExportTimeout(
+    Product.find(getExportProductBatchFilter(exportFilter, lastId))
+      .select('-__v')
+      .populate({ path: 'category', select: 'name', match: { isDeleted: false } })
+      .sort({ _id: 1 })
+      .limit(limit)
+      .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
+      .lean(),
+  )
+);
 
 const createExportProductBatchStream = async (filter, limit) => {
   const exportFilter = await getExportProductQuery(filter);
@@ -1793,55 +1799,54 @@ const assertExportRequestActive = req => {
   }
 };
 
-const createExportContext = async (req, { category, brand, parsedLimit, requestedLocales, contentFormat }) => {
+const assertExportJobActive = async req => {
   assertExportRequestActive(req);
+  if (typeof req.isExportCancellationRequested === 'function'
+    && await req.isExportCancellationRequested()) {
+    throw createExportError(499, 'EXPORT_CANCELLED');
+  }
+};
+
+const createExportContext = async (req, { category, brand, parsedLimit, requestedLocales, contentFormat }) => {
+  await assertExportJobActive(req);
   const filter = await resolveProductExportFilter(category, brand);
   if (!filter) {
     throw createExportError(404, 'EXPORT_CATEGORY_NOT_FOUND', { category });
   }
 
   const { matchedTotal, hasMore, exportFilter } = await createExportProductBatchStream(filter, parsedLimit);
-  assertExportRequestActive(req);
+  await assertExportJobActive(req);
   const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
-  assertExportRequestActive(req);
+  await assertExportJobActive(req);
   const fallbacks = getExportFallbacks();
   const exportAbortController = new AbortController();
   const abortExport = () => exportAbortController.abort();
   if (typeof req.once === 'function') req.once('aborted', abortExport);
 
   const productBatches = async function* () {
-    let batch = [];
-    const cursor = createExportProductCursor(exportFilter, parsedLimit);
+    let lastId = null;
+    let remaining = parsedLimit;
     try {
-      for await (const product of cursor) {
-        assertExportRequestActive(req);
-        batch.push(product);
-        if (batch.length >= EXPORT_BATCH_SIZE) {
-          const productsWithTranslations = await getProductTranslationsForExport(
-            batch,
-            locales,
-            fallbacks,
-            defaultLocale,
-          );
-          yield productsWithTranslations.map(({ product: currentProduct, translations }) => (
-            serializeProductForExport(currentProduct, translations)
-          ));
-          batch = [];
-        }
-      }
-      if (batch.length) {
+      while (remaining > 0) {
+        await assertExportJobActive(req);
+        const batchLimit = Math.min(EXPORT_BATCH_SIZE, remaining);
+        const batch = await getExportProductBatch(exportFilter, batchLimit, lastId);
+        if (!batch.length) break;
+
+        lastId = batch[batch.length - 1]._id;
+        remaining -= batch.length;
         const productsWithTranslations = await getProductTranslationsForExport(
           batch,
           locales,
           fallbacks,
           defaultLocale,
         );
+        await assertExportJobActive(req);
         yield productsWithTranslations.map(({ product: currentProduct, translations }) => (
           serializeProductForExport(currentProduct, translations)
         ));
       }
     } finally {
-      await cursor.close().catch(() => {});
       if (typeof req.off === 'function') req.off('aborted', abortExport);
     }
   };
@@ -2125,4 +2130,6 @@ module.exports = {
   createExportPayload,
   createStreamingExportPayload,
   writeExportZipFile,
+  createExportContext,
+  getExportProductBatchFilter,
 };

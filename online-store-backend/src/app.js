@@ -386,6 +386,17 @@ const assertMongoConnected = () => {
   }
 };
 
+const runStartupPhase = async (name, task) => {
+  const startedAt = Date.now();
+  try {
+    return await task();
+  } finally {
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[STARTUP] ${name} completed in ${Date.now() - startedAt}ms`);
+    }
+  }
+};
+
 const requireDatabase = (req, res, next) => {
   if (startupReady && mongoose.connection.readyState === 1) {
     return next();
@@ -431,32 +442,35 @@ const connectDB = async () => {
       return;
     }
 
-    await connectMongo(MONGO_URI);
+    await runStartupPhase('mongo-connect', () => connectMongo(MONGO_URI));
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
     connectionAttempts = 0;
     assertMongoConnected();
-    await ensureHomepageHeroBanners();
+    await runStartupPhase('seed-homepage-banners', ensureHomepageHeroBanners);
     assertMongoConnected();
-    await ensureTranslationsSeeded();
+    await runStartupPhase('seed-translations', ensureTranslationsSeeded);
     assertMongoConnected();
-    await ensureBrandsSeeded();
+    await runStartupPhase('seed-brands', ensureBrandsSeeded);
     assertMongoConnected();
-    await ensureCurrencySeeded();
+    await runStartupPhase('seed-currency', ensureCurrencySeeded);
     assertMongoConnected();
-    await ensureLanguagesSeeded();
+    await runStartupPhase('seed-languages', ensureLanguagesSeeded);
     assertMongoConnected();
-    await resumePendingLanguageSetups();
+    await runStartupPhase('resume-language-setups', resumePendingLanguageSetups);
     assertMongoConnected();
-    await migrateCouponCurrencies();
+    await runStartupPhase('migrate-coupon-currencies', migrateCouponCurrencies);
     assertMongoConnected();
     assertStorageConfigured();
     await startServer();
     startCloudinaryCleanupWorker();
     startExportJobWorker();
     startupReady = true;
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[STARTUP] backend ready');
+    }
   } catch (err) {
     connectionAttempts++;
     const delay = Math.min(1000 * Math.pow(2, connectionAttempts - 1), 30000);
@@ -793,9 +807,11 @@ const listenServer = () => {
 const startServer = async () => {
   const schedulerService = require('./services/exchangeRateSchedulerService');
   if (!schedulerService.isRunning) {
-    await schedulerService.startScheduler({
+    void schedulerService.startScheduler({
       interval: 24 * 60 * 60 * 1000,
       externalApi: process.env.EXCHANGE_RATE_API || null,
+    }).catch(error => {
+      console.error('[ExchangeRateScheduler] Startup failed:', error.message);
     });
   }
 

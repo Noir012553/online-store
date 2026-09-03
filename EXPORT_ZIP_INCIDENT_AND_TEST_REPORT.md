@@ -195,7 +195,7 @@ Luồng hiện tại:
 ```text
 Parse query
 -> resolve filter/category/brand
--> truy vấn products theo batch
+-> truy vấn products theo batch bằng keyset pagination `_id`
 -> lấy translation cache
 -> serialize product
 -> tải ảnh remote
@@ -705,6 +705,77 @@ Kết luận:
 - TypeScript vẫn có thể kiểm tra độc lập bằng `npx --no-install tsc --noEmit`.
 - Không chạy `npm run build` chỉ để kiểm tra TypeScript theo quy trình đã thống nhất.
 
+### 6.12. MongoDB cursor hết hạn trong async export
+
+Khi chạy job cũ với nhiều ảnh remote, backend ghi nhận:
+
+```text
+[EXPORT_ZIP_OUTPUT_ERROR] { message: 'cursor id 7613744106173969536 not found' }
+[EXPORT_ZIP_OUTPUT_ERROR] { message: 'cursor id 6229555173115654491 not found' }
+```
+
+Hai attempt đều chạy khoảng 17-19 phút và kết thúc bằng `MongoServerError` trong `FindCursor.getMore`. Đây là lỗi logic trong luồng xử lý, không phải lỗi PS1 theo sai job.
+
+Nguyên nhân là MongoDB cursor được mở tại `productImportController.js` rồi giữ qua các lần `yield`, translation và tải ảnh remote. Mỗi ảnh có timeout tối đa 30 giây; khi có nhiều ảnh timeout, cursor không được đọc trong thời gian đủ dài và MongoDB đóng cursor.
+
+Đã sửa trong source:
+
+- Bỏ cursor stream dài hạn.
+- Đọc từng batch độc lập bằng keyset pagination theo `_id` tăng dần.
+- Mỗi batch hoàn tất truy vấn trước khi xử lý translation và ảnh.
+- Batch tiếp theo dùng điều kiện `_id: { $gt: lastId }`, tránh trùng hoặc bỏ sót product trong cùng luồng export.
+- Worker kiểm tra yêu cầu cancel giữa các batch.
+- API job trả thêm `cancelRequested` để phân biệt `processing` với đang chờ hủy.
+
+Không dùng `noCursorTimeout` hoặc chỉ tăng timeout cursor như một cách khắc phục, vì các cách đó giữ resource MongoDB lâu hơn và chỉ che nguyên nhân.
+
+### 6.13. Startup bị hiểu nhầm là cần mở frontend
+
+Dòng log:
+
+```text
+⏱️ Load time: 357ms
+```
+
+chỉ phản ánh thời gian nạp các file translation, không phải tổng thời gian backend sẵn sàng. Backend vẫn phải hoàn tất kết nối MongoDB, các seed, resume language setup, migration coupon currency và kiểm tra storage trước khi đặt `startupReady = true`.
+
+Mở `https://manln.online/` không phải điều kiện để backend tiếp tục. Server bắt đầu listen trước khi gọi `connectDB()`, còn các API dùng database bị giữ ở `503 SERVICE_NOT_READY` cho tới khi readiness hoàn tất. Việc mở frontend chỉ tạo request đúng lúc backend có thể vừa hoàn tất startup, nên dễ tạo cảm giác frontend đã kích hoạt tiến trình.
+
+Đã tối ưu trong source:
+
+- Scheduler tỷ giá không còn chặn readiness; chạy nền và tự ghi log lỗi nếu cập nhật thất bại.
+- Các phase startup được đo riêng bằng log `[STARTUP]`, giúp xác định chính xác seed/migration/query nào chậm.
+- Seed và migration bắt buộc vẫn hoàn tất trước khi `startupReady = true`.
+- Dùng `/readyz` làm mốc kiểm tra thay vì mở trang frontend.
+
+Các tác vụ nền không được đánh dấu ready nếu chưa hoàn tất phần dữ liệu bắt buộc; không chạy seed song song mù quáng vì có thể tạo race condition giữa các collection.
+
+### 6.14. Cloudflare Tunnel resolve `localhost` sang IPv6
+
+Trong lần chạy mới, tunnel đã đăng ký connection nhưng không gọi được backend:
+
+```text
+Unable to reach the origin service
+ dial tcp [::1]:5000: connectex: No connection could be made because the target machine actively refused it
+```
+
+Nguyên nhân là `localhost` được resolve sang IPv6 `::1`, trong khi backend đang listen tại IPv4. Vì vậy request login qua `https://backend.manln.online` trả `502` và PS1 dừng ở bước login; chưa tạo export job trong lần chạy này.
+
+Đã đổi ingress Windows sang địa chỉ IPv4 tường minh:
+
+```text
+manln.online          -> http://127.0.0.1:3000
+backend.manln.online  -> http://127.0.0.1:5000
+```
+
+File cấu hình:
+
+```text
+online-store-backend/.cloudflared/config.windows.yml
+```
+
+Sau khi sửa phải khởi động lại tunnel để cloudflared đọc cấu hình mới. Cảnh báo DNS refresh riêng của cloudflared vẫn cần theo dõi, nhưng không được gộp với lỗi origin `::1:5000`.
+
 ---
 
 ## 7. Cập nhật frontend async
@@ -853,6 +924,99 @@ Hoặc override trực tiếp:
 -BackendBaseUrl "http://127.0.0.1:5000"
 ```
 
+### 9.1. Lệnh PowerShell dynamic trên Windows
+
+Các lệnh dưới đây dùng thư mục hiện tại và tự suy ra thư mục frontend cùng cấp. Không hard-code đường dẫn workspace cụ thể.
+
+#### Terminal backend
+
+```powershell
+$backendRoot = (Get-Location).Path
+Write-Host "Backend: $backendRoot"
+npm start
+```
+
+#### Kiểm tra readiness local
+
+```powershell
+$port = if ($env:PORT) { $env:PORT } else { 5000 }
+$readyUrl = "http://127.0.0.1:$port/readyz"
+
+1..60 | ForEach-Object {
+    try {
+        $ready = Invoke-RestMethod $readyUrl
+        Write-Host "Backend status: $($ready.status)"
+
+        if ($ready.status -eq "ready") {
+            $ready | ConvertTo-Json -Depth 5
+            break
+        }
+    } catch {
+        Write-Host "Backend chưa ready, chờ 5 giây..."
+    }
+
+    Start-Sleep -Seconds 5
+}
+```
+
+#### Terminal frontend
+
+```powershell
+$backendRoot = (Get-Location).Path
+$workspaceRoot = Split-Path $backendRoot -Parent
+$frontendRoot = Join-Path $workspaceRoot "online-store-frontend"
+
+if (-not (Test-Path $frontendRoot)) {
+    throw "Không tìm thấy frontend: $frontendRoot"
+}
+
+Set-Location $frontendRoot
+Write-Host "Frontend: $((Get-Location).Path)"
+npm start
+```
+
+#### Terminal tunnel
+
+```powershell
+$backendRoot = (Get-Location).Path
+$configPath = Join-Path $backendRoot ".cloudflared\config.windows.yml"
+
+if (-not (Test-Path $configPath)) {
+    throw "Không tìm thấy tunnel config: $configPath"
+}
+
+Write-Host "Tunnel config: $configPath"
+npm run tunnel
+```
+
+#### Terminal test PS1
+
+```powershell
+$backendRoot = (Get-Location).Path
+$exportScript = Join-Path $backendRoot "scripts\test-export-production.ps1"
+$credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
+
+if (-not (Test-Path $exportScript)) {
+    throw "Không tìm thấy script: $exportScript"
+}
+
+if (-not (Test-Path $credentialPath)) {
+    throw "Không tìm thấy credential: $credentialPath"
+}
+
+Write-Host "Script: $exportScript"
+Write-Host "Credential: $credentialPath"
+
+& $exportScript `
+    -Environment production `
+    -Target frontend `
+    -Limit 10 `
+    -MaxWaitMinutes 30 `
+    -CredentialPath $credentialPath
+```
+
+Thứ tự chạy là backend -> kiểm tra `ready` -> frontend -> tunnel -> PS1. Không mở frontend để kích hoạt backend và không chạy PS1 nhiều lần cho cùng một lần kiểm tra.
+
 Credential được đọc từ file mã hóa Windows DPAPI:
 
 ```text
@@ -867,6 +1031,7 @@ Log script:
 - Không log từng URL ảnh.
 - Chỉ log khi job đổi trạng thái.
 - Tự lưu report trên Desktop.
+- Khi timeout lúc poll, tự gửi cancel cho đúng `jobId` để không để job test treo trong queue.
 - Tự dọn biến môi trường sau khi chạy.
 - Không tự gọi `exit`.
 - Cho phép `MaxWaitMinutes` tối đa 720 phút.
@@ -1147,9 +1312,13 @@ Mỗi vấn đề được tách thành một hạng mục độc lập. Khi h�
 | Sync export quy mô lớn | `limit=100` timeout sau 180 giây | Đã xác định: không dùng sync cho export lớn |
 | Async enqueue/poll/download | `limit=100`, `202`, `queued -> processing -> ready`, ZIP hợp lệ | Đã đóng ở local |
 | Frontend async flow | Đã thêm enqueue, polling và download Blob | Đã đóng ở source code; cần xác nhận sau deploy |
-| Production availability | Từng gặp Cloudflare `530/1033/524` và `ECONNRESET` | Đang theo dõi |
+| Production availability | Từng gặp Cloudflare `530/1033/524`, `ECONNRESET`; lần mới gặp origin `::1:5000` bị từ chối | Đã đổi ingress sang `127.0.0.1`; cần restart tunnel và test lại |
 | Analytics database | `top-customers` trả `503` do database timeout | Việc riêng, chưa xử lý |
-| Async production quy mô lớn | Chưa chạy bằng `limit=10000` | Chưa kiểm tra |
+| MongoDB cursor trong export lớn | Reproduced `cursor id not found` sau khoảng 17-19 phút; đã chuyển sang keyset pagination | Đã sửa trong source; cần test hồi quy |
+| Async production `limit=10` | Login/enqueue/poll pass, job `6a98ed3fa7fb9820e29e5d39` ready sau 31 giây; PS1 timeout trước download | Tạo ZIP pass; download/validate chưa chạy |
+| Async production quy mô lớn | Chưa chạy bằng `limit=10000` sau khi sửa pagination | Chưa kiểm tra |
+| Backend startup/readiness | `357ms` chỉ là translation load; readiness bị chi phối bởi DB/seed/migration/scheduler | Đã tối ưu source; cần đo lại qua `/readyz` |
+| Production test sau khi tải source mới | PS1 dynamic chạy đúng tới login nhưng nhận `502` do tunnel gọi `::1:5000` | Đã sửa config IPv4; chưa chạy lại sau khi restart tunnel |
 
 ### Quy tắc không chạy lại
 
@@ -1185,7 +1354,8 @@ Asset paths: PASS
 locales=vi: PASS
 lang=vi: PASS
 Local frontend rewrite: PASS
-Async enqueue/poll/download: PASS
+Async enqueue/poll/download: PASS ở local; production `limit=10` mới xác nhận đến `ready`
+Keyset pagination tránh giữ MongoDB cursor qua I/O dài: đã áp dụng trong source
 ```
 
 ### Đã xác định
@@ -1197,6 +1367,10 @@ Async limit=100: hoạt động tốt nhưng mất khoảng 4 phút
 Cloudinary URL hợp lệ: không phải nguyên nhân chính
 Analytics database 503: lỗi riêng
 Cloudflare 530/1033/524: lỗi hạ tầng/proxy
+MongoDB `cursor id not found`: lỗi logic do giữ cursor qua remote I/O; đã tái hiện và đã chuyển sang keyset pagination
+PS1 `ASYNC_JOB_TIMEOUT`: timeout phía client không tự hủy job; script đã bổ sung cancel đúng job khi timeout
+PS1 production mới: login nhận `502` vì tunnel route tới IPv6 `::1:5000`; đã đổi ingress sang `127.0.0.1`, cần restart tunnel
+Backend startup chậm: `357ms` không phải tổng startup; scheduler nền và log phase đã được áp dụng, cần xác nhận phase chậm qua `/readyz` và log `[STARTUP]`
 ```
 
 ### Quyết định sử dụng
@@ -1214,6 +1388,11 @@ Production mặc định:
 
 Local/staging:
   Chỉ dùng khi override explicit bằng biến môi trường hoặc tham số PS1.
+
+Startup:
+  Dùng `/readyz` để xác nhận backend sẵn sàng.
+  Không cần mở frontend để kích hoạt backend.
+  Scheduler và maintenance chạy nền sau khi phần khởi tạo bắt buộc đã được kiểm tra.
 ```
 
-Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất.
+Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất. Trong worker, product được đọc theo các batch keyset độc lập; không giữ MongoDB cursor trong lúc tải ảnh hoặc ghi ZIP.

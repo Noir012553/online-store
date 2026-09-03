@@ -4,7 +4,7 @@ protocol: auto
 
 ingress:
   - hostname: manln.online
-    service: http://localhost:3000
+    service: http://127.0.0.1:3000
   - hostname: backend.manln.online
-    service: http://localhost:5000
+    service: http://127.0.0.1:5000
   - service: http_status:404
