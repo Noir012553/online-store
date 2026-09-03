@@ -776,6 +776,151 @@ online-store-backend/.cloudflared/config.windows.yml
 
 Sau khi sửa phải khởi động lại tunnel để cloudflared đọc cấu hình mới. Cảnh báo DNS refresh riêng của cloudflared vẫn cần theo dõi, nhưng không được gộp với lỗi origin `::1:5000`.
 
+### 6.15. Backend chạy seed mỗi lần `npm start`
+
+Quan sát khi restart backend:
+
+```text
+npm start
+-> node src/app.js
+-> chạy lại các startup seed/migration
+```
+
+Đây không phải là lệnh `npm run seed`, mà các seed được gọi trực tiếp trong `connectDB()` tại:
+
+```text
+online-store-backend/src/app.js
+```
+
+Các phase được gọi sau mỗi process mới:
+
+```text
+seed-homepage-banners
+seed-translations
+seed-brands
+seed-currency
+seed-languages
+resume-language-setups
+migrate-coupon-currencies
+```
+
+Các cờ như `translationsSeeded`, `brandsSeeded` và `currencySeeded` chỉ nằm trong memory của process. Khi chạy lại `npm start`, process mới đặt các cờ về `false`, nên chúng không thể ngăn seed ở lần restart tiếp theo.
+
+Ảnh hưởng đo được:
+
+```text
+seed-translations: 417580ms, khoảng 6 phút 58 giây
+seed-translations: 785677ms, khoảng 13 phút 05 giây
+```
+
+`seedTranslations()` xử lý khoảng 684 file translation bằng các lần `findOneAndUpdate()` tuần tự, tương ứng 9 ngôn ngữ × khoảng 76 namespace. Đây là nguyên nhân chính làm backend mất nhiều phút trước khi đạt `startupReady`.
+
+Phân biệt hành vi hiện tại:
+
+- Banner kiểm tra số lượng bản ghi trước; thường không tạo trùng nếu dữ liệu đã tồn tại.
+- Translation vẫn đọc và upsert lại toàn bộ namespace ở mỗi lần khởi động.
+- Brand, currency và language có tính chất idempotent hơn nhưng vẫn được gọi lại.
+- Đây là vấn đề hiệu năng startup/backend, chưa có bằng chứng là memory leak, `localStorage`, React hook hoặc frontend state.
+
+Kết luận tạm thời:
+
+```text
+Không thay đổi cơ chế seed trong phạm vi điều tra import/export hiện tại.
+```
+
+Hướng xử lý để xem xét sau:
+
+- Lưu seed version/checksum trong database để bỏ qua dữ liệu không thay đổi.
+- Chuyển seed translation đầy đủ sang lệnh chạy riêng thay vì chạy trong `npm start`.
+- Dùng bulk write hoặc chỉ cập nhật namespace đã thay đổi.
+- Giữ các dữ liệu bắt buộc như currency/language trong startup nếu readiness vẫn phụ thuộc vào chúng.
+
+### 6.16. Export async `limit=500` thất bại do database timeout
+
+Kết quả kiểm thử local mới nhất:
+
+```text
+Environment: local
+Target: backend
+Query: format=json&locales=vi&limit=500&async=true
+Max wait: 179 minutes
+Job ID: 6a99559f777ac82bab95866a
+```
+
+Job được enqueue và worker retry đúng thiết kế:
+
+```text
+ENQUEUE STATUS: 202
+attempt 1: processing -> queued -> timeout sau 34258ms
+attempt 2: processing -> queued -> timeout sau 31775ms
+attempt 3: processing -> failed -> timeout sau 31574ms
+FINAL RESULT: FAIL
+```
+
+Lỗi thực tế:
+
+```text
+Database operation timed out after 30000ms
+```
+
+Stack trỏ tới:
+
+```text
+online-store-backend/src/utils/mongooseUtils.js:26
+```
+
+Nguyên nhân đã xác định ở mức luồng xử lý:
+
+- `limit=100` chỉ cần xử lý một batch và đã tạo ZIP thành công với 794 image entries.
+- `limit=500` cần xử lý nhiều batch lớn hơn, trong đó có truy vấn sản phẩm, populate category và truy vấn product translation cache.
+- Các thao tác database export được bọc bởi `withExportTimeout(..., 30000)` và query MongoDB cũng dùng `maxTimeMS(30000)` tại `productImportController.js`.
+- Một thao tác trong luồng tạo payload vượt 30 giây, khiến attempt thất bại trước khi ZIP hoàn tất.
+- `-MaxWaitMinutes 179` chỉ tăng thời gian PowerShell poll job; không tăng giới hạn 30000ms của từng thao tác database.
+
+`withTimeout()` tại `mongooseUtils.js` dùng `Promise.race()`. Khi timeout Promise bên ngoài, query MongoDB gốc không nhất thiết bị hủy ngay. Nếu nhiều attempt hoặc job chạy đồng thời, query còn lại có thể tiếp tục sử dụng connection pool và làm tăng áp lực database.
+
+Đây chưa phải kết luận rằng ảnh bị lỗi. Với job `limit=500` bị failed:
+
+```text
+Không có ZIP hoàn chỉnh để download.
+Không có ZIP RESULT.
+Không thể xác nhận số ảnh của job này.
+```
+
+Kết quả ảnh đã được xác nhận ở job `limit=100`:
+
+```text
+imageEntryCount: 794
+hasImagesFolder: true
+missingAssetPaths: []
+FINAL RESULT: PASS
+```
+
+Cần phân biệt thêm với lỗi `ROUTE_NOT_FOUND`:
+
+- `ROUTE_NOT_FOUND` xuất hiện sau một số job `ready` nhưng log chưa in method và URL request, nên chưa xác định được request 404 cụ thể.
+- Đây là vấn đề truy cập route/download riêng, không phải nguyên nhân của `limit=500` database timeout.
+- Các lần test có `[DOWNLOAD STATUS] 200` và `ZIP RESULT ok: true` cho thấy download route có lúc hoạt động bình thường.
+
+Kết luận hiện tại:
+
+```text
+limit=10: PASS, ZIP và ảnh hợp lệ
+limit=100: PASS, ZIP và 794 ảnh hợp lệ
+limit=500: FAIL trước khi tạo ZIP hoàn chỉnh do database operation timeout 30000ms
+```
+
+Fix đã áp dụng:
+
+- Giảm `EXPORT_BATCH_SIZE` từ 250 xuống 100 tại `productImportController.js` để giới hạn kích thước truy vấn sản phẩm và translation cache trong mỗi batch.
+- Giữ timeout database 30000ms để không che khuất query chậm bằng cách tăng timeout mù quáng.
+- Chuẩn hóa endpoint download async trong `online-store-frontend/src/lib/api.ts`: nếu backend trả URL bắt đầu bằng `/api/`, frontend không nối thêm một `/api` thứ hai.
+- Cập nhật `scripts/test-export-production.ps1` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
+
+Cần tải phiên bản code mới và retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
+
+Không tăng timeout database mù quáng. Nếu `limit=500` vẫn timeout sau khi giảm batch, bước tiếp theo là xác định operation cụ thể bị chậm bằng `explain('executionStats')`, pool metrics và log phase/batch.
+
 ---
 
 ## 7. Cập nhật frontend async
@@ -972,7 +1117,7 @@ if (-not (Test-Path $frontendRoot)) {
 
 Set-Location $frontendRoot
 Write-Host "Frontend: $((Get-Location).Path)"
-npm start
+npm run dev
 ```
 
 #### Terminal tunnel
@@ -1035,6 +1180,347 @@ Log script:
 - Tự dọn biến môi trường sau khi chạy.
 - Không tự gọi `exit`.
 - Cho phép `MaxWaitMinutes` tối đa 720 phút.
+
+### 9.2. Vấn đề xác định khi dùng thư mục workspace copy và cách chạy dynamic
+
+#### Vấn đề đã gặp
+
+Khi chuyển code sang workspace mới, lệnh PowerShell từng tạo sai đường dẫn:
+
+```text
+E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\test-export-production.ps1
+```
+
+Nguyên nhân là lệnh lấy thư mục backend hiện tại làm workspace root rồi nối thêm `online-store-backend`:
+
+```powershell
+$workspaceRoot = (Get-Location).Path
+$backendRoot = Join-Path $workspaceRoot "online-store-backend"
+```
+
+Lệnh này chỉ đúng khi vị trí hiện tại là workspace root. Nếu prompt đã đứng sẵn tại `online-store-backend`, kết quả sẽ bị lặp thư mục. Tương tự, nếu chạy `npm run dev` trong backend thì Next.js không được khởi động; backend sẽ cố chiếm port `5000` lần nữa và có thể báo:
+
+```text
+EADDRINUSE: address already in use 0.0.0.0:5000
+```
+
+Các lỗi PowerShell khác xảy ra khi dán từng phần của `try/catch/finally` vào console:
+
+```text
+else : The term 'else' is not recognized
+finally : The term 'finally' is not recognized
+```
+
+Không nên dùng đường dẫn workspace hard-code vì bản copy, ổ đĩa hoặc tên thư mục có thể thay đổi.
+
+#### Cách xử lý thống nhất
+
+- Dùng thư mục hiện tại làm điểm bắt đầu, sau đó thử các vị trí hợp lệ: chính nó, thư mục con `online-store-backend`, backend cùng cấp hoặc thư mục cha.
+- Chỉ chọn thư mục có `scripts\test-export-production.ps1` để tránh chọn nhầm frontend.
+- Tự suy ra `online-store-frontend` từ thư mục cha của backend.
+- Kiểm tra `Test-Path` trước khi `Set-Location` hoặc chạy script.
+- Dùng `& $exportScript` để gọi file `.ps1` bằng đường dẫn đã resolve.
+- Chạy frontend ở terminal riêng bằng `npm run dev`; không chạy frontend từ backend.
+- Dùng file `.ps1` hoàn chỉnh thay vì dán rời `else` hoặc `finally`.
+- Không chạy `npm run build` trong quy trình kiểm thử này.
+
+#### Block resolve backend dùng được từ nhiều vị trí
+
+Block dưới đây chạy được khi prompt đang ở workspace root, `online-store-backend`, `online-store-frontend` hoặc `online-store-backend\scripts`:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy online-store-backend từ thư mục hiện tại: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$workspaceRoot = Split-Path $backendRoot -Parent
+$frontendRoot = Join-Path $workspaceRoot "online-store-frontend"
+
+if (-not (Test-Path $frontendRoot)) {
+    throw "Không tìm thấy frontend: $frontendRoot"
+}
+
+Write-Host "Workspace: $workspaceRoot"
+Write-Host "Backend:   $backendRoot"
+Write-Host "Frontend:  $frontendRoot"
+```
+
+Block này không gửi credential, không tạo job và không khởi động process; nó chỉ resolve và kiểm tra thư mục.
+
+#### Terminal 1 — khởi động backend local
+
+Mở terminal mới, dán nguyên block sau:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "package.json") -and
+            Test-Path (Join-Path $_ "src\app.js")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy thư mục backend từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+Set-Location $backendRoot
+Write-Host "Backend: $((Get-Location).Path)"
+npm start
+```
+
+Terminal này giữ process backend ở foreground. Đây là hành vi bình thường; không phải terminal bị treo. Dừng bằng `Ctrl+C` khi cần.
+
+#### Terminal 2 — kiểm tra readiness
+
+Có thể chạy từ bất kỳ thư mục nào:
+
+```powershell
+$port = if ($env:PORT) { [int]$env:PORT } else { 5000 }
+$readyUrl = "http://127.0.0.1:$port/readyz"
+$ready = $false
+
+1..720 | ForEach-Object {
+    try {
+        $body = Invoke-RestMethod -Uri $readyUrl -TimeoutSec 10
+        Write-Host "Backend status: $($body.status)"
+
+        if ($body.status -eq "ready") {
+            $body | ConvertTo-Json -Depth 5
+            $ready = $true
+            break
+        }
+    } catch {
+        Write-Host "Backend chưa ready, chờ 5 giây..."
+    }
+
+    Start-Sleep -Seconds 5
+}
+
+if (-not $ready) {
+    throw "Backend chưa ready sau thời gian chờ"
+}
+```
+
+`/readyz` phải trả `status: ready`, `databaseConnected: true`, `startupReady: true` và storage đã configured trước khi chạy export.
+
+#### Terminal 3 — khởi động frontend local
+
+Mở terminal mới, không dùng lại terminal backend:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy backend từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$workspaceRoot = Split-Path $backendRoot -Parent
+$frontendRoot = Join-Path $workspaceRoot "online-store-frontend"
+
+if (-not (Test-Path (Join-Path $frontendRoot "package.json"))) {
+    throw "Không tìm thấy frontend package.json: $frontendRoot"
+}
+
+Set-Location $frontendRoot
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:5000"
+Write-Host "Frontend: $((Get-Location).Path)"
+Write-Host "Backend proxy: $env:NEXT_PUBLIC_API_BASE_URL"
+npm run dev
+```
+
+Dùng `npm run dev` để frontend đọc source hiện tại và proxy tới backend local. Không dùng `npm start` cho lần kiểm thử source local nếu chưa có build tương ứng.
+
+#### Terminal 4 — test async backend local bằng PS1
+
+Mở terminal mới. Lệnh này tự tìm script và credential, không hard-code `E:\Dev Camp\...`:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy backend script từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+$exportScript = Join-Path $backendRoot "scripts\test-export-production.ps1"
+$credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
+
+if (-not (Test-Path $exportScript)) {
+    throw "Không tìm thấy script: $exportScript"
+}
+
+if (-not (Test-Path $credentialPath)) {
+    throw "Không tìm thấy credential DPAPI: $credentialPath"
+}
+
+Write-Host "Script:     $exportScript"
+Write-Host "Credential: $credentialPath"
+
+& $exportScript `
+    -Environment local `
+    -Target backend `
+    -BackendBaseUrl "http://127.0.0.1:5000" `
+    -Limit 500 `
+    -MaxWaitMinutes 179 `
+    -RequestTimeoutSeconds 120 `
+    -CredentialPath $credentialPath
+```
+
+Kết quả cần quan sát:
+
+```text
+[LOGIN RESULT] PASS
+[ENQUEUE STATUS] 202
+[JOB STATUS] queued
+[JOB STATUS] processing
+[JOB STATUS] ready
+[DOWNLOAD STATUS] 200
+[ZIP RESULT] ok: true
+missingAssetPaths: []
+[FINAL RESULT] PASS
+```
+
+Nếu chỉ muốn kiểm tra nhanh trước khi chạy `limit=500`, đổi `-Limit 500` thành `-Limit 10` hoặc `-Limit 100`. Mỗi lần chạy chỉ tạo một async job; không chạy đồng thời backend và frontend test.
+
+#### Terminal 4 — test qua frontend local và Next.js proxy
+
+Chỉ chạy sau khi backend local và frontend local đã sẵn sàng:
+
+```powershell
+& $exportScript `
+    -Environment local `
+    -Target frontend `
+    -FrontendBaseUrl "http://127.0.0.1:3000" `
+    -BackendBaseUrl "http://127.0.0.1:5000" `
+    -Limit 500 `
+    -MaxWaitMinutes 179 `
+    -RequestTimeoutSeconds 120 `
+    -CredentialPath $credentialPath
+```
+
+Trong lần test này:
+
+```text
+Target: frontend
+Request target: http://127.0.0.1:3000
+Backend config: http://127.0.0.1:5000
+```
+
+Script vẫn gọi endpoint `/api/...`; Next.js local rewrite chuyển request tới backend local. Nếu log cho thấy request đi tới `https://manln.online` hoặc `https://backend.manln.online` thì đó không còn là test frontend local.
+
+#### Nếu cần chạy tunnel
+
+Tunnel cũng resolve config từ backend root:
+
+```powershell
+function Resolve-BackendRoot {
+    $startPath = (Get-Location).Path
+    $parentPath = Split-Path $startPath -Parent
+    $candidates = @(
+        $startPath
+        (Join-Path $startPath "online-store-backend")
+        (Join-Path $parentPath "online-store-backend")
+        $parentPath
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    $backendRoot = $candidates |
+        Where-Object {
+            Test-Path (Join-Path $_ ".cloudflared\config.windows.yml")
+        } |
+        Select-Object -First 1
+
+    if (-not $backendRoot) {
+        throw "Không tìm thấy tunnel config từ: $startPath"
+    }
+
+    return $backendRoot
+}
+
+$backendRoot = Resolve-BackendRoot
+Set-Location $backendRoot
+Write-Host "Tunnel config: $(Join-Path $backendRoot '.cloudflared\config.windows.yml')"
+npm run tunnel
+```
+
+Thứ tự đầy đủ:
+
+```text
+Terminal 1: backend
+Terminal 2: /readyz
+Terminal 3: frontend hoặc tunnel
+Terminal 4: một lệnh PS1 test
+```
+
+Không dùng lại biến `$backendRoot` từ terminal khác vì mỗi PowerShell window có session riêng. Không dán riêng dòng `else`/`finally`; nếu cần thay đổi tham số, sửa block hoàn chỉnh hoặc gọi trực tiếp file `.ps1` bằng `& $exportScript`.
 
 ---
 

@@ -108,7 +108,7 @@ const resolveProductExportFilter = async (category, brand) => {
   return filter;
 };
 
-const EXPORT_BATCH_SIZE = 250;
+const EXPORT_BATCH_SIZE = 100;
 
 const getExportProductQuery = async filter => {
   const activeCategoryIds = filter.category

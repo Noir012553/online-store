@@ -11,6 +11,9 @@ param(
     [ValidateRange(1, 720)]
     [int]$MaxWaitMinutes = 30,
 
+    [ValidateRange(5, 300)]
+    [int]$RequestTimeoutSeconds = 120,
+
     [string]$FrontendBaseUrl,
     [string]$BackendBaseUrl,
     [string]$CredentialPath = "$HOME\.online-store-export-credential.xml"
@@ -68,6 +71,7 @@ try {
     Write-Host "[BACKEND] $BackendBaseUrl"
     Write-Host "[LIMIT] $Limit"
     Write-Host "[MAX WAIT] $MaxWaitMinutes minutes"
+    Write-Host "[REQUEST TIMEOUT] $RequestTimeoutSeconds seconds"
     Write-Host "[RUN COUNT] 1"
     Write-Host "[IMAGE DEBUG LOG] disabled"
     Write-Host ""
@@ -82,6 +86,7 @@ const email = process.env.EXPORT_TEST_EMAIL;
 const password = process.env.EXPORT_TEST_PASSWORD;
 const limit = Number(process.env.EXPORT_LIMIT);
 const maxWaitMs = Number(process.env.EXPORT_MAX_WAIT_MINUTES) * 60 * 1000;
+const requestTimeoutMs = Number(process.env.EXPORT_REQUEST_TIMEOUT_SECONDS) * 1000;
 const exportQuery = `format=json&locales=vi&limit=${limit}&async=true`;
 
 const safeErrorMessage = error => String(error?.message || error)
@@ -218,7 +223,7 @@ const validateZip = (buffer, headers) => {
 const login = async () => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
-    timeout: 30000,
+    timeout: requestTimeoutMs,
   });
 
   try {
@@ -241,7 +246,7 @@ const login = async () => {
 const enqueue = async (token) => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
-    timeout: 30000,
+    timeout: requestTimeoutMs,
     extraHTTPHeaders: { Authorization: `Bearer ${token}` },
   });
 
@@ -268,7 +273,7 @@ const enqueue = async (token) => {
 const waitForReady = async (token, jobId) => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
-    timeout: 30000,
+    timeout: requestTimeoutMs,
     extraHTTPHeaders: { Authorization: `Bearer ${token}` },
   });
 
@@ -306,7 +311,7 @@ const waitForReady = async (token, jobId) => {
 const cancelJob = async (token, jobId) => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
-    timeout: 30000,
+    timeout: requestTimeoutMs,
     extraHTTPHeaders: { Authorization: `Bearer ${token}` },
   });
 
@@ -384,6 +389,7 @@ const downloadAndValidate = async (token, job) => {
         $env:EXPORT_BACKEND_BASE_URL = $BackendBaseUrl
         $env:EXPORT_LIMIT = $Limit
         $env:EXPORT_MAX_WAIT_MINUTES = $MaxWaitMinutes
+        $env:EXPORT_REQUEST_TIMEOUT_SECONDS = $RequestTimeoutSeconds
         $_
     } | node -
 }
@@ -395,6 +401,7 @@ finally {
     Remove-Item Env:EXPORT_BACKEND_BASE_URL -ErrorAction SilentlyContinue
     Remove-Item Env:EXPORT_LIMIT -ErrorAction SilentlyContinue
     Remove-Item Env:EXPORT_MAX_WAIT_MINUTES -ErrorAction SilentlyContinue
+    Remove-Item Env:EXPORT_REQUEST_TIMEOUT_SECONDS -ErrorAction SilentlyContinue
 
     try {
         Stop-Transcript | Out-Null
