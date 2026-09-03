@@ -1239,7 +1239,10 @@ export const productAPI = {
     const timeout = requestOptions?.timeout ?? 30 * 60 * 1000;
     const deadline = Date.now() + timeout;
     const fetchJob = async (endpoint: string, init: RequestInit = {}) => {
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      const normalizedEndpoint = endpoint.startsWith('/api/')
+        ? endpoint.slice('/api'.length)
+        : endpoint;
+      const response = await fetch(`${API_URL}${normalizedEndpoint}`, {
         ...init,
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),

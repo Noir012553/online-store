@@ -910,7 +910,15 @@ limit=100: PASS, ZIP và 794 ảnh hợp lệ
 limit=500: FAIL trước khi tạo ZIP hoàn chỉnh do database operation timeout 30000ms
 ```
 
-Không tăng timeout database mù quáng. Bước điều tra tiếp theo là xác định operation cụ thể bị chậm bằng `explain('executionStats')`, pool metrics và log phase/batch; sau đó mới cân nhắc tối ưu query hoặc thay đổi giới hạn.
+Fix đã áp dụng:
+
+- Giảm `EXPORT_BATCH_SIZE` từ 250 xuống 100 tại `productImportController.js` để giới hạn kích thước truy vấn sản phẩm và translation cache trong mỗi batch.
+- Giữ timeout database 30000ms để không che khuất query chậm bằng cách tăng timeout mù quáng.
+- Chuẩn hóa endpoint download async trong `online-store-frontend/src/lib/api.ts`: nếu backend trả URL bắt đầu bằng `/api/`, frontend không nối thêm một `/api` thứ hai.
+
+Cần retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
+
+Không tăng timeout database mù quáng. Nếu `limit=500` vẫn timeout sau khi giảm batch, bước tiếp theo là xác định operation cụ thể bị chậm bằng `explain('executionStats')`, pool metrics và log phase/batch.
 
 ---
 
