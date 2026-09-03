@@ -729,6 +729,27 @@ Nguyên nhân là MongoDB cursor được mở tại `productImportController.js
 
 Không dùng `noCursorTimeout` hoặc chỉ tăng timeout cursor như một cách khắc phục, vì các cách đó giữ resource MongoDB lâu hơn và chỉ che nguyên nhân.
 
+### 6.13. Startup bị hiểu nhầm là cần mở frontend
+
+Dòng log:
+
+```text
+⏱️ Load time: 357ms
+```
+
+chỉ phản ánh thời gian nạp các file translation, không phải tổng thời gian backend sẵn sàng. Backend vẫn phải hoàn tất kết nối MongoDB, các seed, resume language setup, migration coupon currency và kiểm tra storage trước khi đặt `startupReady = true`.
+
+Mở `https://manln.online/` không phải điều kiện để backend tiếp tục. Server bắt đầu listen trước khi gọi `connectDB()`, còn các API dùng database bị giữ ở `503 SERVICE_NOT_READY` cho tới khi readiness hoàn tất. Việc mở frontend chỉ tạo request đúng lúc backend có thể vừa hoàn tất startup, nên dễ tạo cảm giác frontend đã kích hoạt tiến trình.
+
+Đã tối ưu trong source:
+
+- Scheduler tỷ giá không còn chặn readiness; chạy nền và tự ghi log lỗi nếu cập nhật thất bại.
+- Các phase startup được đo riêng bằng log `[STARTUP]`, giúp xác định chính xác seed/migration/query nào chậm.
+- Seed và migration bắt buộc vẫn hoàn tất trước khi `startupReady = true`.
+- Dùng `/readyz` làm mốc kiểm tra thay vì mở trang frontend.
+
+Các tác vụ nền không được đánh dấu ready nếu chưa hoàn tất phần dữ liệu bắt buộc; không chạy seed song song mù quáng vì có thể tạo race condition giữa các collection.
+
 ---
 
 ## 7. Cập nhật frontend async
@@ -1177,6 +1198,7 @@ Mỗi vấn đề được tách thành một hạng mục độc lập. Khi h�
 | MongoDB cursor trong export lớn | Reproduced `cursor id not found` sau khoảng 17-19 phút; đã chuyển sang keyset pagination | Đã sửa trong source; cần test hồi quy |
 | Async production `limit=10` | Login/enqueue/poll pass, job `6a98ed3fa7fb9820e29e5d39` ready sau 31 giây; PS1 timeout trước download | Tạo ZIP pass; download/validate chưa chạy |
 | Async production quy mô lớn | Chưa chạy bằng `limit=10000` sau khi sửa pagination | Chưa kiểm tra |
+| Backend startup/readiness | `357ms` chỉ là translation load; readiness bị chi phối bởi DB/seed/migration/scheduler | Đã tối ưu source; cần đo lại qua `/readyz` |
 
 ### Quy tắc không chạy lại
 
@@ -1226,7 +1248,8 @@ Cloudinary URL hợp lệ: không phải nguyên nhân chính
 Analytics database 503: lỗi riêng
 Cloudflare 530/1033/524: lỗi hạ tầng/proxy
 MongoDB `cursor id not found`: lỗi logic do giữ cursor qua remote I/O; đã tái hiện và đã chuyển sang keyset pagination
-PS1 `ASYNC_JOB_TIMEOUT`: timeout phía client không tự hủy job; cần theo dõi `cancelRequested` và tránh tạo job trùng
+PS1 `ASYNC_JOB_TIMEOUT`: timeout phía client không tự hủy job; script đã bổ sung cancel đúng job khi timeout
+Backend startup chậm: `357ms` không phải tổng startup; scheduler nền và log phase đã được áp dụng, cần xác nhận phase chậm qua `/readyz` và log `[STARTUP]`
 ```
 
 ### Quyết định sử dụng
@@ -1244,6 +1267,11 @@ Production mặc định:
 
 Local/staging:
   Chỉ dùng khi override explicit bằng biến môi trường hoặc tham số PS1.
+
+Startup:
+  Dùng `/readyz` để xác nhận backend sẵn sàng.
+  Không cần mở frontend để kích hoạt backend.
+  Scheduler và maintenance chạy nền sau khi phần khởi tạo bắt buộc đã được kiểm tra.
 ```
 
 Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất. Trong worker, product được đọc theo các batch keyset độc lập; không giữ MongoDB cursor trong lúc tải ảnh hoặc ghi ZIP.
