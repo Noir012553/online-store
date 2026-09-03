@@ -776,6 +776,65 @@ online-store-backend/.cloudflared/config.windows.yml
 
 Sau khi sửa phải khởi động lại tunnel để cloudflared đọc cấu hình mới. Cảnh báo DNS refresh riêng của cloudflared vẫn cần theo dõi, nhưng không được gộp với lỗi origin `::1:5000`.
 
+### 6.15. Backend chạy seed mỗi lần `npm start`
+
+Quan sát khi restart backend:
+
+```text
+npm start
+-> node src/app.js
+-> chạy lại các startup seed/migration
+```
+
+Đây không phải là lệnh `npm run seed`, mà các seed được gọi trực tiếp trong `connectDB()` tại:
+
+```text
+online-store-backend/src/app.js
+```
+
+Các phase được gọi sau mỗi process mới:
+
+```text
+seed-homepage-banners
+seed-translations
+seed-brands
+seed-currency
+seed-languages
+resume-language-setups
+migrate-coupon-currencies
+```
+
+Các cờ như `translationsSeeded`, `brandsSeeded` và `currencySeeded` chỉ nằm trong memory của process. Khi chạy lại `npm start`, process mới đặt các cờ về `false`, nên chúng không thể ngăn seed ở lần restart tiếp theo.
+
+Ảnh hưởng đo được:
+
+```text
+seed-translations: 417580ms, khoảng 6 phút 58 giây
+seed-translations: 785677ms, khoảng 13 phút 05 giây
+```
+
+`seedTranslations()` xử lý khoảng 684 file translation bằng các lần `findOneAndUpdate()` tuần tự, tương ứng 9 ngôn ngữ × khoảng 76 namespace. Đây là nguyên nhân chính làm backend mất nhiều phút trước khi đạt `startupReady`.
+
+Phân biệt hành vi hiện tại:
+
+- Banner kiểm tra số lượng bản ghi trước; thường không tạo trùng nếu dữ liệu đã tồn tại.
+- Translation vẫn đọc và upsert lại toàn bộ namespace ở mỗi lần khởi động.
+- Brand, currency và language có tính chất idempotent hơn nhưng vẫn được gọi lại.
+- Đây là vấn đề hiệu năng startup/backend, chưa có bằng chứng là memory leak, `localStorage`, React hook hoặc frontend state.
+
+Kết luận tạm thời:
+
+```text
+Không thay đổi cơ chế seed trong phạm vi điều tra import/export hiện tại.
+```
+
+Hướng xử lý để xem xét sau:
+
+- Lưu seed version/checksum trong database để bỏ qua dữ liệu không thay đổi.
+- Chuyển seed translation đầy đủ sang lệnh chạy riêng thay vì chạy trong `npm start`.
+- Dùng bulk write hoặc chỉ cập nhật namespace đã thay đổi.
+- Giữ các dữ liệu bắt buộc như currency/language trong startup nếu readiness vẫn phụ thuộc vào chúng.
+
 ---
 
 ## 7. Cập nhật frontend async
