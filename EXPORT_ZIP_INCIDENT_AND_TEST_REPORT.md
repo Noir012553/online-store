@@ -835,6 +835,83 @@ Hướng xử lý để xem xét sau:
 - Dùng bulk write hoặc chỉ cập nhật namespace đã thay đổi.
 - Giữ các dữ liệu bắt buộc như currency/language trong startup nếu readiness vẫn phụ thuộc vào chúng.
 
+### 6.16. Export async `limit=500` thất bại do database timeout
+
+Kết quả kiểm thử local mới nhất:
+
+```text
+Environment: local
+Target: backend
+Query: format=json&locales=vi&limit=500&async=true
+Max wait: 179 minutes
+Job ID: 6a99559f777ac82bab95866a
+```
+
+Job được enqueue và worker retry đúng thiết kế:
+
+```text
+ENQUEUE STATUS: 202
+attempt 1: processing -> queued -> timeout sau 34258ms
+attempt 2: processing -> queued -> timeout sau 31775ms
+attempt 3: processing -> failed -> timeout sau 31574ms
+FINAL RESULT: FAIL
+```
+
+Lỗi thực tế:
+
+```text
+Database operation timed out after 30000ms
+```
+
+Stack trỏ tới:
+
+```text
+online-store-backend/src/utils/mongooseUtils.js:26
+```
+
+Nguyên nhân đã xác định ở mức luồng xử lý:
+
+- `limit=100` chỉ cần xử lý một batch và đã tạo ZIP thành công với 794 image entries.
+- `limit=500` cần xử lý nhiều batch lớn hơn, trong đó có truy vấn sản phẩm, populate category và truy vấn product translation cache.
+- Các thao tác database export được bọc bởi `withExportTimeout(..., 30000)` và query MongoDB cũng dùng `maxTimeMS(30000)` tại `productImportController.js`.
+- Một thao tác trong luồng tạo payload vượt 30 giây, khiến attempt thất bại trước khi ZIP hoàn tất.
+- `-MaxWaitMinutes 179` chỉ tăng thời gian PowerShell poll job; không tăng giới hạn 30000ms của từng thao tác database.
+
+`withTimeout()` tại `mongooseUtils.js` dùng `Promise.race()`. Khi timeout Promise bên ngoài, query MongoDB gốc không nhất thiết bị hủy ngay. Nếu nhiều attempt hoặc job chạy đồng thời, query còn lại có thể tiếp tục sử dụng connection pool và làm tăng áp lực database.
+
+Đây chưa phải kết luận rằng ảnh bị lỗi. Với job `limit=500` bị failed:
+
+```text
+Không có ZIP hoàn chỉnh để download.
+Không có ZIP RESULT.
+Không thể xác nhận số ảnh của job này.
+```
+
+Kết quả ảnh đã được xác nhận ở job `limit=100`:
+
+```text
+imageEntryCount: 794
+hasImagesFolder: true
+missingAssetPaths: []
+FINAL RESULT: PASS
+```
+
+Cần phân biệt thêm với lỗi `ROUTE_NOT_FOUND`:
+
+- `ROUTE_NOT_FOUND` xuất hiện sau một số job `ready` nhưng log chưa in method và URL request, nên chưa xác định được request 404 cụ thể.
+- Đây là vấn đề truy cập route/download riêng, không phải nguyên nhân của `limit=500` database timeout.
+- Các lần test có `[DOWNLOAD STATUS] 200` và `ZIP RESULT ok: true` cho thấy download route có lúc hoạt động bình thường.
+
+Kết luận hiện tại:
+
+```text
+limit=10: PASS, ZIP và ảnh hợp lệ
+limit=100: PASS, ZIP và 794 ảnh hợp lệ
+limit=500: FAIL trước khi tạo ZIP hoàn chỉnh do database operation timeout 30000ms
+```
+
+Không tăng timeout database mù quáng. Bước điều tra tiếp theo là xác định operation cụ thể bị chậm bằng `explain('executionStats')`, pool metrics và log phase/batch; sau đó mới cân nhắc tối ưu query hoặc thay đổi giới hạn.
+
 ---
 
 ## 7. Cập nhật frontend async
