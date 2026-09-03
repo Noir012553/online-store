@@ -915,8 +915,9 @@ Fix đã áp dụng:
 - Giảm `EXPORT_BATCH_SIZE` từ 250 xuống 100 tại `productImportController.js` để giới hạn kích thước truy vấn sản phẩm và translation cache trong mỗi batch.
 - Giữ timeout database 30000ms để không che khuất query chậm bằng cách tăng timeout mù quáng.
 - Chuẩn hóa endpoint download async trong `online-store-frontend/src/lib/api.ts`: nếu backend trả URL bắt đầu bằng `/api/`, frontend không nối thêm một `/api` thứ hai.
+- Cập nhật `scripts/test-export-production.ps1` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
 
-Cần retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
+Cần tải phiên bản code mới và retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
 
 Không tăng timeout database mù quáng. Nếu `limit=500` vẫn timeout sau khi giảm batch, bước tiếp theo là xác định operation cụ thể bị chậm bằng `explain('executionStats')`, pool metrics và log phase/batch.
 
