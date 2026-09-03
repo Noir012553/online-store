@@ -47,8 +47,8 @@ const nextConfig: NextConfig = {
    * Cách này giúp giải quyết vấn đề CORS và CSP một cách triệt để.
    */
   async rewrites() {
-  // Ensure backendUrl doesn't have a trailing slash for rewrite destination
-  const backendUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.manln.online').replace(/\/$/, '');
+  // Keep production as the default; NEXT_PUBLIC_API_BASE_URL is an explicit override for local/staging.
+  const backendUrl = (process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'https://backend.manln.online').replace(/\/+$/, '');
 
   return {
     beforeFiles: [
