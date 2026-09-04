@@ -16,7 +16,10 @@ param(
 
     [string]$FrontendBaseUrl,
     [string]$BackendBaseUrl,
-    [string]$CredentialPath = "$HOME\.online-store-export-credential.xml"
+    [string]$CredentialPath = "$HOME\.online-store-export-credential.xml",
+
+    [switch]$SaveZip,
+    [string]$ZipOutputPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,9 +46,24 @@ if (-not $BackendBaseUrl) {
 }
 
 $baseUrl = if ($Target -eq 'frontend') { $FrontendBaseUrl } else { $BackendBaseUrl }
+$runStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$desktopPath = [Environment]::GetFolderPath('Desktop')
 $reportPath = Join-Path `
-    ([Environment]::GetFolderPath('Desktop')) `
-    ("export-zip-$Environment-$Target-$Limit-" + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
+    $desktopPath `
+    ("export-zip-$Environment-$Target-$Limit-$runStamp.log")
+
+if ($SaveZip -and -not $ZipOutputPath) {
+    $ZipOutputPath = Join-Path `
+        $desktopPath `
+        ("products-export-$Environment-$Target-$Limit-$runStamp.zip")
+}
+
+if ($ZipOutputPath) {
+    $zipDirectory = Split-Path -Parent $ZipOutputPath
+    if ($zipDirectory) {
+        New-Item -ItemType Directory -Path $zipDirectory -Force | Out-Null
+    }
+}
 
 try {
     Stop-Transcript | Out-Null
@@ -77,6 +95,7 @@ try {
     Write-Host ""
 
     @'
+const fs = require('fs');
 const zlib = require('zlib');
 const { request } = require('playwright');
 
@@ -126,9 +145,11 @@ const readZipEntries = buffer => {
     const localHeaderOffset = buffer.readUInt32LE(offset + 42);
     const name = buffer.toString('utf8', offset + 46, offset + 46 + fileNameLength);
 
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
     entries.set(name, {
       name,
       compressedSize,
+      uncompressedSize,
       compressionMethod,
       localHeaderOffset,
     });
@@ -153,6 +174,32 @@ const readZipEntry = (buffer, entry) => {
   if (entry.compressionMethod === 0) return compressedData;
   if (entry.compressionMethod === 8) return zlib.inflateRawSync(compressedData);
   throw new Error(`ZIP_COMPRESSION_UNSUPPORTED_${entry.name}`);
+};
+
+const hasImageSignature = (buffer, name) => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+    return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  }
+  if (lowerName.endsWith('.png')) {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (lowerName.endsWith('.gif')) {
+    return ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii'));
+  }
+  if (lowerName.endsWith('.webp')) {
+    return buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (lowerName.endsWith('.avif')) {
+    return buffer.subarray(4, 8).toString('ascii') === 'ftyp'
+      && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii'));
+  }
+  if (lowerName.endsWith('.svg')) {
+    const text = buffer.subarray(0, 1024).toString('utf8').trimStart().toLowerCase();
+    return text.includes('<svg') || (text.startsWith('<?xml') && text.includes('<svg'));
+  }
+  return false;
 };
 
 const validateZip = (buffer, headers) => {
@@ -182,29 +229,81 @@ const validateZip = (buffer, headers) => {
     }
   }
 
-  const referencedAssetPaths = products.flatMap(product => [
-    ...(Array.isArray(product.imageAssetPaths) ? product.imageAssetPaths : []),
-    ...(Array.isArray(product.images)
-      ? product.images.map(image => image?.assetPath).filter(Boolean)
-      : []),
-  ]);
-
-  const missingAssetPaths = [...new Set(referencedAssetPaths)]
+  const imageReferences = products.flatMap((product, productIndex) => (
+    Array.isArray(product.images)
+      ? product.images.map((image, imageIndex) => ({
+        productId: product.productId || null,
+        productIndex: productIndex + 1,
+        imageIndex,
+        type: image?.type || null,
+        url: image?.url || null,
+        assetPath: image?.assetPath || null,
+      }))
+      : []
+  ));
+  const referencesWithUrl = imageReferences.filter(image => image.url);
+  const referencesWithoutUrl = imageReferences.filter(image => !image.url);
+  const referencesWithoutAssetPath = referencesWithUrl.filter(image => !image.assetPath);
+  const referencedAssetPaths = [
+    ...products.flatMap(product => (
+      Array.isArray(product.imageAssetPaths) ? product.imageAssetPaths : []
+    )),
+    ...referencesWithUrl.map(image => image.assetPath).filter(Boolean),
+  ];
+  const uniqueReferencedAssetPaths = [...new Set(referencedAssetPaths)];
+  const missingAssetPaths = uniqueReferencedAssetPaths
     .filter(assetPath => !entries.has(assetPath));
 
-  const productsHaveImages = products.some(product => (
-    Array.isArray(product.images) && product.images.length > 0
-  ));
+  const imageValidation = imageEntries.map(name => {
+    const entry = entries.get(name);
+    try {
+      const data = readZipEntry(buffer, entry);
+      return {
+        name,
+        bytes: data.length,
+        declaredBytes: entry.uncompressedSize,
+        empty: data.length === 0,
+        validSignature: hasImageSignature(data, name),
+        error: '',
+      };
+    } catch (error) {
+      return {
+        name,
+        bytes: 0,
+        declaredBytes: entry.uncompressedSize,
+        empty: false,
+        validSignature: false,
+        error: safeErrorMessage(error),
+      };
+    }
+  });
+  const emptyImageEntries = imageValidation.filter(image => image.empty);
+  const invalidImageEntries = imageValidation.filter(image => !image.empty && !image.validSignature);
+  const imageEntrySamples = imageValidation.slice(0, 20);
+  const missingAssetSamples = referencesWithoutAssetPath.slice(0, 20);
+  const productsHaveImages = imageReferences.length > 0;
   const hasImagesFolder = imageEntries.length > 0;
+  const imageAssetsComplete = (
+    referencesWithoutUrl.length === 0
+    && referencesWithoutAssetPath.length === 0
+    && missingAssetPaths.length === 0
+    && emptyImageEntries.length === 0
+    && invalidImageEntries.length === 0
+  );
   const zipError = productsJsonError
     || (!contentLengthMatches ? 'CONTENT_LENGTH_MISMATCH' : '')
     || (!zipSignature ? 'ZIP_SIGNATURE_INVALID' : '')
     || (!hasProductsJson ? 'PRODUCTS_JSON_MISSING' : '')
     || (productsHaveImages && !hasImagesFolder ? 'IMAGES_FOLDER_MISSING' : '')
-    || (missingAssetPaths.length > 0 ? 'MISSING_ASSET_PATHS' : '');
+    || (referencesWithoutUrl.length > 0 ? 'IMAGE_REFERENCES_WITHOUT_URL' : '')
+    || (referencesWithoutAssetPath.length > 0 ? 'IMAGE_REFERENCES_WITHOUT_ASSET_PATH' : '')
+    || (missingAssetPaths.length > 0 ? 'MISSING_ASSET_PATHS' : '')
+    || (emptyImageEntries.length > 0 ? 'EMPTY_IMAGE_ENTRIES' : '')
+    || (invalidImageEntries.length > 0 ? 'INVALID_IMAGE_ENTRIES' : '');
 
   return {
     ok: !zipError,
+    imageAssetsComplete,
     bytes: buffer.length,
     contentType: headers['content-type'] || '',
     contentLengthHeader,
@@ -214,9 +313,20 @@ const validateZip = (buffer, headers) => {
     entryCount: names.length,
     productCount: products.length,
     imageEntryCount: imageEntries.length,
+    metadataImageCount: imageReferences.length,
+    metadataImagesWithUrl: referencesWithUrl.length,
+    metadataImagesWithoutUrl: referencesWithoutUrl.length,
+    metadataImagesWithAssetPath: referencesWithUrl.length - referencesWithoutAssetPath.length,
+    metadataImagesWithoutAssetPath: referencesWithoutAssetPath.length,
+    uniqueReferencedAssetPathCount: uniqueReferencedAssetPaths.length,
+    emptyImageEntryCount: emptyImageEntries.length,
+    invalidImageEntryCount: invalidImageEntries.length,
+    downloadedImageBytes: imageValidation.reduce((total, image) => total + image.bytes, 0),
     hasProductsJson,
     hasImagesFolder,
     missingAssetPaths,
+    missingAssetSamples,
+    imageEntrySamples,
   };
 };
 
@@ -329,6 +439,8 @@ const cancelJob = async (token, jobId) => {
   }
 };
 
+const zipOutputPath = process.env.EXPORT_ZIP_OUTPUT_PATH || '';
+
 const downloadAndValidate = async (token, job) => {
   const context = await request.newContext({
     baseURL: targetBaseUrl,
@@ -348,7 +460,13 @@ const downloadAndValidate = async (token, job) => {
       throw new Error(`ASYNC_DOWNLOAD_FAILED_${response.status()}`);
     }
 
-    const result = validateZip(await response.body(), headers);
+    const zipBuffer = await response.body();
+    if (zipOutputPath) {
+      await fs.promises.writeFile(zipOutputPath, zipBuffer);
+      console.log('[ZIP OUTPUT]', zipOutputPath);
+    }
+
+    const result = validateZip(zipBuffer, headers);
     console.log('[ZIP RESULT]', JSON.stringify(result, null, 2));
     if (!result.ok) throw new Error(`ASYNC_ZIP_INVALID_${result.zipError}`);
   } finally {
@@ -390,6 +508,7 @@ const downloadAndValidate = async (token, job) => {
         $env:EXPORT_LIMIT = $Limit
         $env:EXPORT_MAX_WAIT_MINUTES = $MaxWaitMinutes
         $env:EXPORT_REQUEST_TIMEOUT_SECONDS = $RequestTimeoutSeconds
+        $env:EXPORT_ZIP_OUTPUT_PATH = $ZipOutputPath
         $_
     } | node -
 }
@@ -402,6 +521,7 @@ finally {
     Remove-Item Env:EXPORT_LIMIT -ErrorAction SilentlyContinue
     Remove-Item Env:EXPORT_MAX_WAIT_MINUTES -ErrorAction SilentlyContinue
     Remove-Item Env:EXPORT_REQUEST_TIMEOUT_SECONDS -ErrorAction SilentlyContinue
+    Remove-Item Env:EXPORT_ZIP_OUTPUT_PATH -ErrorAction SilentlyContinue
 
     try {
         Stop-Transcript | Out-Null
@@ -410,5 +530,8 @@ finally {
 
     Write-Host ""
     Write-Host "Report đã lưu tại: $reportPath" -ForegroundColor Green
+    if ($ZipOutputPath) {
+        Write-Host "ZIP đã lưu tại: $ZipOutputPath" -ForegroundColor Green
+    }
     Write-Host "PowerShell vẫn đang mở; không chạy exit." -ForegroundColor Green
 }

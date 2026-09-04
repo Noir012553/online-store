@@ -132,6 +132,41 @@ describe('Product export serialization', () => {
     }
   });
 
+  it('retries a transient remote image failure before adding the asset', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    let fetchAttempts = 0;
+    global.fetch = async () => {
+      fetchAttempts += 1;
+      if (fetchAttempts === 1) throw new Error('temporary remote image failure');
+      return new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), {
+        status: 200,
+        headers: { 'content-type': 'image/jpeg' },
+      });
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://example.invalid/retry.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+
+      expect(fetchAttempts).to.equal(2);
+      const archive = await fs.promises.readFile(filePath);
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it('includes dynamic fields and gallery images in CSV output', () => {
     const csv = convertProductsToCSV([serializeProductForExport(product)]);
 

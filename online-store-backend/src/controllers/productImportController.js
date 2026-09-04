@@ -65,10 +65,22 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
 
-const EXPORT_QUERY_TIMEOUT_MS = 30000;
+const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
+const EXPORT_QUERY_TIMEOUT_MS = Number.isFinite(configuredExportQueryTimeout) && configuredExportQueryTimeout > 0
+  ? configuredExportQueryTimeout
+  : 120000;
 const MAX_EXPORT_LOCALES = getActiveLangCodes().length;
 
-const withExportTimeout = (operation) => withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS);
+const withExportTimeout = (operation, operationName = 'unknown') => (
+  withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS).catch((error) => {
+    console.error('[EXPORT_QUERY_FAILED]', {
+      operation: operationName,
+      timeoutMs: EXPORT_QUERY_TIMEOUT_MS,
+      message: error.message,
+    });
+    throw error;
+  })
+);
 
 const buildCategoryNameQuery = (name) => {
   if (!name || typeof name !== 'string') return null;
@@ -83,6 +95,7 @@ const resolveProductExportFilter = async (category, brand) => {
       const categoryId = new mongoose.Types.ObjectId(category);
       const categoryExists = await withExportTimeout(
         Category.exists({ _id: categoryId, isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+        'category_exists',
       );
       if (!categoryExists) return null;
       filter.category = categoryId;
@@ -94,6 +107,7 @@ const resolveProductExportFilter = async (category, brand) => {
             .select('_id')
             .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
             .lean(),
+          'category_lookup',
         )
         : null;
       if (!categoryDoc) return null;
@@ -115,6 +129,7 @@ const getExportProductQuery = async filter => {
     ? null
     : await withExportTimeout(
       Category.distinct('_id', { isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+      'category_distinct',
     );
   return {
     ...filter,
@@ -135,6 +150,7 @@ const getExportProductBatch = async (exportFilter, limit, lastId = null) => (
       .limit(limit)
       .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
       .lean(),
+    'product_batch',
   )
 );
 
@@ -142,6 +158,7 @@ const createExportProductBatchStream = async (filter, limit) => {
   const exportFilter = await getExportProductQuery(filter);
   const matchedTotal = await withExportTimeout(
     Product.countDocuments(exportFilter).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+    'product_count',
   );
 
   return {
@@ -250,6 +267,7 @@ const getProductTranslationsForExport = async (products, locales, fallbacks, def
           .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
           .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
           .lean(),
+        'translation_cache',
       );
     } catch (error) {
       console.error('[EXPORT_TRANSLATION_CACHE_ERROR]', {
@@ -1389,7 +1407,10 @@ const getRequestedExportLocales = async (requestedLocales) => {
 
   let activeLocales = [];
   try {
-    activeLocales = (await withExportTimeout(LanguageService.getActiveLanguageCodes()))
+    activeLocales = (await withExportTimeout(
+      LanguageService.getActiveLanguageCodes(),
+      'active_languages',
+    ))
       .map(normalizeExportLocale)
       .filter(isSupportedLanguage);
   } catch (error) {
@@ -1402,6 +1423,7 @@ const getRequestedExportLocales = async (requestedLocales) => {
       Language.findOne({ isSystemDefault: true }, { code: 1 })
         .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
         .lean(),
+      'default_language',
     );
     const databaseDefaultLocale = normalizeExportLocale(databaseDefaultLanguage?.code);
     if (databaseDefaultLocale && isSupportedLanguage(databaseDefaultLocale)) {
@@ -1438,6 +1460,8 @@ const getPayloadBatches = payload => payload.products
 
 const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
+const EXPORT_IMAGE_FETCH_ATTEMPTS = 3;
+const EXPORT_IMAGE_RETRY_DELAY_MS = 1000;
 const EXPORT_DEBUG_IMAGES = process.env.EXPORT_DEBUG_IMAGES === 'true';
 const EXPORT_IMAGE_EXTENSIONS = {
   'image/jpeg': 'jpg',
@@ -1448,10 +1472,84 @@ const EXPORT_IMAGE_EXTENSIONS = {
   'image/svg+xml': 'svg',
 };
 
+const createExportImageStats = () => ({
+  productsWithImages: 0,
+  imageReferences: 0,
+  referencesWithUrl: 0,
+  referencesWithoutUrl: 0,
+  referencesWithAssetPath: 0,
+  referencesWithoutAssetPath: 0,
+  uniqueUrlsAttempted: 0,
+  uniqueUrlsSucceeded: 0,
+  uniqueUrlsSkipped: 0,
+  downloadedBytes: 0,
+  skippedByCode: {},
+  skippedSamples: [],
+  missingAssetSamples: [],
+});
+
+const getImageDebugContext = (product, image, imageIndex) => {
+  let parsedUrl = null;
+  try {
+    parsedUrl = image?.url ? new URL(image.url) : null;
+  } catch {
+    parsedUrl = null;
+  }
+
+  return {
+    productId: product.productId || null,
+    position: image?.position ?? imageIndex,
+    type: image?.type || null,
+    host: parsedUrl?.hostname || null,
+    path: parsedUrl?.pathname || null,
+  };
+};
+
+const recordImageSkip = (stats, error, context) => {
+  if (!stats) return;
+  const code = error.errorCode || error.code || 'failed';
+  stats.uniqueUrlsSkipped += 1;
+  stats.skippedByCode[code] = (stats.skippedByCode[code] || 0) + 1;
+  if (stats.skippedSamples.length < 20) {
+    stats.skippedSamples.push({
+      ...context,
+      code,
+      reason: error.details?.reason || error.message,
+    });
+  }
+};
+
+const hasValidImageSignature = (buffer, contentType) => {
+  if (contentType === 'image/jpeg') {
+    return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  }
+  if (contentType === 'image/png') {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (contentType === 'image/gif') {
+    return ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii'));
+  }
+  if (contentType === 'image/webp') {
+    return buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (contentType === 'image/avif') {
+    return buffer.subarray(4, 8).toString('ascii') === 'ftyp'
+      && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii'));
+  }
+  if (contentType === 'image/svg+xml') {
+    const text = buffer.subarray(0, 1024).toString('utf8').trimStart().toLowerCase();
+    return text.includes('<svg') || (text.startsWith('<?xml') && text.includes('<svg'));
+  }
+  return false;
+};
+
 const downloadExportImage = async (sourceUrl, requestSignal) => {
   const startedAt = Date.now();
   let parsedUrl;
   let responseStatus = null;
+  let responseContentType = null;
+  let totalBytes = 0;
   let outcome = 'failed';
 
   try {
@@ -1474,22 +1572,42 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
     }
 
     let response;
-    try {
-      response = await fetch(parsedUrl, {
-        headers: {
-          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'User-Agent': 'LaptopStoreExport/1.0',
-        },
-        signal: requestSignal
-          ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
-          : AbortSignal.timeout(30000),
-        redirect: 'follow',
-      });
-      responseStatus = response.status;
-    } catch (error) {
+    let lastFetchError = null;
+    for (let attempt = 1; attempt <= EXPORT_IMAGE_FETCH_ATTEMPTS; attempt += 1) {
+      try {
+        response = await fetch(parsedUrl, {
+          headers: {
+            Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'User-Agent': 'LaptopStoreExport/1.0',
+          },
+          signal: requestSignal
+            ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
+            : AbortSignal.timeout(30000),
+          redirect: 'follow',
+        });
+        responseStatus = response.status;
+        break;
+      } catch (error) {
+        lastFetchError = error;
+        if (requestSignal?.aborted || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
+          throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+            url: sourceUrl,
+            reason: error.message,
+            attempts: attempt,
+          });
+        }
+        await new Promise(resolve => setTimeout(
+          resolve,
+          EXPORT_IMAGE_RETRY_DELAY_MS * attempt,
+        ));
+      }
+    }
+
+    if (!response && lastFetchError) {
       throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
         url: sourceUrl,
-        reason: error.message,
+        reason: lastFetchError.message,
+        attempts: EXPORT_IMAGE_FETCH_ATTEMPTS,
       });
     }
 
@@ -1504,6 +1622,7 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
       .split(';')[0]
       .trim()
       .toLowerCase();
+    responseContentType = contentType;
     const extension = EXPORT_IMAGE_EXTENSIONS[contentType];
     if (!extension) {
       throw createExportError(502, 'EXPORT_IMAGE_TYPE_UNSUPPORTED', {
@@ -1529,7 +1648,6 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
 
     const reader = response.body.getReader();
     const chunks = [];
-    let totalBytes = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -1553,10 +1671,26 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
       });
     }
 
+    if (totalBytes === 0) {
+      throw createExportError(502, 'EXPORT_IMAGE_EMPTY', {
+        url: sourceUrl,
+      });
+    }
+
+    const buffer = Buffer.concat(chunks, totalBytes);
+    if (!hasValidImageSignature(buffer, contentType)) {
+      throw createExportError(502, 'EXPORT_IMAGE_CONTENT_INVALID', {
+        url: sourceUrl,
+        contentType,
+        bytes: totalBytes,
+      });
+    }
+
     outcome = 'success';
     return {
-      buffer: Buffer.concat(chunks, totalBytes),
+      buffer,
       extension,
+      contentType,
     };
   } catch (error) {
     outcome = error.errorCode || error.code || 'failed';
@@ -1567,6 +1701,8 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
         host: parsedUrl?.hostname || null,
         path: parsedUrl?.pathname || null,
         status: responseStatus,
+        contentType: responseContentType,
+        bytes: totalBytes,
         outcome,
         elapsedMs: Date.now() - startedAt,
       });
@@ -1574,7 +1710,13 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
   }
 };
 
-const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, requestSignal) => {
+const prepareExportBatchForArchive = async (
+  archive,
+  batch,
+  assetsByUrl,
+  requestSignal,
+  exportImageStats,
+) => {
   const preparedImagesByProduct = batch.map(product => (
     Array.isArray(product.images) ? [...product.images] : []
   ));
@@ -1582,7 +1724,14 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
   batch.forEach((product, productIndex) => {
     const images = Array.isArray(product.images) ? product.images : [];
+    if (images.length > 0 && exportImageStats) exportImageStats.productsWithImages += 1;
     images.forEach((image, imageIndex) => {
+      if (exportImageStats) {
+        exportImageStats.imageReferences += 1;
+        if (image?.url) exportImageStats.referencesWithUrl += 1;
+        else exportImageStats.referencesWithoutUrl += 1;
+      }
+
       if (image?.url) {
         imageTasks.push({ product, productIndex, image, imageIndex });
       }
@@ -1598,16 +1747,23 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
+        if (exportImageStats) exportImageStats.uniqueUrlsAttempted += 1;
+        const debugContext = getImageDebugContext(product, image, imageIndex);
         assetPromise = downloadExportImage(image.url, requestSignal)
           .then(({ buffer, extension }) => {
             const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
             archive.append(buffer, { name: assetPath });
+            if (exportImageStats) {
+              exportImageStats.uniqueUrlsSucceeded += 1;
+              exportImageStats.downloadedBytes += buffer.length;
+            }
             return assetPath;
           })
           .catch((error) => {
             if (requestSignal?.aborted) throw error;
+            recordImageSkip(exportImageStats, error, debugContext);
             console.warn('[EXPORT_IMAGE_ASSET_SKIPPED]', {
-              url: image.url,
+              ...debugContext,
               code: error.errorCode,
               message: error.message,
               reason: error.details?.reason,
@@ -1634,10 +1790,25 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
   return batch.map((product, productIndex) => {
     const preparedImages = preparedImagesByProduct[productIndex];
+    const imageAssetPaths = uniqueValues(preparedImages.map(image => image?.assetPath));
+
+    if (exportImageStats) {
+      exportImageStats.referencesWithAssetPath += preparedImages.filter(image => image?.assetPath).length;
+      exportImageStats.referencesWithoutAssetPath += preparedImages.filter(image => (
+        image?.url && !image?.assetPath
+      )).length;
+      preparedImages
+        .filter(image => image?.url && !image?.assetPath)
+        .slice(0, Math.max(0, 20 - exportImageStats.missingAssetSamples.length))
+        .forEach(image => {
+          exportImageStats.missingAssetSamples.push(getImageDebugContext(product, image));
+        });
+    }
+
     return {
       ...product,
       images: preparedImages,
-      imageAssetPaths: uniqueValues(preparedImages.map(image => image?.assetPath)),
+      imageAssetPaths,
     };
   });
 };
@@ -1676,6 +1847,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
           batch,
           assetsByUrl,
           payload.exportAbortSignal,
+          payload.exportImageStats,
         );
         const rows = preparedBatch.map(product => convertProductToCSVRow(product, headers));
         if (rows.length) {
@@ -1694,6 +1866,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
   delete metadata.products;
   delete metadata.productBatches;
   delete metadata.exportAbortSignal;
+  delete metadata.exportImageStats;
   const metadataJSON = JSON.stringify(metadata);
   const jsonPrefix = metadataJSON === '{}'
     ? '{"products":['
@@ -1707,6 +1880,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
         batch,
         assetsByUrl,
         payload.exportAbortSignal,
+        payload.exportImageStats,
       );
       const serializedBatch = preparedBatch.map(product => JSON.stringify(product)).join(',');
       if (serializedBatch) {
@@ -1742,6 +1916,7 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   try {
     archive.pipe(output);
     await appendExportContent(archive, payload, contentFormat);
+    console.info('[EXPORT_IMAGE_SUMMARY]', payload.exportImageStats);
     await archive.finalize();
     await streamFinished;
   } catch (error) {
@@ -1863,6 +2038,7 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
     locales,
     filters: { category: category || null, brand: brand || null },
     exportAbortSignal: exportAbortController.signal,
+    exportImageStats: createExportImageStats(),
     productBatches,
   };
 };

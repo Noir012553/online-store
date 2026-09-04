@@ -17,6 +17,10 @@ const sendApiError = (res, req, statusCode, code, messageKey = 'common.error_req
 };
 
 const notFound = (req, res, next) => {
+  console.warn('[ROUTE_NOT_FOUND]', {
+    method: req.method,
+    path: req.path || (req.originalUrl || req.url).split('?')[0],
+  });
   const error = new Error(getMessage(req.lang, 'common.not_found_title'));
   error.errorCode = 'ROUTE_NOT_FOUND';
   error.exposeMessage = true;
