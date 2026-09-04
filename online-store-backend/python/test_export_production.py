@@ -1,15 +1,14 @@
-"""Production export diagnostics using Playwright's async HTTP client."""
-
 import argparse
 import asyncio
 import json
 import os
+import re
 import sys
+import tempfile
 import time
 import zipfile
-from io import BytesIO
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
@@ -35,6 +34,21 @@ IMAGE_SIGNATURES = {
     ".avif": lambda data: data[4:8] == b"ftyp" and data[8:12] in {b"avif", b"avis"},
 }
 
+TUNNEL_MARKERS = (
+    "timeout: no recent network activity",
+    "failed to accept quic stream",
+    "connection terminated",
+    "context canceled",
+    "application error 0x0",
+    "unable to reach the origin service",
+)
+
+
+class ExportTestFailure(RuntimeError):
+    def __init__(self, message, report):
+        super().__init__(message)
+        self.report = report
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Check product export with Python Playwright")
@@ -50,8 +64,10 @@ def parse_args():
     parser.add_argument("--format", choices=("json", "csv"), default="json")
     parser.add_argument("--max-wait-minutes", type=float, default=30)
     parser.add_argument("--request-timeout-seconds", type=float, default=120)
+    parser.add_argument("--poll-interval-seconds", type=float, default=5)
     parser.add_argument("--email-env", default="EXPORT_TEST_EMAIL")
     parser.add_argument("--password-env", default="EXPORT_TEST_PASSWORD")
+    parser.add_argument("--tunnel-log", type=Path, help="Optional cloudflared log to scan for transport errors")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--zip-output", type=Path)
     return parser.parse_args()
@@ -59,24 +75,27 @@ def parse_args():
 
 def safe_json(value):
     try:
-        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True)
     except TypeError:
-        return str(value)
+        text = str(value)
+    text = re.sub(r"Bearer\s+\S+", "Bearer [REDACTED]", text, flags=re.IGNORECASE)
+    return re.sub(r"\beyJ[a-zA-Z0-9._-]+\b", "[REDACTED]", text)
 
 
 def image_signature_is_valid(name, data):
     suffix = Path(name).suffix.lower()
     validator = IMAGE_SIGNATURES.get(suffix)
-    return validator(data) if validator else True
+    return validator(data) if validator else False
 
 
-def validate_zip(payload, headers):
+def validate_zip(zip_path, headers):
+    content_length = headers.get("content-length", "")
     result = {
         "ok": False,
-        "bytes": len(payload),
-        "contentLengthHeader": headers.get("content-length", ""),
-        "contentLengthMatches": headers.get("content-length", "").isdigit()
-        and int(headers["content-length"]) == len(payload),
+        "bytes": zip_path.stat().st_size,
+        "contentLengthHeader": content_length,
+        "contentLengthMatches": content_length.isdigit()
+        and int(content_length) == zip_path.stat().st_size,
         "productCount": 0,
         "imageReferences": 0,
         "referencesWithAssetPath": 0,
@@ -90,7 +109,7 @@ def validate_zip(payload, headers):
     }
 
     try:
-        with zipfile.ZipFile(BytesIO(payload)) as archive:
+        with zipfile.ZipFile(zip_path) as archive:
             bad_entry = archive.testzip()
             if bad_entry:
                 result["zipError"] = f"ZIP_CRC_INVALID:{bad_entry}"
@@ -144,13 +163,46 @@ def validate_zip(payload, headers):
                 asset_path for asset_path in referenced_assets if asset_path not in names
             )
             result["translationLocales"] = sorted(set(result["translationLocales"]))
-            result["ok"] = not result["zipError"] and not result["missingAssetPaths"] and not result[
-                "emptyImageEntryCount"
-            ] and not result["invalidImageEntryCount"]
+            result["ok"] = (
+                result["contentLengthMatches"]
+                and not result["zipError"]
+                and not result["missingAssetPaths"]
+                and not result["emptyImageEntryCount"]
+                and not result["invalidImageEntryCount"]
+            )
     except (OSError, ValueError, KeyError, zipfile.BadZipFile, json.JSONDecodeError) as error:
         result["zipError"] = f"{type(error).__name__}:{error}"
 
     return result
+
+
+def scan_tunnel_log(log_path):
+    if not log_path:
+        return None
+    if not log_path.exists():
+        return {"path": str(log_path), "error": "TUNNEL_LOG_NOT_FOUND"}
+
+    counts = {marker: 0 for marker in TUNNEL_MARKERS}
+    try:
+        for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            lowered = line.lower()
+            for marker in TUNNEL_MARKERS:
+                if marker in lowered:
+                    counts[marker] += 1
+    except OSError as error:
+        return {"path": str(log_path), "error": f"TUNNEL_LOG_READ_FAILED:{error}"}
+
+    return {
+        "path": str(log_path),
+        "markers": {marker: count for marker, count in counts.items() if count},
+        "totalMatches": sum(counts.values()),
+    }
+
+
+def origin_matches(base_url, candidate_url):
+    base = urlparse(base_url)
+    candidate = urlparse(candidate_url)
+    return (base.scheme, base.netloc) == (candidate.scheme, candidate.netloc)
 
 
 async def read_response_body(response):
@@ -158,6 +210,56 @@ async def read_response_body(response):
         return await response.json()
     except (ValueError, PlaywrightError):
         return {"raw": (await response.text())[:2000]}
+
+
+async def cancel_job(request, headers, base_url, job_id, report):
+    try:
+        response = await request.post(
+            f"/api/products/admin/export-jobs/{job_id}/cancel",
+            headers=headers,
+        )
+        report["events"].append({"event": "cancel", "status": response.status})
+        print(f"[cancel] HTTP {response.status}")
+    except PlaywrightError as error:
+        report["events"].append({"event": "cancel_transport_error", "error": str(error).split("\nCall log:")[0]})
+        print(f"[cancel] transport error: {report['events'][-1]['error']}")
+
+
+async def download_zip(playwright, base_url, headers, download_url, output_path, timeout_ms, report):
+    browser = await playwright.chromium.launch(headless=True)
+    context = await browser.new_context(extra_http_headers=headers, accept_downloads=True)
+    page = await context.new_page()
+    response_holder = {}
+
+    def remember_response(response):
+        if response.request.method == "GET" and urlparse(response.url).path == urlparse(download_url).path:
+            response_holder["response"] = response
+
+    page.on("response", remember_response)
+    try:
+        async with page.expect_download(timeout=timeout_ms) as download_info:
+            await page.goto(download_url, wait_until="commit", timeout=timeout_ms)
+        download = await download_info.value
+        await download.save_as(str(output_path))
+    finally:
+        page.remove_listener("response", remember_response)
+        await context.close()
+        await browser.close()
+
+    response = response_holder.get("response")
+    if not response:
+        raise RuntimeError("DOWNLOAD_RESPONSE_NOT_OBSERVED")
+    if response.status != 200:
+        raise RuntimeError(f"DOWNLOAD_FAILED_{response.status}")
+
+    headers_result = await response.all_headers()
+    report["events"].append({
+        "event": "download",
+        "status": response.status,
+        "contentLength": headers_result.get("content-length", ""),
+        "bytes": output_path.stat().st_size,
+    })
+    return headers_result
 
 
 async def run_check(args):
@@ -169,13 +271,15 @@ async def run_check(args):
         or os.environ.get("EXPORT_BACKEND_BASE_URL")
         or DEFAULT_URLS[args.environment]["backend"],
     }
-    base_url = args.base_url or target_urls[args.target]
+    base_url = (args.base_url or target_urls[args.target]).rstrip("/")
     email = os.environ.get(args.email_env)
     password = os.environ.get(args.password_env)
     if not email or not password:
-        raise RuntimeError("Set EXPORT_TEST_EMAIL and EXPORT_TEST_PASSWORD before running the check")
+        raise RuntimeError(f"Set {args.email_env} and {args.password_env} before running the check")
     if args.limit < 1 or args.limit > 10000:
         raise RuntimeError("--limit must be between 1 and 10000")
+    if args.max_wait_minutes <= 0 or args.poll_interval_seconds <= 0:
+        raise RuntimeError("Wait and poll intervals must be greater than zero")
 
     timeout_ms = int(args.request_timeout_seconds * 1000)
     deadline = time.monotonic() + args.max_wait_minutes * 60
@@ -189,10 +293,14 @@ async def run_check(args):
         "brand": args.brand,
         "events": [],
         "result": None,
+        "tunnel": None,
     }
 
     async with async_playwright() as playwright:
         request = await playwright.request.new_context(base_url=base_url, timeout=timeout_ms)
+        token = None
+        job_id = None
+        job = None
         try:
             started_at = time.monotonic()
             login_response = await request.post("/api/users/login", data={"email": email, "password": password})
@@ -202,6 +310,7 @@ async def run_check(args):
                 "status": login_response.status,
                 "elapsedMs": round((time.monotonic() - started_at) * 1000),
             })
+            print(f"[login] HTTP {login_response.status}")
             if login_response.status != 200:
                 raise RuntimeError(f"LOGIN_FAILED_{login_response.status}: {safe_json(login_body)}")
 
@@ -220,6 +329,7 @@ async def run_check(args):
                 export_params["category"] = args.category
             if args.brand and args.brand != "all":
                 export_params["brand"] = args.brand
+
             started_at = time.monotonic()
             enqueue_response = await request.get(
                 "/api/products/admin/export-bundle",
@@ -232,16 +342,16 @@ async def run_check(args):
                 "status": enqueue_response.status,
                 "elapsedMs": round((time.monotonic() - started_at) * 1000),
             })
+            print(f"[enqueue] HTTP {enqueue_response.status}")
             if enqueue_response.status != 202:
-                raise RuntimeError(
-                    f"ENQUEUE_FAILED_{enqueue_response.status}: {safe_json(enqueue_body)}"
-                )
+                raise RuntimeError(f"ENQUEUE_FAILED_{enqueue_response.status}: {safe_json(enqueue_body)}")
 
             job_id = enqueue_body.get("jobId")
             if not job_id:
                 raise RuntimeError("ASYNC_JOB_ID_MISSING")
+            print(f"[job] {job_id}")
 
-            job = None
+            previous_status = None
             while time.monotonic() < deadline:
                 poll_started_at = time.monotonic()
                 try:
@@ -257,77 +367,100 @@ async def run_check(args):
                     }
                     report["events"].append(event)
                     if status_response.status != 200:
-                        print(f"[POLL {status_response.status}] {safe_json(status_body)[:500]}")
-                        await asyncio.sleep(5)
+                        print(f"[poll] HTTP {status_response.status}")
+                        await asyncio.sleep(args.poll_interval_seconds)
                         continue
+
                     job = status_body.get("job", status_body)
                     event["jobStatus"] = job.get("status")
                     event["attempts"] = job.get("attempts")
-                    print(f"[JOB {job.get('status')}] attempts={job.get('attempts')}")
+                    if job.get("status") != previous_status:
+                        previous_status = job.get("status")
+                        print(f"[poll] status={previous_status} attempts={job.get('attempts')}")
                     if job.get("status") == "ready":
                         break
                     if job.get("status") in {"failed", "cancelled"}:
-                        raise RuntimeError(f"ASYNC_JOB_{job['status'].upper()}: {job.get('errorMessage')}")
+                        raise RuntimeError(
+                            f"ASYNC_JOB_{job['status'].upper()}: {job.get('errorMessage')}"
+                        )
                 except PlaywrightError as error:
-                    report["events"].append({
-                        "event": "poll_transport_error",
-                        "error": str(error).split("\nCall log:")[0],
-                    })
-                    print(f"[POLL TRANSPORT ERROR] {report['events'][-1]['error']}")
-                await asyncio.sleep(5)
+                    message = str(error).split("\nCall log:")[0]
+                    report["events"].append({"event": "poll_transport_error", "error": message})
+                    print(f"[poll] transport error: {message}")
+                await asyncio.sleep(args.poll_interval_seconds)
 
             if not job or job.get("status") != "ready":
+                await cancel_job(request, headers, base_url, job_id, report)
                 raise RuntimeError("ASYNC_JOB_TIMEOUT_OR_STATUS_UNAVAILABLE")
 
-            download_url = job.get("downloadUrl") or f"/api/products/admin/export-jobs/{job_id}/download"
-            download_started_at = time.monotonic()
-            download_response = await request.get(urljoin(base_url, download_url), headers=headers, timeout=int(args.max_wait_minutes * 60 * 1000))
-            download_elapsed_ms = round((time.monotonic() - download_started_at) * 1000)
-            report["events"].append({
-                "event": "download",
-                "status": download_response.status,
-                "elapsedMs": download_elapsed_ms,
-            })
-            if download_response.status != 200:
-                body = await read_response_body(download_response)
-                raise RuntimeError(f"DOWNLOAD_FAILED_{download_response.status}: {safe_json(body)}")
+            raw_download_url = job.get("downloadUrl") or f"/api/products/admin/export-jobs/{job_id}/download"
+            download_url = urljoin(base_url + "/", raw_download_url)
+            report["downloadUrl"] = download_url
+            report["downloadOriginMatchesTarget"] = origin_matches(base_url, download_url)
+            print(f"[download] {download_url}")
+            if not report["downloadOriginMatchesTarget"]:
+                print("[download] origin differs from target; allowed for configured external storage")
 
-            payload = await download_response.body()
-            if args.zip_output:
-                args.zip_output.parent.mkdir(parents=True, exist_ok=True)
-                args.zip_output.write_bytes(payload)
-            zip_result = validate_zip(payload, download_response.headers)
-            report["result"] = {
-                "jobId": job_id,
-                "job": job,
-                "zip": zip_result,
-            }
-            if not zip_result["ok"]:
-                raise RuntimeError(f"ZIP_INVALID: {safe_json(zip_result)}")
+            with tempfile.TemporaryDirectory(prefix="export-test-") as temp_dir:
+                zip_path = args.zip_output or Path(temp_dir) / f"products-export-{job_id}.zip"
+                zip_path.parent.mkdir(parents=True, exist_ok=True)
+                download_headers = await download_zip(
+                    playwright,
+                    base_url,
+                    headers,
+                    download_url,
+                    zip_path,
+                    max(timeout_ms, int(args.max_wait_minutes * 60 * 1000)),
+                    report,
+                )
+                zip_result = validate_zip(zip_path, download_headers)
+                report["result"] = {
+                    "jobId": job_id,
+                    "job": job,
+                    "zipPath": str(zip_path) if args.zip_output else None,
+                    "zip": zip_result,
+                }
+                print(f"[validate] valid={zip_result['ok']} products={zip_result['productCount']} images={zip_result['imageEntryCount']}")
+                if not zip_result["ok"]:
+                    raise RuntimeError(f"ZIP_INVALID: {safe_json(zip_result)}")
+
+            report["tunnel"] = scan_tunnel_log(args.tunnel_log)
             return report
+        except ExportTestFailure:
+            raise
+        except Exception as error:
+            report["result"] = {
+                "ok": False,
+                "jobId": job_id,
+                "error": str(error),
+            }
+            report["tunnel"] = scan_tunnel_log(args.tunnel_log)
+            raise ExportTestFailure(str(error), report) from error
         finally:
             await request.dispose()
 
 
-def print_report(report):
-    print("[TARGET]", report["target"])
-    print("[RESULT]", safe_json(report.get("result")))
-    for event in report["events"]:
-        print("[EVENT]", safe_json(event))
+def write_report(path, report):
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[report] {path}")
 
 
 async def main():
     args = parse_args()
     try:
         report = await run_check(args)
-        print_report(report)
-        if args.report:
-            args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        write_report(args.report, report)
         print("[FINAL RESULT] PASS")
         return 0
-    except (RuntimeError, PlaywrightError) as error:
+    except ExportTestFailure as error:
+        write_report(args.report, error.report)
         print(f"[FINAL RESULT] FAIL\n[ERROR] {error}")
+        return 1
+    except (RuntimeError, PlaywrightError) as error:
+        print(f"[FINAL RESULT] FAIL\n[ERROR] {safe_json(error)}")
         return 1
 
 
