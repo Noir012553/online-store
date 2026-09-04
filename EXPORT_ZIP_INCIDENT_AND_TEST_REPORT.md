@@ -1882,3 +1882,436 @@ Startup:
 ```
 
 Không nên dùng synchronous export `limit=10000` qua Cloudflare. Async job là hướng phù hợp vì request enqueue trả nhanh, worker xử lý độc lập với timeout HTTP/proxy và chỉ download file sau khi ZIP đã hoàn tất. Trong worker, product được đọc theo các batch keyset độc lập; không giữ MongoDB cursor trong lúc tải ảnh hoặc ghi ZIP.
+
+---
+
+## 15. Đợt kiểm thử mới nhất sau khi tải source copy 5
+
+### 15.1. Mục tiêu
+
+Đợt kiểm thử này xác nhận riêng các điểm sau:
+
+- Backend source mới khởi động được bằng `npm run dev` hoặc `npm start`.
+- Frontend local gọi qua Next.js rewrite tới backend local.
+- Async export hoạt động qua frontend local.
+- Ảnh chính và toàn bộ ảnh gallery/detail được tải thành binary vào ZIP.
+- `products.json` trỏ đúng tới `assets/images/...`.
+- Validator không chỉ đếm tên file mà còn đọc binary, kiểm tra kích thước và magic bytes.
+- Theo dõi riêng timeout database, timeout chờ job, lỗi proxy và lỗi tải ảnh Cloudinary.
+
+Không chạy `npm run build` trong đợt kiểm thử này.
+
+### 15.2. Môi trường và bảo mật credential
+
+```text
+Workspace:       E:\Dev Camp\26-4-5 copy 5
+Backend:         E:\Dev Camp\26-4-5 copy 5\online-store-backend
+Frontend:        E:\Dev Camp\26-4-5 copy 5\online-store-frontend
+PowerShell:      Windows PowerShell 5.1
+Backend port:    5000
+Frontend port:   3000
+Credential:      $HOME\.online-store-export-credential.xml
+Credential type: Windows DPAPI Import-Clixml
+```
+
+Email/password không được hard-code trong lệnh. Script `test-export-production.ps1` đọc credential từ file DPAPI và tự dọn các biến môi trường sau khi chạy.
+
+### 15.3. Quy trình test 4 terminal
+
+#### Terminal 1 — backend debug
+
+Backend được resolve động từ thư mục hiện tại, sau đó chạy:
+
+```powershell
+$env:PORT = "5000"
+$env:EXPORT_DEBUG_IMAGES = "true"
+npm run dev
+```
+
+Kết quả readiness:
+
+```text
+[STARTUP] backend ready
+```
+
+`EXPORT_DEBUG_IMAGES=true` chỉ phù hợp với `limit=1` hoặc `limit=10` để quan sát từng lần tải ảnh. Khi chạy qua đêm hoặc chạy nhiều trăm sản phẩm nên dùng `false`; summary ảnh vẫn được ghi.
+
+#### Terminal 2 — readiness và export metrics
+
+Monitor gọi định kỳ:
+
+```text
+GET http://127.0.0.1:5000/readyz
+GET http://127.0.0.1:5000/api/health/exports
+```
+
+Metric đúng của backend là `enqueued`, không phải `queued`:
+
+```text
+ready=ready; database=True; startup=True; storage=True; enqueued=1; started=1; succeeded=1; failed=0
+```
+
+Terminal này chạy vô hạn có chủ đích; dừng bằng `Ctrl+C` khi không cần monitor nữa.
+
+#### Terminal 3 — frontend local
+
+```powershell
+Set-Location $frontendRoot
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:5000"
+npm run dev
+```
+
+Frontend chạy tại `http://127.0.0.1:3000`. Next.js rewrite chuyển `/api/...` tới backend local. Đây là test qua frontend proxy, không phải gọi trực tiếp backend.
+
+#### Terminal 4 — async export qua frontend proxy
+
+Lệnh thực tế dùng cho test nhỏ:
+
+```powershell
+& $exportScript `
+    -Environment local `
+    -Target frontend `
+    -FrontendBaseUrl "http://127.0.0.1:3000" `
+    -BackendBaseUrl "http://127.0.0.1:5000" `
+    -Limit 10 `
+    -MaxWaitMinutes 60 `
+    -RequestTimeoutSeconds 120 `
+    -CredentialPath $credentialPath `
+    -SaveZip
+```
+
+Luồng bắt buộc:
+
+```text
+login HTTP 200
+-> enqueue HTTP 202
+-> queued
+-> processing
+-> ready
+-> download HTTP 200
+-> đọc và validate ZIP
+```
+
+`-SaveZip` lưu ZIP thật lên Desktop. Mỗi lần chạy tạo report riêng và một file ZIP riêng; không chạy đồng thời nhiều job cho cùng một lần kiểm tra.
+
+### 15.4. Kết quả local async `limit=1`
+
+Job:
+
+```text
+Job ID:              6a9a312b62138bc691f27f29
+Target:              http://127.0.0.1:3000
+Backend config:      http://127.0.0.1:5000
+Login:               HTTP 200
+Enqueue:             HTTP 202
+Lifecycle:           queued -> ready
+Attempts:            1
+Download:            HTTP 200
+ZIP size:            1240831 bytes
+```
+
+Thống kê ảnh từ backend:
+
+```text
+productsWithImages:       1
+imageReferences:          8
+referencesWithUrl:        8
+referencesWithoutUrl:     0
+referencesWithAssetPath:  8
+referencesWithoutAssetPath: 0
+uniqueUrlsAttempted:      8
+uniqueUrlsSucceeded:      8
+uniqueUrlsSkipped:        0
+downloadedBytes:          1280839
+```
+
+Validator ZIP:
+
+```text
+ok:                       true
+imageAssetsComplete:      true
+productCount:             1
+imageEntryCount:          8
+metadataImageCount:       8
+emptyImageEntryCount:     0
+invalidImageEntryCount:   0
+missingAssetPaths:        []
+FINAL RESULT:             PASS
+```
+
+File kết quả:
+
+```text
+Report: C:\Users\manku\OneDrive\Desktop\export-zip-local-frontend-1-20260904-094704.log
+ZIP:    C:\Users\manku\OneDrive\Desktop\products-export-local-frontend-1-20260904-094704.zip
+```
+
+Kết luận: ảnh chính và 7 ảnh gallery/detail của sản phẩm test đều được tải về, có binary hợp lệ và được ghi vào ZIP.
+
+### 15.5. Kết quả local async `limit=10`
+
+Job:
+
+```text
+Job ID:              6a9a370b62138bc691f27f2a
+Target:              http://127.0.0.1:3000
+Backend config:      http://127.0.0.1:5000
+Login:               HTTP 200
+Enqueue:             HTTP 202
+Lifecycle:           queued -> processing -> ready
+Attempts:            1
+Job elapsed:         26181ms
+Download:            HTTP 200
+ZIP size:            9895910 bytes
+```
+
+Thống kê ảnh:
+
+```text
+productsWithImages:       10
+imageReferences:          64
+referencesWithUrl:        64
+referencesWithoutUrl:     0
+referencesWithAssetPath:  64
+referencesWithoutAssetPath: 0
+uniqueUrlsAttempted:      64
+uniqueUrlsSucceeded:      64
+uniqueUrlsSkipped:        0
+downloadedBytes:          10007801
+skippedByCode:            {}
+```
+
+Validator ZIP:
+
+```text
+ok:                       true
+imageAssetsComplete:      true
+productCount:             10
+imageEntryCount:          64
+metadataImageCount:       64
+metadataImagesWithUrl:    64
+metadataImagesWithoutUrl: 0
+metadataImagesWithAssetPath: 64
+metadataImagesWithoutAssetPath: 0
+uniqueReferencedAssetPathCount: 64
+emptyImageEntryCount:     0
+invalidImageEntryCount:   0
+hasProductsJson:          true
+hasImagesFolder:          true
+missingAssetPaths:        []
+FINAL RESULT:             PASS
+```
+
+File kết quả:
+
+```text
+Report: C:\Users\manku\OneDrive\Desktop\export-zip-local-frontend-10-20260904-101210.log
+ZIP:    C:\Users\manku\OneDrive\Desktop\products-export-local-frontend-10-20260904-101210.zip
+```
+
+Kết luận: test 10 sản phẩm xác nhận cả ảnh chính và gallery/detail đều có binary hợp lệ. Không có dấu hiệu lỗi do số lượng 64 ảnh trong một job.
+
+### 15.6. Các vấn đề phát sinh trong đợt test local
+
+#### PowerShell tách rời `else`
+
+Khi dán đoạn sau từng phần vào PowerShell interactive:
+
+```powershell
+$port = if ($env:PORT) {
+    [int]$env:PORT
+}
+else {
+    5000
+}
+```
+
+PowerShell đã kết thúc câu lệnh sau dấu `}` đầu tiên nên coi `else` là lệnh mới:
+
+```text
+else : The term 'else' is not recognized
+```
+
+Hậu quả là `$port` rỗng và monitor tạo URL sai:
+
+```text
+http://127.0.0.1:/readyz
+http://127.0.0.1:/api/health/exports
+```
+
+Cách xử lý: dùng trực tiếp `$port = 5000` hoặc dán nguyên block hoàn chỉnh, không dán riêng `else`/`finally`.
+
+#### Monitor đọc nhầm metric `queued`
+
+Backend không phát hành `counters.queued`; backend phát hành `counters.enqueued`. Vì vậy log cũ hiển thị:
+
+```text
+queued=
+```
+
+Đây chỉ là lỗi hiển thị của monitor. Sau khi đổi sang `enqueued`, kết quả đúng là:
+
+```text
+enqueued=1; started=1; succeeded=1; failed=0
+```
+
+#### `ROUTE_NOT_FOUND` sau export thành công
+
+Backend đôi lúc ghi:
+
+```text
+[ErrorHandler] Error: Không tìm thấy trang
+errorCode: 'ROUTE_NOT_FOUND'
+```
+
+Trong các lần local `limit=1` và `limit=10`, lỗi này xuất hiện sau hoặc xen giữa quá trình xử lý nhưng không làm hỏng job:
+
+```text
+[EXPORT_JOB_READY]
+[DOWNLOAD STATUS] 200
+[FINAL RESULT] PASS
+```
+
+Hiện chưa có `method` và request URL trong log 404 nên chưa xác định được route phụ nào gây ra. Không dùng lỗi này làm bằng chứng ZIP lỗi.
+
+### 15.7. Đợt test trực tiếp từ giao diện production và timeout mới nhất
+
+Backend local được khởi động bằng:
+
+```powershell
+npm start
+```
+
+Startup thành công:
+
+```text
+[STARTUP] backend ready
+```
+
+Tuy nhiên trong lần test này xuất hiện hai timeout database khác nhau.
+
+Timeout thứ nhất:
+
+```text
+Database operation timed out after 10000ms
+```
+
+Đây là một thao tác database riêng dùng timeout 10 giây, phát sinh tại:
+
+```text
+src/utils/mongooseUtils.js:26
+```
+
+Timeout ảnh hưởng trực tiếp export:
+
+```text
+[EXPORT_ZIP_OUTPUT_ERROR] {
+  message: 'Database operation timed out after 30000ms'
+}
+```
+
+Attempt 1 kết thúc:
+
+```text
+[EXPORT_JOB_FAILED]
+attempt: 1
+durationMs: 34093
+message: Database operation timed out after 30000ms
+```
+
+Ý nghĩa:
+
+```text
+Timeout truy vấn export: 30 giây
+Thời gian attempt thực tế: khoảng 34,1 giây
+```
+
+Khoảng 34,1 giây bao gồm thời gian xử lý lỗi, đóng stream và cập nhật trạng thái job; timeout cấu hình vẫn là 30 giây.
+
+Worker không dừng ngay sau attempt 1 mà retry:
+
+```text
+[EXPORT_JOB_STARTED] ... attempt: 1
+[EXPORT_JOB_FAILED]  ... attempt: 1
+[EXPORT_JOB_STARTED] ... attempt: 2
+```
+
+Backend cho phép tối đa 3 attempts:
+
+```js
+const MAX_ATTEMPTS = 3;
+```
+
+Vì vậy phải chờ log attempt 2 hoặc attempt 3 để biết trạng thái cuối cùng. `MaxWaitMinutes` của PS1 là timeout phía client khi polling, khác với timeout truy vấn MongoDB 30 giây.
+
+### 15.8. Lỗi tải ảnh trong attempt retry production
+
+Trong attempt 2 xuất hiện:
+
+```text
+[EXPORT_IMAGE_ASSET_SKIPPED]
+code: 'EXPORT_IMAGE_DOWNLOAD_FAILED'
+reason: 'fetch failed'
+host: 'res.cloudinary.com'
+```
+
+Đây là lỗi fetch mạng/Cloudinary, không phải lỗi magic bytes. Log không có HTTP status nên chưa phân biệt được timeout mạng, connection reset hay Cloudinary đóng kết nối.
+
+Code hiện tại chủ động không làm fail toàn bộ export chỉ vì một ảnh remote lỗi:
+
+```js
+.catch((error) => {
+  recordImageSkip(exportImageStats, error, debugContext);
+  console.warn('[EXPORT_IMAGE_ASSET_SKIPPED]', ...);
+  return null;
+});
+```
+
+Do đó một attempt có thể vẫn chuyển sang `ready` nhưng thiếu asset ảnh. Tiêu chí kiểm tra cuối bắt buộc là:
+
+```text
+uniqueUrlsSkipped: 0
+referencesWithoutAssetPath: 0
+missingAssetPaths: []
+imageAssetsComplete: true
+```
+
+Nếu một ảnh bị skip thì không được kết luận ZIP đầy đủ chỉ dựa trên `HTTP 200` hoặc số lượng entry.
+
+### 15.9. Phân loại timeout
+
+| Loại timeout | Giá trị | Phạm vi | Ý nghĩa |
+|---|---:|---|---|
+| Database operation riêng | 10 giây | Một request database | Có request phụ/truy vấn khác không hoàn tất trong 10 giây |
+| Export query | 30 giây | Mỗi truy vấn trong payload export | Truy vấn MongoDB export không hoàn tất trong thời gian cho phép |
+| Attempt thực tế | khoảng 34,1 giây | Toàn bộ attempt 1 | Bao gồm timeout, cleanup stream và cập nhật job |
+| Image fetch | 30 giây/ảnh | Một lần tải remote image | Ảnh không phản hồi đúng hạn sẽ bị skip |
+| PS1 request timeout | 120 giây | HTTP login/enqueue/status | Timeout của từng request từ script test |
+| PS1 max wait | 30–720 phút | Poll toàn bộ async job | Không phải timeout MongoDB; quá thời gian sẽ cancel job |
+
+### 15.10. Quyết định sau các kết quả mới
+
+```text
+limit=1 local async:    PASS, 8/8 ảnh hợp lệ
+limit=10 local async:   PASS, 64/64 ảnh hợp lệ
+limit=100 local async:  Bước kế tiếp cần chạy
+limit=500+:             Chỉ chạy sau khi limit=100 pass
+Sync export lớn:        Không dùng
+Async export lớn:       Dùng làm hướng chính
+Debug từng ảnh:         Chỉ bật cho test nhỏ
+Overnight:              Tắt EXPORT_DEBUG_IMAGES, giữ image summary
+```
+
+Không được coi `imageEntryCount > 0` là đủ. Kết luận export ảnh chỉ hợp lệ khi đồng thời đạt:
+
+```text
+products.json có
+images folder có
+metadataImagesWithAssetPath == metadataImageCount
+metadataImagesWithoutAssetPath == 0
+emptyImageEntryCount == 0
+invalidImageEntryCount == 0
+missingAssetPaths == []
+imageAssetsComplete == true
+FINAL RESULT == PASS
+```
