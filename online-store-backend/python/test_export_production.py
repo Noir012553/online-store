@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import csv
 import json
 import os
 import re
@@ -94,7 +95,14 @@ def image_signature_is_valid(name, data):
 
 def redact_url(value):
     parsed = urlparse(value)
-    return parsed._replace(query="", fragment="").geturl()
+    hostname = parsed.hostname or ""
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = f"[{hostname}]"
+    try:
+        port = f":{parsed.port}" if parsed.port else ""
+    except ValueError:
+        port = ""
+    return parsed._replace(netloc=f"{hostname}{port}", query="", fragment="").geturl()
 
 
 def safe_job(job):
@@ -145,9 +153,16 @@ def validate_zip(zip_path, headers, content_format):
                     result["zipError"] = "PRODUCTS_JSON_INVALID"
                     return result
                 products = parsed_products["products"]
-            elif "products.csv" not in names:
-                result["zipError"] = "PRODUCTS_CSV_MISSING"
-            result["productCount"] = len(products)
+            else:
+                if "products.csv" not in names:
+                    result["zipError"] = "PRODUCTS_CSV_MISSING"
+                else:
+                    csv_data = archive.read("products.csv").decode("utf-8-sig")
+                    rows = list(csv.reader(csv_data.splitlines()))
+                    if not rows or not any(cell.strip() for cell in rows[0]):
+                        result["zipError"] = "PRODUCTS_CSV_INVALID"
+                    result["productCount"] = max(0, len(rows) - 1)
+            result["productCount"] = len(products) if content_format == "json" else result["productCount"]
 
             referenced_assets = set()
             for product in products:
@@ -255,16 +270,18 @@ async def download_zip(playwright, base_url, headers, download_url, output_path,
     download_headers = {}
     download_status = None
     request_headers = headers if origin_matches(base_url, download_url) else {}
-    context = await browser.new_context(extra_http_headers=request_headers, accept_downloads=True)
-    page = await context.new_page()
+    context = None
+    page = None
     response_holder = {}
 
     def remember_response(response):
-        if response.request.method == "GET" and urlparse(response.url).path == urlparse(download_url).path:
+        if response.request.method == "GET":
             response_holder["response"] = response
 
-    page.on("response", remember_response)
     try:
+        context = await browser.new_context(extra_http_headers=request_headers, accept_downloads=True)
+        page = await context.new_page()
+        page.on("response", remember_response)
         async with page.expect_download(timeout=timeout_ms) as download_info:
             await page.goto(download_url, wait_until="commit", timeout=timeout_ms)
         download = await download_info.value
@@ -275,8 +292,10 @@ async def download_zip(playwright, base_url, headers, download_url, output_path,
         download_status = response.status
         download_headers = await response.all_headers()
     finally:
-        page.remove_listener("response", remember_response)
-        await context.close()
+        if page:
+            page.remove_listener("response", remember_response)
+        if context:
+            await context.close()
         await browser.close()
 
     if download_status != 200:
@@ -456,6 +475,10 @@ async def run_check(args):
             report["tunnel"] = scan_tunnel_log(args.tunnel_log)
             return report
         except ExportTestFailure:
+            raise
+        except asyncio.CancelledError:
+            if token and job_id:
+                await cancel_job(request, headers, base_url, job_id, report)
             raise
         except Exception as error:
             report["result"] = {
