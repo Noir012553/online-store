@@ -283,7 +283,11 @@ async def download_zip(playwright, base_url, headers, download_url, output_path,
         page = await context.new_page()
         page.on("response", remember_response)
         async with page.expect_download(timeout=timeout_ms) as download_info:
-            await page.goto(download_url, wait_until="commit", timeout=timeout_ms)
+            try:
+                await page.goto(download_url, wait_until="commit", timeout=timeout_ms)
+            except PlaywrightError as error:
+                if "Download is starting" not in str(error):
+                    raise
         download = await download_info.value
         await download.save_as(str(output_path))
         response = response_holder.get("response")
