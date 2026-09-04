@@ -252,6 +252,7 @@ productSchema.index({ brand: 1, isDeleted: 1 });
 productSchema.index({ isDeleted: 1, brand: 1 });
 productSchema.index({ isDeleted: 1 });
 productSchema.index({ isDeleted: 1, _id: 1 });
+productSchema.index({ isDeleted: 1, category: 1, _id: 1 });
 productSchema.index({ price: 1, isDeleted: 1 });
 productSchema.index({ countInStock: 1, isDeleted: 1 });
 productSchema.index({ featured: 1, isDeleted: 1 });

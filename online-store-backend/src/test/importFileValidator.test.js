@@ -167,6 +167,41 @@ describe('Product export serialization', () => {
     }
   });
 
+  it('retries a transient HTTP image failure before adding the asset', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    let fetchAttempts = 0;
+    global.fetch = async () => {
+      fetchAttempts += 1;
+      if (fetchAttempts === 1) {
+        return new Response('temporarily unavailable', { status: 503 });
+      }
+      return new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), {
+        status: 200,
+        headers: { 'content-type': 'image/jpeg' },
+      });
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://example.invalid/http-retry.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+
+      expect(fetchAttempts).to.equal(2);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it('includes dynamic fields and gallery images in CSV output', () => {
     const csv = convertProductsToCSV([serializeProductForExport(product)]);
 
