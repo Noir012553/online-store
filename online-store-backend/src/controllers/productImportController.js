@@ -123,7 +123,7 @@ const resolveProductExportFilter = async (category, brand) => {
   return filter;
 };
 
-const EXPORT_BATCH_SIZE = 100;
+const EXPORT_BATCH_SIZE = 50;
 
 const getExportProductQuery = async filter => {
   const activeCategoryIds = filter.category
@@ -1408,7 +1408,7 @@ const getRequestedExportLocales = async (requestedLocales) => {
   let activeLocales = [];
   try {
     activeLocales = (await withExportTimeout(
-      LanguageService.getActiveLanguageCodes(),
+      LanguageService.getActiveLanguageCodes({ maxTimeMS: EXPORT_QUERY_TIMEOUT_MS }),
       'active_languages',
     ))
       .map(normalizeExportLocale)

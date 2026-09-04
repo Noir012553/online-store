@@ -12,7 +12,7 @@ class LanguageService {
    * Uses in-memory cache (simple TTL) for performance
    * @returns {Promise<string[]>} Array of language codes like ['vi', 'en', 'pt']
    */
-  static async getActiveLanguageCodes() {
+  static async getActiveLanguageCodes({ maxTimeMS } = {}) {
     // Check if cache is still valid
     if (cachedLanguages && cacheExpiry && Date.now() < cacheExpiry) {
       console.log('[LanguageService] Returning cached active languages:', cachedLanguages);
@@ -20,11 +20,12 @@ class LanguageService {
     }
 
     try {
-      // Query DB for active languages
-      const languages = await Language.find(
+      const query = Language.find(
         { isActive: true, isReady: true },
         { code: 1 }
-      ).lean();
+      );
+      if (Number.isFinite(maxTimeMS) && maxTimeMS > 0) query.maxTimeMS(maxTimeMS);
+      const languages = await query.lean();
 
       const codes = languages.map(lang => lang.code);
       console.log('[LanguageService] Fetched active languages from DB:', codes);
