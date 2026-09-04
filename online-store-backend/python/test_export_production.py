@@ -37,14 +37,21 @@ IMAGE_SIGNATURES = {
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Check production product export with Python Playwright")
+    parser = argparse.ArgumentParser(description="Check product export with Python Playwright")
     parser.add_argument("--environment", choices=("production", "local"), default="production")
     parser.add_argument("--target", choices=("frontend", "backend"), default="backend")
-    parser.add_argument("--base-url", help="Override the target URL")
-    parser.add_argument("--limit", type=int, default=1)
+    parser.add_argument("--base-url", help="Override the selected target URL")
+    parser.add_argument("--frontend-base-url", help="Override frontend URL")
+    parser.add_argument("--backend-base-url", help="Override backend URL")
+    parser.add_argument("--category")
+    parser.add_argument("--brand")
+    parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--locale", default="vi")
-    parser.add_argument("--max-wait-minutes", type=float, default=10)
+    parser.add_argument("--format", choices=("json", "csv"), default="json")
+    parser.add_argument("--max-wait-minutes", type=float, default=30)
     parser.add_argument("--request-timeout-seconds", type=float, default=120)
+    parser.add_argument("--email-env", default="EXPORT_TEST_EMAIL")
+    parser.add_argument("--password-env", default="EXPORT_TEST_PASSWORD")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--zip-output", type=Path)
     return parser.parse_args()
@@ -154,9 +161,17 @@ async def read_response_body(response):
 
 
 async def run_check(args):
-    base_url = args.base_url or DEFAULT_URLS[args.environment][args.target]
-    email = os.environ.get("EXPORT_TEST_EMAIL")
-    password = os.environ.get("EXPORT_TEST_PASSWORD")
+    target_urls = {
+        "frontend": args.frontend_base_url
+        or os.environ.get("EXPORT_FRONTEND_BASE_URL")
+        or DEFAULT_URLS[args.environment]["frontend"],
+        "backend": args.backend_base_url
+        or os.environ.get("EXPORT_BACKEND_BASE_URL")
+        or DEFAULT_URLS[args.environment]["backend"],
+    }
+    base_url = args.base_url or target_urls[args.target]
+    email = os.environ.get(args.email_env)
+    password = os.environ.get(args.password_env)
     if not email or not password:
         raise RuntimeError("Set EXPORT_TEST_EMAIL and EXPORT_TEST_PASSWORD before running the check")
     if args.limit < 1 or args.limit > 10000:
@@ -169,6 +184,9 @@ async def run_check(args):
         "environment": args.environment,
         "limit": args.limit,
         "locale": args.locale,
+        "format": args.format,
+        "category": args.category,
+        "brand": args.brand,
         "events": [],
         "result": None,
     }
@@ -193,11 +211,15 @@ async def run_check(args):
 
             headers = {"Authorization": f"Bearer {token}"}
             export_params = {
-                "format": "json",
+                "format": args.format,
                 "locales": args.locale,
                 "limit": str(args.limit),
                 "async": "true",
             }
+            if args.category and args.category != "all":
+                export_params["category"] = args.category
+            if args.brand and args.brand != "all":
+                export_params["brand"] = args.brand
             started_at = time.monotonic()
             enqueue_response = await request.get(
                 "/api/products/admin/export-bundle",
