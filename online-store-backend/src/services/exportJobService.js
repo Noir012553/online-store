@@ -14,6 +14,12 @@ const {
 const { recordExportEvent } = require('./exportMetrics');
 const { withTimeout } = require('../utils/mongooseUtils');
 
+const EXPORT_DEBUG = ['true', '1'].includes(String(process.env.EXPORT_DEBUG).toLowerCase());
+
+const debugExportJob = (event, details) => {
+  if (EXPORT_DEBUG) console.info(`[${event}]`, details);
+};
+
 const MAX_ATTEMPTS = 3;
 const POLL_INTERVAL_MS = 5000;
 const EXPORT_LEASE_MS = 10 * 60 * 1000;
@@ -177,6 +183,7 @@ const processExportJob = async (job) => {
   let storedPath = null;
   let fileCreated = false;
   let stopLeaseHeartbeat = () => {};
+  let failureStage = 'startup';
   const startedAt = Date.now();
 
   try {
@@ -189,6 +196,8 @@ const processExportJob = async (job) => {
 
     stopLeaseHeartbeat = startExportJobLeaseHeartbeat(job);
     const request = { ...job.request, async: false };
+    failureStage = 'create_context';
+    const contextStartedAt = Date.now();
     const fakeReq = {
       aborted: false,
       destroyed: false,
@@ -196,15 +205,41 @@ const processExportJob = async (job) => {
       isExportCancellationRequested: () => isCancelRequested(job._id),
     };
     const payload = await createStreamingExportPayload(fakeReq, request);
+    debugExportJob('EXPORT_JOB_STAGE', {
+      jobId: job._id.toString(),
+      attempt: job.attempts,
+      stage: 'create_context',
+      durationMs: Date.now() - contextStartedAt,
+      matchedTotal: payload.matchedTotal,
+      exportedTotal: payload.exportedTotal,
+    });
 
     if (await isCancelRequested(job._id)) {
       await markCancelled(job);
       return;
     }
 
+    failureStage = 'write_zip';
+    const zipStartedAt = Date.now();
     await writeExportZipFile(filePath, payload, request.contentFormat);
     fileCreated = true;
+    debugExportJob('EXPORT_JOB_STAGE', {
+      jobId: job._id.toString(),
+      attempt: job.attempts,
+      stage: 'write_zip',
+      durationMs: Date.now() - zipStartedAt,
+    });
+
+    failureStage = 'store_file';
+    const storageStartedAt = Date.now();
     storedPath = await putFile(filePath, `${job._id.toString()}-${job.attempts}.zip`);
+    debugExportJob('EXPORT_JOB_STAGE', {
+      jobId: job._id.toString(),
+      attempt: job.attempts,
+      stage: 'store_file',
+      storageMode: STORAGE_MODE,
+      durationMs: Date.now() - storageStartedAt,
+    });
 
     const result = await ExportJob.updateOne(
       { _id: job._id, status: 'processing', cancelRequested: false, leaseExpiresAt: job.leaseExpiresAt },
@@ -226,7 +261,9 @@ const processExportJob = async (job) => {
       recordExportEvent('succeeded', durationMs);
       console.info('[EXPORT_JOB_READY]', {
         jobId: job._id.toString(),
+        attempt: job.attempts,
         durationMs,
+        storageMode: STORAGE_MODE,
       });
     }
   } catch (error) {
@@ -242,8 +279,10 @@ const processExportJob = async (job) => {
       jobId: job._id.toString(),
       attempt: job.attempts,
       durationMs,
+      failureStage,
+      errorCode: error.errorCode || error.code || 'EXPORT_FAILED',
       message: error.message,
-      stack: error.stack,
+      ...(EXPORT_DEBUG ? { stack: error.stack } : {}),
     });
     await ExportJob.updateOne(
       { _id: job._id, status: 'processing', leaseExpiresAt: job.leaseExpiresAt },
@@ -253,7 +292,7 @@ const processExportJob = async (job) => {
           cancelRequested: false,
           leaseExpiresAt: null,
           nextAttemptAt: new Date(Date.now() + (retryable ? 1000 * 2 ** job.attempts : 0)),
-          errorMessage: error.message,
+          errorMessage: `${failureStage}: ${error.message}`,
           finishedAt: retryable && !cancelled ? null : new Date(),
           filePath: null,
         },
