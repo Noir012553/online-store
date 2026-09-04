@@ -65,10 +65,22 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
 
-const EXPORT_QUERY_TIMEOUT_MS = 30000;
+const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
+const EXPORT_QUERY_TIMEOUT_MS = Number.isFinite(configuredExportQueryTimeout) && configuredExportQueryTimeout > 0
+  ? configuredExportQueryTimeout
+  : 120000;
 const MAX_EXPORT_LOCALES = getActiveLangCodes().length;
 
-const withExportTimeout = (operation) => withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS);
+const withExportTimeout = (operation, operationName = 'unknown') => (
+  withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS).catch((error) => {
+    console.error('[EXPORT_QUERY_FAILED]', {
+      operation: operationName,
+      timeoutMs: EXPORT_QUERY_TIMEOUT_MS,
+      message: error.message,
+    });
+    throw error;
+  })
+);
 
 const buildCategoryNameQuery = (name) => {
   if (!name || typeof name !== 'string') return null;
@@ -83,6 +95,7 @@ const resolveProductExportFilter = async (category, brand) => {
       const categoryId = new mongoose.Types.ObjectId(category);
       const categoryExists = await withExportTimeout(
         Category.exists({ _id: categoryId, isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+        'category_exists',
       );
       if (!categoryExists) return null;
       filter.category = categoryId;
@@ -94,6 +107,7 @@ const resolveProductExportFilter = async (category, brand) => {
             .select('_id')
             .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
             .lean(),
+          'category_lookup',
         )
         : null;
       if (!categoryDoc) return null;
@@ -115,6 +129,7 @@ const getExportProductQuery = async filter => {
     ? null
     : await withExportTimeout(
       Category.distinct('_id', { isDeleted: false }).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+      'category_distinct',
     );
   return {
     ...filter,
@@ -135,6 +150,7 @@ const getExportProductBatch = async (exportFilter, limit, lastId = null) => (
       .limit(limit)
       .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
       .lean(),
+    'product_batch',
   )
 );
 
@@ -142,6 +158,7 @@ const createExportProductBatchStream = async (filter, limit) => {
   const exportFilter = await getExportProductQuery(filter);
   const matchedTotal = await withExportTimeout(
     Product.countDocuments(exportFilter).maxTimeMS(EXPORT_QUERY_TIMEOUT_MS),
+    'product_count',
   );
 
   return {
@@ -250,6 +267,7 @@ const getProductTranslationsForExport = async (products, locales, fallbacks, def
           .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
           .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
           .lean(),
+        'translation_cache',
       );
     } catch (error) {
       console.error('[EXPORT_TRANSLATION_CACHE_ERROR]', {
@@ -1389,7 +1407,10 @@ const getRequestedExportLocales = async (requestedLocales) => {
 
   let activeLocales = [];
   try {
-    activeLocales = (await withExportTimeout(LanguageService.getActiveLanguageCodes()))
+    activeLocales = (await withExportTimeout(
+      LanguageService.getActiveLanguageCodes(),
+      'active_languages',
+    ))
       .map(normalizeExportLocale)
       .filter(isSupportedLanguage);
   } catch (error) {
@@ -1402,6 +1423,7 @@ const getRequestedExportLocales = async (requestedLocales) => {
       Language.findOne({ isSystemDefault: true }, { code: 1 })
         .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
         .lean(),
+      'default_language',
     );
     const databaseDefaultLocale = normalizeExportLocale(databaseDefaultLanguage?.code);
     if (databaseDefaultLocale && isSupportedLanguage(databaseDefaultLocale)) {
@@ -1438,6 +1460,8 @@ const getPayloadBatches = payload => payload.products
 
 const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
+const EXPORT_IMAGE_FETCH_ATTEMPTS = 3;
+const EXPORT_IMAGE_RETRY_DELAY_MS = 1000;
 const EXPORT_DEBUG_IMAGES = process.env.EXPORT_DEBUG_IMAGES === 'true';
 const EXPORT_IMAGE_EXTENSIONS = {
   'image/jpeg': 'jpg',
@@ -1548,22 +1572,42 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
     }
 
     let response;
-    try {
-      response = await fetch(parsedUrl, {
-        headers: {
-          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'User-Agent': 'LaptopStoreExport/1.0',
-        },
-        signal: requestSignal
-          ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
-          : AbortSignal.timeout(30000),
-        redirect: 'follow',
-      });
-      responseStatus = response.status;
-    } catch (error) {
+    let lastFetchError = null;
+    for (let attempt = 1; attempt <= EXPORT_IMAGE_FETCH_ATTEMPTS; attempt += 1) {
+      try {
+        response = await fetch(parsedUrl, {
+          headers: {
+            Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'User-Agent': 'LaptopStoreExport/1.0',
+          },
+          signal: requestSignal
+            ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
+            : AbortSignal.timeout(30000),
+          redirect: 'follow',
+        });
+        responseStatus = response.status;
+        break;
+      } catch (error) {
+        lastFetchError = error;
+        if (requestSignal?.aborted || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
+          throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
+            url: sourceUrl,
+            reason: error.message,
+            attempts: attempt,
+          });
+        }
+        await new Promise(resolve => setTimeout(
+          resolve,
+          EXPORT_IMAGE_RETRY_DELAY_MS * attempt,
+        ));
+      }
+    }
+
+    if (!response && lastFetchError) {
       throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
         url: sourceUrl,
-        reason: error.message,
+        reason: lastFetchError.message,
+        attempts: EXPORT_IMAGE_FETCH_ATTEMPTS,
       });
     }
 

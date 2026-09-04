@@ -2283,7 +2283,7 @@ Nếu một ảnh bị skip thì không được kết luận ZIP đầy đủ c
 | Loại timeout | Giá trị | Phạm vi | Ý nghĩa |
 |---|---:|---|---|
 | Database operation riêng | 10 giây | Một request database | Có request phụ/truy vấn khác không hoàn tất trong 10 giây |
-| Export query | 30 giây | Mỗi truy vấn trong payload export | Truy vấn MongoDB export không hoàn tất trong thời gian cho phép |
+| Export query trước khi sửa | 30 giây | Mỗi truy vấn trong payload export | Lần production cũ bị timeout; source mới mặc định 120 giây và cho phép cấu hình bằng `EXPORT_QUERY_TIMEOUT_MS` |
 | Attempt thực tế | khoảng 34,1 giây | Toàn bộ attempt 1 | Bao gồm timeout, cleanup stream và cập nhật job |
 | Image fetch | 30 giây/ảnh | Một lần tải remote image | Ảnh không phản hồi đúng hạn sẽ bị skip |
 | PS1 request timeout | 120 giây | HTTP login/enqueue/status | Timeout của từng request từ script test |
@@ -2315,3 +2315,202 @@ missingAssetPaths == []
 imageAssetsComplete == true
 FINAL RESULT == PASS
 ```
+
+---
+
+## 16. Bản sửa sau đợt test production bị timeout
+
+### 16.1. Nguyên nhân đã xác định
+
+Lần chạy production trước khi áp dụng bản sửa có các mốc:
+
+```text
+Database operation timed out after 10000ms
+Database operation timed out after 30000ms
+attempt: 1
+ durationMs: 34093
+```
+
+Timeout `30000ms` nằm trong hằng số export query của `productImportController.js`. Đây là timeout cho từng truy vấn MongoDB trong quá trình tạo payload, không phải `MaxWaitMinutes` của script PS1.
+
+Lần chạy đó cũng ghi nhận:
+
+```text
+[EXPORT_IMAGE_ASSET_SKIPPED]
+code: EXPORT_IMAGE_DOWNLOAD_FAILED
+reason: fetch failed
+```
+
+Đây là lỗi fetch ảnh remote tạm thời, xảy ra trong attempt retry thứ hai và độc lập với timeout MongoDB.
+
+### 16.2. Thay đổi source đã thực hiện
+
+#### Bổ sung dependency cho cleanup export job
+
+`online-store-backend/src/services/exportJobService.js` sử dụng `fs.promises` trong cleanup và nhánh xử lý lỗi. Đã bổ sung import còn thiếu:
+
+```js
+const fs = require('fs');
+```
+
+Fix này bảo đảm retry, cleanup file ZIP tạm và xóa file khi job thất bại không phát sinh `ReferenceError` che mất lỗi gốc.
+
+#### Timeout export có thể cấu hình và mặc định dài hơn
+
+Trong `online-store-backend/src/controllers/productImportController.js`, timeout hiện được đọc từ môi trường:
+
+```js
+const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
+const EXPORT_QUERY_TIMEOUT_MS = Number.isFinite(configuredExportQueryTimeout)
+  && configuredExportQueryTimeout > 0
+  ? configuredExportQueryTimeout
+  : 120000;
+```
+
+Giá trị mặc định mới là `120000ms`, tương đương 120 giây. Có thể đặt giá trị cụ thể khi chạy backend:
+
+```powershell
+$env:EXPORT_QUERY_TIMEOUT_MS = "120000"
+npm start
+```
+
+Nếu `.env` hoặc PowerShell đã đặt `EXPORT_QUERY_TIMEOUT_MS`, giá trị đó được ưu tiên.
+
+#### Ghi rõ truy vấn MongoDB bị timeout
+
+Helper timeout nhận thêm tên thao tác và ghi log:
+
+```js
+const withExportTimeout = (operation, operationName = 'unknown') => (
+  withTimeout(operation, EXPORT_QUERY_TIMEOUT_MS).catch((error) => {
+    console.error('[EXPORT_QUERY_FAILED]', {
+      operation: operationName,
+      timeoutMs: EXPORT_QUERY_TIMEOUT_MS,
+      message: error.message,
+    });
+    throw error;
+  })
+);
+```
+
+Các thao tác export chính đã được gắn nhãn gồm:
+
+```text
+category_exists
+category_lookup
+category_distinct
+product_batch
+product_count
+translation_cache
+active_languages
+default_language
+```
+
+Lần test tiếp theo phải dùng log `[EXPORT_QUERY_FAILED]` để xác định chính xác truy vấn chậm thay vì chỉ suy đoán từ `EXPORT_ZIP_OUTPUT_ERROR`.
+
+#### Retry lỗi mạng khi tải ảnh
+
+Trong `downloadExportImage`, lỗi fetch tạm thời được thử lại tối đa 3 attempts với khoảng chờ tăng dần:
+
+```js
+const EXPORT_IMAGE_FETCH_ATTEMPTS = 3;
+const EXPORT_IMAGE_RETRY_DELAY_MS = 1000;
+```
+
+Nếu cả 3 lần đều thất bại, lỗi cuối cùng vẫn được ghi nhận là `EXPORT_IMAGE_DOWNLOAD_FAILED` và thống kê `skippedByCode`/`skippedSamples` vẫn được cập nhật. Lỗi hủy export qua `requestSignal` không bị retry mù.
+
+Retry này không bỏ qua kiểm tra dữ liệu. Sau khi fetch thành công, response vẫn phải vượt qua:
+
+```text
+Content-Type được hỗ trợ
+Không vượt quá 5 MB
+Body không rỗng
+Magic bytes hợp lệ
+```
+
+#### Log 404 có method và path
+
+`online-store-backend/src/middleware/errorMiddleware.js` hiện ghi:
+
+```js
+console.warn('[ROUTE_NOT_FOUND]', {
+  method: req.method,
+  path: req.path || (req.originalUrl || req.url).split('?')[0],
+});
+```
+
+Mục đích là xác định request phụ nào tạo `ROUTE_NOT_FOUND` mà không ghi credential hoặc access token. Lỗi 404 chỉ được gán cho export nếu method/path trùng endpoint export hoặc download.
+
+#### Regression test retry ảnh
+
+Đã thêm test trong:
+
+```text
+online-store-backend/src/test/importFileValidator.test.js
+```
+
+Test mô phỏng lần fetch đầu thất bại, lần thứ hai trả JPEG hợp lệ và kiểm tra:
+
+```text
+fetchAttempts == 2
+ZIP được tạo thành công
+```
+
+### 16.3. Kiểm tra source sau bản sửa
+
+Đã chạy thành công:
+
+```powershell
+node --check online-store-backend/src/controllers/productImportController.js
+node --check online-store-backend/src/middleware/errorMiddleware.js
+node --check online-store-backend/src/test/importFileValidator.test.js
+git diff --check
+git diff --cached --check
+```
+
+Kết quả:
+
+```text
+JavaScript syntax: PASS
+Diff whitespace:    PASS
+```
+
+Regression test Mocha chưa có kết quả assertion trong môi trường agent. Lệnh:
+
+```powershell
+cd online-store-backend
+npx mocha src/test/importFileValidator.test.js
+```
+
+đã thoát với mã 1 sau khi `npx` cố tải tạm `mocha@12.0.0`; không có báo cáo assertion pass/fail đáng tin cậy. Không coi đây là lỗi logic của test hoặc backend cho đến khi chạy bằng dependency đã cài trên máy Windows.
+
+### 16.4. Điều kiện chạy lại production
+
+Backend process phải được restart để nạp source mới. Không cần chạy `npm run build` cho backend test này.
+
+Sau khi restart, theo dõi các dòng:
+
+```text
+[EXPORT_QUERY_FAILED]
+[EXPORT_IMAGE_DOWNLOAD_START]
+[EXPORT_IMAGE_DOWNLOAD_END]
+[EXPORT_IMAGE_SUMMARY]
+[EXPORT_JOB_STARTED]
+[EXPORT_JOB_READY]
+[EXPORT_JOB_FAILED]
+```
+
+Tiêu chí pass cho export ảnh vẫn là:
+
+```text
+EXPORT_JOB_READY
+uniqueUrlsSkipped: 0
+referencesWithoutAssetPath: 0
+emptyImageEntryCount: 0
+invalidImageEntryCount: 0
+missingAssetPaths: []
+imageAssetsComplete: true
+FINAL RESULT: PASS
+```
+
+Nếu query vẫn chậm sau 120 giây, log mới phải chỉ ra `operation` cụ thể. Khi đó cần tối ưu index/query tương ứng thay vì tiếp tục tăng timeout một cách mù quáng.
