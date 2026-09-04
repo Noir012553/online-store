@@ -104,7 +104,11 @@ const downloadFile = async (filePath, res, next, filename = 'products-export.zip
     return;
   }
   if (STORAGE_MODE === 'local') {
-    res.download(filePath, filename, next);
+    res.download(filePath, filename, (error) => {
+      if (!error) return;
+      if (!res.headersSent) next(error);
+      else res.destroy(error);
+    });
     return;
   }
 

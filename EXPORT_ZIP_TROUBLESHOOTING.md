@@ -391,3 +391,60 @@ Lỗi cốt lõi ban đầu là archive được gửi ra trước khi hoàn t�
 Luồng backend hiện đã được chuyển sang tạo ZIP hoàn chỉnh trước khi dùng `res.download()`, có chờ `archive.finalize()`, chờ output finish, cleanup file tạm và xử lý ảnh lỗi không fatal.
 
 Phần còn cần xác nhận bằng test local là ZIP thực tế có đủ `products.json`, thư mục `assets/images` và mọi `assetPath` trong metadata có tồn tại trong archive hay không. Nếu local pass nhưng Builder fail, vấn đề còn lại nằm ở Cloudflare Tunnel hoặc proxy production.
+
+## Cập nhật mới nhất
+
+### Async local `limit=500`
+
+Đã kiểm thử bằng runner dynamic sau khi tải copy 10:
+
+```text
+Login:       HTTP 200
+Enqueue:     HTTP 202
+Lifecycle:   queued -> processing -> ready
+Products:    500
+Image assets: 3039
+ZIP:         valid=true
+Final:       PASS
+```
+
+Kết luận: lỗi database timeout của lần `limit=500` cũ không tái hiện trong lần chạy local mới nhất. Vẫn phải theo dõi thời gian và storage khi tăng limit; không suy ra rằng 1 triệu sản phẩm có thể dùng một ZIP duy nhất.
+
+### `ROUTE_NOT_FOUND` sau download thành công
+
+Nếu log có:
+
+```text
+GET /api/products/admin/export-jobs/:id/download
+ROUTE_NOT_FOUND
+```
+
+nhưng client vẫn nhận ZIP hợp lệ, kiểm tra `src/services/exportStorage.js`. Không truyền trực tiếp `next` vào callback `res.download()`. Callback phải chỉ gọi `next(error)` khi có lỗi; gọi `next(null)` sau thành công sẽ tạo 404 giả ở middleware cuối.
+
+Sau khi cập nhật source, restart backend bằng `npm start`; không cần `npm run build` cho backend test.
+
+### Credential DPAPI
+
+Credential test được lưu ngoài repository tại:
+
+```text
+$HOME\.online-store-export-credential.xml
+```
+
+PowerShell đọc file bằng:
+
+```powershell
+$credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
+$credential = Import-Clixml -LiteralPath $credentialPath
+$env:EXPORT_TEST_EMAIL = $credential.UserName
+$env:EXPORT_TEST_PASSWORD = $credential.GetNetworkCredential().Password
+```
+
+Sau test cần dọn:
+
+```powershell
+Remove-Item Env:EXPORT_TEST_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:EXPORT_TEST_PASSWORD -ErrorAction SilentlyContinue
+```
+
+Không hard-code username cụ thể như `C:\Users\manku` trong script hoặc tài liệu; `$HOME` tự resolve theo user Windows hiện tại.

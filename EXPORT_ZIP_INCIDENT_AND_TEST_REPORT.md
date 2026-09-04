@@ -1248,7 +1248,7 @@ Thứ tự chạy là backend -> kiểm tra `ready` -> frontend -> tunnel -> PS1
 Credential được đọc từ file mã hóa Windows DPAPI:
 
 ```text
-C:\Users\manku\.online-store-export-credential.xml
+$HOME\.online-store-export-credential.xml
 ```
 
 Không hard-code email/password trong script.
@@ -2597,3 +2597,140 @@ FINAL RESULT: PASS
 ```
 
 Nếu query vẫn chậm sau 120 giây, log mới phải chỉ ra `operation` cụ thể. Khi đó cần tối ưu index/query tương ứng thay vì tiếp tục tăng timeout một cách mù quáng.
+
+---
+
+## 17. Kết quả kiểm thử mới nhất sau khi tải copy 10
+
+Phần này cập nhật và thay thế kết luận tạm thời về `limit=500` ở mục 6.16. Kết quả cũ vẫn được giữ lại để truy vết incident; kết quả mới là bằng chứng hiện tại sau khi backend/runner được khởi động lại.
+
+### 17.1. Async backend local `limit=500`
+
+```text
+Target:      http://127.0.0.1:5000
+Job ID:      6a9aab3748f142bca4d8dbbb
+Login:       HTTP 200
+Enqueue:     HTTP 202
+Lifecycle:   queued -> processing -> ready
+Products:    500
+Image assets: 3039
+ZIP:         valid=true
+Final:       PASS
+```
+
+Thời gian xử lý backend ghi nhận khoảng:
+
+```text
+168834 ms, khoảng 2 phút 49 giây
+```
+
+File kết quả được lưu tương đối trong thư mục backend:
+
+```text
+export-500-report.json
+export-500.zip
+```
+
+Kết quả này xác nhận batch keyset, async worker, tải ảnh có giới hạn concurrency và validator ZIP hoạt động với 500 sản phẩm trong local environment. Không chạy lại cùng job khi đã có `FINAL RESULT: PASS`.
+
+### 17.2. Async frontend local `limit=10`
+
+Test qua Next.js rewrite cũng đã pass trước đó:
+
+```text
+Target:      http://127.0.0.1:3000
+Backend:     http://127.0.0.1:5000
+Products:    10
+Image assets: 64
+ZIP:         valid=true
+Final:       PASS
+```
+
+Do đó cả hai lớp đã được xác nhận:
+
+```text
+Backend local trực tiếp: PASS
+Frontend local qua rewrite: PASS
+```
+
+### 17.3. `ROUTE_NOT_FOUND` giả sau download thành công
+
+Log từng lặp lại:
+
+```text
+[ROUTE_NOT_FOUND]
+GET /api/products/admin/export-jobs/:id/download
+```
+
+Nhưng runner vẫn nhận ZIP HTTP 200 và validate thành công. Nguyên nhân được xác định trong `src/services/exportStorage.js`: callback cũ truyền thẳng `next` vào `res.download()`:
+
+```js
+res.download(filePath, filename, next);
+```
+
+Khi download thành công, callback nhận `null` và gọi `next(null)`, làm request chạy tiếp tới middleware 404. Đã sửa thành callback chỉ gọi `next(error)` khi có lỗi; lỗi sau khi response gửi rồi sẽ `res.destroy(error)`.
+
+Backend phải restart sau khi tải source mới để nạp sửa đổi này. Sau restart, `ROUTE_NOT_FOUND` không được xuất hiện cho một download local thành công.
+
+### 17.4. Credential test và vị trí file
+
+Credential không nằm trong repository và không hard-code trong script. File mã hóa Windows DPAPI nằm tại:
+
+```text
+$HOME\.online-store-export-credential.xml
+```
+
+Trên máy Windows, `$HOME` thường resolve thành thư mục profile hiện tại, ví dụ `C:\Users\<username>`, nhưng không ghi cứng username vào lệnh.
+
+Đọc credential theo cách an toàn:
+
+```powershell
+$credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
+$credential = Import-Clixml -LiteralPath $credentialPath
+$env:EXPORT_TEST_EMAIL = $credential.UserName
+$env:EXPORT_TEST_PASSWORD = $credential.GetNetworkCredential().Password
+```
+
+Sau test phải dọn biến môi trường:
+
+```powershell
+Remove-Item Env:EXPORT_TEST_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:EXPORT_TEST_PASSWORD -ErrorAction SilentlyContinue
+```
+
+Không ghi email, password hoặc token thật vào Markdown, source code, report hoặc command history nếu có thể tránh.
+
+### 17.5. Runner dynamic hiện tại
+
+File chạy test:
+
+```text
+online-store-backend/scripts/test-export-dynamic.js
+```
+
+Runner dùng Node Playwright global giống PS1:
+
+```powershell
+$env:NODE_PATH = "C:\Windows\system32\node_modules"
+```
+
+Runner tự resolve các đường dẫn runtime từ `__dirname`, vì vậy không phụ thuộc workspace tên `copy 10`, `copy 11` hoặc ổ đĩa cụ thể. Có thể gọi qua:
+
+```powershell
+npm run test:export:dynamic -- --environment local --target backend --limit 500
+```
+
+Không cần cài Python Playwright cho runner này. File `python/requirements-playwright.txt` chỉ ghi chú để tránh hiểu nhầm rằng test đang dùng package Python.
+
+### 17.6. Trạng thái hiện tại
+
+```text
+limit=10 backend local:   PASS, 64 ảnh
+limit=10 frontend local:  PASS, 64 ảnh
+limit=500 backend local:  PASS, 3039 ảnh
+ROUTE_NOT_FOUND giả:       Đã xác định nguyên nhân và đã sửa callback download
+Cloudflare/Tunnel:         Không tham gia các test local này
+MongoDB export timeout:    Không tái hiện ở job limit=500 mới nhất
+```
+
+Bước tiếp theo chỉ là kiểm thử frontend local `limit=500` nếu cần xác nhận thêm proxy, sau đó mới cân nhắc `limit=1000` hoặc chunk export. Không chạy synchronous export lớn và không chạy đồng thời nhiều async job.
