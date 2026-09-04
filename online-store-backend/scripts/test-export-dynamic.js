@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
+const { execFileSync } = require('child_process');
 const Module = require('module');
 const { URL } = require('url');
 
@@ -72,7 +73,8 @@ const parseArgs = argv => {
   for (let index = 0; index < argv.length; index += 1) {
     const item = argv[index];
     if (!item.startsWith('--')) throw new Error(`Unexpected argument: ${item}`);
-    const key = item.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    const rawKey = item.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    const key = rawKey.charAt(0).toLowerCase() + rawKey.slice(1);
     const next = argv[index + 1];
     if (!next || next.startsWith('--')) {
       args[key] = true;
@@ -102,6 +104,39 @@ const safeError = error => String(error?.message || error)
   .split('\nCall log:')[0]
   .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
   .replace(/\beyJ[a-zA-Z0-9._-]+\b/g, '[REDACTED]');
+
+const isPlaceholderCredential = value => (
+  !value || value === 'your@email.com' || value === 'your-password'
+);
+
+const readWindowsCredential = credentialPath => {
+  if (process.platform !== 'win32') return null;
+  if (!fs.existsSync(credentialPath)) {
+    throw new Error(`Credential file not found: ${credentialPath}`);
+  }
+  try {
+    const output = execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        '$credential = Import-Clixml -LiteralPath $env:EXPORT_CREDENTIAL_PATH; [pscustomobject]@{ email = $credential.UserName; password = $credential.GetNetworkCredential().Password } | ConvertTo-Json -Compress',
+      ],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, EXPORT_CREDENTIAL_PATH: credentialPath },
+      },
+    );
+    const credential = JSON.parse(output);
+    if (!credential.email || !credential.password) throw new Error('Credential fields are empty');
+    return credential;
+  } catch (error) {
+    throw new Error(`Cannot read DPAPI credential: ${safeError(error)}`);
+  }
+};
 
 const redactUrl = value => {
   const parsed = new URL(value);
@@ -348,9 +383,22 @@ const run = async args => {
   const frontendUrl = args.frontendBaseUrl || process.env.EXPORT_FRONTEND_BASE_URL || DEFAULT_URLS[environment].frontend;
   const backendUrl = args.backendBaseUrl || process.env.EXPORT_BACKEND_BASE_URL || DEFAULT_URLS[environment].backend;
   const baseUrl = (args.baseUrl || (target === 'frontend' ? frontendUrl : backendUrl)).replace(/\/+$/, '');
-  const email = process.env[args.emailEnv || 'EXPORT_TEST_EMAIL'];
-  const password = process.env[args.passwordEnv || 'EXPORT_TEST_PASSWORD'];
-  if (!email || !password) throw new Error('Set EXPORT_TEST_EMAIL and EXPORT_TEST_PASSWORD');
+  let email = process.env[args.emailEnv || 'EXPORT_TEST_EMAIL'];
+  let password = process.env[args.passwordEnv || 'EXPORT_TEST_PASSWORD'];
+  if (isPlaceholderCredential(email) || isPlaceholderCredential(password)) {
+    const credentialPath = path.resolve(
+      args.credentialPath
+      || process.env.EXPORT_CREDENTIAL_PATH
+      || path.join(process.env.USERPROFILE || os.homedir(), '.online-store-export-credential.xml'),
+    );
+    const credential = readWindowsCredential(credentialPath);
+    if (!credential) {
+      throw new Error('Credential env is missing and DPAPI credential loading requires Windows PowerShell');
+    }
+    email = isPlaceholderCredential(email) ? credential.email : email;
+    password = isPlaceholderCredential(password) ? credential.password : password;
+  }
+  if (!email || !password) throw new Error('Credential email/password is missing');
 
   const limit = integerArg(args, 'limit', 100, 1, 10000);
   const maxWaitMinutes = numberArg(args, 'maxWaitMinutes', 30, 0);
@@ -465,7 +513,7 @@ const run = async args => {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     console.log('Usage: node scripts/test-export-dynamic.js --environment local --target backend --limit 10 --report report.json');
-    console.log('Options: --base-url --frontend-base-url --backend-base-url --format json|csv --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
+    console.log('Options: --base-url --frontend-base-url --backend-base-url --credential-path --format json|csv --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
     return;
   }
   try {
