@@ -66,9 +66,10 @@ const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbo
 const { withTimeout } = require('../utils/mongooseUtils');
 
 const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
+const MIN_EXPORT_QUERY_TIMEOUT_MS = 120000;
 const EXPORT_QUERY_TIMEOUT_MS = Number.isFinite(configuredExportQueryTimeout) && configuredExportQueryTimeout > 0
-  ? configuredExportQueryTimeout
-  : 120000;
+  ? Math.max(configuredExportQueryTimeout, MIN_EXPORT_QUERY_TIMEOUT_MS)
+  : MIN_EXPORT_QUERY_TIMEOUT_MS;
 const MAX_EXPORT_LOCALES = getActiveLangCodes().length;
 
 const withExportTimeout = (operation, operationName = 'unknown') => (
