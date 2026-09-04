@@ -1,1 +1,1 @@
-playwright>=1.62,<2
+# Export test uses the global Node Playwright runtime via scripts/test-export-dynamic.js
