@@ -1448,10 +1448,84 @@ const EXPORT_IMAGE_EXTENSIONS = {
   'image/svg+xml': 'svg',
 };
 
+const createExportImageStats = () => ({
+  productsWithImages: 0,
+  imageReferences: 0,
+  referencesWithUrl: 0,
+  referencesWithoutUrl: 0,
+  referencesWithAssetPath: 0,
+  referencesWithoutAssetPath: 0,
+  uniqueUrlsAttempted: 0,
+  uniqueUrlsSucceeded: 0,
+  uniqueUrlsSkipped: 0,
+  downloadedBytes: 0,
+  skippedByCode: {},
+  skippedSamples: [],
+  missingAssetSamples: [],
+});
+
+const getImageDebugContext = (product, image, imageIndex) => {
+  let parsedUrl = null;
+  try {
+    parsedUrl = image?.url ? new URL(image.url) : null;
+  } catch {
+    parsedUrl = null;
+  }
+
+  return {
+    productId: product.productId || null,
+    position: image?.position ?? imageIndex,
+    type: image?.type || null,
+    host: parsedUrl?.hostname || null,
+    path: parsedUrl?.pathname || null,
+  };
+};
+
+const recordImageSkip = (stats, error, context) => {
+  if (!stats) return;
+  const code = error.errorCode || error.code || 'failed';
+  stats.uniqueUrlsSkipped += 1;
+  stats.skippedByCode[code] = (stats.skippedByCode[code] || 0) + 1;
+  if (stats.skippedSamples.length < 20) {
+    stats.skippedSamples.push({
+      ...context,
+      code,
+      reason: error.details?.reason || error.message,
+    });
+  }
+};
+
+const hasValidImageSignature = (buffer, contentType) => {
+  if (contentType === 'image/jpeg') {
+    return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+  }
+  if (contentType === 'image/png') {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (contentType === 'image/gif') {
+    return ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii'));
+  }
+  if (contentType === 'image/webp') {
+    return buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (contentType === 'image/avif') {
+    return buffer.subarray(4, 8).toString('ascii') === 'ftyp'
+      && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii'));
+  }
+  if (contentType === 'image/svg+xml') {
+    const text = buffer.subarray(0, 1024).toString('utf8').trimStart().toLowerCase();
+    return text.includes('<svg') || (text.startsWith('<?xml') && text.includes('<svg'));
+  }
+  return false;
+};
+
 const downloadExportImage = async (sourceUrl, requestSignal) => {
   const startedAt = Date.now();
   let parsedUrl;
   let responseStatus = null;
+  let responseContentType = null;
+  let totalBytes = 0;
   let outcome = 'failed';
 
   try {
@@ -1504,6 +1578,7 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
       .split(';')[0]
       .trim()
       .toLowerCase();
+    responseContentType = contentType;
     const extension = EXPORT_IMAGE_EXTENSIONS[contentType];
     if (!extension) {
       throw createExportError(502, 'EXPORT_IMAGE_TYPE_UNSUPPORTED', {
@@ -1529,7 +1604,6 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
 
     const reader = response.body.getReader();
     const chunks = [];
-    let totalBytes = 0;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -1553,10 +1627,26 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
       });
     }
 
+    if (totalBytes === 0) {
+      throw createExportError(502, 'EXPORT_IMAGE_EMPTY', {
+        url: sourceUrl,
+      });
+    }
+
+    const buffer = Buffer.concat(chunks, totalBytes);
+    if (!hasValidImageSignature(buffer, contentType)) {
+      throw createExportError(502, 'EXPORT_IMAGE_CONTENT_INVALID', {
+        url: sourceUrl,
+        contentType,
+        bytes: totalBytes,
+      });
+    }
+
     outcome = 'success';
     return {
-      buffer: Buffer.concat(chunks, totalBytes),
+      buffer,
       extension,
+      contentType,
     };
   } catch (error) {
     outcome = error.errorCode || error.code || 'failed';
@@ -1567,6 +1657,8 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
         host: parsedUrl?.hostname || null,
         path: parsedUrl?.pathname || null,
         status: responseStatus,
+        contentType: responseContentType,
+        bytes: totalBytes,
         outcome,
         elapsedMs: Date.now() - startedAt,
       });
@@ -1574,7 +1666,13 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
   }
 };
 
-const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, requestSignal) => {
+const prepareExportBatchForArchive = async (
+  archive,
+  batch,
+  assetsByUrl,
+  requestSignal,
+  exportImageStats,
+) => {
   const preparedImagesByProduct = batch.map(product => (
     Array.isArray(product.images) ? [...product.images] : []
   ));
@@ -1582,7 +1680,14 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
   batch.forEach((product, productIndex) => {
     const images = Array.isArray(product.images) ? product.images : [];
+    if (images.length > 0 && exportImageStats) exportImageStats.productsWithImages += 1;
     images.forEach((image, imageIndex) => {
+      if (exportImageStats) {
+        exportImageStats.imageReferences += 1;
+        if (image?.url) exportImageStats.referencesWithUrl += 1;
+        else exportImageStats.referencesWithoutUrl += 1;
+      }
+
       if (image?.url) {
         imageTasks.push({ product, productIndex, image, imageIndex });
       }
@@ -1598,16 +1703,23 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
+        if (exportImageStats) exportImageStats.uniqueUrlsAttempted += 1;
+        const debugContext = getImageDebugContext(product, image, imageIndex);
         assetPromise = downloadExportImage(image.url, requestSignal)
           .then(({ buffer, extension }) => {
             const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
             archive.append(buffer, { name: assetPath });
+            if (exportImageStats) {
+              exportImageStats.uniqueUrlsSucceeded += 1;
+              exportImageStats.downloadedBytes += buffer.length;
+            }
             return assetPath;
           })
           .catch((error) => {
             if (requestSignal?.aborted) throw error;
+            recordImageSkip(exportImageStats, error, debugContext);
             console.warn('[EXPORT_IMAGE_ASSET_SKIPPED]', {
-              url: image.url,
+              ...debugContext,
               code: error.errorCode,
               message: error.message,
               reason: error.details?.reason,
@@ -1634,10 +1746,25 @@ const prepareExportBatchForArchive = async (archive, batch, assetsByUrl, request
 
   return batch.map((product, productIndex) => {
     const preparedImages = preparedImagesByProduct[productIndex];
+    const imageAssetPaths = uniqueValues(preparedImages.map(image => image?.assetPath));
+
+    if (exportImageStats) {
+      exportImageStats.referencesWithAssetPath += preparedImages.filter(image => image?.assetPath).length;
+      exportImageStats.referencesWithoutAssetPath += preparedImages.filter(image => (
+        image?.url && !image?.assetPath
+      )).length;
+      preparedImages
+        .filter(image => image?.url && !image?.assetPath)
+        .slice(0, Math.max(0, 20 - exportImageStats.missingAssetSamples.length))
+        .forEach(image => {
+          exportImageStats.missingAssetSamples.push(getImageDebugContext(product, image));
+        });
+    }
+
     return {
       ...product,
       images: preparedImages,
-      imageAssetPaths: uniqueValues(preparedImages.map(image => image?.assetPath)),
+      imageAssetPaths,
     };
   });
 };
@@ -1676,6 +1803,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
           batch,
           assetsByUrl,
           payload.exportAbortSignal,
+          payload.exportImageStats,
         );
         const rows = preparedBatch.map(product => convertProductToCSVRow(product, headers));
         if (rows.length) {
@@ -1694,6 +1822,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
   delete metadata.products;
   delete metadata.productBatches;
   delete metadata.exportAbortSignal;
+  delete metadata.exportImageStats;
   const metadataJSON = JSON.stringify(metadata);
   const jsonPrefix = metadataJSON === '{}'
     ? '{"products":['
@@ -1707,6 +1836,7 @@ const appendExportContent = async (archive, payload, contentFormat) => {
         batch,
         assetsByUrl,
         payload.exportAbortSignal,
+        payload.exportImageStats,
       );
       const serializedBatch = preparedBatch.map(product => JSON.stringify(product)).join(',');
       if (serializedBatch) {
@@ -1742,6 +1872,7 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
   try {
     archive.pipe(output);
     await appendExportContent(archive, payload, contentFormat);
+    console.info('[EXPORT_IMAGE_SUMMARY]', payload.exportImageStats);
     await archive.finalize();
     await streamFinished;
   } catch (error) {
@@ -1863,6 +1994,7 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
     locales,
     filters: { category: category || null, brand: brand || null },
     exportAbortSignal: exportAbortController.signal,
+    exportImageStats: createExportImageStats(),
     productBatches,
   };
 };
