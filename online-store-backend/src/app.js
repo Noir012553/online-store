@@ -46,19 +46,11 @@ const asyncHandler = require('express-async-handler');
 const { socketHandler } = require('./socket/socketHandler');
 const expressJSDocSwagger = require('express-jsdoc-swagger');
 const swaggerOptions = require('./config/swagger');
-const seedHomepageHeroBanners = require('./seeds/bannerSeeder');
-const seedTranslations = require('./seeds/translationSeeder');
-const seedBrands = require('./seeds/brandSeeder');
-const seedLanguages = require('./seeds/languageSeeder');
-const seedCurrency = require('./seeds/currencySeeder');
-const Coupon = require('./models/Coupon');
-const Currency = require('./models/Currency');
 const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
 const { startCloudinaryCleanupWorker } = require('./services/cloudinaryCleanupOutbox');
 const { startExportJobWorker } = require('./services/exportJobService');
 const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
-const { resumePendingLanguageSetups } = require('./services/languageSetupService');
 
 // ==================== Initialize Express App ====================
 const app = express();
@@ -257,119 +249,6 @@ let reconnectTimer = null;
 let connectionInProgress = false;
 let startupReady = false;
 let serverStarted = false;
-let homepageHeroBannersSeeded = false;
-let translationsSeeded = false;
-let brandsSeeded = false;
-let languagesSeeded = false;
-let currencySeeded = false;
-let couponCurrenciesMigrated = false;
-
-const ensureHomepageHeroBanners = async () => {
-  if (homepageHeroBannersSeeded) {
-    return;
-  }
-
-  try {
-    const createdBanners = await seedHomepageHeroBanners();
-    homepageHeroBannersSeeded = true;
-
-    if (createdBanners.length > 0) {
-      // Banners seeded successfully
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[SEED] Homepage hero banner seed skipped:', error.message);
-    }
-  }
-};
-
-const ensureTranslationsSeeded = async () => {
-  if (translationsSeeded) {
-    return;
-  }
-
-  try {
-    await seedTranslations();
-    translationsSeeded = true;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SEED] Translations seeded successfully');
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[SEED] Translations seed skipped:', error.message);
-    }
-  }
-};
-
-const ensureBrandsSeeded = async () => {
-  if (brandsSeeded) {
-    return;
-  }
-
-  try {
-    await seedBrands();
-    brandsSeeded = true;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SEED] Brands seeded successfully');
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[SEED] Brands seed skipped:', error.message);
-    }
-  }
-};
-
-const ensureLanguagesSeeded = async () => {
-  if (languagesSeeded) {
-    return;
-  }
-
-  try {
-    await seedLanguages();
-    languagesSeeded = true;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SEED] Languages seeded successfully');
-    }
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[SEED] Language seed skipped:', error.message);
-    }
-  }
-};
-
-const ensureCurrencySeeded = async () => {
-  if (currencySeeded) {
-    return;
-  }
-
-  try {
-    await seedCurrency();
-    currencySeeded = true;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SEED] Currency and Exchange Rates seeded successfully');
-    }
-  } catch (error) {
-    console.error('[SEED] Currency seed failed:', error.message);
-    throw error;
-  }
-};
-
-const migrateCouponCurrencies = async () => {
-  if (couponCurrenciesMigrated) {
-    return;
-  }
-
-  const baseCurrency = await Currency.findOne({ code: 'VND', isActive: true }, { code: 1, _id: 0 }).lean();
-  if (!baseCurrency) {
-    throw new Error('VND must be configured before migrating coupon currencies');
-  }
-
-  await Coupon.updateMany(
-    { $or: [{ currencyCode: { $exists: false } }, { currencyCode: null }, { currencyCode: '' }] },
-    { $set: { currencyCode: baseCurrency.code } }
-  );
-  couponCurrenciesMigrated = true;
-};
 
 const scheduleReconnect = (delay) => {
   if (reconnectTimer) return;
@@ -448,20 +327,6 @@ const connectDB = async () => {
       reconnectTimer = null;
     }
     connectionAttempts = 0;
-    assertMongoConnected();
-    await runStartupPhase('seed-homepage-banners', ensureHomepageHeroBanners);
-    assertMongoConnected();
-    await runStartupPhase('seed-translations', ensureTranslationsSeeded);
-    assertMongoConnected();
-    await runStartupPhase('seed-brands', ensureBrandsSeeded);
-    assertMongoConnected();
-    await runStartupPhase('seed-currency', ensureCurrencySeeded);
-    assertMongoConnected();
-    await runStartupPhase('seed-languages', ensureLanguagesSeeded);
-    assertMongoConnected();
-    await runStartupPhase('resume-language-setups', resumePendingLanguageSetups);
-    assertMongoConnected();
-    await runStartupPhase('migrate-coupon-currencies', migrateCouponCurrencies);
     assertMongoConnected();
     assertStorageConfigured();
     await startServer();
