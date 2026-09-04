@@ -66,9 +66,10 @@ const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbo
 const { withTimeout } = require('../utils/mongooseUtils');
 
 const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
+const MIN_EXPORT_QUERY_TIMEOUT_MS = 120000;
 const EXPORT_QUERY_TIMEOUT_MS = Number.isFinite(configuredExportQueryTimeout) && configuredExportQueryTimeout > 0
-  ? configuredExportQueryTimeout
-  : 120000;
+  ? Math.max(configuredExportQueryTimeout, MIN_EXPORT_QUERY_TIMEOUT_MS)
+  : MIN_EXPORT_QUERY_TIMEOUT_MS;
 const MAX_EXPORT_LOCALES = getActiveLangCodes().length;
 
 const withExportTimeout = (operation, operationName = 'unknown') => (
@@ -353,7 +354,6 @@ const serializeProductForExport = (product, translations = {}) => {
     category: category?.name,
     images,
     imagePublicIds: uniqueValues(images.map(image => image.publicId)),
-    imageAssetPaths: [],
     translations,
   };
 };
@@ -1461,7 +1461,9 @@ const getPayloadBatches = payload => payload.products
 const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
 const EXPORT_IMAGE_FETCH_ATTEMPTS = 3;
-const EXPORT_IMAGE_RETRY_DELAY_MS = 1000;
+const EXPORT_IMAGE_RETRY_BASE_DELAY_MS = 1000;
+const EXPORT_IMAGE_RETRY_MAX_DELAY_MS = 8000;
+const EXPORT_IMAGE_RETRY_JITTER_RATIO = 0.25;
 const EXPORT_DEBUG_IMAGES = process.env.EXPORT_DEBUG_IMAGES === 'true';
 const EXPORT_IMAGE_EXTENSIONS = {
   'image/jpeg': 'jpg',
@@ -1544,6 +1546,38 @@ const hasValidImageSignature = (buffer, contentType) => {
   return false;
 };
 
+const waitForExportImageRetry = (delayMs, requestSignal) => new Promise((resolve, reject) => {
+  if (requestSignal?.aborted) {
+    reject(new Error('Export image download aborted'));
+    return;
+  }
+
+  let timer;
+  const onAbort = () => {
+    clearTimeout(timer);
+    requestSignal?.removeEventListener('abort', onAbort);
+    reject(new Error('Export image download aborted'));
+  };
+  timer = setTimeout(() => {
+    requestSignal?.removeEventListener('abort', onAbort);
+    resolve();
+  }, delayMs);
+  requestSignal?.addEventListener('abort', onAbort, { once: true });
+});
+
+const getExportImageRetryDelay = attempt => {
+  const exponentialDelay = Math.min(
+    EXPORT_IMAGE_RETRY_MAX_DELAY_MS,
+    EXPORT_IMAGE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+  );
+  const jitter = Math.floor(exponentialDelay * EXPORT_IMAGE_RETRY_JITTER_RATIO * Math.random());
+  return exponentialDelay + jitter;
+};
+
+const isRetryableExportImageStatus = status => (
+  [408, 425, 429].includes(status) || status >= 500
+);
+
 const downloadExportImage = async (sourceUrl, requestSignal) => {
   const startedAt = Date.now();
   let parsedUrl;
@@ -1586,7 +1620,11 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
           redirect: 'follow',
         });
         responseStatus = response.status;
-        break;
+        if (response.ok || !isRetryableExportImageStatus(response.status) || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
+          break;
+        }
+        if (response.body) await response.body.cancel().catch(() => {});
+        await waitForExportImageRetry(getExportImageRetryDelay(attempt), requestSignal);
       } catch (error) {
         lastFetchError = error;
         if (requestSignal?.aborted || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
@@ -1596,10 +1634,7 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
             attempts: attempt,
           });
         }
-        await new Promise(resolve => setTimeout(
-          resolve,
-          EXPORT_IMAGE_RETRY_DELAY_MS * attempt,
-        ));
+        await waitForExportImageRetry(getExportImageRetryDelay(attempt), requestSignal);
       }
     }
 
@@ -1808,7 +1843,7 @@ const prepareExportBatchForArchive = async (
     return {
       ...product,
       images: preparedImages,
-      imageAssetPaths,
+      ...(imageAssetPaths.length ? { imageAssetPaths } : {}),
     };
   });
 };
@@ -1907,7 +1942,13 @@ const writeExportZipFile = async (filePath, payload, contentFormat) => {
     console.error('[EXPORT_ZIP_WARNING]', { code: warning.code, message: warning.message });
   };
   const onOutputError = (error) => {
-    console.error('[EXPORT_ZIP_OUTPUT_ERROR]', { message: error.message });
+    console.error('[EXPORT_ZIP_OUTPUT_ERROR]', {
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall,
+      path: error.path,
+      message: error.message,
+    });
   };
   archive.once('error', onArchiveError);
   archive.on('warning', onArchiveWarning);

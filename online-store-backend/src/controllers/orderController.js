@@ -17,6 +17,11 @@ const { formatOrders, formatCheckoutSummary, formatReportingOrders } = require('
 const { getProductWeightInGrams } = require('../utils/productShippingWeight');
 const { sendOrderPaymentSuccessEmail } = require('../services/emailService');
 
+const configuredOrderTimeout = Number(process.env.ORDER_QUERY_TIMEOUT_MS);
+const ORDER_QUERY_TIMEOUT_MS = Number.isFinite(configuredOrderTimeout) && configuredOrderTimeout > 0
+  ? configuredOrderTimeout
+  : 30000;
+
 const formatOrderResponse = async (orders, req) => {
   if (!req.query.currencyCode) return formatOrders(orders, req.locale);
 
@@ -54,7 +59,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { isPaid, isDelivered } = req.body;
 
-  const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), 8000);
+  const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
@@ -174,7 +179,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   // Fetch all products in 1 query with $in operator
   const products = await withTimeout(
     Product.find({ _id: { $in: productIdList } }),
-    8000
+    ORDER_QUERY_TIMEOUT_MS
   );
 
   // Create map for quick lookup
@@ -225,7 +230,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
             },
             { returnDocument: 'after', upsert: true, runValidators: true }
           ),
-          8000
+          ORDER_QUERY_TIMEOUT_MS
         );
         customerId = customer._id;
       }
@@ -253,7 +258,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
             },
             { returnDocument: 'after', upsert: true, runValidators: true }
           ),
-          8000
+          ORDER_QUERY_TIMEOUT_MS
         );
         customerId = customer._id;
       }
@@ -388,7 +393,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     const Coupon = require('../models/Coupon');
     const coupon = await withTimeout(
       Coupon.findOne({ code: couponCode.toUpperCase(), isDeleted: false, isActive: true }),
-      8000
+      ORDER_QUERY_TIMEOUT_MS
     );
 
     if (!coupon) {
@@ -599,7 +604,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     Order.findById(createdOrder._id)
       .populate('customer', 'name email phone')
       .populate('user', 'username email name'),
-    8000
+    ORDER_QUERY_TIMEOUT_MS
   );
 
   // ==================== REAL-TIME BROADCAST ====================
@@ -643,7 +648,7 @@ const getOrderById = asyncHandler(async (req, res) => {
     Order.findOne({ _id: req.params.id, isDeleted: false })
       .populate('user', 'username email')
       .populate('customer', 'name email phone'),
-    8000
+    ORDER_QUERY_TIMEOUT_MS
   );
 
   if (order) {
@@ -679,7 +684,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
   const page = Number(req.query.pageNumber) || 1;
 
   // Trước tiên, cố gắng lấy orders có user field
-  let count = await withTimeout(Order.countDocuments({ user: req.user._id, isDeleted: false }), 8000);
+  let count = await withTimeout(Order.countDocuments({ user: req.user._id, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
   let orders = await withTimeout(
     Order.find({ user: req.user._id, isDeleted: false })
       .populate('user', 'username email')
@@ -687,7 +692,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(pageSize)
       .skip(pageSize * (page - 1)),
-    8000
+    ORDER_QUERY_TIMEOUT_MS
   );
 
   // Fallback: Nếu user không có orders, match theo customer email (cho mock/old data)
@@ -719,7 +724,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
           $count: 'total'
         }
       ]),
-      8000
+      ORDER_QUERY_TIMEOUT_MS
     );
 
     count = countResult.length > 0 ? countResult[0].total : 0;
@@ -762,7 +767,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
             $limit: pageSize
           }
         ]),
-        8000
+        ORDER_QUERY_TIMEOUT_MS
       );
 
       // Format results to match expected structure
@@ -816,7 +821,10 @@ const getOrders = asyncHandler(async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
 
-  const count = await withTimeout(Order.countDocuments({ isDeleted: false }), 8000);
+  const count = await withTimeout(
+    Order.countDocuments({ isDeleted: false }).maxTimeMS(ORDER_QUERY_TIMEOUT_MS),
+    ORDER_QUERY_TIMEOUT_MS,
+  );
   let orders = await withTimeout(
     Order.find({ isDeleted: false })
       .populate({
@@ -831,8 +839,10 @@ const getOrders = asyncHandler(async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .limit(pageSize)
-      .skip(pageSize * (page - 1)),
-    8000
+      .skip(pageSize * (page - 1))
+      .maxTimeMS(ORDER_QUERY_TIMEOUT_MS)
+      .lean(),
+    ORDER_QUERY_TIMEOUT_MS
   );
 
 
@@ -850,7 +860,7 @@ const getOrders = asyncHandler(async (req, res) => {
  */
 const deleteOrder = asyncHandler(async (req, res) => {
   const lang = req.lang;
-  const order = await withTimeout(Order.findOne({ _id: req.params.id, isDeleted: false }), 8000);
+  const order = await withTimeout(Order.findOne({ _id: req.params.id, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
@@ -881,7 +891,7 @@ const deleteOrder = asyncHandler(async (req, res) => {
  */
 const restoreOrder = asyncHandler(async (req, res) => {
   const lang = req.lang;
-  const order = await withTimeout(Order.findById(req.params.id), 8000);
+  const order = await withTimeout(Order.findById(req.params.id), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
@@ -905,7 +915,7 @@ const restoreOrder = asyncHandler(async (req, res) => {
         Order.findById(restoredOrder._id)
           .populate('customer', 'name email phone')
           .populate('user', 'username email name'),
-        8000
+        ORDER_QUERY_TIMEOUT_MS
       );
 
       broadcastOrderRestored(io, {
@@ -935,7 +945,7 @@ const getDeletedOrders = asyncHandler(async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
 
-  const count = await withTimeout(Order.countDocuments({ isDeleted: true }), 8000);
+  const count = await withTimeout(Order.countDocuments({ isDeleted: true }), ORDER_QUERY_TIMEOUT_MS);
   let orders = await withTimeout(
     Order.find({ isDeleted: true })
       .populate({
@@ -951,7 +961,7 @@ const getDeletedOrders = asyncHandler(async (req, res) => {
       .sort({ deletedAt: -1 })
       .limit(pageSize)
       .skip(pageSize * (page - 1)),
-    8000
+    ORDER_QUERY_TIMEOUT_MS
   );
 
   res.json({
@@ -970,7 +980,7 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
 
   const lang = req.lang;
-  const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), 8000);
+  const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
@@ -980,7 +990,7 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
   order.isDelivered = true;
   order.deliveredAt = Date.now();
 
-  const updatedOrder = await withTimeout(order.save(), 8000);
+  const updatedOrder = await withTimeout(order.save(), ORDER_QUERY_TIMEOUT_MS);
 
   // ==================== REAL-TIME BROADCAST ====================
   // Emit socket event để admin dashboard & khách hàng cập nhật tự động
@@ -992,7 +1002,7 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
         Order.findById(updatedOrder._id)
           .populate('customer', 'name email phone')
           .populate('user', 'username email name'),
-        8000
+        ORDER_QUERY_TIMEOUT_MS
       );
 
       broadcastOrderStatusUpdate(io, {
@@ -1021,14 +1031,14 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
  */
 const hardDeleteOrder = asyncHandler(async (req, res) => {
   const lang = req.lang;
-  const order = await withTimeout(Order.findById(req.params.id), 8000);
+  const order = await withTimeout(Order.findById(req.params.id), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
     throw new Error(getMessage(lang, 'order.notFound'));
   }
 
-  await withTimeout(Order.findByIdAndDelete(req.params.id), 8000);
+  await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);
 
   res.json({ message: 'Order permanently deleted' });
 });

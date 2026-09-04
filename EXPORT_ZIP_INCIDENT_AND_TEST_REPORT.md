@@ -727,6 +727,89 @@ Nguyên nhân là MongoDB cursor được mở tại `productImportController.js
 - Worker kiểm tra yêu cầu cancel giữa các batch.
 - API job trả thêm `cancelRequested` để phân biệt `processing` với đang chờ hủy.
 
+### 6.13. Incident production sau khi tăng timeout nội bộ
+
+Log production mới cho thấy việc tăng timeout ứng dụng lên 30 giây không giải quyết nguyên nhân gốc.
+
+#### Timeline quan sát được
+
+```text
+mongo-connect completed in 6115ms
+seed-translations completed in 119494ms
+backend ready
+EXPORT_JOB_STARTED attempt: 1
+Database operation timed out after 30000ms
+MongoDB disconnected, attempting reconnect
+ReplicaSetNoPrimary / MongoNetworkTimeoutError
+backend ready sau khi reconnect
+EXPORT_JOB_READY durationMs: 339568
+```
+
+Export cuối cùng đã hoàn tất sau khoảng 5 phút 39 giây:
+
+```text
+productsWithImages: 557
+imageReferences: 3351
+uniqueUrlsAttempted: 3351
+uniqueUrlsSucceeded: 3350
+uniqueUrlsSkipped: 1
+referencesWithoutAssetPath: 1
+```
+
+Một ảnh Cloudinary bị timeout nhưng được graceful degradation đúng thiết kế. Đây không phải nguyên nhân làm job thất bại.
+
+#### Kết luận kỹ thuật
+
+`Database operation timed out after 30000ms` vẫn được tạo tại `src/utils/mongooseUtils.js:26`, nhưng lần này vấn đề không còn là ngưỡng 8 giây quá thấp. MongoDB Atlas đã mất kết nối tới replica set:
+
+```text
+ReplicaSetNoPrimary
+MongoNetworkTimeoutError
+connection <monitor> timed out
+```
+
+Trong thời điểm đó, các request sau bị ảnh hưởng:
+
+```text
+GET /api/orders -> HTTP 503
+GET /api/products/admin/export-jobs/:id -> HTTP 503
+GET /api/translations -> HTTP 500
+```
+
+`socket hang up` trong Next.js là hậu quả của backend origin reset connection hoặc không phản hồi ổn định; không phải lỗi tạo ZIP. `request_timeout` trên frontend cũng chỉ là lỗi phía client khi chờ backend.
+
+#### Phân biệt các lớp timeout
+
+| Lớp | Biểu hiện | Vai trò |
+|---|---|---|
+| Backend `withTimeout` | `Database operation timed out after 30000ms` | Backend chủ động dừng chờ Promise |
+| MongoDB driver | `MongoNetworkTimeoutError`, `ReplicaSetNoPrimary` | Không chọn được MongoDB primary hoặc không kết nối được server |
+| Next.js proxy | `socket hang up`, `ECONNRESET` | Mất kết nối tới backend origin |
+| Frontend API | `request_timeout` | Client hết thời gian chờ |
+| Cloudflare Tunnel | `503`/origin error | Không truy cập được origin ổn định |
+
+Tăng timeout backend chỉ làm request chờ lâu hơn khi MongoDB không có primary; không thể sửa lỗi mạng, replica set hoặc Atlas availability.
+
+#### Việc cần kiểm tra trên production
+
+1. Kiểm tra MongoDB Atlas có primary đang hoạt động hay đang election/failover.
+2. Kiểm tra Network Access/IP allowlist của Atlas và IP outbound hiện tại của máy chạy backend.
+3. Kiểm tra DNS SRV và khả năng kết nối outbound tới MongoDB trên port `27017`.
+4. Kiểm tra region của backend so với region MongoDB để tránh latency và packet loss cao.
+5. Kiểm tra connection pool sau reconnect; không chạy nhiều seed/query nặng đồng thời khi backend vừa khởi động.
+6. Xác nhận các index export và orders đã được tạo trên database production.
+7. Sau khi MongoDB ổn định, restart backend một lần rồi kiểm tra tuần tự `/api/orders`, polling export job và download ZIP.
+
+Không dùng `npm update` hoặc tăng timeout vô hạn để xử lý incident này. Cần sửa availability/kết nối MongoDB trước; timeout backend chỉ là cơ chế bảo vệ để request không treo vô hạn.
+
+#### Trạng thái export
+
+Job trong log này đã tạo được ZIP và có 3.350/3.351 ảnh hợp lệ. File vẫn có thể sử dụng, nhưng một ảnh cần được tải lại nếu yêu cầu toàn vẹn 100% asset. Không nên đánh dấu toàn bộ export thất bại chỉ vì một ảnh remote timeout.
+
+#### Vấn đề setup của Builder
+
+Repository không có `package.json` ở root nên setup command hiện tại vẫn thất bại với `pnpm install`. Đây là vấn đề cấu hình môi trường Builder, độc lập với incident MongoDB production. Cần cấu hình setup theo từng package backend/frontend trong Project Settings trước khi dùng preview local.
+
 Không dùng `noCursorTimeout` hoặc chỉ tăng timeout cursor như một cách khắc phục, vì các cách đó giữ resource MongoDB lâu hơn và chỉ che nguyên nhân.
 
 ### 6.13. Startup bị hiểu nhầm là cần mở frontend

@@ -98,6 +98,8 @@ ProductCatalogTranslationCacheSchema.index(
   { unique: true }
 );
 
+ProductCatalogTranslationCacheSchema.index({ status: 1, entityId: 1, targetLang: 1 });
+
 // Index for filtering by status
 ProductCatalogTranslationCacheSchema.index({ status: 1, targetLang: 1 });
 ProductCatalogTranslationCacheSchema.index({ qualityStatus: 1, targetLang: 1 });
