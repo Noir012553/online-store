@@ -32,6 +32,10 @@ IMAGE_SIGNATURES = {
     ".gif": lambda data: data[:6] in {b"GIF87a", b"GIF89a"},
     ".webp": lambda data: data[:4] == b"RIFF" and data[8:12] == b"WEBP",
     ".avif": lambda data: data[4:8] == b"ftyp" and data[8:12] in {b"avif", b"avis"},
+    ".svg": lambda data: (
+        b"<svg" in data[:1024].lstrip().lower()
+        or (data[:1024].lstrip().lower().startswith(b"<?xml") and b"<svg" in data[:1024].lower())
+    ),
 }
 
 TUNNEL_MARKERS = (
@@ -88,14 +92,29 @@ def image_signature_is_valid(name, data):
     return validator(data) if validator else False
 
 
-def validate_zip(zip_path, headers):
+def redact_url(value):
+    parsed = urlparse(value)
+    return parsed._replace(query="", fragment="").geturl()
+
+
+def safe_job(job):
+    sanitized = dict(job or {})
+    if sanitized.get("downloadUrl"):
+        sanitized["downloadUrl"] = redact_url(sanitized["downloadUrl"])
+    return sanitized
+
+
+def validate_zip(zip_path, headers, content_format):
     content_length = headers.get("content-length", "")
+    content_length_matches = (
+        int(content_length) == zip_path.stat().st_size if content_length.isdigit() else None
+    )
     result = {
         "ok": False,
         "bytes": zip_path.stat().st_size,
         "contentLengthHeader": content_length,
-        "contentLengthMatches": content_length.isdigit()
-        and int(content_length) == zip_path.stat().st_size,
+        "contentLengthMatches": content_length_matches,
+        "contentFormat": content_format,
         "productCount": 0,
         "imageReferences": 0,
         "referencesWithAssetPath": 0,
@@ -116,12 +135,18 @@ def validate_zip(zip_path, headers):
                 return result
 
             names = archive.namelist()
-            if "products.json" not in names:
-                result["zipError"] = "PRODUCTS_JSON_MISSING"
-                return result
-
-            products = json.loads(archive.read("products.json").decode("utf-8"))
-            products = products.get("products", []) if isinstance(products, dict) else []
+            products = []
+            if content_format == "json":
+                if "products.json" not in names:
+                    result["zipError"] = "PRODUCTS_JSON_MISSING"
+                    return result
+                parsed_products = json.loads(archive.read("products.json").decode("utf-8"))
+                if not isinstance(parsed_products, dict) or not isinstance(parsed_products.get("products"), list):
+                    result["zipError"] = "PRODUCTS_JSON_INVALID"
+                    return result
+                products = parsed_products["products"]
+            elif "products.csv" not in names:
+                result["zipError"] = "PRODUCTS_CSV_MISSING"
             result["productCount"] = len(products)
 
             referenced_assets = set()
@@ -164,7 +189,7 @@ def validate_zip(zip_path, headers):
             )
             result["translationLocales"] = sorted(set(result["translationLocales"]))
             result["ok"] = (
-                result["contentLengthMatches"]
+                result["contentLengthMatches"] is not False
                 and not result["zipError"]
                 and not result["missingAssetPaths"]
                 and not result["emptyImageEntryCount"]
@@ -227,7 +252,10 @@ async def cancel_job(request, headers, base_url, job_id, report):
 
 async def download_zip(playwright, base_url, headers, download_url, output_path, timeout_ms, report):
     browser = await playwright.chromium.launch(headless=True)
-    context = await browser.new_context(extra_http_headers=headers, accept_downloads=True)
+    download_headers = {}
+    download_status = None
+    request_headers = headers if origin_matches(base_url, download_url) else {}
+    context = await browser.new_context(extra_http_headers=request_headers, accept_downloads=True)
     page = await context.new_page()
     response_holder = {}
 
@@ -241,25 +269,26 @@ async def download_zip(playwright, base_url, headers, download_url, output_path,
             await page.goto(download_url, wait_until="commit", timeout=timeout_ms)
         download = await download_info.value
         await download.save_as(str(output_path))
+        response = response_holder.get("response")
+        if not response:
+            raise RuntimeError("DOWNLOAD_RESPONSE_NOT_OBSERVED")
+        download_status = response.status
+        download_headers = await response.all_headers()
     finally:
         page.remove_listener("response", remember_response)
         await context.close()
         await browser.close()
 
-    response = response_holder.get("response")
-    if not response:
-        raise RuntimeError("DOWNLOAD_RESPONSE_NOT_OBSERVED")
-    if response.status != 200:
-        raise RuntimeError(f"DOWNLOAD_FAILED_{response.status}")
+    if download_status != 200:
+        raise RuntimeError(f"DOWNLOAD_FAILED_{download_status}")
 
-    headers_result = await response.all_headers()
     report["events"].append({
         "event": "download",
-        "status": response.status,
-        "contentLength": headers_result.get("content-length", ""),
+        "status": download_status,
+        "contentLength": download_headers.get("content-length", ""),
         "bytes": output_path.stat().st_size,
     })
-    return headers_result
+    return download_headers
 
 
 async def run_check(args):
@@ -395,9 +424,9 @@ async def run_check(args):
 
             raw_download_url = job.get("downloadUrl") or f"/api/products/admin/export-jobs/{job_id}/download"
             download_url = urljoin(base_url + "/", raw_download_url)
-            report["downloadUrl"] = download_url
+            report["downloadUrl"] = redact_url(download_url)
             report["downloadOriginMatchesTarget"] = origin_matches(base_url, download_url)
-            print(f"[download] {download_url}")
+            print(f"[download] {redact_url(download_url)}")
             if not report["downloadOriginMatchesTarget"]:
                 print("[download] origin differs from target; allowed for configured external storage")
 
@@ -413,10 +442,10 @@ async def run_check(args):
                     max(timeout_ms, int(args.max_wait_minutes * 60 * 1000)),
                     report,
                 )
-                zip_result = validate_zip(zip_path, download_headers)
+                zip_result = validate_zip(zip_path, download_headers, args.format)
                 report["result"] = {
                     "jobId": job_id,
-                    "job": job,
+                    "job": safe_job(job),
                     "zipPath": str(zip_path) if args.zip_output else None,
                     "zip": zip_result,
                 }
