@@ -816,7 +816,10 @@ const getOrders = asyncHandler(async (req, res) => {
   const pageSize = 10;
   const page = Number(req.query.pageNumber) || 1;
 
-  const count = await withTimeout(Order.countDocuments({ isDeleted: false }), 8000);
+  const count = await withTimeout(
+    Order.countDocuments({ isDeleted: false }).maxTimeMS(8000),
+    8000,
+  );
   let orders = await withTimeout(
     Order.find({ isDeleted: false })
       .populate({
@@ -831,7 +834,9 @@ const getOrders = asyncHandler(async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .limit(pageSize)
-      .skip(pageSize * (page - 1)),
+      .skip(pageSize * (page - 1))
+      .maxTimeMS(8000)
+      .lean(),
     8000
   );
 

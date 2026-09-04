@@ -12,6 +12,7 @@ const {
   downloadFile,
 } = require('./exportStorage');
 const { recordExportEvent } = require('./exportMetrics');
+const { withTimeout } = require('../utils/mongooseUtils');
 
 const MAX_ATTEMPTS = 3;
 const POLL_INTERVAL_MS = 5000;
@@ -316,7 +317,10 @@ const startExportJobWorker = () => {
 
 const getExportJob = async (jobId) => {
   assertJobId(jobId);
-  const job = await ExportJob.findById(jobId).lean();
+  const job = await withTimeout(
+    ExportJob.findById(jobId).maxTimeMS(8000).lean(),
+    8000,
+  );
   if (!job) throw createJobError(404, 'EXPORT_JOB_NOT_FOUND');
   return toJobResponse(job);
 };

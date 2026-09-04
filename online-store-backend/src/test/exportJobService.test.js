@@ -201,7 +201,11 @@ describe('Export job workflow', () => {
     });
     expect(enqueued).to.include({ jobId: jobId.toString(), status: 'queued' });
 
-    sinon.stub(ExportJob, 'findById').returns({ lean: async () => readyJob });
+    const readyJobQuery = {
+      maxTimeMS: () => readyJobQuery,
+      lean: async () => readyJob,
+    };
+    sinon.stub(ExportJob, 'findById').returns(readyJobQuery);
     const polled = await exportJobService.getExportJob(jobId.toString());
     expect(polled).to.include({ jobId: jobId.toString(), status: 'ready' });
     expect(polled.downloadUrl).to.equal(`/api/products/admin/export-jobs/${jobId}/download`);

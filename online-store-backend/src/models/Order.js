@@ -240,6 +240,7 @@ const orderSchema = mongoose.Schema(
 // Indexes để tối ưu query
 orderSchema.index({ user: 1, isDeleted: 1 });
 orderSchema.index({ customer: 1, isDeleted: 1 }); // Tối ưu query getMyOrders & historical orders
+orderSchema.index({ isDeleted: 1, createdAt: -1 });
 // Note: idempotencyKey index is already handled in field definition above with sparse: true
 
 const Order = mongoose.model('Order', orderSchema);
