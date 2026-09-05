@@ -1234,7 +1234,6 @@ export const productAPI = {
     if (brand && brand !== 'all') params.append('brand', brand);
     if (limit) params.append('limit', limit.toString());
 
-    const token = getAuthToken();
     const externalSignal = requestOptions?.signal;
     const timeout = requestOptions?.timeout ?? 30 * 60 * 1000;
     const deadline = Date.now() + timeout;
@@ -1242,26 +1241,53 @@ export const productAPI = {
       const normalizedEndpoint = endpoint.startsWith('/api/')
         ? endpoint.slice('/api'.length)
         : endpoint;
-      const response = await fetch(`${API_URL}${normalizedEndpoint}`, {
-        ...init,
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-          ...init.headers,
-        },
-        credentials: 'include',
-        signal: externalSignal,
-      });
-      if (!response.ok) {
-        let errorMessage = 'product_export_failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {
-          errorMessage = response.statusText || errorMessage;
+      let hasRetried = false;
+
+      while (true) {
+        if (externalSignal?.aborted) {
+          throw externalSignal.reason || new DOMException('The request was aborted', 'AbortError');
         }
-        throw new Error(errorMessage);
+
+        try {
+          const currentToken = getAuthToken();
+          const response = await fetch(`${API_URL}${normalizedEndpoint}`, {
+            ...init,
+            headers: {
+              ...(currentToken && { Authorization: `Bearer ${currentToken}` }),
+              ...init.headers,
+            },
+            credentials: 'include',
+            signal: externalSignal,
+          });
+
+          if (response.status === 401 && !hasRetried) {
+            const refreshResult = await refreshAccessToken();
+            if (refreshResult === true) {
+              hasRetried = true;
+              continue;
+            }
+          }
+
+          if (!response.ok) {
+            let errorMessage = 'product_export_failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch {
+              errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+          }
+          return response;
+        } catch (error) {
+          if (!hasRetried && !externalSignal?.aborted && error instanceof TypeError) {
+            hasRetried = true;
+            await new Promise(resolve => window.setTimeout(resolve, 250));
+            continue;
+          }
+          throw error;
+        }
       }
-      return response;
     };
 
     const enqueueResponse = await fetchJob(`/products/admin/export-bundle?${params.toString()}`);
