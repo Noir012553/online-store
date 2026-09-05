@@ -429,7 +429,7 @@ const seed = async () => {
       seedLogger.warn(`Failed to clear analytics cache: ${cacheError.message}`);
     }
 
-    const { runDashboardDataCheck } = require('../scripts/check-dashboard-data');
+    const { runDashboardDataCheck } = require('../../scripts/check-dashboard-data');
     await runDashboardDataCheck();
 
     finalizeSeed({ cliArgs, status: 'COMPLETED', exitCode: 0 });
