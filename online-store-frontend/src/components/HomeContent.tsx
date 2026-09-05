@@ -165,7 +165,7 @@ export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { currencyCode } = useCurrencyContext();
-  const { brands } = useBrands();
+  const { brands, isLoading: isLoadingBrands } = useBrands();
 
   const buildHeroSlides = (): HeroSlide[] => {
     const safeCats = Array.isArray(categories) ? categories : [];
@@ -325,13 +325,10 @@ export default function Home() {
         lang: locale,
         locale,
         currencyCode,
-        inStock: true,
-        hasSpecs: true,
-        highlighted: true,
       };
       debugHomepage('category:request-start', requestDetails);
 
-      const response = await productAPI.getFeaturedProducts(
+      const response = await productAPI.getProducts(
         1,
         undefined,
         category._id,
@@ -339,17 +336,18 @@ export default function Home() {
         8,
         undefined,
         undefined,
-        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         locale,
         locale,
         currencyCode,
-        true,
-        undefined,
-        undefined,
-        true,
-        undefined,
-        undefined,
         { skipErrorToast: true, signal: requestController.signal },
+        'featured',
       );
 
       debugHomepage('category:response-success', {
@@ -1059,7 +1057,13 @@ export default function Home() {
             <div className="mb-5 flex items-end justify-between gap-4 sm:mb-6">
               <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title')}</h2>
             </div>
-            {brands.length > 0 ? (
+            {isLoadingBrands ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-6" aria-busy="true">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-32 animate-pulse rounded-lg border-2 border-gray-100 bg-gray-50" />
+                ))}
+              </div>
+            ) : brands.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-6">
                 {brands.map((brand) => (
                   <div
