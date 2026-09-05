@@ -4,13 +4,7 @@ const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const Review = require('../models/Review');
 const { ABOUT_MEDIA } = require('../config/aboutMedia');
-
-const TEAM_SOURCES = [
-  'https://manln.online/images/team/team-1.jpg',
-  'https://manln.online/images/team/team-2.jpg',
-  'https://manln.online/images/team/team-3.jpg',
-  'https://manln.online/images/team/team-4.jpg',
-];
+const seedAboutMedia = require('../seeds/aboutMediaSeeder');
 
 const REVIEWER_SOURCES = [
   'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
@@ -79,9 +73,7 @@ const uploadAsset = async (source, publicId, resourceType = 'image') => {
 };
 
 const migrateImages = async () => {
-  const teamAssets = await Promise.all(
-    ABOUT_MEDIA.team.map((asset, index) => uploadAsset(TEAM_SOURCES[index], asset.publicId))
-  );
+  const teamAssets = await seedAboutMedia();
   const reviewerAssets = await Promise.all(
     ABOUT_MEDIA.reviewers.map((asset, index) => uploadAsset(REVIEWER_SOURCES[index], asset.publicId))
   );

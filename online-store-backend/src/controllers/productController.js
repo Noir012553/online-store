@@ -7,6 +7,7 @@ const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
+const AboutMedia = require('../models/AboutMedia');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const Category = require('../models/Category');
@@ -1404,16 +1405,14 @@ const getStatsOverview = asyncHandler(async (req, res) => {
  * @route GET /api/products/testimonials/featured
  * @access Public
  */
-const getAboutMedia = (req, res) => {
-  const team = ABOUT_MEDIA.team.map(({ key, publicId }) => ({
-    key,
-    url: getCloudinaryDeliveryUrl(publicId, 640),
-    srcSet: [640, 1200]
-      .map((width) => getCloudinaryDeliveryUrl(publicId, width))
-      .filter(Boolean)
-      .map((url, index) => `${url} ${[640, 1200][index]}w`)
-      .join(', '),
-  }));
+const getAboutMedia = asyncHandler(async (req, res) => {
+  const team = await withTimeout(
+    AboutMedia.find({ kind: 'team' })
+      .sort({ sortOrder: 1 })
+      .select('key url srcSet -_id')
+      .lean(),
+    8000,
+  );
 
   res.json({
     team,
@@ -1422,7 +1421,7 @@ const getAboutMedia = (req, res) => {
       poster: getCloudinaryVideoPosterUrl(ABOUT_MEDIA.hero.publicId),
     },
   });
-};
+});
 
 const getTestimonials = asyncHandler(async (req, res) => {
   try {

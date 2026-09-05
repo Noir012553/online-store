@@ -1,9 +1,25 @@
 const ABOUT_MEDIA = {
   team: [
-    { key: 'team-1', publicId: 'laptop-store/about/team/team-1' },
-    { key: 'team-2', publicId: 'laptop-store/about/team/team-2' },
-    { key: 'team-3', publicId: 'laptop-store/about/team/team-3' },
-    { key: 'team-4', publicId: 'laptop-store/about/team/team-4' },
+    {
+      key: 'team-1',
+      publicId: 'laptop-store/about/team/team-1',
+      sourceUrl: 'https://manln.online/images/team/team-1.jpg',
+    },
+    {
+      key: 'team-2',
+      publicId: 'laptop-store/about/team/team-2',
+      sourceUrl: 'https://manln.online/images/team/team-2.jpg',
+    },
+    {
+      key: 'team-3',
+      publicId: 'laptop-store/about/team/team-3',
+      sourceUrl: 'https://manln.online/images/team/team-3.jpg',
+    },
+    {
+      key: 'team-4',
+      publicId: 'laptop-store/about/team/team-4',
+      sourceUrl: 'https://manln.online/images/team/team-4.jpg',
+    },
   ],
   reviewers: [
     { key: 'reviewer-1', name: 'Reviewer One', publicId: 'laptop-store/about/reviewers/reviewer-1' },
