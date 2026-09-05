@@ -48,6 +48,17 @@ const getDatabaseCounts = async () => {
   return { products, customers, orders, coupons };
 };
 
+const runDashboardDataCheck = async ({ mode = 'dry-run' } = {}) => {
+  const counts = await getDatabaseCounts();
+  console.log(JSON.stringify({
+    mode,
+    source: 'database',
+    writes: 0,
+    existingDocuments: counts,
+  }, null, 2));
+  return counts;
+};
+
 const removeLegacySamples = async () => {
   const legacyOrders = await Order.find({ idempotencyKey: { $regex: `^${SAMPLE_PREFIX}` } })
     .select('_id orderItems.product customer appliedCoupon.couponId')
@@ -124,20 +135,18 @@ const main = async () => {
     return;
   }
 
-  const counts = await getDatabaseCounts();
-  console.log(JSON.stringify({
-    mode: options.apply ? 'database-check' : 'dry-run',
-    source: 'database',
-    writes: 0,
-    existingDocuments: counts,
-  }, null, 2));
+  await runDashboardDataCheck({ mode: options.apply ? 'database-check' : 'dry-run' });
 };
 
-main()
-  .catch((error) => {
-    console.error(error.message);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.disconnect();
-  });
+if (require.main === module) {
+  main()
+    .catch((error) => {
+      console.error(error.message);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.disconnect();
+    });
+}
+
+module.exports = { runDashboardDataCheck };

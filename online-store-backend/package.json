@@ -16,7 +16,7 @@
     "test:vnpay:watch": "nodemon src/test/test-vnpay-quick.js",
     "test:vnpay:signature": "node src/test/test-vnpay-signature-fix.js",
     "test:flow": "node src/test/test-with-order.js",
-    "seed": "node --expose-gc src/seeds/index.js && npm run check:dashboard-data",
+    "seed": "node --expose-gc src/seeds/index.js",
     "seed:list": "node --expose-gc src/seeds/index.js -- --list",
     "seed:modules": "node --expose-gc src/seeds/index.js -- --modules",
     "seed:only": "node --expose-gc src/seeds/index.js -- --only-module",
@@ -97,7 +97,7 @@
     "nodemailer": "^9.0.1",
     "qrcode": "^1.5.4",
     "redis": "^4.6.13",
-    "sanitize-html": "^2.17.0",
+    "sanitize-html": "^2.17.7",
     "socket.io": "^4.8.3",
     "zod": "^4.3.6"
   },
@@ -116,6 +116,7 @@
     "glob": "^11.1.0",
     "serialize-javascript": "^7.0.3",
     "@apidevtools/json-schema-ref-parser": "9.0.9",
-    "js-yaml": "^4.1.2"
+    "js-yaml": "^4.1.2",
+    "qs": "^6.16.0"
   }
 }

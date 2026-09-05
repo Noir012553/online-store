@@ -11,6 +11,7 @@ class SeedLogger {
   constructor() {
     this.logs = [];
     this.startTime = new Date();
+    this.status = 'RUNNING';
     this.reportDir = path.join(process.cwd(), 'seed-reports');
     this.originalConsole = {
       log: console.log,
@@ -68,6 +69,10 @@ class SeedLogger {
     this.originalConsole.error(`${CLI_SYMBOLS.error} ${message}`);
   }
 
+  setStatus(status) {
+    this.status = status;
+  }
+
   generateReports() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const baseName = `seed-report-${timestamp}`;
@@ -93,6 +98,7 @@ class SeedLogger {
     let markdown = `# Seed Database Report\n\n`;
     markdown += `**Generated:** ${new Date().toISOString()}\n\n`;
     markdown += `**Duration:** ${duration} seconds\n\n`;
+    markdown += `**Status:** ${this.status}\n\n`;
     markdown += `## Execution Log\n\n`;
     markdown += `\`\`\`\n`;
     markdown += this.logs.join('\n');
@@ -109,7 +115,7 @@ class SeedLogger {
     text += `================================================================================\n\n`;
     text += `Generated: ${new Date().toISOString()}\n`;
     text += `Duration: ${duration} seconds\n`;
-    text += `Status: COMPLETED\n\n`;
+    text += `Status: ${this.status}\n\n`;
     text += `================================================================================\n`;
     text += `EXECUTION LOG\n`;
     text += `================================================================================\n\n`;

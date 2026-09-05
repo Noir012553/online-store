@@ -4,6 +4,7 @@
  */
 
 require('dotenv').config();
+const { spawnSync } = require('child_process');
 const mongoose = require('mongoose');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const seedLogger = require('../utils/seedLogger');
@@ -25,6 +26,7 @@ const { runProductSeedPipeline } = require('./productSeedPipeline');
  * npm run seed -- --incremental                 - Only translate missing items
  * npm run seed:post-products                    - Seed dữ liệu phụ thuộc sau khi import Product
  * npm run seed -- --i18n-only                   - Seed ONLY i18n (Layer 1: languages + translations)
+ * npm run seed -- --shutdown-machine            - Shutdown Windows after report generation
  *
  * Environment Variables:
  * DRY_RUN=true                 - Test without AI calls
@@ -109,8 +111,46 @@ function parseCliArgs() {
     batchSize,
     skipScrape: args.includes('--skip-scrape'),
     skipTranslate: args.includes('--skip-translate'),
+    shutdownMachine: args.includes('--shutdown-machine'),
   };
 }
+
+const requestMachineShutdown = ({ enabled, success }) => {
+  if (!enabled) return;
+
+  if (process.platform !== 'win32') {
+    seedLogger.warn('Machine shutdown is only supported on Windows; process will exit normally.');
+    return;
+  }
+
+  const delaySeconds = success ? 60 : 0;
+
+  const result = spawnSync(
+    'shutdown.exe',
+    ['/s', '/t', String(delaySeconds)],
+    { stdio: 'ignore', windowsHide: true },
+  );
+
+  if (result.error || result.status !== 0) {
+    seedLogger.error(`Failed to schedule Windows shutdown: ${result.error?.message || `exit code ${result.status}`}`);
+  }
+};
+
+const finalizeSeed = ({ cliArgs, status, exitCode }) => {
+  seedLogger.setStatus(status);
+  if (cliArgs.shutdownMachine) {
+    const message = exitCode === 0
+      ? 'Seed completed successfully. Windows will shut down in 60 seconds.'
+      : 'Seed failed. Windows will shut down now after saving the report.';
+    seedLogger.log(message);
+  }
+  const reports = seedLogger.generateReports();
+  requestMachineShutdown({
+    enabled: cliArgs.shutdownMachine,
+    success: exitCode === 0,
+  });
+  return reports;
+};
 
 /**
  * Main seed orchestrator
@@ -389,20 +429,18 @@ const seed = async () => {
       seedLogger.warn(`Failed to clear analytics cache: ${cacheError.message}`);
     }
 
-    // Generate report files
-    seedLogger.generateReports();
+    const { runDashboardDataCheck } = require('../../scripts/check-dashboard-data');
+    await runDashboardDataCheck();
 
-    /**
-     * Exit process khi hoàn thành
-     */
+    finalizeSeed({ cliArgs, status: 'COMPLETED', exitCode: 0 });
     process.exit(0);
   } catch (error) {
+    const cliArgs = parseCliArgs();
     seedLogger.error(`\nSeeding failed with error: ${error.message}`);
     if (error.stack) {
       seedLogger.error(error.stack);
     }
-    // Generate report even on error
-    seedLogger.generateReports();
+    finalizeSeed({ cliArgs, status: 'FAILED', exitCode: 1 });
     process.exit(1);
   }
 };
