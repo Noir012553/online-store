@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Brand = require('../models/Brand');
+const Product = require('../models/Product');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { overlayTranslationBatch, overlayTranslation } = require('../services/translationHelper');
 const { getMessage } = require('../i18n/messages');
@@ -16,7 +17,29 @@ const getBrands = asyncHandler(async (req, res) => {
     8000
   );
 
-  const translatedBrands = await overlayTranslationBatch(brands, 'brand', lang);
+  const productBrands = await withTimeout(
+    Product.distinct('brand', { isDeleted: false, storefrontReady: true }),
+    8000
+  );
+  const brandNames = new Map(brands.map((brand) => [brand.name.trim().toLowerCase(), brand]));
+
+  productBrands
+    .map((name) => String(name || '').trim())
+    .filter((name) => name && !EXCLUDED_BRAND_PATTERN.test(name))
+    .forEach((name) => {
+      const normalizedName = name.toLowerCase();
+      if (!brandNames.has(normalizedName)) {
+        brandNames.set(normalizedName, {
+          _id: `product-brand-${normalizedName.replace(/[^a-z0-9]+/gi, '-')}`,
+          name,
+          logo: null,
+          description: null,
+          key: normalizedName.replace(/[^a-z0-9]+/gi, '-'),
+        });
+      }
+    });
+
+  const translatedBrands = await overlayTranslationBatch([...brandNames.values()], 'brand', lang);
 
   res.json({ brands: translatedBrands });
 });

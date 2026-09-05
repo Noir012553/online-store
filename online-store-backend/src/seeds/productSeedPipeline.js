@@ -13,6 +13,7 @@ const {
 } = require('../config/languageInventory');
 const ProductImportController = require('../controllers/productImportController');
 const { waitForPendingTranslations } = require('../services/specKeyTranslationService');
+const { refreshStorefrontReadiness } = require('../services/translationHelper');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const SeedStatus = require('../models/SeedStatus');
@@ -537,7 +538,9 @@ const runProductSeedPipeline = async (options = {}) => {
   }
 
   const translations = await translateProducts(options.languages);
-  return { files, imports, translations, initializeHighlights };
+  const productIds = await Product.find({ isDeleted: false }).distinct('_id');
+  const storefrontReadiness = await refreshStorefrontReadiness(productIds);
+  return { files, imports, translations, storefrontReadiness, initializeHighlights };
 };
 
 module.exports = {

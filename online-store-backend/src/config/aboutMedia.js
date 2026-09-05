@@ -23,7 +23,7 @@ const getCloudinaryDeliveryUrl = (publicId, width) => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   if (!cloudName) return null;
 
-  const transformation = width ? `f_auto,q_auto,w_${width}` : 'f_auto,q_auto';
+  const transformation = width ? `f_jpg,q_auto,w_${width}` : 'f_jpg,q_auto';
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transformation}/${publicId}`;
 };
 
