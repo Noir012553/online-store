@@ -127,7 +127,7 @@ function StatisticsCategoryName({ product }: { product: any }) {
 }
 
 function StatisticsContent() {
-  const { t, loadNamespace, locale, isLoadingNamespace } = useTranslation();
+  const { t, loadNamespace, locale } = useTranslation();
   const { currencyCode: targetCurrency } = useCurrencyContext();
   const formattingLocale = getIntlLocale(locale);
   const [isLoading, setIsLoading] = useState(true);
@@ -193,14 +193,37 @@ function StatisticsContent() {
       }
       setError(null);
 
-      const [dashboardResult, productsResult, customersResult, couponsResult, exportResult, topRatedResult, slowSellingResult, unpaidOrdersResult, inactiveCustomersResult, lowInventoryResult, lowRatingResult, unusedCouponsResult] =
+      const [dashboardResult, productsResult] =
         await Promise.allSettled([
           analyticsAPI.getDashboardData(30, locale, targetCurrency, formattingLocale),
           productAPI.getProducts(1, undefined, undefined, undefined, 100, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale, formattingLocale, targetCurrency),
+        ]);
+
+      if (!mountedRef.current) return;
+
+      if (dashboardResult.status === 'fulfilled') setDashboardData(dashboardResult.value);
+      if (productsResult.status === 'fulfilled') setProducts(productsResult.value.products || []);
+
+      if (!silent) {
+        setIsLoading(false);
+      }
+
+      const [couponsResult, exportResult, topRatedResult] = await Promise.allSettled([
+        couponAPI.getCoupons(1, '', 100, undefined, locale, formattingLocale, targetCurrency),
+        productAPI.getExportStats(locale),
+        productAPI.getTopRated(locale, formattingLocale, targetCurrency),
+      ]);
+
+      if (!mountedRef.current) return;
+
+      if (couponsResult.status === 'fulfilled') setCoupons(couponsResult.value.coupons || []);
+      if (exportResult.status === 'fulfilled') setExportStats(exportResult.value);
+      if (topRatedResult.status === 'fulfilled') setTopRatedProducts(topRatedResult.value || []);
+
+      const [customersResult, topCustomersResult, slowSellingResult, unpaidOrdersResult, inactiveCustomersResult, lowInventoryResult, lowRatingResult, unusedCouponsResult] =
+        await Promise.allSettled([
+          customerAPI.getCustomers(1, 100, undefined, locale),
           analyticsAPI.getTopCustomers(5, 1, '-totalSpent', 0, locale, targetCurrency, formattingLocale),
-          couponAPI.getCoupons(1, '', 100, undefined, locale, formattingLocale, targetCurrency),
-          productAPI.getExportStats(locale),
-          productAPI.getTopRated(locale, formattingLocale, targetCurrency),
           analyticsAPI.getSlowSellingProducts(10, negativeDaysRange, locale, formattingLocale, targetCurrency),
           analyticsAPI.getUnpaidOrders(20, negativeDaysRange, locale, formattingLocale, targetCurrency),
           analyticsAPI.getInactiveCustomers(10, 90, locale, formattingLocale, targetCurrency),
@@ -211,12 +234,10 @@ function StatisticsContent() {
 
       if (!mountedRef.current) return;
 
-      if (dashboardResult.status === 'fulfilled') setDashboardData(dashboardResult.value);
-      if (productsResult.status === 'fulfilled') setProducts(productsResult.value.products || []);
-      if (customersResult.status === 'fulfilled') setCustomers(customersResult.value.data || []);
-      if (couponsResult.status === 'fulfilled') setCoupons(couponsResult.value.coupons || []);
-      if (exportResult.status === 'fulfilled') setExportStats(exportResult.value);
-      if (topRatedResult.status === 'fulfilled') setTopRatedProducts(topRatedResult.value || []);
+      if (customersResult.status === 'fulfilled') setCustomers(customersResult.value.data || customersResult.value.customers || []);
+      if (topCustomersResult.status === 'fulfilled') {
+        setCustomers((current) => current.length ? current : topCustomersResult.value.data || []);
+      }
       if (slowSellingResult.status === 'fulfilled') setSlowSellingProducts(slowSellingResult.value || []);
       if (unpaidOrdersResult.status === 'fulfilled') setUnpaidOrders(unpaidOrdersResult.value || []);
       if (inactiveCustomersResult.status === 'fulfilled') setInactiveCustomers(inactiveCustomersResult.value || []);
@@ -582,15 +603,6 @@ function StatisticsContent() {
       setIsSavingDetail(false);
     }
   };
-
-  // Wait for admin namespace to load before rendering translated content
-  if (isLoadingNamespace('admin')) {
-    return (
-      <div className="flex h-96 items-center justify-center rounded-2xl border bg-white">
-        <p className="text-gray-600">{t('loading')}</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
