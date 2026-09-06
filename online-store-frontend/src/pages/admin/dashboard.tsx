@@ -222,7 +222,6 @@ function DashboardContent() {
       setIsLoading(true);
       const cacheKey = `dashboard_${30}_${locale}_${targetCurrency}`; // Include locale and currency in cache key
       let dashboardData = cacheManagerRef.current.get(cacheKey);
-      let topCustomersData, paidOrdersData;
 
       // Keep the dashboard summary cache separate from its supporting lists.
       if (!dashboardData) {
@@ -235,7 +234,7 @@ function DashboardContent() {
         cacheManagerRef.current.set(cacheKey, dashboardData);
       }
 
-      [topCustomersData, paidOrdersData] = await Promise.all([
+      const [topCustomersResult, paidOrdersResult] = await Promise.allSettled([
         analyticsAPI.getTopCustomers(5, 1, '-totalSpent', 0, dashboardLocale, targetCurrency, getIntlLocale(dashboardLocale)),
         analyticsAPI.getPaidOrders(5, 1, '-createdAt', 30, dashboardLocale, getIntlLocale(dashboardLocale), targetCurrency),
       ]);
@@ -251,11 +250,15 @@ function DashboardContent() {
       });
       setRecentOrders(dashboardData.recentOrders || []);
       setTopProducts(dashboardData.topProducts || []);
-      setTopCustomers(topCustomersData?.data || []);
-      setPaidOrders(paidOrdersData?.data || []);
+      setTopCustomers(topCustomersResult.status === 'fulfilled' ? topCustomersResult.value?.data || [] : []);
+      setPaidOrders(paidOrdersResult.status === 'fulfilled' ? paidOrdersResult.value?.data || [] : []);
 
       const defaultRanges = getDefaultDateRanges();
       await fetchChartDataCallback('month', defaultRanges.month);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Dashboard] Error fetching dashboard data:', error);
+      }
     } finally {
       setIsLoading(false);
     }
