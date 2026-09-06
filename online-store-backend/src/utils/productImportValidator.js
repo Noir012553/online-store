@@ -16,6 +16,12 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 
 const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
+const MAX_IMPORT_PRODUCTS = 5000;
+const MAX_IMPORT_OBJECT_DEPTH = 8;
+const MAX_IMPORT_STRING_LENGTH = 100000;
+const MAX_IMPORT_IMAGES = 50;
+const NUMERIC_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
  * Required fields khi import products
@@ -36,8 +42,69 @@ const OPTIONAL_FIELDS = [
  * @param {Number} rowIndex - Dòng số (for error reporting)
  * @returns {Object} { isValid: boolean, errors: [], warnings: [], cleaned: Object }
  */
+function toStrictNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized || !NUMERIC_PATTERN.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasUnsafeObjectKeys(value, depth = 0) {
+  if (typeof value === 'string') return value.length > MAX_IMPORT_STRING_LENGTH;
+  if (!value || typeof value !== 'object') return false;
+  if (depth > MAX_IMPORT_OBJECT_DEPTH) return true;
+  if (Array.isArray(value)) return value.some(item => hasUnsafeObjectKeys(item, depth + 1));
+  return Object.entries(value).some(([key, nestedValue]) => (
+    UNSAFE_OBJECT_KEYS.has(key) || hasUnsafeObjectKeys(nestedValue, depth + 1)
+  ));
+}
+
+function isBlockedImportHostname(hostname) {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) return true;
+  if (normalized === '::1' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) return true;
+
+  const octets = normalized.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255)) return false;
+  const [first, second] = octets;
+  return first === 0
+    || first === 10
+    || first === 127
+    || (first === 169 && second === 254)
+    || (first === 172 && second >= 16 && second <= 31)
+    || (first === 192 && second === 168);
+}
+
+function validateImportUrl(value) {
+  try {
+    const parsedUrl = new URL(String(value).trim());
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)
+      || parsedUrl.username
+      || parsedUrl.password
+      || isBlockedImportHostname(parsedUrl.hostname)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function validateProduct(product, rowIndex = 0) {
   const errors = [];
+  if (!product || typeof product !== 'object' || Array.isArray(product)) {
+    return {
+      isValid: false,
+      errors: [`Row ${rowIndex}: Product must be an object`],
+      warnings: [],
+      cleaned: {},
+    };
+  }
+  if (hasUnsafeObjectKeys(product)) {
+    errors.push(`Row ${rowIndex}: Product contains unsafe object keys, excessive nesting, or oversized text`);
+  }
   const warnings = [];
   const cleaned = {};
 
@@ -90,9 +157,8 @@ function validateProduct(product, rowIndex = 0) {
     const sourceUrl = String(product.sourceUrl).trim();
     if (sourceUrl) {
       try {
-        const parsedUrl = new URL(sourceUrl);
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Unsupported protocol');
-        cleaned.sourceUrl = parsedUrl.toString();
+        if (!validateImportUrl(sourceUrl)) throw new Error('Unsupported or unsafe URL');
+        cleaned.sourceUrl = new URL(sourceUrl).toString();
       } catch {
         warnings.push(`Row ${rowIndex}: Invalid sourceUrl, skipped`);
       }
@@ -100,23 +166,20 @@ function validateProduct(product, rowIndex = 0) {
   }
 
   // Validate price
-  if (product.price) {
-    const price = parseFloat(product.price);
-    if (isNaN(price) || price <= 0) {
-      errors.push(`Row ${rowIndex}: Price must be a number > 0, got: ${product.price}`);
-    } else {
-      cleaned.price = price;
-    }
+  const price = toStrictNumber(product.price);
+  if (price === null || price <= 0) {
+    errors.push(`Row ${rowIndex}: Price must be a number > 0, got: ${product.price}`);
+  } else {
+    cleaned.price = price;
   }
 
   // Validate originalPrice nếu có
-  if (product.originalPrice) {
-    const origPrice = parseFloat(product.originalPrice);
-    if (isNaN(origPrice) || origPrice <= 0) {
+  if (product.originalPrice !== undefined && product.originalPrice !== null && String(product.originalPrice).trim() !== '') {
+    const origPrice = toStrictNumber(product.originalPrice);
+    if (origPrice === null || origPrice <= 0) {
       warnings.push(`Row ${rowIndex}: Invalid originalPrice, skipped`);
     } else {
       cleaned.originalPrice = origPrice;
-      // Check: originalPrice >= price
       if (origPrice < cleaned.price) {
         warnings.push(`Row ${rowIndex}: originalPrice is less than price`);
       }
@@ -124,9 +187,9 @@ function validateProduct(product, rowIndex = 0) {
   }
 
   // Validate countInStock
-  if (product.countInStock) {
-    const stock = parseInt(product.countInStock);
-    if (isNaN(stock) || stock < 0) {
+  if (product.countInStock !== undefined && product.countInStock !== null && String(product.countInStock).trim() !== '') {
+    const stock = toStrictNumber(product.countInStock);
+    if (stock === null || !Number.isSafeInteger(stock) || stock < 0) {
       warnings.push(`Row ${rowIndex}: Invalid countInStock, defaulting to 0`);
       cleaned.countInStock = 0;
     } else {
@@ -182,9 +245,18 @@ function validateProduct(product, rowIndex = 0) {
       .filter(Boolean)
       .map(image => String(image).trim());
   } else if (product.images && typeof product.images === 'string') {
-    // Parse pipe-separated images
     cleaned.images = product.images.split('|').map(img => String(img).trim()).filter(img => img);
   }
+
+  const imageUrls = [cleaned.image, ...(cleaned.images || [])].filter(Boolean);
+  if (imageUrls.length > MAX_IMPORT_IMAGES) {
+    errors.push(`Row ${rowIndex}: Too many image URLs; maximum is ${MAX_IMPORT_IMAGES}`);
+  }
+  imageUrls.forEach((imageUrl) => {
+    if (!validateImportUrl(imageUrl)) {
+      errors.push(`Row ${rowIndex}: Image URL must be a valid public HTTP(S) URL`);
+    }
+  });
 
   if (product.imagePublicId) {
     cleaned.imagePublicId = String(product.imagePublicId).trim();
@@ -217,8 +289,8 @@ function validateProduct(product, rowIndex = 0) {
         // Validate discount (0-100)
         // Skip empty string from CSV (deal_discount column is empty)
         if (dealObj.discount !== undefined && dealObj.discount !== '' && dealObj.discount !== null) {
-          const discount = parseFloat(dealObj.discount);
-          if (isNaN(discount) || discount < 0 || discount > 100) {
+          const discount = toStrictNumber(dealObj.discount);
+          if (discount === null || discount < 0 || discount > 100) {
             warnings.push(`Row ${rowIndex}: Deal discount must be 0-100, got: ${dealObj.discount}`);
           } else {
             deal.discount = discount;
@@ -386,6 +458,17 @@ function validateProductArray(products) {
   const invalidProducts = [];
   const allErrors = [];
   const allWarnings = [];
+  if (products.length > MAX_IMPORT_PRODUCTS) {
+    return {
+      isValid: false,
+      errors: [`Import data cannot contain more than ${MAX_IMPORT_PRODUCTS} products`],
+      warnings: [],
+      totalProducts: products.length,
+      validProducts: [],
+      invalidProducts: [],
+    };
+  }
+
   products.forEach((product, index) => {
     const result = validateProduct(product, index + 1);
     const errors = result.errors;
@@ -497,4 +580,7 @@ module.exports = {
   REQUIRED_FIELDS,
   OPTIONAL_FIELDS,
   EXCLUDED_BRAND_PATTERN,
+  MAX_IMPORT_PRODUCTS,
+  MAX_IMPORT_OBJECT_DEPTH,
+  MAX_IMPORT_STRING_LENGTH,
 };

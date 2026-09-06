@@ -6,7 +6,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { checkFileType } = require('../utils/fileUtils');
+const { checkFileType, MAX_IMPORT_FILE_SIZE_BYTES } = require('../utils/fileUtils');
 
 const UPLOAD_DIR = 'uploads';
 
@@ -105,7 +105,7 @@ const uploadImport = multer({
     }
   },
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB
+    fileSize: MAX_IMPORT_FILE_SIZE_BYTES,
   },
 });
 
@@ -115,4 +115,5 @@ module.exports = {
   uploadImport,     // Cho import files (JSON/CSV)
   ensureUploadDir,
   UPLOAD_DIR,
+  MAX_IMPORT_FILE_SIZE_BYTES,
 };

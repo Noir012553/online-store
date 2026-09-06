@@ -563,11 +563,42 @@ const findExistingProduct = (byId, bySku, byNameAndBrand, product) => {
 };
 
 const addCategoryToMap = (categoryMap, category) => {
+  categoryMap[String(category._id)] = category._id;
   const names = [category.name, ...(category.sourceNames || [])];
   names.filter(Boolean).forEach((name) => {
     categoryMap[name] = category._id;
     categoryMap[String(name).toLowerCase()] = category._id;
   });
+};
+
+const getActiveImportCategoryMap = async () => {
+  const categoryMap = Object.create(null);
+  const categories = await Category.find({ isDeleted: false })
+    .select('_id name sourceNames')
+    .lean();
+  categories.forEach(category => addCategoryToMap(categoryMap, category));
+  return categoryMap;
+};
+
+const validateImportCategories = async (products, allowCreateReferences = false) => {
+  const categoryMap = await getActiveImportCategoryMap();
+  for (const product of products) {
+    const categoryKey = String(product.category);
+    if (categoryMap[categoryKey] || categoryMap[categoryKey.toLowerCase()]) continue;
+
+    if (!allowCreateReferences || mongoose.Types.ObjectId.isValid(product.category)) {
+      throw createImportError('IMPORT_CATEGORY_NOT_FOUND', {
+        name: product.name,
+        category: product.category,
+      });
+    }
+
+    const validation = validateCategoryName(product.category);
+    if (!validation.isValid) {
+      throw createImportError('IMPORT_CATEGORY_NAME_INVALID', { name: product.category });
+    }
+  }
+  return categoryMap;
 };
 
 async function invalidateChangedProductTranslations(affectedProducts = []) {
@@ -713,10 +744,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       });
     }
 
-    // Thông báo warnings
-    if (validation.warnings.length > 0) {
-    }
-
 
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
@@ -742,6 +769,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       });
     }
 
+    await validateImportCategories(validProducts, allowCreateReferences);
+
     if (isDryRun(dryRun)) {
       return res.json({
         success: true,
@@ -759,7 +788,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     await registerUnknownSpecKeys(validProducts);
 
     // Map category names → IDs (Filter isDeleted = false)
-    const categoryMap = {};
+    const categoryMap = Object.create(null);
     const categories = await Category.find({ isDeleted: false });
     categories.forEach(cat => addCategoryToMap(categoryMap, cat));
 
@@ -767,7 +796,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       const missingCategory = validProducts.find(product => (
         !categoryMap[product.category]
         && !categoryMap[String(product.category).toLowerCase()]
-        && !mongoose.Types.ObjectId.isValid(product.category)
       ));
       if (missingCategory) {
         throw createImportError('IMPORT_CATEGORY_NOT_FOUND', {
@@ -794,8 +822,11 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     for (const product of validProducts) {
       let categoryId = categoryMap[product.category] || categoryMap[String(product.category).toLowerCase()];
-      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
-        categoryId = product.category;
+      if (mongoose.Types.ObjectId.isValid(product.category) && !categoryId) {
+        throw createImportError('IMPORT_CATEGORY_NOT_FOUND', {
+          name: product.name,
+          category: product.category,
+        });
       }
 
       if (!categoryId) {
@@ -877,9 +908,6 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
       // Resolve category
       let categoryId = categoryMap[product.category] || categoryMap[String(product.category).toLowerCase()];
-      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
-        categoryId = product.category;
-      }
       if (!categoryId) {
         const sanitizedName = sanitizeCategoryName(product.category);
         categoryId = categoryLookup.get(sanitizedName);
@@ -1006,10 +1034,6 @@ const importProducts = asyncHandler(async (req, res) => {
       });
     }
 
-    // Thông báo warnings
-    if (validation.warnings.length > 0) {
-    }
-
 
     const validProducts = validation.validProducts.map((product) => ({
       ...product,
@@ -1035,6 +1059,8 @@ const importProducts = asyncHandler(async (req, res) => {
       });
     }
 
+    await validateImportCategories(validProducts);
+
     if (isDryRun(dryRun)) {
       return res.json({
         success: true,
@@ -1051,7 +1077,7 @@ const importProducts = asyncHandler(async (req, res) => {
     await registerUnknownSpecKeys(validProducts);
 
     // Map category names → IDs (FIX #1: Filter isDeleted = false)
-    const categoryMap = {};
+    const categoryMap = Object.create(null);
     const categories = await Category.find({ isDeleted: false });
     categories.forEach(cat => addCategoryToMap(categoryMap, cat));
 
@@ -1062,9 +1088,6 @@ const importProducts = asyncHandler(async (req, res) => {
       // Resolve category
       let categoryId = categoryMap[product.category]
         || categoryMap[String(product.category).toLowerCase()];
-      if (!categoryId && mongoose.Types.ObjectId.isValid(product.category)) {
-        categoryId = product.category;
-      }
       if (!categoryId) {
         throw createImportError('IMPORT_CATEGORY_NOT_FOUND', {
           name: product.name,
@@ -1158,8 +1181,15 @@ async function handleInsertMode(products) {
   // Bulk insert
   let insertedCount = 0;
   if (toInsert.length > 0) {
-    const result = await Product.insertMany(toInsert, { ordered: false });
-    insertedCount = result.length;
+    try {
+      const result = await Product.insertMany(toInsert, { ordered: false });
+      insertedCount = result.length;
+    } catch (error) {
+      if (error.code === 11000) {
+        throw createImportError('IMPORT_DUPLICATE_KEY');
+      }
+      throw error;
+    }
   }
 
   return {
