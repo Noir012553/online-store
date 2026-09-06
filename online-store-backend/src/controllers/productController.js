@@ -29,7 +29,7 @@ const {
 } = require('../services/translationHelper');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
-const { ABOUT_MEDIA, getCloudinaryDeliveryUrl, getCloudinaryVideoUrl, getCloudinaryVideoPosterUrl } = require('../config/aboutMedia');
+const { ABOUT_MEDIA, getCloudinaryDeliveryUrl } = require('../config/aboutMedia');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
@@ -1406,19 +1406,27 @@ const getStatsOverview = asyncHandler(async (req, res) => {
  * @access Public
  */
 const getAboutMedia = asyncHandler(async (req, res) => {
-  const team = await withTimeout(
-    AboutMedia.find({ kind: 'team' })
-      .sort({ sortOrder: 1 })
-      .select('key url srcSet -_id')
-      .lean(),
-    8000,
-  );
+  const [team, hero] = await Promise.all([
+    withTimeout(
+      AboutMedia.find({ kind: 'team' })
+        .sort({ sortOrder: 1 })
+        .select('key url srcSet -_id')
+        .lean(),
+      8000,
+    ),
+    withTimeout(
+      AboutMedia.findOne({ kind: 'hero', key: 'about-hero' })
+        .select('url posterUrl -_id')
+        .lean(),
+      8000,
+    ),
+  ]);
 
   res.json({
     team,
     hero: {
-      url: getCloudinaryVideoUrl(ABOUT_MEDIA.hero.publicId),
-      poster: getCloudinaryVideoPosterUrl(ABOUT_MEDIA.hero.publicId),
+      url: hero?.url || null,
+      poster: hero?.posterUrl || null,
     },
   });
 });

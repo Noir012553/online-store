@@ -101,14 +101,6 @@ const migrateImages = async () => {
   console.table([...teamAssets, ...reviewerAssets]);
 };
 
-const migrateOptionalVideo = async () => {
-  const heroSource = process.env.ABOUT_HERO_SOURCE;
-  if (!heroSource) return;
-
-  const heroAsset = await uploadAsset(heroSource, ABOUT_MEDIA.hero.publicId, 'video');
-  console.table([heroAsset]);
-};
-
 const main = async () => {
   const missingEnvironment = requiredEnvironment.filter((key) => !process.env[key]);
   if (missingEnvironment.length) {
@@ -123,7 +115,6 @@ const main = async () => {
 
   await mongoose.connect(process.env.MONGO_URI);
   await migrateImages();
-  await migrateOptionalVideo();
 };
 
 main()

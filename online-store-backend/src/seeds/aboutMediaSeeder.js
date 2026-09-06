@@ -3,6 +3,7 @@ const AboutMedia = require('../models/AboutMedia');
 const {
   ABOUT_MEDIA,
   getCloudinaryDeliveryUrl,
+  getCloudinaryVideoPosterUrl,
 } = require('../config/aboutMedia');
 
 const REQUIRED_ENVIRONMENT = [
@@ -56,6 +57,39 @@ const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
   return verifyAsset(toAssetMetadata(uploaded), publicId);
 };
 
+const verifyVideoAsset = (asset, publicId) => {
+  const isValid = asset.publicId === publicId
+    && asset.resourceType === 'video'
+    && Boolean(asset.secureUrl)
+    && Number.isFinite(asset.bytes)
+    && asset.bytes > 0;
+
+  if (!isValid) throw new Error(`Invalid Cloudinary video asset: ${publicId}`);
+  return asset;
+};
+
+const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
+  try {
+    const resource = await cloudinary.api.resource(publicId, { resource_type: 'video' });
+    return verifyVideoAsset(toAssetMetadata(resource), publicId);
+  } catch (error) {
+    const httpCode = error.http_code ?? error.error?.http_code;
+    if (httpCode !== 404) throw error;
+  }
+
+  if (!sourceUrl) {
+    throw new Error(`Missing ABOUT_HERO_SOURCE for Cloudinary asset: ${publicId}`);
+  }
+
+  const uploaded = await cloudinary.uploader.upload(sourceUrl, {
+    public_id: publicId,
+    resource_type: 'video',
+    overwrite: false,
+    unique_filename: false,
+  });
+  return verifyVideoAsset(toAssetMetadata(uploaded), publicId);
+};
+
 const seedAboutMedia = async ({ dryRun = false } = {}) => {
   if (dryRun) return [];
 
@@ -70,7 +104,7 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const records = await Promise.all(ABOUT_MEDIA.team.map(async (media, sortOrder) => {
+  const teamRecords = await Promise.all(ABOUT_MEDIA.team.map(async (media, sortOrder) => {
     const asset = await ensureCloudinaryAsset(media);
     const widths = [640, 1200];
     const srcSet = widths
@@ -87,6 +121,21 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
       sortOrder,
     };
   }));
+
+  const heroAsset = await ensureCloudinaryVideo({
+    sourceUrl: process.env.ABOUT_HERO_SOURCE,
+    publicId: ABOUT_MEDIA.hero.publicId,
+  });
+  const heroRecord = {
+    key: 'about-hero',
+    kind: 'hero',
+    publicId: heroAsset.publicId,
+    url: heroAsset.secureUrl,
+    posterUrl: getCloudinaryVideoPosterUrl(heroAsset.publicId),
+    sourceUrl: process.env.ABOUT_HERO_SOURCE || null,
+    sortOrder: 0,
+  };
+  const records = [...teamRecords, heroRecord];
 
   await AboutMedia.bulkWrite(records.map((record) => ({
     updateOne: {

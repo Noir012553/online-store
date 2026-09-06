@@ -10,7 +10,7 @@ const aboutMediaSchema = new mongoose.Schema(
     },
     kind: {
       type: String,
-      enum: ['team'],
+      enum: ['team', 'hero'],
       required: true,
       index: true,
     },
@@ -26,13 +26,17 @@ const aboutMediaSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    posterUrl: {
+      type: String,
+      default: null,
+    },
     sourceUrl: {
       type: String,
-      required: true,
+      default: null,
     },
     sortOrder: {
       type: Number,
-      required: true,
+      default: 0,
     },
   },
   { timestamps: true },
