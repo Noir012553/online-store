@@ -283,7 +283,9 @@ const seed = async () => {
         }
 
         // Handle seeders that need context/params
-        if (moduleName === 'addresses') {
+        if (moduleName === 'aboutMedia') {
+          result = await seederFn({ dryRun: cliArgs.dryRun });
+        } else if (moduleName === 'addresses') {
           if (!seedContext.customers) {
             const Customer = require('../models/Customer');
             seedContext.customers = await Customer.find().lean();

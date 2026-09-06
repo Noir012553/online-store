@@ -79,6 +79,13 @@ const SEED_MODULES = {
     seeder: require('./customerSeeder'),
     importance: 'HIGH',
   },
+  aboutMedia: {
+    name: 'About Media (Cloudinary team assets)',
+    layer: 2,
+    depends: [],
+    seeder: require('./aboutMediaSeeder'),
+    importance: 'CRITICAL',
+  },
   shippingProviders: {
     name: 'Shipping Providers (GHN config)',
     layer: 2,
@@ -167,7 +174,7 @@ const SEED_PHASES = {
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['inventory', 'reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['aboutMedia', 'inventory', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
