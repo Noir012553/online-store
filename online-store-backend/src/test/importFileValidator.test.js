@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
+const { validateProduct, validateProductArray } = require('../utils/productImportValidator');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
@@ -256,6 +257,75 @@ describe('Import file validation', () => {
       originalname: 'products.json',
       mimetype: 'application/json',
     }, 'json')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+
+  it('rejects files larger than the import limit', () => {
+    expect(() => validateImportFile({
+      buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 'a'),
+      originalname: 'products.csv',
+      mimetype: 'text/csv',
+    }, 'csv')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('CSV import validation', () => {
+  it('preserves quoted newlines inside a field', async () => {
+    const products = await new CSVAdapter().parse([
+      'name,brand,price,category,image,description',
+      'Laptop,Brand,1000,Keyboard,https://example.com/laptop.jpg,"Line one',
+      'line two"',
+    ].join('\n'));
+
+    expect(products[0].description).to.equal('Line one\nline two');
+  });
+
+  it('rejects a row with a mismatched column count', async () => {
+    try {
+      await new CSVAdapter().parse([
+        'name,brand,price',
+        'Laptop,Brand',
+      ].join('\n'));
+      throw new Error('Expected CSV parse to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_CSV_ROW_INVALID');
+    }
+  });
+});
+
+describe('Product payload validation', () => {
+  const validProduct = {
+    name: 'Laptop',
+    brand: 'Brand',
+    price: 1000,
+    category: 'Keyboard',
+    baseCurrencyCode: 'VND',
+    image: 'https://example.com/laptop.jpg',
+  };
+
+  it('rejects partially parsed numeric values', () => {
+    const result = validateProduct({ ...validProduct, price: '1000abc' }, 1);
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('Price'))).to.equal(true);
+  });
+
+  it('rejects private image URLs', () => {
+    const result = validateProduct({ ...validProduct, image: 'http://127.0.0.1/image.jpg' }, 1);
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('Image URL'))).to.equal(true);
+  });
+
+  it('rejects unsafe nested keys', () => {
+    const result = validateProduct({
+      ...validProduct,
+      specs: { constructor: { polluted: true } },
+    }, 1);
+    expect(result.isValid).to.equal(false);
+  });
+
+  it('rejects more than the supported product count', () => {
+    const result = validateProductArray(Array.from({ length: 5001 }, () => validProduct));
+    expect(result.isValid).to.equal(false);
+    expect(result.errors[0]).to.include('5000');
   });
 });
 

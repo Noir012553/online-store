@@ -26,26 +26,32 @@ class CSVAdapter extends BaseImportAdapter {
    */
   async parse(csvText) {
     try {
-      const lines = csvText.trim().split('\n');
-      if (lines.length < 2) {
+      const records = this.parseCSVRecords(csvText);
+      if (records.length < 2) {
         const error = new Error('IMPORT_CSV_CONTENT_INVALID');
         error.code = 'IMPORT_CSV_CONTENT_INVALID';
         throw error;
       }
 
-      // Parse header
-      const headers = this.parseCSVLine(lines[0]).map((header) => header.replace(/^\uFEFF/, ''));
+      const headers = records[0].map((header) => header.replace(/^\uFEFF/, ''));
+      if (headers.length === 0 || headers.some((header) => !header)) {
+        const error = new Error('IMPORT_CSV_HEADER_INVALID');
+        error.code = 'IMPORT_CSV_HEADER_INVALID';
+        throw error;
+      }
+      if (new Set(headers.map(header => header.toLowerCase())).size !== headers.length) {
+        const error = new Error('IMPORT_CSV_HEADER_DUPLICATE');
+        error.code = 'IMPORT_CSV_HEADER_DUPLICATE';
+        throw error;
+      }
 
-      // Parse rows
       const products = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue; // Skip empty lines
-
-        const values = this.parseCSVLine(line);
+      for (let i = 1; i < records.length; i++) {
+        const values = records[i];
         if (values.length !== headers.length) {
-          console.warn(`CSV row ${i + 1}: column count mismatch with header, skipping`);
-          continue;
+          const error = new Error(`IMPORT_CSV_ROW_INVALID:${i + 1}`);
+          error.code = 'IMPORT_CSV_ROW_INVALID';
+          throw error;
         }
 
         const product = {};
@@ -90,6 +96,51 @@ class CSVAdapter extends BaseImportAdapter {
       parseError.code = 'IMPORT_CSV_PARSE_FAILED';
       throw parseError;
     }
+  }
+
+  parseCSVRecords(csvText) {
+    const records = [];
+    let record = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < csvText.length; index += 1) {
+      const char = csvText[index];
+      const nextChar = csvText[index + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === this.delimiter && !inQuotes) {
+        record.push(field.trim());
+        field = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') index += 1;
+        record.push(field.trim());
+        if (record.some(value => value !== '')) records.push(record);
+        record = [];
+        field = '';
+      } else {
+        field += char;
+      }
+    }
+
+    if (inQuotes) {
+      const error = new Error('IMPORT_CSV_QUOTE_INVALID');
+      error.code = 'IMPORT_CSV_QUOTE_INVALID';
+      throw error;
+    }
+
+    if (field !== '' || record.length > 0) {
+      record.push(field.trim());
+      if (record.some(value => value !== '')) records.push(record);
+    }
+
+    return records;
   }
 
   /**

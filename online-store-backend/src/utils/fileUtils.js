@@ -5,6 +5,8 @@
 const path = require('path');
 const fs = require('fs');
 
+const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 /**
  * Kiểm tra loại file được phép upload
  * Chỉ hỗ trợ các định dạng ảnh: jpeg, jpg, png, gif, webp
@@ -48,7 +50,10 @@ const validateImportFile = (file) => {
     throw error;
   }
 
-  if (!Buffer.isBuffer(file.buffer) || file.buffer.length === 0 || file.buffer.includes(0)) {
+  if (!Buffer.isBuffer(file.buffer)
+    || file.buffer.length === 0
+    || file.buffer.length > MAX_IMPORT_FILE_SIZE_BYTES
+    || file.buffer.includes(0)) {
     const error = new Error('IMPORT_FILE_CONTENT_INVALID');
     error.code = 'IMPORT_FILE_CONTENT_INVALID';
     throw error;
@@ -124,4 +129,5 @@ module.exports = {
   validateImportFile,
   generateFileName,
   deleteImageFile,
+  MAX_IMPORT_FILE_SIZE_BYTES,
 };

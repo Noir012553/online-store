@@ -8,6 +8,8 @@ import { useTranslation } from '@/lib/i18n';
 import { UI_EMOJI } from '@/lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
+const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 export const getServerSideProps = async () => {
   return {
     props: {},
@@ -108,15 +110,18 @@ function ImportProductsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
       toast.error(t('max_file_size_error'));
       return;
     }
 
     // Validate file type
-    const detectedFormat = file.name.endsWith('.csv') ? 'csv' : file.name.endsWith('.json') ? 'json' : null;
+    const lowerFileName = file.name.toLowerCase();
+    const detectedFormat = lowerFileName.endsWith('.csv')
+      ? 'csv'
+      : lowerFileName.endsWith('.json')
+        ? 'json'
+        : null;
     if (!detectedFormat) {
       toast.error(t('import.invalid_file_error'));
       return;
@@ -246,8 +251,12 @@ function ImportProductsContent() {
       try {
         const content = event.target?.result as string;
 
-        // Detect format từ file extension
-        const detectedFormat = file.name.endsWith('.csv') ? 'csv' : 'json';
+        if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+          toast.error(t('max_file_size_error'));
+          return;
+        }
+
+        const detectedFormat = file.name.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
         setFormat(detectedFormat);
 
         setFileData(content);
@@ -263,6 +272,10 @@ function ImportProductsContent() {
   const handleImport = async () => {
     if (!fileData.trim()) {
       toast.error(t('error_fill_required'));
+      return;
+    }
+    if (new TextEncoder().encode(fileData).length > MAX_IMPORT_FILE_SIZE_BYTES) {
+      toast.error(t('max_file_size_error'));
       return;
     }
 
