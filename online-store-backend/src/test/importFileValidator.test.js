@@ -2,6 +2,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const fs = require('fs');
 const os = require('os');
+const archiverModule = require('archiver');
 const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateProduct, validateProductArray } = require('../utils/productImportValidator');
@@ -15,6 +16,7 @@ const {
   writeExportZipFile,
   getExportProductBatchFilter,
 } = require('../controllers/productImportController');
+const { isSafeEntryName, readImportZip } = require('../utils/zipImport');
 const {
   getProductImagePublicId,
   uploadProductImage,
@@ -265,6 +267,78 @@ describe('Import file validation', () => {
       originalname: 'products.csv',
       mimetype: 'text/csv',
     }, 'csv')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('ZIP import validation', () => {
+  const createZipBuffer = (entries) => new Promise((resolve, reject) => {
+    const archive = new archiverModule.ZipArchive({ zlib: { level: 1 } });
+    const chunks = [];
+    archive.on('data', chunk => chunks.push(chunk));
+    archive.on('error', reject);
+    archive.on('end', () => resolve(Buffer.concat(chunks)));
+
+    entries.forEach(({ name, content }) => {
+      archive.append(content, { name });
+    });
+    archive.finalize();
+  });
+
+  it('reads products.json from an exported ZIP', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-zip-import-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          name: 'Laptop',
+          brand: 'Brand',
+          price: 1000,
+          category: 'Keyboard',
+          baseCurrencyCode: 'VND',
+        }],
+      }, 'json');
+
+      const imported = await readImportZip(await fs.promises.readFile(filePath));
+      expect(imported.format).to.equal('json');
+      expect(JSON.parse(imported.content).products).to.have.length(1);
+    } finally {
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('reads products.csv from a ZIP', async () => {
+    const archive = await createZipBuffer([
+      {
+        name: 'products.csv',
+        content: 'name,brand,price,category\nLaptop,Brand,1000,Keyboard',
+      },
+    ]);
+
+    const imported = await readImportZip(archive);
+    expect(imported.format).to.equal('csv');
+    expect(imported.content).to.include('Laptop,Brand,1000,Keyboard');
+  });
+
+  it('rejects ZIP path traversal entry names', () => {
+    expect(isSafeEntryName('../products.json')).to.equal(false);
+    expect(isSafeEntryName('/products.json')).to.equal(false);
+    expect(isSafeEntryName('assets\\images\\product.jpg')).to.equal(false);
+    expect(isSafeEntryName('products.json')).to.equal(true);
+  });
+
+  it('rejects archives with ambiguous data entries', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: '{"products":[]}' },
+      { name: 'products.csv', content: 'name,brand,price,category\\nLaptop,Brand,1000,Keyboard' },
+    ]);
+
+    try {
+      await readImportZip(archive);
+      throw new Error('Expected multiple data entries to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_ZIP_DATA_ENTRY_INVALID');
+    }
   });
 });
 

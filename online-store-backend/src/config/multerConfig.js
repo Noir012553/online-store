@@ -6,7 +6,11 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { checkFileType, MAX_IMPORT_FILE_SIZE_BYTES } = require('../utils/fileUtils');
+const {
+  checkFileType,
+  MAX_IMPORT_FILE_SIZE_BYTES,
+  MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
+} = require('../utils/fileUtils');
 
 const UPLOAD_DIR = 'uploads';
 
@@ -87,7 +91,7 @@ const uploadCloudinary = multer({
 });
 
 /**
- * IMPORT UPLOAD - Dành cho nhập khẩu dữ liệu (JSON/CSV)
+ * IMPORT UPLOAD - Dành cho nhập khẩu dữ liệu (JSON/CSV/ZIP)
  */
 const uploadImport = multer({
   storage: memoryStorage,
@@ -95,17 +99,18 @@ const uploadImport = multer({
     const allowedTypes = {
       '.json': ['application/json'],
       '.csv': ['text/csv', 'application/vnd.ms-excel'],
+      '.zip': ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
     };
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (allowedTypes[ext]?.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only valid .json and .csv files are allowed'), false);
+      cb(new Error('Only valid .json, .csv, or .zip files are allowed'), false);
     }
   },
   limits: {
-    fileSize: MAX_IMPORT_FILE_SIZE_BYTES,
+    fileSize: MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
   },
 });
 
@@ -116,4 +121,5 @@ module.exports = {
   ensureUploadDir,
   UPLOAD_DIR,
   MAX_IMPORT_FILE_SIZE_BYTES,
+  MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
 };

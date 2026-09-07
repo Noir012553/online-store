@@ -1,5 +1,6 @@
 const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
+const { readImportZip } = require('../utils/zipImport');
 
 const IMAGE_TYPES = {
   jpeg: {
@@ -43,9 +44,14 @@ const validateImageUpload = (req, res, next) => {
   return next();
 };
 
-const validateImportUpload = (req, res, next) => {
+const validateImportUpload = async (req, res, next) => {
   try {
-    req.importFile = validateImportFile(req.file);
+    const extension = path.extname(req.file?.originalname || '').toLowerCase();
+    if (extension === '.zip') {
+      req.importFile = await readImportZip(req.file.buffer);
+    } else {
+      req.importFile = validateImportFile(req.file);
+    }
     return next();
   } catch (error) {
     return res.status(400).json({

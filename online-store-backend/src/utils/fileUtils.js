@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_IMPORT_ZIP_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 /**
  * Kiểm tra loại file được phép upload
@@ -130,4 +131,5 @@ module.exports = {
   generateFileName,
   deleteImageFile,
   MAX_IMPORT_FILE_SIZE_BYTES,
+  MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
 };

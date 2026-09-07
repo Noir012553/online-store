@@ -4,7 +4,7 @@
  * Chiến lược lưu trữ:
  * - User/Review Avatars → Local disk (uploads/users/, uploads/reviewers/)
  * - Product/Banner Images → Cloudinary (via memory buffer)
- * - Import Files → Memory (JSON/CSV)
+ * - Import Files → Memory (JSON/CSV/ZIP)
  */
 
 const { uploadLocal, uploadCloudinary, uploadImport } = require('../config/multerConfig');
