@@ -111,29 +111,17 @@ function ImportProductsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const lowerFileName = file.name.toLowerCase();
-    const detectedFormat = lowerFileName.endsWith('.zip')
-      ? 'zip'
-      : lowerFileName.endsWith('.csv')
-        ? 'csv'
-        : lowerFileName.endsWith('.json')
-          ? 'json'
-          : null;
-    if (!detectedFormat) {
-      toast.error(t('import.invalid_file_error'));
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      toast.error(t('import.zip_only_error', 'admin', 'Chỉ được nhập file ZIP chứa đầy đủ dữ liệu sản phẩm.'));
       return;
     }
 
-    const maxFileSize = detectedFormat === 'zip'
-      ? MAX_IMPORT_ZIP_FILE_SIZE_BYTES
-      : MAX_IMPORT_FILE_SIZE_BYTES;
-    if (file.size > maxFileSize) {
-      toast.error(detectedFormat === 'zip'
-        ? t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB')
-        : t('max_file_size_error'));
+    if (file.size > MAX_IMPORT_ZIP_FILE_SIZE_BYTES) {
+      toast.error(t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB'));
       return;
     }
+
+    const detectedFormat = 'zip';
 
     try {
       setIsLoading(true);
@@ -170,7 +158,6 @@ function ImportProductsContent() {
       const data = await response.json();
 
       if (data.success) {
-        if (detectedFormat !== 'zip') setFormat(detectedFormat);
         setResult(data);
         toast.success(data.message);
 
@@ -401,7 +388,7 @@ function ImportProductsContent() {
             <label htmlFor="file-upload" className="mb-4 p-3 border-2 border-dashed border-blue-300 rounded bg-white hover:bg-blue-50 transition block text-center cursor-pointer">
               <input
                 type="file"
-                accept=".json,.csv,.zip"
+                accept=".zip"
                 onChange={handleDirectFileUpload}
                 className="hidden"
                 id="file-upload"
@@ -415,20 +402,11 @@ function ImportProductsContent() {
               </p>
             </label>
 
-            <Button
-              onClick={downloadTemplate}
-              variant="outline"
-              className="w-full mb-3"
-            >
-              {UI_EMOJI.download} {t('download_template')}
-            </Button>
-
             <div className="bg-white p-3 rounded text-xs text-gray-600 space-y-1">
               <p className="font-medium text-gray-700">{UI_EMOJI.statusSuccess} {t('supports_label')}</p>
               <ul className="list-disc ml-4">
-                <li>{t('format_label')} {t('format_json_extension')}</li>
-                <li>{t('format_label')} {t('format_csv_extension')}</li>
-                <li>{t('format_label')} ZIP ({t('zip_import_note', 'admin', 'chứa products.json hoặc products.csv')})</li>
+                <li>{t('format_label')} ZIP ({t('zip_import_note', 'admin', 'chứa đúng một products.json hoặc products.csv')})</li>
+                <li>{t('required_fields')}</li>
                 <li>{t('max_size_label')}</li>
                 <li>{t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB')}</li>
               </ul>
@@ -485,21 +463,9 @@ function ImportProductsContent() {
             )}
           </div>
 
-          {/* Cài đặt */}
           <div className="border rounded-lg p-4">
             <h3 className="font-bold mb-4">2. {t('step_settings')}</h3>
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('format_label')}</label>
-                <select
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value as 'json' | 'csv')}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="json">{t('format_json')}</option>
-                  <option value="csv">{t('format_csv')}</option>
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium mb-2">{t('mode_label')}</label>
                 <select
@@ -518,36 +484,23 @@ function ImportProductsContent() {
                   checked={dryRun}
                   onChange={(e) => setDryRun(e.target.checked)}
                 />
-                <span className="text-sm">
-                  {UI_EMOJI.search} {t('dry_run_label')}
-                </span>
+                <span className="text-sm">{UI_EMOJI.search} {t('dry_run_label')}</span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* Trình chỉnh sửa dữ liệu */}
         <div className="lg:col-span-2">
-          <h3 className="font-bold mb-2">3. {t('data_label').replace('{{format}}', format.toUpperCase())}</h3>
-          <textarea
-            value={fileData}
-            onChange={(e) => setFileData(e.target.value)}
-            placeholder={t(`import_placeholder_${format}`, 'admin')}
-            className="w-full h-96 border rounded p-3 font-mono text-sm"
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            {t('import_data_hint').replace('{{format}}', format.toUpperCase())}
-          </p>
-
-          {/* Import Button */}
-          <div className="flex gap-4 mt-6">
-            <Button
-              onClick={handleImport}
-              disabled={isLoading || !fileData.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
-            >
-              {isLoading ? t('processing') : (dryRun ? `${UI_EMOJI.preview} ${t('preview_label').replace(':', '')}` : `${UI_EMOJI.run} ${t('start')}`)}
-            </Button>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+            <h3 className="font-bold mb-3">3. {t('zip_import_title', 'admin', 'Kiểm tra file ZIP')}</h3>
+            <p className="text-sm text-amber-900 mb-3">
+              {t('zip_import_description', 'admin', 'Hệ thống chỉ nhận ZIP được xuất từ chức năng xuất sản phẩm. ZIP phải chứa đúng một products.json hoặc products.csv và mỗi sản phẩm phải đủ các trường bắt buộc.')}
+            </p>
+            <p className="text-sm text-amber-900">
+              {t('zip_import_validation_note', 'admin', 'Hệ thống sẽ kiểm tra toàn bộ dữ liệu trước. Nếu có sản phẩm thiếu trường, sai định dạng hoặc lỗi ảnh, toàn bộ lượt nhập sẽ bị từ chối và chưa ghi dữ liệu.')}
+            </p>
+          </div>
+          <div className="mt-6 flex gap-4">
             <Link href="/admin/dashboard">
               <Button variant="outline">{t('back')}</Button>
             </Link>

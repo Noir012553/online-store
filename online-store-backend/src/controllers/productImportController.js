@@ -3,13 +3,11 @@
  * Xử lý API import/export products từ JSON, CSV, hoặc các format khác
  *
  * Sử dụng Adapter Pattern:
- * - JSONAdapter: Parse JSON format
- * - CSVAdapter: Parse CSV format
- * - Dễ add adapters mới (Excel, XML, API, etc.)
+ * - JSONAdapter: Parse JSON data inside an import ZIP
+ * - CSVAdapter: Parse CSV data inside an import ZIP
  *
  * Import Endpoints:
- * - POST /api/admin/products/import - Import products
- * - GET /api/admin/products/import-template - Download template
+ * - POST /api/admin/products/import-file - Import products from a ZIP
  * - GET /api/admin/products/import-guide - Hướng dẫn import
  * - GET /api/admin/products/import-formats - List supported formats
  *
@@ -790,9 +788,10 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       throw error;
     }
 
+    const extension = path.extname(file.originalname || '').toLowerCase();
     const format = req.importFile?.format;
-    const fileContent = req.importFile?.content ?? file.buffer.toString('utf-8');
-    if (!format) {
+    const fileContent = req.importFile?.content;
+    if (extension !== '.zip' || !format || !fileContent) {
       return res.status(400).json({
         success: false,
         code: 'IMPORT_FILE_INVALID',
@@ -823,7 +822,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
     // Validate format
-    const validation = await adapterManager.validate(parsedProducts, format);
+    const validation = await adapterManager.validate(parsedProducts, format, { requireComplete: true });
 
     if (!validation.isValid) {
       return res.status(400).json({
@@ -1472,8 +1471,8 @@ const getImportTemplate = asyncHandler(async (req, res) => {
 const getImportFormats = asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    supportedFormats: adapterManager.getSupportedFormats(),
-    adapters: adapterManager.listAdapters(),
+    supportedFormats: ['zip'],
+    adapters: [],
   });
 });
 
@@ -1486,8 +1485,8 @@ const getImportGuide = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     code: 'IMPORT_GUIDE',
-    supportedFormats: adapterManager.getSupportedFormats(),
-    adapters: adapterManager.listAdapters(),
+    supportedFormats: ['zip'],
+    adapters: [],
     guide: {
       title: getMessage(req.lang, 'admin-controllers-messages.import_guide_title'),
       step1: getMessage(req.lang, 'admin-controllers-messages.import_guide_step1'),
@@ -1496,9 +1495,9 @@ const getImportGuide = asyncHandler(async (req, res) => {
       step4: getMessage(req.lang, 'admin-controllers-messages.import_guide_step4'),
       step5: getMessage(req.lang, 'admin-controllers-messages.import_guide_step5'),
     },
-    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category'],
+    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'image', 'description', 'countInStock', 'specs'],
     optionalFields: [
-      'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+      'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'imagePublicId', 'imagePublicIds', 'images',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {

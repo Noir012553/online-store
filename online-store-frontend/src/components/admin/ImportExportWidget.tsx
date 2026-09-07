@@ -130,8 +130,7 @@ export default function ImportExportWidget() {
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-gray-700">{t('features_label', 'export')}</p>
             <ul className="text-sm space-y-1 text-gray-600 list-disc list-inside">
-              <li>{t('feature_import_json_csv', 'export')}</li>
-              <li>{t('feature_import_zip', 'export', 'Nhập lại ZIP đã xuất')}</li>
+              <li>{t('feature_import_zip', 'export', 'Chỉ nhập ZIP được xuất từ hệ thống')}</li>
               <li>{t('feature_import_modes', 'export')}</li>
               <li>{t('feature_import_dry_run', 'export')}</li>
               <li>{t('feature_import_error_details', 'export')}</li>

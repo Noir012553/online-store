@@ -35,6 +35,7 @@ const isSafeAssetPath = (value) => {
  * Required fields khi import products
  */
 const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode', 'image'];
+const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInStock', 'specs'];
 
 /**
  * Optional fields có thể có khi import
@@ -100,7 +101,7 @@ function validateImportUrl(value) {
   }
 }
 
-function validateProduct(product, rowIndex = 0) {
+function validateProduct(product, rowIndex = 0, options = {}) {
   const errors = [];
   if (!product || typeof product !== 'object' || Array.isArray(product)) {
     return {
@@ -117,14 +118,21 @@ function validateProduct(product, rowIndex = 0) {
   const cleaned = {};
 
   // Check required fields
-  for (const field of REQUIRED_FIELDS) {
+  const requiredFields = options.requireComplete ? COMPLETE_REQUIRED_FIELDS : REQUIRED_FIELDS;
+  for (const field of requiredFields) {
+    const rawValue = product[field];
     const value = PLAIN_TEXT_FIELDS.has(field)
-      ? sanitizePlainText(product[field])
-      : String(product[field] || '').trim();
+      ? sanitizePlainText(rawValue)
+      : field === 'specs'
+        ? rawValue
+        : String(rawValue ?? '').trim();
+    const isMissing = field === 'specs'
+      ? !value || (typeof value !== 'object' && typeof value !== 'string') || (typeof value === 'object' && Array.isArray(value)) || (typeof value === 'string' && !value.trim())
+      : !value && value !== 0;
 
-    if (!value) {
+    if (isMissing) {
       errors.push(`Row ${rowIndex}: Missing required field "${field}"`);
-    } else {
+    } else if (field !== 'specs') {
       cleaned[field] = value;
     }
   }
@@ -225,11 +233,18 @@ function validateProduct(product, rowIndex = 0) {
       if (typeof specsObj !== 'object' || Array.isArray(specsObj)) {
         throw new Error('Specs must be an object, not an array');
       }
+      if (options.requireComplete && Object.keys(specsObj).length === 0) {
+        errors.push(`Row ${rowIndex}: Required field "specs" must not be empty`);
+      }
 
       // Normalize spec field names using smartNormalizeFieldName
       cleaned.specs = normalizeSpecNames(specsObj);
     } catch (err) {
-      warnings.push(`Row ${rowIndex}: Failed to parse specs, skipped. Error: ${err.message}`);
+      if (options.requireComplete) {
+        errors.push(`Row ${rowIndex}: Required field "specs" must be a valid JSON object`);
+      } else {
+        warnings.push(`Row ${rowIndex}: Failed to parse specs, skipped. Error: ${err.message}`);
+      }
       cleaned.specs = {};
     }
   } else {
@@ -469,7 +484,7 @@ function smartNormalizeFieldNameHelper(fieldName, patterns) {
  * @param {Array} products - Mảng products từ import
  * @returns {Object} { isValid, errors, warnings, validProducts: [], invalidProducts: [] }
  */
-function validateProductArray(products) {
+function validateProductArray(products, options = {}) {
   if (!Array.isArray(products)) {
     return {
       isValid: false,
@@ -506,7 +521,7 @@ function validateProductArray(products) {
   }
 
   products.forEach((product, index) => {
-    const result = validateProduct(product, index + 1);
+    const result = validateProduct(product, index + 1, options);
     const errors = result.errors;
 
     if (errors.length === 0) {
@@ -614,6 +629,7 @@ module.exports = {
   validateCategoryName,
   sanitizeCategoryName,
   REQUIRED_FIELDS,
+  COMPLETE_REQUIRED_FIELDS,
   OPTIONAL_FIELDS,
   EXCLUDED_BRAND_PATTERN,
   MAX_IMPORT_PRODUCTS,
