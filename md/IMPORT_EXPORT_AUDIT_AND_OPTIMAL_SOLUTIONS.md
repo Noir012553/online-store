@@ -27,6 +27,8 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - Backend chỉ nhận `.zip` tại route import file; route JSON/CSV trực tiếp và endpoint template JSON/CSV đã được gỡ khỏi product API.
 - Frontend chỉ cho chọn ZIP, giữ nguyên `dry-run`, `insert`, `update` và `upsert`.
 - Giao diện nhập đã chuyển thành luồng 3 bước: chọn/kéo thả ZIP, kiểm tra trước, rồi xác nhận nhập chính thức; nút nhập chỉ hoạt động khi đã chọn file hợp lệ.
+- Frontend có retry/timeout cho `active-config`; danh sách đơn hàng giữ dữ liệu cũ khi API tạm lỗi và hiển thị nút thử lại thay vì chuyển thành trạng thái rỗng.
+- Kiểm tra production hiện tại: `backend.manln.online/readyz` trả `200 ready`, `manln.online/api/languages/active-config` trả `200`; request `/api/orders` không token trả `401` đúng lớp xác thực. Các lỗi 503 trước đó được đánh giá là sự cố tạm thời của backend/Mongo readiness.
 - ZIP bị giới hạn kích thước nén 100 MB, tổng kích thước giải nén 256 MB, số entry 10.000, số image entry 5.000 và tỷ lệ nén tối đa 100:1.
 - Archive phải chứa đúng một `products.json` hoặc `products.csv`; chỉ cho phép data entry ở root và asset entry dưới `assets/images/`.
 - Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock` và `specs`; thiếu hoặc sai dữ liệu sẽ từ chối toàn bộ lượt nhập.
