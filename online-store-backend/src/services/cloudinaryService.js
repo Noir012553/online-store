@@ -68,6 +68,8 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
       {
         folder: `laptop-store/${folder}`,
         public_id: publicId || undefined,
+        overwrite: Boolean(publicId),
+        invalidate: Boolean(publicId),
         resource_type: 'image',
         quality: 'auto',
         fetch_format: 'auto',

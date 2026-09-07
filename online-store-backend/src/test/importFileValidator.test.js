@@ -284,6 +284,22 @@ describe('ZIP import validation', () => {
     archive.finalize();
   });
 
+  it('reads image assets from an exported ZIP', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [{
+        name: 'Laptop',
+        image: 'https://example.invalid/main.jpg',
+        images: [{ url: 'https://example.invalid/main.jpg', type: 'main', assetPath: 'assets/images/product-main.jpg' }],
+      }] }) },
+      { name: 'assets/images/product-main.jpg', content: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) },
+    ]);
+
+    const imported = await readImportZip(archive);
+    expect(imported.assets.get('assets/images/product-main.jpg')).to.deep.equal(
+      Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    );
+  });
+
   it('reads products.json from an exported ZIP', async () => {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-zip-import-test-'));
     const filePath = path.join(directory, 'products-export.zip');
@@ -375,6 +391,31 @@ describe('Product payload validation', () => {
     baseCurrencyCode: 'VND',
     image: 'https://example.com/laptop.jpg',
   };
+
+  it('preserves safe ZIP asset paths for restoration', () => {
+    const result = validateProduct({
+      ...validProduct,
+      images: [
+        { url: validProduct.image, type: 'main', assetPath: 'assets/images/main.jpg' },
+        { url: 'https://example.com/gallery.jpg', type: 'gallery', assetPath: 'assets/images/gallery.jpg' },
+      ],
+      imageAssetPaths: 'assets/images/main.jpg|assets/images/gallery.jpg',
+    }, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.imageAssetPath).to.equal('assets/images/main.jpg');
+    expect(result.cleaned.imageAssetPaths).to.deep.equal(['assets/images/gallery.jpg']);
+  });
+
+  it('rejects unsafe ZIP asset paths', () => {
+    const result = validateProduct({
+      ...validProduct,
+      images: [{ url: validProduct.image, type: 'main', assetPath: 'assets/images/../../secret.jpg' }],
+    }, 1);
+
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('asset path'))).to.equal(true);
+  });
 
   it('rejects partially parsed numeric values', () => {
     const result = validateProduct({ ...validProduct, price: '1000abc' }, 1);

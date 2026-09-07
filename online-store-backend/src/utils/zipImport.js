@@ -11,6 +11,7 @@ const ZIP_SPANNED_SIGNATURE = Buffer.from([0x50, 0x4b, 0x07, 0x08]);
 const MAX_ZIP_ENTRIES = 10000;
 const MAX_ZIP_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
 const MAX_ZIP_IMAGE_ENTRIES = 5000;
+const MAX_ZIP_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_ZIP_COMPRESSION_RATIO = 100;
 const DATA_ENTRY_NAMES = new Set(['products.json', 'products.csv']);
 
@@ -65,6 +66,7 @@ const readImportZip = async (buffer) => {
 
   const seenNames = new Set();
   const dataEntries = [];
+  const imageEntries = new Map();
   let totalUncompressedBytes = 0;
   let imageEntryCount = 0;
 
@@ -107,6 +109,10 @@ const readImportZip = async (buffer) => {
       if (imageEntryCount > MAX_ZIP_IMAGE_ENTRIES) {
         throw createZipImportError('IMPORT_ZIP_IMAGE_LIMIT_EXCEEDED');
       }
+      if (entrySize === 0 || entrySize > MAX_ZIP_IMAGE_BYTES) {
+        throw createZipImportError('IMPORT_ZIP_IMAGE_SIZE_INVALID');
+      }
+      imageEntries.set(entryName, entry);
       continue;
     }
 
@@ -132,11 +138,21 @@ const readImportZip = async (buffer) => {
     mimetype: format === 'json' ? 'application/json' : 'text/csv',
   });
 
+  const assets = new Map();
+  try {
+    for (const [entryName, entry] of imageEntries) {
+      assets.set(entryName, await entry.buffer());
+    }
+  } catch {
+    throw createZipImportError('IMPORT_ZIP_CONTENT_INVALID');
+  }
+
   return {
     format,
     content: contentBuffer.toString('utf8'),
     entryName: dataEntry.path,
     imageEntryCount,
+    assets,
   };
 };
 
@@ -144,6 +160,7 @@ module.exports = {
   MAX_ZIP_ENTRIES,
   MAX_ZIP_UNCOMPRESSED_BYTES,
   MAX_ZIP_IMAGE_ENTRIES,
+  MAX_ZIP_IMAGE_BYTES,
   hasZipSignature,
   isSafeEntryName,
   readImportZip,

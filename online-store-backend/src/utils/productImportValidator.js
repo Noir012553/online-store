@@ -23,6 +23,14 @@ const MAX_IMPORT_IMAGES = 50;
 const NUMERIC_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+const isSafeAssetPath = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('assets/images/')) return false;
+  const relativePath = value.slice('assets/images/'.length);
+  if (!relativePath || relativePath.includes('\\') || relativePath.includes(':')) return false;
+  const segments = relativePath.split('/');
+  return !segments.some(segment => !segment || segment === '.' || segment === '..');
+};
+
 /**
  * Required fields khi import products
  */
@@ -239,13 +247,41 @@ function validateProduct(product, rowIndex = 0) {
     cleaned.image = String(product.image).trim();
   }
 
-  if (product.images && Array.isArray(product.images)) {
-    cleaned.images = product.images
-      .map(image => (typeof image === 'string' ? image : image?.url))
+  const imageEntries = Array.isArray(product.images) ? product.images : [];
+  const normalizedImageEntries = imageEntries
+    .map(image => (typeof image === 'string' ? { url: image } : image))
+    .filter(image => image && typeof image === 'object');
+  const mainImageEntry = normalizedImageEntries.find(image => image.type === 'main');
+  const galleryImageEntries = normalizedImageEntries.filter(image => image.type !== 'main');
+
+  if (Array.isArray(product.images)) {
+    cleaned.images = galleryImageEntries
+      .map(image => image.url)
       .filter(Boolean)
       .map(image => String(image).trim());
   } else if (product.images && typeof product.images === 'string') {
     cleaned.images = product.images.split('|').map(img => String(img).trim()).filter(img => img);
+  }
+  if (cleaned.images?.[0] === cleaned.image) cleaned.images.shift();
+
+  const declaredAssetPaths = Array.isArray(product.imageAssetPaths)
+    ? product.imageAssetPaths
+    : typeof product.imageAssetPaths === 'string'
+      ? product.imageAssetPaths.split('|')
+      : [];
+  const objectAssetPaths = normalizedImageEntries.map(image => image.assetPath || '');
+  const assetPaths = objectAssetPaths.some(Boolean) ? objectAssetPaths : declaredAssetPaths;
+  const invalidAssetPath = assetPaths.find(assetPath => assetPath && !isSafeAssetPath(assetPath));
+  if (invalidAssetPath) {
+    errors.push(`Row ${rowIndex}: Invalid image asset path`);
+  }
+  const mainAssetPath = mainImageEntry?.assetPath || assetPaths[0];
+  const galleryAssetPaths = mainImageEntry
+    ? galleryImageEntries.map(image => image.assetPath || '')
+    : assetPaths.slice(1);
+  if (mainAssetPath && isSafeAssetPath(mainAssetPath)) cleaned.imageAssetPath = mainAssetPath;
+  if (galleryAssetPaths.some(Boolean)) {
+    cleaned.imageAssetPaths = galleryAssetPaths.filter(assetPath => isSafeAssetPath(assetPath));
   }
 
   const imageUrls = [cleaned.image, ...(cleaned.images || [])].filter(Boolean);
