@@ -659,7 +659,7 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
  * Import products từ file upload (FormData)
  * @route POST /api/admin/products/import-file
  * @access Private/Admin
- * @body { file: File, format: 'json|csv', mode: 'insert|update|upsert', dryRun: boolean }
+ * @body { file: File, format: 'json|csv|zip', mode: 'insert|update|upsert', dryRun: boolean }
  *
  * Xử lý: Upload file → parse content → import products
  * Tương tự importProducts nhưng nhận file từ FormData
@@ -697,9 +697,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       throw error;
     }
 
-    const fileContent = file.buffer.toString('utf-8');
-
     const format = req.importFile?.format;
+    const fileContent = req.importFile?.content ?? file.buffer.toString('utf-8');
     if (!format) {
       return res.status(400).json({
         success: false,

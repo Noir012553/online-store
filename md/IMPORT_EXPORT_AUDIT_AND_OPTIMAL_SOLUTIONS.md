@@ -19,7 +19,18 @@ Mục tiêu của giải pháp là bảo đảm:
 4. Export không bị SSRF, không làm hỏng ZIP do một ảnh lỗi và có thể xác minh kết quả đầu ra.
 5. Lỗi phụ không khóa toàn bộ giao diện admin.
 
-Tài liệu này là kết quả audit và kế hoạch hardening. Các mục đánh dấu `Cần sửa` chưa được triển khai trong lần audit này.
+Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật tiến độ triển khai ZIP import.
+
+### Cập nhật triển khai ZIP import
+
+- Trạng thái: `Đã triển khai source, đang chờ kiểm thử tích hợp và deploy backend/frontend`.
+- Backend nhận `.zip` tại route import file hiện tại, xác minh ZIP trước khi đưa `products.json` hoặc `products.csv` vào pipeline import JSON/CSV.
+- Frontend cho phép chọn ZIP, giữ nguyên `dry-run`, `insert`, `update` và `upsert`.
+- ZIP bị giới hạn kích thước nén 100 MB, tổng kích thước giải nén 256 MB, số entry 10.000, số image entry 5.000 và tỷ lệ nén tối đa 100:1.
+- Archive phải chứa đúng một `products.json` hoặc `products.csv`; chỉ cho phép data entry ở root và asset entry dưới `assets/images/`.
+- `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
+- Đã bổ sung regression test cho ZIP export hợp lệ, path traversal và archive có hai data entry.
+- Chưa chạy `npm run build` theo quy ước dự án.
 
 ---
 
@@ -27,10 +38,10 @@ Tài liệu này là kết quả audit và kế hoạch hardening. Các mục đ
 
 ### Đã xác nhận
 
-- Frontend import hiện chỉ nhận `.json` và `.csv`; không nhận `.zip`.
-- Backend upload import hiện cũng chỉ cho JSON/CSV.
-- Đổi tên ZIP thành `.json` không phải cách bypass hợp lệ: file vẫn phải có MIME phù hợp, không chứa byte bất thường và phải parse được bằng JSON.
-- `products.json` trong ZIP có cấu trúc tương thích với JSON adapter sau khi giải nén.
+- Frontend import hiện nhận `.json`, `.csv` và `.zip`.
+- Backend upload import nhận JSON/CSV trực tiếp hoặc ZIP chứa đúng một data file.
+- Đổi tên ZIP thành `.json` không phải cách bypass hợp lệ: file vẫn phải có MIME phù hợp, chữ ký ZIP hợp lệ và cấu trúc archive an toàn.
+- `products.json` và `products.csv` trong ZIP được đưa qua adapter và pipeline import hiện có sau khi giải nén có giới hạn.
 - Binary trong `assets/images` chưa được importer dùng để khôi phục ảnh. Import hiện dùng URL/public ID trong metadata.
 - Log `EXPORT_JOB_READY` xác nhận backend đã tạo và lưu ZIP thành công; chưa tự nó xác nhận browser đã tải đủ ZIP và ZIP mở được.
 - Dashboard và statistics đã được tách dữ liệu chính khỏi các request phụ để giảm thời gian hiển thị loading.
@@ -73,19 +84,22 @@ Frontend:
 - Hỗ trợ các mode `insert`, `update`, `upsert`.
 - Có `dryRun` để kiểm tra trước khi ghi.
 - Có import bằng textarea JSON/CSV.
+- Có upload ZIP chứa một `products.json` hoặc `products.csv`; ZIP dùng giới hạn riêng 100 MB.
 
 Điểm quan trọng:
 
 ```tsx
 <input
   type="file"
-  accept=".json,.csv"
+  accept=".json,.csv,.zip"
   onChange={handleDirectFileUpload}
 />
 ```
 
 ```ts
-const maxSize = 10 * 1024 * 1024;
+const maxSize = file.name.toLowerCase().endsWith('.zip')
+  ? 100 * 1024 * 1024
+  : 10 * 1024 * 1024;
 if (file.size > maxSize) {
   toast.error(t('max_file_size_error'));
   return;
@@ -977,32 +991,27 @@ Không nên kết luận export thành công chỉ từ HTTP 200 hoặc chỉ t�
 
 ---
 
-## 9. Quy trình import lại ZIP hiện tại
+## 9. Quy trình import ZIP hiện tại
 
-Quy trình an toàn hiện tại:
+Quy trình trực tiếp đã triển khai:
 
 ```text
-1. Tải ZIP.
-2. Kiểm tra ZIP mở được và không có path bất thường.
-3. Giải nén offline vào thư mục riêng.
-4. Chọn products.json hoặc products.csv.
-5. Kiểm tra kích thước file và nội dung.
-6. Upload vào /admin/importProducts.
-7. Chạy dry-run trước.
-8. Kiểm tra category, SKU, price, stock, translations và image URL.
-9. Chọn upsert/insert/update phù hợp.
-10. Xác minh kết quả và audit log.
+1. Chọn ZIP tại /admin/importProducts.
+2. Frontend gửi multipart ZIP tới /api/products/admin/import-file.
+3. Backend kiểm tra chữ ký ZIP, kích thước nén/giải nén, entry path, duplicate name và entry type.
+4. Backend yêu cầu đúng một products.json hoặc products.csv ở root.
+5. Backend đọc data entry trong giới hạn và đưa vào JSONAdapter/CSVAdapter.
+6. Chạy dry-run trước.
+7. Kiểm tra category, SKU, price, stock, translations và image URL.
+8. Chọn upsert/insert/update phù hợp.
+9. Xác minh kết quả và audit log.
 ```
 
-Không upload trực tiếp ZIP vào input hiện tại vì:
+Các entry `assets/images/...` được cho phép để tương thích với export bundle và được đếm giới hạn, nhưng chưa được upload lại lên Cloudinary. Vì vậy ZIP import hiện khôi phục metadata sản phẩm và URL/public ID, chưa khôi phục binary media.
 
-```tsx
-accept=".json,.csv"
-```
+Nếu ZIP không hợp lệ hoặc không muốn dùng tính năng ZIP, vẫn có thể giải nén offline rồi upload riêng `products.json` hoặc `products.csv`.
 
-và backend cũng chỉ allow `.json`/`.csv`.
-
-Đổi `.zip` thành `.json` không biến binary ZIP thành JSON. Backend sẽ từ chối do MIME, byte bất thường hoặc JSON parse thất bại.
+Đổi `.zip` thành `.json` không biến binary ZIP thành JSON. Backend vẫn kiểm tra chữ ký và cấu trúc archive, không tin extension hoặc MIME riêng lẻ.
 
 ---
 
@@ -1051,17 +1060,23 @@ Tạo test cho:
 
 Metrics cần có request ID/job ID và không ghi secret/token trong log.
 
-### Phase 4: Chỉ khi có nhu cầu mới triển khai ZIP import
+### Phase 4: Triển khai ZIP import
 
-- Thiết kế manifest/version.
-- Extraction sandbox.
-- ZIP Slip/symlink/ZIP bomb protection.
-- Verify checksum.
-- Dry-run và staging.
-- Asset import riêng.
-- Transaction/commit rõ ràng.
+Đã triển khai:
 
-Không nên triển khai ZIP import trước khi hoàn tất Phase 1.
+- Extraction trong memory với giới hạn compressed/uncompressed size.
+- ZIP Slip/path traversal, duplicate entry và entry type protection.
+- Giới hạn compression ratio, số entry và số asset image entry.
+- Chỉ chấp nhận một `products.json` hoặc `products.csv` ở root.
+- Tái sử dụng JSONAdapter/CSVAdapter, dry-run và mode import hiện có.
+- Frontend upload trực tiếp ZIP.
+
+Chưa triển khai:
+
+- Manifest/version và checksum cho từng asset.
+- Upload binary `assets/images` lên Cloudinary.
+- Transaction/staging riêng cho toàn bộ ZIP.
+- Kiểm thử tích hợp qua production proxy và deploy production.
 
 ---
 
@@ -1132,7 +1147,7 @@ Không nên triển khai ZIP import trước khi hoàn tất Phase 1.
 - CSV formula injection protection.
 - Unique index/idempotency/transaction hoặc staging import.
 - Category existence validation.
-- ZIP import trực tiếp.
-- Bộ security regression test đầy đủ.
+- ZIP import trực tiếp đã có ở source; cần hoàn tất kiểm thử tích hợp và deploy.
+- Bộ security regression test đầy đủ cho ZIP bomb, symlink và checksum.
 
-Các mục chưa triển khai cần được thực hiện theo Phase 1 trước khi mở rộng tính năng import ZIP.
+Các mục còn lại cần được hoàn thiện trước khi coi ZIP là backup đầy đủ, đặc biệt là asset import, checksum và staging/transaction.

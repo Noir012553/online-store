@@ -70,7 +70,7 @@ router.get('/featured/list', getFeaturedProducts);
  */
 router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
 router.post('/admin/import', protect, admin, importProducts);
-router.post('/admin/import-file', protect, admin, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
+router.post('/admin/import-file', protect, admin, uploadLimiter, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
 router.get('/admin/import-template', protect, admin, getImportTemplate);
 router.get('/admin/import-guide', protect, admin, getImportGuide);
 router.get('/admin/import-formats', protect, admin, getImportFormats);

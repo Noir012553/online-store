@@ -9,6 +9,7 @@ import { UI_EMOJI } from '@/lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_IMPORT_ZIP_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 export const getServerSideProps = async () => {
   return {
@@ -110,20 +111,27 @@ function ImportProductsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
-      toast.error(t('max_file_size_error'));
+    // Validate file type
+    const lowerFileName = file.name.toLowerCase();
+    const detectedFormat = lowerFileName.endsWith('.zip')
+      ? 'zip'
+      : lowerFileName.endsWith('.csv')
+        ? 'csv'
+        : lowerFileName.endsWith('.json')
+          ? 'json'
+          : null;
+    if (!detectedFormat) {
+      toast.error(t('import.invalid_file_error'));
       return;
     }
 
-    // Validate file type
-    const lowerFileName = file.name.toLowerCase();
-    const detectedFormat = lowerFileName.endsWith('.csv')
-      ? 'csv'
-      : lowerFileName.endsWith('.json')
-        ? 'json'
-        : null;
-    if (!detectedFormat) {
-      toast.error(t('import.invalid_file_error'));
+    const maxFileSize = detectedFormat === 'zip'
+      ? MAX_IMPORT_ZIP_FILE_SIZE_BYTES
+      : MAX_IMPORT_FILE_SIZE_BYTES;
+    if (file.size > maxFileSize) {
+      toast.error(detectedFormat === 'zip'
+        ? t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB')
+        : t('max_file_size_error'));
       return;
     }
 
@@ -162,7 +170,7 @@ function ImportProductsContent() {
       const data = await response.json();
 
       if (data.success) {
-        setFormat(detectedFormat);
+        if (detectedFormat !== 'zip') setFormat(detectedFormat);
         setResult(data);
         toast.success(data.message);
 
@@ -344,7 +352,7 @@ function ImportProductsContent() {
           <h2 className="text-xl font-bold mb-4">{UI_EMOJI.guide} {t('guide_title')}</h2>
           <div className="space-y-2 text-sm">
             <p>
-              <strong>{t('supported_formats')}</strong> {formats.supportedFormats.join(', ').toUpperCase()}
+              <strong>{t('supported_formats')}</strong> {[...formats.supportedFormats, 'zip'].join(', ').toUpperCase()}
             </p>
             <p>
               <strong>{t('required_fields')}</strong> {guide.requiredFields.join(', ')}
@@ -375,6 +383,7 @@ function ImportProductsContent() {
                     </li>
                   );
                 })}
+                <li>{t('zip_import_note', 'admin', 'ZIP: chứa một products.json hoặc products.csv')}</li>
               </ul>
             </div>
           </div>
@@ -392,7 +401,7 @@ function ImportProductsContent() {
             <label htmlFor="file-upload" className="mb-4 p-3 border-2 border-dashed border-blue-300 rounded bg-white hover:bg-blue-50 transition block text-center cursor-pointer">
               <input
                 type="file"
-                accept=".json,.csv"
+                accept=".json,.csv,.zip"
                 onChange={handleDirectFileUpload}
                 className="hidden"
                 id="file-upload"
@@ -419,7 +428,9 @@ function ImportProductsContent() {
               <ul className="list-disc ml-4">
                 <li>{t('format_label')} {t('format_json_extension')}</li>
                 <li>{t('format_label')} {t('format_csv_extension')}</li>
+                <li>{t('format_label')} ZIP ({t('zip_import_note', 'admin', 'chứa products.json hoặc products.csv')})</li>
                 <li>{t('max_size_label')}</li>
+                <li>{t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB')}</li>
               </ul>
             </div>
           </div>
