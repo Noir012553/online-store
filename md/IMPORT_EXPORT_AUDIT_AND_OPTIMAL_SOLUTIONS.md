@@ -4,7 +4,7 @@
 
 Tài liệu này tổng hợp các vấn đề đã điều tra trong các luồng:
 
-- Import sản phẩm bằng JSON/CSV.
+- Import sản phẩm bằng ZIP chứa `products.json` hoặc `products.csv`.
 - Export sản phẩm dạng JSON/CSV và ZIP chứa metadata cùng ảnh.
 - Async export job (`queued -> processing -> ready`).
 - Khả năng dùng dữ liệu trong ZIP để import lại.
@@ -23,14 +23,16 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 
 ### Cập nhật triển khai ZIP import
 
-- Trạng thái: `Đã triển khai source, đang chờ kiểm thử tích hợp và deploy backend/frontend`.
-- Backend nhận `.zip` tại route import file hiện tại, xác minh ZIP trước khi đưa `products.json` hoặc `products.csv` vào pipeline import JSON/CSV.
-- Frontend cho phép chọn ZIP, giữ nguyên `dry-run`, `insert`, `update` và `upsert`.
+- Trạng thái: `Đã triển khai code, đang chờ cài dependency để kiểm thử tích hợp và deploy backend/frontend`.
+- Backend chỉ nhận `.zip` tại route import file; route JSON/CSV trực tiếp và endpoint template JSON/CSV đã được gỡ khỏi product API.
+- Frontend chỉ cho chọn ZIP, giữ nguyên `dry-run`, `insert`, `update` và `upsert`.
 - ZIP bị giới hạn kích thước nén 100 MB, tổng kích thước giải nén 256 MB, số entry 10.000, số image entry 5.000 và tỷ lệ nén tối đa 100:1.
 - Archive phải chứa đúng một `products.json` hoặc `products.csv`; chỉ cho phép data entry ở root và asset entry dưới `assets/images/`.
+- Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock` và `specs`; thiếu hoặc sai dữ liệu sẽ từ chối toàn bộ lượt nhập.
 - `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
-- Đã bổ sung regression test cho ZIP export hợp lệ, path traversal và archive có hai data entry.
-- Chưa chạy `npm run build` theo quy ước dự án.
+- Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
+- Kiểm tra cú pháp backend đã PASS; runtime test chưa chạy được vì môi trường thiếu `mongoose`/Mocha.
+- Không chạy `npm run build` theo quy ước dự án.
 
 ---
 
@@ -38,14 +40,15 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 
 ### Đã xác nhận
 
-- Frontend import hiện nhận `.json`, `.csv` và `.zip`.
-- Backend upload import nhận JSON/CSV trực tiếp hoặc ZIP chứa đúng một data file.
-- Đổi tên ZIP thành `.json` không phải cách bypass hợp lệ: file vẫn phải có MIME phù hợp, chữ ký ZIP hợp lệ và cấu trúc archive an toàn.
+- Frontend import hiện chỉ nhận `.zip`.
+- Backend upload import chỉ nhận ZIP chứa đúng một data file; không còn route JSON/CSV trực tiếp.
+- Đổi tên ZIP thành `.json` hoặc gửi request trực tiếp không phải cách bypass hợp lệ: file phải có MIME ZIP, chữ ký ZIP hợp lệ và cấu trúc archive an toàn.
 - `products.json` và `products.csv` trong ZIP được đưa qua adapter và pipeline import hiện có sau khi giải nén có giới hạn.
+- ZIP import dùng chế độ validate đầy đủ, bắt buộc các trường cốt lõi và `specs` không rỗng trước khi ghi dữ liệu.
 - Binary trong `assets/images` chưa được importer dùng để khôi phục ảnh. Import hiện dùng URL/public ID trong metadata.
 - Log `EXPORT_JOB_READY` xác nhận backend đã tạo và lưu ZIP thành công; chưa tự nó xác nhận browser đã tải đủ ZIP và ZIP mở được.
 - Dashboard và statistics đã được tách dữ liệu chính khỏi các request phụ để giảm thời gian hiển thị loading.
-- Frontend TypeScript đã kiểm tra `PASS`, các route HTML dashboard/statistics trả HTTP 200; không chạy `npm run build` theo yêu cầu.
+- Backend đã kiểm tra cú pháp bằng `node --check`; runtime test chưa thực hiện được do thiếu dependency trong môi trường. Không chạy `npm run build` theo yêu cầu.
 
 ### Rủi ro ưu tiên cao còn tồn tại
 
@@ -56,7 +59,6 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 | P1 | Read-then-write khi insert/update/upsert | Race condition, duplicate hoặc ghi đè sai khi import đồng thời |
 | P1 | Import không atomic hoàn toàn | Có thể ghi một phần trước khi lỗi ở bước tiếp theo |
 | P1 | Category chỉ kiểm tra format, chưa kiểm tra tồn tại đầy đủ | Product trỏ tới category không tồn tại hoặc sai dữ liệu |
-| P1 | Thiếu `path` trong image upload validation middleware | Image upload có thể lỗi runtime trước khi validation hoàn tất |
 | P2 | CSV parser tự viết và âm thầm bỏ qua row sai số cột | Mất dữ liệu nhưng kết quả vẫn có thể báo import thành công một phần |
 | P2 | CSV formula injection | CSV export mở bằng Excel/Sheets có thể chạy công thức nguy hiểm |
 | P2 | URL ảnh chưa có allowlist/SSRF policy dùng chung | URL độc hại lọt qua validator và bị dùng ở export/import |
@@ -78,30 +80,31 @@ online-store-frontend/src/pages/admin/importProducts.tsx
 
 Frontend:
 
-- Chấp nhận file có đuôi `.json` hoặc `.csv`.
-- Kiểm tra kích thước tối đa 10 MB trước khi upload.
+- Chỉ chấp nhận file có đuôi `.zip`.
+- Kiểm tra kích thước tối đa 100 MB trước khi upload.
 - Gửi multipart tới `/api/products/admin/import-file?lang=...`.
 - Hỗ trợ các mode `insert`, `update`, `upsert`.
 - Có `dryRun` để kiểm tra trước khi ghi.
-- Có import bằng textarea JSON/CSV.
-- Có upload ZIP chứa một `products.json` hoặc `products.csv`; ZIP dùng giới hạn riêng 100 MB.
+- Không còn textarea hoặc lựa chọn upload JSON/CSV trực tiếp.
+- ZIP phải chứa đúng một `products.json` hoặc `products.csv`.
 
 Điểm quan trọng:
 
 ```tsx
 <input
   type="file"
-  accept=".json,.csv,.zip"
+  accept=".zip"
   onChange={handleDirectFileUpload}
 />
 ```
 
 ```ts
-const maxSize = file.name.toLowerCase().endsWith('.zip')
-  ? 100 * 1024 * 1024
-  : 10 * 1024 * 1024;
-if (file.size > maxSize) {
-  toast.error(t('max_file_size_error'));
+if (!file.name.toLowerCase().endsWith('.zip')) {
+  toast.error('Chỉ được nhập file ZIP chứa đầy đủ dữ liệu sản phẩm.');
+  return;
+}
+if (file.size > 100 * 1024 * 1024) {
+  toast.error('ZIP tối đa 100 MB');
   return;
 }
 ```
@@ -140,35 +143,20 @@ Backend upload filter chỉ cho:
 
 ```js
 const allowedTypes = {
-  '.json': ['application/json'],
-  '.csv': ['text/csv', 'application/vnd.ms-excel'],
+  '.zip': ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
 };
 ```
 
-Giới hạn Multer hiện là 100 MB, khác với giới hạn 10 MB trên frontend. Hai giới hạn này cần được thống nhất.
+Giới hạn ZIP là 100 MB ở cả frontend và backend. Middleware kiểm tra đuôi `.zip`, MIME, chữ ký ZIP và cấu trúc archive trước khi đưa dữ liệu vào adapter.
 
-`validateImportFile()` kiểm tra:
+`readImportZip()` kiểm tra:
 
-- Đuôi file và MIME.
-- Có buffer và buffer không rỗng.
-- Không chứa byte `0`.
-- Không chứa ký tự thay thế UTF-8 bất thường.
-- JSON phải parse được.
-- CSV không được có dạng JSON và phải có newline.
+- Archive có chữ ký ZIP hợp lệ và giải nén được.
+- Đúng một `products.json` hoặc `products.csv` ở root.
+- Không có path traversal, entry trùng hoặc entry ngoài whitelist.
+- Giới hạn entry, kích thước giải nén, image entry và compression ratio.
 
-Ví dụ:
-
-```js
-if (!Buffer.isBuffer(file.buffer) || file.buffer.length === 0 || file.buffer.includes(0)) {
-  throw invalidContentError;
-}
-
-if (extension === '.json') {
-  JSON.parse(content);
-}
-```
-
-Các kiểm tra này hữu ích nhưng chưa đủ để chống payload lớn, object lồng sâu, số lượng record lớn hoặc dữ liệu hợp lệ về cú pháp nhưng nguy hiểm về nghiệp vụ.
+Sau khi parse, `validateProductArray(..., { requireComplete: true })` từ chối toàn bộ lượt nhập nếu bất kỳ sản phẩm nào thiếu trường bắt buộc, `specs` rỗng/sai cấu trúc hoặc dữ liệu số/URL không hợp lệ.
 
 ### 3.3. Export đồng bộ và async
 
@@ -572,7 +560,7 @@ if (product.category) {
 
 ---
 
-## P1-F. Lỗi runtime thiếu `path` trong image upload validation
+## Đã xử lý: validation upload dùng `path` đúng cách
 
 File:
 
@@ -580,32 +568,16 @@ File:
 online-store-backend/src/middleware/uploadValidationMiddleware.js
 ```
 
-Code hiện dùng:
+Middleware hiện dùng `path` để kiểm tra extension và đã có import:
 
 ```js
+const path = require('path');
 const extension = path.extname(req.file.originalname || '').toLowerCase();
 ```
 
-nhưng file chưa import:
+### Trạng thái
 
-```js
-const path = require('path');
-```
-
-### Ảnh hưởng
-
-`validateImageUpload` có thể ném `ReferenceError: path is not defined` khi upload ảnh sản phẩm/banner. Đây là lỗi availability và làm lớp kiểm tra extension/magic bytes không chạy đúng.
-
-### Cách sửa
-
-Thêm import ở đầu file:
-
-```js
-const path = require('path');
-const { validateImportFile } = require('../utils/fileUtils');
-```
-
-Sau đó kiểm tra route upload ảnh, upload file sai đuôi, MIME sai và magic bytes sai. Đây là thay đổi code chưa thực hiện trong audit này.
+Đã kiểm tra cú pháp middleware bằng `node --check`. Phần upload import hiện cũng dùng middleware riêng để từ chối mọi file không phải ZIP trước khi đọc archive.
 
 ---
 
