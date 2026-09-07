@@ -1,184 +1,175 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import {
+  AlertCircle,
+  Archive,
+  ArrowLeft,
+  CheckCircle2,
+  FileCheck2,
+  FileWarning,
+  Info,
+  Loader2,
+  ShieldCheck,
+  UploadCloud,
+} from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { apiCall, getAuthToken, productTranslationAPI } from '../../lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { UI_EMOJI } from '@/lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
-const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_IMPORT_ZIP_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+type ImportMode = 'insert' | 'update' | 'upsert';
 
-export const getServerSideProps = async () => {
-  return {
-    props: {},
+type ImportResult = {
+  success?: boolean;
+  message?: string;
+  dryRun?: boolean;
+  totalProducts?: number;
+  restoredImageAssets?: number;
+  results?: {
+    inserted?: number;
+    updated?: number;
+    unchanged?: number;
+    skipped?: number;
   };
+  errors?: Array<string | Record<string, any>>;
+  warnings?: Array<string | Record<string, any>>;
+  preview?: unknown[];
 };
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+export const getServerSideProps = async () => ({ props: {} });
 
 function ImportProductsContent() {
   const { t, loadNamespace, locale } = useTranslation();
-
-  useEffect(() => {
-    loadNamespace('admin');
-  }, [loadNamespace]);
-
-  const [fileData, setFileData] = useState('');
-  const [format, setFormat] = useState<'json' | 'csv'>('json');
-  const [mode, setMode] = useState<'insert' | 'update' | 'upsert'>('upsert');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mode, setMode] = useState<ImportMode>('upsert');
   const [dryRun, setDryRun] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [guide, setGuide] = useState<any>(null);
-  const [formats, setFormats] = useState<any>(null);
   const [replaceManualTranslations, setReplaceManualTranslations] = useState(false);
   const [translationResult, setTranslationResult] = useState<any>(null);
   const [translationImport, setTranslationImport] = useState<{
     records: Array<Record<string, unknown>>;
     idempotencyKey: string;
   } | null>(null);
+  const [isTranslationLoading, setIsTranslationLoading] = useState(false);
 
-  // Fetch guide & formats khi mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // FIX: Use apiCall instead of fetch to include Authorization header
-        const [guideData, formatsData] = await Promise.all([
-          apiCall(`/products/admin/import-guide?lang=${locale}`),
-          apiCall(`/products/admin/import-formats?lang=${locale}`),
-        ]);
+    loadNamespace('admin');
+  }, [loadNamespace]);
 
-        if (guideData.success) setGuide(guideData);
-        if (formatsData.success) setFormats(formatsData);
-      } catch (err) {
-        // Error loading data - UI will show placeholder
-      }
-    };
-    fetchData();
-  }, [locale]);
-
-  // Download template
-  const downloadTemplate = async () => {
-    try {
-      // FIX: Add Authorization header
-      const token = getAuthToken();
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`/api/products/admin/import-template?format=${format}&lang=${locale}`, {
-        headers,
+  useEffect(() => {
+    let isMounted = true;
+    apiCall(`/products/admin/import-guide?lang=${locale}`)
+      .then((data) => {
+        if (isMounted && data.success) setGuide(data);
+      })
+      .catch(() => {
+        if (isMounted) setGuide(null);
       });
 
-      if (!res.ok) {
-        throw new Error(`${t('http_error_status', 'admin-errors')} ${res.status}`);
-      }
+    return () => {
+      isMounted = false;
+    };
+  }, [locale]);
 
-      if (format === 'csv') {
-        const csvText = await res.text();
-        const blob = new Blob([csvText], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `products-template.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        const data = await res.json();
-        if (data.success) {
-          const jsonStr = JSON.stringify(data.template, null, 2);
-          const blob = new Blob([jsonStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `products-template.${format}`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      }
-      toast.success(t('save_success'));
-    } catch (err) {
-      toast.error(t('error_load_data'));
-    }
-  };
-
-  // Handle direct file upload to backend
-  const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const validateFile = (file: File) => {
     if (!file.name.toLowerCase().endsWith('.zip')) {
       toast.error(t('import.zip_only_error', 'admin', 'Chỉ được nhập file ZIP chứa đầy đủ dữ liệu sản phẩm.'));
-      return;
+      return false;
     }
-
+    if (file.size === 0) {
+      toast.error(t('import.empty_file_error', 'admin', 'File ZIP không được rỗng.'));
+      return false;
+    }
     if (file.size > MAX_IMPORT_ZIP_FILE_SIZE_BYTES) {
       toast.error(t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB'));
+      return false;
+    }
+    return true;
+  };
+
+  const selectFile = (file?: File) => {
+    if (!file || !validateFile(file)) return;
+    setSelectedFile(file);
+    setResult(null);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    selectFile(event.target.files?.[0]);
+    event.target.value = '';
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    selectFile(event.dataTransfer.files?.[0]);
+  };
+
+  const handleImport = async (shouldDryRun: boolean) => {
+    if (!selectedFile) {
+      toast.error(t('import.choose_file_first', 'admin', 'Hãy chọn file ZIP trước.'));
       return;
     }
 
-    const detectedFormat = 'zip';
-
     try {
-      setIsLoading(true);
+      setIsImporting(true);
       const token = getAuthToken();
-
-      // Create FormData for file upload
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('format', detectedFormat);
+      formData.append('file', selectedFile);
+      formData.append('format', 'zip');
       formData.append('mode', mode);
-      formData.append('dryRun', String(dryRun));
+      formData.append('dryRun', String(shouldDryRun));
 
-      // Send file directly to backend
       const response = await fetch(`/api/products/admin/import-file?lang=${locale}`, {
         method: 'POST',
         headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: formData,
         credentials: 'include',
       });
 
-      if (!response.ok) {
-        let errorMessage = t('error_save_data');
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || t('import.upload_failed');
-        } catch (e) {
-          errorMessage = t('import.upload_failed');
-        }
-        throw new Error(errorMessage);
+      let data: ImportResult;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(t('import.upload_failed', 'admin', 'Không thể đọc kết quả từ máy chủ.'));
       }
 
-      const data = await response.json();
-
-      if (data.success) {
-        setResult(data);
-        toast.success(data.message);
-
-        // Auto-clear input
-        e.target.value = '';
-      } else {
-        const message = getUserFriendlyErrorMessage({ code: data.code }, t);
+      if (!response.ok || !data.success) {
+        const message = data.message || getUserFriendlyErrorMessage({ code: (data as any).code }, t);
+        setResult({ ...data, message, success: false });
         toast.error(message);
-        setResult({ ...data, message });
+        return;
       }
-    } catch (err) {
-      toast.error(getUserFriendlyErrorMessage(err, t));
+
+      setResult(data);
+      toast.success(data.message || t('import.upload_success', 'admin', 'Đã xử lý file ZIP thành công.'));
+      if (!shouldDryRun) setSelectedFile(null);
+    } catch (error) {
+      const message = getUserFriendlyErrorMessage(error, t);
+      setResult({ success: false, message });
+      toast.error(message);
     } finally {
-      setIsLoading(false);
+      setIsImporting(false);
     }
   };
 
-  const handleTranslationFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleTranslationFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
-    e.target.value = '';
 
     if (!file.name.toLowerCase().endsWith('.json')) {
       toast.error(t('import.translation_json_only', 'admin', 'File bản dịch phải có định dạng JSON.'));
@@ -186,14 +177,10 @@ function ImportProductsContent() {
     }
 
     try {
-      setIsLoading(true);
+      setIsTranslationLoading(true);
       const parsed = JSON.parse(await file.text());
-      const records = Array.isArray(parsed)
-        ? parsed
-        : parsed?.data?.records || parsed?.records;
-      if (!Array.isArray(records) || records.length === 0) {
-        throw new Error('translation_records_invalid');
-      }
+      const records = Array.isArray(parsed) ? parsed : parsed?.data?.records || parsed?.records;
+      if (!Array.isArray(records) || records.length === 0) throw new Error('translation_records_invalid');
 
       const idempotencyKey = `translation-import-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const data = await productTranslationAPI.importProductTranslations({
@@ -210,7 +197,7 @@ function ImportProductsContent() {
       setTranslationResult({ success: false, message });
       toast.error(message);
     } finally {
-      setIsLoading(false);
+      setIsTranslationLoading(false);
     }
   };
 
@@ -218,7 +205,7 @@ function ImportProductsContent() {
     if (!translationImport) return;
 
     try {
-      setIsLoading(true);
+      setIsTranslationLoading(true);
       const data = await productTranslationAPI.importProductTranslations({
         ...translationImport,
         replaceManualTranslations,
@@ -232,402 +219,337 @@ function ImportProductsContent() {
       setTranslationResult({ success: false, message });
       toast.error(message);
     } finally {
-      setIsLoading(false);
+      setIsTranslationLoading(false);
     }
   };
 
-  // Handle file content paste/edit (keep for flexibility)
-  const handleFileUploadForTextarea = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-
-        if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
-          toast.error(t('max_file_size_error'));
-          return;
-        }
-
-        const detectedFormat = file.name.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
-        setFormat(detectedFormat);
-
-        setFileData(content);
-        toast.success(t('save_success'));
-      } catch (err) {
-        toast.error(t('error_load_data'));
-      }
-    };
-    reader.readAsText(file);
+  const formatIssue = (issue: string | Record<string, any>) => {
+    if (typeof issue === 'string') return getUserFriendlyErrorMessage({ message: issue }, t);
+    const details = [issue.name, issue.brand, issue.reason || issue.message].filter(Boolean);
+    return details.length > 0 ? details.join(' · ') : t('review_error');
   };
 
-  // Import data
-  const handleImport = async () => {
-    if (!fileData.trim()) {
-      toast.error(t('error_fill_required'));
-      return;
-    }
-    if (new TextEncoder().encode(fileData).length > MAX_IMPORT_FILE_SIZE_BYTES) {
-      toast.error(t('max_file_size_error'));
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-
-      const payload: any = {
-        format,
-        mode,
-        dryRun,
-      };
-
-      // Parse data based on format
-      if (format === 'json') {
-        const parsedData = JSON.parse(fileData);
-        payload.data = parsedData;
-      } else if (format === 'csv') {
-        payload.data = fileData;
-      }
-
-      // FIX: Add Authorization header
-      const token = getAuthToken();
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`/api/products/admin/import?lang=${locale}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        credentials: 'include',
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        const message = getUserFriendlyErrorMessage({ code: data.code }, t);
-        toast.error(message);
-        if (data.errors?.length > 0) {
-          setResult({ ...data, message, errors: data.errors.slice(0, 10) });
-        } else {
-          setResult({ ...data, message });
-        }
-      } else {
-        toast.success(data.message);
-        setResult(data);
-        if (!dryRun) {
-          setFileData('');
-        }
-      }
-    } catch (error) {
-      toast.error(getUserFriendlyErrorMessage(error, t));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const hasImportErrors = Boolean(result?.errors?.length);
+  const isPreviewResult = Boolean(result?.success && result?.dryRun);
 
   return (
-        <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">{t('products_title')}</h1>
-
-      {/* Hướng dẫn */}
-      {guide && formats && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4">{UI_EMOJI.guide} {t('guide_title')}</h2>
-          <div className="space-y-2 text-sm">
-            <p>
-              <strong>{t('supported_formats')}</strong> {[...formats.supportedFormats, 'zip'].join(', ').toUpperCase()}
-            </p>
-            <p>
-              <strong>{t('required_fields')}</strong> {guide.requiredFields.join(', ')}
-            </p>
-            <div>
-              <strong>{t('modes_label')}</strong>
-              <ul className="list-disc ml-5">
-                <li>{t('mode_insert')}: {t('mode_insert_desc')}</li>
-                <li>{t('mode_update')}: {t('mode_update_desc')}</li>
-                <li>{t('mode_upsert')}: {t('mode_upsert_desc')}</li>
-              </ul>
+    <div className="min-h-screen bg-slate-50">
+      <div className="container mx-auto max-w-6xl px-4 py-8 lg:px-6">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700">
+              <Archive className="h-4 w-4" />
+              {t('import_export_title', 'admin', 'Nhập / xuất dữ liệu')}
             </div>
-            <p>
-              <strong>{t('preview_label')}</strong> {t('preview_desc')}
+            <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+              {t('products_title', 'admin', 'Nhập sản phẩm')}
+            </h1>
+            <p className="mt-2 max-w-2xl text-slate-600">
+              {t('zip_import_description', 'admin', 'Tải lên file ZIP đã xuất từ hệ thống, kiểm tra dữ liệu trước rồi xác nhận nhập vào cửa hàng.')}
             </p>
-            <div className="mt-3 pt-3 border-t border-blue-200">
-              <strong>{t('adapters_label')}</strong>
-              <ul className="list-disc ml-5 mt-1">
-                {formats.adapters.map((adapter: any) => {
-                  const descriptionKey =
-                    adapter.name === 'JSONAdapter' ? 'adapter_json_description' :
-                    adapter.name === 'CSVAdapter' ? 'adapter_csv_description' :
-                    null;
-                  const description = descriptionKey ? t(descriptionKey) : adapter.description;
-                  return (
-                    <li key={adapter.name}>
-                      {adapter.name}: {description}
-                    </li>
-                  );
-                })}
-                <li>{t('zip_import_note', 'admin', 'ZIP: chứa một products.json hoặc products.csv')}</li>
-              </ul>
-            </div>
           </div>
+          <Link href="/admin/importExport">
+            <Button variant="outline" className="bg-white">
+              <ArrowLeft className="h-4 w-4" />
+              {t('back', 'admin', 'Quay lại')}
+            </Button>
+          </Link>
         </div>
-      )}
 
-      {/* Upload & Input */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Tải lên tệp */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="border rounded-lg p-4 bg-blue-50">
-            <h3 className="font-bold mb-4">{UI_EMOJI.folder} 1. {t('step_upload')}</h3>
-
-            {/* File input with better styling */}
-            <label htmlFor="file-upload" className="mb-4 p-3 border-2 border-dashed border-blue-300 rounded bg-white hover:bg-blue-50 transition block text-center cursor-pointer">
-              <input
-                type="file"
-                accept=".zip"
-                onChange={handleDirectFileUpload}
-                className="hidden"
-                id="file-upload"
-                disabled={isLoading}
-              />
-              <p className="text-sm text-blue-600 font-medium">
-                {isLoading ? t('exporting') : `${UI_EMOJI.folder} ${t('choose_file')}`}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {isLoading ? '' : t('max_size_label')}
-              </p>
-            </label>
-
-            <div className="bg-white p-3 rounded text-xs text-gray-600 space-y-1">
-              <p className="font-medium text-gray-700">{UI_EMOJI.statusSuccess} {t('supports_label')}</p>
-              <ul className="list-disc ml-4">
-                <li>{t('format_label')} ZIP ({t('zip_import_note', 'admin', 'chứa đúng một products.json hoặc products.csv')})</li>
-                <li>{t('required_fields')}</li>
-                <li>{t('max_size_label')}</li>
-                <li>{t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB')}</li>
-              </ul>
+        <div className="mb-8 grid gap-3 sm:grid-cols-3">
+          {[
+            { number: '01', title: 'Chọn file', description: 'ZIP tối đa 100 MB', active: Boolean(selectedFile) },
+            { number: '02', title: 'Kiểm tra', description: 'Xem trước dữ liệu', active: isPreviewResult },
+            { number: '03', title: 'Xác nhận', description: 'Ghi vào cửa hàng', active: Boolean(result?.success && !result?.dryRun) },
+          ].map((step) => (
+            <div
+              key={step.number}
+              className={`rounded-xl border px-4 py-3 ${step.active ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white'}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${step.active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {step.number}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{step.title}</p>
+                  <p className="text-xs text-slate-500">{step.description}</p>
+                </div>
+                {step.active && <CheckCircle2 className="ml-auto h-4 w-4 text-blue-600" />}
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="border rounded-lg p-4">
-            <h3 className="font-bold mb-4">{t('import.translation_title', 'admin', 'Import bản dịch sản phẩm')}</h3>
-            <label htmlFor="translation-file-upload" className="block p-3 border-2 border-dashed border-purple-300 rounded bg-purple-50 hover:bg-purple-100 transition text-center cursor-pointer">
-              <input
-                type="file"
-                accept=".json,application/json"
-                onChange={handleTranslationFileUpload}
-                className="hidden"
-                id="translation-file-upload"
-                disabled={isLoading}
-              />
-              <span className="text-sm text-purple-700 font-medium">
-                {t('import.translation_choose_file', 'admin', 'Chọn product-translations.json')}
-              </span>
-            </label>
-            <label className="flex items-center gap-2 mt-3 text-sm">
-              <input
-                type="checkbox"
-                checked={replaceManualTranslations}
-                onChange={(e) => setReplaceManualTranslations(e.target.checked)}
-              />
-              {t('import.replace_manual_translations', 'admin', 'Cho phép ghi đè bản dịch thủ công')}
-            </label>
-            <p className="text-xs text-gray-500 mt-2">
-              {t('import.translation_note', 'admin', 'Chỉ import JSON bản dịch; ZIP không được upload vào luồng này.')}
-            </p>
-            {translationResult?.success && (
-              <div className="mt-2 space-y-2">
-                <p className="text-xs text-green-700">
-                  {translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0}{' '}
-                  {translationResult.dryRun
-                    ? t('import.translation_previewed', 'admin', 'bản ghi đã kiểm tra')
-                    : t('import.translation_imported', 'admin', 'bản ghi đã import')}
-                </p>
-                {translationResult.dryRun && translationImport && (
-                  <Button
-                    type="button"
-                    onClick={confirmTranslationImport}
-                    disabled={isLoading}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    {isLoading
-                      ? t('processing', 'admin', 'Đang xử lý...')
-                      : t('import.translation_confirm', 'admin', 'Xác nhận import bản dịch')}
-                  </Button>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <main className="space-y-6">
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-6 py-5">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-blue-100 p-3 text-blue-700">
+                    <UploadCloud className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Bước 1</p>
+                    <h2 className="mt-1 text-xl font-bold text-slate-950">Chọn file sản phẩm</h2>
+                    <p className="mt-1 text-sm text-slate-500">Chỉ nhận ZIP có đầy đủ dữ liệu sản phẩm.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') fileInputRef.current?.click();
+                  }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
+                >
+                  <input ref={fileInputRef} type="file" accept=".zip" onChange={handleFileChange} className="hidden" disabled={isImporting} />
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm">
+                    <Archive className="h-7 w-7" />
+                  </div>
+                  <h3 className="mt-4 font-semibold text-slate-900">
+                    {selectedFile ? 'Đổi file ZIP' : 'Kéo thả file ZIP vào đây'}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">hoặc bấm để chọn từ máy tính</p>
+                  <p className="mt-4 text-xs font-medium text-slate-500">Định dạng .zip · Tối đa 100 MB</p>
+                </div>
+
+                {selectedFile && (
+                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                    <div className="rounded-lg bg-white p-2 text-blue-600">
+                      <FileCheck2 className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{selectedFile.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{formatBytes(selectedFile.size)} · Sẵn sàng kiểm tra</p>
+                    </div>
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </section>
 
-          <div className="border rounded-lg p-4">
-            <h3 className="font-bold mb-4">2. {t('step_settings')}</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('mode_label')}</label>
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as 'insert' | 'update' | 'upsert')}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="upsert">{t('mode_upsert_desc')}</option>
-                  <option value="insert">{t('mode_insert_desc')}</option>
-                  <option value="update">{t('mode_update_desc')}</option>
-                </select>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-5 flex items-start gap-3">
+                <div className="rounded-xl bg-violet-100 p-3 text-violet-700">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">Bước 2</p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-950">Cấu hình lượt nhập</h2>
+                  <p className="mt-1 text-sm text-slate-500">Nên giữ chế độ xem trước để tránh ghi nhầm dữ liệu.</p>
+                </div>
               </div>
-              <label className="flex items-center gap-2">
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-slate-700">Cách xử lý sản phẩm</span>
+                  <select
+                    value={mode}
+                    onChange={(event) => setMode(event.target.value as ImportMode)}
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    disabled={isImporting}
+                  >
+                    <option value="upsert">Cập nhật hoặc thêm mới</option>
+                    <option value="insert">Chỉ thêm sản phẩm mới</option>
+                    <option value="update">Chỉ cập nhật sản phẩm có sẵn</option>
+                  </select>
+                </label>
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                  <p className="text-sm font-semibold text-emerald-900">Kiểm tra an toàn</p>
+                  <p className="mt-1 text-xs leading-5 text-emerald-800">File sẽ được kiểm tra toàn bộ trước khi có dữ liệu được ghi.</p>
+                </div>
+              </div>
+
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/40">
                 <input
                   type="checkbox"
                   checked={dryRun}
-                  onChange={(e) => setDryRun(e.target.checked)}
+                  onChange={(event) => setDryRun(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-blue-600"
+                  disabled={isImporting}
                 />
-                <span className="text-sm">{UI_EMOJI.search} {t('dry_run_label')}</span>
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900">Kiểm tra trước khi nhập</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">Khuyến nghị bật. Hệ thống sẽ hiển thị số lượng thêm mới, cập nhật và lỗi trước khi ghi dữ liệu.</span>
+                </span>
               </label>
-            </div>
-          </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  onClick={() => handleImport(dryRun)}
+                  disabled={!selectedFile || isImporting}
+                  className="h-11 bg-blue-600 px-6 text-white hover:bg-blue-700"
+                >
+                  {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : dryRun ? <ShieldCheck className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
+                  {isImporting ? 'Đang kiểm tra...' : dryRun ? 'Kiểm tra file ZIP' : 'Nhập sản phẩm'}
+                </Button>
+                {!selectedFile && <span className="text-xs text-slate-500">Chọn file ZIP để tiếp tục.</span>}
+              </div>
+            </section>
+
+            {isPreviewResult && (
+              <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                  <div className="flex-1">
+                    <h2 className="font-bold text-amber-950">Đã kiểm tra, chưa ghi dữ liệu</h2>
+                    <p className="mt-1 text-sm text-amber-800">Nếu kết quả bên dưới chính xác, hãy xác nhận để nhập sản phẩm vào cửa hàng.</p>
+                    <Button
+                      type="button"
+                      onClick={() => handleImport(false)}
+                      disabled={isImporting}
+                      className="mt-4 h-10 bg-amber-600 text-white hover:bg-amber-700"
+                    >
+                      {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Xác nhận nhập chính thức
+                    </Button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {result && (
+              <section className={`rounded-2xl border p-6 shadow-sm ${hasImportErrors ? 'border-red-200 bg-red-50' : result.success ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+                <div className="flex items-start gap-3">
+                  {hasImportErrors || result.success === false ? <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /> : <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />}
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-bold text-slate-950">{hasImportErrors || result.success === false ? 'Nhập sản phẩm chưa thành công' : result.dryRun ? 'Kết quả kiểm tra' : 'Nhập sản phẩm thành công'}</h2>
+                    {result.message && <p className="mt-1 text-sm text-slate-700">{result.message}</p>}
+                  </div>
+                </div>
+
+                {(result.totalProducts !== undefined || result.results) && (
+                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      ['Tổng sản phẩm', result.totalProducts ?? 0, 'text-slate-900'],
+                      ['Thêm mới', result.results?.inserted ?? 0, 'text-emerald-700'],
+                      ['Cập nhật', result.results?.updated ?? 0, 'text-blue-700'],
+                      ['Bỏ qua / lỗi', (result.results?.skipped ?? 0) + (result.errors?.length ?? 0), 'text-red-700'],
+                    ].map(([label, value, color]) => (
+                      <div key={String(label)} className="rounded-xl border border-white/80 bg-white p-3">
+                        <p className="text-xs text-slate-500">{label}</p>
+                        <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {result.errors && result.errors.length > 0 && (
+                  <div className="mt-5 rounded-xl border border-red-200 bg-white p-4">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-800">
+                      <FileWarning className="h-4 w-4" />
+                      Chi tiết lỗi ({result.errors.length})
+                    </div>
+                    <ul className="max-h-56 space-y-2 overflow-auto text-sm text-red-700">
+                      {result.errors.slice(0, 20).map((error, index) => <li key={index}>• {formatIssue(error)}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {result.warnings && result.warnings.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4 text-sm text-amber-800">
+                    <p className="font-semibold">Cảnh báo ({result.warnings.length})</p>
+                    <ul className="mt-2 space-y-1">
+                      {result.warnings.slice(0, 10).map((warning, index) => <li key={index}>• {formatIssue(warning)}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {result.preview && (
+                  <details className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Xem 3 sản phẩm đầu tiên</summary>
+                    <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(result.preview, null, 2)}</pre>
+                  </details>
+                )}
+              </section>
+            )}
+          </main>
+
+          <aside className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-slate-950">
+                <Info className="h-5 w-5 text-blue-600" />
+                <h2 className="font-bold">File hợp lệ cần có</h2>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">ZIP phải chứa đúng một file dữ liệu ở thư mục gốc:</p>
+              <div className="mt-3 space-y-2">
+                {['products.json hoặc products.csv', 'name, brand, price, category', 'baseCurrencyCode và image', 'description, countInStock, specs'].map((item) => (
+                  <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-500">File ZIP được xuất trực tiếp từ chức năng Xuất sản phẩm sẽ tương thích tốt nhất.</div>
+            </section>
+
+            <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+              <div className="flex items-center gap-2 text-blue-950">
+                <ShieldCheck className="h-5 w-5 text-blue-700" />
+                <h2 className="font-bold">Quy trình an toàn</h2>
+              </div>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-blue-900">
+                <li>1. Kiểm tra cấu trúc ZIP</li>
+                <li>2. Kiểm tra toàn bộ sản phẩm</li>
+                <li>3. Xem trước kết quả</li>
+                <li>4. Xác nhận mới ghi dữ liệu</li>
+              </ul>
+            </section>
+
+            {guide?.requiredFields?.length > 0 && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="font-bold text-slate-950">Trường bắt buộc từ máy chủ</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-500">Danh sách này được lấy trực tiếp từ API hướng dẫn nhập.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {guide.requiredFields.map((field: string) => <span key={field} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{field}</span>)}
+                </div>
+              </section>
+            )}
+          </aside>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-            <h3 className="font-bold mb-3">3. {t('zip_import_title', 'admin', 'Kiểm tra file ZIP')}</h3>
-            <p className="text-sm text-amber-900 mb-3">
-              {t('zip_import_description', 'admin', 'Hệ thống chỉ nhận ZIP được xuất từ chức năng xuất sản phẩm. ZIP phải chứa đúng một products.json hoặc products.csv và mỗi sản phẩm phải đủ các trường bắt buộc.')}
-            </p>
-            <p className="text-sm text-amber-900">
-              {t('zip_import_validation_note', 'admin', 'Hệ thống sẽ kiểm tra toàn bộ dữ liệu trước. Nếu có sản phẩm thiếu trường, sai định dạng hoặc lỗi ảnh, toàn bộ lượt nhập sẽ bị từ chối và chưa ghi dữ liệu.')}
-            </p>
+        <section className="mt-8 rounded-2xl border border-purple-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <div>
+              <div className="flex items-center gap-2 text-purple-700"><FileCheck2 className="h-5 w-5" /><h2 className="font-bold text-slate-950">Import bản dịch sản phẩm</h2></div>
+              <p className="mt-1 text-sm text-slate-500">Luồng riêng dành cho file JSON bản dịch, không thay đổi dữ liệu sản phẩm chính.</p>
+            </div>
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 has-[:disabled]:opacity-60">
+              <input type="file" accept=".json,application/json" onChange={handleTranslationFileUpload} className="hidden" disabled={isTranslationLoading} />
+              {isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+              Chọn file JSON
+            </label>
           </div>
-          <div className="mt-6 flex gap-4">
-            <Link href="/admin/dashboard">
-              <Button variant="outline">{t('back')}</Button>
-            </Link>
-          </div>
-        </div>
+          <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={replaceManualTranslations} onChange={(event) => setReplaceManualTranslations(event.target.checked)} disabled={isTranslationLoading} className="h-4 w-4 accent-purple-600" />
+            Cho phép ghi đè bản dịch thủ công
+          </label>
+          {translationResult && (
+            <div className={`mt-4 rounded-xl border p-4 ${translationResult.success ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
+              <p className="text-sm font-medium text-slate-800">{translationResult.message}</p>
+              {translationResult.success && <p className="mt-1 text-xs text-slate-600">{translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0} bản ghi đã kiểm tra</p>}
+              {translationResult.dryRun && translationImport && <Button type="button" onClick={confirmTranslationImport} disabled={isTranslationLoading} className="mt-3 bg-purple-600 text-white hover:bg-purple-700">{isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Xác nhận import bản dịch</Button>}
+            </div>
+          )}
+        </section>
       </div>
-
-      {/* Result */}
-      {result && (
-        <div className={`border rounded-lg p-6 ${result.errors?.length > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-          <h2 className="text-xl font-bold mb-4">
-            {result.errors?.length > 0 ? `${UI_EMOJI.statusError} ${t('errors_title')}` : `${UI_EMOJI.statusSuccess} ${t('results_title')}`}
-          </h2>
-
-          {result.message && (
-            <p className="mb-4">{result.message}</p>
-          )}
-
-          {result.dryRun && (
-            <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded">
-              {t('dry_run_note')}
-            </div>
-          )}
-
-          {result.results && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div className="p-3 bg-white rounded border">
-                <div className="text-sm text-gray-600">{t('inserted_label')}</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {result.results.inserted}
-                </div>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <div className="text-sm text-gray-600">{t('updated_label')}</div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {result.results.updated}
-                </div>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <div className="text-sm text-gray-600">{t('unchanged_label')}</div>
-                <div className="text-2xl font-bold text-gray-600">
-                  {result.results.unchanged || 0}
-                </div>
-              </div>
-              <div className="p-3 bg-white rounded border">
-                <div className="text-sm text-gray-600">{t('skipped_label')}</div>
-                <div className="text-2xl font-bold text-orange-600">
-                  {result.results.skipped || 0}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {result.errors?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-bold text-red-700 mb-2">{t('errors_title')}:</h3>
-              <ul className="space-y-1 text-sm text-red-600">
-                {result.errors.map((err: any, i: number) => {
-                  let errorText = '';
-                  if (typeof err === 'string') {
-                    errorText = getUserFriendlyErrorMessage({ message: err }, t);
-                  } else if (typeof err === 'object' && err !== null) {
-                    // Handle error objects with name, brand, reason, etc.
-                    const parts = [];
-                    if (err.name) parts.push(`${t('admin_product_name')}: ${err.name}`);
-                    if (err.brand) parts.push(`${t('admin_brand')}: ${err.brand}`);
-                    if (err.reason) {
-                      parts.push(`${t('reason_label')} ${getUserFriendlyErrorMessage({ code: err.code, message: err.reason }, t)}`);
-                    }
-                    if (parts.length === 0 && err.message) {
-                      errorText = t('error_generic_fallback', 'common', 'An unexpected error occurred. Please try again.');
-                    } else {
-                      errorText = parts.join(', ');
-                    }
-                  }
-                  return <li key={i}>{UI_EMOJI.bullet} {errorText || t('review_error')}</li>;
-                })}
-              </ul>
-            </div>
-          )}
-
-          {result.warnings?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-bold text-orange-700 mb-2">{t('warnings_title')}</h3>
-              <ul className="space-y-1 text-sm text-orange-600">
-                {result.warnings.map((warn: any, i: number) => {
-                  let warnText = '';
-                  if (typeof warn === 'string') {
-                    warnText = getUserFriendlyErrorMessage({ message: warn }, t);
-                  } else if (typeof warn === 'object' && warn !== null) {
-                    const parts = [];
-                    if (warn.name) parts.push(`${t('admin_product_name')}: ${warn.name}`);
-                    if (warn.brand) parts.push(`${t('admin_brand')}: ${warn.brand}`);
-                    if (warn.reason) parts.push(`${t('reason_label')} ${warn.reason}`);
-                    if (parts.length === 0 && warn.message) {
-                      warnText = getUserFriendlyErrorMessage({ code: warn.code, message: warn.message }, t);
-                    } else {
-                      warnText = parts.join(', ');
-                    }
-                  }
-                  return <li key={i}>{UI_EMOJI.bullet} {warnText || t('review_error')}</li>;
-                })}
-              </ul>
-            </div>
-          )}
-
-          {result.preview && (
-            <div className="mt-4 pt-4 border-t">
-              <h3 className="font-bold mb-2">{t('preview_first_3')}</h3>
-              <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-48">
-                {JSON.stringify(result.preview, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          <div className="mt-6 flex gap-4">
-            <Link href="/admin/dashboard">
-              <Button variant="outline">{t('back')}</Button>
-            </Link>
-          </div>
-        </div>
-      )}
-        </div>
+    </div>
   );
 }
 
 export default withAdminLayout(ImportProductsContent, {
   permission: 'admin',
-  featureName: 'Import Products'
+  featureName: 'Import Products',
 });
