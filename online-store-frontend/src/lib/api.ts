@@ -1138,11 +1138,16 @@ export const productAPI = {
       throw new Error(errorMessage);
     }
 
-    // For CSV, return text; for JSON, return JSON
-    if (format === 'csv') {
-      return response.text();
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/zip')) {
+      throw new Error('product_export_invalid_file');
     }
-    return response.json();
+
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      throw new Error('product_export_empty_file');
+    }
+    return blob;
   },
 
   /**

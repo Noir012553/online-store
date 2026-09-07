@@ -65,6 +65,10 @@ const LanguageService = require('../services/languageService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
+const {
+  uploadToCloudinary,
+  deleteMultipleFromCloudinary,
+} = require('../services/cloudinaryService');
 
 const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
 const MIN_EXPORT_QUERY_TIMEOUT_MS = 120000;
@@ -405,6 +409,93 @@ const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'specs'];
 const isDryRun = (value) => value === true || value === 'true';
 const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
 
+const createZipAssetPublicId = (product, slot, index = 0) => {
+  const identity = product.productId || product.sku || `${product.brand}:${product.name}`;
+  const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
+  return `zip-import/${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
+};
+
+const restoreZipImageAssets = async (products, assets, dryRun = false) => {
+  const referencedAssetPaths = new Set();
+  products.forEach((product) => {
+    if (product.imageAssetPath) referencedAssetPaths.add(product.imageAssetPath);
+    (product.imageAssetPaths || []).forEach(assetPath => referencedAssetPaths.add(assetPath));
+  });
+
+  if (referencedAssetPaths.size === 0) {
+    return { products, uploadedPublicIds: [], restoredImageAssets: 0 };
+  }
+
+  if (!(assets instanceof Map)) {
+    throw createImportError('IMPORT_ZIP_ASSET_MISSING');
+  }
+
+  const uploadedByPath = new Map();
+  const uploadedPublicIds = [];
+  const uploadAsset = async (assetPath, product, slot, index) => {
+    if (!assetPath) return null;
+    if (!assets.has(assetPath)) throw createImportError('IMPORT_ZIP_ASSET_MISSING');
+    if (dryRun) return { assetPath };
+
+    let uploadPromise = uploadedByPath.get(assetPath);
+    if (!uploadPromise) {
+      uploadPromise = uploadToCloudinary(
+        assets.get(assetPath),
+        'products',
+        createZipAssetPublicId(product, slot, index),
+      );
+      uploadedByPath.set(assetPath, uploadPromise);
+    }
+    const uploaded = await uploadPromise;
+    if (!uploadedPublicIds.includes(uploaded.publicId)) uploadedPublicIds.push(uploaded.publicId);
+    return uploaded;
+  };
+
+  try {
+    const restoredProducts = [];
+    for (const product of products) {
+      const mainUpload = await uploadAsset(product.imageAssetPath, product, 'main');
+      const galleryUploads = [];
+      const galleryAssetPaths = Array.isArray(product.imageAssetPaths) ? product.imageAssetPaths : [];
+      const galleryImages = Array.isArray(product.images) ? product.images : [];
+      for (let index = 0; index < galleryImages.length; index += 1) {
+        galleryUploads.push(await uploadAsset(galleryAssetPaths[index], product, 'gallery', index));
+      }
+
+      const restored = { ...product };
+      delete restored.imageAssetPath;
+      delete restored.imageAssetPaths;
+      if (mainUpload && !dryRun) {
+        restored.image = mainUpload.url;
+        restored.imagePublicId = mainUpload.publicId;
+      }
+      if (!dryRun && galleryUploads.some(Boolean)) {
+        const existingPublicIds = Array.isArray(restored.imagePublicIds) ? restored.imagePublicIds : [];
+        restored.images = galleryImages.map((image, index) => galleryUploads[index]?.url || image);
+        restored.imagePublicIds = galleryImages.map((image, index) => (
+          galleryUploads[index]?.publicId || existingPublicIds[index + 1]
+        )).filter(Boolean);
+      }
+      restoredProducts.push(restored);
+    }
+
+    return {
+      products: restoredProducts,
+      uploadedPublicIds,
+      restoredImageAssets: referencedAssetPaths.size,
+    };
+  } catch (error) {
+    if (uploadedPublicIds.length > 0) {
+      try {
+        await deleteMultipleFromCloudinary(uploadedPublicIds);
+      } catch (cleanupError) {
+        console.error('[IMPORT_ZIP_ASSET_CLEANUP_FAILED]', { message: cleanupError.message });
+      }
+    }
+    throw error;
+  }
+};
+
 const findDuplicateImportIssues = (products) => {
   const seen = new Map();
   const issues = [];
@@ -677,6 +768,8 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
   }
   const allowCreateReferences = req.body.allowCreateReferences === true || req.body.allowCreateReferences === 'true';
   const adminUserId = req.user._id;
+  let uploadedZipImagePublicIds = [];
+  let productWriteStarted = false;
 
   // Validate file
   if (!req.file) {
@@ -744,7 +837,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     }
 
 
-    const validProducts = validation.validProducts.map((product) => ({
+    let validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),
     }));
@@ -770,6 +863,14 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     await validateImportCategories(validProducts, allowCreateReferences);
 
+    const restoredAssets = await restoreZipImageAssets(
+      validProducts,
+      req.importFile?.assets,
+      isDryRun(dryRun),
+    );
+    validProducts = restoredAssets.products;
+    uploadedZipImagePublicIds = restoredAssets.uploadedPublicIds;
+
     if (isDryRun(dryRun)) {
       return res.json({
         success: true,
@@ -778,6 +879,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         format,
         mode,
         totalProducts: validProducts.length,
+        restoredImageAssets: restoredAssets.restoredImageAssets,
         createdCategories: [],
         warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
         preview: validProducts.slice(0, 3),
@@ -923,6 +1025,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
 
     // Xử lý theo mode
+    productWriteStarted = true;
     let results;
     switch (normalizedMode) {
       case 'insert':
@@ -949,6 +1052,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
         ...results,
         affectedTranslations: undefined,
         obsoleteImagePublicIds: undefined,
+        restoredImageAssets: restoredAssets.restoredImageAssets,
       },
 
       translationSummary,
@@ -956,6 +1060,13 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
+    if (!productWriteStarted && uploadedZipImagePublicIds.length > 0) {
+      try {
+        await deleteMultipleFromCloudinary(uploadedZipImagePublicIds);
+      } catch (cleanupError) {
+        console.error('[IMPORT_ZIP_ASSET_CLEANUP_FAILED]', { message: cleanupError.message });
+      }
+    }
 
     console.error('[IMPORT_FILE_ERROR]', error);
     res.status(getImportErrorStatus(error)).json({
@@ -1034,7 +1145,7 @@ const importProducts = asyncHandler(async (req, res) => {
     }
 
 
-    const validProducts = validation.validProducts.map((product) => ({
+    let validProducts = validation.validProducts.map((product) => ({
       ...product,
       specs: normalizeSpecs(product.specs || {}),
     }));
