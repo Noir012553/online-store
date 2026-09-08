@@ -217,6 +217,23 @@ const parseCsv = text => {
   ));
 };
 
+const hasCompleteSpecs = value => {
+  let specs = value;
+  if (typeof specs === 'string') {
+    try {
+      specs = JSON.parse(specs);
+    } catch {
+      return false;
+    }
+  }
+  return Boolean(
+    specs
+      && typeof specs === 'object'
+      && !Array.isArray(specs)
+      && Object.keys(specs).length,
+  );
+};
+
 const findEndOfCentralDirectory = buffer => {
   for (let index = buffer.length - 22; index >= 0; index -= 1) {
     if (buffer.readUInt32LE(index) === 0x06054b50) return index;
@@ -335,7 +352,7 @@ const validateZip = (zipPath, headers, contentFormat) => {
       const specs = Object.entries(product)
         .filter(([key, value]) => key.startsWith('specs_') && value !== undefined && value !== '');
       if (!specs.length) missing.push('specs');
-    } else if (!product.specs || typeof product.specs !== 'object' || Array.isArray(product.specs) || !Object.keys(product.specs).length) {
+    } else if (!hasCompleteSpecs(product.specs)) {
       missing.push('specs');
     }
     if (missing.length) missingFields.push({ row: index + 1, fields: [...new Set(missing)].sort() });
