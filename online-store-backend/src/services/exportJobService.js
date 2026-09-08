@@ -23,6 +23,12 @@ const debugExportJob = (event, details) => {
 const MAX_ATTEMPTS = 3;
 const POLL_INTERVAL_MS = 5000;
 const EXPORT_LEASE_MS = 10 * 60 * 1000;
+const MAX_ACTIVE_EXPORT_JOBS_PER_USER = Number.isInteger(Number(process.env.MAX_ACTIVE_EXPORT_JOBS_PER_USER))
+  ? Math.max(1, Number(process.env.MAX_ACTIVE_EXPORT_JOBS_PER_USER))
+  : 2;
+const MAX_ACTIVE_EXPORT_JOBS_GLOBAL = Number.isInteger(Number(process.env.MAX_ACTIVE_EXPORT_JOBS_GLOBAL))
+  ? Math.max(MAX_ACTIVE_EXPORT_JOBS_PER_USER, Number(process.env.MAX_ACTIVE_EXPORT_JOBS_GLOBAL))
+  : 8;
 const EXPORT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const EXPORT_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const EXPORT_LEASE_HEARTBEAT_MS = Math.max(1000, Math.floor(EXPORT_LEASE_MS / 3));
@@ -58,11 +64,45 @@ const toJobResponse = (job) => ({
   downloadUrl: job.status === 'ready' ? getDownloadUrl(job._id) : null,
 });
 
-const enqueueExportJob = async ({ request, userId = null }) => {
+const enqueueExportJob = async ({ request, userId = null, idempotencyKey = null }) => {
   assertStorageConfigured();
-  const job = await ExportJob.create({ request, userId });
-  recordExportEvent('enqueued');
-  return toJobResponse(job);
+  const normalizedKey = typeof idempotencyKey === 'string' ? idempotencyKey.trim() : null;
+  if (normalizedKey && (normalizedKey.length < 8 || normalizedKey.length > 128)) {
+    throw createJobError(400, 'EXPORT_IDEMPOTENCY_KEY_INVALID');
+  }
+
+  if (normalizedKey) {
+    const existingJob = await ExportJob.findOne({ userId, idempotencyKey: normalizedKey }).lean();
+    if (existingJob) return toJobResponse(existingJob);
+  }
+
+  const activeFilter = { status: { $in: ['queued', 'processing'] } };
+  const [activeGlobal, activeForUser] = await Promise.all([
+    ExportJob.countDocuments(activeFilter),
+    userId ? ExportJob.countDocuments({ ...activeFilter, userId }) : 0,
+  ]);
+  if (activeGlobal >= MAX_ACTIVE_EXPORT_JOBS_GLOBAL) {
+    throw createJobError(429, 'EXPORT_QUEUE_LIMIT_REACHED', { scope: 'global' });
+  }
+  if (userId && activeForUser >= MAX_ACTIVE_EXPORT_JOBS_PER_USER) {
+    throw createJobError(429, 'EXPORT_QUEUE_LIMIT_REACHED', { scope: 'user' });
+  }
+
+  try {
+    const job = await ExportJob.create({
+      request,
+      userId,
+      idempotencyKey: normalizedKey,
+    });
+    recordExportEvent('enqueued');
+    return toJobResponse(job);
+  } catch (error) {
+    if (error?.code === 11000 && normalizedKey) {
+      const existingJob = await ExportJob.findOne({ userId, idempotencyKey: normalizedKey }).lean();
+      if (existingJob) return toJobResponse(existingJob);
+    }
+    throw error;
+  }
 };
 
 const claimNextExportJob = () => {
@@ -305,26 +345,28 @@ const processExportJob = async (job) => {
 
 const recoverExpiredExportJobs = async () => {
   const now = new Date();
-  const expiredJobs = await ExportJob.find({
+  const expiredJobs = ExportJob.find({
     status: 'processing',
     leaseExpiresAt: { $lte: now },
-  }).select('_id attempts cancelRequested').lean();
+  }).select('_id attempts cancelRequested').lean().cursor();
 
-  await Promise.all(expiredJobs.map(job => ExportJob.updateOne(
-    { _id: job._id, status: 'processing', leaseExpiresAt: { $lte: now } },
-    {
-      $set: {
-        status: job.cancelRequested
-          ? 'cancelled'
-          : job.attempts >= MAX_ATTEMPTS ? 'failed' : 'queued',
-        cancelRequested: false,
-        leaseExpiresAt: null,
-        nextAttemptAt: now,
-        finishedAt: job.cancelRequested || job.attempts >= MAX_ATTEMPTS ? now : null,
-        errorMessage: job.cancelRequested ? null : 'Export worker lease expired',
+  for await (const job of expiredJobs) {
+    await ExportJob.updateOne(
+      { _id: job._id, status: 'processing', leaseExpiresAt: { $lte: now } },
+      {
+        $set: {
+          status: job.cancelRequested
+            ? 'cancelled'
+            : job.attempts >= MAX_ATTEMPTS ? 'failed' : 'queued',
+          cancelRequested: false,
+          leaseExpiresAt: null,
+          nextAttemptAt: now,
+          finishedAt: job.cancelRequested || job.attempts >= MAX_ATTEMPTS ? now : null,
+          errorMessage: job.cancelRequested ? null : 'Export worker lease expired',
+        },
       },
-    },
-  )));
+    );
+  }
 };
 
 const processExportJobs = async () => {

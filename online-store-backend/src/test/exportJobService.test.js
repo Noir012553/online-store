@@ -194,6 +194,7 @@ describe('Export job workflow', () => {
       filePath,
     };
 
+    sinon.stub(ExportJob, 'countDocuments').resolves(0);
     sinon.stub(ExportJob, 'create').resolves(queuedJob);
     const enqueued = await exportJobService.enqueueExportJob({
       request: { contentFormat: 'json' },
@@ -231,6 +232,7 @@ describe('Export job workflow', () => {
       finishedAt: null,
       errorMessage: null,
     };
+    sinon.stub(ExportJob, 'countDocuments').resolves(0);
     sinon.stub(ExportJob, 'create').resolves(job);
     await exportJobService.enqueueExportJob({ request: { contentFormat: 'json' } });
     sinon.stub(ExportJob, 'findOneAndUpdate').resolves({ ...job, status: 'queued' });

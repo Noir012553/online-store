@@ -16,6 +16,35 @@ const rateLimitHandler = (code) => (req, res) => {
   });
 };
 
+const MAX_IMPORT_CONCURRENCY = Number.isInteger(Number(process.env.MAX_IMPORT_CONCURRENCY))
+  ? Math.max(1, Number(process.env.MAX_IMPORT_CONCURRENCY))
+  : 2;
+let activeImportRequests = 0;
+
+const importConcurrencyLimiter = (req, res, next) => {
+  if (activeImportRequests >= MAX_IMPORT_CONCURRENCY) {
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({
+      success: false,
+      code: 'IMPORT_CONCURRENCY_LIMIT',
+      message: getMessage(req.lang, 'errors.too_many_requests_title'),
+      retryAfter: 30,
+    });
+  }
+
+  activeImportRequests += 1;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    activeImportRequests = Math.max(0, activeImportRequests - 1);
+  };
+  res.once('finish', release);
+  res.once('close', release);
+  req.once('aborted', release);
+  return next();
+};
+
 /**
  * Login rate limiter
  * 5 attempts per 15 minutes per IP
@@ -191,4 +220,5 @@ module.exports = {
   updateCartLimiter,
   refreshTokenLimiter,
   uploadLimiter,
+  importConcurrencyLimiter,
 };

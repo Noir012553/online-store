@@ -18,6 +18,11 @@ const ExportJobSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    idempotencyKey: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     attempts: {
       type: Number,
       default: 0,
@@ -57,5 +62,9 @@ const ExportJobSchema = new mongoose.Schema(
 );
 
 ExportJobSchema.index({ status: 1, createdAt: 1 });
+ExportJobSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } },
+);
 
 module.exports = mongoose.model('ExportJob', ExportJobSchema);

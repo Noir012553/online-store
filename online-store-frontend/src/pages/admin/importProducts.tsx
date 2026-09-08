@@ -53,6 +53,7 @@ function ImportProductsContent() {
   const [mode, setMode] = useState<ImportMode>('upsert');
   const [dryRun, setDryRun] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const importInFlightRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [guide, setGuide] = useState<any>(null);
@@ -63,6 +64,7 @@ function ImportProductsContent() {
     idempotencyKey: string;
   } | null>(null);
   const [isTranslationLoading, setIsTranslationLoading] = useState(false);
+  const translationInFlightRef = useRef(false);
 
   useEffect(() => {
     loadNamespace('admin');
@@ -117,11 +119,13 @@ function ImportProductsContent() {
   };
 
   const handleImport = async (shouldDryRun: boolean) => {
+    if (importInFlightRef.current) return;
     if (!selectedFile) {
       toast.error(t('import.choose_file_first', 'admin', 'Hãy chọn file ZIP trước.'));
       return;
     }
 
+    importInFlightRef.current = true;
     try {
       setIsImporting(true);
       const token = getAuthToken();
@@ -162,6 +166,7 @@ function ImportProductsContent() {
       setResult({ success: false, message });
       toast.error(message);
     } finally {
+      importInFlightRef.current = false;
       setIsImporting(false);
     }
   };
@@ -170,12 +175,14 @@ function ImportProductsContent() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    if (translationInFlightRef.current) return;
 
     if (!file.name.toLowerCase().endsWith('.json')) {
       toast.error(t('import.translation_json_only', 'admin', 'File bản dịch phải có định dạng JSON.'));
       return;
     }
 
+    translationInFlightRef.current = true;
     try {
       setIsTranslationLoading(true);
       const parsed = JSON.parse(await file.text());
@@ -197,13 +204,15 @@ function ImportProductsContent() {
       setTranslationResult({ success: false, message });
       toast.error(message);
     } finally {
+      translationInFlightRef.current = false;
       setIsTranslationLoading(false);
     }
   };
 
   const confirmTranslationImport = async () => {
-    if (!translationImport) return;
+    if (!translationImport || translationInFlightRef.current) return;
 
+    translationInFlightRef.current = true;
     try {
       setIsTranslationLoading(true);
       const data = await productTranslationAPI.importProductTranslations({
@@ -219,6 +228,7 @@ function ImportProductsContent() {
       setTranslationResult({ success: false, message });
       toast.error(message);
     } finally {
+      translationInFlightRef.current = false;
       setIsTranslationLoading(false);
     }
   };

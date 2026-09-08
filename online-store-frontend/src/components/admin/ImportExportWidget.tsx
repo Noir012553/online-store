@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { productAPI, categoryAPI } from '../../lib/api';
@@ -13,6 +13,7 @@ export default function ImportExportWidget() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
+  const exportInFlightRef = useRef(false);
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
 
   useEffect(() => {
@@ -66,6 +67,9 @@ export default function ImportExportWidget() {
 
 
   const handleExport = async () => {
+    if (exportInFlightRef.current) return;
+    exportInFlightRef.current = true;
+    const idempotencyKey = crypto.randomUUID();
     try {
       setIsExporting(true);
       const blob = await productAPI.exportProductBundleAsync(
@@ -74,6 +78,8 @@ export default function ImportExportWidget() {
         undefined,
         locale,
         selectedFormat,
+        undefined,
+        idempotencyKey,
       );
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -88,6 +94,7 @@ export default function ImportExportWidget() {
     } catch (error) {
       toast.error(t('error_exporting_file', 'export'));
     } finally {
+      exportInFlightRef.current = false;
       setIsExporting(false);
     }
   };

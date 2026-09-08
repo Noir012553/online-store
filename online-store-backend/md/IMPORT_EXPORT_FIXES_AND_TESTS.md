@@ -447,3 +447,22 @@ Kết luận: luồng `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` đã hoạt đ�
 Bài test này không cố tình tạo lỗi rate limit Cloudinary vì import dry-run không upload ảnh thật. Rotation Cloudinary cần được xác nhận thêm bằng một lần upload thực tế khi các nhóm key bổ sung đã được cấu hình.
 
 Không chạy `npm run build`.
+
+## 9. Cập nhật tiến độ xử lý đồng thời
+
+### Đã triển khai
+
+- Export async nhận `Idempotency-Key`, lưu khóa trên `ExportJob` và trả lại job hiện có khi request được gửi lại.
+- Queue export giới hạn mặc định 2 job active mỗi admin và 8 job active toàn hệ thống; cấu hình qua `MAX_ACTIVE_EXPORT_JOBS_PER_USER` và `MAX_ACTIVE_EXPORT_JOBS_GLOBAL`.
+- Recovery export job hết lease dùng cursor tuần tự thay vì tải toàn bộ expired jobs và cập nhật đồng thời không giới hạn.
+- Frontend export chống double-click, polling có abort, backoff và xử lý `429`/`Retry-After`.
+- Import ZIP giới hạn mặc định 2 request đồng thời trên mỗi backend process qua `MAX_IMPORT_CONCURRENCY`.
+- Import update/upsert kiểm tra `__v` để trả conflict khi dữ liệu đã bị thay đổi bởi lượt import khác.
+- Test syntax backend, test syntax export job và `git diff --check` đã PASS.
+
+### Giới hạn cần theo dõi
+
+- Import product chưa có idempotency bền vững theo nội dung ZIP, transaction/staging toàn bộ hoặc khóa phân tán giữa nhiều backend replica.
+- Các thao tác import vẫn có thể cần RAM lớn vì ZIP được nhận bằng `memoryStorage`.
+- Local export storage chỉ an toàn trong một instance hoặc shared volume; nhiều instance nên dùng S3/shared storage.
+- Chưa chạy runtime/load test trong Builder do setup `pnpm install` lỗi Corepack; không chạy `npm run build`.

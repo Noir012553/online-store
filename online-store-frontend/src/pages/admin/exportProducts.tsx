@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { useTranslation, useLanguage } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
@@ -20,6 +20,7 @@ function ExportProductsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
+  const exportInFlightRef = useRef(false);
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
 
   useEffect(() => {
@@ -81,6 +82,9 @@ function ExportProductsContent() {
 
 
   const handleExport = async () => {
+    if (exportInFlightRef.current) return;
+    exportInFlightRef.current = true;
+    const idempotencyKey = crypto.randomUUID();
     try {
       setIsExporting(true);
       const blob = await productAPI.exportProductBundleAsync(
@@ -89,6 +93,8 @@ function ExportProductsContent() {
         undefined,
         locale,
         selectedFormat,
+        undefined,
+        idempotencyKey,
       );
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -103,6 +109,7 @@ function ExportProductsContent() {
     } catch (error) {
       toast.error(t('error_exporting_file'));
     } finally {
+      exportInFlightRef.current = false;
       setIsExporting(false);
     }
   };

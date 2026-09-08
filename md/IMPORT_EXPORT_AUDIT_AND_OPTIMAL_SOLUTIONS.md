@@ -1327,3 +1327,32 @@ Chưa triển khai:
 - Bộ security regression test đầy đủ cho ZIP bomb, symlink và checksum.
 
 Các mục còn lại cần được hoàn thiện trước khi coi ZIP là backup đầy đủ, đặc biệt là asset import, checksum và staging/transaction.
+
+---
+
+## 13. Cập nhật tiến độ tối ưu đồng thời
+
+### Đã triển khai
+
+- Export job hỗ trợ `Idempotency-Key` và index duy nhất theo `userId + idempotencyKey` để retry cùng request không tạo job mới.
+- Export queue giới hạn mặc định 2 job active mỗi admin và 8 job active toàn hệ thống. Có thể cấu hình bằng `MAX_ACTIVE_EXPORT_JOBS_PER_USER` và `MAX_ACTIVE_EXPORT_JOBS_GLOBAL`.
+- Recovery job export hết lease chuyển sang xử lý bằng cursor tuần tự, tránh tải toàn bộ danh sách job vào RAM và `Promise.all` không giới hạn.
+- Frontend export chặn double-click trong cùng tab, polling hỗ trợ abort, `Retry-After` và backoff khi nhận `429`.
+- Import sản phẩm có giới hạn concurrency mặc định 2 request trên mỗi backend process qua `MAX_IMPORT_CONCURRENCY`; request vượt giới hạn nhận `429` thay vì tiếp tục giữ ZIP trong RAM.
+- Frontend chặn gửi trùng import sản phẩm và import bản dịch trong cùng tab.
+- Import update/upsert kiểm tra `__v` để phát hiện xung đột ghi đồng thời, không âm thầm ghi đè thay đổi mới hơn.
+- Đã cập nhật test queue export để phản ánh bước kiểm tra quota mới.
+
+### Chưa hoàn tất
+
+- Import sản phẩm chưa có idempotency bền vững theo nội dung ZIP trên toàn hệ thống.
+- Import chưa có staging/transaction bao phủ Product, Category, translation và Cloudinary.
+- Giới hạn import hiện là theo từng backend process; khi chạy nhiều replica cần semaphore phân tán hoặc chuyển import thành job queue dùng chung.
+- Export local storage chưa phù hợp khi nhiều replica không dùng shared volume; production nhiều instance nên dùng S3/shared storage.
+- Chưa chạy được runtime/load test vì Builder setup `pnpm install` đang lỗi Corepack và chưa có dev server.
+
+### Kiểm tra sau thay đổi
+
+- `node --check` các file backend đã sửa: PASS.
+- `git diff --check`: PASS.
+- Không chạy `npm run build`.

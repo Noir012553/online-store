@@ -1419,10 +1419,11 @@ async function handleUpdateMode(productsWithEnrichedIds) {
     );
     const updateDoc = withoutImportProductId(product);
     delete updateDoc.user;
+    const versionFilter = Number.isInteger(existing.__v) ? { __v: existing.__v } : {};
     bulkOps.push({
       updateOne: {
-        filter: { _id: existing._id, isDeleted: false },
-        update: { $set: updateDoc },
+        filter: { _id: existing._id, isDeleted: false, ...versionFilter },
+        update: { $set: updateDoc, $inc: { __v: 1 } },
       },
     });
     updated.push(existing._id);
@@ -1436,7 +1437,10 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   }
 
   if (bulkOps.length > 0) {
-    await Product.bulkWrite(bulkOps);
+    const result = await Product.bulkWrite(bulkOps);
+    if (result.matchedCount !== bulkOps.length) {
+      throw createImportError('IMPORT_CONFLICT', { count: bulkOps.length - result.matchedCount });
+    }
   }
 
   return {
@@ -1477,12 +1481,16 @@ async function handleUpsertMode(products, preserveExistingStock = false) {
       }
     }
 
+    const versionFilter = existing && Number.isInteger(existing.__v) ? { __v: existing.__v } : {};
     return {
       updateOne: {
         filter: existing
-          ? { _id: existing._id, isDeleted: false }
+          ? { _id: existing._id, isDeleted: false, ...versionFilter }
           : getProductLookupFilter(product),
-        update: { $set: buildUpsertProductUpdate(product, preserveExistingStock && Boolean(existing)) },
+        update: {
+          $set: buildUpsertProductUpdate(product, preserveExistingStock && Boolean(existing)),
+          $inc: { __v: 1 },
+        },
         upsert: true,
       },
     };
@@ -1632,6 +1640,7 @@ const sendExportError = (req, res, error) => {
 
   const isTimeout = /timed out|timeout/i.test(error.message || '');
   const statusCode = error.statusCode || (isTimeout ? 503 : 500);
+  if (statusCode === 429 && !res.headersSent) res.setHeader('Retry-After', '30');
   const code = error.errorCode || (isTimeout ? 'EXPORT_SERVICE_UNAVAILABLE' : 'EXPORT_FAILED');
   const message = getMessage(req.lang, isTimeout ? 'common.error_server_desc' : 'errors.generic_error');
 
@@ -2473,7 +2482,11 @@ const exportProducts = asyncHandler(async (req, res) => {
     const request = parseExportRequest(req);
     if (request.async) {
       const { enqueueExportJob } = require('../services/exportJobService');
-      const job = await enqueueExportJob({ request, userId: req.user?._id });
+      const job = await enqueueExportJob({
+        request,
+        userId: req.user?._id,
+        idempotencyKey: req.get('Idempotency-Key'),
+      });
       res.status(202).json({ success: true, ...job });
       return;
     }
@@ -2549,7 +2562,11 @@ const exportProductsWithTranslations = asyncHandler(async (req, res) => {
     const request = parseExportRequest(req);
     if (request.async) {
       const { enqueueExportJob } = require('../services/exportJobService');
-      const job = await enqueueExportJob({ request, userId: req.user?._id });
+      const job = await enqueueExportJob({
+        request,
+        userId: req.user?._id,
+        idempotencyKey: req.get('Idempotency-Key'),
+      });
       res.status(202).json({ success: true, ...job });
       return;
     }
