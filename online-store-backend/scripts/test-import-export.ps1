@@ -30,15 +30,15 @@ param(
     [string]$ZipOutputPath,
     [string]$ReportPath,
     [string]$CredentialPath = "$HOME\.online-store-export-credential.xml",
-    [string]$Python = 'python',
+    [string]$Node = 'node',
     [switch]$CommitImport
 )
 
 $ErrorActionPreference = 'Stop'
 
-$scriptPath = Join-Path $PSScriptRoot '..\python\test_import_export.py'
+$scriptPath = Join-Path $PSScriptRoot 'test-export-dynamic.js'
 if (-not (Test-Path $scriptPath)) {
-    throw "Không tìm thấy Python test script: $scriptPath"
+    throw "Không tìm thấy Node Playwright test script: $scriptPath"
 }
 
 if (-not $FrontendBaseUrl) {
@@ -63,6 +63,7 @@ $arguments = @(
     '--target', $Target,
     '--frontend-base-url', $FrontendBaseUrl,
     '--backend-base-url', $BackendBaseUrl,
+    '--import',
     '--format', $Format,
     '--mode', $Mode,
     '--limit', $Limit,
@@ -85,10 +86,12 @@ try {
     Write-Host "[IMPORT] $(if ($CommitImport) { 'commit' } else { 'dry-run' })"
     Write-Host "[FRONTEND] $FrontendBaseUrl"
     Write-Host "[BACKEND] $BackendBaseUrl"
-    & $Python @arguments
-    if ($LASTEXITCODE -ne 0) { throw "Python Playwright test thất bại với exit code $LASTEXITCODE" }
+    $env:NODE_PATH = 'C:\Windows\system32\node_modules'
+    & $Node @arguments
+    if ($LASTEXITCODE -ne 0) { throw "Node Playwright test thất bại với exit code $LASTEXITCODE" }
 }
 finally {
     Remove-Item Env:EXPORT_TEST_EMAIL -ErrorAction SilentlyContinue
     Remove-Item Env:EXPORT_TEST_PASSWORD -ErrorAction SilentlyContinue
+    Remove-Item Env:NODE_PATH -ErrorAction SilentlyContinue
 }
