@@ -345,6 +345,28 @@ const getProductTranslationsForExport = async (
   });
 };
 
+const normalizeExportSpecs = value => {
+  let specs = value;
+  if (specs instanceof Map) specs = Object.fromEntries(specs);
+  if (typeof specs === 'string') {
+    try {
+      specs = JSON.parse(specs);
+    } catch {
+      return {};
+    }
+  }
+  return normalizeSpecs(specs);
+};
+
+const getExportSpecs = product => {
+  const candidates = [product.specs, product.specifications, product.attributes, product.Attributes];
+  for (const candidate of candidates) {
+    const specs = normalizeExportSpecs(candidate);
+    if (Object.keys(specs).length > 0) return specs;
+  }
+  return {};
+};
+
 const getExportImages = (productData) => {
   const imageEntries = [];
   const addImage = ({ url, publicId, alt, type }) => {
@@ -383,11 +405,26 @@ const getExportImages = (productData) => {
 };
 
 const serializeProductForExport = (product, translations = {}) => {
-  const { _id, category, ...productData } = product;
-  const images = getExportImages(productData);
+  const {
+    _id,
+    category,
+    specs: rawSpecs,
+    specifications,
+    attributes,
+    Attributes,
+    ...productData
+  } = product;
+  const specs = getExportSpecs({
+    specs: rawSpecs,
+    specifications,
+    attributes,
+    Attributes,
+  });
+  const images = getExportImages({ ...productData, specs });
 
   return {
     ...productData,
+    specs,
     productId: _id.toString(),
     categoryId: category?._id?.toString(),
     category: category?.name,

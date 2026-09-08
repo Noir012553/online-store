@@ -77,6 +77,29 @@ describe('Product export serialization', () => {
     expect(exported.reviews).to.deep.equal(['internal-review-id']);
   });
 
+  it('normalizes canonical and legacy specs fields during export', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: new Map([['connection', 'Wireless']]),
+      specifications: { legacyField: 'Preserved' },
+      Attributes: { ignoredField: 'Fallback' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wireless' });
+    expect(exported).not.to.have.property('specifications');
+    expect(exported).not.to.have.property('Attributes');
+  });
+
+  it('falls back to legacy specs fields when canonical specs are empty', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: {},
+      specifications: { connection: 'Wired' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wired' });
+  });
+
   it('includes the main image when the gallery only contains attached images', () => {
     const exported = serializeProductForExport({
       ...product,
