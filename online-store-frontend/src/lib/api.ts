@@ -1332,37 +1332,52 @@ export const productAPI = {
 
     let job = enqueueData;
     let pollDelayMs = 5000;
-    while (job.status !== 'ready') {
-      if (job.status === 'failed' || job.status === 'cancelled') {
-        throw new Error(job.errorMessage || 'product_export_job_failed');
+    try {
+      while (job.status !== 'ready') {
+        if (job.status === 'failed' || job.status === 'cancelled') {
+          throw new Error(job.errorMessage || 'product_export_job_failed');
+        }
+        if (Date.now() >= deadline) throw new Error('product_export_job_timeout');
+        try {
+          await waitForPoll(pollDelayMs);
+          const statusResponse = await fetchJob(`/products/admin/export-jobs/${job.jobId}`);
+          const statusData = await statusResponse.json() as { job: ExportJobResponse };
+          job = statusData.job;
+          pollDelayMs = 5000;
+        } catch (error) {
+          const requestError = error as Error & { status?: number; retryAfterMs?: number };
+          if (requestError.status !== 429) throw error;
+          const retryDelay = requestError.retryAfterMs || pollDelayMs;
+          await waitForPoll(Math.min(Math.max(retryDelay, 5000), 30000));
+          pollDelayMs = Math.min(pollDelayMs * 2, 30000);
+        }
       }
-      if (Date.now() >= deadline) throw new Error('product_export_job_timeout');
-      try {
-        await waitForPoll(pollDelayMs);
-        const statusResponse = await fetchJob(`/products/admin/export-jobs/${job.jobId}`);
-        const statusData = await statusResponse.json() as { job: ExportJobResponse };
-        job = statusData.job;
-        pollDelayMs = 5000;
-      } catch (error) {
-        const requestError = error as Error & { status?: number; retryAfterMs?: number };
-        if (requestError.status !== 429) throw error;
-        const retryDelay = requestError.retryAfterMs || pollDelayMs;
-        await waitForPoll(Math.min(Math.max(retryDelay, 5000), 30000));
-        pollDelayMs = Math.min(pollDelayMs * 2, 30000);
+
+      const downloadResponse = await fetchJob(
+        job.downloadUrl || `/products/admin/export-jobs/${job.jobId}/download`,
+      );
+      const contentType = downloadResponse.headers.get('content-type') || '';
+      if (!contentType.includes('application/zip')) {
+        throw new Error('product_export_invalid_file');
       }
-    }
 
-    const downloadResponse = await fetchJob(
-      job.downloadUrl || `/products/admin/export-jobs/${job.jobId}/download`,
-    );
-    const contentType = downloadResponse.headers.get('content-type') || '';
-    if (!contentType.includes('application/zip')) {
-      throw new Error('product_export_invalid_file');
+      const blob = await downloadResponse.blob();
+      if (blob.size === 0) throw new Error('product_export_empty_file');
+      return blob;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '';
+      const shouldCancel = errorMessage === 'product_export_job_timeout'
+        || externalSignal?.aborted
+        || errorMessage === 'AbortError';
+      if (shouldCancel && job.jobId) {
+        await apiCall(`/products/admin/export-jobs/${job.jobId}/cancel`, {
+          method: 'POST',
+          skipCache: true,
+          skipAuthRecovery: true,
+        }).catch(() => undefined);
+      }
+      throw error;
     }
-
-    const blob = await downloadResponse.blob();
-    if (blob.size === 0) throw new Error('product_export_empty_file');
-    return blob;
   },
 };
 

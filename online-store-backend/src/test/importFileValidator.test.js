@@ -8,6 +8,7 @@ const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
 const { validateProduct, validateProductArray } = require('../utils/productImportValidator');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
+const { errorHandler } = require('../middleware/errorMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
 const {
@@ -18,16 +19,103 @@ const {
   getExportProductBatchFilter,
 } = require('../controllers/productImportController');
 const {
-  MAX_IMAGE_ASSET_BYTES,
+  MAX_ZIP_IMAGE_BYTES: MAX_IMAGE_ASSET_BYTES,
   isSafeEntryName,
   readImportZip,
 } = require('../utils/zipImport');
+const {
+  isBlockedIp,
+  validateSafeRemoteUrl,
+  fetchSafeRemoteImage,
+} = require('../utils/safeRemoteUrl');
 const {
   getProductImagePublicId,
   uploadProductImage,
   assignInitialHighlights,
   getInitialStock,
 } = require('../seeds/productSeedPipeline');
+
+describe('ZIP upload boundary errors', () => {
+  const invokeErrorHandler = (error, path) => {
+    const response = {
+      statusCode: 200,
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(payload) {
+        this.payload = payload;
+        return this;
+      },
+      headersSent: false,
+    };
+    errorHandler(error, { path, originalUrl: path, lang: 'vi' }, response, () => {});
+    return response;
+  };
+
+  it('returns 413 for an oversized ZIP', () => {
+    const response = invokeErrorHandler(
+      { code: 'LIMIT_FILE_SIZE' },
+      '/api/products/admin/import-file',
+    );
+    expect(response.statusCode).to.equal(413);
+    expect(response.payload.code).to.equal('IMPORT_ZIP_SIZE_INVALID');
+  });
+
+  it('returns a client error for a rejected ZIP MIME type', () => {
+    const response = invokeErrorHandler(
+      { message: 'Only valid .zip files are allowed' },
+      '/api/products/admin/import-file',
+    );
+    expect(response.statusCode).to.equal(400);
+    expect(response.payload.code).to.equal('IMPORT_ZIP_ONLY');
+  });
+});
+
+describe('Safe remote image URLs', () => {
+  it('blocks loopback, private, metadata and mapped IPv4 addresses', () => {
+    expect(isBlockedIp('127.0.0.1')).to.equal(true);
+    expect(isBlockedIp('10.0.0.8')).to.equal(true);
+    expect(isBlockedIp('169.254.169.254')).to.equal(true);
+    expect(isBlockedIp('::1')).to.equal(true);
+    expect(isBlockedIp('::ffff:127.0.0.1')).to.equal(true);
+  });
+
+  it('rejects credentials and unsafe hostnames before fetching', async () => {
+    for (const source of [
+      'https://user:pass@example.com/image.jpg',
+      'https://localhost/image.jpg',
+    ]) {
+      let error;
+      try {
+        await validateSafeRemoteUrl(source);
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.errorCode).to.equal('EXPORT_IMAGE_URL_INVALID');
+    }
+  });
+
+  it('rejects redirects into a private address', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => new Response(null, {
+      status: 302,
+      headers: { location: 'http://127.0.0.1/internal' },
+    });
+
+    try {
+      let error;
+      try {
+        await fetchSafeRemoteImage('https://example.invalid/image.jpg');
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.errorCode).to.equal('EXPORT_IMAGE_URL_INVALID');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
 
 describe('Product export serialization', () => {
   it('advances export batches with an exclusive _id boundary', () => {

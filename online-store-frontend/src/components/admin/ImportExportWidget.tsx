@@ -15,6 +15,12 @@ export default function ImportExportWidget() {
   const [isExporting, setIsExporting] = useState(false);
   const exportInFlightRef = useRef(false);
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
+  const exportAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    exportAbortControllerRef.current?.abort(new Error('export_component_unmounted'));
+    exportAbortControllerRef.current = null;
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,6 +76,8 @@ export default function ImportExportWidget() {
     if (exportInFlightRef.current) return;
     exportInFlightRef.current = true;
     const idempotencyKey = crypto.randomUUID();
+    const controller = new AbortController();
+    exportAbortControllerRef.current = controller;
     try {
       setIsExporting(true);
       const blob = await productAPI.exportProductBundleAsync(
@@ -78,7 +86,7 @@ export default function ImportExportWidget() {
         undefined,
         locale,
         selectedFormat,
-        undefined,
+        { signal: controller.signal },
         idempotencyKey,
       );
       const url = URL.createObjectURL(blob);
@@ -92,11 +100,22 @@ export default function ImportExportWidget() {
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success(t('export_zip_success', 'export', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
     } catch (error) {
-      toast.error(t('error_exporting_file', 'export'));
+      if (controller.signal.aborted) {
+        toast.info(t('export_cancelled', 'export', 'Đã hủy lượt xuất ZIP.'));
+      } else {
+        toast.error(t('error_exporting_file', 'export'));
+      }
     } finally {
+      if (exportAbortControllerRef.current === controller) {
+        exportAbortControllerRef.current = null;
+      }
       exportInFlightRef.current = false;
       setIsExporting(false);
     }
+  };
+
+  const handleCancelExport = () => {
+    exportAbortControllerRef.current?.abort(new Error('export_cancelled'));
   };
 
   if (isLoading) {
@@ -212,15 +231,26 @@ export default function ImportExportWidget() {
             </select>
           </div>
 
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
-          >
-            {isExporting
-              ? t('exporting', 'export')
-              : t('export_products', 'export')}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
+            >
+              {isExporting
+                ? t('exporting', 'export')
+                : t('export_products', 'export')}
+            </button>
+            {isExporting && (
+              <button
+                type="button"
+                onClick={handleCancelExport}
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                {t('cancel', 'common', 'Hủy')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

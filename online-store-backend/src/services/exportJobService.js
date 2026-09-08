@@ -396,20 +396,23 @@ const startExportJobWorker = () => {
   timer.unref();
 };
 
-const getExportJob = async (jobId) => {
+const getJobOwnerFilter = userId => (userId ? { userId } : {});
+
+const getExportJob = async (jobId, userId = null) => {
   assertJobId(jobId);
   const job = await withTimeout(
-    ExportJob.findById(jobId).maxTimeMS(8000).lean(),
+    ExportJob.findOne({ _id: jobId, ...getJobOwnerFilter(userId) }).maxTimeMS(8000).lean(),
     8000,
   );
   if (!job) throw createJobError(404, 'EXPORT_JOB_NOT_FOUND');
   return toJobResponse(job);
 };
 
-const cancelExportJob = async (jobId) => {
+const cancelExportJob = async (jobId, userId = null) => {
   assertJobId(jobId);
+  const ownerFilter = getJobOwnerFilter(userId);
   let job = await ExportJob.findOneAndUpdate(
-    { _id: jobId, status: 'queued' },
+    { _id: jobId, ...ownerFilter, status: 'queued' },
     {
       $set: {
         status: 'cancelled',
@@ -423,7 +426,7 @@ const cancelExportJob = async (jobId) => {
 
   if (!job) {
     job = await ExportJob.findOneAndUpdate(
-      { _id: jobId, status: 'processing' },
+      { _id: jobId, ...ownerFilter, status: 'processing' },
       { $set: { cancelRequested: true } },
       { returnDocument: 'after' },
     );
@@ -434,10 +437,10 @@ const cancelExportJob = async (jobId) => {
   return toJobResponse(job);
 };
 
-const retryExportJob = async (jobId) => {
+const retryExportJob = async (jobId, userId = null) => {
   assertJobId(jobId);
   const job = await ExportJob.findOneAndUpdate(
-    { _id: jobId, status: { $in: ['failed', 'cancelled'] }, attempts: { $lt: MAX_ATTEMPTS } },
+    { _id: jobId, ...getJobOwnerFilter(userId), status: { $in: ['failed', 'cancelled'] }, attempts: { $lt: MAX_ATTEMPTS } },
     {
       $set: {
         status: 'queued',
@@ -457,9 +460,9 @@ const retryExportJob = async (jobId) => {
   return toJobResponse(job);
 };
 
-const downloadExportJob = async (jobId, res, next) => {
+const downloadExportJob = async (jobId, res, next, userId = null) => {
   assertJobId(jobId);
-  const job = await ExportJob.findOne({ _id: jobId, status: 'ready' }).lean();
+  const job = await ExportJob.findOne({ _id: jobId, ...getJobOwnerFilter(userId), status: 'ready' }).lean();
   if (!job || !job.filePath || !isManagedExportPath(job.filePath)) {
     throw createJobError(404, 'EXPORT_FILE_NOT_READY');
   }
