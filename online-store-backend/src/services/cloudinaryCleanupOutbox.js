@@ -7,13 +7,19 @@ const POLL_INTERVAL_MS = 30 * 1000;
 let timer = null;
 let isProcessing = false;
 
-const enqueueCloudinaryCleanup = async (publicId) => {
+const enqueueCloudinaryCleanup = async (publicId, cloudinaryAccountId = '1') => {
   if (!publicId) return null;
 
   return CloudinaryCleanupOutbox.findOneAndUpdate(
     { publicId },
     {
-      $set: { status: 'pending', nextAttemptAt: new Date(), leaseExpiresAt: null, lastError: null },
+      $set: {
+        status: 'pending',
+        cloudinaryAccountId: String(cloudinaryAccountId || '1'),
+        nextAttemptAt: new Date(),
+        leaseExpiresAt: null,
+        lastError: null,
+      },
       $setOnInsert: { attempts: 0 },
     },
     { upsert: true, returnDocument: 'after' }
@@ -49,7 +55,7 @@ const processCloudinaryCleanupOutbox = async () => {
     let entry = await claimNextCleanup();
     while (entry) {
       try {
-        await deleteFromCloudinary(entry.publicId);
+        await deleteFromCloudinary(entry.publicId, entry.cloudinaryAccountId);
         await CloudinaryCleanupOutbox.updateOne(
           { _id: entry._id, status: 'processing' },
           { $set: { status: 'completed', leaseExpiresAt: null, lastError: null } }

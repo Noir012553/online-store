@@ -22,6 +22,11 @@ const CloudinaryUploadClaimSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    cloudinaryAccountId: {
+      type: String,
+      default: '1',
+      trim: true,
+    },
     url: {
       type: String,
       default: null,

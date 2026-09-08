@@ -11,6 +11,136 @@
 const cloudinary = require('cloudinary').v2;
 const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 
+const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
+let cloudinaryConfigQueue = Promise.resolve();
+let accountCursor = 0;
+const accountCooldowns = new Map();
+
+const getCloudinaryAccounts = () => {
+  const accounts = [];
+  const primary = {
+    id: '1',
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  };
+  if (Object.values(primary).slice(1).every(Boolean)) accounts.push(primary);
+
+  for (let index = 2; index <= 100; index += 1) {
+    const suffix = `_${index}`;
+    const values = {
+      id: String(index),
+      cloudName: process.env[`CLOUDINARY_CLOUD_NAME${suffix}`],
+      apiKey: process.env[`CLOUDINARY_API_KEY${suffix}`],
+      apiSecret: process.env[`CLOUDINARY_API_SECRET${suffix}`],
+    };
+    if (!Object.values(values).some(Boolean)) break;
+    if (Object.values(values).slice(1).every(Boolean)) accounts.push(values);
+  }
+
+  return accounts;
+};
+
+const getCloudinaryAccount = (accountId = '1') => (
+  getCloudinaryAccounts().find(account => account.id === String(accountId)) || null
+);
+
+const configureCloudinaryAccount = (account) => {
+  cloudinary.config({
+    cloud_name: account.cloudName,
+    api_key: account.apiKey,
+    api_secret: account.apiSecret,
+  });
+};
+
+const withConfiguredCloudinary = async (account, operation) => {
+  const previous = cloudinaryConfigQueue;
+  let release;
+  cloudinaryConfigQueue = new Promise(resolve => { release = resolve; });
+  await previous;
+
+  try {
+    configureCloudinaryAccount(account);
+    return await operation();
+  } finally {
+    release();
+  }
+};
+
+const isCloudinaryRateLimitError = (error) => {
+  const status = Number(error?.http_code ?? error?.statusCode ?? error?.status);
+  return [420, 429].includes(status)
+    || /(rate limit|too many requests|quota exceeded|resource limit)/i.test(String(error?.message || ''));
+};
+
+const markCloudinaryAccountRateLimited = (accountId) => {
+  accountCooldowns.set(String(accountId), Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+};
+
+const selectCloudinaryAccount = (excludedIds = new Set()) => {
+  const accounts = getCloudinaryAccounts();
+  const now = Date.now();
+  for (let offset = 0; offset < accounts.length; offset += 1) {
+    const index = (accountCursor + offset) % accounts.length;
+    const account = accounts[index];
+    if (excludedIds.has(account.id)) continue;
+    if ((accountCooldowns.get(account.id) || 0) > now) continue;
+    accountCursor = (index + 1) % accounts.length;
+    return account;
+  }
+
+  return null;
+};
+
+const runCloudinaryOperation = async (operation, accountId = null) => {
+  const accounts = getCloudinaryAccounts();
+  const attemptedIds = new Set();
+  let lastRateLimitError = null;
+
+  while (attemptedIds.size < accounts.length) {
+    const account = accountId
+      ? getCloudinaryAccount(accountId)
+      : selectCloudinaryAccount(attemptedIds);
+    if (!account || attemptedIds.has(account.id)) break;
+    attemptedIds.add(account.id);
+
+    try {
+      return await withConfiguredCloudinary(account, () => operation(account));
+    } catch (error) {
+      if (!isCloudinaryRateLimitError(error) || accountId) throw error;
+      markCloudinaryAccountRateLimited(account.id);
+      lastRateLimitError = error;
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[CLOUDINARY_ACCOUNT_ROTATION]', { accountId: account.id, message: error.message });
+      }
+    }
+  }
+
+  throw lastRateLimitError || new Error('No Cloudinary account is available');
+};
+
+const getCloudinaryAccountIdForUrl = (url) => {
+  try {
+    const hostname = new URL(url).hostname;
+    const cloudName = hostname === 'res.cloudinary.com'
+      ? new URL(url).pathname.split('/').filter(Boolean)[0]
+      : null;
+    return getCloudinaryAccounts().find(account => account.cloudName === cloudName)?.id || null;
+  } catch {
+    return null;
+  }
+};
+
+const getCloudinaryUploadAccount = (excludedAccountIds = []) => (
+  selectCloudinaryAccount(new Set(excludedAccountIds.map(String)))
+);
+
+const signCloudinaryUploadParams = (params, accountId) => {
+  const account = getCloudinaryAccount(accountId);
+  if (!account?.apiSecret) throw new Error('Cloudinary account is not configured');
+  return cloudinary.utils.api_sign_request(params, account.apiSecret);
+};
+
 const ALLOWED_IMAGE_FORMATS = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
 const MAX_IMAGE_BYTES = MAX_IMAGE_ASSET_BYTES;
 
@@ -44,12 +174,8 @@ const isValidImageResource = (resource) => {
     && ALLOWED_IMAGE_FORMATS.includes(String(resource.format).toLowerCase());
 };
 
-// Configure cloudinary with environment variables
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const primaryCloudinaryAccount = getCloudinaryAccount('1');
+if (primaryCloudinaryAccount) configureCloudinaryAccount(primaryCloudinaryAccount);
 
 /**
  * Upload file lên Cloudinary từ buffer (Multer)
@@ -59,12 +185,12 @@ cloudinary.config({
  * @param {String} publicId - Public ID cho file (optional)
  * @returns {Promise<Object>} - { url, publicId, format }
  */
-const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null) => {
+const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null, accountId = null) => {
   if (!isSupportedImageBuffer(fileBuffer)) {
     throw new Error('Unsupported image content');
   }
 
-  return new Promise((resolve, reject) => {
+  return runCloudinaryOperation((account) => new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: `laptop-store/${folder}`,
@@ -80,6 +206,7 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
         if (error) {
           if (process.env.NODE_ENV === 'development') {
             console.error('[CLOUDINARY_ERROR]', {
+              accountId: account.id,
               name: error?.name,
               message: error?.message,
               httpCode: error?.http_code,
@@ -109,12 +236,14 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
           width: result.width,
           height: result.height,
           bytes: result.bytes,
+          cloudinaryAccountId: account.id,
+          cloudName: account.cloudName,
         });
       }
     );
 
     uploadStream.end(fileBuffer);
-  });
+  }), accountId);
 };
 
 /**
@@ -180,29 +309,35 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
         url: uploadedImage.url,
         publicId: uploadedImage.publicId,
         format: uploadedImage.format,
+        cloudinaryAccountId: uploadedImage.cloudinaryAccountId,
+        cloudName: uploadedImage.cloudName,
       };
     }
 
-    const result = await cloudinary.uploader.upload(filePath, {
-      folder: `laptop-store/${folder}`,
-      public_id: publicId || undefined,
-      overwrite: Boolean(publicId),
-      invalidate: Boolean(publicId),
-      resource_type: 'image',
-      quality: 'auto',
-      fetch_format: 'auto',
+    return runCloudinaryOperation(async (account) => {
+      const result = await cloudinary.uploader.upload(filePath, {
+        folder: `laptop-store/${folder}`,
+        public_id: publicId || undefined,
+        overwrite: Boolean(publicId),
+        invalidate: Boolean(publicId),
+        resource_type: 'image',
+        quality: 'auto',
+        fetch_format: 'auto',
+      });
+
+      if (!isValidImageResource(result)) {
+        await cloudinary.uploader.destroy(result.public_id, { resource_type: 'image' });
+        throw new Error('Cloudinary image metadata is invalid');
+      }
+
+      return {
+        url: result.secure_url,
+        publicId: result.public_id,
+        format: result.format,
+        cloudinaryAccountId: account.id,
+        cloudName: account.cloudName,
+      };
     });
-
-    if (!isValidImageResource(result)) {
-      await cloudinary.uploader.destroy(result.public_id, { resource_type: 'image' });
-      throw new Error('Cloudinary image metadata is invalid');
-    }
-
-    return {
-      url: result.secure_url,
-      publicId: result.public_id,
-      format: result.format,
-    };
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('[CLOUDINARY_UPLOAD_ERROR]', {
@@ -222,7 +357,7 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
  * @param {String} publicId - Public ID của file trong Cloudinary
  * @returns {Promise<Object>} - { result, deleted: true/false }
  */
-const deleteFromCloudinary = async (publicId) => {
+const deleteFromCloudinary = async (publicId, accountId = null, url = null) => {
   try {
     if (!publicId) {
       if (process.env.NODE_ENV === 'development') {
@@ -231,13 +366,17 @@ const deleteFromCloudinary = async (publicId) => {
       return { deleted: false };
     }
 
-    const result = await cloudinary.uploader.destroy(publicId);
-    
+    const resolvedAccountId = accountId || getCloudinaryAccountIdForUrl(url) || '1';
+    const result = await runCloudinaryOperation(
+      () => cloudinary.uploader.destroy(publicId),
+      resolvedAccountId,
+    );
+
     if (result.result === 'ok') {
       return { deleted: true, result };
     } else {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[CLOUDINARY_DELETE_WARNING]', { publicId, result });
+        console.warn('[CLOUDINARY_DELETE_WARNING]', { publicId, accountId: resolvedAccountId, result });
       }
       return { deleted: false, result };
     }
@@ -255,8 +394,8 @@ const deleteFromCloudinary = async (publicId) => {
  * @param {Array<String>} publicIds - Array của public IDs
  * @returns {Promise<Object>} - { deleted: number, failed: number, errors: [] }
  */
-const deleteMultipleFromCloudinary = async (publicIds) => {
-  if (!Array.isArray(publicIds) || publicIds.length === 0) {
+const deleteMultipleFromCloudinary = async (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
     return { deleted: 0, failed: 0, errors: [] };
   }
 
@@ -264,9 +403,11 @@ const deleteMultipleFromCloudinary = async (publicIds) => {
   let failed = 0;
   const errors = [];
 
-  for (const publicId of publicIds) {
+  for (const item of items) {
+    const metadata = typeof item === 'string' ? { publicId: item } : item;
+    const publicId = metadata?.publicId;
     try {
-      const result = await deleteFromCloudinary(publicId);
+      const result = await deleteFromCloudinary(publicId, metadata?.accountId, metadata?.url);
       if (result.deleted) {
         deleted++;
       } else {
@@ -281,35 +422,37 @@ const deleteMultipleFromCloudinary = async (publicIds) => {
   return { deleted, failed, errors };
 };
 
-const deleteCloudinaryImagesByPrefix = async (prefix) => {
-  let nextCursor;
-  let deleted = 0;
+const deleteCloudinaryImagesByPrefix = async (prefix, accountId = '1') => (
+  runCloudinaryOperation(async () => {
+    let nextCursor;
+    let deleted = 0;
 
-  do {
-    const resources = await cloudinary.api.resources({
-      resource_type: 'image',
-      type: 'upload',
-      prefix,
-      max_results: 500,
-      ...(nextCursor ? { next_cursor: nextCursor } : {}),
-    });
-
-    const publicIds = resources.resources.map(resource => resource.public_id);
-    for (let index = 0; index < publicIds.length; index += 100) {
-      const batch = publicIds.slice(index, index + 100);
-      const result = await cloudinary.api.delete_resources(batch, {
+    do {
+      const resources = await cloudinary.api.resources({
         resource_type: 'image',
         type: 'upload',
-        invalidate: true,
+        prefix,
+        max_results: 500,
+        ...(nextCursor ? { next_cursor: nextCursor } : {}),
       });
-      deleted += Object.keys(result.deleted || {}).length;
-    }
 
-    nextCursor = resources.next_cursor;
-  } while (nextCursor);
+      const publicIds = resources.resources.map(resource => resource.public_id);
+      for (let index = 0; index < publicIds.length; index += 100) {
+        const batch = publicIds.slice(index, index + 100);
+        const result = await cloudinary.api.delete_resources(batch, {
+          resource_type: 'image',
+          type: 'upload',
+          invalidate: true,
+        });
+        deleted += Object.keys(result.deleted || {}).length;
+      }
 
-  return { deleted };
-};
+      nextCursor = resources.next_cursor;
+    } while (nextCursor);
+
+    return { deleted };
+  }, accountId)
+);
 
 /**
  * Kiểm tra xem URL có phải từ Cloudinary không
@@ -329,16 +472,20 @@ const isCloudinaryUrl = (url) => {
  * @param {String} cloudinaryUrl - URL từ Cloudinary (https://res.cloudinary.com/.../...)
  * @returns {String} - Public ID (folder/filename)
  */
-const getCloudinaryResource = async (publicId) => {
-  return cloudinary.api.resource(publicId, { resource_type: 'image' });
-};
+const getCloudinaryResource = async (publicId, accountId = '1') => (
+  runCloudinaryOperation(
+    () => cloudinary.api.resource(publicId, { resource_type: 'image' }),
+    accountId,
+  )
+);
 
-const validateCloudinaryImage = async ({ publicId, url, allowedFolders = ['admins', 'users', 'reviewers', 'banners'] }) => {
+const validateCloudinaryImage = async ({ publicId, url, accountId = null, allowedFolders = ['admins', 'users', 'reviewers', 'banners'] }) => {
   if (!publicId || !url) {
     throw new Error('Cloudinary image metadata is required');
   }
 
-  const resource = await getCloudinaryResource(publicId);
+  const resolvedAccountId = accountId || getCloudinaryAccountIdForUrl(url) || '1';
+  const resource = await getCloudinaryResource(publicId, resolvedAccountId);
   const folderPrefix = 'laptop-store/';
   const isAllowedResource = resource.resource_type === 'image'
     && resource.public_id.startsWith(folderPrefix)
@@ -370,6 +517,9 @@ const extractPublicIdFromUrl = (cloudinaryUrl) => {
 };
 
 module.exports = {
+  getCloudinaryUploadAccount,
+  signCloudinaryUploadParams,
+  getCloudinaryAccountIdForUrl,
   uploadToCloudinary,
   uploadFileToCloudinary,
   deleteFromCloudinary,

@@ -21,7 +21,14 @@ const { registerUnknownSpecKeys } = require('../services/specKeyTranslationServi
 const { sanitizePlainText, sanitizeDescriptionText } = require('../utils/plainTextSanitizer');
 const { broadcastNewProduct, broadcastProductUpdated, broadcastProductDeleted, broadcastProductRestored } = require('../socket/socketHandler');
 const { deleteImageFile } = require('../utils/fileUtils');
-const { uploadToCloudinary, deleteFromCloudinary, isCloudinaryUrl, extractPublicIdFromUrl, validateCloudinaryImage } = require('../services/cloudinaryService');
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+  isCloudinaryUrl,
+  extractPublicIdFromUrl,
+  getCloudinaryAccountIdForUrl,
+  validateCloudinaryImage,
+} = require('../services/cloudinaryService');
 const {
   getStorefrontVisibleProductIds,
   overlayTranslationBatchWithFallback,
@@ -1014,7 +1021,9 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   const previousImagePublicId = product.imagePublicId;
+  const previousImageUrl = product.image;
   let uploadedImagePublicId = null;
+  let uploadedImageAccountId = null;
   let imageClaim = null;
 
   if (image || req.file) {
@@ -1041,6 +1050,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         const folder = req.user.role === 'admin' || req.user.role === 'super-admin' ? 'admins' : 'users';
         const cloudinaryResult = await uploadToCloudinary(req.file.buffer, folder);
         uploadedImagePublicId = cloudinaryResult.publicId;
+        uploadedImageAccountId = cloudinaryResult.cloudinaryAccountId;
         product.image = cloudinaryResult.url;
         product.imagePublicId = cloudinaryResult.publicId;
         console.log('[PRODUCT_UPDATE] New image uploaded to Cloudinary:', { url: cloudinaryResult.url });
@@ -1058,7 +1068,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   } catch (error) {
     if (uploadedImagePublicId) {
       try {
-        await deleteFromCloudinary(uploadedImagePublicId);
+        await deleteFromCloudinary(uploadedImagePublicId, uploadedImageAccountId);
       } catch (cleanupError) {
         console.warn('[PRODUCT_UPDATE] Failed to clean up replacement image:', cleanupError.message);
       }
@@ -1083,7 +1093,10 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   if (previousImagePublicId && previousImagePublicId !== updatedProduct.imagePublicId) {
-    await enqueueCloudinaryCleanup(previousImagePublicId);
+    await enqueueCloudinaryCleanup(
+      previousImagePublicId,
+      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
+    );
   }
   const populatedProduct = await withTimeout(
     Product.findById(updatedProduct._id)
@@ -1289,15 +1302,25 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 
   const imagePublicIds = new Set();
   if (product.image && isCloudinaryUrl(product.image) && product.imagePublicId) {
-    imagePublicIds.add(product.imagePublicId);
+    imagePublicIds.add({
+      publicId: product.imagePublicId,
+      accountId: getCloudinaryAccountIdForUrl(product.image) || '1',
+    });
   }
   for (const image of product.images || []) {
     if (image && isCloudinaryUrl(image)) {
       const publicId = extractPublicIdFromUrl(image);
-      if (publicId) imagePublicIds.add(publicId);
+      if (publicId) {
+        imagePublicIds.add({
+          publicId,
+          accountId: getCloudinaryAccountIdForUrl(image) || '1',
+        });
+      }
     }
   }
-  await Promise.all([...imagePublicIds].map(enqueueCloudinaryCleanup));
+  await Promise.all([...imagePublicIds].map(({ publicId, accountId }) => (
+    enqueueCloudinaryCleanup(publicId, accountId)
+  )));
 
   res.json({
     message: 'Product permanently deleted',

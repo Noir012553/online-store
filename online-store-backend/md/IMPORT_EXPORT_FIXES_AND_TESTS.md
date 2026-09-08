@@ -358,3 +358,77 @@ Frontend test có thể vẫn phụ thuộc Cloudflare Tunnel và `backend.manln
 - Không chạy `npm run build` trong quy trình test này.
 - Không commit file ZIP, report runtime hoặc credential XML vào repository.
 - Nếu test vẫn báo lỗi ảnh, cần kiểm tra process backend đã restart và ZIP được tạo sau thời điểm cập nhật code.
+
+## 8. Kết quả xác nhận sau bản fix mới nhất
+
+### 8.1. Sửa `IMPORT_ZIP_IMAGE_SIZE_INVALID`
+
+Importer không còn dùng riêng metadata `uncompressedSize` trong central directory của ZIP làm nguồn xác thực cuối cùng. Ảnh được giải nén và kiểm tra bằng kích thước buffer thực tế, đồng thời vẫn giữ:
+
+- Tối đa 5 MiB cho mỗi ảnh.
+- Tối đa 256 MiB cho tổng dữ liệu sau giải nén.
+- Từ chối ảnh rỗng hoặc vượt giới hạn.
+
+Đã thêm test hồi quy cho ZIP có metadata kích thước lớn hơn buffer thực tế tại:
+
+```text
+online-store-backend/src/test/importFileValidator.test.js
+```
+
+### 8.2. Rotation nhiều tài khoản Cloudinary
+
+Đã hỗ trợ các nhóm biến môi trường liên tiếp:
+
+```text
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+
+CLOUDINARY_CLOUD_NAME_2
+CLOUDINARY_API_KEY_2
+CLOUDINARY_API_SECRET_2
+
+CLOUDINARY_CLOUD_NAME_3
+CLOUDINARY_API_KEY_3
+CLOUDINARY_API_SECRET_3
+```
+
+Khi upload gặp HTTP `420`, `429` hoặc lỗi rate limit/quota, hệ thống thử tài khoản tiếp theo. Claim upload lưu `cloudinaryAccountId`; validate và cleanup dùng đúng tài khoản đã upload để tránh thao tác nhầm ảnh giữa các cloud.
+
+Các file chính:
+
+```text
+online-store-backend/src/services/cloudinaryService.js
+online-store-backend/src/controllers/cloudinaryController.js
+online-store-backend/src/models/CloudinaryUploadClaim.js
+online-store-backend/src/models/CloudinaryCleanupOutbox.js
+online-store-frontend/src/hooks/useCloudinaryUpload.ts
+online-store-backend/src/test/cloudinaryService.test.js
+```
+
+### 8.3. Integration test thực tế trên backend local
+
+Lệnh đã chạy sau khi restart backend:
+
+```powershell
+npm run test:import:export:dynamic:local:backend
+```
+
+Kết quả:
+
+```text
+[login] HTTP 200
+[enqueue] HTTP 202
+[poll] status=queued attempts=0
+[poll] status=processing attempts=1
+[poll] status=ready attempts=1
+[validate] valid=true products=10 images=78
+[import dry-run] HTTP 200
+[FINAL RESULT] PASS
+```
+
+Kết luận: luồng `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` đã hoạt động thành công với 10 sản phẩm và 78 ảnh.
+
+Bài test này không cố tình tạo lỗi rate limit Cloudinary vì import dry-run không upload ảnh thật. Rotation Cloudinary cần được xác nhận thêm bằng một lần upload thực tế khi các nhóm key bổ sung đã được cấu hình.
+
+Không chạy `npm run build`.

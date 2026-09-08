@@ -1,6 +1,10 @@
 const cloudinary = require('cloudinary').v2;
 const { getMessage } = require('../i18n/messages');
-const { validateCloudinaryImage } = require('../services/cloudinaryService');
+const {
+  getCloudinaryUploadAccount,
+  signCloudinaryUploadParams,
+  validateCloudinaryImage,
+} = require('../services/cloudinaryService');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const { writeCloudinaryAudit } = require('../services/cloudinaryAuditService');
 
@@ -64,6 +68,20 @@ exports.getCloudinarySignature = async (req, res) => {
       return sendCloudinaryError(res, 400, 'UPLOAD_PURPOSE_INVALID', getMessage(req.lang, 'common.upload_failed'));
     }
 
+    const excludedAccountIds = String(req.query.excludeAccountIds || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean);
+    const cloudinaryAccount = getCloudinaryUploadAccount(excludedAccountIds);
+    if (!cloudinaryAccount) {
+      return sendCloudinaryError(
+        res,
+        503,
+        'CLOUDINARY_ACCOUNTS_UNAVAILABLE',
+        getMessage(req.lang, 'common.upload_signature_error'),
+      );
+    }
+
     const now = new Date();
     const quota = UPLOAD_QUOTAS_BY_ROLE[req.user.role] || UPLOAD_QUOTAS_BY_ROLE.admin;
     const quotaWindowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -103,6 +121,7 @@ exports.getCloudinarySignature = async (req, res) => {
       ownerId: req.user._id,
       folder,
       purpose: resolvedPurpose,
+      cloudinaryAccountId: cloudinaryAccount.id,
       expiresAt,
     });
     const timestamp = Math.floor(Date.now() / 1000);
@@ -118,16 +137,14 @@ exports.getCloudinarySignature = async (req, res) => {
       public_id: publicId,
     };
 
-    const signature = cloudinary.utils.api_sign_request(
-      paramsToSign,
-      process.env.CLOUDINARY_API_SECRET
-    );
+    const signature = signCloudinaryUploadParams(paramsToSign, cloudinaryAccount.id);
 
     res.json({
       timestamp,
       signature,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: cloudinaryAccount.apiKey,
+      cloud_name: cloudinaryAccount.cloudName,
+      cloudinaryAccountId: cloudinaryAccount.id,
       public_id: publicId,
       allowed_formats: 'jpg,jpeg,png,webp,gif',
       overwrite: false,
@@ -192,7 +209,11 @@ exports.validateUploadedImage = async (req, res) => {
     }
 
     try {
-      const resource = await validateCloudinaryImage({ publicId, url });
+      const resource = await validateCloudinaryImage({
+        publicId,
+        url,
+        accountId: claim.cloudinaryAccountId,
+      });
       claim.url = resource.secure_url;
       claim.status = 'validated';
       await claim.save();
@@ -203,7 +224,13 @@ exports.validateUploadedImage = async (req, res) => {
         action: 'upload',
         cloudinaryPublicId: resource.public_id,
         claimId: claim._id,
-        metadata: { bytes: resource.bytes, format: resource.format, width: resource.width, height: resource.height },
+        metadata: {
+          bytes: resource.bytes,
+          format: resource.format,
+          width: resource.width,
+          height: resource.height,
+          cloudinaryAccountId: claim.cloudinaryAccountId,
+        },
       });
 
       return res.json({
@@ -215,6 +242,7 @@ exports.validateUploadedImage = async (req, res) => {
           height: resource.height,
           bytes: resource.bytes,
           type: resource.format,
+          cloudinaryAccountId: claim.cloudinaryAccountId,
           claimId: String(claim._id),
         },
       });

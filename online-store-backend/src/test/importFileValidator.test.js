@@ -345,6 +345,21 @@ describe('ZIP import validation', () => {
     }
   });
 
+  it('uses the extracted image buffer when ZIP metadata reports a larger size', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [] }) },
+      { name: 'assets/images/metadata-mismatch.jpg', content: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) },
+    ]);
+    const centralDirectoryEntry = archive.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    expect(centralDirectoryEntry).to.be.greaterThan(-1);
+    archive.writeUInt32LE(MAX_IMAGE_ASSET_BYTES + 1, centralDirectoryEntry + 24);
+
+    const imported = await readImportZip(archive);
+    expect(imported.assets.get('assets/images/metadata-mismatch.jpg')).to.deep.equal(
+      Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    );
+  });
+
   it('reads products.json from an exported ZIP', async () => {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-zip-import-test-'));
     const filePath = path.join(directory, 'products-export.zip');

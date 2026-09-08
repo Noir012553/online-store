@@ -8,6 +8,11 @@ const CloudinaryCleanupOutboxSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    cloudinaryAccountId: {
+      type: String,
+      default: '1',
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['pending', 'processing', 'completed', 'failed'],
