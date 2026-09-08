@@ -67,6 +67,8 @@ const { withTimeout } = require('../utils/mongooseUtils');
 const {
   uploadToCloudinary,
   deleteMultipleFromCloudinary,
+  getCloudinaryAccountIdForUrl,
+  extractPublicIdFromUrl,
 } = require('../services/cloudinaryService');
 
 const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
@@ -483,7 +485,12 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
       uploadedByPath.set(assetPath, uploadPromise);
     }
     const uploaded = await uploadPromise;
-    if (!uploadedPublicIds.includes(uploaded.publicId)) uploadedPublicIds.push(uploaded.publicId);
+    if (!uploadedPublicIds.some(item => item.publicId === uploaded.publicId)) {
+      uploadedPublicIds.push({
+        publicId: uploaded.publicId,
+        accountId: uploaded.cloudinaryAccountId,
+      });
+    }
     return uploaded;
   };
 
@@ -678,8 +685,38 @@ const getProductImagePublicIds = (product) => [
   ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
 ].filter(Boolean);
 
-const queueObsoleteProductImages = async (publicIds = []) => {
-  await Promise.all([...new Set(publicIds)].map(publicId => enqueueCloudinaryCleanup(publicId)));
+const getProductImageCleanupItems = (product) => {
+  const items = [];
+  if (product.imagePublicId) {
+    items.push({
+      publicId: product.imagePublicId,
+      url: product.image,
+      accountId: getCloudinaryAccountIdForUrl(product.image) || '1',
+    });
+  }
+  (product.images || []).forEach((url, index) => {
+    const publicId = extractPublicIdFromUrl(url);
+    if (publicId) {
+      items.push({
+        publicId,
+        url,
+        accountId: getCloudinaryAccountIdForUrl(url) || '1',
+      });
+    } else if (product.imagePublicIds?.[index + 1]) {
+      items.push({
+        publicId: product.imagePublicIds[index + 1],
+        accountId: '1',
+      });
+    }
+  });
+  return items;
+};
+
+const queueObsoleteProductImages = async (items = []) => {
+  const uniqueItems = new Map(items.map(item => [item.publicId, item]));
+  await Promise.all([...uniqueItems.values()].map(item => (
+    enqueueCloudinaryCleanup(item.publicId, item.accountId)
+  )));
 };
 
 const findExistingProduct = (byId, bySku, byNameAndBrand, product) => {
@@ -1375,8 +1412,10 @@ async function handleUpdateMode(productsWithEnrichedIds) {
     }
 
     const changedFields = getChangedTranslatableFields(existing, product);
+    const currentImagePublicIds = getProductImagePublicIds(product);
     obsoleteImagePublicIds.push(
-      ...getProductImagePublicIds(existing).filter(publicId => !getProductImagePublicIds(product).includes(publicId))
+      ...getProductImageCleanupItems(existing)
+        .filter(({ publicId }) => !currentImagePublicIds.includes(publicId))
     );
     const updateDoc = withoutImportProductId(product);
     delete updateDoc.user;
@@ -1427,9 +1466,11 @@ async function handleUpsertMode(products, preserveExistingStock = false) {
   const bulkOps = products.map((product) => {
     const existing = findExistingProduct(existingById, existingBySku, existingByNameAndBrand, product);
     if (existing) {
-      obsoleteImagePublicIds.push(
-        ...getProductImagePublicIds(existing).filter(publicId => !getProductImagePublicIds(product).includes(publicId))
-      );
+      const currentImagePublicIds = getProductImagePublicIds(product);
+    obsoleteImagePublicIds.push(
+      ...getProductImageCleanupItems(existing)
+        .filter(({ publicId }) => !currentImagePublicIds.includes(publicId))
+    );
       const changedFields = getChangedTranslatableFields(existing, product);
       if (changedFields.length > 0) {
         affectedTranslations.push({ productId: existing._id, fields: changedFields });

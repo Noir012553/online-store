@@ -12,6 +12,7 @@ interface CloudinarySignatureResponse {
   allowed_formats: string;
   overwrite: boolean;
   resource_type: string;
+  cloudinaryAccountId: string;
   claimId: string;
 }
 
@@ -24,8 +25,14 @@ interface CloudinaryUploadResult {
   bytes: number;
   format: string;
   resource_type: string;
+  cloudinaryAccountId?: string;
   claimId?: string;
 }
+
+const isCloudinaryRateLimit = (status: number, message: string) => (
+  [420, 429].includes(status)
+  || /(rate limit|too many requests|quota exceeded|resource limit)/i.test(message)
+);
 
 type CloudinaryFolder = 'admins' | 'users' | 'reviewers' | 'banners';
 
@@ -34,10 +41,17 @@ export const useCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const getSignature = useCallback(async (folder: CloudinaryFolder = 'users'): Promise<CloudinarySignatureResponse | null> => {
+  const getSignature = useCallback(async (
+    folder: CloudinaryFolder = 'users',
+    excludedAccountIds: string[] = [],
+  ): Promise<CloudinarySignatureResponse | null> => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/cloudinary/signature?folder=${folder}`, {
+      const query = new URLSearchParams({ folder });
+      if (excludedAccountIds.length > 0) {
+        query.set('excludeAccountIds', excludedAccountIds.join(','));
+      }
+      const response = await fetch(`/api/cloudinary/signature?${query.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {
@@ -71,71 +85,82 @@ export const useCloudinaryUpload = () => {
           return null;
         }
 
-        // Get signature from backend
-        const signatureData = await getSignature(folder);
-        if (!signatureData) {
-          return null;
-        }
+        const attemptedAccountIds: string[] = [];
+        while (true) {
+          const signatureData = await getSignature(folder, attemptedAccountIds);
+          if (!signatureData) return null;
+          attemptedAccountIds.push(signatureData.cloudinaryAccountId);
 
-        // Prepare form data for Cloudinary
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('api_key', signatureData.api_key);
-        formData.append('timestamp', String(signatureData.timestamp));
-        formData.append('signature', signatureData.signature);
-        formData.append('public_id', signatureData.public_id);
-        formData.append('allowed_formats', signatureData.allowed_formats);
-        formData.append('overwrite', String(signatureData.overwrite));
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('api_key', signatureData.api_key);
+          formData.append('timestamp', String(signatureData.timestamp));
+          formData.append('signature', signatureData.signature);
+          formData.append('public_id', signatureData.public_id);
+          formData.append('allowed_formats', signatureData.allowed_formats);
+          formData.append('overwrite', String(signatureData.overwrite));
 
-        // Upload directly to Cloudinary
-        const xhr = new XMLHttpRequest();
+          try {
+            return await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
 
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 100);
-            setUploadProgress(percentComplete);
-          }
-        });
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  const percentComplete = Math.round((e.loaded / e.total) * 100);
+                  setUploadProgress(percentComplete);
+                }
+              });
 
-        return new Promise((resolve, reject) => {
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const result = JSON.parse(xhr.responseText);
-                const uploadResult: CloudinaryUploadResult = {
-                  public_id: result.public_id,
-                  secure_url: result.secure_url,
-                  url: result.secure_url,
-                  width: result.width,
-                  height: result.height,
-                  bytes: result.bytes,
-                  format: result.format,
-                  resource_type: result.resource_type,
-                  claimId: signatureData.claimId,
-                };
-                resolve(uploadResult);
-              } catch (error) {
-                reject(new Error('Invalid response from Cloudinary'));
-              }
-            } else {
-              let message = `Upload failed: ${xhr.statusText}`;
-              try {
-                const errorResponse = JSON.parse(xhr.responseText);
-                message = errorResponse.error?.message || errorResponse.error?.http_code || message;
-              } catch {
-                // Keep the HTTP status when Cloudinary does not return JSON.
-              }
-              reject(new Error(message));
+              xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  try {
+                    const result = JSON.parse(xhr.responseText);
+                    resolve({
+                      public_id: result.public_id,
+                      secure_url: result.secure_url,
+                      url: result.secure_url,
+                      width: result.width,
+                      height: result.height,
+                      bytes: result.bytes,
+                      format: result.format,
+                      resource_type: result.resource_type,
+                      cloudinaryAccountId: signatureData.cloudinaryAccountId,
+                      claimId: signatureData.claimId,
+                    });
+                  } catch {
+                    reject(new Error('Invalid response from Cloudinary'));
+                  }
+                  return;
+                }
+
+                let message = `Upload failed: ${xhr.statusText}`;
+                try {
+                  const errorResponse = JSON.parse(xhr.responseText);
+                  message = errorResponse.error?.message || errorResponse.error?.http_code || message;
+                } catch {
+                  message = `Upload failed: ${xhr.statusText}`;
+                }
+                const error = new Error(message) as Error & { status?: number; cloudinaryAccountId?: string };
+                error.status = xhr.status;
+                error.cloudinaryAccountId = signatureData.cloudinaryAccountId;
+                reject(error);
+              });
+
+              xhr.addEventListener('error', () => {
+                reject(new Error('Upload failed'));
+              });
+
+              xhr.open('POST', `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`);
+              xhr.send(formData);
+            });
+          } catch (error) {
+            const uploadError = error as Error & { status?: number; cloudinaryAccountId?: string };
+            if (!isCloudinaryRateLimit(uploadError.status || 0, uploadError.message)
+              || attemptedAccountIds.length >= 100) {
+              throw error;
             }
-          });
-
-          xhr.addEventListener('error', () => {
-            reject(new Error('Upload failed'));
-          });
-
-          xhr.open('POST', `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`);
-          xhr.send(formData);
-        });
+          }
+        }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('[CLOUDINARY_UPLOAD_ERROR]', error);
@@ -167,6 +192,7 @@ export const useCloudinaryUpload = () => {
             height: uploadResult.height,
             bytes: uploadResult.bytes,
             type: uploadResult.format,
+            cloudinaryAccountId: uploadResult.cloudinaryAccountId,
             claimId: uploadResult.claimId,
           }),
           credentials: 'include',

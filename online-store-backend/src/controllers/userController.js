@@ -23,13 +23,16 @@ const bcrypt = require('bcryptjs');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
-const { extractPublicIdFromUrl } = require('../services/cloudinaryService');
+const {
+  extractPublicIdFromUrl,
+  getCloudinaryAccountIdForUrl,
+} = require('../services/cloudinaryService');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { deleteOldFile } = require('../utils/fileCleanup');
 
 const cleanupUserAvatar = async (profileImage) => {
   const publicId = extractPublicIdFromUrl(profileImage);
-  if (publicId) return enqueueCloudinaryCleanup(publicId);
+  if (publicId) return enqueueCloudinaryCleanup(publicId, getCloudinaryAccountIdForUrl(profileImage) || '1');
   return deleteOldFile(profileImage);
 };
 
@@ -764,13 +767,17 @@ const uploadUserAvatar = asyncHandler(async (req, res) => {
     throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
   }
 
-  const previousImagePublicId = extractPublicIdFromUrl(user.profileImage);
+  const previousImageUrl = user.profileImage;
+  const previousImagePublicId = extractPublicIdFromUrl(previousImageUrl);
   user.profileImage = avatarUrl;
   const updatedUser = await user.save();
   await CloudinaryUploadClaim.attach(avatarClaimId, req.user._id);
 
   if (previousImagePublicId && previousImagePublicId !== avatarPublicId) {
-    await enqueueCloudinaryCleanup(previousImagePublicId);
+    await enqueueCloudinaryCleanup(
+      previousImagePublicId,
+      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
+    );
   }
 
   res.json({
@@ -811,13 +818,17 @@ const uploadManagedUserAvatar = asyncHandler(async (req, res) => {
     throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
   }
 
-  const previousImagePublicId = extractPublicIdFromUrl(user.profileImage);
+  const previousImageUrl = user.profileImage;
+  const previousImagePublicId = extractPublicIdFromUrl(previousImageUrl);
   user.profileImage = avatarUrl;
   const updatedUser = await user.save();
   await CloudinaryUploadClaim.attach(avatarClaimId, req.user._id);
 
   if (previousImagePublicId && previousImagePublicId !== avatarPublicId) {
-    await enqueueCloudinaryCleanup(previousImagePublicId);
+    await enqueueCloudinaryCleanup(
+      previousImagePublicId,
+      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
+    );
   }
 
   res.json({

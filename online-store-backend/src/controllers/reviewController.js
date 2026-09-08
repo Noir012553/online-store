@@ -9,7 +9,10 @@ const Product = require('../models/Product');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { getMessage } = require('../i18n/messages');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
-const { extractPublicIdFromUrl } = require('../services/cloudinaryService');
+const {
+  extractPublicIdFromUrl,
+  getCloudinaryAccountIdForUrl,
+} = require('../services/cloudinaryService');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { deleteOldFile } = require('../utils/fileCleanup');
 
@@ -54,7 +57,7 @@ const reserveReviewAvatar = async (body, ownerId) => {
  */
 const cleanupReviewAvatar = async (avatarUrl) => {
   const publicId = extractPublicIdFromUrl(avatarUrl);
-  if (publicId) return enqueueCloudinaryCleanup(publicId);
+  if (publicId) return enqueueCloudinaryCleanup(publicId, getCloudinaryAccountIdForUrl(avatarUrl) || '1');
   return deleteOldFile(avatarUrl);
 };
 
@@ -172,8 +175,9 @@ const updateReview = asyncHandler(async (req, res) => {
     review.rating = rating || review.rating;
     review.comment = comment || review.comment;
 
+    const previousAvatarUrl = cloudinaryAvatar ? review.avatar : null;
     const previousAvatarPublicId = cloudinaryAvatar
-      ? extractPublicIdFromUrl(review.avatar)
+      ? extractPublicIdFromUrl(previousAvatarUrl)
       : null;
     if (cloudinaryAvatar) {
       review.avatar = cloudinaryAvatar.url;
@@ -183,7 +187,10 @@ const updateReview = asyncHandler(async (req, res) => {
     if (cloudinaryAvatar) {
       await CloudinaryUploadClaim.attach(cloudinaryAvatar.claimId, req.user._id);
       if (previousAvatarPublicId && previousAvatarPublicId !== cloudinaryAvatar.publicId) {
-        await enqueueCloudinaryCleanup(previousAvatarPublicId);
+        await enqueueCloudinaryCleanup(
+          previousAvatarPublicId,
+          getCloudinaryAccountIdForUrl(previousAvatarUrl) || '1',
+        );
       }
     }
 

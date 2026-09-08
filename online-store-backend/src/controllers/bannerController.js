@@ -9,6 +9,7 @@ const {
   isCloudinaryUrl,
   extractPublicIdFromUrl,
   validateCloudinaryImage,
+  getCloudinaryAccountIdForUrl,
 } = require('../services/cloudinaryService');
 const { overlayTranslationBatch, overlayTranslation } = require('../services/translationHelper');
 const { getMessage } = require('../i18n/messages');
@@ -66,6 +67,7 @@ const uploadBannerImage = async (file) => {
   return {
     image: cloudinaryResult.url,
     imagePublicId: cloudinaryResult.publicId,
+    cloudinaryAccountId: cloudinaryResult.cloudinaryAccountId,
   };
 };
 
@@ -91,6 +93,7 @@ const resolveBannerImage = async (req) => {
     return {
       image: resource.secure_url,
       imagePublicId: resource.public_id,
+      cloudinaryAccountId: claim.cloudinaryAccountId,
       imageClaim: claim,
     };
   }
@@ -370,7 +373,7 @@ const createBanner = asyncHandler(async (req, res) => {
   } catch (error) {
     if (imageData.imageClaim) await CloudinaryUploadClaim.release(imageData.imageClaim._id, req.user._id);
     try {
-      await deleteFromCloudinary(imageData.imagePublicId);
+      await deleteFromCloudinary(imageData.imagePublicId, imageData.cloudinaryAccountId);
     } catch (cleanupError) {
       console.warn('[BANNER_CREATE] Failed to clean up image after save failure:', cleanupError.message);
     }
@@ -469,7 +472,9 @@ const updateBanner = asyncHandler(async (req, res) => {
   banner.endDate = nextEndDate;
 
   const previousImagePublicId = getBannerImageCleanupId(banner);
+  const previousImageUrl = banner.image;
   let uploadedImagePublicId = null;
+  let uploadedImageAccountId = null;
   let imageClaim = null;
 
   if (req.file || req.body.image) {
@@ -485,6 +490,7 @@ const updateBanner = asyncHandler(async (req, res) => {
     }
 
     uploadedImagePublicId = imageData.imagePublicId;
+    uploadedImageAccountId = imageData.cloudinaryAccountId;
     imageClaim = imageData.imageClaim;
     banner.image = imageData.image;
     banner.imagePublicId = imageData.imagePublicId;
@@ -496,7 +502,7 @@ const updateBanner = asyncHandler(async (req, res) => {
   } catch (error) {
     if (uploadedImagePublicId) {
       try {
-        await deleteFromCloudinary(uploadedImagePublicId);
+        await deleteFromCloudinary(uploadedImagePublicId, uploadedImageAccountId);
       } catch (cleanupError) {
         console.warn('[BANNER_UPDATE] Failed to clean up replacement image:', cleanupError.message);
       }
@@ -514,7 +520,10 @@ const updateBanner = asyncHandler(async (req, res) => {
   if (imageClaim) await CloudinaryUploadClaim.attach(imageClaim._id, req.user._id);
 
   if (previousImagePublicId && previousImagePublicId !== updatedBanner.imagePublicId) {
-    await enqueueCloudinaryCleanup(previousImagePublicId);
+    await enqueueCloudinaryCleanup(
+      previousImagePublicId,
+      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
+    );
   }
 
   await saveBannerTranslations(updatedBanner._id, {
@@ -605,7 +614,10 @@ const hardDeleteBanner = asyncHandler(async (req, res) => {
 
   const cleanupId = getBannerImageCleanupId(banner);
   if (cleanupId) {
-    await enqueueCloudinaryCleanup(cleanupId);
+    await enqueueCloudinaryCleanup(
+      cleanupId,
+      getCloudinaryAccountIdForUrl(banner.image) || '1',
+    );
   }
   await BannerTranslation.deleteMany({ bannerId: req.params.id });
   res.json({ message: 'Banner permanently deleted' });
