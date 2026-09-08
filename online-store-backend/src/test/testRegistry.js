@@ -31,8 +31,8 @@ const TEST_SUITES = {
     importance: 'CRITICAL',
     tags: ['i18n', 'languages'],
     files: [
-      'test-languages-flow.test.js',
-      'test-translation-api.test.js',
+      'languages-flow.test.js',
+      'translation-api.test.js',
       'translationProductCache.test.js',
       'specKeyTranslationCache.test.js',
     ],
@@ -55,7 +55,7 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['products', 'entities', 'sources'],
     files: [
-      'test-phase4-e2e-simplified.test.js',
+      'phase4-e2e-simplified.test.js',
       'importFileValidator.test.js',
       'exportJobService.test.js',
       'translationHelper.test.js',
@@ -68,8 +68,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['orders', 'payments'],
     files: [
-      'test-vnpay-quick.test.js',
-      'test-vnpay-signature-fix.test.js',
+      'vnpay-quick.test.js',
+      'vnpay-signature-fix.test.js',
     ],
   },
 
@@ -79,8 +79,8 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['payments', 'vnpay'],
     files: [
-      'test-vnpay-quick.test.js',
-      'test-vnpay-signature-fix.test.js',
+      'vnpay-quick.test.js',
+      'vnpay-signature-fix.test.js',
     ],
   },
 
@@ -90,8 +90,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['backend', 'endpoints'],
     files: [
-      'test-backend-endpoints-phase3.test.js',
-      'test-phase4-e2e-simplified.test.js',
+      'backend-endpoints-phase3.test.js',
+      'phase4-e2e-simplified.test.js',
       'appReadiness.test.js',
     ],
   },
@@ -102,8 +102,8 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['db', 'recovery'],
     files: [
-      'test-rollback-procedures.test.js',
-      'test-shadow-writes.test.js',
+      'rollback-procedures.test.js',
+      'shadow-writes.test.js',
     ],
   },
 
@@ -113,7 +113,7 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['db', 'shadow-writes'],
     files: [
-      'test-shadow-writes.test.js',
+      'shadow-writes.test.js',
     ],
   },
 
@@ -123,7 +123,7 @@ const TEST_SUITES = {
     importance: 'LOW',
     tags: ['basic'],
     files: [
-      'test-simple.test.js',
+      'simple.test.js',
       'ghnService.test.js',
     ],
   },

@@ -8,7 +8,7 @@
  * 4. Test API endpoints mới
  * 5. Verify translation status & failed items
  * 
- * Run: node test-translation-e2e.test.js
+ * Run: node translation-e2e.test.js
  */
 
 const axios = require('axios');

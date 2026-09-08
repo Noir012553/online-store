@@ -7,8 +7,8 @@
  * 3. Verifies product translations were created
  * 4. Tests all translation endpoints
  * 
- * Usage: node test-language-sync-flow.test.js [LANGUAGE_CODE]
- * Example: node test-language-sync-flow.test.js fr
+ * Usage: node language-sync-flow.test.js [LANGUAGE_CODE]
+ * Example: node language-sync-flow.test.js fr
  */
 
 const http = require('http');

@@ -9,7 +9,7 @@
  * 
  * Thứ tự test:
  * npm run seed                  # Seed initial data
- * node test-language-sync.test.js   # Run this test
+ * node language-sync.test.js   # Run this test
  */
 
 require('dotenv').config();

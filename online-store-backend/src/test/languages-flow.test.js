@@ -2,7 +2,7 @@
 
 /**
  * Script kiểm tra luồng thêm ngôn ngữ mới và dịch tự động
- * Sử dụng: node test-languages-flow.test.js
+ * Sử dụng: node languages-flow.test.js
  */
 
 require('dotenv').config();
