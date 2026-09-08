@@ -35,6 +35,8 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
 - Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
 - Kiểm tra cú pháp backend đã PASS; runtime test chưa chạy được vì môi trường thiếu `mongoose`/Mocha.
+- Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng `online-store-backend/python/test_import_export.py` và wrapper PowerShell `online-store-backend/scripts/test-import-export.ps1`.
+- Script nhận động environment, frontend/backend URL, locale, format JSON/CSV, mode insert/update/upsert, file ZIP có sẵn và report; mặc định import ở chế độ dry-run, chỉ ghi thật khi truyền `--commit-import` hoặc `-CommitImport`.
 - Không chạy `npm run build` theo quy ước dự án.
 
 ---
