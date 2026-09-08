@@ -38,6 +38,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng Node Playwright global tại `online-store-backend/scripts/test-export-dynamic.js` và wrapper PowerShell `online-store-backend/scripts/test-import-export.ps1`.
 - Runner nhận động environment, frontend/backend URL, locale, format JSON/CSV, mode insert/update/upsert, file ZIP có sẵn và report; mặc định import ở chế độ dry-run, chỉ ghi thật khi truyền `--commit-import` hoặc `-CommitImport`.
 - PowerShell đặt `NODE_PATH=C:\Windows\system32\node_modules` để dùng Playwright global; Python Playwright không còn là dependency của luồng test này. Các file Python cũ chỉ được giữ lại để đối chiếu lịch sử và không còn được wrapper gọi.
+- Khi không truyền `--zip-output`, runner tự lưu vào `online-store-backend/tmp/products-export-<timestamp>.zip`, ví dụ `products-export-1788759680606.zip`, nên không ghi đè file export trước đó.
 - Không chạy `npm run build` theo quy ước dự án.
 
 ---

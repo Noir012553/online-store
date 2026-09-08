@@ -566,7 +566,7 @@ const run = async args => {
 
       zipPath = args.zipOutput
         ? path.resolve(args.zipOutput)
-        : path.join(os.tmpdir(), `products-export-${jobId}.zip`);
+        : path.join(backendRoot, 'tmp', `products-export-${Date.now()}.zip`);
       fs.mkdirSync(path.dirname(zipPath), { recursive: true });
       zipHeaders = await downloadZip(
         downloadUrl,
@@ -579,7 +579,8 @@ const run = async args => {
     }
 
     const zip = validateZip(zipPath, zipHeaders, format);
-    report.result = { ok: zip.ok, jobId, zipPath: args.zipOutput || args.importFile ? zipPath : undefined, zip };
+    report.result = { ok: zip.ok, jobId, zipPath, zip };
+    console.log(`[zip output] ${zipPath}`);
     console.log(`[validate] valid=${zip.ok} products=${zip.productCount} images=${zip.imageEntryCount}`);
     if (!zip.ok) throw new Error(`ZIP_INVALID_${zip.zipError}`);
     if (!shouldImport) {
