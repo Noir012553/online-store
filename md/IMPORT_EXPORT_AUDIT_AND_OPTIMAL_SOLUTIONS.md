@@ -23,7 +23,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 
 ### Cập nhật triển khai ZIP import
 
-- Trạng thái: `Đã triển khai code, đang chờ cài dependency để kiểm thử tích hợp và deploy backend/frontend`.
+- Trạng thái: `Đã triển khai code, đã kiểm tra syntax và có quy trình test local; còn cần test commit có kiểm soát và deploy backend/frontend`.
 - Backend chỉ nhận `.zip` tại route import file; route JSON/CSV trực tiếp và endpoint template JSON/CSV đã được gỡ khỏi product API.
 - Frontend chỉ cho chọn ZIP, giữ nguyên `dry-run`, `insert`, `update` và `upsert`.
 - Giao diện nhập đã chuyển thành luồng 3 bước: chọn/kéo thả ZIP, kiểm tra trước, rồi xác nhận nhập chính thức; nút nhập chỉ hoạt động khi đã chọn file hợp lệ.
@@ -34,12 +34,209 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock` và `specs`; thiếu hoặc sai dữ liệu sẽ từ chối toàn bộ lượt nhập.
 - `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
 - Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
-- Kiểm tra cú pháp backend đã PASS; runtime test chưa chạy được vì môi trường thiếu `mongoose`/Mocha.
+- Kiểm tra cú pháp backend đã PASS; một số regression runtime test chưa chạy được trong môi trường agent vì thiếu `mongoose`/Mocha. Node dynamic runner đã kiểm tra syntax và được dùng để test local qua PowerShell.
 - Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng Node Playwright global tại `online-store-backend/scripts/test-export-dynamic.js` và wrapper PowerShell `online-store-backend/scripts/test-import-export.ps1`.
 - Runner nhận động environment, frontend/backend URL, locale, format JSON/CSV, mode insert/update/upsert, file ZIP có sẵn và report; mặc định import ở chế độ dry-run, chỉ ghi thật khi truyền `--commit-import` hoặc `-CommitImport`.
 - PowerShell đặt `NODE_PATH=C:\Windows\system32\node_modules` để dùng Playwright global; Python Playwright không còn là dependency của luồng test này. Các file Python cũ chỉ được giữ lại để đối chiếu lịch sử và không còn được wrapper gọi.
 - Khi không truyền `--zip-output`, runner tự lưu vào `online-store-backend/tmp/products-export-<timestamp>.zip`, ví dụ `products-export-1788759680606.zip`, nên không ghi đè file export trước đó.
 - Không chạy `npm run build` theo quy ước dự án.
+
+### Nhật ký vấn đề và quy trình kiểm thử cập nhật
+
+#### Các vấn đề đã gặp và cách xử lý
+
+1. **Import trước đây còn cho phép JSON/CSV trực tiếp**
+   - Frontend từng có textarea và chọn JSON/CSV.
+   - Backend từng có route import body JSON/CSV.
+   - Đã chuyển toàn bộ product import sang ZIP-only: chỉ còn `POST /api/products/admin/import-file`.
+   - ZIP phải chứa đúng một `products.json` hoặc `products.csv` ở root; asset chỉ được nằm dưới `assets/images/`.
+
+2. **Dữ liệu sản phẩm thiếu trường bắt buộc**
+   - Chế độ ZIP dùng strict validation trước khi ghi database.
+   - Required fields: `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock`, `specs`.
+   - `countInStock: 0` vẫn hợp lệ.
+   - `specs` phải là object không rỗng hoặc chuỗi JSON biểu diễn object không rỗng; array, chuỗi sai JSON hoặc giá trị rỗng bị từ chối.
+   - Một row lỗi sẽ làm lượt import bị từ chối, không được bypass bằng frontend validation.
+
+3. **Luồng giao diện import khó kiểm soát**
+   - Đã thiết kế lại `/admin/importProducts` thành 3 bước: chọn/kéo thả ZIP, kiểm tra trước, xác nhận nhập chính thức.
+   - File chưa được upload ngay khi chọn.
+   - Dry-run được bật trước; nút commit chỉ xuất hiện sau khi có kết quả kiểm tra.
+
+4. **Runner Python và Node bị trùng hướng triển khai**
+   - Runner chính hiện dùng Node Playwright global: `scripts/test-export-dynamic.js`.
+   - Wrapper `scripts/test-import-export.ps1` không gọi Python nữa.
+   - Vị trí Playwright global được ghi nhận trên Windows: `C:\Windows\system32\node_modules`.
+   - Các file Python cũ chỉ giữ để đối chiếu, không phải entry point hiện tại.
+
+5. **Tên file ZIP cố định làm dễ ghi đè kết quả cũ**
+   - Khi không truyền `--zip-output`, runner tự sinh tên:
+     `online-store-backend/tmp/products-export-<timestamp>.zip`.
+   - Ví dụ: `products-export-1788837742211.zip`.
+   - Chỉ dùng tên cố định khi truyền rõ `--zip-output`.
+
+6. **False negative khi validate `specs`**
+   - Lần test đầu export thành công nhưng runner báo `ZIP_REQUIRED_FIELDS_MISSING` ở `specs`.
+   - Nguyên nhân: một số sản phẩm export `specs` dưới dạng chuỗi JSON, trong khi runner chỉ kiểm tra object.
+   - Đã đồng bộ runner với backend validator: parse chuỗi JSON trước khi kiểm tra object không rỗng.
+   - Lỗi này xảy ra trước bước import nên không ghi dữ liệu sai vào database.
+
+7. **Lỗi availability của API và Cloudflare/Tunnel**
+   - `active-config` và `orders` từng trả `503`; `translations`, `categories`, `currencies` từng có `530/1033`.
+   - Frontend đã thêm retry/timeout cho locale và giữ dữ liệu đơn hàng cũ khi retry thất bại.
+   - Đây là lỗi readiness/upstream/proxy, không được dùng để kết luận ZIP validator sai.
+   - Production readiness đã từng xác nhận qua `/readyz` trả `200 ready`; `/api/orders` không token trả `401` là đúng authentication.
+
+8. **Các giới hạn còn tồn tại**
+   - `assets/images` trong ZIP hiện chỉ được kiểm tra và giữ metadata; chưa upload binary trở lại Cloudinary.
+   - Chưa có transaction/staging atomic cho toàn bộ ZIP.
+   - Chưa hoàn tất SSRF policy dùng chung cho mọi URL ảnh.
+   - Chưa có manifest/checksum đầy đủ cho từng asset.
+   - Không chạy nhiều async export lớn đồng thời; production test cần giới hạn sản phẩm và theo dõi timeout.
+
+#### Điều kiện trước khi test local
+
+- Backend chạy tại `http://127.0.0.1:5000`.
+- Frontend chạy tại `http://127.0.0.1:3000` nếu test qua rewrite.
+- Tài khoản test được đọc từ biến môi trường `EXPORT_TEST_EMAIL` và `EXPORT_TEST_PASSWORD`, hoặc file DPAPI:
+  `C:\Users\<username>\.online-store-export-credential.xml`.
+- Node có thể load Playwright global từ `C:\Windows\system32\node_modules`.
+- Không ghi credential, token hoặc password vào Markdown/report.
+
+#### Các lệnh kiểm thử Node Playwright global
+
+Chạy từ thư mục `online-store-backend`.
+
+**1. Kiểm tra syntax, không gọi API:**
+
+```powershell
+node --check .\scripts\test-export-dynamic.js
+node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json: OK')"
+```
+
+**2. Export-only và validate ZIP:**
+
+```powershell
+npm run test:export:dynamic -- `
+  --environment local `
+  --target frontend `
+  --format json `
+  --limit 10 `
+  --report .\tmp\export-report.json
+```
+
+**3. Export → validate → import dry-run, khuyến nghị chạy đầu tiên:**
+
+```powershell
+npm run test:import:export:dynamic -- `
+  --environment local `
+  --target frontend `
+  --import `
+  --format json `
+  --mode upsert `
+  --limit 10 `
+  --report .\tmp\import-export-report.json
+```
+
+Lệnh này tự tạo ZIP dynamic trong:
+
+```text
+online-store-backend/tmp/products-export-<timestamp>.zip
+```
+
+**4. Test backend trực tiếp, bỏ qua frontend rewrite:**
+
+```powershell
+npm run test:import:export:dynamic -- `
+  --environment local `
+  --target backend `
+  --import `
+  --format json `
+  --mode upsert `
+  --limit 10
+```
+
+**5. Import lại ZIP đã có:**
+
+```powershell
+npm run test:import:export:dynamic -- `
+  --environment local `
+  --target frontend `
+  --import `
+  --import-file .\tmp\products-export-1788837742211.zip `
+  --format json `
+  --mode upsert
+```
+
+**6. Dùng wrapper PowerShell:**
+
+```powershell
+.\scripts\test-import-export.ps1 `
+  -Environment local `
+  -Target frontend `
+  -Format json `
+  -Mode upsert `
+  -Limit 10 `
+  -ReportPath .\tmp\import-export-report.json
+```
+
+Wrapper tự đặt `NODE_PATH` global, đọc credential DPAPI và xóa biến môi trường sau test.
+
+**7. Commit thật:**
+
+Chỉ thêm `--commit-import` hoặc `-CommitImport` sau khi dry-run đã PASS:
+
+```powershell
+npm run test:import:export:dynamic -- `
+  --environment local `
+  --target frontend `
+  --import `
+  --import-file .\tmp\products-export-1788837742211.zip `
+  --format json `
+  --mode upsert `
+  --commit-import
+```
+
+Không thêm cờ commit trong lần test đầu tiên.
+
+#### Cách đọc log kết quả
+
+Kết quả thành công thường có:
+
+```text
+[login] HTTP 200
+[enqueue] HTTP 202
+[poll] status=queued
+[poll] status=processing
+[poll] status=ready
+[zip output] ...\tmp\products-export-<timestamp>.zip
+[validate] valid=true products=10 images=...
+[import dry-run] HTTP 200
+[FINAL RESULT] PASS
+```
+
+Các lỗi thường gặp:
+
+| Log | Ý nghĩa | Xử lý |
+|---|---|---|
+| `LOGIN_FAILED_401` | Credential không hợp lệ hoặc hết hạn | Kiểm tra DPAPI/env credential |
+| `ENQUEUE_FAILED_503` | Backend/Mongo chưa ready | Kiểm tra `/readyz`, không kết luận ZIP lỗi |
+| `ZIP_DATA_ENTRY_INVALID` | ZIP thiếu hoặc có nhiều data entry | Chỉ giữ một `products.json` hoặc `products.csv` ở root |
+| `ZIP_REQUIRED_FIELDS_MISSING` | Sản phẩm thiếu trường strict | Sửa dữ liệu trước khi import; database chưa bị ghi |
+| `ZIP_INVALID_*` | ZIP hỏng, path traversal, asset thiếu hoặc magic bytes sai | Dùng report để xác định entry lỗi |
+| `IMPORT_FAILED_4xx` | Backend từ chối dữ liệu hoặc request | Đọc `errors` trong report và không commit lại mù quáng |
+| `530/1033` | Cloudflare/upstream không tới origin | Kiểm tra tunnel/backend readiness |
+
+#### Kiểm thử giao diện thủ công
+
+1. Mở `/admin/importProducts`.
+2. Chọn file `online-store-backend/tmp/products-export-<timestamp>.zip`.
+3. Xác nhận UI chỉ nhận `.zip` và hiển thị tên/kích thước file.
+4. Chọn mode `upsert`.
+5. Bấm **Kiểm tra file ZIP**.
+6. Kiểm tra tổng sản phẩm, số thêm mới, số cập nhật, warning, errors và preview.
+7. Chỉ khi preview hợp lệ mới bấm **Xác nhận nhập chính thức**.
+8. Thử một file `.json`, ZIP thiếu `description`, ZIP có `specs` rỗng và ZIP có hai data entry để xác nhận UI/backend đều từ chối.
 
 ---
 
@@ -55,7 +252,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - Binary trong `assets/images` chưa được importer dùng để khôi phục ảnh. Import hiện dùng URL/public ID trong metadata.
 - Log `EXPORT_JOB_READY` xác nhận backend đã tạo và lưu ZIP thành công; chưa tự nó xác nhận browser đã tải đủ ZIP và ZIP mở được.
 - Dashboard và statistics đã được tách dữ liệu chính khỏi các request phụ để giảm thời gian hiển thị loading.
-- Backend đã kiểm tra cú pháp bằng `node --check`; runtime test chưa thực hiện được do thiếu dependency trong môi trường. Không chạy `npm run build` theo yêu cầu.
+- Backend đã kiểm tra cú pháp bằng `node --check`; một số unit/regression runtime test còn phụ thuộc `mongoose`/Mocha trong môi trường local. Dynamic export/import test chạy qua Node Playwright global; không chạy `npm run build` theo yêu cầu.
 
 ### Rủi ro ưu tiên cao còn tồn tại
 
