@@ -35,7 +35,7 @@ const isSafeAssetPath = (value) => {
  * Required fields khi import products
  */
 const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode', 'image'];
-const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInStock', 'specs'];
+const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInStock'];
 
 /**
  * Optional fields có thể có khi import
@@ -233,15 +233,11 @@ function validateProduct(product, rowIndex = 0, options = {}) {
       if (typeof specsObj !== 'object' || Array.isArray(specsObj)) {
         throw new Error('Specs must be an object, not an array');
       }
-      if (options.requireComplete && Object.keys(specsObj).length === 0) {
-        errors.push(`Row ${rowIndex}: Required field "specs" must not be empty`);
-      }
-
       // Normalize spec field names using smartNormalizeFieldName
       cleaned.specs = normalizeSpecNames(specsObj);
     } catch (err) {
       if (options.requireComplete) {
-        errors.push(`Row ${rowIndex}: Required field "specs" must be a valid JSON object`);
+        errors.push(`Row ${rowIndex}: Field "specs" must be a valid JSON object`);
       } else {
         warnings.push(`Row ${rowIndex}: Failed to parse specs, skipped. Error: ${err.message}`);
       }

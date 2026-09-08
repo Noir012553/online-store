@@ -54,7 +54,6 @@ const REQUIRED_IMPORT_FIELDS = [
   'image',
   'description',
   'countInStock',
-  'specs',
 ];
 
 const IMAGE_SIGNATURES = {
@@ -217,23 +216,6 @@ const parseCsv = text => {
   ));
 };
 
-const hasCompleteSpecs = value => {
-  let specs = value;
-  if (typeof specs === 'string') {
-    try {
-      specs = JSON.parse(specs);
-    } catch {
-      return false;
-    }
-  }
-  return Boolean(
-    specs
-      && typeof specs === 'object'
-      && !Array.isArray(specs)
-      && Object.keys(specs).length,
-  );
-};
-
 const findEndOfCentralDirectory = buffer => {
   for (let index = buffer.length - 22; index >= 0; index -= 1) {
     if (buffer.readUInt32LE(index) === 0x06054b50) return index;
@@ -344,17 +326,9 @@ const validateZip = (zipPath, headers, contentFormat) => {
       missingFields.push({ row: index + 1, fields: REQUIRED_IMPORT_FIELDS });
       return;
     }
-    const missing = REQUIRED_IMPORT_FIELDS.filter(field => {
-      if (field === 'specs') return false;
-      return product[field] === undefined || product[field] === null || product[field] === '';
-    });
-    if (contentFormat === 'csv') {
-      const specs = Object.entries(product)
-        .filter(([key, value]) => key.startsWith('specs_') && value !== undefined && value !== '');
-      if (!specs.length) missing.push('specs');
-    } else if (!hasCompleteSpecs(product.specs)) {
-      missing.push('specs');
-    }
+    const missing = REQUIRED_IMPORT_FIELDS.filter(field => (
+      product[field] === undefined || product[field] === null || product[field] === ''
+    ));
     if (missing.length) missingFields.push({ row: index + 1, fields: [...new Set(missing)].sort() });
   });
   if (missingFields.length) result.zipError ||= `ZIP_REQUIRED_FIELDS_MISSING:${JSON.stringify(missingFields.slice(0, 10))}`;

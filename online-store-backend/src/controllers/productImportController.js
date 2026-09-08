@@ -39,6 +39,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 let CategoryCatalogTranslationCache = null;
@@ -345,6 +346,28 @@ const getProductTranslationsForExport = async (
   });
 };
 
+const normalizeExportSpecs = value => {
+  let specs = value;
+  if (specs instanceof Map) specs = Object.fromEntries(specs);
+  if (typeof specs === 'string') {
+    try {
+      specs = JSON.parse(specs);
+    } catch {
+      return {};
+    }
+  }
+  return normalizeSpecs(specs);
+};
+
+const getExportSpecs = product => {
+  const candidates = [product.specs, product.specifications, product.attributes, product.Attributes];
+  for (const candidate of candidates) {
+    const specs = normalizeExportSpecs(candidate);
+    if (Object.keys(specs).length > 0) return specs;
+  }
+  return {};
+};
+
 const getExportImages = (productData) => {
   const imageEntries = [];
   const addImage = ({ url, publicId, alt, type }) => {
@@ -383,11 +406,26 @@ const getExportImages = (productData) => {
 };
 
 const serializeProductForExport = (product, translations = {}) => {
-  const { _id, category, ...productData } = product;
-  const images = getExportImages(productData);
+  const {
+    _id,
+    category,
+    specs: rawSpecs,
+    specifications,
+    attributes,
+    Attributes,
+    ...productData
+  } = product;
+  const specs = getExportSpecs({
+    specs: rawSpecs,
+    specifications,
+    attributes,
+    Attributes,
+  });
+  const images = getExportImages({ ...productData, specs });
 
   return {
     ...productData,
+    specs,
     productId: _id.toString(),
     categoryId: category?._id?.toString(),
     category: category?.name,
@@ -1634,7 +1672,6 @@ const getPayloadBatches = payload => payload.products
     ? payload.productBatches()
     : (async function* () { yield []; }());
 
-const EXPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const EXPORT_IMAGE_DOWNLOAD_CONCURRENCY = 4;
 const EXPORT_IMAGE_FETCH_ATTEMPTS = 3;
 const EXPORT_IMAGE_RETRY_BASE_DELAY_MS = 1000;
@@ -1843,10 +1880,10 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
     }
 
     const contentLength = Number(response.headers.get('content-length'));
-    if (Number.isFinite(contentLength) && contentLength > EXPORT_IMAGE_MAX_BYTES) {
+    if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_ASSET_BYTES) {
       throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
 
-        maxBytes: EXPORT_IMAGE_MAX_BYTES,
+        maxBytes: MAX_IMAGE_ASSET_BYTES,
       });
     }
 
@@ -1865,11 +1902,11 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
         if (done) break;
 
         totalBytes += value.byteLength;
-        if (totalBytes > EXPORT_IMAGE_MAX_BYTES) {
+        if (totalBytes > MAX_IMAGE_ASSET_BYTES) {
           await reader.cancel();
           throw createExportError(502, 'EXPORT_IMAGE_TOO_LARGE', {
     
-            maxBytes: EXPORT_IMAGE_MAX_BYTES,
+            maxBytes: MAX_IMAGE_ASSET_BYTES,
           });
         }
         chunks.push(Buffer.from(value));
@@ -2016,7 +2053,6 @@ const prepareExportBatchForArchive = async (
 
   return batch.map((product, productIndex) => {
     const preparedImages = preparedImagesByProduct[productIndex];
-    const imageAssetPaths = uniqueValues(preparedImages.map(image => image?.assetPath));
 
     if (exportImageStats) {
       exportImageStats.referencesWithAssetPath += preparedImages.filter(image => image?.assetPath).length;
@@ -2031,9 +2067,12 @@ const prepareExportBatchForArchive = async (
         });
     }
 
+    const bundledImages = preparedImages.filter(image => image?.assetPath);
+    const imageAssetPaths = uniqueValues(bundledImages.map(image => image.assetPath));
+
     return {
       ...product,
-      images: preparedImages,
+      images: bundledImages,
       ...(imageAssetPaths.length ? { imageAssetPaths } : {}),
     };
   });

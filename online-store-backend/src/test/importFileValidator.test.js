@@ -1,5 +1,6 @@
 const chai = require('chai');
 const expect = chai.expect;
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const archiverModule = require('archiver');
@@ -16,7 +17,11 @@ const {
   writeExportZipFile,
   getExportProductBatchFilter,
 } = require('../controllers/productImportController');
-const { isSafeEntryName, readImportZip } = require('../utils/zipImport');
+const {
+  MAX_IMAGE_ASSET_BYTES,
+  isSafeEntryName,
+  readImportZip,
+} = require('../utils/zipImport');
 const {
   getProductImagePublicId,
   uploadProductImage,
@@ -75,6 +80,29 @@ describe('Product export serialization', () => {
       storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
     });
     expect(exported.reviews).to.deep.equal(['internal-review-id']);
+  });
+
+  it('normalizes canonical and legacy specs fields during export', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: new Map([['connection', 'Wireless']]),
+      specifications: { legacyField: 'Preserved' },
+      Attributes: { ignoredField: 'Fallback' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wireless' });
+    expect(exported).not.to.have.property('specifications');
+    expect(exported).not.to.have.property('Attributes');
+  });
+
+  it('falls back to legacy specs fields when canonical specs are empty', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: {},
+      specifications: { connection: 'Wired' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wired' });
   });
 
   it('includes the main image when the gallery only contains attached images', () => {
@@ -300,6 +328,23 @@ describe('ZIP import validation', () => {
     );
   });
 
+  it('rejects image assets larger than the shared import limit', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [] }) },
+      {
+        name: 'assets/images/too-large.jpg',
+        content: crypto.randomBytes(MAX_IMAGE_ASSET_BYTES + 1),
+      },
+    ]);
+
+    try {
+      await readImportZip(archive);
+      throw new Error('Expected oversized image asset to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_ZIP_IMAGE_SIZE_INVALID');
+    }
+  });
+
   it('reads products.json from an exported ZIP', async () => {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-zip-import-test-'));
     const filePath = path.join(directory, 'products-export.zip');
@@ -403,7 +448,18 @@ describe('Product payload validation', () => {
     expect(result.errors.some(error => error.includes('description'))).to.equal(true);
   });
 
-  it('rejects empty specs in ZIP imports', () => {
+  it('accepts products without specs in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
+  });
+
+  it('accepts empty specs in ZIP imports', () => {
     const result = validateProduct({
       ...validProduct,
       description: 'Product description',
@@ -411,8 +467,8 @@ describe('Product payload validation', () => {
       specs: {},
     }, 1, { requireComplete: true });
 
-    expect(result.isValid).to.equal(false);
-    expect(result.errors.some(error => error.includes('specs'))).to.equal(true);
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
   });
 
   it('accepts a complete product in ZIP imports', () => {
