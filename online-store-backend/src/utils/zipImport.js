@@ -110,9 +110,6 @@ const readImportZip = async (buffer) => {
       if (imageEntryCount > MAX_ZIP_IMAGE_ENTRIES) {
         throw createZipImportError('IMPORT_ZIP_IMAGE_LIMIT_EXCEEDED');
       }
-      if (entrySize === 0 || entrySize > MAX_ZIP_IMAGE_BYTES) {
-        throw createZipImportError('IMPORT_ZIP_IMAGE_SIZE_INVALID');
-      }
       imageEntries.set(entryName, entry);
       continue;
     }
@@ -139,12 +136,26 @@ const readImportZip = async (buffer) => {
     mimetype: format === 'json' ? 'application/json' : 'text/csv',
   });
 
+  let actualUncompressedBytes = contentBuffer.length;
+  if (actualUncompressedBytes > MAX_ZIP_UNCOMPRESSED_BYTES) {
+    throw createZipImportError('IMPORT_ZIP_UNCOMPRESSED_LIMIT_EXCEEDED');
+  }
+
   const assets = new Map();
   try {
     for (const [entryName, entry] of imageEntries) {
-      assets.set(entryName, await entry.buffer());
+      const assetBuffer = await entry.buffer();
+      if (assetBuffer.length === 0 || assetBuffer.length > MAX_ZIP_IMAGE_BYTES) {
+        throw createZipImportError('IMPORT_ZIP_IMAGE_SIZE_INVALID');
+      }
+      actualUncompressedBytes += assetBuffer.length;
+      if (actualUncompressedBytes > MAX_ZIP_UNCOMPRESSED_BYTES) {
+        throw createZipImportError('IMPORT_ZIP_UNCOMPRESSED_LIMIT_EXCEEDED');
+      }
+      assets.set(entryName, assetBuffer);
     }
-  } catch {
+  } catch (error) {
+    if (error.code === 'IMPORT_ZIP_IMAGE_SIZE_INVALID') throw error;
     throw createZipImportError('IMPORT_ZIP_CONTENT_INVALID');
   }
 

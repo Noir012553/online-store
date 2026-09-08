@@ -1,3 +1,5 @@
 chào, giao tiếp tiếng việt, ko tự chạy npm run build nữa
 
 Cloudinary: tài khoản hiện tại đã hết rate limit. Có thể dùng nhiều tài khoản Cloudinary và chia ảnh giữa các tài khoản bằng các nhóm biến môi trường riêng. Chỉ backend được đọc API secret và quyết định tài khoản nhận upload; frontend chỉ nhận chữ ký, api_key công khai và cloud_name từ endpoint chữ ký. Khi triển khai, lưu cloud_name/tài khoản cùng metadata ảnh để luôn xoá, kiểm tra và tạo URL trên đúng tài khoản; chọn tài khoản theo loại ảnh hoặc phân phối ổn định (ví dụ hash ID), có theo dõi quota và không tự động di chuyển/xoá ảnh cũ.
+
+Quy ước biến môi trường Cloudinary theo thứ tự: nhóm hiện tại giữ `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`; các nhóm bổ sung dùng hậu tố số ở cuối như `CLOUDINARY_CLOUD_NAME_2`, `CLOUDINARY_API_KEY_2`, `CLOUDINARY_API_SECRET_2`, tiếp tục với `_3`, `_4` giống quy ước Cloudflare. Không dùng các biến có `API_SECRET` ở frontend hoặc tên bắt đầu bằng `NEXT_PUBLIC_` cho secret.
