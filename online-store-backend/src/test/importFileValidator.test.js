@@ -392,6 +392,40 @@ describe('Product payload validation', () => {
     image: 'https://example.com/laptop.jpg',
   };
 
+  it('rejects incomplete products in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      countInStock: 10,
+      specs: { connection: 'Wireless' },
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('description'))).to.equal(true);
+  });
+
+  it('rejects empty specs in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+      specs: {},
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('specs'))).to.equal(true);
+  });
+
+  it('accepts a complete product in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+      specs: { connection: 'Wireless' },
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+  });
+
   it('preserves safe ZIP asset paths for restoration', () => {
     const result = validateProduct({
       ...validProduct,

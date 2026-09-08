@@ -45,6 +45,18 @@ const DEFAULT_URLS = {
   },
 };
 
+const REQUIRED_IMPORT_FIELDS = [
+  'name',
+  'brand',
+  'price',
+  'category',
+  'baseCurrencyCode',
+  'image',
+  'description',
+  'countInStock',
+  'specs',
+];
+
 const IMAGE_SIGNATURES = {
   jpg: buffer => buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])),
   jpeg: buffer => buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])),
@@ -164,6 +176,64 @@ const readJson = async response => {
   }
 };
 
+const parseCsv = text => {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+    if (character === '"') {
+      if (quoted && nextCharacter === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === ',' && !quoted) {
+      row.push(field);
+      field = '';
+    } else if (character === '\n' && !quoted) {
+      row.push(field.replace(/\r$/, ''));
+      if (row.some(value => value.trim())) rows.push(row);
+      row = [];
+      field = '';
+    } else {
+      field += character;
+    }
+  }
+
+  if (field || row.length) {
+    row.push(field.replace(/\r$/, ''));
+    if (row.some(value => value.trim())) rows.push(row);
+  }
+
+  if (!rows.length) return [];
+  const headers = rows.shift().map(header => header.trim());
+  return rows.map(cells => Object.fromEntries(
+    headers.map((header, index) => [header, cells[index] ?? '']),
+  ));
+};
+
+const hasCompleteSpecs = value => {
+  let specs = value;
+  if (typeof specs === 'string') {
+    try {
+      specs = JSON.parse(specs);
+    } catch {
+      return false;
+    }
+  }
+  return Boolean(
+    specs
+      && typeof specs === 'object'
+      && !Array.isArray(specs)
+      && Object.keys(specs).length,
+  );
+};
+
 const findEndOfCentralDirectory = buffer => {
   for (let index = buffer.length - 22; index >= 0; index -= 1) {
     if (buffer.readUInt32LE(index) === 0x06054b50) return index;
@@ -227,7 +297,7 @@ const validateZip = (zipPath, headers, contentFormat) => {
   const entries = readZipEntries(buffer);
   const names = [...entries.keys()];
   const imageNames = names.filter(name => name.startsWith('assets/images/'));
-  const contentLength = headers['content-length'];
+  const contentLength = headers?.['content-length'];
   const contentLengthMatches = contentLength
     ? Number(contentLength) === buffer.length
     : null;
@@ -249,28 +319,45 @@ const validateZip = (zipPath, headers, contentFormat) => {
     zipError: '',
   };
 
+  const dataEntries = names.filter(name => ['products.json', 'products.csv'].includes(name));
+  const expectedDataEntry = `products.${contentFormat}`;
   let products = [];
-  if (contentFormat === 'json') {
-    if (!entries.has('products.json')) {
-      result.zipError = 'PRODUCTS_JSON_MISSING';
-    } else {
-      try {
-        const parsed = JSON.parse(readZipEntry(buffer, entries.get('products.json')).toString('utf8'));
-        if (!parsed || !Array.isArray(parsed.products)) throw new Error('PRODUCTS_JSON_INVALID');
-        products = parsed.products;
-      } catch (error) {
-        result.zipError = safeError(error);
-      }
+  if (dataEntries.length !== 1 || dataEntries[0] !== expectedDataEntry) {
+    result.zipError = `ZIP_DATA_ENTRY_INVALID:${dataEntries.join(',')}`;
+  } else if (contentFormat === 'json') {
+    try {
+      const parsed = JSON.parse(readZipEntry(buffer, entries.get('products.json')).toString('utf8'));
+      if (!parsed || !Array.isArray(parsed.products)) throw new Error('PRODUCTS_JSON_INVALID');
+      products = parsed.products;
+    } catch (error) {
+      result.zipError = safeError(error);
     }
-  } else if (!entries.has('products.csv')) {
-    result.zipError = 'PRODUCTS_CSV_MISSING';
   } else {
-    const rows = readZipEntry(buffer, entries.get('products.csv')).toString('utf8').split(/\r?\n/).filter(Boolean);
-    if (!rows[0]?.trim()) result.zipError = 'PRODUCTS_CSV_INVALID';
-    result.productCount = Math.max(0, rows.length - 1);
+    products = parseCsv(readZipEntry(buffer, entries.get('products.csv')).toString('utf8'));
+    if (!products.length) result.zipError = 'PRODUCTS_CSV_INVALID';
   }
 
-  result.productCount = contentFormat === 'json' ? products.length : result.productCount;
+  result.productCount = products.length;
+  const missingFields = [];
+  products.forEach((product, index) => {
+    if (!product || typeof product !== 'object' || Array.isArray(product)) {
+      missingFields.push({ row: index + 1, fields: REQUIRED_IMPORT_FIELDS });
+      return;
+    }
+    const missing = REQUIRED_IMPORT_FIELDS.filter(field => {
+      if (field === 'specs') return false;
+      return product[field] === undefined || product[field] === null || product[field] === '';
+    });
+    if (contentFormat === 'csv') {
+      const specs = Object.entries(product)
+        .filter(([key, value]) => key.startsWith('specs_') && value !== undefined && value !== '');
+      if (!specs.length) missing.push('specs');
+    } else if (!hasCompleteSpecs(product.specs)) {
+      missing.push('specs');
+    }
+    if (missing.length) missingFields.push({ row: index + 1, fields: [...new Set(missing)].sort() });
+  });
+  if (missingFields.length) result.zipError ||= `ZIP_REQUIRED_FIELDS_MISSING:${JSON.stringify(missingFields.slice(0, 10))}`;
   const referencedAssets = new Set();
   for (const product of products) {
     if (Array.isArray(product.imageAssetPaths)) {
@@ -407,6 +494,10 @@ const run = async args => {
   const format = args.format || 'json';
   if (!['json', 'csv'].includes(format)) throw new Error('--format must be json or csv');
   const deadline = Date.now() + maxWaitMinutes * 60 * 1000;
+  const mode = args.mode || 'upsert';
+  if (!['insert', 'update', 'upsert'].includes(mode)) throw new Error('--mode must be insert, update or upsert');
+  const shouldImport = Boolean(args.import || args.importFile || args.commitImport);
+  const dryRun = shouldImport ? !args.commitImport : null;
   const report = {
     environment,
     target,
@@ -414,6 +505,8 @@ const run = async args => {
     backendUrl,
     limit,
     format,
+    mode,
+    dryRun,
     events: [],
     result: null,
     tunnel: null,
@@ -422,6 +515,8 @@ const run = async args => {
   let headers;
   let jobId;
   let jobStatus;
+  let zipPath;
+  let zipHeaders;
 
   try {
     api = await request.newContext({ baseURL: baseUrl, timeout: requestTimeoutMs });
@@ -435,66 +530,106 @@ const run = async args => {
     if (!token) throw new Error('LOGIN_TOKEN_MISSING');
     headers = { Authorization: `Bearer ${token}` };
 
-    const params = { format, locales: args.locale || 'vi', limit: String(limit), async: 'true' };
-    if (args.category && args.category !== 'all') params.category = args.category;
-    if (args.brand && args.brand !== 'all') params.brand = args.brand;
-    const enqueueResponse = await api.get('/api/products/admin/export-bundle', { params, headers });
-    const enqueueBody = await readJson(enqueueResponse);
-    report.events.push({ event: 'enqueue', status: enqueueResponse.status() });
-    console.log(`[enqueue] HTTP ${enqueueResponse.status()}`);
-    if (enqueueResponse.status() !== 202) throw new Error(`ENQUEUE_FAILED_${enqueueResponse.status()}: ${JSON.stringify(enqueueBody).slice(0, 500)}`);
-    jobId = enqueueBody.jobId;
-    if (!jobId) throw new Error('ASYNC_JOB_ID_MISSING');
-    console.log(`[job] ${jobId}`);
+    if (args.importFile) {
+      zipPath = path.resolve(args.importFile);
+      if (!fs.existsSync(zipPath)) throw new Error(`IMPORT_FILE_NOT_FOUND: ${zipPath}`);
+      report.export = { source: zipPath };
+      console.log(`[import source] ${zipPath}`);
+    } else {
+      const params = { format, locales: args.locale || 'vi', limit: String(limit), async: 'true' };
+      if (args.category && args.category !== 'all') params.category = args.category;
+      if (args.brand && args.brand !== 'all') params.brand = args.brand;
+      const enqueueResponse = await api.get('/api/products/admin/export-bundle', { params, headers });
+      const enqueueBody = await readJson(enqueueResponse);
+      report.events.push({ event: 'enqueue', status: enqueueResponse.status() });
+      console.log(`[enqueue] HTTP ${enqueueResponse.status()}`);
+      if (enqueueResponse.status() !== 202) throw new Error(`ENQUEUE_FAILED_${enqueueResponse.status()}: ${JSON.stringify(enqueueBody).slice(0, 500)}`);
+      jobId = enqueueBody.jobId;
+      if (!jobId) throw new Error('ASYNC_JOB_ID_MISSING');
+      console.log(`[job] ${jobId}`);
 
-    let previousStatus;
-    let job;
-    while (Date.now() < deadline) {
-      try {
-        const statusResponse = await api.get(`/api/products/admin/export-jobs/${jobId}`, { headers });
-        const statusBody = await readJson(statusResponse);
-        if (statusResponse.status() !== 200) throw new Error(`JOB_STATUS_FAILED_${statusResponse.status()}`);
-        job = statusBody.job || statusBody;
-        jobStatus = job.status;
-        const event = { event: 'poll', status: statusResponse.status(), jobStatus, attempts: job.attempts };
-        report.events.push(event);
-        if (jobStatus !== previousStatus) {
-          previousStatus = jobStatus;
-          console.log(`[poll] status=${jobStatus} attempts=${job.attempts}`);
+      let previousStatus;
+      let job;
+      while (Date.now() < deadline) {
+        try {
+          const statusResponse = await api.get(`/api/products/admin/export-jobs/${jobId}`, { headers });
+          const statusBody = await readJson(statusResponse);
+          if (statusResponse.status() !== 200) throw new Error(`JOB_STATUS_FAILED_${statusResponse.status()}`);
+          job = statusBody.job || statusBody;
+          jobStatus = job.status;
+          const event = { event: 'poll', status: statusResponse.status(), jobStatus, attempts: job.attempts };
+          report.events.push(event);
+          if (jobStatus !== previousStatus) {
+            previousStatus = jobStatus;
+            console.log(`[poll] status=${jobStatus} attempts=${job.attempts}`);
+          }
+          if (jobStatus === 'ready') break;
+          if (['failed', 'cancelled'].includes(jobStatus)) throw new Error(`ASYNC_JOB_${jobStatus.toUpperCase()}: ${job.errorMessage || 'UNKNOWN'}`);
+        } catch (error) {
+          if (error.message.startsWith('ASYNC_JOB_') || error.message.startsWith('JOB_STATUS_FAILED_')) throw error;
+          report.events.push({ event: 'poll_transport_error', error: safeError(error) });
+          console.log(`[poll] ${safeError(error)}`);
         }
-        if (jobStatus === 'ready') break;
-        if (['failed', 'cancelled'].includes(jobStatus)) throw new Error(`ASYNC_JOB_${jobStatus.toUpperCase()}: ${job.errorMessage || 'UNKNOWN'}`);
-      } catch (error) {
-        if (error.message.startsWith('ASYNC_JOB_') || error.message.startsWith('JOB_STATUS_FAILED_')) throw error;
-        report.events.push({ event: 'poll_transport_error', error: safeError(error) });
-        console.log(`[poll] ${safeError(error)}`);
+        await sleep(pollIntervalMs);
       }
-      await sleep(pollIntervalMs);
+      if (jobStatus !== 'ready') throw new Error('ASYNC_JOB_TIMEOUT');
+
+      const rawDownloadUrl = job.downloadUrl || `/api/products/admin/export-jobs/${jobId}/download`;
+      const downloadUrl = new URL(rawDownloadUrl, `${baseUrl}/`).toString();
+      report.downloadUrl = redactUrl(downloadUrl);
+      report.downloadOriginMatchesTarget = sameOrigin(baseUrl, downloadUrl);
+      console.log(`[download] ${report.downloadUrl}`);
+      if (!report.downloadOriginMatchesTarget) console.log('[download] external origin allowed for configured storage');
+
+      zipPath = args.zipOutput
+        ? path.resolve(args.zipOutput)
+        : path.join(backendRoot, 'tmp', `products-export-${Date.now()}.zip`);
+      fs.mkdirSync(path.dirname(zipPath), { recursive: true });
+      zipHeaders = await downloadZip(
+        downloadUrl,
+        headers,
+        zipPath,
+        Math.max(requestTimeoutMs, maxWaitMinutes * 60 * 1000),
+        baseUrl,
+      );
+      report.export = { jobId, status: jobStatus, headers: zipHeaders };
     }
-    if (jobStatus !== 'ready') throw new Error('ASYNC_JOB_TIMEOUT');
 
-    const rawDownloadUrl = job.downloadUrl || `/api/products/admin/export-jobs/${jobId}/download`;
-    const downloadUrl = new URL(rawDownloadUrl, `${baseUrl}/`).toString();
-    report.downloadUrl = redactUrl(downloadUrl);
-    report.downloadOriginMatchesTarget = sameOrigin(baseUrl, downloadUrl);
-    console.log(`[download] ${report.downloadUrl}`);
-    if (!report.downloadOriginMatchesTarget) console.log('[download] external origin allowed for configured storage');
-
-    const zipOutput = args.zipOutput
-      ? path.resolve(args.zipOutput)
-      : path.join(os.tmpdir(), `products-export-${jobId}.zip`);
-    fs.mkdirSync(path.dirname(zipOutput), { recursive: true });
-    const downloadHeaders = await downloadZip(
-      downloadUrl,
-      headers,
-      zipOutput,
-      Math.max(requestTimeoutMs, maxWaitMinutes * 60 * 1000),
-      baseUrl,
-    );
-    const zip = validateZip(zipOutput, downloadHeaders, format);
-    report.result = { ok: zip.ok, jobId, zipPath: args.zipOutput ? zipOutput : undefined, zip };
+    const zip = validateZip(zipPath, zipHeaders, format);
+    report.result = { ok: zip.ok, jobId, zipPath, zip };
+    console.log(`[zip output] ${zipPath}`);
     console.log(`[validate] valid=${zip.ok} products=${zip.productCount} images=${zip.imageEntryCount}`);
     if (!zip.ok) throw new Error(`ZIP_INVALID_${zip.zipError}`);
+    if (!shouldImport) {
+      report.tunnel = scanTunnelLog(args.tunnelLog ? path.resolve(args.tunnelLog) : null);
+      return report;
+    }
+
+    const importResponse = await api.post(`/api/products/admin/import-file?lang=${encodeURIComponent(args.locale || 'vi')}`, {
+      headers,
+      multipart: {
+        file: {
+          name: path.basename(zipPath),
+          mimeType: 'application/zip',
+          buffer: fs.readFileSync(zipPath),
+        },
+        mode,
+        dryRun: String(dryRun),
+      },
+    });
+    const importBody = await readJson(importResponse);
+    report.events.push({ event: 'import', status: importResponse.status(), dryRun });
+    console.log(`[import ${dryRun ? 'dry-run' : 'commit'}] HTTP ${importResponse.status()}`);
+    if (importResponse.status() < 200 || importResponse.status() >= 300 || !importBody.success) {
+      throw new Error(`IMPORT_FAILED_${importResponse.status()}: ${JSON.stringify(importBody).slice(0, 1000)}`);
+    }
+    report.import = {
+      success: importBody.success,
+      dryRun: importBody.dryRun,
+      totalProducts: importBody.totalProducts,
+      results: importBody.results,
+      errors: importBody.errors || [],
+    };
     report.tunnel = scanTunnelLog(args.tunnelLog ? path.resolve(args.tunnelLog) : null);
     return report;
   } catch (error) {
@@ -513,7 +648,7 @@ const run = async args => {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     console.log('Usage: node scripts/test-export-dynamic.js --environment local --target backend --limit 10 --report report.json');
-    console.log('Options: --base-url --frontend-base-url --backend-base-url --credential-path --format json|csv --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
+    console.log('Options: --base-url --frontend-base-url --backend-base-url --credential-path --import --import-file --format json|csv --mode insert|update|upsert --commit-import --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
     return;
   }
   try {

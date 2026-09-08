@@ -1,5 +1,4 @@
 const path = require('path');
-const { validateImportFile } = require('../utils/fileUtils');
 const { readImportZip } = require('../utils/zipImport');
 
 const IMAGE_TYPES = {
@@ -46,12 +45,24 @@ const validateImageUpload = (req, res, next) => {
 
 const validateImportUpload = async (req, res, next) => {
   try {
-    const extension = path.extname(req.file?.originalname || '').toLowerCase();
-    if (extension === '.zip') {
-      req.importFile = await readImportZip(req.file.buffer);
-    } else {
-      req.importFile = validateImportFile(req.file);
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_FILE_REQUIRED',
+        message: 'A ZIP import file is required.',
+      });
     }
+
+    const extension = path.extname(req.file.originalname || '').toLowerCase();
+    if (extension !== '.zip') {
+      return res.status(400).json({
+        success: false,
+        code: 'IMPORT_ZIP_ONLY',
+        message: 'Only ZIP import files are allowed.',
+      });
+    }
+
+    req.importFile = await readImportZip(req.file.buffer);
     return next();
   } catch (error) {
     return res.status(400).json({

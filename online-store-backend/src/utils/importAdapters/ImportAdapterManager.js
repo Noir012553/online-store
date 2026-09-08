@@ -121,13 +121,13 @@ class ImportAdapterManager {
    * @param {String} format
    * @returns {Promise<Object>}
    */
-  async validate(products, format) {
+  async validate(products, format, options = {}) {
     const adapter = this.getAdapter(format);
     if (!adapter) {
       throw new Error(`Format không được hỗ trợ: ${format}`);
     }
 
-    return adapter.validate(products);
+    return adapter.validate(products, options);
   }
 
   /**

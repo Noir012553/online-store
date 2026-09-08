@@ -71,6 +71,7 @@ export function OrdersList() {
   const [deletedCurrentPage, setDeletedCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<Order | null>(null);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
 
@@ -87,9 +88,9 @@ export function OrdersList() {
 
       setOrders(Array.isArray(ordersList) ? ordersList : []);
       setTotalPages(totalPagesFromBackend);
+      setLoadError(false);
     } catch (error) {
-      setOrders([]);
-      setTotalPages(1);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -104,9 +105,9 @@ export function OrdersList() {
 
       setDeletedOrders(Array.isArray(ordersList) ? ordersList : []);
       setDeletedTotalPages(totalPagesFromBackend);
+      setLoadError(false);
     } catch (error) {
-      setDeletedOrders([]);
-      setDeletedTotalPages(1);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -299,6 +300,14 @@ export function OrdersList() {
     );
   }
 
+  const retryOrders = () => {
+    if (viewDeletedTab) {
+      void fetchDeletedOrders();
+    } else {
+      void fetchOrders();
+    }
+  };
+
   return (
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -384,9 +393,24 @@ export function OrdersList() {
           </div>
         </div>
 
+        {loadError && (
+          <div className="m-6 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-medium">{t('admin_orders_load_error', 'admin', 'Không thể tải danh sách đơn hàng lúc này.')}</p>
+                <p className="mt-1 text-sm text-amber-800">{t('admin_orders_load_error_hint', 'admin', 'Dữ liệu hiện có vẫn được giữ lại. Bạn có thể thử lại sau.')}</p>
+              </div>
+            </div>
+            <Button type="button" variant="outline" onClick={retryOrders} className="shrink-0 border-amber-300 bg-white text-amber-900 hover:bg-amber-100">
+              {t('retry', 'common', 'Thử lại')}
+            </Button>
+          </div>
+        )}
+
         {((viewDeletedTab && deletedOrders.length === 0) || (!viewDeletedTab && orders.length === 0)) ? (
           <div className="p-12 text-center text-gray-500">
-            <p>{t('no_orders_yet', 'admin')}</p>
+            <p>{loadError ? t('admin_orders_temporarily_unavailable', 'admin', 'Danh sách đơn hàng tạm thời chưa khả dụng.') : t('no_orders_yet', 'admin')}</p>
           </div>
         ) : (
           <>

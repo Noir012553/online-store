@@ -2702,7 +2702,7 @@ Không ghi email, password hoặc token thật vào Markdown, source code, repor
 
 ### 17.5. Runner dynamic hiện tại
 
-File chạy test:
+File chạy test export và import ZIP:
 
 ```text
 online-store-backend/scripts/test-export-dynamic.js
@@ -2714,13 +2714,14 @@ Runner dùng Node Playwright global giống PS1:
 $env:NODE_PATH = "C:\Windows\system32\node_modules"
 ```
 
-Runner tự resolve các đường dẫn runtime từ `__dirname`, vì vậy không phụ thuộc workspace tên `copy 10`, `copy 11` hoặc ổ đĩa cụ thể. Có thể gọi qua:
+Runner tự resolve các đường dẫn runtime từ `__dirname`, vì vậy không phụ thuộc workspace tên `copy 10`, `copy 11` hoặc ổ đĩa cụ thể. Có thể gọi export-only hoặc export → validate → import:
 
 ```powershell
 npm run test:export:dynamic -- --environment local --target backend --limit 500
+npm run test:import:export:dynamic -- --environment local --target backend --import --limit 10 --format json --mode upsert
 ```
 
-Không cần cài Python Playwright cho runner này. File `python/requirements-playwright.txt` chỉ ghi chú để tránh hiểu nhầm rằng test đang dùng package Python.
+Import dùng dry-run mặc định. Chỉ ghi thật khi truyền `--commit-import`. Wrapper `scripts/test-import-export.ps1` cũng gọi Node runner này và tự đặt `NODE_PATH` global. Không cần cài Python Playwright; file `python/requirements-playwright.txt` không phải dependency của luồng test hiện tại.
 
 ### 17.6. Trạng thái hiện tại
 

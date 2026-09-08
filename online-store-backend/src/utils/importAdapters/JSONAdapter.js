@@ -56,8 +56,8 @@ class JSONAdapter extends BaseImportAdapter {
    * @param {Array} products
    * @returns {Promise<Object>}
    */
-  async validate(products) {
-    return validateProductArray(products);
+  async validate(products, options = {}) {
+    return validateProductArray(products, options);
   }
 
   /**

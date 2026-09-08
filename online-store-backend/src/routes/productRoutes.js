@@ -27,9 +27,7 @@ const {
 const { uploadToCloudinary } = require('../services/cloudinaryService');
 const { sendApiError } = require('../middleware/errorMiddleware');
 const {
-  importProducts,
   importProductsFromFile,
-  getImportTemplate,
   getImportGuide,
   getImportFormats,
   exportProducts,
@@ -69,9 +67,7 @@ router.get('/featured/list', getFeaturedProducts);
  * GET /api/products/admin/translations - Lấy toàn bộ sản phẩm cho trang quản lý bản dịch
  */
 router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
-router.post('/admin/import', protect, admin, importProducts);
 router.post('/admin/import-file', protect, admin, uploadLimiter, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
-router.get('/admin/import-template', protect, admin, getImportTemplate);
 router.get('/admin/import-guide', protect, admin, getImportGuide);
 router.get('/admin/import-formats', protect, admin, getImportFormats);
 router.get('/admin/export', protect, admin, exportProducts);

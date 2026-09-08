@@ -91,14 +91,12 @@ const uploadCloudinary = multer({
 });
 
 /**
- * IMPORT UPLOAD - Dành cho nhập khẩu dữ liệu (JSON/CSV/ZIP)
+ * IMPORT UPLOAD - Dành cho nhập khẩu dữ liệu bằng ZIP
  */
 const uploadImport = multer({
   storage: memoryStorage,
   fileFilter: (req, file, cb) => {
     const allowedTypes = {
-      '.json': ['application/json'],
-      '.csv': ['text/csv', 'application/vnd.ms-excel'],
       '.zip': ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
     };
     const ext = path.extname(file.originalname).toLowerCase();
@@ -106,7 +104,7 @@ const uploadImport = multer({
     if (allowedTypes[ext]?.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only valid .json, .csv, or .zip files are allowed'), false);
+      cb(new Error('Only valid .zip files are allowed'), false);
     }
   },
   limits: {
@@ -117,7 +115,7 @@ const uploadImport = multer({
 module.exports = {
   uploadLocal,      // Cho user/review avatars
   uploadCloudinary, // Cho product/banner images
-  uploadImport,     // Cho import files (JSON/CSV)
+  uploadImport,     // Cho import ZIP files
   ensureUploadDir,
   UPLOAD_DIR,
   MAX_IMPORT_FILE_SIZE_BYTES,
