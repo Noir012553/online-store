@@ -3,7 +3,7 @@
  * 
  * Sử dụng để test thanh toán VNPAY Sandbox nhanh chóng
  * 
- * Chạy: npm run test:vnpay hoặc node test/test-vnpay-quick.js
+ * Chạy: npm run test:vnpay hoặc node test/test-vnpay-quick.test.js
  * 
  * Kết quả:
  * - In ra URL thanh toán

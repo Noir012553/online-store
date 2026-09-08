@@ -13,16 +13,17 @@
  */
 
 require('dotenv').config();
-const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { 
-  TEST_SUITES, 
-  listSuites, 
-  resolveTestFiles, 
-  filterByTags 
+const {
+  TEST_SUITES,
+  listSuites,
+  resolveTestFiles,
+  filterByTags,
+  getSuiteFiles,
 } = require('./testRegistry');
+const { getRunnerForFile } = require('./testConfig');
 
 // Parse CLI args
 function parseArgs() {
@@ -73,9 +74,10 @@ function runTestFile(filePath) {
   return new Promise((resolve, reject) => {
     console.log(`${CLI_SYMBOLS.run}  ${path.basename(filePath)}`);
 
-    const isMochaTest = fs.readFileSync(filePath, 'utf8').includes('describe(');
     const command = process.execPath;
-    const args = isMochaTest ? [require.resolve('mocha/bin/_mocha'), filePath] : [filePath];
+    const args = getRunnerForFile(filePath) === 'mocha'
+      ? [require.resolve('mocha/bin/_mocha'), filePath]
+      : [filePath];
     const test = spawn(command, args, {
       stdio: 'inherit',
       cwd: process.cwd(),
@@ -124,8 +126,8 @@ async function main() {
     suitesToRun = filterByTags(cliArgs.tags);
     console.log(`${CLI_SYMBOLS.tag}  Running suites with tags [${cliArgs.tags.join(', ')}]: ${suitesToRun.join(', ')}\n`);
   } else {
-    suitesToRun = Object.keys(TEST_SUITES);
-    console.log(`${CLI_SYMBOLS.package} Running ALL test suites\n`);
+    suitesToRun = ['all'];
+    console.log(`${CLI_SYMBOLS.package} Running all discovered test modules\n`);
   }
 
   // Filter out skipped suites
@@ -145,7 +147,7 @@ async function main() {
   suitesToRun.forEach(suite => {
     const s = TEST_SUITES[suite];
     console.log(`  - ${suite}: ${s.name}`);
-    s.files.forEach(file => {
+    getSuiteFiles(suite).forEach(file => {
       console.log(`    ${CLI_SYMBOLS.lastBranch} ${path.basename(file)}`);
     });
   });

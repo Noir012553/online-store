@@ -2,8 +2,8 @@
 
 /**
  * Test complete payment flow with a specific order ID
- * Run: npm run test:flow <orderId> or node test/test-with-order.js <orderId>
- * Example: node test/test-with-order.js 696b670b041e2f97fa56677c
+ * Run: npm run test:flow <orderId> or node test/test-with-order.test.js <orderId>
+ * Example: node test/test-with-order.test.js 696b670b041e2f97fa56677c
  */
 
 const http = require('http');

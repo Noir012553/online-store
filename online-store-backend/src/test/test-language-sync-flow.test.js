@@ -7,16 +7,17 @@
  * 3. Verifies product translations were created
  * 4. Tests all translation endpoints
  * 
- * Usage: node test-language-sync-flow.js [LANGUAGE_CODE]
- * Example: node test-language-sync-flow.js fr
+ * Usage: node test-language-sync-flow.test.js [LANGUAGE_CODE]
+ * Example: node test-language-sync-flow.test.js fr
  */
 
 const http = require('http');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { baseUrl, languageCode, backgroundTimeoutMs } = require('./testConfig');
 
-const BASE_URL = 'http://localhost:5000';
-const TEST_LANG = process.argv[2] || 'fr'; // Default to French if not specified
-const TIMEOUT = 60000; // 60 seconds for background job
+const BASE_URL = baseUrl;
+const TEST_LANG = process.argv[2] || languageCode;
+const TIMEOUT = backgroundTimeoutMs;
 
 // Color codes for console output
 const colors = {

@@ -1,6 +1,6 @@
 /**
  * Manual Offline Support Tests - Phase 3 (#10b)
- * Can be run with: node src/test/offline-manual.js
+ * Can be run with: node src/test/offline-manual.test.js
  * 
  * Tests IndexedDB service for offline translation caching
  */

@@ -12,9 +12,18 @@
 const path = require('path');
 const fs = require('fs');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { discoverTestFiles } = require('./testConfig');
 
 // Test registry: định nghĩa tất cả test suites
 const TEST_SUITES = {
+  all: {
+    name: 'All dynamically discovered test modules',
+    category: 'DYNAMIC',
+    importance: 'CRITICAL',
+    tags: ['all'],
+    dynamic: true,
+  },
+
   // LAYER 1: i18n Tests
   i18n: {
     name: 'i18n & Language Sync Tests',
@@ -22,8 +31,8 @@ const TEST_SUITES = {
     importance: 'CRITICAL',
     tags: ['i18n', 'languages'],
     files: [
-      'test-languages-flow.js',
-      'test-translation-api.js',
+      'test-languages-flow.test.js',
+      'test-translation-api.test.js',
       'translationProductCache.test.js',
       'specKeyTranslationCache.test.js',
     ],
@@ -46,7 +55,7 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['products', 'entities', 'sources'],
     files: [
-      'test-phase4-e2e-simplified.js',
+      'test-phase4-e2e-simplified.test.js',
       'importFileValidator.test.js',
       'exportJobService.test.js',
       'translationHelper.test.js',
@@ -59,8 +68,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['orders', 'payments'],
     files: [
-      'test-vnpay-quick.js',
-      'test-vnpay-signature-fix.js',
+      'test-vnpay-quick.test.js',
+      'test-vnpay-signature-fix.test.js',
     ],
   },
 
@@ -70,8 +79,8 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['payments', 'vnpay'],
     files: [
-      'test-vnpay-quick.js',
-      'test-vnpay-signature-fix.js',
+      'test-vnpay-quick.test.js',
+      'test-vnpay-signature-fix.test.js',
     ],
   },
 
@@ -81,8 +90,8 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['backend', 'endpoints'],
     files: [
-      'test-backend-endpoints-phase3.js',
-      'test-phase4-e2e-simplified.js',
+      'test-backend-endpoints-phase3.test.js',
+      'test-phase4-e2e-simplified.test.js',
       'appReadiness.test.js',
     ],
   },
@@ -93,8 +102,8 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['db', 'recovery'],
     files: [
-      'test-rollback-procedures.js',
-      'test-shadow-writes.js',
+      'test-rollback-procedures.test.js',
+      'test-shadow-writes.test.js',
     ],
   },
 
@@ -104,7 +113,7 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['db', 'shadow-writes'],
     files: [
-      'test-shadow-writes.js',
+      'test-shadow-writes.test.js',
     ],
   },
 
@@ -114,7 +123,7 @@ const TEST_SUITES = {
     importance: 'LOW',
     tags: ['basic'],
     files: [
-      'test-simple.js',
+      'test-simple.test.js',
       'ghnService.test.js',
     ],
   },
@@ -123,6 +132,19 @@ const TEST_SUITES = {
 /**
  * List all available test suites
  */
+function getSuiteFiles(suiteName) {
+  const suite = TEST_SUITES[suiteName];
+  if (!suite) {
+    return [];
+  }
+
+  if (suite.dynamic) {
+    return discoverTestFiles().map(filePath => path.relative(__dirname, filePath));
+  }
+
+  return suite.files;
+}
+
 function listSuites() {
   console.log(`\n${CLI_SYMBOLS.list} Available Test Suites:\n`);
 
@@ -135,7 +157,7 @@ function listSuites() {
       .forEach(([key, suite]) => {
         const tag = suite.importance === 'CRITICAL' ? CLI_SYMBOLS.importanceCritical : suite.importance === 'HIGH' ? CLI_SYMBOLS.importanceHigh : suite.importance === 'MEDIUM' ? CLI_SYMBOLS.importanceMedium : CLI_SYMBOLS.importanceLow;
         console.log(`  ${tag} ${key.padEnd(15)} - ${suite.name}`);
-        console.log(`      Files: ${suite.files.join(', ')}`);
+        console.log(`      Files: ${getSuiteFiles(key).join(', ')}`);
       });
   });
 
@@ -162,7 +184,7 @@ function resolveTestFiles(suiteNames) {
       return;
     }
 
-    TEST_SUITES[name].files.forEach(file => {
+    getSuiteFiles(name).forEach(file => {
       const fullPath = path.resolve(testDir, file);
       if (fs.existsSync(fullPath)) {
         files.push(fullPath);
@@ -197,4 +219,5 @@ module.exports = {
   listSuites,
   resolveTestFiles,
   filterByTags,
+  getSuiteFiles,
 };

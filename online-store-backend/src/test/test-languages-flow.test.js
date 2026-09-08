@@ -2,7 +2,7 @@
 
 /**
  * Script kiểm tra luồng thêm ngôn ngữ mới và dịch tự động
- * Sử dụng: node test-languages-flow.js
+ * Sử dụng: node test-languages-flow.test.js
  */
 
 require('dotenv').config();
@@ -12,7 +12,7 @@ const Language = require('../models/Language');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const Product = require('../models/Product');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/online-store';
+const { mongoUri: MONGO_URI } = require('./testConfig');
 const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
 async function testLanguagesFlow() {

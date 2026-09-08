@@ -17,9 +17,10 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { baseUrl, timeoutMs } = require('./testConfig');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-const TEST_TIMEOUT = 30000;
+const BASE_URL = baseUrl;
+const TEST_TIMEOUT = timeoutMs;
 
 const getTargetLanguage = () => (
   getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
