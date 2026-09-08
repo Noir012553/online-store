@@ -426,7 +426,18 @@ describe('Product payload validation', () => {
     expect(result.errors.some(error => error.includes('description'))).to.equal(true);
   });
 
-  it('rejects empty specs in ZIP imports', () => {
+  it('accepts products without specs in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
+  });
+
+  it('accepts empty specs in ZIP imports', () => {
     const result = validateProduct({
       ...validProduct,
       description: 'Product description',
@@ -434,8 +445,8 @@ describe('Product payload validation', () => {
       specs: {},
     }, 1, { requireComplete: true });
 
-    expect(result.isValid).to.equal(false);
-    expect(result.errors.some(error => error.includes('specs'))).to.equal(true);
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
   });
 
   it('accepts a complete product in ZIP imports', () => {
