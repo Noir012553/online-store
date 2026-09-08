@@ -2,6 +2,7 @@ const unzipper = require('unzipper');
 const {
   MAX_IMPORT_FILE_SIZE_BYTES,
   MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
+  MAX_IMAGE_ASSET_BYTES,
   validateImportFile,
 } = require('./fileUtils');
 
@@ -11,7 +12,7 @@ const ZIP_SPANNED_SIGNATURE = Buffer.from([0x50, 0x4b, 0x07, 0x08]);
 const MAX_ZIP_ENTRIES = 10000;
 const MAX_ZIP_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
 const MAX_ZIP_IMAGE_ENTRIES = 5000;
-const MAX_ZIP_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_ZIP_IMAGE_BYTES = MAX_IMAGE_ASSET_BYTES;
 const MAX_ZIP_COMPRESSION_RATIO = 100;
 const DATA_ENTRY_NAMES = new Set(['products.json', 'products.csv']);
 

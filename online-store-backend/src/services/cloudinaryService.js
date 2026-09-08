@@ -9,9 +9,10 @@
  */
 
 const cloudinary = require('cloudinary').v2;
+const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 
 const ALLOWED_IMAGE_FORMATS = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = MAX_IMAGE_ASSET_BYTES;
 
 const isSupportedImageBuffer = (fileBuffer) => {
   if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length < 12 || fileBuffer.length > MAX_IMAGE_BYTES) return false;

@@ -1,5 +1,6 @@
 const chai = require('chai');
 const expect = chai.expect;
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const archiverModule = require('archiver');
@@ -16,7 +17,11 @@ const {
   writeExportZipFile,
   getExportProductBatchFilter,
 } = require('../controllers/productImportController');
-const { isSafeEntryName, readImportZip } = require('../utils/zipImport');
+const {
+  MAX_IMAGE_ASSET_BYTES,
+  isSafeEntryName,
+  readImportZip,
+} = require('../utils/zipImport');
 const {
   getProductImagePublicId,
   uploadProductImage,
@@ -321,6 +326,23 @@ describe('ZIP import validation', () => {
     expect(imported.assets.get('assets/images/product-main.jpg')).to.deep.equal(
       Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
     );
+  });
+
+  it('rejects image assets larger than the shared import limit', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [] }) },
+      {
+        name: 'assets/images/too-large.jpg',
+        content: crypto.randomBytes(MAX_IMAGE_ASSET_BYTES + 1),
+      },
+    ]);
+
+    try {
+      await readImportZip(archive);
+      throw new Error('Expected oversized image asset to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_ZIP_IMAGE_SIZE_INVALID');
+    }
   });
 
   it('reads products.json from an exported ZIP', async () => {
