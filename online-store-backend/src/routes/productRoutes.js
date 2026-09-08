@@ -36,7 +36,7 @@ const {
 } = require('../controllers/productImportController');
 const { getProductTranslations } = require('../controllers/translationController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { uploadLimiter } = require('../middleware/rateLimitMiddleware');
+const { uploadLimiter, importConcurrencyLimiter } = require('../middleware/rateLimitMiddleware');
 const { uploadCloudinary, uploadImport } = require('../middleware/uploadMiddleware');
 const { validateImageUpload, validateImportUpload } = require('../middleware/uploadValidationMiddleware');
 
@@ -67,7 +67,7 @@ router.get('/featured/list', getFeaturedProducts);
  * GET /api/products/admin/translations - Lấy toàn bộ sản phẩm cho trang quản lý bản dịch
  */
 router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
-router.post('/admin/import-file', protect, admin, uploadLimiter, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
+router.post('/admin/import-file', protect, admin, uploadLimiter, importConcurrencyLimiter, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
 router.get('/admin/import-guide', protect, admin, getImportGuide);
 router.get('/admin/import-formats', protect, admin, getImportFormats);
 router.get('/admin/export', protect, admin, exportProducts);

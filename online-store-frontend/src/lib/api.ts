@@ -1232,6 +1232,7 @@ export const productAPI = {
     locale?: string,
     format: 'json' | 'csv' = 'json',
     requestOptions?: Pick<FetchOptions, 'signal' | 'timeout'>,
+    idempotencyKey?: string,
   ): Promise<Blob> => {
     const params = new URLSearchParams({ format, async: 'true' });
     if (locale) params.append('locales', locale);
@@ -1281,7 +1282,16 @@ export const productAPI = {
             } catch {
               errorMessage = response.statusText || errorMessage;
             }
-            throw new Error(errorMessage);
+            const requestError = new Error(errorMessage) as Error & {
+              status?: number;
+              retryAfterMs?: number;
+            };
+            requestError.status = response.status;
+            const retryAfter = Number(response.headers.get('Retry-After'));
+            if (Number.isFinite(retryAfter) && retryAfter > 0) {
+              requestError.retryAfterMs = retryAfter * 1000;
+            }
+            throw requestError;
           }
           return response;
         } catch (error) {
@@ -1295,7 +1305,9 @@ export const productAPI = {
       }
     };
 
-    const enqueueResponse = await fetchJob(`/products/admin/export-bundle?${params.toString()}`);
+    const enqueueResponse = await fetchJob(`/products/admin/export-bundle?${params.toString()}`, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    });
     if (enqueueResponse.status !== 202) {
       throw new Error('product_export_async_enqueue_failed');
     }
@@ -1303,16 +1315,41 @@ export const productAPI = {
     const enqueueData = await enqueueResponse.json() as ExportJobResponse;
     if (!enqueueData.jobId) throw new Error('product_export_job_missing');
 
+    const waitForPoll = (delayMs: number) => new Promise<void>((resolve, reject) => {
+      let timerId: number;
+      const abortWait = () => {
+        window.clearTimeout(timerId);
+        externalSignal?.removeEventListener('abort', abortWait);
+        reject(externalSignal?.reason || new DOMException('The request was aborted', 'AbortError'));
+      };
+      timerId = window.setTimeout(() => {
+        externalSignal?.removeEventListener('abort', abortWait);
+        resolve();
+      }, delayMs);
+      if (externalSignal?.aborted) abortWait();
+      else externalSignal?.addEventListener('abort', abortWait, { once: true });
+    });
+
     let job = enqueueData;
+    let pollDelayMs = 5000;
     while (job.status !== 'ready') {
       if (job.status === 'failed' || job.status === 'cancelled') {
         throw new Error(job.errorMessage || 'product_export_job_failed');
       }
       if (Date.now() >= deadline) throw new Error('product_export_job_timeout');
-      await new Promise(resolve => window.setTimeout(resolve, 5000));
-      const statusResponse = await fetchJob(`/products/admin/export-jobs/${job.jobId}`);
-      const statusData = await statusResponse.json() as { job: ExportJobResponse };
-      job = statusData.job;
+      try {
+        await waitForPoll(pollDelayMs);
+        const statusResponse = await fetchJob(`/products/admin/export-jobs/${job.jobId}`);
+        const statusData = await statusResponse.json() as { job: ExportJobResponse };
+        job = statusData.job;
+        pollDelayMs = 5000;
+      } catch (error) {
+        const requestError = error as Error & { status?: number; retryAfterMs?: number };
+        if (requestError.status !== 429) throw error;
+        const retryDelay = requestError.retryAfterMs || pollDelayMs;
+        await waitForPoll(Math.min(Math.max(retryDelay, 5000), 30000));
+        pollDelayMs = Math.min(pollDelayMs * 2, 30000);
+      }
     }
 
     const downloadResponse = await fetchJob(
