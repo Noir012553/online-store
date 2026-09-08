@@ -3,7 +3,7 @@
  * 
  * Kiểm tra xem cơ chế 3-Phase (Clone UI → Dịch Products → Finalize) hoạt động đúng
  * 
- * Chạy: npm run seed && node test-blueprint-3phase.js
+ * Chạy: npm run seed && node blueprint-3phase.test.js
  */
 
 const axios = require('axios');

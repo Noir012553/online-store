@@ -31,6 +31,21 @@ IMPORT_ZIP_IMAGE_SIZE_INVALID
 
 Bản fix xử lý lỗi ảnh đã được thêm sau lần test này và cần chạy lại integration test sau khi restart backend.
 
+## Quy ước module test hiện tại
+
+- File test JavaScript trong `online-store-backend/src/test` dùng thống nhất dạng `<module>.test.js`; không thêm tiền tố `test-`.
+- `src/test/testConfig.js` cung cấp biến môi trường, timeout, đường dẫn frontend và discovery động cho các file `.test.js`.
+- `npm test` chạy qua `src/test/test-runner.js`; module có cấu trúc Mocha được chạy bằng Mocha, script độc lập được chạy bằng Node.
+- Test kiểm tra offline bằng Node nằm tại `online-store-backend/src/test/frontend-offline-manual.test.js` và chạy bằng:
+
+```text
+cd online-store-backend
+npm run test:offline
+```
+
+- Test `offline-support.test.ts` vẫn nằm ở frontend vì cần môi trường browser/IndexedDB thật; không chuyển sang backend Node.
+- Khi chạy manual offline test từ backend, `TEST_FRONTEND_ROOT` có thể override đường dẫn frontend nếu workspace không dùng cấu trúc thư mục mặc định.
+
 ## 1. Lỗi credential và HTTP 530
 
 ### Triệu chứng

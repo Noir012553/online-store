@@ -1,6 +1,7 @@
 const http = require('http');
 
-const baseUrl = new URL(process.env.BASE_URL || 'http://localhost:5000');
+const { baseUrl: configuredBaseUrl } = require('./testConfig');
+const baseUrl = new URL(configuredBaseUrl);
 
 function makeRequest(method, path, body = null) {
   return new Promise((resolve, reject) => {

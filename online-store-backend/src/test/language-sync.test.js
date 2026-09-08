@@ -9,14 +9,15 @@
  * 
  * Thứ tự test:
  * npm run seed                  # Seed initial data
- * node test-language-sync.js   # Run this test
+ * node language-sync.test.js   # Run this test
  */
 
 require('dotenv').config();
 const axios = require('axios');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { apiBaseUrl } = require('./testConfig');
 
-const API_BASE = process.env.API_URL || 'http://localhost:5000/api';
+const API_BASE = `${apiBaseUrl}/api`;
 
 const tests = {
   passed: 0,

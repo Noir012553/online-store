@@ -7,7 +7,7 @@
  * ✅ Scenario 3: Git rollback
  * ✅ Scenario 4: Graceful fallback
  * 
- * Usage: npm test -- test/test-rollback-procedures.js
+ * Usage: npm test -- test/rollback-procedures.test.js
  */
 
 const assert = require('node:assert/strict');

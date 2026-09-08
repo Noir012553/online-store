@@ -1,11 +1,13 @@
 /**
  * Manual Offline Support Tests - Phase 3 (#10b)
- * Can be run with: node src/test/offline-manual.js
+ * Can be run with: npm run test:offline
  * 
  * Tests IndexedDB service for offline translation caching
  */
 
-const cliSymbols = require('./cliSymbols');
+const path = require('path');
+const { CLI_SYMBOLS: cliSymbols } = require('../utils/cliSymbols');
+const { frontendRoot } = require('./testConfig');
 
 const colors = {
   reset: '\x1b[0m',
@@ -47,7 +49,7 @@ class OfflineTestSuite {
   async test1_IndexedDBDesign() {
     // Verify IndexedDB service has correct structure
     const fs = require('fs');
-    const content = fs.readFileSync('./src/lib/services/indexedDbService.ts', 'utf-8');
+    const content = fs.readFileSync(path.join(frontendRoot, 'src/lib/services/indexedDbService.ts'), 'utf-8');
 
     const hasInit = content.includes('async init()');
     const hasSave = content.includes('async save(');
@@ -65,7 +67,7 @@ class OfflineTestSuite {
   async test2_IndexedDBIntegrationInTranslationService() {
     // Verify translationService uses IndexedDB
     const fs = require('fs');
-    const content = fs.readFileSync('./src/lib/translationService.ts', 'utf-8');
+    const content = fs.readFileSync(path.join(frontendRoot, 'src/lib/translationService.ts'), 'utf-8');
 
     const hasIndexedDbImport = content.includes('indexedDbService');
     const hasFallback = content.includes('fallback') || content.includes('offline');
@@ -80,7 +82,7 @@ class OfflineTestSuite {
   async test3_LanguageContextOfflineSupport() {
     // Verify LanguageContext handles offline scenarios
     const fs = require('fs');
-    const content = fs.readFileSync('./src/lib/context/LanguageContext.tsx', 'utf-8');
+    const content = fs.readFileSync(path.join(frontendRoot, 'src/lib/context/LanguageContext.tsx'), 'utf-8');
 
     const hasOnline = content.includes('online') || content.includes('offline');
     const hasLoadingState = content.includes('isChangingLocale');
@@ -119,7 +121,7 @@ class OfflineTestSuite {
     const fs = require('fs');
     const path = require('path');
     const localeMetadata = fs.readFileSync(
-      path.join(__dirname, '../lib/i18n/localeMetadata.ts'),
+      path.join(frontendRoot, 'src/lib/i18n/localeMetadata.ts'),
       'utf8'
     );
     const languages = [...localeMetadata.matchAll(/^  ([a-z]{2}): \{/gm)].map(([, locale]) => locale);
@@ -146,7 +148,7 @@ class OfflineTestSuite {
   async test8_NetworkErrorHandling() {
     // Verify error handling for network failures
     const fs = require('fs');
-    const content = fs.readFileSync('./src/lib/translationService.ts', 'utf-8');
+    const content = fs.readFileSync(path.join(frontendRoot, 'src/lib/translationService.ts'), 'utf-8');
 
     const hasTryCatch = content.includes('try') && content.includes('catch');
 
