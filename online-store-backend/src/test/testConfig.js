@@ -7,6 +7,7 @@ const configuredTimeout = Number(process.env.TEST_TIMEOUT_MS);
 
 const testConfig = Object.freeze({
   projectRoot,
+  frontendRoot: process.env.TEST_FRONTEND_ROOT || path.resolve(projectRoot, '../online-store-frontend'),
   testRoot: TEST_ROOT,
   environment: process.env.NODE_ENV || 'test',
   mongoUri: process.env.TEST_MONGO_URI || process.env.MONGO_URI || '',

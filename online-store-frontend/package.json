@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node src/test/offline-manual.test.js",
     "check:emoji": "node scripts/check-ui-emoji.js"
   },
   "dependencies": {

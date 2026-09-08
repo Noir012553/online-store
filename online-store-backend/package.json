@@ -8,6 +8,7 @@
     "dev": "nodemon src/app.js",
     "tunnel": "tunnel.bat",
     "test": "node src/test/test-runner.js",
+    "test:offline": "node src/test/frontend-offline-manual.test.js",
     "test:export:dynamic": "node scripts/test-export-dynamic.js",
     "test:import:export:dynamic": "node scripts/test-export-dynamic.js",
     "test:import:export:dynamic:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-import-export.ps1 -Environment local -Target frontend -Format json -Mode upsert -Limit 10 -ReportPath ./tmp/import-export-report.json",
