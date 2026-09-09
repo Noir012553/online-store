@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { Banner, BANNER_SLOTS, SUPPORTED_LANGUAGES } = require('../models/Banner');
 const { BannerTranslation } = require('../models/BannerTranslation');
+const StaticTranslation = require('../models/StaticTranslation');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const { broadcastBannerCreated, broadcastBannerUpdated, broadcastBannerDeleted, broadcastBannerRestored } = require('../socket/socketHandler');
 const {

@@ -1,6 +1,8 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const fs = require('fs');
 const path = require('path');
+const StaticTranslation = require('../models/StaticTranslation');
+const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 class TranslationSeederService {

@@ -1,5 +1,6 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Product = require('../models/Product');
