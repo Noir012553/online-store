@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const { getDefaultLanguage, getActiveLangCodes } = require('./src/config/languageInventory');
+const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 
-const LOCALES_PATH = path.join(__dirname, 'src/locales');
+const LOCALES_PATH = path.join(__dirname, '../locales');
 const SUPPORTED_LANGUAGES = getActiveLangCodes();
 const SOURCE_LANGUAGE = getDefaultLanguage().code;
 
@@ -73,6 +73,6 @@ for (const lang of SUPPORTED_LANGUAGES) {
 
 console.log(`\n✅ Created ${totalCreated} new locale files`);
 console.log('\nNext steps:');
-console.log('1. Review the seeder in seeds/translationSeeder.js');
+console.log('1. Review the seeder in src/seeds/translationSeeder.js');
 console.log('2. Update SUPPORTED_LANGUAGES in translationSeeder.js to include all 9 languages');
 console.log('3. Run: npm run seed');

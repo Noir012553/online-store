@@ -151,5 +151,5 @@ const exportData = {
   not_started: notStarted.map(s => ({ file: s.file, keys: s[`${defaultLang}_keys`] }))
 };
 
-fs.writeFileSync(path.join(__dirname, '../i18n/translation-analysis.json'), JSON.stringify(exportData, null, 2));
-console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to src/i18n/translation-analysis.json`);
+fs.writeFileSync(path.join(__dirname, '../../reports/i18n/translation-analysis.json'), JSON.stringify(exportData, null, 2));
+console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to reports/i18n/translation-analysis.json`);
