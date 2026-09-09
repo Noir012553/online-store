@@ -181,7 +181,7 @@ describe('VNPAYAdapter', () => {
   describe('extractOrderIdFromTxnRef', () => {
     it('should extract orderId from transaction ref', () => {
       const orderId = adapter.extractOrderIdFromTxnRef('ORDER-123-1704067200');
-      expect(orderId).to.equal('ORDER');
+      expect(orderId).to.equal('ORDER-123');
     });
 
     it('should handle simple orderId', () => {
@@ -331,6 +331,9 @@ describe('VNPAYAdapter', () => {
     it('should reject invalid signature', async () => {
       const webhookData = {
         vnp_Amount: '100000',
+        vnp_TmnCode: mockConfig.partnerId,
+        vnp_ResponseCode: '00',
+        vnp_TxnRef: 'ORDER-123-1704067200',
         vnp_SecureHash: 'INVALID_SIGNATURE_12345678',
       };
 
@@ -364,13 +367,14 @@ describe('VNPAYAdapter', () => {
       expect(result.success).to.be.true;
       expect(result.transaction.status).to.equal('success');
       expect(result.transaction.amount).to.equal(1000); // 100000 / 100
-      expect(result.transaction.orderId).to.equal('ORDER');
+      expect(result.transaction.orderId).to.equal('ORDER-123');
     });
 
     it('should handle failed payment IPN', async () => {
       const ipnData = {
         vnp_Amount: '100000',
         vnp_ResponseCode: '09', // Failed
+        vnp_TmnCode: mockConfig.partnerId,
         vnp_TxnRef: 'ORDER-456-1704067200',
       };
 

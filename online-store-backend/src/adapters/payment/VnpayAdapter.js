@@ -100,7 +100,12 @@ class VnpayAdapter extends BasePaymentGateway {
       throw new Error('VNPAY only accepts VND amounts');
     }
 
-    const normalized = Math.round(amount * 100);
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount)) {
+      throw new Error('Amount must be a valid number');
+    }
+
+    const normalized = Math.round(numericAmount * 100);
 
     if (normalized <= 0) {
       throw new Error('Amount must be greater than 0');
@@ -150,8 +155,14 @@ class VnpayAdapter extends BasePaymentGateway {
       } = paymentData;
 
       // Validate required fields
-      if (!orderId || !amount || !currency) {
-        throw new Error('Missing required fields: orderId, amount, currency');
+      if (!orderId) {
+        throw new Error('Missing required field: orderId');
+      }
+      if (amount === undefined || amount === null || amount === '') {
+        throw new Error('Missing required field: amount');
+      }
+      if (!currency) {
+        throw new Error('Missing required field: currency');
       }
       if (!this.supportsCurrency(currency)) {
         throw new Error(`Unsupported currency: ${currency}`);
@@ -317,8 +328,19 @@ class VnpayAdapter extends BasePaymentGateway {
       const { vnp_SecureHash, vnp_SecureHashType, ...dataToVerify } = webhookData;
 
       // ============================================
-      // BƯỚC 2: Loại bỏ các field không tham gia vào hash
+      // BƯỚC 2: Validate provider fields and remove fields excluded from hash
       // ============================================
+      if (String(dataToVerify.vnp_TmnCode || '') !== String(this.config.partnerId)) {
+        return { valid: false, error: 'Invalid VNPAY terminal code' };
+      }
+      if (!dataToVerify.vnp_TxnRef || !dataToVerify.vnp_ResponseCode || dataToVerify.vnp_Amount === undefined) {
+        return { valid: false, error: 'Missing required VNPAY webhook fields' };
+      }
+      const providerAmount = Number(dataToVerify.vnp_Amount);
+      if (!Number.isInteger(providerAmount) || providerAmount <= 0) {
+        return { valid: false, error: 'Invalid VNPAY amount' };
+      }
+
       const { vnp_Email, vnp_PhoneNumber, ...dataForVerify } = dataToVerify;
 
       // ============================================
@@ -410,8 +432,15 @@ class VnpayAdapter extends BasePaymentGateway {
       // ============================================
       const responseCode = ipnData.vnp_ResponseCode; // '00' = thành công
       const transactionStatus = this.supportedStatus[responseCode] || 'unknown';
-      const amount = parseInt(ipnData.vnp_Amount) / 100; // VNPAY trả lại amount * 100, cần chia lại
+      const providerAmount = Number(ipnData.vnp_Amount);
+      if (!Number.isInteger(providerAmount) || providerAmount <= 0) {
+        return { success: false, error: 'Invalid VNPAY amount' };
+      }
+      const amount = providerAmount / 100;
       const orderId = this.extractOrderIdFromTxnRef(ipnData.vnp_TxnRef);
+      if (!orderId) {
+        return { success: false, error: 'Missing VNPAY transaction reference' };
+      }
 
       // ============================================
       // BƯỚC 3: Xây dựng transaction object
@@ -674,8 +703,9 @@ class VnpayAdapter extends BasePaymentGateway {
    */
   extractOrderIdFromTxnRef(txnRef) {
     if (!txnRef) return null;
-    const parts = txnRef.split('-');
-    return parts[0]; // Trả về orderId (phần đầu)
+    const value = String(txnRef);
+    const match = value.match(/^(.*)-\d+$/);
+    return match ? match[1] : value;
   }
 }
 

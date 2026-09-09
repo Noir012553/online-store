@@ -56,7 +56,7 @@ const convertFromCatalogCurrency = (amount, catalogCurrency, currencyCode, excha
  */
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const lang = req.lang;
-  const { orderId } = req.params;
+  const { id: orderId } = req.params;
   const { isPaid, isDelivered } = req.body;
 
   const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
@@ -69,17 +69,13 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   let updated = false;
   if (isPaid !== undefined && order.isPaid !== isPaid) {
     order.isPaid = isPaid;
-    if (isPaid) {
-      order.paidAt = new Date();
-    }
+    order.paidAt = isPaid ? new Date() : null;
     updated = true;
   }
 
   if (isDelivered !== undefined && order.isDelivered !== isDelivered) {
     order.isDelivered = isDelivered;
-    if (isDelivered) {
-      order.deliveredAt = new Date();
-    }
+    order.deliveredAt = isDelivered ? new Date() : null;
     updated = true;
   }
 
@@ -143,6 +139,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   if (!req.isSummaryRequest && idempotencyKey) {
     const existingOrder = await withTimeout(
       Order.findOne({
+        ...(req.user?._id && { user: req.user._id }),
         idempotencyKey,
         createdAt: { $gte: new Date(Date.now() - 3600000) } // 1 hour window
       }),
@@ -168,17 +165,28 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   for (const item of cartItems) {
     const productId = item.productId || item.product;
+    const quantity = Number(item.quantity ?? item.qty);
     if (!productId) {
       res.status(400);
       throw createOrderError(lang, 'ORDER_PRODUCT_ID_REQUIRED', 'validation.product.idRequired');
     }
-    productIdList.push(productId);
-    cartItemsByProductId.set(String(productId), item);
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_INVALID_QUANTITY', 'validation.product.quantityInvalid');
+    }
+
+    const key = String(productId);
+    const existingItem = cartItemsByProductId.get(key);
+    cartItemsByProductId.set(key, {
+      ...item,
+      quantity: (existingItem?.quantity || 0) + quantity,
+    });
+    if (!existingItem) productIdList.push(productId);
   }
 
   // Fetch all products in 1 query with $in operator
   const products = await withTimeout(
-    Product.find({ _id: { $in: productIdList } }),
+    Product.find({ _id: { $in: productIdList }, isDeleted: false }),
     ORDER_QUERY_TIMEOUT_MS
   );
 
@@ -186,8 +194,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
   const productLookup = new Map(products.map(p => [String(p._id), p]));
 
   // Validate all products exist and check stock
-  for (const item of cartItems) {
-    const productId = String(item.productId || item.product);
+  for (const [productId, item] of cartItemsByProductId) {
     const product = productLookup.get(productId);
 
     if (!product) {
@@ -244,7 +251,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
         }
 
         // Generate a unique phone number if not provided
-        const generatedPhone = `090${String(Math.random() * 10000000).padStart(7, '0')}`;
+        const generatedPhone = `090${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`;
 
         const customer = await withTimeout(
           Customer.findOneAndUpdate(
@@ -264,7 +271,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       }
       // Case 3: Only name provided - create new with generated email and phone
       else if (customerName) {
-        const generatedPhone = `090${String(Math.random() * 10000000).padStart(7, '0')}`;
+        const generatedPhone = `090${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`;
         const generatedEmail = `customer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@generated.local`;
 
         const customer = new Customer({
@@ -426,11 +433,12 @@ const addOrderItems = asyncHandler(async (req, res) => {
       throw createOrderError(lang, 'ORDER_COUPON_MINIMUM_NOT_REACHED', 'order.couponMinAmount');
     }
 
-    discountAmount = coupon.discountType === 'percentage'
+    const requestedDiscountAmount = coupon.discountType === 'percentage'
       ? Math.round((calculatedItemsPrice * coupon.discountValue) / 100)
       : coupon.discountType === 'fixed'
         ? convertToBaseCurrency(coupon.discountValue, couponCurrencyCode)
         : 0;
+    discountAmount = Math.min(calculatedItemsPrice, Math.max(0, requestedDiscountAmount));
     appliedCoupon = {
       code: coupon.code,
       couponId: coupon._id,
