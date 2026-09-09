@@ -11,6 +11,7 @@ const Currency = require('../models/Currency');
 const ExchangeRate = require('../models/ExchangeRate');
 const { convertOrderAmount, getReportingCurrency } = require('../utils/orderRevenue');
 const { formatCoupons, formatReportingCoupons } = require('../utils/currencyResponseFormatter');
+const { formatCurrency } = require('../utils/currencyFormatter');
 const {
   broadcastCouponCreated,
   broadcastCouponUpdated,
