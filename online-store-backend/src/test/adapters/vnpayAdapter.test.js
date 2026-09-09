@@ -200,6 +200,7 @@ describe('VNPAYAdapter', () => {
       const paymentData = {
         orderId: 'ORDER-123',
         amount: 1000000,
+        currency: 'VND',
         description: 'Payment for order',
         customer: {
           name: 'Nguyen Van A',
@@ -229,6 +230,7 @@ describe('VNPAYAdapter', () => {
       const paymentData = {
         orderId: 'ORDER-123',
         amount: 1000000,
+        currency: 'VND',
         description: 'Payment',
       };
 
@@ -241,6 +243,7 @@ describe('VNPAYAdapter', () => {
     it('should return error for missing orderId', async () => {
       const paymentData = {
         amount: 1000000,
+        currency: 'VND',
         description: 'Payment',
         clientIp: '127.0.0.1',
       };
@@ -254,6 +257,7 @@ describe('VNPAYAdapter', () => {
     it('should return error for missing amount', async () => {
       const paymentData = {
         orderId: 'ORDER-123',
+        currency: 'VND',
         description: 'Payment',
         clientIp: '127.0.0.1',
       };
@@ -268,6 +272,7 @@ describe('VNPAYAdapter', () => {
       const paymentData = {
         orderId: 'ORDER-123',
         amount: 1000000,
+        currency: 'VND',
         clientIp: '127.0.0.1',
       };
 

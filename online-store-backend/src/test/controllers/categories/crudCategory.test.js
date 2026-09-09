@@ -30,6 +30,8 @@ describe('Category Controller - CRUD Operations', () => {
     beforeEach(() => {
       findOneStub = sandbox.stub(Category, 'findOne');
       translationFindStub = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves([]),
       });
     });
@@ -91,6 +93,8 @@ describe('Category Controller - CRUD Operations', () => {
       };
       findOneStub.returns({ lean: sandbox.stub().resolves(category) });
       translationFindStub.returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves([{
           entityId: categoryId.toString(),
           targetLang: 'en',

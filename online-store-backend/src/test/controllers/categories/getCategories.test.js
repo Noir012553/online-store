@@ -29,11 +29,16 @@ describe('Category Controller - getCategories', () => {
     mockQuery = {
       limit: sandbox.stub().returnsThis(),
       skip: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().returnsThis(),
       then: sandbox.stub(),
     };
     findStub = sandbox.stub(Category, 'find').returns(mockQuery);
     countDocumentsStub = sandbox.stub(Category, 'countDocuments');
-    translationFindStub.returns({ lean: sandbox.stub().resolves([]) });
+    translationFindStub.returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
   });
 
   it('should fetch all categories with pagination', async () => {
@@ -74,6 +79,8 @@ describe('Category Controller - getCategories', () => {
       return Promise.resolve(categories).then(onFulfilled);
     });
     translationFindStub.returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([{
         entityId: categoryId.toString(),
         targetLang: 'en',
@@ -166,8 +173,16 @@ describe('Category Controller - getCategories', () => {
     mockQuery.then.callsFake(function(onFulfilled) {
       return Promise.resolve(categories).then(onFulfilled);
     });
-    translationFindStub.onFirstCall().returns({ lean: sandbox.stub().resolves([translation]) });
-    translationFindStub.onSecondCall().returns({ lean: sandbox.stub().resolves([translation]) });
+    translationFindStub.onFirstCall().returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([translation]),
+    });
+    translationFindStub.onSecondCall().returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([translation]),
+    });
 
     const res = {
       json: sandbox.stub(),

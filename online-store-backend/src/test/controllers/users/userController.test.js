@@ -33,13 +33,14 @@ describe('User Controller - Dynamic Data Tests', () => {
         _id: userId, 
         email: 'test@example.com', 
         username: 'testuser',
-        password: 'hashed', 
-        matchPassword: sandbox.stub().resolves(true) 
+        password: 'hashed',
+        matchPassword: sandbox.stub().resolves(true),
+        save: sandbox.stub().resolves() 
       };
       sandbox.stub(User, 'findOne').resolves(user);
 
       const req = { body: { email: 'test@example.com', password: 'test123' } };
-      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
+      const res = { cookie: sandbox.stub(), json: sandbox.stub(), status: sandbox.stub().returnsThis() };
       
       await authUser(req, res);
       expect(res.json.calledOnce).to.be.true;
@@ -63,18 +64,19 @@ describe('User Controller - Dynamic Data Tests', () => {
     it('should register new user with dynamic data', async () => {
       const newUserId = new mongoose.Types.ObjectId();
       
-      const newUser = { 
-        _id: newUserId, 
-        username: 'newuser', 
-        email: 'new@example.com', 
-        role: 'user'
+      const newUser = {
+        _id: newUserId,
+        username: 'newuser',
+        email: 'new@example.com',
+        role: 'user',
+        save: sandbox.stub().resolves(),
       };
       
       sandbox.stub(User, 'findOne').resolves(null);
       sandbox.stub(User, 'create').resolves(newUser);
 
       const req = { body: { username: 'newuser', email: 'new@example.com', password: 'test123' } };
-      const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
+      const res = { cookie: sandbox.stub(), status: sandbox.stub().returnsThis(), json: sandbox.stub() };
       
       await registerUser(req, res);
       expect(res.status.calledWith(201)).to.be.true;
@@ -130,8 +132,9 @@ describe('User Controller - Dynamic Data Tests', () => {
       };
       sandbox.stub(User, 'findById').resolves(user);
 
-      const req = { 
-        user: { _id: userId }, 
+      const req = {
+        user: { _id: userId },
+        headers: {},
         body: { 
           email: 'new@example.com', 
           username: 'newname', 
@@ -182,7 +185,7 @@ describe('User Controller - Dynamic Data Tests', () => {
       };
       sandbox.stub(User, 'findById').resolves(user);
 
-      const req = { params: { id: userId.toString() } };
+      const req = { params: { id: userId.toString() }, query: {} };
       const res = { json: sandbox.stub() };
       
       await hardDeleteUser(req, res);

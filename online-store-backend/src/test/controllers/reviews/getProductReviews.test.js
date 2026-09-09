@@ -28,6 +28,7 @@ describe('Review Controller - getProductReviews', () => {
       populate: sandbox.stub().returnsThis(),
       limit: sandbox.stub().returnsThis(),
       skip: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().returnsThis(),
       then: sandbox.stub(),
     };
     findStub = sandbox.stub(Review, 'find').returns(mockQuery);
