@@ -13,6 +13,7 @@
  */
 
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
@@ -24,6 +25,109 @@ const {
   getSuiteFiles,
 } = require('./test-registry');
 const { getRunnerForFile } = require('./test-config');
+
+const TEST_ERROR_REPORT = path.resolve(__dirname, '../../reports/test/npm-test-errors.json');
+
+function stripAnsi(value) {
+  return value.replace(/[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g, '');
+}
+
+function extractFailureBlocks(output) {
+  const lines = stripAnsi(output).split(/\r?\n/);
+  const mochaBlocks = [];
+  let currentMochaBlock = [];
+
+  const flushMochaBlock = () => {
+    const block = currentMochaBlock.join('\n').trim();
+    if (block) mochaBlocks.push(block);
+    currentMochaBlock = [];
+  };
+
+  lines.forEach(line => {
+    if (/^\s*\d+\)\s/.test(line)) {
+      flushMochaBlock();
+      currentMochaBlock = [line];
+    } else if (currentMochaBlock.length > 0 && /^\s*\d+\s+(passing|failing)/i.test(line)) {
+      flushMochaBlock();
+    } else if (currentMochaBlock.length > 0) {
+      currentMochaBlock.push(line);
+    }
+  });
+  flushMochaBlock();
+  if (mochaBlocks.length > 0) {
+    const failurePattern = /AssertionError|Error|Exception|TypeError|ReferenceError|SyntaxError|RangeError|expected .* to|actual .*|\b(?:invalid scheme|not configured|econnrefused|enoent)\b|❌|\bfailed\s*$/i;
+    return mochaBlocks.filter(block => failurePattern.test(block));
+  }
+
+  const errorStart = /(?:AssertionError|Error|Exception|TypeError|ReferenceError|SyntaxError|RangeError):|\b(?:invalid scheme|not configured|econnrefused|enoent)\b|❌|\bfailed\s*$/i;
+  const continuation = /^\s*(?:at\s|[+-]\s|expected\b|actual\b)/i;
+  const fallbackBlocks = [];
+  let currentBlock = [];
+
+  const flushFallbackBlock = () => {
+    const block = currentBlock.join('\n').trim();
+    if (block) fallbackBlocks.push(block);
+    currentBlock = [];
+  };
+
+  lines.forEach(line => {
+    if (errorStart.test(line)) {
+      flushFallbackBlock();
+      currentBlock = [line];
+    } else if (currentBlock.length > 0 && continuation.test(line)) {
+      currentBlock.push(line);
+    } else if (currentBlock.length > 0 && line.trim() === '') {
+      flushFallbackBlock();
+    } else if (currentBlock.length > 0) {
+      flushFallbackBlock();
+    }
+  });
+  flushFallbackBlock();
+
+  return fallbackBlocks;
+}
+
+function redactSensitive(value) {
+  return value.replace(
+    /(password|secret|token|api[_-]?key|authorization)(\s*[:=]\s*)([^\s,;]+)/gi,
+    '$1$2[REDACTED]'
+  );
+}
+
+function errorSignature(errorText) {
+  const firstErrorLine = errorText.split('\n').find(line => line.trim()) || errorText;
+  return firstErrorLine.replace(/\s+/g, ' ').trim();
+}
+
+function addFailureToReport(errorMap, filePath, output) {
+  const blocks = extractFailureBlocks(output);
+  const details = blocks.length > 0 ? blocks : [`Test failed: ${path.basename(filePath)}`];
+
+  details.forEach(rawMessage => {
+    const message = redactSensitive(rawMessage);
+    const signature = errorSignature(message);
+    const existing = errorMap.get(signature);
+    if (existing) {
+      if (!existing.files.includes(path.basename(filePath))) existing.files.push(path.basename(filePath));
+      return;
+    }
+    errorMap.set(signature, {
+      message,
+      files: [path.basename(filePath)],
+    });
+  });
+}
+
+function writeErrorReport(failedTests, errorMap) {
+  fs.mkdirSync(path.dirname(TEST_ERROR_REPORT), { recursive: true });
+  const report = {
+    generatedAt: new Date().toISOString(),
+    failedFiles: failedTests.map(file => path.basename(file)),
+    errors: [...errorMap.values()],
+  };
+  fs.writeFileSync(TEST_ERROR_REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(`${CLI_SYMBOLS.report} Error report saved to ${TEST_ERROR_REPORT}`);
+}
 
 // Parse CLI args
 function parseArgs() {
@@ -79,11 +183,22 @@ function runTestFile(filePath) {
       ? [require.resolve('mocha/bin/_mocha'), filePath]
       : [filePath];
     const test = spawn(command, args, {
-      stdio: 'inherit',
+      stdio: ['inherit', 'pipe', 'pipe'],
       cwd: process.cwd(),
+    });
+    let output = '';
+
+    test.stdout.on('data', chunk => {
+      output += chunk.toString();
+      process.stdout.write(chunk);
+    });
+    test.stderr.on('data', chunk => {
+      output += chunk.toString();
+      process.stderr.write(chunk);
     });
 
     test.on('error', error => {
+      error.testOutput = output;
       reject(error);
     });
 
@@ -93,7 +208,9 @@ function runTestFile(filePath) {
         resolve();
       } else {
         console.error(`${CLI_SYMBOLS.error} ${path.basename(filePath)} failed\n`);
-        reject(new Error(`Test failed: ${filePath}`));
+        const error = new Error(`Test failed: ${filePath}`);
+        error.testOutput = output;
+        reject(error);
       }
     });
   });
@@ -170,14 +287,17 @@ async function main() {
     console.log(`\n${CLI_SYMBOLS.test} Running ${testFiles.length} test file(s)...\n`);
 
     // Run tests sequentially
-    let failedTests = [];
+    const failedTests = [];
+    const errorMap = new Map();
     for (const testFile of testFiles) {
       try {
         await runTestFile(testFile);
       } catch (error) {
         failedTests.push(testFile);
+        addFailureToReport(errorMap, testFile, error.testOutput || error.message);
       }
     }
+    writeErrorReport(failedTests, errorMap);
 
     // Summary
     console.log('\n' + '='.repeat(60));

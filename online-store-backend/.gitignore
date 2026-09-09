@@ -46,6 +46,7 @@ next-env.d.ts
 /reports/cleanup/
 /reports/benchmark/
 /reports/migration/
+/reports/test/
 
 # Crawler and auto-import data (generated locally)
 data/*.json
