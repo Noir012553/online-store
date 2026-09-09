@@ -10,7 +10,7 @@
     ],
     "generatedAt": "2026-08-06",
     "existingReportContext": {
-      "file": "online-store-backend/src/i18n/key-consistency-report.json",
+      "file": "online-store-backend/reports/i18n/key-consistency-report.json",
       "result": "Locale JSON files are structurally consistent across 9 languages.",
       "limitation": "That report does not validate frontend key usage, runtime namespace loading, hard-coded JSX text, accessibility labels or dynamic API data."
     }
