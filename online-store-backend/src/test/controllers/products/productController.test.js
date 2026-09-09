@@ -14,6 +14,17 @@ const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTr
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
+const createProductQuery = (sandbox, products = []) => ({
+  populate: sandbox.stub().returnsThis(),
+  limit: sandbox.stub().returnsThis(),
+  skip: sandbox.stub().returnsThis(),
+  sort: sandbox.stub().returnsThis(),
+  select: sandbox.stub().returnsThis(),
+  lean: sandbox.stub().returnsThis(),
+  maxTimeMS: sandbox.stub().returnsThis(),
+  then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
+});
+
 describe('Product Controller', () => {
   let sandbox;
 
@@ -27,7 +38,7 @@ describe('Product Controller', () => {
 
   describe('getProducts', () => {
     it('should fetch all products with pagination and filtering', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = createProductQuery(sandbox);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
@@ -38,7 +49,7 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by keyword', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = createProductQuery(sandbox);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
@@ -55,18 +66,17 @@ describe('Product Controller', () => {
         name: 'Laptop',
         category: { _id: categoryId, name: 'Máy tính', description: 'Mô tả gốc' },
       }];
-      const mockChain = {
-        populate: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        lean: sandbox.stub().returnsThis(),
-        then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
-      };
+      const mockChain = createProductQuery(sandbox, products);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').resolves(1);
-      sandbox.stub(ProductCatalogTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+      sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves([]),
+      });
       const categoryFind = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves([{
           entityId: categoryId.toString(),
           targetLang: 'en',
@@ -91,7 +101,7 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by category', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = createProductQuery(sandbox);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
@@ -102,7 +112,7 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by brand', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = createProductQuery(sandbox);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
@@ -123,17 +133,12 @@ describe('Product Controller', () => {
         description: 'Mô tả gốc',
         category: { _id: categoryId, name: 'Máy tính', description: 'Danh mục gốc' },
       }];
-      const mockChain = {
-        populate: sandbox.stub().returnsThis(),
-        lean: sandbox.stub().returnsThis(),
-        sort: sandbox.stub().returnsThis(),
-        limit: sandbox.stub().returnsThis(),
-        skip: sandbox.stub().returnsThis(),
-        then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
-      };
+      const mockChain = createProductQuery(sandbox, products);
       sandbox.stub(Product, 'find').returns(mockChain);
       sandbox.stub(Product, 'countDocuments').resolves(1);
       sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves([{
           entityId: productId.toString(),
           targetLang: 'en',
@@ -143,6 +148,8 @@ describe('Product Controller', () => {
         }]),
       });
       sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
+        select: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
         lean: sandbox.stub().resolves([{
           entityId: categoryId.toString(),
           targetLang: 'en',

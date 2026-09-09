@@ -22,12 +22,12 @@ describe('Review Controller - updateReview', () => {
     sandbox.restore();
   });
 
-  let findOneStub, findByIdStub, findReviewStub, saveStub;
+  let findOneStub, findByIdStub, saveStub;
 
   beforeEach(() => {
     findOneStub = sandbox.stub(Review, 'findOne');
     findByIdStub = sandbox.stub(Product, 'findById');
-    findReviewStub = sandbox.stub(Review, 'find');
+    sandbox.stub(Review, 'aggregate').resolves([{ avgRating: 0, count: 0 }]);
     saveStub = sandbox.stub(Product.prototype, 'save');
   });
 
@@ -52,10 +52,9 @@ describe('Review Controller - updateReview', () => {
 
     findOneStub.resolves(review);
     findByIdStub.resolves(product);
-    findReviewStub.resolves([review]);
-
     const req = {
       params: { id: reviewId.toString() },
+      query: {},
       user: { _id: userId },
       body: {
         rating: 5,
@@ -83,6 +82,7 @@ describe('Review Controller - updateReview', () => {
 
     const req = {
       params: { id: reviewId.toString() },
+      query: {},
       user: { _id: userId },
       body: {
         rating: 5,
