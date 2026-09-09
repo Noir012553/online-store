@@ -11,7 +11,7 @@ const sinon = require('sinon');
 const mongoose = require('mongoose');
 const Order = require('../../../models/Order');
 const Product = require('../../../models/Product');
-const { addOrderItems, updateOrderToPaid, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../controllers/orderController');
+const { addOrderItems, updateOrderStatus, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../controllers/orderController');
 
 describe('Order Controller', () => {
   let sandbox;
@@ -65,15 +65,26 @@ describe('Order Controller', () => {
     });
   });
 
-  describe('updateOrderToPaid', () => {
-    it('should update order to paid', async () => {
-      const order = { _id: new mongoose.Types.ObjectId(), isPaid: false, paidAt: null, orderItems: [], save: sandbox.stub().resolves() };
-      sandbox.stub(Order, 'findById').resolves(order);
+  describe('updateOrderStatus', () => {
+    it('should update an order delivery status', async () => {
+      const order = {
+        _id: new mongoose.Types.ObjectId(),
+        isPaid: false,
+        isDelivered: false,
+        orderItems: [],
+        save: sandbox.stub().resolvesThis(),
+      };
+      sandbox.stub(Order, 'findOne').resolves(order);
 
-      const req = { params: { id: order._id.toString() }, body: { id: 'pp-id', status: 'COMPLETED', update_time: new Date(), email_address: 'test@example.com' } };
+      const req = {
+        params: { orderId: order._id.toString() },
+        body: { isDelivered: true },
+        app: { get: sandbox.stub().returns(null) },
+      };
       const res = { json: sandbox.stub() };
-      
-      await updateOrderToPaid(req, res);
+
+      await updateOrderStatus(req, res);
+      expect(order.isDelivered).to.be.true;
       expect(res.json.calledOnce).to.be.true;
     });
   });
@@ -96,7 +107,12 @@ describe('Order Controller', () => {
       const userId = new mongoose.Types.ObjectId();
       const orders = [{ _id: new mongoose.Types.ObjectId(), user: userId }];
       sandbox.stub(Order, 'countDocuments').resolves(1);
-      const mockChain = { limit: sandbox.stub().returnsThis(), skip: sandbox.stub().resolves(orders) };
+      const mockChain = {
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().resolves(orders),
+      };
       sandbox.stub(Order, 'find').returns(mockChain);
 
       const req = { user: { _id: userId }, query: { pageNumber: '1' } };

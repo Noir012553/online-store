@@ -27,9 +27,9 @@ describe('Product Controller', () => {
 
   describe('getProducts', () => {
     it('should fetch all products with pagination and filtering', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(0);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
       const req = { query: { pageNumber: '1' } };
       const res = { json: sandbox.stub() };
@@ -38,9 +38,9 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by keyword', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(0);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
       const req = { query: { keyword: 'laptop', pageNumber: '1' } };
       const res = { json: sandbox.stub() };
@@ -91,9 +91,9 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by category', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(0);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
       const req = { query: { category: 'gaming', pageNumber: '1' } };
       const res = { json: sandbox.stub() };
@@ -102,9 +102,9 @@ describe('Product Controller', () => {
     });
 
     it('should fetch products filtered by brand', async () => {
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
+      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().returnsThis(), sort: sandbox.stub().returnsThis(), select: sandbox.stub().returnsThis(), lean: sandbox.stub().returnsThis(), maxTimeMS: sandbox.stub().returnsThis(), exec: sandbox.stub().resolves([]) };
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(0);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
 
       const req = { query: { brand: 'Dell', pageNumber: '1' } };
       const res = { json: sandbox.stub() };

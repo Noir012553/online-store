@@ -9,6 +9,8 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const Coupon = require('../../../models/Coupon');
+const Currency = require('../../../models/Currency');
+const ExchangeRate = require('../../../models/ExchangeRate');
 const { getCoupons, createCoupon, calculateDiscount, deleteCoupon } = require('../../../controllers/couponController');
 
 describe('Coupon Controller', () => {
@@ -16,6 +18,10 @@ describe('Coupon Controller', () => {
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
+    sandbox.stub(Currency, 'findOne').returns({
+      lean: sandbox.stub().resolves({ code: 'VND', symbol: '₫', position: 'after', decimalPlaces: 0 }),
+    });
+    sandbox.stub(ExchangeRate, 'find').returns({ lean: sandbox.stub().resolves([]) });
   });
 
   afterEach(() => {
@@ -25,7 +31,12 @@ describe('Coupon Controller', () => {
   describe('getCoupons', () => {
     it('should fetch all active coupons with pagination', async () => {
       const mockCoupons = [{ _id: new mongoose.Types.ObjectId(), code: 'SUMMER20', discountValue: 20 }];
-      const mockChain = { populate: sandbox.stub().returnsThis(), limit: sandbox.stub().returnsThis(), skip: sandbox.stub().resolves(mockCoupons) };
+      const mockChain = {
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().resolves(mockCoupons),
+      };
       sandbox.stub(Coupon, 'find').returns(mockChain);
       sandbox.stub(Coupon, 'countDocuments').resolves(1);
 
@@ -42,7 +53,15 @@ describe('Coupon Controller', () => {
       sandbox.stub(Coupon.prototype, 'save').resolves({ code: 'NEW' });
 
       const req = {
-        body: { code: 'NEWCOUPON', discountType: 'percentage', discountValue: 15, startDate: new Date(), endDate: new Date(Date.now() + 86400000) },
+        query: {},
+        body: {
+          code: 'NEWCOUPON',
+          discountType: 'percentage',
+          discountValue: 15,
+          currencyCode: 'VND',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 86400000),
+        },
       };
       const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
       await createCoupon(req, res);
@@ -53,12 +72,12 @@ describe('Coupon Controller', () => {
   describe('calculateDiscount', () => {
     it('should calculate 20% discount correctly', async () => {
       const mockCoupon = {
-        code: 'SUMMER20', discountType: 'percentage', discountValue: 20, currentUses: 0, maxUses: 100, minOrderAmount: 0,
+        code: 'SUMMER20', discountType: 'percentage', discountValue: 20, currentUses: 0, maxUses: 100, minOrderAmount: 0, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
       sandbox.stub(Coupon, 'findOne').resolves(mockCoupon);
 
-      const req = { body: { couponCode: 'SUMMER20', orderAmount: 1000000, products: [] } };
+      const req = { body: { couponCode: 'SUMMER20', orderAmount: 1000000, orderCurrencyCode: 'VND', products: [] } };
       const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
       await calculateDiscount(req, res);
 
@@ -69,12 +88,12 @@ describe('Coupon Controller', () => {
 
     it('should calculate 100k fixed discount correctly', async () => {
       const mockCoupon = {
-        code: 'WELCOME100', discountType: 'fixed', discountValue: 100000, currentUses: 0, maxUses: 100, minOrderAmount: 0,
+        code: 'WELCOME100', discountType: 'fixed', discountValue: 100000, currentUses: 0, maxUses: 100, minOrderAmount: 0, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
       sandbox.stub(Coupon, 'findOne').resolves(mockCoupon);
 
-      const req = { body: { couponCode: 'WELCOME100', orderAmount: 500000, products: [] } };
+      const req = { body: { couponCode: 'WELCOME100', orderAmount: 500000, orderCurrencyCode: 'VND', products: [] } };
       const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
       await calculateDiscount(req, res);
 
@@ -85,35 +104,35 @@ describe('Coupon Controller', () => {
 
     it('should reject if usage limit reached', async () => {
       const mockCoupon = {
-        code: 'LIMIT', discountType: 'percentage', discountValue: 10, currentUses: 100, maxUses: 100, minOrderAmount: 0,
+        code: 'LIMIT', discountType: 'percentage', discountValue: 10, currentUses: 100, maxUses: 100, minOrderAmount: 0, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
       sandbox.stub(Coupon, 'findOne').resolves(mockCoupon);
 
-      const req = { body: { couponCode: 'LIMIT', orderAmount: 1000000, products: [] } };
+      const req = { body: { couponCode: 'LIMIT', orderAmount: 1000000, orderCurrencyCode: 'VND', products: [] } };
       const res = { status: sandbox.stub().returnsThis() };
 
       try {
         await calculateDiscount(req, res);
       } catch (error) {
-        expect(error.message).to.include('usage limit');
+        expect(res.status.calledWith(400)).to.be.true;
       }
     });
 
     it('should reject if order below minimum amount', async () => {
       const mockCoupon = {
-        code: 'MINORDER', discountType: 'percentage', discountValue: 10, currentUses: 0, maxUses: 100, minOrderAmount: 500000,
+        code: 'MINORDER', discountType: 'percentage', discountValue: 10, currentUses: 0, maxUses: 100, minOrderAmount: 500000, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
       sandbox.stub(Coupon, 'findOne').resolves(mockCoupon);
 
-      const req = { body: { couponCode: 'MINORDER', orderAmount: 300000, products: [] } };
+      const req = { body: { couponCode: 'MINORDER', orderAmount: 300000, orderCurrencyCode: 'VND', products: [] } };
       const res = { status: sandbox.stub().returnsThis() };
 
       try {
         await calculateDiscount(req, res);
       } catch (error) {
-        expect(error.message).to.include('at least');
+        expect(res.status.calledWith(400)).to.be.true;
       }
     });
   });
@@ -124,7 +143,7 @@ describe('Coupon Controller', () => {
       const coupon = { _id: couponId, isDeleted: false, save: sandbox.stub().resolves() };
       sandbox.stub(Coupon, 'findById').resolves(coupon);
 
-      const req = { params: { id: couponId.toString() } };
+      const req = { params: { id: couponId.toString() }, query: {} };
       const res = { json: sandbox.stub() };
       await deleteCoupon(req, res);
       expect(coupon.isDeleted).to.be.true;
