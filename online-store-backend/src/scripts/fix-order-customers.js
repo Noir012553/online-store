@@ -1,12 +1,12 @@
 /**
  * Fix Script - Merperbaiki Orders yang không có customer data
  * Chạy: npm run fix (cần thêm script này vào package.json)
- * hoặc: node src/fix.js
+ * hoặc: node src/scripts/fix-order-customers.js
  */
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { fixOrdersWithoutCustomers, verifyOrderCustomers } = require('./seeds/fixOrderCustomers');
+const { fixOrdersWithoutCustomers, verifyOrderCustomers } = require('../services/orderCustomerRepairService');
 
 const main = async () => {
   try {

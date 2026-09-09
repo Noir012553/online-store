@@ -2,7 +2,7 @@
  * Language Completeness Verification Script
  * Ensures Rule #1 Compliance: All 9 languages have identical namespace sets
  *
- * Run: node src/seeds/verifyLanguageCompleteness.js
+ * Run: node src/scripts/verify-language-completeness.js
  * 
  * Checks:
  * 1. All 9 languages exist with all namespace JSON files

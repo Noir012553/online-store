@@ -6,7 +6,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { deleteCloudinaryImagesByPrefix } = require('./services/cloudinaryService');
+const { deleteCloudinaryImagesByPrefix } = require('../services/cloudinaryService');
 
 const clearDatabase = async () => {
   try {

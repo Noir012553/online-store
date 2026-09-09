@@ -145,7 +145,7 @@ const results = {
 };
 
 fs.writeFileSync(
-  path.join(__dirname, '../i18n/key-consistency-report.json'),
+  path.join(__dirname, '../../reports/i18n/key-consistency-report.json'),
   JSON.stringify(results, null, 2)
 );
 

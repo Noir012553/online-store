@@ -1,6 +1,6 @@
 /**
  * Diagnostic Script - Kiểm tra trạng thái hệ thống i18n
- * Chạy: node src/seeds/diagnoseI18n.js
+ * Chạy: node src/scripts/diagnose-i18n.js
  * 
  * Kiểm tra:
  * 1. Database connections & query StaticTranslation collection

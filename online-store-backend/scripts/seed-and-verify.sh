@@ -16,7 +16,7 @@ echo "=============================="
 echo ""
 
 # Run diagnostic
-node src/seeds/diagnoseI18n.js
+node src/scripts/diagnose-i18n.js
 
 echo ""
 echo "✨ All done! Check footer in browser now."
