@@ -74,10 +74,10 @@ online-store-backend/
 │  ├─ models/
 │  │  └─ ExportJob.js
 │  └─ test/
-│     ├─ importFileValidator.test.js
-│     └─ exportJobService.test.js
+│     ├─ import-file-validator.test.js
+│     └─ export-job-service.test.js
 └─ scripts/
-   └─ test-export-production.ps1
+   └─ test-export-production.js
 
 online-store-frontend/
 ├─ src/
@@ -998,7 +998,7 @@ Fix đã áp dụng:
 - Giảm `EXPORT_BATCH_SIZE` từ 250 xuống 100 tại `productImportController.js` để giới hạn kích thước truy vấn sản phẩm và translation cache trong mỗi batch.
 - Giữ timeout database 30000ms để không che khuất query chậm bằng cách tăng timeout mù quáng.
 - Chuẩn hóa endpoint download async trong `online-store-frontend/src/lib/api.ts`: nếu backend trả URL bắt đầu bằng `/api/`, frontend không nối thêm một `/api` thứ hai.
-- Cập nhật `scripts/test-export-production.ps1` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
+- Cập nhật `scripts/test-export-production.js` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
 
 Cần tải phiên bản code mới và retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
 
@@ -1119,7 +1119,7 @@ Socket giữ logic local khi hostname là localhost và production khi chạy do
 File mới:
 
 ```text
-online-store-backend/scripts/test-export-production.ps1
+online-store-backend/scripts/test-export-production.js
 ```
 
 Mặc định:
@@ -1221,7 +1221,7 @@ npm run tunnel
 
 ```powershell
 $backendRoot = (Get-Location).Path
-$exportScript = Join-Path $backendRoot "scripts\test-export-production.ps1"
+$exportScript = Join-Path $backendRoot "scripts\test-export-production.js"
 $credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
 
 if (-not (Test-Path $exportScript)) {
@@ -1271,7 +1271,7 @@ Log script:
 Khi chuyển code sang workspace mới, lệnh PowerShell từng tạo sai đường dẫn:
 
 ```text
-E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\test-export-production.ps1
+E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\test-export-production.js
 ```
 
 Nguyên nhân là lệnh lấy thư mục backend hiện tại làm workspace root rồi nối thêm `online-store-backend`:
@@ -1299,7 +1299,7 @@ Không nên dùng đường dẫn workspace hard-code vì bản copy, ổ đĩa 
 #### Cách xử lý thống nhất
 
 - Dùng thư mục hiện tại làm điểm bắt đầu, sau đó thử các vị trí hợp lệ: chính nó, thư mục con `online-store-backend`, backend cùng cấp hoặc thư mục cha.
-- Chỉ chọn thư mục có `scripts\test-export-production.ps1` để tránh chọn nhầm frontend.
+- Chỉ chọn thư mục có `scripts\test-export-production.js` để tránh chọn nhầm frontend.
 - Tự suy ra `online-store-frontend` từ thư mục cha của backend.
 - Kiểm tra `Test-Path` trước khi `Set-Location` hoặc chạy script.
 - Dùng `& $exportScript` để gọi file `.ps1` bằng đường dẫn đã resolve.
@@ -1324,7 +1324,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+            Test-Path (Join-Path $_ "scripts\test-export-production.js")
         } |
         Select-Object -First 1
 
@@ -1437,7 +1437,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+            Test-Path (Join-Path $_ "scripts\test-export-production.js")
         } |
         Select-Object -First 1
 
@@ -1482,7 +1482,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.ps1")
+            Test-Path (Join-Path $_ "scripts\test-export-production.js")
         } |
         Select-Object -First 1
 
@@ -1494,7 +1494,7 @@ function Resolve-BackendRoot {
 }
 
 $backendRoot = Resolve-BackendRoot
-$exportScript = Join-Path $backendRoot "scripts\test-export-production.ps1"
+$exportScript = Join-Path $backendRoot "scripts\test-export-production.js"
 $credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
 
 if (-not (Test-Path $exportScript)) {
@@ -1800,7 +1800,7 @@ Production test cần được chạy sau khi endpoint production sẵn sàng:
 powershell.exe `
   -NoProfile `
   -ExecutionPolicy Bypass `
-  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.ps1" `
+  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.js" `
   -Environment production `
   -Target frontend `
   -Limit 10000 `
@@ -1813,7 +1813,7 @@ Nếu muốn bỏ qua frontend proxy và test trực tiếp backend production:
 powershell.exe `
   -NoProfile `
   -ExecutionPolicy Bypass `
-  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.ps1" `
+  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.js" `
   -Environment production `
   -Target backend `
   -Limit 10000 `
@@ -1997,7 +1997,7 @@ Credential:      $HOME\.online-store-export-credential.xml
 Credential type: Windows DPAPI Import-Clixml
 ```
 
-Email/password không được hard-code trong lệnh. Script `test-export-production.ps1` đọc credential từ file DPAPI và tự dọn các biến môi trường sau khi chạy.
+Email/password không được hard-code trong lệnh. Script `test-export-production.js` đọc credential từ file DPAPI và tự dọn các biến môi trường sau khi chạy.
 
 ### 15.3. Quy trình test 4 terminal
 
@@ -2529,7 +2529,7 @@ Mục đích là xác định request phụ nào tạo `ROUTE_NOT_FOUND` mà kh�
 Đã thêm test trong:
 
 ```text
-online-store-backend/src/test/importFileValidator.test.js
+online-store-backend/src/test/import-file-validator.test.js
 ```
 
 Test mô phỏng lần fetch đầu thất bại, lần thứ hai trả JPEG hợp lệ và kiểm tra:
@@ -2546,7 +2546,7 @@ ZIP được tạo thành công
 ```powershell
 node --check online-store-backend/src/controllers/productImportController.js
 node --check online-store-backend/src/middleware/errorMiddleware.js
-node --check online-store-backend/src/test/importFileValidator.test.js
+node --check online-store-backend/src/test/import-file-validator.test.js
 git diff --check
 git diff --cached --check
 ```
@@ -2562,7 +2562,7 @@ Regression test Mocha chưa có kết quả assertion trong môi trường agent
 
 ```powershell
 cd online-store-backend
-npx mocha src/test/importFileValidator.test.js
+npx mocha src/test/import-file-validator.test.js
 ```
 
 đã thoát với mã 1 sau khi `npx` cố tải tạm `mocha@12.0.0`; không có báo cáo assertion pass/fail đáng tin cậy. Không coi đây là lỗi logic của test hoặc backend cho đến khi chạy bằng dependency đã cài trên máy Windows.

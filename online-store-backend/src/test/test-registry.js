@@ -12,7 +12,7 @@
 const path = require('path');
 const fs = require('fs');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { discoverTestFiles } = require('./testConfig');
+const { discoverTestFiles } = require('./test-config');
 
 // Test registry: định nghĩa tất cả test suites
 const TEST_SUITES = {
@@ -33,8 +33,8 @@ const TEST_SUITES = {
     files: [
       'languages-flow.test.js',
       'translation-api.test.js',
-      'translationProductCache.test.js',
-      'specKeyTranslationCache.test.js',
+      'translation-product-cache.test.js',
+      'spec-key-translation-cache.test.js',
     ],
   },
 
@@ -45,7 +45,7 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['currency', 'formatting'],
     files: [
-      'currencyFormatter.test.js',
+      'currency-formatter.test.js',
     ],
   },
 
@@ -55,10 +55,10 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['products', 'entities', 'sources'],
     files: [
-      'phase4-e2e-simplified.test.js',
-      'importFileValidator.test.js',
-      'exportJobService.test.js',
-      'translationHelper.test.js',
+      'translation-migration-smoke.test.js',
+      'import-file-validator.test.js',
+      'export-job-service.test.js',
+      'translation-helper.test.js',
     ],
   },
 
@@ -90,9 +90,9 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['backend', 'endpoints'],
     files: [
-      'backend-endpoints-phase3.test.js',
-      'phase4-e2e-simplified.test.js',
-      'appReadiness.test.js',
+      'backend-endpoints.test.js',
+      'translation-migration-smoke.test.js',
+      'app-readiness.test.js',
     ],
   },
 
@@ -124,7 +124,7 @@ const TEST_SUITES = {
     tags: ['basic'],
     files: [
       'simple.test.js',
-      'ghnService.test.js',
+      'ghn-service.test.js',
     ],
   },
 };

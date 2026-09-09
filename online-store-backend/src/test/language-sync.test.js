@@ -15,7 +15,7 @@
 require('dotenv').config();
 const axios = require('axios');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { apiBaseUrl } = require('./testConfig');
+const { apiBaseUrl } = require('./test-config');
 
 const API_BASE = `${apiBaseUrl}/api`;
 

@@ -22,8 +22,8 @@ const {
   resolveTestFiles,
   filterByTags,
   getSuiteFiles,
-} = require('./testRegistry');
-const { getRunnerForFile } = require('./testConfig');
+} = require('./test-registry');
+const { getRunnerForFile } = require('./test-config');
 
 // Parse CLI args
 function parseArgs() {

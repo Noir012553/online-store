@@ -240,11 +240,11 @@ online-store-backend/package.json
 
 ```text
 online-store-backend/scripts/test-export-dynamic.js
-online-store-backend/scripts/test-import-export.ps1
-online-store-backend/scripts/test-export-production.ps1
+online-store-backend/scripts/test-import-export.js
+online-store-backend/scripts/test-export-production.js
 ```
 
-`test-export-dynamic.js` và `package.json` đã được cập nhật; hai wrapper PowerShell đã được kiểm tra và dùng làm entrypoint đọc credential XML.
+`test-export-dynamic.js` và `package.json` đã được cập nhật; hai wrapper Node.js dùng làm entrypoint đọc credential XML.
 
 ### Export/import
 
@@ -259,7 +259,7 @@ online-store-backend/src/services/cloudinaryService.js
 ### Test hồi quy
 
 ```text
-online-store-backend/src/test/importFileValidator.test.js
+online-store-backend/src/test/import-file-validator.test.js
 ```
 
 ## 5. Cách test đã thực hiện
@@ -275,7 +275,7 @@ node --check src/controllers/productImportController.js
 node --check src/utils/fileUtils.js
 node --check src/utils/zipImport.js
 node --check src/services/cloudinaryService.js
-node --check src/test/importFileValidator.test.js
+node --check src/test/import-file-validator.test.js
 ```
 
 Kết quả:
@@ -296,7 +296,7 @@ Không phát hiện whitespace error.
 
 ### 5.3. Unit test hồi quy đã bổ sung
 
-Trong `src/test/importFileValidator.test.js`:
+Trong `src/test/import-file-validator.test.js`:
 
 - Export giữ được `specs` canonical.
 - Export chuyển `Map` về object.
@@ -387,7 +387,7 @@ Importer không còn dùng riêng metadata `uncompressedSize` trong central dire
 Đã thêm test hồi quy cho ZIP có metadata kích thước lớn hơn buffer thực tế tại:
 
 ```text
-online-store-backend/src/test/importFileValidator.test.js
+online-store-backend/src/test/import-file-validator.test.js
 ```
 
 ### 8.2. Rotation nhiều tài khoản Cloudinary
