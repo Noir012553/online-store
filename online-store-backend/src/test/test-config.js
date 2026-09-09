@@ -1,5 +1,4 @@
 const fs = require('fs');
-const fs = require('fs');
 const path = require('path');
 
 const TEST_ROOT = __dirname;
