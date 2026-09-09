@@ -7,7 +7,7 @@
 
 const path = require('path');
 const { CLI_SYMBOLS: cliSymbols } = require('../utils/cliSymbols');
-const { frontendRoot } = require('./testConfig');
+const { frontendRoot } = require('./test-config');
 
 const colors = {
   reset: '\x1b[0m',

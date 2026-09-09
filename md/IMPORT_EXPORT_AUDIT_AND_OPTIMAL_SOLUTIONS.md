@@ -35,8 +35,8 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
 - Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
 - Kiểm tra cú pháp backend đã PASS; một số regression runtime test chưa chạy được trong môi trường agent vì thiếu `mongoose`/Mocha. Node dynamic runner đã kiểm tra syntax và được dùng để test local qua PowerShell.
-- Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng Node Playwright global tại `online-store-backend/scripts/test-export-dynamic.js` và wrapper PowerShell `online-store-backend/scripts/test-import-export.ps1`.
-- Runner nhận động environment, frontend/backend URL, locale, format JSON/CSV, mode insert/update/upsert, file ZIP có sẵn và report; mặc định import ở chế độ dry-run, chỉ ghi thật khi truyền `--commit-import` hoặc `-CommitImport`.
+- Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng Node Playwright global tại `online-store-backend/scripts/test-export-dynamic.js` và wrapper Node.js `online-store-backend/src/test/import-export.test.js`.
+- Runner nhận động environment, frontend/backend URL, locale, format JSON/CSV, mode insert/update/upsert, file ZIP có sẵn và report; mặc định import ở chế độ dry-run, chỉ ghi thật khi truyền `--commit-import` hoặc `--commit-import`.
 - PowerShell đặt `NODE_PATH=C:\Windows\system32\node_modules` để dùng Playwright global; Python Playwright không còn là dependency của luồng test này. Các file Python cũ chỉ được giữ lại để đối chiếu lịch sử và không còn được wrapper gọi.
 - Khi không truyền `--zip-output`, runner tự lưu vào `online-store-backend/tmp/products-export-<timestamp>.zip`, ví dụ `products-export-1788759680606.zip`, nên không ghi đè file export trước đó.
 - Không chạy `npm run build` theo quy ước dự án.
@@ -65,7 +65,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 
 4. **Runner Python và Node bị trùng hướng triển khai**
    - Runner chính hiện dùng Node Playwright global: `scripts/test-export-dynamic.js`.
-   - Wrapper `scripts/test-import-export.ps1` không gọi Python nữa.
+   - Wrapper `src/test/import-export.test.js` không gọi Python nữa.
    - Vị trí Playwright global được ghi nhận trên Windows: `C:\Windows\system32\node_modules`.
    - Các file Python cũ chỉ giữ để đối chiếu, không phải entry point hiện tại.
 
@@ -168,23 +168,23 @@ npm run test:import:export:dynamic -- `
   --mode upsert
 ```
 
-**6. Dùng wrapper PowerShell:**
+**6. Dùng wrapper Node.js:**
 
 ```powershell
-.\scripts\test-import-export.ps1 `
-  -Environment local `
-  -Target frontend `
-  -Format json `
-  -Mode upsert `
-  -Limit 10 `
-  -ReportPath .\tmp\import-export-report.json
+node .\src\test\import-export.test.js `
+  --environment local `
+  --target frontend `
+  --format json `
+  --mode upsert `
+  --limit 10 `
+  --report .\tmp\import-export-report.json
 ```
 
-Wrapper tự đặt `NODE_PATH` global, đọc credential DPAPI và xóa biến môi trường sau test.
+Wrapper chuyển tham số vào runner Node.js; credential được đọc từ biến môi trường hoặc file DPAPI trên Windows.
 
 **7. Commit thật:**
 
-Chỉ thêm `--commit-import` hoặc `-CommitImport` sau khi dry-run đã PASS:
+Chỉ thêm `--commit-import` hoặc `--commit-import` sau khi dry-run đã PASS:
 
 ```powershell
 npm run test:import:export:dynamic -- `

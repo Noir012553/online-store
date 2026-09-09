@@ -17,7 +17,7 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { baseUrl, timeoutMs } = require('./testConfig');
+const { baseUrl, timeoutMs } = require('./test-config');
 
 const BASE_URL = baseUrl;
 const TEST_TIMEOUT = timeoutMs;

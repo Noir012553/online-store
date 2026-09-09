@@ -1,6 +1,6 @@
 const http = require('http');
 
-const { baseUrl: configuredBaseUrl } = require('./testConfig');
+const { baseUrl: configuredBaseUrl } = require('./test-config');
 const baseUrl = new URL(configuredBaseUrl);
 
 function makeRequest(method, path, body = null) {

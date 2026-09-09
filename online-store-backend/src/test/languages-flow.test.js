@@ -12,7 +12,7 @@ const Language = require('../models/Language');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const Product = require('../models/Product');
 
-const { mongoUri: MONGO_URI } = require('./testConfig');
+const { mongoUri: MONGO_URI } = require('./test-config');
 const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 
 async function testLanguagesFlow() {

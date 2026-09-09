@@ -13,7 +13,7 @@
 
 const http = require('http');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { baseUrl, languageCode, backgroundTimeoutMs } = require('./testConfig');
+const { baseUrl, languageCode, backgroundTimeoutMs } = require('./test-config');
 
 const BASE_URL = baseUrl;
 const TEST_LANG = process.argv[2] || languageCode;
