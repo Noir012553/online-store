@@ -217,7 +217,10 @@ class PaymentService {
       }
 
       // IPN xử lý
-      const ipnResult = await adapter.handleIPN(webhookData);
+      const ipnResult = await adapter.handleIPN({
+        ...webhookData,
+        vnp_SecureHash: webhookData.vnp_SecureHash || signature,
+      });
       if (!ipnResult.success) {
         return {
           success: false,
