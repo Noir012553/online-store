@@ -9,6 +9,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const Category = require('../../../models/Category');
+const Product = require('../../../models/Product');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const { getCategoryById, createCategory, updateCategory, deleteCategory, hardDeleteCategory } = require('../../../controllers/categoryController');
 
@@ -299,9 +300,11 @@ describe('Category Controller - CRUD Operations', () => {
 
   describe('hardDeleteCategory', () => {
     let findByIdStub;
+    let productCountStub;
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Category, 'findById');
+      productCountStub = sandbox.stub(Product, 'countDocuments').resolves(0);
     });
 
     it('should hard delete a category', async () => {

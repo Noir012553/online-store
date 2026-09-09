@@ -21,6 +21,9 @@ describe('Coupon Controller', () => {
     sandbox.stub(Currency, 'findOne').returns({
       lean: sandbox.stub().resolves({ code: 'VND', symbol: '₫', position: 'after', decimalPlaces: 0 }),
     });
+    sandbox.stub(Currency, 'find').returns({
+      lean: sandbox.stub().resolves([{ code: 'VND', symbol: '₫', position: 'after', decimalPlaces: 0 }]),
+    });
     sandbox.stub(ExchangeRate, 'find').returns({ lean: sandbox.stub().resolves([]) });
   });
 
@@ -72,6 +75,7 @@ describe('Coupon Controller', () => {
   describe('calculateDiscount', () => {
     it('should calculate 20% discount correctly', async () => {
       const mockCoupon = {
+        _id: new mongoose.Types.ObjectId(),
         code: 'SUMMER20', discountType: 'percentage', discountValue: 20, currentUses: 0, maxUses: 100, minOrderAmount: 0, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
@@ -88,6 +92,7 @@ describe('Coupon Controller', () => {
 
     it('should calculate 100k fixed discount correctly', async () => {
       const mockCoupon = {
+        _id: new mongoose.Types.ObjectId(),
         code: 'WELCOME100', discountType: 'fixed', discountValue: 100000, currentUses: 0, maxUses: 100, minOrderAmount: 0, currencyCode: 'VND', applicableProducts: [],
         startDate: new Date(Date.now() - 86400000), endDate: new Date(Date.now() + 86400000), isActive: true, isDeleted: false,
       };
