@@ -9,6 +9,11 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const Customer = require('../../../models/Customer');
+const User = require('../../../models/User');
+const Order = require('../../../models/Order');
+const Currency = require('../../../models/Currency');
+const ExchangeRate = require('../../../models/ExchangeRate');
+const { getMessage } = require('../../../i18n/messages');
 const { getCustomerById, createCustomer, updateCustomer, deleteCustomer, hardDeleteCustomer } = require('../../../controllers/customerController');
 
 describe('Customer Controller - CRUD Operations', () => {
@@ -27,6 +32,20 @@ describe('Customer Controller - CRUD Operations', () => {
 
     beforeEach(() => {
       findOneStub = sandbox.stub(Customer, 'findOne');
+      sandbox.stub(User, 'findOne').returns({
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves(null),
+      });
+      sandbox.stub(Order, 'countDocuments').resolves(0);
+      sandbox.stub(Order, 'find').returns({ lean: sandbox.stub().resolves([]) });
+      sandbox.stub(Currency, 'find').returns({
+        lean: sandbox.stub().resolves([{ code: 'VND', symbol: '₫', position: 'after', decimalPlaces: 0 }]),
+      });
+      sandbox.stub(Currency, 'findOne').returns({
+        sort: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves({ code: 'VND' }),
+      });
+      sandbox.stub(ExchangeRate, 'find').returns({ lean: sandbox.stub().resolves([]) });
     });
 
     it('should fetch customer by ID', async () => {
@@ -38,10 +57,11 @@ describe('Customer Controller - CRUD Operations', () => {
         isDeleted: false,
       };
 
-      findOneStub.resolves(customer);
+      findOneStub.returns({ lean: sandbox.stub().resolves(customer) });
 
       const req = {
         params: { id: customerId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -51,15 +71,21 @@ describe('Customer Controller - CRUD Operations', () => {
       await getCustomerById(req, res);
 
       expect(findOneStub.calledWith({ _id: customerId.toString(), isDeleted: false })).to.be.true;
-      expect(res.json.calledWith(customer)).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+      expect(res.json.firstCall.args[0]).to.include({
+        ...customer,
+        totalOrders: 0,
+        totalSpent: 0,
+      });
     });
 
     it('should return 404 if customer not found', async () => {
       const customerId = new mongoose.Types.ObjectId();
-      findOneStub.resolves(null);
+      findOneStub.returns({ lean: sandbox.stub().resolves(null) });
 
       const req = {
         params: { id: customerId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -98,6 +124,7 @@ describe('Customer Controller - CRUD Operations', () => {
       saveStub.resolves(createdCustomer);
 
       const req = {
+        query: {},
         body: customerData,
       };
       const res = {
@@ -120,6 +147,7 @@ describe('Customer Controller - CRUD Operations', () => {
       findOneStub.resolves(existingCustomer);
 
       const req = {
+        query: {},
         body: {
           name: 'Jane Doe',
           email: 'existing@example.com',
@@ -144,9 +172,11 @@ describe('Customer Controller - CRUD Operations', () => {
 
   describe('updateCustomer', () => {
     let findByIdStub;
+    let findByIdAndUpdateStub;
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Customer, 'findById');
+      findByIdAndUpdateStub = sandbox.stub(Customer, 'findByIdAndUpdate');
     });
 
     it('should update a customer', async () => {
@@ -160,8 +190,10 @@ describe('Customer Controller - CRUD Operations', () => {
       };
 
       findByIdStub.resolves(customer);
+      findByIdAndUpdateStub.resolves({ ...customer, name: 'New Name', email: 'new@example.com', phone: '9999999999' });
 
       const req = {
+        query: {},
         params: { id: customerId.toString() },
         body: {
           name: 'New Name',
@@ -176,9 +208,11 @@ describe('Customer Controller - CRUD Operations', () => {
 
       await updateCustomer(req, res);
 
-      expect(customer.name).to.equal('New Name');
-      expect(customer.email).to.equal('new@example.com');
-      expect(customer.save.calledOnce).to.be.true;
+      expect(findByIdAndUpdateStub.calledWith(
+        customerId.toString(),
+        { $set: { name: 'New Name', email: 'new@example.com', phone: '9999999999' } },
+        { returnDocument: 'after', runValidators: true },
+      )).to.be.true;
       expect(res.json.calledOnce).to.be.true;
     });
 
@@ -187,6 +221,7 @@ describe('Customer Controller - CRUD Operations', () => {
       findByIdStub.resolves(null);
 
       const req = {
+        query: {},
         params: { id: customerId.toString() },
         body: { name: 'New Name' },
       };
@@ -225,6 +260,8 @@ describe('Customer Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: customerId.toString() },
+        query: { lang: 'en' },
+        app: { get: sandbox.stub().returns(null) },
       };
       const res = {
         json: sandbox.stub(),
@@ -235,7 +272,9 @@ describe('Customer Controller - CRUD Operations', () => {
 
       expect(customer.isDeleted).to.be.true;
       expect(customer.save.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Customer removed' })).to.be.true;
+      expect(res.json.calledWith({
+        message: getMessage('en', 'admin-controllers-messages.customer_removed'),
+      })).to.be.true;
     });
 
     it('should return 404 if customer not found for deletion', async () => {
@@ -244,6 +283,7 @@ describe('Customer Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: customerId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -279,6 +319,7 @@ describe('Customer Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: customerId.toString() },
+        query: { lang: 'en' },
       };
       const res = {
         json: sandbox.stub(),
@@ -288,7 +329,9 @@ describe('Customer Controller - CRUD Operations', () => {
       await hardDeleteCustomer(req, res);
 
       expect(customer.deleteOne.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Customer permanently removed' })).to.be.true;
+      expect(res.json.calledWith({
+        message: getMessage('en', 'admin-controllers-messages.customer_permanently_removed'),
+      })).to.be.true;
     });
 
     it('should return 404 if customer not found for hard delete', async () => {
@@ -297,6 +340,7 @@ describe('Customer Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: customerId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
