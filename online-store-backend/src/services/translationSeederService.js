@@ -1,4 +1,3 @@
-const StaticTranslation = require('../models/StaticTranslation');
 const fs = require('fs');
 const path = require('path');
 const StaticTranslation = require('../models/StaticTranslation');
