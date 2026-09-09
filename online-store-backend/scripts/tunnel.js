@@ -1,12 +1,23 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
-const executable = path.join(__dirname, '..', 'cloudflared.exe');
-const config = path.join(__dirname, '..', '.cloudflared', 'config.windows.yml');
+const backendRoot = path.resolve(__dirname, '..');
+const isWindows = process.platform === 'win32';
+const executable = isWindows ? path.join(backendRoot, 'cloudflared.exe') : 'cloudflared';
+const config = path.join(backendRoot, '.cloudflared', isWindows ? 'config.windows.yml' : 'config.yaml');
+
+if (isWindows && !fs.existsSync(executable)) {
+  throw new Error(`cloudflared binary not found: ${executable}`);
+}
+if (!fs.existsSync(config)) {
+  throw new Error(`Cloudflare tunnel config not found: ${config}`);
+}
+
 const child = spawn(executable, ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'], {
-  cwd: path.resolve(__dirname, '..'),
+  cwd: backendRoot,
   stdio: 'inherit',
 });
 
