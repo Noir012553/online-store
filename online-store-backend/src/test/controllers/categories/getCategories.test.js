@@ -30,6 +30,8 @@ describe('Category Controller - getCategories', () => {
       limit: sandbox.stub().returnsThis(),
       skip: sandbox.stub().returnsThis(),
       lean: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      select: sandbox.stub().returnsThis(),
       then: sandbox.stub(),
     };
     findStub = sandbox.stub(Category, 'find').returns(mockQuery);

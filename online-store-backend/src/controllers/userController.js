@@ -210,7 +210,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         }
 
         const passwordChanged = !!req.body.password;
-        const currentAccessToken = req.headers.authorization?.split(' ')[1];
+        const currentAccessToken = req.headers?.authorization?.split(' ')[1];
 
         if (passwordChanged) {
             user.refreshTokenId = null;

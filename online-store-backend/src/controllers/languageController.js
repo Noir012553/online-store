@@ -17,11 +17,11 @@ const getAdminLanguage = (req) => {
   if (req.user?.language) {
     return req.user.language.toUpperCase();
   }
-  const acceptLang = req.headers['accept-language'];
+  const acceptLang = req.headers?.['accept-language'];
   if (acceptLang) {
     const primaryLang = acceptLang.split(',')[0].split('-')[0].toUpperCase();
     const activeLangs = getActiveLangCodes();
-    if (activeLangs.includes(primaryLang)) {
+    if (activeLangs.includes(primaryLang.toLowerCase())) {
       return primaryLang;
     }
   }
@@ -111,7 +111,7 @@ exports.createLanguage = async (req, res) => {
     if (!code || !name || !requestedCurrencyCode) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_name_required'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_name_required'),
       });
     }
 
@@ -123,7 +123,7 @@ exports.createLanguage = async (req, res) => {
       const supportedCodes = SUPPORTED_LANGUAGES.map(l => l.code).join(', ');
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_not_supported', { code, supportedCodes }),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_not_supported', { code, supportedCodes }),
       });
     }
 
@@ -143,7 +143,7 @@ exports.createLanguage = async (req, res) => {
     if (existingLang) {
       return res.status(409).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_already_exists', { code }),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_already_exists', { code }),
       });
     }
 
@@ -164,7 +164,7 @@ exports.createLanguage = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_added_setup_started'),
+      message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_added_setup_started'),
       data: newLang,
     });
 
@@ -185,7 +185,7 @@ exports.getLanguageSetupStatus = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_required'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_required'),
       });
     }
 
@@ -194,7 +194,7 @@ exports.getLanguageSetupStatus = async (req, res) => {
     if (!language) {
       return res.status(404).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_not_found'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_not_found'),
       });
     }
 
@@ -250,7 +250,7 @@ exports.updateLanguage = async (req, res) => {
     if (!language) {
       return res.status(404).json({
         success: false,
-        message: getMessage(getAdminLanguage(req), 'admin-controllers-messages', 'admin_lang_not_found'),
+        message: getMessage(getAdminLanguage(req), 'admin-controllers-messages.admin_lang_not_found'),
       });
     }
 
@@ -277,14 +277,14 @@ exports.deleteLanguage = async (req, res) => {
     if (!language) {
       return res.status(404).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_not_found'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_not_found'),
       });
     }
 
     if (language.isSystemDefault) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_cannot_delete_default'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_cannot_delete_default'),
       });
     }
 
@@ -295,7 +295,7 @@ exports.deleteLanguage = async (req, res) => {
 
     res.json({
       success: true,
-      message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_deleted_success'),
+      message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_deleted_success'),
     });
   } catch (error) {
     console.error('[LanguageController] Error deleting language:', error);
@@ -312,7 +312,7 @@ exports.getTranslationProgress = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_required'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_required'),
       });
     }
 
@@ -349,7 +349,7 @@ exports.getFailedTranslations = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_required'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_required'),
       });
     }
 
@@ -393,7 +393,7 @@ exports.retryFailedTranslations = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: getMessage(adminLang, 'admin-controllers-messages', 'admin_lang_code_required'),
+        message: getMessage(adminLang, 'admin-controllers-messages.admin_lang_code_required'),
       });
     }
 

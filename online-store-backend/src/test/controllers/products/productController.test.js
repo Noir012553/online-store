@@ -25,6 +25,10 @@ const createProductQuery = (sandbox, products = []) => ({
   then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
 });
 
+const createCountQuery = (sandbox, count = 0) => ({
+  maxTimeMS: sandbox.stub().resolves(count),
+});
+
 describe('Product Controller', () => {
   let sandbox;
 
@@ -68,7 +72,7 @@ describe('Product Controller', () => {
       }];
       const mockChain = createProductQuery(sandbox, products);
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(1);
+      sandbox.stub(Product, 'countDocuments').returns(createCountQuery(sandbox, 1));
       sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
         select: sandbox.stub().returnsThis(),
         maxTimeMS: sandbox.stub().returnsThis(),
@@ -135,7 +139,7 @@ describe('Product Controller', () => {
       }];
       const mockChain = createProductQuery(sandbox, products);
       sandbox.stub(Product, 'find').returns(mockChain);
-      sandbox.stub(Product, 'countDocuments').resolves(1);
+      sandbox.stub(Product, 'countDocuments').returns(createCountQuery(sandbox, 1));
       sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
         select: sandbox.stub().returnsThis(),
         maxTimeMS: sandbox.stub().returnsThis(),
@@ -193,8 +197,9 @@ describe('Product Controller', () => {
 
   describe('updateProduct', () => {
     it('should update an existing product', async () => {
-      const product = { _id: new mongoose.Types.ObjectId(), name: 'Laptop', price: 1000, save: sandbox.stub().resolves() };
+      const product = { _id: new mongoose.Types.ObjectId(), name: 'Laptop', price: 1000, save: sandbox.stub().resolvesThis() };
       sandbox.stub(Product, 'findById').resolves(product);
+      sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
 
       const req = { params: { id: product._id.toString() }, body: { name: 'Updated Laptop' } };
       const res = { json: sandbox.stub() };
@@ -246,6 +251,7 @@ describe('Product Controller', () => {
       const productId = new mongoose.Types.ObjectId();
       sandbox.stub(Product, 'findById').resolves({ _id: productId });
       sandbox.stub(Product, 'findByIdAndDelete').resolves({ _id: productId });
+      sandbox.stub(ProductCatalogTranslationCache, 'deleteMany').resolves();
 
       const req = { params: { id: productId.toString() } };
       const res = { json: sandbox.stub() };
