@@ -51,7 +51,7 @@ async function runTest() {
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 2: Create new language (Português)`);
     const langCode = 'pt-test-' + Date.now(); // Unique code for testing
     const createLangRes = await axios.post(
-      `${API_BASE}/language`,
+      `${API_BASE}/languages`,
       {
         code: langCode.substring(0, 2), // Use 'pt' only
         name: 'Português (Test)',
@@ -75,7 +75,7 @@ async function runTest() {
       attempts++;
 
       const statusRes = await axios.get(
-        `${API_BASE}/language/${createLangRes.data.data.code}/setup-status`,
+        `${API_BASE}/languages/${createLangRes.data.data.code}/setup-status`,
         {
           headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
         }
@@ -103,7 +103,7 @@ async function runTest() {
     // ============ TEST 4: Test new API endpoints ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 4: Test translation status endpoint`);
     const statusRes = await axios.get(
-      `${API_BASE}/translation/admin/status/${langCode2}`,
+      `${API_BASE}/translations/admin/status/${langCode2}`,
       {
         headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       }
@@ -126,7 +126,7 @@ async function runTest() {
     // ============ TEST 5: Verify DB data ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 5: Verify DB - StaticTranslation records`);
     const staticTransRes = await axios.get(
-      `${API_BASE}/translation/lang/${langCode2}`,
+      `${API_BASE}/translations/lang/${langCode2}`,
       {
         headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       }
@@ -144,7 +144,7 @@ async function runTest() {
     if (totalErrors > 0) {
       log(colors.blue, `${CLI_SYMBOLS.edit} TEST 6: Retrieve failed translations`);
       const failedRes = await axios.get(
-        `${API_BASE}/translation/admin/failed/${langCode2}?limit=10`,
+        `${API_BASE}/translations/admin/failed/${langCode2}?limit=10`,
         {
           headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
         }
@@ -160,7 +160,7 @@ async function runTest() {
       // ============ TEST 7: Test retry endpoint ============
       log(colors.blue, `${CLI_SYMBOLS.edit} TEST 7: Trigger retry for failed translations`);
       const retryRes = await axios.post(
-        `${API_BASE}/translation/admin/retry/${langCode2}`,
+        `${API_BASE}/translations/admin/retry/${langCode2}`,
         {},
         {
           headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
@@ -174,7 +174,7 @@ async function runTest() {
 
       // Check updated status
       const updatedStatusRes = await axios.get(
-        `${API_BASE}/translation/admin/status/${langCode2}`,
+        `${API_BASE}/translations/admin/status/${langCode2}`,
         {
           headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
         }
@@ -186,7 +186,7 @@ async function runTest() {
 
     // ============ TEST 8: Verify language in supported list ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 8: Verify language appears in active languages`);
-    const langsRes = await axios.get(`${API_BASE}/language`, {
+    const langsRes = await axios.get(`${API_BASE}/languages`, {
       headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const foundLang = langsRes.data.data.find(l => l.code === langCode2 && l.isReady);

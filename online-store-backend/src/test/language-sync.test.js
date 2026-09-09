@@ -126,10 +126,10 @@ async function main() {
   let productId = null;
   await test('GET /api/products (to find a product ID)', async () => {
     const res = await axios.get(`${API_BASE}/products?page=1&limit=1`);
-    if (!res.data.success || !res.data.data || res.data.data.length === 0) {
+    if (!Array.isArray(res.data.products) || res.data.products.length === 0) {
       throw new Error('No products found');
     }
-    productId = res.data.data[0]._id;
+    productId = res.data.products[0]._id;
     console.log(`   Found product: ${productId}`);
   });
 

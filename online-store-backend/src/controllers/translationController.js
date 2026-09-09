@@ -1,6 +1,5 @@
 const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
-const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
 const Product = require('../models/Product');
@@ -2913,10 +2912,10 @@ exports.getFallbackTranslations = async (req, res) => {
     const flattenedTranslations = flattenJson(translation.translations);
 
     const responseData = {
-      requestedLang: lang,
+      requestedLang: resolvedLang,
       appliedLang,
       fallbackChain,
-      fallbackUsed: appliedLang !== lang,
+      fallbackUsed: appliedLang !== resolvedLang,
       namespace: ns,
       translations: flattenedTranslations,
     };
@@ -2983,7 +2982,7 @@ exports.getTranslationHealth = async (req, res) => {
 
     // Get total namespaces for this language
     const translationDocs = await StaticTranslation.find({
-      code: lang,
+      code: resolvedLang,
       isDeleted: false,
     }).lean();
 
@@ -2999,7 +2998,7 @@ exports.getTranslationHealth = async (req, res) => {
       : null;
 
     const responseData = {
-      lang,
+      lang: resolvedLang,
       isReady: completeNamespaces > 0,
       coverage: {
         namespaces: totalNamespaces,
@@ -3012,7 +3011,7 @@ exports.getTranslationHealth = async (req, res) => {
     };
 
     // Cache the response
-    TranslationCacheService.set('health', lang, responseData);
+    TranslationCacheService.set('health', resolvedLang, responseData);
 
     // Set cache headers
     res.set('Cache-Control', 'public, max-age=3600');

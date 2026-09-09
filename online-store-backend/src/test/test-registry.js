@@ -59,7 +59,7 @@ const TEST_SUITES = {
       'import-file-validator.test.js',
       'export-job-service.test.js',
       'translation-helper.test.js',
-      'controllers/products/productController.test.js',
+      'products.test.js',
     ],
   },
 
@@ -69,7 +69,7 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['orders', 'payments'],
     files: [
-      'controllers/orders/orderController.test.js',
+      'with-order.test.js',
       'vnpay-quick.test.js',
       'vnpay-signature-fix.test.js',
     ],
@@ -81,7 +81,6 @@ const TEST_SUITES = {
     importance: 'MEDIUM',
     tags: ['payments', 'vnpay'],
     files: [
-      'adapters/vnpayAdapter.test.js',
       'vnpay-quick.test.js',
       'vnpay-signature-fix.test.js',
     ],
