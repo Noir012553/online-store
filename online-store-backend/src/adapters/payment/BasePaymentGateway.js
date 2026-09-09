@@ -192,10 +192,11 @@ class BasePaymentGateway {
     const expectedSignature = this.createSignature(data, key, algorithm);
     // Dùng timingSafeEqual để chống timing attack
     const crypto = require('crypto');
-    return crypto.timingSafeEqual(
-      Buffer.from(expectedSignature),
-      Buffer.from(signature)
-    );
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const actualBuffer = Buffer.from(String(signature || ''));
+    if (expectedBuffer.length !== actualBuffer.length) return false;
+
+    return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
   }
 
   /**
