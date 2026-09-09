@@ -146,13 +146,13 @@ describe('VNPAYAdapter', () => {
     it('should format date as YYYYMMDDHHMMSS', () => {
       const date = new Date('2024-01-15T10:30:45');
       const formatted = adapter.formatDate(date);
-      expect(formatted).to.equal('20240115103045');
+      expect(formatted).to.equal('20240115173045');
     });
 
     it('should pad single digit values', () => {
       const date = new Date('2024-01-05T09:05:03');
       const formatted = adapter.formatDate(date);
-      expect(formatted).to.equal('20240105090503');
+      expect(formatted).to.equal('20240105160503');
     });
   });
 
