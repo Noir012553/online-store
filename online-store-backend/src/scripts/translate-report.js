@@ -109,7 +109,7 @@ async function main() {
     if (options.export === 'json') {
       const filename = `${Date.now()}-translations.json`;
       translationReporter.saveReport(report, filename);
-      console.log(`${CLI_SYMBOLS.success} Report exported to: ./translation-reports/${filename}\n`);
+      console.log(`${CLI_SYMBOLS.success} Report exported to: ${translationReporter.reportDir}/${filename}\n`);
     } else if (options.export === 'csv') {
       const csv = convertToCSV(report.translations);
       console.log(csv);

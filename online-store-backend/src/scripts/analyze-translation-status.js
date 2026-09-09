@@ -139,6 +139,8 @@ console.log(`Partially Translated: ${partiallyTranslated.length}/${defaultFiles.
 console.log(`Not Started: ${notStarted.length}/${defaultFiles.length} (${(notStarted.length / defaultFiles.length * 100).toFixed(1)}%)`);
 
 // Export detailed results for reference
+const reportDir = path.join(__dirname, '../../reports/i18n');
+fs.mkdirSync(reportDir, { recursive: true });
 const exportData = {
   summary: {
     fully_translated: fullyTranslated.length,
@@ -151,5 +153,5 @@ const exportData = {
   not_started: notStarted.map(s => ({ file: s.file, keys: s[`${defaultLang}_keys`] }))
 };
 
-fs.writeFileSync(path.join(__dirname, '../../reports/i18n/translation-analysis.json'), JSON.stringify(exportData, null, 2));
+fs.writeFileSync(path.join(reportDir, 'translation-analysis.json'), JSON.stringify(exportData, null, 2));
 console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to reports/i18n/translation-analysis.json`);

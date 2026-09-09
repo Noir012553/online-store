@@ -232,7 +232,8 @@ class DropProcedure {
   }
 
   documentCompletion() {
-    const completionFile = path.join(__dirname, '../PHASE_4_COMPLETION.txt');
+    const completionFile = path.join(__dirname, '../reports/migration/phase-4-completion.txt');
+    fs.mkdirSync(path.dirname(completionFile), { recursive: true });
 
     const completionLog = `
 ╔════════════════════════════════════════════════════════════════╗

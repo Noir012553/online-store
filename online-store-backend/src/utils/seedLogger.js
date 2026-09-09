@@ -12,7 +12,7 @@ class SeedLogger {
     this.logs = [];
     this.startTime = new Date();
     this.status = 'RUNNING';
-    this.reportDir = path.join(process.cwd(), 'seed-reports');
+    this.reportDir = process.env.SEED_REPORT_DIR || path.resolve(__dirname, '../../reports/seed');
     this.originalConsole = {
       log: console.log,
       warn: console.warn,

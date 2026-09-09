@@ -134,6 +134,8 @@ defaultFiles.slice(0, 3).forEach((filename) => {
 console.log(`\n${CLI_SYMBOLS.check} Consistency verification complete!`);
 
 // Export results
+const reportDir = path.join(__dirname, '../../reports/i18n');
+fs.mkdirSync(reportDir, { recursive: true });
 const results = {
   timestamp: new Date().toISOString(),
   total_files: defaultFiles.length,
@@ -145,7 +147,7 @@ const results = {
 };
 
 fs.writeFileSync(
-  path.join(__dirname, '../../reports/i18n/key-consistency-report.json'),
+  path.join(reportDir, 'key-consistency-report.json'),
   JSON.stringify(results, null, 2)
 );
 
