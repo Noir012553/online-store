@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   // ========== BRAND PRESERVATION ==========
   PRESERVED_BRANDS: [
@@ -52,6 +54,6 @@ module.exports = {
   // ========== LOGGING ==========
   VERBOSE: process.env.NODE_ENV === 'development',
   SAVE_REPORTS: true,
-  REPORT_DIR: process.env.TRANSLATION_REPORT_DIR || './translation-reports',
+  REPORT_DIR: process.env.TRANSLATION_REPORT_DIR || path.resolve(__dirname, '../../reports/translation/quality'),
   MAX_REPORT_SIZE: 10000,
 };

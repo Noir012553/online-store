@@ -14,6 +14,7 @@
  */
 
 const mongoose = require('mongoose');
+const path = require('path');
 require('dotenv').config();
 
 const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
@@ -361,10 +362,10 @@ class PerformanceBenchmark {
 
       // Save results to file
       const fs = require('fs');
-      const resultsFile = `benchmarks/performance_${new Date().toISOString().split('T')[0]}.json`;
-      const dir = 'benchmarks';
+      const dir = path.join(__dirname, '../reports/benchmark');
+      const resultsFile = path.join(dir, `performance_${new Date().toISOString().split('T')[0]}.json`);
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+        fs.mkdirSync(dir, { recursive: true });
       }
 
       fs.writeFileSync(resultsFile, JSON.stringify(this.results, null, 2));

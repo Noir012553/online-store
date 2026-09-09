@@ -39,8 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# Seed reports (auto-generated)
-seed-reports/
+# Runtime reports (auto-generated)
+/reports/translation/
+/reports/seed/
+/reports/import-export/
+/reports/cleanup/
+/reports/benchmark/
+/reports/migration/
+/reports/test/
 
 # Crawler and auto-import data (generated locally)
 data/*.json

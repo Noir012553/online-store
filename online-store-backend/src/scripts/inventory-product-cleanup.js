@@ -21,7 +21,7 @@ async function main() {
   const environment = parseArg(args, 'environment');
   const productIds = (parseArg(args, 'product-ids', '') || '').split(',').map(id => id.trim()).filter(Boolean);
   const sourceProfile = parseArg(args, 'source-profile', 'legacy-source');
-  const outputDir = parseArg(args, 'output-dir', path.resolve(process.cwd(), 'product-cleanup-inventory'));
+  const outputDir = parseArg(args, 'output-dir', path.resolve(__dirname, '../../reports/cleanup'));
 
   if (!['development', 'staging'].includes(environment)) {
     throw new Error('CLEANUP_ENVIRONMENT_INVALID: use --environment=development or --environment=staging');

@@ -9,10 +9,10 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Product = require('../../../src/models/Product');
-const ProductCatalogTranslationCache = require('../../../src/models/ProductCatalogTranslationCache');
-const CategoryCatalogTranslationCache = require('../../../src/models/CategoryCatalogTranslationCache');
-const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../src/controllers/productController');
+const Product = require('../../../models/Product');
+const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTranslationCache');
+const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
+const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
 describe('Product Controller', () => {
   let sandbox;

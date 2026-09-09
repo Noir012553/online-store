@@ -2,15 +2,17 @@ const chai = require('chai');
 const expect = chai.expect;
 const cloudinary = require('cloudinary').v2;
 
-const envKeys = [
+const envKeys = [...new Set([
+  ...Object.keys(process.env).filter(key => /^CLOUDINARY_(CLOUD_NAME|API_KEY|API_SECRET)(?:_\d+)?$/.test(key)),
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
   'CLOUDINARY_CLOUD_NAME_2',
   'CLOUDINARY_API_KEY_2',
   'CLOUDINARY_API_SECRET_2',
-];
+])];
 const originalEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
+envKeys.forEach(key => delete process.env[key]);
 const originalUploadStream = cloudinary.uploader.upload_stream;
 
 process.env.CLOUDINARY_CLOUD_NAME = 'cloud-one';

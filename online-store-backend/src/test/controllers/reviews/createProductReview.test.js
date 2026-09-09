@@ -9,9 +9,9 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Review = require('../../../src/models/Review');
-const Product = require('../../../src/models/Product');
-const { createProductReview } = require('../../../src/controllers/reviewController');
+const Review = require('../../../models/Review');
+const Product = require('../../../models/Product');
+const { createProductReview } = require('../../../controllers/reviewController');
 
 describe('Review Controller - createProductReview', () => {
   let sandbox;

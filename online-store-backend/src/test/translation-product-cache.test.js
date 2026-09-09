@@ -308,7 +308,8 @@ describe('Product translation cache controller', () => {
 
   it('does not overwrite manual translation fields during import by default', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
-    sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request' });
+    const deleteOne = sandbox.stub().resolves();
+    sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request', deleteOne });
     sandbox.stub(Product, 'find').returns({
       select: sandbox.stub().returns({
         lean: sandbox.stub().resolves([{
@@ -368,7 +369,8 @@ describe('Product translation cache controller', () => {
 
   it('imports a record using the product name when the selected fields omit name', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
-    const create = sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request' });
+    const deleteOne = sandbox.stub().resolves();
+    const create = sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request', deleteOne });
     sandbox.stub(Product, 'find').returns({
       select: sandbox.stub().returns({
         lean: sandbox.stub().resolves([{ _id: new mongoose.Types.ObjectId(productId), name: 'Laptop source' }]),

@@ -23,7 +23,7 @@ async function readJson(filePath) {
 async function main() {
   const args = process.argv.slice(2);
   const environment = parseArg(args, 'environment');
-  const inventoryDir = path.resolve(parseArg(args, 'inventory-dir', './product-cleanup-inventory'));
+  const inventoryDir = path.resolve(parseArg(args, 'inventory-dir', path.join(__dirname, '../../reports/cleanup')));
   const confirmation = parseArg(args, 'confirm');
   const orderPolicy = parseArg(args, 'orders');
 
