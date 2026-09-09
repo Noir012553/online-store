@@ -64,6 +64,7 @@ const LanguageService = require('../services/languageService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
+const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 const {
   uploadToCloudinary,
   deleteMultipleFromCloudinary,
@@ -842,6 +843,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
   const allowCreateReferences = req.body.allowCreateReferences === true || req.body.allowCreateReferences === 'true';
   const adminUserId = req.user._id;
   let uploadedZipImagePublicIds = [];
+  let createdCategoryIds = [];
   let productWriteStarted = false;
 
   // Validate file
@@ -1043,6 +1045,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       try {
         const newCategories = await Category.insertMany(categoriesToCreate, { ordered: false });
         newCategories.forEach(cat => {
+          createdCategoryIds.push(cat._id);
           categoryLookup.set(cat.name, cat._id);
           categoryMap[cat.name] = cat._id;
           categoryMap[cat.name.toLowerCase()] = cat._id;
@@ -1134,6 +1137,14 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       warnings: toImportIssues(validation.warnings, 'IMPORT_PRODUCT_WARNING'),
     });
   } catch (error) {
+    if (!productWriteStarted && createdCategoryIds.length > 0) {
+      try {
+        await Category.deleteMany({ _id: { $in: createdCategoryIds }, isDeleted: false });
+      } catch (cleanupError) {
+        console.error('[IMPORT_CATEGORY_CLEANUP_FAILED]', { message: cleanupError.message });
+      }
+    }
+
     if (!productWriteStarted && uploadedZipImagePublicIds.length > 0) {
       try {
         await deleteMultipleFromCloudinary(uploadedZipImagePublicIds);
@@ -1859,10 +1870,6 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
       throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID');
     }
 
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      throw createExportError(502, 'EXPORT_IMAGE_URL_INVALID');
-    }
-
     const debugContext = getImageDebugContext(null, { url: sourceUrl }, 0);
     if (EXPORT_DEBUG_IMAGES) {
       console.info('[EXPORT_IMAGE_DOWNLOAD_START]', debugContext);
@@ -1872,15 +1879,14 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
     let lastFetchError = null;
     for (let attempt = 1; attempt <= EXPORT_IMAGE_FETCH_ATTEMPTS; attempt += 1) {
       try {
-        response = await fetch(parsedUrl, {
+        response = await fetchSafeRemoteImage(parsedUrl, {
           headers: {
-            Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
             'User-Agent': 'LaptopStoreExport/1.0',
           },
           signal: requestSignal
             ? AbortSignal.any([requestSignal, AbortSignal.timeout(30000)])
             : AbortSignal.timeout(30000),
-          redirect: 'follow',
         });
         responseStatus = response.status;
         if (response.ok || !isRetryableExportImageStatus(response.status) || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
@@ -1889,6 +1895,11 @@ const downloadExportImage = async (sourceUrl, requestSignal) => {
         if (response.body) await response.body.cancel().catch(() => {});
         await waitForExportImageRetry(getExportImageRetryDelay(attempt), requestSignal);
       } catch (error) {
+        if (error.errorCode === 'EXPORT_IMAGE_URL_INVALID'
+          || error.errorCode === 'EXPORT_IMAGE_HOST_UNRESOLVED'
+          || error.errorCode === 'EXPORT_IMAGE_REDIRECT_INVALID') {
+          throw error;
+        }
         lastFetchError = error;
         if (requestSignal?.aborted || attempt === EXPORT_IMAGE_FETCH_ATTEMPTS) {
           throw createExportError(502, 'EXPORT_IMAGE_DOWNLOAD_FAILED', {
@@ -2054,7 +2065,10 @@ const prepareExportBatchForArchive = async (
         const debugContext = getImageDebugContext(product, image, imageIndex);
         assetPromise = downloadExportImage(image.url, requestSignal)
           .then(({ buffer, extension }) => {
-            const assetPath = `assets/images/${product.productId}-${image.position}.${extension}`;
+            const position = Number.isInteger(image.position) && image.position >= 0
+              ? image.position
+              : imageIndex;
+            const assetPath = `assets/images/${product.productId}-${position}.${extension}`;
             archive.append(buffer, { name: assetPath });
             if (exportImageStats) {
               exportImageStats.uniqueUrlsSucceeded += 1;

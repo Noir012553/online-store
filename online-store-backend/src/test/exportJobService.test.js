@@ -100,6 +100,11 @@ describe('Export job workflow', () => {
       leaseExpiresAt,
     };
     const filePath = path.join(exportDirectory, `${jobId.toString()}-1.zip`);
+    const originalFetch = global.fetch;
+    global.fetch = async () => new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), {
+      status: 200,
+      headers: { 'content-type': 'image/jpeg' },
+    });
 
     sinon.stub(productImportController, 'createStreamingExportPayload').resolves({
       matchedTotal: 1,
@@ -108,7 +113,7 @@ describe('Export job workflow', () => {
       productBatches: async function* () {
         yield [{
           productId: 'product-id',
-          images: [{ url: 'https://example.com/product.jpg', type: 'main' }],
+          images: [{ url: 'https://example.com/product.jpg', position: 0, type: 'main' }],
           translations: { vi: { name: 'Bàn phím Pro' } },
         }];
       },
@@ -127,7 +132,13 @@ describe('Export job workflow', () => {
       expect(archive.subarray(0, 2).toString()).to.equal('PK');
       expect(exportedPayload.products).to.deep.equal([{
         productId: 'product-id',
-        images: [{ url: 'https://example.com/product.jpg', type: 'main' }],
+        images: [{
+          url: 'https://example.com/product.jpg',
+          position: 0,
+          type: 'main',
+          assetPath: 'assets/images/product-id-0.jpg',
+        }],
+        imageAssetPaths: ['assets/images/product-id-0.jpg'],
         translations: { vi: { name: 'Bàn phím Pro' } },
       }]);
       expect(updateOne.calledOnce).to.equal(true);
@@ -142,6 +153,7 @@ describe('Export job workflow', () => {
         filePath,
       });
     } finally {
+      global.fetch = originalFetch;
       await fs.promises.unlink(filePath).catch(() => {});
     }
   });
@@ -175,6 +187,30 @@ describe('Export job workflow', () => {
     });
   });
 
+  it('scopes job lookup to the requesting admin', async () => {
+    const jobId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
+    const job = {
+      _id: jobId,
+      status: 'processing',
+      attempts: 1,
+      createdAt: new Date(),
+      startedAt: new Date(),
+      finishedAt: null,
+      errorMessage: null,
+    };
+    const query = {
+      maxTimeMS: () => query,
+      lean: async () => job,
+    };
+    const findOne = sinon.stub(ExportJob, 'findOne').returns(query);
+
+    const result = await exportJobService.getExportJob(jobId.toString(), userId);
+
+    expect(result.jobId).to.equal(jobId.toString());
+    expect(findOne.calledOnceWith({ _id: jobId.toString(), userId })).to.equal(true);
+  });
+
   it('enqueues, polls, and downloads a ready job', async () => {
     const jobId = new mongoose.Types.ObjectId();
     const filePath = path.join(exportDirectory, `${jobId.toString()}-1.zip`);
@@ -206,12 +242,12 @@ describe('Export job workflow', () => {
       maxTimeMS: () => readyJobQuery,
       lean: async () => readyJob,
     };
-    sinon.stub(ExportJob, 'findById').returns(readyJobQuery);
+    const findOne = sinon.stub(ExportJob, 'findOne');
+    findOne.onFirstCall().returns(readyJobQuery);
+    findOne.onSecondCall().returns({ lean: async () => readyJob });
     const polled = await exportJobService.getExportJob(jobId.toString());
     expect(polled).to.include({ jobId: jobId.toString(), status: 'ready' });
     expect(polled.downloadUrl).to.equal(`/api/products/admin/export-jobs/${jobId}/download`);
-
-    sinon.stub(ExportJob, 'findOne').returns({ lean: async () => readyJob });
     const response = { download: sinon.spy() };
     await exportJobService.downloadExportJob(jobId.toString(), response, sinon.spy());
     expect(response.download.calledOnce).to.equal(true);

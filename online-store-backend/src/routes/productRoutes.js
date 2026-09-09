@@ -81,16 +81,16 @@ const {
   downloadExportJob,
 } = require('../services/exportJobService');
 router.get('/admin/export-jobs/:id', protect, admin, asyncHandler(async (req, res) => {
-  res.json({ success: true, job: await getExportJob(req.params.id) });
+  res.json({ success: true, job: await getExportJob(req.params.id, req.user._id) });
 }));
 router.post('/admin/export-jobs/:id/cancel', protect, admin, asyncHandler(async (req, res) => {
-  res.json({ success: true, job: await cancelExportJob(req.params.id) });
+  res.json({ success: true, job: await cancelExportJob(req.params.id, req.user._id) });
 }));
 router.post('/admin/export-jobs/:id/retry', protect, admin, asyncHandler(async (req, res) => {
-  res.status(202).json({ success: true, job: await retryExportJob(req.params.id) });
+  res.status(202).json({ success: true, job: await retryExportJob(req.params.id, req.user._id) });
 }));
 router.get('/admin/export-jobs/:id/download', protect, admin, asyncHandler(async (req, res, next) => {
-  await downloadExportJob(req.params.id, res, next);
+  await downloadExportJob(req.params.id, res, next, req.user._id);
 }));
 
 /**

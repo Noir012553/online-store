@@ -45,7 +45,14 @@ const errorHandler = (err, req, res, next) => {
     : getMessage(req.lang, 'common.error_request_title');
   let params = err.params || {};
 
-  if (err.code === 11000) {
+  const isImportUpload = (req.path || req.originalUrl || '').includes('/admin/import-file');
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 413;
+    code = isImportUpload ? 'IMPORT_ZIP_SIZE_INVALID' : 'UPLOAD_FILE_TOO_LARGE';
+  } else if (isImportUpload && err.message === 'Only valid .zip files are allowed') {
+    statusCode = 400;
+    code = 'IMPORT_ZIP_ONLY';
+  } else if (err.code === 11000) {
     statusCode = 409;
     code = 'DUPLICATE_RESOURCE';
     params = { field: Object.keys(err.keyPattern || {})[0] };

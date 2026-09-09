@@ -25,6 +25,7 @@ type ImportMode = 'insert' | 'update' | 'upsert';
 type ImportResult = {
   success?: boolean;
   message?: string;
+  code?: string;
   dryRun?: boolean;
   totalProducts?: number;
   restoredImageAssets?: number;
@@ -495,7 +496,7 @@ function ImportProductsContent() {
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-600">ZIP phải chứa đúng một file dữ liệu ở thư mục gốc:</p>
               <div className="mt-3 space-y-2">
-                {['products.json hoặc products.csv', 'name, brand, price, category', 'baseCurrencyCode và image', 'description, countInStock, specs'].map((item) => (
+                {['products.json hoặc products.csv', 'name, brand, price, category', 'baseCurrencyCode và image', 'description và countInStock', 'specs nếu có phải là object hợp lệ'].map((item) => (
                   <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                     <span>{item}</span>

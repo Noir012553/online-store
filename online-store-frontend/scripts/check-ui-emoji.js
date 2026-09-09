@@ -6,7 +6,6 @@ const sourceDirectories = ['src/components', 'src/pages', 'src/lib', 'src/test']
 const excludedFiles = new Set([
   'src/lib/i18n/localeMetadata.ts',
   'src/lib/uiEmoji.ts',
-  'src/test/cliSymbols.js',
 ]);
 const emojiPattern = /[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/u;
 
