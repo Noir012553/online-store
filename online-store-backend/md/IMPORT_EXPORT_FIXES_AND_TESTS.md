@@ -240,8 +240,8 @@ online-store-backend/package.json
 
 ```text
 online-store-backend/scripts/test-export-dynamic.js
-online-store-backend/scripts/test-import-export.js
-online-store-backend/scripts/test-export-production.js
+online-store-backend/src/test/import-export.test.js
+online-store-backend/src/test/export-production.test.js
 ```
 
 `test-export-dynamic.js` và `package.json` đã được cập nhật; hai wrapper Node.js dùng làm entrypoint đọc credential XML.

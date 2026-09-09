@@ -76,8 +76,10 @@ online-store-backend/
 │  └─ test/
 │     ├─ import-file-validator.test.js
 │     └─ export-job-service.test.js
-└─ scripts/
-   └─ test-export-production.js
+├─ scripts/
+│  └─ test-export-dynamic.js
+└─ test/
+   └─ export-production.test.js
 
 online-store-frontend/
 ├─ src/
@@ -998,7 +1000,7 @@ Fix đã áp dụng:
 - Giảm `EXPORT_BATCH_SIZE` từ 250 xuống 100 tại `productImportController.js` để giới hạn kích thước truy vấn sản phẩm và translation cache trong mỗi batch.
 - Giữ timeout database 30000ms để không che khuất query chậm bằng cách tăng timeout mù quáng.
 - Chuẩn hóa endpoint download async trong `online-store-frontend/src/lib/api.ts`: nếu backend trả URL bắt đầu bằng `/api/`, frontend không nối thêm một `/api` thứ hai.
-- Cập nhật `scripts/test-export-production.js` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
+- Cập nhật `scripts/src/test/export-production.test.js` để timeout từng request Playwright có thể cấu hình qua `-RequestTimeoutSeconds`, mặc định 120 giây thay vì 30 giây. `-MaxWaitMinutes` vẫn là thời gian poll tổng.
 
 Cần tải phiên bản code mới và retest thực tế `limit=500` sau khi backend/frontend được khởi động lại. Kết quả pass phải xác nhận cả job `ready`, download HTTP 200, ZIP hợp lệ và `missingAssetPaths: []`.
 
@@ -1119,7 +1121,7 @@ Socket giữ logic local khi hostname là localhost và production khi chạy do
 File mới:
 
 ```text
-online-store-backend/scripts/test-export-production.js
+online-store-backend/src/test/export-production.test.js
 ```
 
 Mặc định:
@@ -1221,7 +1223,7 @@ npm run tunnel
 
 ```powershell
 $backendRoot = (Get-Location).Path
-$exportScript = Join-Path $backendRoot "scripts\test-export-production.js"
+$exportScript = Join-Path $backendRoot "scripts\src/test/export-production.test.js"
 $credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
 
 if (-not (Test-Path $exportScript)) {
@@ -1271,7 +1273,7 @@ Log script:
 Khi chuyển code sang workspace mới, lệnh PowerShell từng tạo sai đường dẫn:
 
 ```text
-E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\test-export-production.js
+E:\Dev Camp\26-4-5 copy 3\online-store-backend\online-store-backend\scripts\src/test/export-production.test.js
 ```
 
 Nguyên nhân là lệnh lấy thư mục backend hiện tại làm workspace root rồi nối thêm `online-store-backend`:
@@ -1299,7 +1301,7 @@ Không nên dùng đường dẫn workspace hard-code vì bản copy, ổ đĩa 
 #### Cách xử lý thống nhất
 
 - Dùng thư mục hiện tại làm điểm bắt đầu, sau đó thử các vị trí hợp lệ: chính nó, thư mục con `online-store-backend`, backend cùng cấp hoặc thư mục cha.
-- Chỉ chọn thư mục có `scripts\test-export-production.js` để tránh chọn nhầm frontend.
+- Chỉ chọn thư mục có `scripts\src/test/export-production.test.js` để tránh chọn nhầm frontend.
 - Tự suy ra `online-store-frontend` từ thư mục cha của backend.
 - Kiểm tra `Test-Path` trước khi `Set-Location` hoặc chạy script.
 - Dùng `& $exportScript` để gọi file `.ps1` bằng đường dẫn đã resolve.
@@ -1324,7 +1326,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.js")
+            Test-Path (Join-Path $_ "scripts\src/test/export-production.test.js")
         } |
         Select-Object -First 1
 
@@ -1437,7 +1439,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.js")
+            Test-Path (Join-Path $_ "scripts\src/test/export-production.test.js")
         } |
         Select-Object -First 1
 
@@ -1482,7 +1484,7 @@ function Resolve-BackendRoot {
 
     $backendRoot = $candidates |
         Where-Object {
-            Test-Path (Join-Path $_ "scripts\test-export-production.js")
+            Test-Path (Join-Path $_ "scripts\src/test/export-production.test.js")
         } |
         Select-Object -First 1
 
@@ -1494,7 +1496,7 @@ function Resolve-BackendRoot {
 }
 
 $backendRoot = Resolve-BackendRoot
-$exportScript = Join-Path $backendRoot "scripts\test-export-production.js"
+$exportScript = Join-Path $backendRoot "scripts\src/test/export-production.test.js"
 $credentialPath = Join-Path $HOME ".online-store-export-credential.xml"
 
 if (-not (Test-Path $exportScript)) {
@@ -1800,7 +1802,7 @@ Production test cần được chạy sau khi endpoint production sẵn sàng:
 powershell.exe `
   -NoProfile `
   -ExecutionPolicy Bypass `
-  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.js" `
+  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\src/test/export-production.test.js" `
   -Environment production `
   -Target frontend `
   -Limit 10000 `
@@ -1813,7 +1815,7 @@ Nếu muốn bỏ qua frontend proxy và test trực tiếp backend production:
 powershell.exe `
   -NoProfile `
   -ExecutionPolicy Bypass `
-  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\test-export-production.js" `
+  -File "E:\Dev Camp\26-4-4\online-store-backend\scripts\src/test/export-production.test.js" `
   -Environment production `
   -Target backend `
   -Limit 10000 `
@@ -1997,7 +1999,7 @@ Credential:      $HOME\.online-store-export-credential.xml
 Credential type: Windows DPAPI Import-Clixml
 ```
 
-Email/password không được hard-code trong lệnh. Script `test-export-production.js` đọc credential từ file DPAPI và tự dọn các biến môi trường sau khi chạy.
+Email/password không được hard-code trong lệnh. Script `src/test/export-production.test.js` đọc credential từ file DPAPI và tự dọn các biến môi trường sau khi chạy.
 
 ### 15.3. Quy trình test 4 terminal
 

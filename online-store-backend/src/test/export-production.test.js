@@ -3,7 +3,7 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const scriptPath = path.join(__dirname, 'test-export-dynamic.js');
+const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'test-export-dynamic.js');
 const args = [
   '--environment', 'production',
   '--target', 'frontend',
@@ -14,7 +14,7 @@ const args = [
 ];
 
 const result = spawnSync(process.execPath, [scriptPath, ...args], {
-  cwd: path.resolve(__dirname, '..'),
+  cwd: path.resolve(__dirname, '..', '..'),
   env: process.env,
   stdio: 'inherit',
 });
