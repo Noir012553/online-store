@@ -2,7 +2,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const seedTranslations = require('./translationSeeder');
+const seedTranslations = require('../../seeds/translationSeeder');
 
 (async () => {
   try {
