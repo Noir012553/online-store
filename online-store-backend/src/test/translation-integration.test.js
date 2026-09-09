@@ -16,7 +16,7 @@
 const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../app');
+const { app } = require('../app');
 
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
@@ -29,29 +29,37 @@ const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageIn
 describe('PHASE 4: E2E Integration Tests', () => {
   let testProductId;
   let testReviewId;
+  const testUserId = new mongoose.Types.ObjectId();
+  const testCategoryId = new mongoose.Types.ObjectId();
   const testLang = getActiveLangCodes()[1] || getDefaultLanguage().code;
 
   before(async function() {
     this.timeout(10000);
     // Setup test data
     const product = await Product.create({
+      user: testUserId,
       name: 'Test iPhone',
-      slug: 'test-iphone-phase4',
-      basePrice: 999,
-      specifications: {
-        'RAM': '8GB',
-        'Storage': '256GB',
-        'CPU': 'A18 Pro'
-      }
+      image: 'https://example.com/test-iphone.jpg',
+      brand: 'Test Brand',
+      category: testCategoryId,
+      description: 'Integration test product',
+      specs: {
+        RAM: '8GB',
+        Storage: '256GB',
+        CPU: 'A18 Pro',
+      },
+      price: 999,
+      baseCurrencyCode: 'USD',
+      countInStock: 10,
     });
     testProductId = product._id.toString();
 
     const review = await Review.create({
-      productId: testProductId,
-      userId: 'test-user-phase4',
+      product: testProductId,
+      user: testUserId,
+      name: 'Test Reviewer',
       rating: 5,
-      title: 'Great phone',
-      content: 'This is a test review'
+      comment: 'This is a test review',
     });
     testReviewId = review._id.toString();
   });
@@ -84,7 +92,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
           'Storage': '256GB SSD',
           'CPU': 'A18 Pro Bionic'
         },
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
     });
 
@@ -94,7 +103,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
     it('✅ GET /api/translations/products returns data from NEW schema', async () => {
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({
           productId: testProductId,
           lang: testLang
@@ -110,7 +119,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
     it('✅ Specs aggregated in single document (not N+1)', async () => {
       // Count queries
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({
           productId: testProductId,
           lang: testLang
@@ -132,7 +141,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
     it('✅ Response includes status indicator', async () => {
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({
           productId: testProductId,
           lang: testLang
@@ -152,7 +161,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
         entityType: 'product_name',
         translatedText: 'iPhone 15 Pro',
         hashKey: `${testProductId}_product_name_fr`,
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
     });
 
@@ -170,7 +180,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Should still get result from OLD schema
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({
           productId: testProductId,
           lang: 'fr'
@@ -186,7 +196,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       // This would check logs if logging is captured
       // For now, verify function doesn't crash
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({
           productId: testProductId,
           lang: 'fr'
@@ -202,7 +212,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
     it('✅ setLocale keeps old translations (stale data)', async () => {
       // Simulate: Load en translations first
       const enData = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       // Then change locale to fr without losing en data
@@ -215,7 +225,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       // This would be verified in React component tests
       // For now, verify API doesn't return stale cache headers
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       // Should have Cache-Control header
@@ -225,11 +235,11 @@ describe('PHASE 4: E2E Integration Tests', () => {
     it('✅ No layout shift on locale change (UI stays stable)', async () => {
       // Test makes 2 rapid requests (simulating locale change)
       const res1 = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       const res2 = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       // Both should succeed without errors
@@ -247,11 +257,12 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Offline Test Product',
         specs: { 'Key': 'Value' },
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
 
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       // In production, frontend would cache this to IndexedDB
@@ -265,7 +276,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       // This test would run in browser environment with IndexedDB
       // For Node.js backend test, verify we don't crash on network error
       const res = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: 'nonexistent', lang: testLang });
 
       // Should handle gracefully (not 500 error)
@@ -367,7 +378,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       for (let i = 0; i < 5; i++) {
         promises.push(
           request(app)
-            .get('/api/translations/products')
+            .get(`/api/translations/products/${testProductId}`)
             .query({ productId: testProductId, lang: testLang })
         );
       }
@@ -386,7 +397,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       // Make 6 requests rapidly
       for (let i = 0; i < 6; i++) {
         await request(app)
-          .get('/api/translations/products')
+          .get(`/api/translations/products/${testProductId}`)
           .query({ productId: testProductId, lang: testLang });
       }
 
@@ -402,11 +413,11 @@ describe('PHASE 4: E2E Integration Tests', () => {
       const hash = `${testProductId}_en`;
 
       const res1 = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       const res2 = await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
 
       // Both should succeed, no duplicate processing
@@ -424,13 +435,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Cached Product',
         specs: { test: 'data' },
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
 
       // Make 10 requests
       for (let i = 0; i < 10; i++) {
         await request(app)
-          .get('/api/translations/products')
+          .get(`/api/translations/products/${testProductId}`)
           .query({ productId: testProductId, lang: testLang });
       }
 
@@ -450,7 +462,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       const results = [];
       for (let i = 0; i < 100; i++) {
         const res = await request(app)
-          .get('/api/translations/products')
+          .get(`/api/translations/products/${testProductId}`)
           .query({ 
             productId: i % 2 === 0 ? testProductId : 'nonexistent',
             lang: testLang
@@ -473,12 +485,13 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         name: 'Latency Test',
         specs: {},
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
 
       const startTime = Date.now();
       await request(app)
-        .get('/api/translations/products')
+        .get(`/api/translations/products/${testProductId}`)
         .query({ productId: testProductId, lang: testLang });
       const duration = Date.now() - startTime;
 
@@ -560,11 +573,12 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang,
         originalText: 'Great phone',
         translatedText: 'Excellent smartphone',
-        status: 'success'
+        status: 'success',
+        qualityStatus: 'approved'
       });
 
       const res = await request(app)
-        .get('/api/translations/reviews')
+        .get(`/api/translations/reviews/${testReviewId}`)
         .query({
           reviewId: testReviewId,
           lang: testLang

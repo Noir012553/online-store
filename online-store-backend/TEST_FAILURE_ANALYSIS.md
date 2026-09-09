@@ -146,6 +146,52 @@ Không chạy `npm run build` theo yêu cầu.
 5. Sửa `lang` thành `resolvedLang` trong fallback/health controller.
 6. Chỉ chạy integration/export/import/E2E sau khi Mongo, backend, dữ liệu và token đã được cấu hình.
 
+## 7. Đối chiếu bổ sung: các vấn đề trước đây còn thiếu
+
+Báo cáo ban đầu chưa bao quát hết các lỗi contract xác định được từ mã nguồn hiện tại:
+
+### Route và cách gọi API
+
+- `translation-integration.test.js` gọi `/api/translations/products?productId=...` và `/api/translations/reviews?reviewId=...`, trong khi route hiện hành yêu cầu tham số path: `/api/translations/products/:id` và `/api/translations/reviews/:id`.
+- Test manual override gọi `/api/translations/manual-override`, thiếu `/admin`, thiếu Bearer token và còn không seed translation record trước khi override. Đây là ba lỗi độc lập: route, auth và dữ liệu đầu vào.
+- `translation-e2e.test.js` dùng tiền tố số ít `/language` và `/translation`; app mount route số nhiều là `/api/languages` và `/api/translations`.
+
+### Harness và vòng đời ứng dụng
+
+- `translation-integration.test.js` từng import `require('../app')` nguyên object thay vì destructure `{ app }`.
+- `app.js` chỉ gọi `connectDB()` khi chạy trực tiếp và `requireDatabase` còn yêu cầu cờ `startupReady`. Import app rồi tự gọi `mongoose.connect()` trong Supertest chưa đủ để request qua middleware này; integration test cần chạy qua backend đã khởi động hoặc dùng harness khởi động đầy đủ.
+- `test-registry.js` còn tham chiếu một số controller test không tồn tại trong checkout hiện tại. Các suite đó cần được khôi phục hoặc bỏ khỏi registry, không nên coi cảnh báo thiếu file là lỗi production.
+
+### Response contract và assertion
+
+- `language-sync.test.js` chờ `res.data.success/data`, trong khi product list hiện trả `{ products, page, pages, total }`.
+- Một số integration assertion chỉ kiểm tra tiếp khi status là 200, khiến 401/404 có thể pass giả. Test phải assert status mong đợi trước rồi mới kiểm tra body.
+- Fixture translation mới phải có `status: 'success'` và `qualityStatus: 'approved'`; mặc định model là `pending` nên record bị controller bỏ qua.
+
+### Khoảng trống chức năng
+
+- `getProductReviews()` đã nhận `lang` nhưng trước đây trả nguyên object `role` đa ngôn ngữ thay vì overlay role theo locale. Đây là lỗi chức năng riêng, không phải lỗi query chain.
+- Fallback/health chưa có regression test cho request không truyền `lang` và request truyền locale không được hỗ trợ; đây là điều kiện làm lộ lỗi dùng raw `lang`.
+
+## 8. Thay đổi đã triển khai trong lượt này
+
+- `src/controllers/translationController.js`: loại bỏ khai báo `StaticTranslation` trùng khiến module không parse được; fallback dùng `resolvedLang` cho `requestedLang` và `fallbackUsed`; health dùng `resolvedLang` khi query `StaticTranslation`, tạo response và ghi cache.
+- `src/controllers/reviewController.js`: overlay `role` theo ngôn ngữ yêu cầu, fallback về ngôn ngữ mặc định hoặc chuỗi rỗng.
+- `src/test/translation-integration.test.js`: sửa import app, dùng đúng path parameter, bổ sung `qualityStatus: 'approved'` và thay fixture Product/Review theo schema hiện hành.
+- `src/test/translation-e2e.test.js`: sửa các endpoint sang `/languages` và `/translations` đúng với app mount.
+
+## 9. Các hạng mục vẫn cần triển khai có điều kiện
+
+Các hạng mục sau chưa thể xác nhận hoặc hoàn tất chỉ bằng sửa mã nguồn vì phụ thuộc môi trường hoặc test snapshot khác:
+
+1. Đồng bộ toàn bộ unit mock cho query chain, `cartItems`, `findOne`, `select`, `populate` và export controller.
+2. Sửa harness integration để khởi động DB/app đầy đủ, hoặc chuyển các test HTTP sang `TEST_API_BASE_URL` của backend đang chạy.
+3. Tạo/khôi phục các file test bị thiếu trong `test-registry.js`.
+4. Bổ sung Bearer token, fixture translation tồn tại và assertion status bắt buộc cho manual override.
+5. Thống nhất assertion theo `code`/message ổn định thay vì chuỗi dịch phụ thuộc encoding.
+6. Xác nhận contract `callbackUrl` của VNPAY với deployment trước khi thêm validation.
+7. Chạy riêng unit và integration sau khi cài dependency đúng lockfile, MongoDB sẵn sàng, backend đã ready và có `ADMIN_TOKEN` hợp lệ.
+
 ## Kết luận
 
-Phần query-chain đã được sửa một phần, nhưng nhóm test hiện vẫn trộn lẫn lỗi mock cũ, fixture cũ, môi trường thiếu token/dữ liệu và một vài lỗi production thật. Không nên sửa controller chỉ để làm hài lòng mock lệch contract; cần xác định endpoint/schema hiện hành rồi cập nhật test, đồng thời xử lý riêng hai lỗi cache dùng `lang` chưa resolve.
+Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái và khoảng trống role localization đã được bổ sung. Hai lỗi cache dùng raw `lang` cùng overlay role đã được sửa trong production code; phần còn lại chủ yếu là đồng bộ test và chuẩn bị môi trường trước khi đánh giá runtime.

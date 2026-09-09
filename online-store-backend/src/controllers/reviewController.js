@@ -66,7 +66,6 @@ const getProductReviews = asyncHandler(async (req, res) => {
     const defaultLang = getDefaultLanguage();
     const requestedLang = (req.query.lang || defaultLang.code).toLowerCase();
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang.code;
-    const langUpper = lang.toUpperCase();
     const pageSize = parseInt(req.query.pageSize) || 10;
     const page = parseInt(req.query.pageNumber) || 1;
     const keyword = req.query.keyword
@@ -87,8 +86,12 @@ const getProductReviews = asyncHandler(async (req, res) => {
         .lean(),
       8000
     );
+    const localizedReviews = reviews.map(review => ({
+      ...review,
+      role: review.role?.[lang] || review.role?.[defaultLang.code] || '',
+    }));
 
-    res.json({ reviews, page, pages: Math.ceil(count / pageSize), totalReviews: count });
+    res.json({ reviews: localizedReviews, page, pages: Math.ceil(count / pageSize), totalReviews: count });
   } catch (error) {
     throw error;
   }
