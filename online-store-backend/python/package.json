@@ -31,7 +31,6 @@
     "scrape:leopold-keyboard": "python Leopold_Keyboard_Scraper.py",
     "scrape:logitech-keyboard": "python Logitech_Keyboard_Scraper.py",
     "scrape:razer-keyboard": "python Razer_Keyboard_Scraper.py",
-    "scrape:ikbc-keyboard": "python iKBC_Durgod_Keyboard_Scraper.py",
     "scrape:asus-mouse": "python Asus_Mouse_Scraper.py",
     "scrape:corsair-mouse": "python Corsair_Mouse_Scraper.py",
     "scrape:dareu-mouse": "python Dareu_Mouse_Scraper.py",
