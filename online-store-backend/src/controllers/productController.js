@@ -14,6 +14,7 @@ const Category = require('../models/Category');
 const Currency = require('../models/Currency');
 const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
