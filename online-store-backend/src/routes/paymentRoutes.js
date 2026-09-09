@@ -107,7 +107,6 @@ router.post('/debug/test-complete-flow', asyncHandler(async (req, res) => {
     const paymentResult = await paymentService.initiatePayment(
       orderId,
       'vnpay',
-      28556000, // Amount for this order
       {},
       {
         clientIp: '127.0.0.1',
@@ -315,7 +314,6 @@ router.post('/debug/test-signature', asyncHandler(async (req, res) => {
     const result = await paymentService.initiatePayment(
       testOrderId,
       'vnpay',
-      amount,
       {},
       {
         clientIp: req.ip || '127.0.0.1',

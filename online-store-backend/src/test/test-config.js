@@ -5,6 +5,16 @@ const path = require('path');
 const TEST_ROOT = __dirname;
 const projectRoot = path.resolve(TEST_ROOT, '../..');
 const configuredTimeout = Number(process.env.TEST_TIMEOUT_MS);
+const INTEGRATION_TEST_FILES = new Set([
+  'export-production.test.js',
+  'import-export.test.js',
+  'language-setup-blueprint.test.js',
+  'language-sync.test.js',
+  'rollback-procedures.test.js',
+  'translation-e2e.test.js',
+  'translation-integration.test.js',
+  'with-order.test.js',
+]);
 
 const testConfig = Object.freeze({
   projectRoot,
@@ -25,14 +35,16 @@ function resolveTestFile(fileName) {
   return path.resolve(TEST_ROOT, fileName);
 }
 
-function discoverTestFiles(directory = TEST_ROOT) {
+function discoverTestFiles(directory = TEST_ROOT, includeIntegration = process.env.RUN_INTEGRATION_TESTS === 'true') {
   return fs.readdirSync(directory, { withFileTypes: true })
     .flatMap((entry) => {
       const entryPath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
-        return discoverTestFiles(entryPath);
+        return discoverTestFiles(entryPath, includeIntegration);
       }
-      return entry.name.endsWith('.test.js') ? [entryPath] : [];
+      if (!entry.name.endsWith('.test.js')) return [];
+      if (!includeIntegration && INTEGRATION_TEST_FILES.has(entry.name)) return [];
+      return [entryPath];
     })
     .sort();
 }
