@@ -13,6 +13,7 @@
  * ✅ Test 8: Data integrity (new vs old schema)
  */
 
+const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
@@ -91,7 +92,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ GET /api/translations/products returns data from NEW schema', async () => {
+    it('✅ GET /api/translations/products returns data from NEW schema', async () => {
       const res = await request(app)
         .get('/api/translations/products')
         .query({
@@ -99,14 +100,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
           lang: testLang
         });
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.specs).toBeDefined();
-      expect(res.body.data.specs.RAM).toBe('8GB DDR5');
+      expect(res.status).to.equal(200);
+      expect(res.body.success).to.equal(true);
+      expect(res.body.data).to.exist;
+      expect(res.body.data.specs).to.exist;
+      expect(res.body.data.specs.RAM).to.equal('8GB DDR5');
     });
 
-    test('✅ Specs aggregated in single document (not N+1)', async () => {
+    it('✅ Specs aggregated in single document (not N+1)', async () => {
       // Count queries
       const res = await request(app)
         .get('/api/translations/products')
@@ -121,15 +122,15 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang
       });
 
-      expect(docCount).toBe(1);
-      expect(res.body.data.specs).toEqual({
+      expect(docCount).to.equal(1);
+      expect(res.body.data.specs).to.deep.equal({
         'RAM': '8GB DDR5',
         'Storage': '256GB SSD',
         'CPU': 'A18 Pro Bionic'
       });
     });
 
-    test('✅ Response includes status indicator', async () => {
+    it('✅ Response includes status indicator', async () => {
       const res = await request(app)
         .get('/api/translations/products')
         .query({
@@ -137,7 +138,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
           lang: testLang
         });
 
-      expect(res.body.data.status).toBe('success');
+      expect(res.body.data.status).to.equal('success');
     });
   });
 
@@ -159,13 +160,13 @@ describe('PHASE 4: E2E Integration Tests', () => {
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ Fallback triggered when NEW schema empty', async () => {
+    it('✅ Fallback triggered when NEW schema empty', async () => {
       // Make sure NEW schema is empty
       const newCount = await ProductCatalogTranslationCache.countDocuments({
         entityId: testProductId,
         targetLang: 'fr'
       });
-      expect(newCount).toBe(0);
+      expect(newCount).to.equal(0);
 
       // Should still get result from OLD schema
       const res = await request(app)
@@ -177,11 +178,11 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Either returns data or handles gracefully
       if (res.status === 200) {
-        expect(res.body.data).toBeDefined();
+        expect(res.body.data).to.exist;
       }
     });
 
-    test('✅ Fallback logs warning when used', async () => {
+    it('✅ Fallback logs warning when used', async () => {
       // This would check logs if logging is captured
       // For now, verify function doesn't crash
       const res = await request(app)
@@ -192,13 +193,13 @@ describe('PHASE 4: E2E Integration Tests', () => {
         });
 
       // Should not crash
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).to.be.lessThan(500);
     });
   });
 
   // ============ TEST 3: SWR Pattern (Frontend) ============
   describe('Test 3: SWR Pattern - Smooth Locale Change', () => {
-    test('✅ setLocale keeps old translations (stale data)', async () => {
+    it('✅ setLocale keeps old translations (stale data)', async () => {
       // Simulate: Load en translations first
       const enData = await request(app)
         .get('/api/translations/products')
@@ -206,10 +207,10 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Then change locale to fr without losing en data
       // In real frontend: LanguageContext keeps prev translations
-      expect(enData.status).toBeLessThan(500);
+      expect(enData.status).to.be.lessThan(500);
     });
 
-    test('✅ Loading state shows spinner during locale change', async () => {
+    it('✅ Loading state shows spinner during locale change', async () => {
       // Frontend should show isChangingLocale=true
       // This would be verified in React component tests
       // For now, verify API doesn't return stale cache headers
@@ -218,10 +219,10 @@ describe('PHASE 4: E2E Integration Tests', () => {
         .query({ productId: testProductId, lang: testLang });
 
       // Should have Cache-Control header
-      expect(res.header['cache-control']).toBeDefined();
+      expect(res.header['cache-control']).to.exist;
     });
 
-    test('✅ No layout shift on locale change (UI stays stable)', async () => {
+    it('✅ No layout shift on locale change (UI stays stable)', async () => {
       // Test makes 2 rapid requests (simulating locale change)
       const res1 = await request(app)
         .get('/api/translations/products')
@@ -232,14 +233,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
         .query({ productId: testProductId, lang: testLang });
 
       // Both should succeed without errors
-      expect(res1.status).toBeLessThan(400);
-      expect(res2.status).toBeLessThan(400);
+      expect(res1.status).to.be.lessThan(400);
+      expect(res2.status).to.be.lessThan(400);
     });
   });
 
   // ============ TEST 4: Offline Support (IndexedDB) ============
   describe('Test 4: Offline Support - IndexedDB Fallback', () => {
-    test('✅ Translation service caches to IndexedDB on success', async () => {
+    it('✅ Translation service caches to IndexedDB on success', async () => {
       // Create test data in NEW schema
       await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -254,13 +255,13 @@ describe('PHASE 4: E2E Integration Tests', () => {
         .query({ productId: testProductId, lang: testLang });
 
       // In production, frontend would cache this to IndexedDB
-      expect(res.status).toBe(200);
-      expect(res.body.data).toBeDefined();
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.exist;
 
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ IndexedDB fallback when offline', async () => {
+    it('✅ IndexedDB fallback when offline', async () => {
       // This test would run in browser environment with IndexedDB
       // For Node.js backend test, verify we don't crash on network error
       const res = await request(app)
@@ -269,14 +270,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Should handle gracefully (not 500 error)
       if (res.status === 404) {
-        expect(res.body.success).toBe(false);
+        expect(res.body.success).to.equal(false);
       }
     });
   });
 
   // ============ TEST 5: Audit Logging ============
   describe('Test 5: Audit Logging - Admin Override', () => {
-    test('✅ Manual override is logged to TranslationAuditLog', async () => {
+    it('✅ Manual override is logged to TranslationAuditLog', async () => {
       const overrideData = {
         hashKey: `${testProductId}_test_override`,
         oldValue: 'Old translation',
@@ -295,14 +296,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
           userId: 'admin-test-phase4'
         });
 
-        expect(auditLog).toBeDefined();
-        expect(auditLog.action).toBe('manual_override');
-        expect(auditLog.oldValue).toBe('Old translation');
-        expect(auditLog.newValue).toBe('New translation');
+        expect(auditLog).to.exist;
+        expect(auditLog.action).to.equal('manual_override');
+        expect(auditLog.oldValue).to.equal('Old translation');
+        expect(auditLog.newValue).to.equal('New translation');
       }
     });
 
-    test('✅ Audit log immutable (cannot be deleted)', async () => {
+    it('✅ Audit log immutable (cannot be deleted)', async () => {
       // Create audit log
       const auditLog = await TranslationAuditLog.create({
         hashKey: 'test_hash_immutable',
@@ -314,15 +315,15 @@ describe('PHASE 4: E2E Integration Tests', () => {
       });
 
       // Try to delete (should fail if immutable is enforced)
-      expect(auditLog._id).toBeDefined();
+      expect(auditLog._id).to.exist;
       
       // In production, deletion would be prevented by API access control
       // For this test, verify document exists
       const found = await TranslationAuditLog.findById(auditLog._id);
-      expect(found).toBeDefined();
+      expect(found).to.exist;
     });
 
-    test('✅ Anomaly detection: 50+ changes in 60 min triggers alert', async () => {
+    it('✅ Anomaly detection: 50+ changes in 60 min triggers alert', async () => {
       // Create many audit logs in rapid succession
       const userId = 'admin-anomaly-test';
       const promises = [];
@@ -351,7 +352,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       });
 
       // Should have 55 logs (anomaly threshold = 50)
-      expect(recentLogs.length).toBeGreaterThanOrEqual(50);
+      expect(recentLogs.length).to.be.at.least(50);
 
       // Cleanup
       await TranslationAuditLog.deleteMany({ userId: userId });
@@ -360,7 +361,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
   // ============ TEST 6: Rate Limiting & Retry ============
   describe('Test 6: Rate Limiting & Exponential Backoff', () => {
-    test('✅ Multiple requests queued (concurrency limit = 3)', async () => {
+    it('✅ Multiple requests queued (concurrency limit = 3)', async () => {
       // Create 5 concurrent requests
       const promises = [];
       for (let i = 0; i < 5; i++) {
@@ -375,11 +376,11 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // All should succeed (queue handles overflow)
       results.forEach(res => {
-        expect(res.status).toBeLessThan(500);
+        expect(res.status).to.be.lessThan(500);
       });
     });
 
-    test('✅ Request throttled at 5 req/sec max', async () => {
+    it('✅ Request throttled at 5 req/sec max', async () => {
       const startTime = Date.now();
       
       // Make 6 requests rapidly
@@ -393,10 +394,10 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // At 5 req/sec, 6 requests should take at least 1 second
       // (due to throttling)
-      expect(duration).toBeGreaterThanOrEqual(100);
+      expect(duration).to.be.at.least(100);
     });
 
-    test('✅ Idempotency lock prevents duplicate translation', async () => {
+    it('✅ Idempotency lock prevents duplicate translation', async () => {
       // Make identical request twice
       const hash = `${testProductId}_en`;
 
@@ -409,14 +410,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
         .query({ productId: testProductId, lang: testLang });
 
       // Both should succeed, no duplicate processing
-      expect(res1.status).toBeLessThan(400);
-      expect(res2.status).toBeLessThan(400);
+      expect(res1.status).to.be.lessThan(400);
+      expect(res2.status).to.be.lessThan(400);
     });
   });
 
   // ============ TEST 7: Cache Metrics ============
   describe('Test 7: Cache Hit Rate & Performance Metrics', () => {
-    test('✅ Cache hit rate tracked (target: >95%)', async () => {
+    it('✅ Cache hit rate tracked (target: >95%)', async () => {
       // Pre-populate cache
       await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -439,12 +440,12 @@ describe('PHASE 4: E2E Integration Tests', () => {
         targetLang: testLang
       });
 
-      expect(count).toBe(1);
+      expect(count).to.equal(1);
 
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
 
-    test('✅ Error rate tracked (target: <1%)', async () => {
+    it('✅ Error rate tracked (target: <1%)', async () => {
       // Make requests, some might fail
       const results = [];
       for (let i = 0; i < 100; i++) {
@@ -462,10 +463,10 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Error rate should be tracked
       console.log(`  Error rate: ${errorRate.toFixed(2)}%`);
-      expect(typeof errorRate).toBe('number');
+      expect(typeof errorRate).to.equal('number');
     });
 
-    test('✅ Query latency measured', async () => {
+    it('✅ Query latency measured', async () => {
       // Seed cache
       await ProductCatalogTranslationCache.create({
         entityId: testProductId,
@@ -483,7 +484,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Should be fast (cached)
       console.log(`  Query latency: ${duration}ms`);
-      expect(duration).toBeLessThan(1000);
+      expect(duration).to.be.lessThan(1000);
 
       await ProductCatalogTranslationCache.deleteMany({ entityId: testProductId });
     });
@@ -491,7 +492,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
   // ============ TEST 8: Data Integrity ============
   describe('Test 8: Data Integrity - NEW vs OLD Schema', () => {
-    test('✅ Specs correctly aggregated from old to new schema', async () => {
+    it('✅ Specs correctly aggregated from old to new schema', async () => {
       // Simulate migration: specs were separate in old, aggregated in new
       const oldSpecs = [
         { entityId: testProductId, targetLang: testLang, entityType: 'product_spec', specKey: 'RAM', translatedText: '8GB' },
@@ -509,12 +510,12 @@ describe('PHASE 4: E2E Integration Tests', () => {
       };
 
       // Verify structure
-      expect(newSpec.specs).toBeDefined();
-      expect(newSpec.specs.RAM).toBe('8GB');
-      expect(newSpec.specs.SSD).toBe('512GB');
+      expect(newSpec.specs).to.exist;
+      expect(newSpec.specs.RAM).to.equal('8GB');
+      expect(newSpec.specs.SSD).to.equal('512GB');
     });
 
-    test('✅ No data loss during migration (100% specs preserved)', async () => {
+    it('✅ No data loss during migration (100% specs preserved)', async () => {
       // Count old schema
       const oldCount = await LiveTranslationCache.countDocuments({
         entityId: testProductId,
@@ -528,22 +529,22 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // Should have same data (even if different structure)
       if (oldCount > 0) {
-        expect(newCount).toBeGreaterThan(0);
+        expect(newCount).to.be.greaterThan(0);
       }
     });
 
-    test('✅ TTL indexes work correctly', async () => {
+    it('✅ TTL indexes work correctly', async () => {
       // ProductCatalog: 90 days TTL
       const product = await ProductCatalogTranslationCache.findOne({});
       if (product) {
-        expect(product.createdAt).toBeDefined();
+        expect(product.createdAt).to.exist;
         // TTL should be set (automatic deletion after 90 days)
       }
 
       // UserContent: 30 days TTL
       const userContent = await UserContentTranslationCache.findOne({});
       if (userContent) {
-        expect(userContent.createdAt).toBeDefined();
+        expect(userContent.createdAt).to.exist;
         // TTL should be set (automatic deletion after 30 days)
       }
     });
@@ -551,7 +552,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
   // ============ TEST 9: Review Translations ============
   describe('Test 9: Review Translations (UserContent Schema)', () => {
-    test('✅ GET /api/translations/reviews returns NEW schema', async () => {
+    it('✅ GET /api/translations/reviews returns NEW schema', async () => {
       // Seed review translation in new schema
       await UserContentTranslationCache.create({
         entityId: testReviewId,
@@ -570,13 +571,13 @@ describe('PHASE 4: E2E Integration Tests', () => {
         });
 
       if (res.status === 200) {
-        expect(res.body.data).toBeDefined();
+        expect(res.body.data).to.exist;
       }
 
       await UserContentTranslationCache.deleteMany({ entityId: testReviewId });
     });
 
-    test('✅ Review audit trail tracked separately', async () => {
+    it('✅ Review audit trail tracked separately', async () => {
       // Reviews should have separate TTL (30d vs 90d for products)
       const review = await UserContentTranslationCache.findOne({
         entityType: 'review'
@@ -584,14 +585,14 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       // If exists, should have TTL index
       if (review) {
-        expect(review.createdAt).toBeDefined();
+        expect(review.createdAt).to.exist;
       }
     });
   });
 
   // ============ SUMMARY ============
   describe('Summary: Phase 4 E2E Test Results', () => {
-    test('✅ All core features tested', () => {
+    it('✅ All core features tested', () => {
       console.log(`
         ✅ NEW Schema Query (O(1))
         ✅ Fallback Logic (Graceful degradation)
@@ -603,7 +604,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
         ✅ Data Integrity (Migration)
         ✅ Review Translations (User Content)
       `);
-      expect(true).toBe(true);
+      expect(true).to.equal(true);
     });
   });
 });

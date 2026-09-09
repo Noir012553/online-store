@@ -8,8 +8,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Customer = require('../../../src/models/Customer');
-const { getCustomerById, createCustomer, updateCustomer, deleteCustomer, hardDeleteCustomer } = require('../../../src/controllers/customerController');
+const Customer = require('../../../models/Customer');
+const { getCustomerById, createCustomer, updateCustomer, deleteCustomer, hardDeleteCustomer } = require('../../../controllers/customerController');
 
 describe('Customer Controller - CRUD Operations', () => {
   let sandbox;

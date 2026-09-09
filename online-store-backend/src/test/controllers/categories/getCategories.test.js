@@ -7,9 +7,9 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Category = require('../../../src/models/Category');
-const CategoryCatalogTranslationCache = require('../../../src/models/CategoryCatalogTranslationCache');
-const { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory, hardDeleteCategory } = require('../../../src/controllers/categoryController');
+const Category = require('../../../models/Category');
+const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
+const { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory, hardDeleteCategory } = require('../../../controllers/categoryController');
 
 describe('Category Controller - getCategories', () => {
   let sandbox;

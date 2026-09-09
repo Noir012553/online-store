@@ -17,5 +17,7 @@ describe('Plain text sanitizer', () => {
   it('removes dangerous blocks and encoded tags', () => {
     expect(sanitizeDescriptionText('&lt;script&gt;alert(1)&lt;/script&gt;&lt;hr&gt;An toàn'))
       .to.equal('An toàn');
+    expect(sanitizeDescriptionText('&amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;An toàn'))
+      .to.equal('An toàn');
   });
 });

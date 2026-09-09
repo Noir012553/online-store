@@ -9,9 +9,9 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Order = require('../../../src/models/Order');
-const Product = require('../../../src/models/Product');
-const { addOrderItems, updateOrderToPaid, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../src/controllers/orderController');
+const Order = require('../../../models/Order');
+const Product = require('../../../models/Product');
+const { addOrderItems, updateOrderToPaid, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../controllers/orderController');
 
 describe('Order Controller', () => {
   let sandbox;

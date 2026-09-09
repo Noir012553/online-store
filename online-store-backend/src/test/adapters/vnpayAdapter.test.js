@@ -4,7 +4,7 @@
  */
 
 const { expect } = require('chai');
-const VnpayAdapter = require('../../src/adapters/payment/VnpayAdapter');
+const VnpayAdapter = require('../../adapters/payment/VnpayAdapter');
 
 describe('VNPAYAdapter', () => {
   let adapter;
@@ -27,7 +27,7 @@ describe('VNPAYAdapter', () => {
     });
 
     it('should throw error when instantiated with new', () => {
-      const BasePaymentGateway = require('../../src/adapters/payment/BasePaymentGateway');
+      const BasePaymentGateway = require('../../adapters/payment/BasePaymentGateway');
       expect(() => new BasePaymentGateway()).to.throw();
     });
   });

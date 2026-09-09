@@ -9,8 +9,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const User = require('../../../src/models/User');
-const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser, hardDeleteUser } = require('../../../src/controllers/userController');
+const User = require('../../../models/User');
+const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
 
 describe('User Controller - Dynamic Data Tests', () => {
   let sandbox;

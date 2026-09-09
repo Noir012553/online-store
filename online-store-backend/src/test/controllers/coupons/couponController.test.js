@@ -8,8 +8,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const Coupon = require('../../../src/models/Coupon');
-const { getCoupons, createCoupon, calculateDiscount, deleteCoupon } = require('../../../src/controllers/couponController');
+const Coupon = require('../../../models/Coupon');
+const { getCoupons, createCoupon, calculateDiscount, deleteCoupon } = require('../../../controllers/couponController');
 
 describe('Coupon Controller', () => {
   let sandbox;

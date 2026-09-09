@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const assert = require('assert');
 
 // Test 1: MD5 Hash Generation
-const { getActiveLangCodes } = require('../../config/languageInventory');
+const { getActiveLangCodes } = require('../config/languageInventory');
 const text = 'Laptop Gaming ASUS';
 const targetLang = getActiveLangCodes()[1] || getActiveLangCodes()[0];
 const hashKey = crypto

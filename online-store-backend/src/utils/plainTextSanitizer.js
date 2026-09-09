@@ -11,6 +11,7 @@ const decodeCodePoint = value => {
 };
 
 const decodeHtmlEntities = value => String(value)
+  .replace(/&amp;/gi, '&')
   .replace(/&nbsp;/gi, ' ')
   .replace(/&lt;/gi, '<')
   .replace(/&gt;/gi, '>')
@@ -19,17 +20,33 @@ const decodeHtmlEntities = value => String(value)
   .replace(/&#(\d+);/g, (_, code) => decodeCodePoint(code))
   .replace(/&#x([0-9a-f]+);/gi, (_, code) => decodeCodePoint(parseInt(code, 16)));
 
+const decodeRepeatedHtmlEntities = value => {
+  let decoded = String(value);
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = decodeHtmlEntities(decoded);
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded;
+};
+
+const decodeSafeTextEntities = value => String(value)
+  .replace(/&amp;/gi, '&')
+  .replace(/&quot;/gi, '"')
+  .replace(/&apos;/gi, "'")
+  .replace(/&nbsp;/gi, ' ');
+
 const sanitizeToText = (value, preserveBreaks = false) => {
   if (value === null || value === undefined) return '';
 
-  const withBreaks = decodeHtmlEntities(value)
+  const withBreaks = decodeRepeatedHtmlEntities(value)
     .replace(DANGEROUS_BLOCK_PATTERN, preserveBreaks ? '\n' : ' ')
     .replace(STRUCTURAL_TAG_PATTERN, preserveBreaks ? '\n' : ' ');
-  const withoutTags = sanitizeHtml(withBreaks, {
+  const withoutTags = decodeSafeTextEntities(sanitizeHtml(withBreaks, {
     allowedTags: [],
     allowedAttributes: {},
     disallowedTagsMode: 'discard',
-  });
+  }));
 
   if (!preserveBreaks) return withoutTags.replace(/\s+/g, ' ').trim();
 

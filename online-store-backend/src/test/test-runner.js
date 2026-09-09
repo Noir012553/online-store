@@ -36,10 +36,17 @@ function extractFailureBlocks(output) {
   const lines = stripAnsi(output).split(/\r?\n/);
   const mochaBlocks = [];
   let currentMochaBlock = [];
+  const failurePattern = /(?:[A-Za-z]+Error|Exception):|expected .* to|actual .*|Timeout of \d+ms exceeded|\b(?:invalid scheme|not configured|econnrefused|enoent)\b/i;
 
   const flushMochaBlock = () => {
-    const block = currentMochaBlock.join('\n').trim();
-    if (block) mochaBlocks.push(block);
+    const title = currentMochaBlock.find(line => /^\s*\d+\)\s/.test(line));
+    const failureIndex = currentMochaBlock.findIndex(line => failurePattern.test(line));
+    if (failureIndex >= 0) {
+      const details = currentMochaBlock
+        .slice(failureIndex)
+        .filter(line => !/^\s*[✔✓✅]\s/.test(line));
+      mochaBlocks.push([title, ...details].filter(Boolean).join('\n').trim());
+    }
     currentMochaBlock = [];
   };
 
@@ -54,10 +61,7 @@ function extractFailureBlocks(output) {
     }
   });
   flushMochaBlock();
-  if (mochaBlocks.length > 0) {
-    const failurePattern = /AssertionError|Error|Exception|TypeError|ReferenceError|SyntaxError|RangeError|expected .* to|actual .*|\b(?:invalid scheme|not configured|econnrefused|enoent)\b|❌|\bfailed\s*$/i;
-    return mochaBlocks.filter(block => failurePattern.test(block));
-  }
+  if (mochaBlocks.length > 0) return mochaBlocks;
 
   const errorStart = /(?:AssertionError|Error|Exception|TypeError|ReferenceError|SyntaxError|RangeError):|\b(?:invalid scheme|not configured|econnrefused|enoent)\b|❌|\bfailed\s*$/i;
   const continuation = /^\s*(?:at\s|[+-]\s|expected\b|actual\b)/i;
@@ -95,7 +99,10 @@ function redactSensitive(value) {
 }
 
 function errorSignature(errorText) {
-  const firstErrorLine = errorText.split('\n').find(line => line.trim()) || errorText;
+  const lines = errorText.split('\n');
+  const firstErrorLine = lines.find(line => /(?:[A-Za-z]+Error|Exception):|expected .* to|actual .*|Timeout of \d+ms exceeded|\b(?:invalid scheme|not configured|econnrefused|enoent)\b/i.test(line))
+    || lines.find(line => line.trim())
+    || errorText;
   return firstErrorLine.replace(/\s+/g, ' ').trim();
 }
 

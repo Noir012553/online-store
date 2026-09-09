@@ -149,7 +149,7 @@ async function main() {
 
   // Test 8: Verify language cache is working
   await test('Verify LanguageService cache contains all configured languages', async () => {
-    const { getActiveLangCodes } = require('../../config/languageInventory');
+    const { getActiveLangCodes } = require('../config/languageInventory');
     const expectedLangs = getActiveLangCodes();
 
     const res = await axios.get(`${API_BASE}/languages`);
