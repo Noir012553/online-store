@@ -186,10 +186,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
           lang: 'fr'
         });
 
-      // Either returns data or handles gracefully
-      if (res.status === 200) {
-        expect(res.body.data).to.exist;
-      }
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.exist;
     });
 
     it('✅ Fallback logs warning when used', async () => {
@@ -279,39 +277,47 @@ describe('PHASE 4: E2E Integration Tests', () => {
         .get(`/api/translations/products/${testProductId}`)
         .query({ productId: 'nonexistent', lang: testLang });
 
-      // Should handle gracefully (not 500 error)
-      if (res.status === 404) {
-        expect(res.body.success).to.equal(false);
-      }
+      expect(res.status).to.equal(200);
+      expect(res.body.success).to.equal(true);
+      expect(res.body.data).to.exist;
     });
   });
 
   // ============ TEST 5: Audit Logging ============
   describe('Test 5: Audit Logging - Admin Override', () => {
-    it('✅ Manual override is logged to TranslationAuditLog', async () => {
-      const overrideData = {
-        hashKey: `${testProductId}_test_override`,
-        oldValue: 'Old translation',
-        newValue: 'New translation',
-        reason: 'Marketing feedback',
-        userId: 'admin-test-phase4'
-      };
+    it('✅ Manual override is logged to TranslationAuditLog', async function() {
+      if (!process.env.ADMIN_TOKEN) this.skip();
+
+      const hashKey = `${testProductId}_test_override`;
+      await LiveTranslationCache.create({
+        hashKey,
+        originalText: 'Old translation',
+        translatedText: 'Old translation',
+        targetLang: testLang,
+        entityId: testProductId,
+        entityType: 'product_name',
+        status: 'success',
+        qualityStatus: 'approved',
+      });
 
       const res = await request(app)
-        .post('/api/translations/manual-override')
-        .send(overrideData);
-
-      if (res.status === 200) {
-        // Verify audit log created
-        const auditLog = await TranslationAuditLog.findOne({
-          userId: 'admin-test-phase4'
+        .post('/api/translations/admin/manual-override')
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .send({
+          hashKey,
+          newValue: 'New translation',
+          reason: 'Marketing feedback',
         });
 
-        expect(auditLog).to.exist;
-        expect(auditLog.action).to.equal('manual_override');
-        expect(auditLog.oldValue).to.equal('Old translation');
-        expect(auditLog.newValue).to.equal('New translation');
-      }
+      expect(res.status).to.equal(200);
+      const auditLog = await TranslationAuditLog.findOne({ hashKey }).sort({ timestamp: -1 });
+      expect(auditLog).to.exist;
+      expect(auditLog.action).to.equal('manual_override');
+      expect(auditLog.oldValue).to.equal('Old translation');
+      expect(auditLog.newValue).to.equal('New translation');
+
+      await LiveTranslationCache.deleteOne({ hashKey });
+      await TranslationAuditLog.deleteMany({ hashKey });
     });
 
     it('✅ Audit log immutable (cannot be deleted)', async () => {
@@ -584,9 +590,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
           lang: testLang
         });
 
-      if (res.status === 200) {
-        expect(res.body.data).to.exist;
-      }
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.exist;
 
       await UserContentTranslationCache.deleteMany({ entityId: testReviewId });
     });

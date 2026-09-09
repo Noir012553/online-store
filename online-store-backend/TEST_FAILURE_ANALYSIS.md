@@ -161,6 +161,7 @@ Báo cáo ban đầu chưa bao quát hết các lỗi contract xác định đư
 - `translation-integration.test.js` từng import `require('../app')` nguyên object thay vì destructure `{ app }`.
 - `app.js` chỉ gọi `connectDB()` khi chạy trực tiếp và `requireDatabase` còn yêu cầu cờ `startupReady`. Import app rồi tự gọi `mongoose.connect()` trong Supertest chưa đủ để request qua middleware này; integration test cần chạy qua backend đã khởi động hoặc dùng harness khởi động đầy đủ.
 - `test-registry.js` còn tham chiếu một số controller test không tồn tại trong checkout hiện tại. Các suite đó cần được khôi phục hoặc bỏ khỏi registry, không nên coi cảnh báo thiếu file là lỗi production.
+- `test-config.js` từng khai báo `fs` hai lần, khiến test runner không parse được trước khi chạy bất kỳ suite nào.
 
 ### Response contract và assertion
 
@@ -177,8 +178,11 @@ Báo cáo ban đầu chưa bao quát hết các lỗi contract xác định đư
 
 - `src/controllers/translationController.js`: loại bỏ khai báo `StaticTranslation` trùng khiến module không parse được; fallback dùng `resolvedLang` cho `requestedLang` và `fallbackUsed`; health dùng `resolvedLang` khi query `StaticTranslation`, tạo response và ghi cache.
 - `src/controllers/reviewController.js`: overlay `role` theo ngôn ngữ yêu cầu, fallback về ngôn ngữ mặc định hoặc chuỗi rỗng.
-- `src/test/translation-integration.test.js`: sửa import app, dùng đúng path parameter, bổ sung `qualityStatus: 'approved'` và thay fixture Product/Review theo schema hiện hành.
+- `src/test/translation-integration.test.js`: sửa import app, dùng đúng path parameter, bổ sung `qualityStatus: 'approved'`, thay fixture Product/Review theo schema hiện hành, sửa manual override sang route admin có Bearer token và bỏ assertion pass giả.
 - `src/test/translation-e2e.test.js`: sửa các endpoint sang `/languages` và `/translations` đúng với app mount.
+- `src/test/language-sync.test.js`: đọc danh sách sản phẩm từ `res.data.products` theo response contract thực tế.
+- `src/test/test-registry.js`: thay các đường dẫn controller test không tồn tại bằng test file hiện có, tránh cảnh báo file thiếu khi chọn suite.
+- `src/test/test-config.js`: loại bỏ import `fs` trùng để test runner có thể load cấu hình.
 
 ## 9. Các hạng mục vẫn cần triển khai có điều kiện
 
@@ -186,12 +190,10 @@ Các hạng mục sau chưa thể xác nhận hoặc hoàn tất chỉ bằng s�
 
 1. Đồng bộ toàn bộ unit mock cho query chain, `cartItems`, `findOne`, `select`, `populate` và export controller.
 2. Sửa harness integration để khởi động DB/app đầy đủ, hoặc chuyển các test HTTP sang `TEST_API_BASE_URL` của backend đang chạy.
-3. Tạo/khôi phục các file test bị thiếu trong `test-registry.js`.
-4. Bổ sung Bearer token, fixture translation tồn tại và assertion status bắt buộc cho manual override.
-5. Thống nhất assertion theo `code`/message ổn định thay vì chuỗi dịch phụ thuộc encoding.
-6. Xác nhận contract `callbackUrl` của VNPAY với deployment trước khi thêm validation.
-7. Chạy riêng unit và integration sau khi cài dependency đúng lockfile, MongoDB sẵn sàng, backend đã ready và có `ADMIN_TOKEN` hợp lệ.
+3. Thống nhất assertion theo `code`/message ổn định thay vì chuỗi dịch phụ thuộc encoding.
+4. Xác nhận contract `callbackUrl` của VNPAY với deployment trước khi thêm validation.
+5. Chạy riêng unit và integration sau khi cài dependency đúng lockfile, MongoDB sẵn sàng, backend đã ready và có `ADMIN_TOKEN` hợp lệ.
 
 ## Kết luận
 
-Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái và khoảng trống role localization đã được bổ sung. Hai lỗi cache dùng raw `lang` cùng overlay role đã được sửa trong production code; phần còn lại chủ yếu là đồng bộ test và chuẩn bị môi trường trước khi đánh giá runtime.
+Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái, lỗi parse test runner và khoảng trống role localization đã được bổ sung. Các lỗi cache dùng raw `lang`, overlay role, fixture/route/assertion translation, registry và import trùng khiến test runner không parse được đã được triển khai. Phần còn lại chủ yếu là đồng bộ mock unit, khởi động backend/MongoDB đúng lifecycle và xác minh runtime với credential hợp lệ.
