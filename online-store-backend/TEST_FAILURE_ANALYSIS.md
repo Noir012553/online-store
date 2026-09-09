@@ -14,6 +14,9 @@ Log được tạo lúc `2026-09-09T08:12:05.447Z` ghi nhận nhiều nhóm lỗ
 
 ### Đã được cập nhật một phần
 
+- Lỗi production dùng raw `lang` trong fallback/health đã được sửa; chi tiết nằm ở mục 8.
+- Review role đã được overlay theo locale và fallback về ngôn ngữ mặc định; chi tiết nằm ở mục 8.
+
 - Query chain của Product đã có `.maxTimeMS()`, `.populate()`, `.lean()`, `.sort()`, `.limit()` và `.skip()` tại `src/controllers/productController.js:658-668`.
 - Category localization đã dùng `.select().maxTimeMS().lean()` tại `src/services/categoryLocalizationService.js:15-24`.
 - Một số mock Product/Category translation đã bổ sung các method chain tương ứng trong test.
@@ -57,7 +60,7 @@ Log được tạo lúc `2026-09-09T08:12:05.447Z` ghi nhận nhiều nhóm lỗ
 #### Review
 
 - `getProductReviews()` cần chain `populate().limit().skip().lean()`. Các mock mới đã có chain này ở một số test.
-- Controller đang đọc `lang` nhưng chưa overlay bản dịch role/review tương ứng; đây là khoảng trống chức năng, không phải nguyên nhân trực tiếp của lỗi query chain.
+- Controller đã overlay `role` theo `lang`, fallback về ngôn ngữ mặc định; phần còn thiếu là regression test trực tiếp cho locale và fallback.
 
 #### User/Auth
 
@@ -99,14 +102,9 @@ là lỗi fixture/test contract, không phải lỗi cache.
 
 Các record Product translation dùng trong integration test cần các trạng thái mà controller lọc, đặc biệt `status: 'success'` và `qualityStatus: 'approved'`. Nếu thiếu `qualityStatus`, cache mới có thể bị bỏ qua.
 
-### Lỗi code thật ở fallback/health cache
+### Lỗi code thật ở fallback/health cache — đã sửa
 
-Trong `src/controllers/translationController.js`:
-
-- Fallback đã resolve `resolvedLang` nhưng response vẫn dùng `lang` thô ở dòng 2916 và 2919.
-- Health đã resolve `resolvedLang` nhưng query `StaticTranslation` và cache response vẫn dùng `lang` thô ở dòng 2985-2988 và 3015.
-
-Khi request không truyền `lang` hoặc middleware thay thế bằng ngôn ngữ mặc định, điều này có thể tạo cache key/query sai và cần được sửa trong code production.
+Trong `src/controllers/translationController.js`, fallback và health hiện dùng thống nhất `resolvedLang` cho response, query `StaticTranslation` và cache key. Trước đây request không truyền `lang` có thể tạo response/query không nhất quán; cần giữ regression test cho điều kiện này.
 
 ## 4. Export/import, language sync và E2E
 
@@ -133,9 +131,11 @@ Chúng cần các điều kiện ngoài code test:
 
 ## 5. Kết quả xác minh trong phiên này
 
-Đã thử chạy nhóm unit test controller và VNPAY bằng Mocha. Lệnh không thực thi được bộ test dự án vì môi trường hiện không có dependency local tương ứng; `npx` đã tự tải Mocha 12 thay vì dùng phiên bản trong package lock/package.json và kết thúc với mã lỗi 1. Vì vậy chưa có số liệu pass/fail runtime đáng tin cậy cho phiên này.
-
-Không chạy `npm run build` theo yêu cầu.
+- Đã kiểm tra syntax bằng `node --check` cho các controller và test/config file đã sửa.
+- Đã kiểm tra `test-registry.js` resolve đúng các suite Products/Orders/VNPAY, không còn cảnh báo từ các path test controller đã bị thiếu.
+- Đã chạy `git diff --check` thành công.
+- Chưa có số liệu pass/fail runtime đáng tin cậy cho integration vì cần dependency local đúng phiên bản, MongoDB, backend ready và credential hợp lệ.
+- Không chạy `npm run build` theo yêu cầu.
 
 ## 6. Thứ tự xử lý đề xuất
 
@@ -172,7 +172,7 @@ Báo cáo ban đầu chưa bao quát hết các lỗi contract xác định đư
 ### Khoảng trống chức năng
 
 - `getProductReviews()` đã nhận `lang` nhưng trước đây trả nguyên object `role` đa ngôn ngữ thay vì overlay role theo locale. Đây là lỗi chức năng riêng, không phải lỗi query chain.
-- Fallback/health chưa có regression test cho request không truyền `lang` và request truyền locale không được hỗ trợ; đây là điều kiện làm lộ lỗi dùng raw `lang`.
+- Fallback/health vẫn chưa có regression test riêng cho request không truyền `lang` và request truyền locale không được hỗ trợ; đây là phần nên bổ sung để bảo vệ bản sửa `resolvedLang`.
 
 ## 8. Thay đổi đã triển khai trong lượt này
 
