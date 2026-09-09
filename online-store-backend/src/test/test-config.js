@@ -12,6 +12,7 @@ const INTEGRATION_TEST_FILES = new Set([
   'rollback-procedures.test.js',
   'translation-e2e.test.js',
   'translation-integration.test.js',
+  'backend-endpoints.test.js',
   'with-order.test.js',
 ]);
 

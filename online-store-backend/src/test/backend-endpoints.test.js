@@ -9,6 +9,8 @@
  * 5. Audit logging on manual overrides
  */
 
+require('dotenv').config();
+
 const axios = require('axios');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
@@ -21,6 +23,25 @@ const { baseUrl, timeoutMs } = require('./test-config');
 
 const BASE_URL = baseUrl;
 const TEST_TIMEOUT = timeoutMs;
+const MONGO_URI = process.env.TEST_MONGO_URI || process.env.MONGO_URI || '';
+
+const assertIntegrationEnvironment = async () => {
+  if (!MONGO_URI) {
+    throw new Error('Missing TEST_MONGO_URI or MONGO_URI for the dynamic database fixture');
+  }
+
+  try {
+    const response = await axios.get(`${BASE_URL}/readyz`, {
+      timeout: TEST_TIMEOUT,
+      validateStatus: () => true,
+    });
+    if (response.status !== 200) {
+      throw new Error(`readiness status ${response.status}`);
+    }
+  } catch (error) {
+    throw new Error(`Backend is unavailable or not ready at ${BASE_URL}: ${error.code || error.message}`);
+  }
+};
 
 const getTargetLanguage = () => (
   getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
@@ -46,7 +67,7 @@ const requestProducts = async (pageSize = 2) => {
 };
 
 const createLegacyFallbackFixture = async (targetLang) => {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(MONGO_URI);
   const sourceProduct = await Product.findOne({ isDeleted: false }).lean();
   if (!sourceProduct) {
     await mongoose.disconnect();
@@ -320,7 +341,12 @@ class EndpointTester {
     const rateLimited = statuses.filter((s) => s === 429).length;
     const successful = statuses.filter((s) => s === 200).length;
 
-    log.info(`    - Successful: ${successful}, Rate limited: ${rateLimited}`);
+    const rejected = results.filter((result) => result.status === 'rejected').length;
+    log.info(`    - Successful: ${successful}, Rate limited: ${rateLimited}, Rejected: ${rejected}`);
+
+    if (rejected > 0) {
+      throw new Error(`Rate-limit requests failed to reach the backend (${rejected} rejected requests)`);
+    }
 
     if (rateLimited > 0) {
       log.info('    - Rate limiting is active ✓');
@@ -411,6 +437,14 @@ class EndpointTester {
     console.log('═══════════════════════════════════════════════════════════');
     console.log('  BACKEND TRANSLATION ENDPOINTS TEST SUITE (Phase 3 #7c)');
     console.log('═══════════════════════════════════════════════════════════\n');
+
+    const environmentReady = await this.runTest('Integration environment preflight', () => (
+      assertIntegrationEnvironment()
+    ));
+    if (this.failedTests > 0) {
+      this.printResults();
+      return environmentReady;
+    }
 
     await this.runTest('Test 1: Product Translations from New Schema', () =>
       this.test1_ProductTranslationsNewSchema()
