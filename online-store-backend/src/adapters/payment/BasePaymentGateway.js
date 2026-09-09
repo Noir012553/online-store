@@ -156,7 +156,7 @@ class BasePaymentGateway {
    * @returns {Number}
    */
   supportsCurrency(currency) {
-    return this.supportedCurrencies.includes(currency);
+    return this.supportedCurrencies.includes(String(currency || '').toUpperCase());
   }
 
   normalizeAmount(amount, currency) {

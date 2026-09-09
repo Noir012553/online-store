@@ -735,7 +735,7 @@ const createProduct = asyncHandler(async (req, res) => {
   // 2. File (legacy backend upload) - req.file
   if (!image && !req.file) {
     res.status(400);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.imageRequired'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.imageRequired'));
   }
 
   // ==================== VALIDATE PRICE AND STOCK ====================
@@ -745,13 +745,13 @@ const createProduct = asyncHandler(async (req, res) => {
   if (isNaN(numPrice) || numPrice <= 0) {
     console.error('Price validation failed:', { isNaN: isNaN(numPrice), numPrice });
     res.status(400);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.invalidPrice'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidPrice'));
   }
 
   if (isNaN(numCountInStock) || numCountInStock < 0) {
     console.error('Stock validation failed:', { isNaN: isNaN(numCountInStock), numCountInStock });
     res.status(400);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.invalidStock'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidStock'));
   }
 
   if (!category || !mongoose.Types.ObjectId.isValid(category)) {
@@ -812,7 +812,7 @@ const createProduct = asyncHandler(async (req, res) => {
       imagePubicId = imagePublicId;
     } catch (error) {
       res.status(400);
-      throw new Error(getMessage(lang.toUpperCase(), 'common.image_validation_failed'));
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
     }
   } else if (req.file) {
     // Legacy backend upload - upload file to Cloudinary
@@ -914,7 +914,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
   }
 
   // ==================== VALIDATE PRICE AND STOCK ====================
@@ -923,7 +923,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     const numPrice = parseFloat(price);
     if (isNaN(numPrice) || numPrice <= 0) {
       res.status(400);
-      throw new Error(getMessage(lang.toUpperCase(), 'product.invalidPrice'));
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidPrice'));
     }
   }
 
@@ -931,7 +931,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     const numCountInStock = parseInt(countInStock);
     if (isNaN(numCountInStock) || numCountInStock < 0) {
       res.status(400);
-      throw new Error(getMessage(lang.toUpperCase(), 'product.invalidStock'));
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidStock'));
     }
   }
 
@@ -1043,7 +1043,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         console.log('[PRODUCT_UPDATE] Image updated from Cloudinary upload:', { url: image });
       } catch (error) {
         res.status(400);
-        throw new Error(getMessage(lang.toUpperCase(), 'common.image_validation_failed'));
+        throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
       }
     } else if (req.file) {
       // Legacy backend upload - upload file to Cloudinary
@@ -1146,13 +1146,13 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
   }
 
   // Prevent double soft-delete
   if (product.isDeleted) {
     res.status(400);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.alreadyDeleted'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.alreadyDeleted'));
   }
 
   product.isDeleted = true;
@@ -1178,7 +1178,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     console.warn('[WARNING] Failed to broadcast product delete:', err.message);
   }
 
-  res.json({ message: getMessage(lang.toUpperCase(), 'product.deletedSuccessfully') });
+  res.json({ message: getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.deletedSuccessfully') });
 });
 
 /**
@@ -1192,12 +1192,12 @@ const restoreProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
   }
 
   if (!product.isDeleted) {
     res.status(400);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.notDeleted'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notDeleted'));
   }
 
   product.isDeleted = false;
@@ -1285,7 +1285,7 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(lang.toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
   }
 
   try {
@@ -1460,7 +1460,7 @@ const getTestimonials = asyncHandler(async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
     const defaultLang = getDefaultLanguage();
     const lang = (req.query.lang || defaultLang.code).toLowerCase();
-    const langUpper = lang.toUpperCase();
+    const langUpper = String(lang || DEFAULT_LANG).toUpperCase();
 
     // Load role labels from StaticTranslation (Rule #1: Static UI via i18n)
     const StaticTranslation = require('../models/StaticTranslation');
@@ -1558,7 +1558,7 @@ const getTestimonials = asyncHandler(async (req, res) => {
       console.error('Error fetching testimonials:', error);
     }
     const lang = req.lang;
-    res.status(500).json({ error: getMessage(lang.toUpperCase(), 'testimonial.fetchFailed') });
+    res.status(500).json({ error: getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'testimonial.fetchFailed') });
   }
 });
 

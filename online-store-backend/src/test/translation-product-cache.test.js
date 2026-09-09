@@ -164,6 +164,16 @@ describe('Product translation cache controller', () => {
         manualFields: ['description', 'name'],
       }),
     });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: new mongoose.Types.ObjectId(productId), name: 'Laptop source' }]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
     await saveProductTranslation({
@@ -214,6 +224,16 @@ describe('Product translation cache controller', () => {
         validationErrors: [],
       }),
     });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: new mongoose.Types.ObjectId(productId), name: 'Laptop source', description: 'Source description', brand: 'Source brand', specs: { RAM: '16GB' } }]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
     await retranslateProduct({
@@ -288,8 +308,11 @@ describe('Product translation cache controller', () => {
       }),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').rejects(new Error('Database unavailable'));
     const res = createResponse();
 
@@ -320,6 +343,8 @@ describe('Product translation cache controller', () => {
       }),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([{
         entityId: productId,
         targetLang: 'en',
@@ -327,6 +352,7 @@ describe('Product translation cache controller', () => {
         manualFields: ['name'],
       }]),
     });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({ modifiedCount: 1, upsertedCount: 0 });
     sandbox.stub(TranslationBatchRequest, 'updateOne').resolves();
     const res = createResponse();
@@ -377,8 +403,11 @@ describe('Product translation cache controller', () => {
       }),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({ modifiedCount: 0, upsertedCount: 1 });
     sandbox.stub(TranslationBatchRequest, 'updateOne').resolves();
     const res = createResponse();
