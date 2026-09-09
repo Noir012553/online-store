@@ -17,6 +17,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const TranslationAuditLog = require('../models/TranslationAuditLog');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { baseUrl, timeoutMs } = require('./test-config');
@@ -24,10 +25,14 @@ const { baseUrl, timeoutMs } = require('./test-config');
 const BASE_URL = baseUrl;
 const TEST_TIMEOUT = timeoutMs;
 const MONGO_URI = process.env.TEST_MONGO_URI || process.env.MONGO_URI || '';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 const assertIntegrationEnvironment = async () => {
   if (!MONGO_URI) {
     throw new Error('Missing TEST_MONGO_URI or MONGO_URI for the dynamic database fixture');
+  }
+  if (!ADMIN_TOKEN) {
+    throw new Error('Missing ADMIN_TOKEN for the admin manual-override integration test');
   }
 
   try {
@@ -359,24 +364,47 @@ class EndpointTester {
     const hashKey = crypto.createHash('md5')
       .update(`test_audit:${getTargetLanguage()}:${Date.now()}`)
       .digest('hex');
-    const response = await axios.post(
-      `${BASE_URL}/api/translations/manual-override`,
-      {
-        hashKey,
-        translatedText: 'Manual override test at ' + new Date().toISOString(),
-        reason: 'Testing audit logging',
-      },
-      { validateStatus: () => true }
-    );
+    const translatedText = `Manual override test at ${new Date().toISOString()}`;
 
-    if (response.status === 404) {
-      log.info('  └─ Translation not found in cache (ok, would need seeding first)');
-      return;
-    }
+    await LiveTranslationCache.create({
+      hashKey,
+      originalText: 'Original integration test value',
+      translatedText: 'Previous integration test value',
+      targetLang: getTargetLanguage(),
+      entityType: 'generic',
+      status: 'success',
+      qualityStatus: 'approved',
+    });
 
-    if (response.status === 200 || response.status === 201) {
-      log.info('  └─ Manual override recorded');
-      // In production, verify audit log was created
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/api/translations/admin/manual-override`,
+        { hashKey, translatedText, reason: 'Testing audit logging' },
+        {
+          timeout: TEST_TIMEOUT,
+          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+          validateStatus: () => true,
+        }
+      );
+
+      if (response.status !== 200 || response.data?.success !== true) {
+        throw new Error(`Expected manual override 200, got ${response.status}: ${JSON.stringify(response.data)}`);
+      }
+
+      const updatedRecord = await LiveTranslationCache.findOne({ hashKey }).lean();
+      if (updatedRecord?.translatedText !== translatedText) {
+        throw new Error('Manual override did not update the live translation cache');
+      }
+
+      const auditLog = await TranslationAuditLog.findOne({ hashKey, action: 'manual_override' }).sort({ timestamp: -1 }).lean();
+      if (!auditLog || auditLog.newValue !== translatedText) {
+        throw new Error('Manual override audit log was not written');
+      }
+
+      log.info('  └─ Manual override and audit log verified through the admin route');
+    } finally {
+      await TranslationAuditLog.deleteMany({ hashKey });
+      await LiveTranslationCache.deleteOne({ hashKey });
     }
   }
 

@@ -33,7 +33,7 @@ const saveTranslationCache = async (record) => {
   return LiveTranslationCache.findOneAndUpdate(
     { hashKey },
     { $set: cacheData, $setOnInsert: { hashKey } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   ).lean();
 };
 

@@ -468,7 +468,7 @@ class ProductTranslationSeederService {
           await LiveTranslationCache.findOneAndUpdate(
             { hashKey },
             { $set: translationRecord },
-            { upsert: true, new: true, setDefaultsOnInsert: true },
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
           );
 
           successCount++;
