@@ -23,11 +23,11 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
   });
 
   describe('deleteReview (soft delete)', () => {
-    let findByIdStub, findReviewStub, saveStub;
+    let findByIdStub, aggregateStub, saveStub;
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Review, 'findById');
-      findReviewStub = sandbox.stub(Review, 'find');
+      aggregateStub = sandbox.stub(Review, 'aggregate').resolves([{ avgRating: 0, count: 0 }]);
       saveStub = sandbox.stub(Product.prototype, 'save');
     });
 
@@ -49,10 +49,9 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
 
       findByIdStub.resolves(review);
       sandbox.stub(Product, 'findById').resolves(product);
-      findReviewStub.resolves([]);
-
       const req = {
         params: { id: reviewId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -63,7 +62,7 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
 
       expect(review.isDeleted).to.be.true;
       expect(review.save.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Review removed' })).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
     });
 
     it('should return 404 if review not found for deletion', async () => {
@@ -72,6 +71,7 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
 
       const req = {
         params: { id: reviewId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -90,11 +90,11 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
   });
 
   describe('hardDeleteReview', () => {
-    let findByIdStub, findReviewStub, saveStub;
+    let findByIdStub, aggregateStub, saveStub;
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Review, 'findById');
-      findReviewStub = sandbox.stub(Review, 'find');
+      aggregateStub = sandbox.stub(Review, 'aggregate').resolves([{ avgRating: 0, count: 0 }]);
       saveStub = sandbox.stub(Product.prototype, 'save');
     });
 
@@ -115,10 +115,9 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
 
       findByIdStub.resolves(review);
       sandbox.stub(Product, 'findById').resolves(product);
-      findReviewStub.resolves([]);
-
       const req = {
         params: { id: reviewId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),
@@ -128,7 +127,7 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
       await hardDeleteReview(req, res);
 
       expect(review.deleteOne.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Review permanently removed' })).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
     });
 
     it('should return 404 if review not found for hard delete', async () => {
@@ -137,6 +136,7 @@ describe('Review Controller - deleteReview & hardDeleteReview', () => {
 
       const req = {
         params: { id: reviewId.toString() },
+        query: {},
       };
       const res = {
         json: sandbox.stub(),

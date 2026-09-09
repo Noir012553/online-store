@@ -2654,85 +2654,6 @@ exports.importNestedJSON = async (req, res) => {
   }
 };
 
-// Get fallback translations for offline support (Rule #1: Static UI)
-// Used by Frontend when API is unavailable - ensures no "khung một đằng, ruột một nẻo"
-// SSOT: Loads from StaticTranslation database, not hardcoded JSON
-exports.getFallbackTranslations = async (req, res) => {
-  try {
-    const { lang } = req.query;
-    const { isSupportedLanguage } = require('../config/languageInventory');
-
-    // Validate language if specified
-    if (lang && !isSupportedLanguage(lang)) {
-      return res.status(400).json({
-        success: false,
-        code: 'LANGUAGE_UNSUPPORTED',
-        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.unsupported_language', { lang }),
-      });
-    }
-
-    // Cache for 24 hours (fallback translations are relatively stable)
-    res.set('Cache-Control', 'public, max-age=86400');
-
-    // If specific language requested, return only that language
-    if (lang) {
-      const staticTrans = await StaticTranslation.find({
-        code: lang,
-        isDeleted: false,
-      }).lean();
-
-      if (!staticTrans || staticTrans.length === 0) {
-        return res.status(404).json({
-          success: false,
-          code: 'FALLBACK_TRANSLATIONS_NOT_FOUND',
-          message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.fallback_translations_not_found', { lang }),
-        });
-      }
-
-      // Build translations object from all namespaces
-      const translations = {};
-      for (const ns of staticTrans) {
-        translations[ns.namespace] = ns.translations;
-      }
-
-      return res.json({
-        success: true,
-        data: {
-          locale: lang,
-          translations,
-        },
-      });
-    }
-
-    // Return all 9 languages if no specific language requested
-    const allTranslations = await StaticTranslation.find({
-      isDeleted: false,
-    }).lean();
-
-    const result = {};
-    for (const trans of allTranslations) {
-      if (!result[trans.code]) {
-        result[trans.code] = {};
-      }
-      result[trans.code][trans.namespace] = trans.translations;
-    }
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    console.error('[TranslationController] Error getting fallback translations:', error);
-    return sendTranslationError(
-      res,
-      500,
-      getRequestLanguage(req),
-      'TRANSLATION_OPERATION_FAILED',
-      'operation_failed'
-    );
-  }
-};
-
 /**
  * QUY TẮC #2: Dynamic overlay endpoint
  * Frontend calls this to fetch entity-specific translations (products, categories, brands, etc.)
@@ -3001,7 +2922,7 @@ exports.getFallbackTranslations = async (req, res) => {
     };
 
     // Cache the response
-    TranslationCacheService.set('fallback', lang, responseData, ns);
+    TranslationCacheService.set('fallback', resolvedLang, responseData, ns);
 
     // Set cache headers
     res.set('Cache-Control', 'public, max-age=3600');
