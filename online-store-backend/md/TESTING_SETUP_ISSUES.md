@@ -114,7 +114,7 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 
 ## Đã triển khai
 
-- `src/test/integrationHarness.js` tự chọn port, khởi động backend khi chưa có backend readiness, tạo database test cô lập, tạo admin user/token và tạo product/category fixture.
+- `src/test/integrationHarness.js` tự chọn port, khởi động backend khi chưa có backend readiness, dùng database/backend theo env thật, tạo admin user/token và tạo product/category fixture.
 - `backend-endpoints.test.js` dùng harness, kiểm tra đúng route admin manual override, xác nhận cache và audit log, có timeout cho request và cleanup tập trung.
 - `backend-endpoints.test.js` không còn coi `ECONNREFUSED`, thiếu MongoDB hoặc thiếu token là pass.
 - `test-config.js` đã mở rộng danh sách loại khỏi default discovery cho các test cần MongoDB, backend, network hoặc VNPAY sandbox, gồm `db-state.test.js`, `languages-flow.test.js`, `language-sync-flow.test.js`, `translation-api.test.js`, `translation-migration-smoke.test.js`, `shadow-writes.test.js`, `simple.test.js` và các test integration liên quan.
@@ -132,4 +132,4 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 
 Chưa có kết quả runtime toàn bộ: workspace hiện thiếu `node_modules` của backend/frontend, nên `test:list` dừng ở dependency `dotenv` và `check:emoji` dừng ở dependency `typescript`. Không dùng claim `38/38 PASS` lịch sử để kết luận trạng thái hiện tại.
 
-Integration suite dùng `TEST_MONGO_URI` hoặc `MONGO_URI` trỏ tới MongoDB test, `JWT_ACCESS_SECRET` và `JWT_REFRESH_SECRET` cho backend cô lập, cùng `TEST_BASE_URL`/`TEST_API_BASE_URL` cho endpoint. Mặc định harness tự tạo một admin fixture duy nhất trong database test, sinh password chỉ trong memory, đăng nhập qua `POST /api/users/login` rồi xóa fixture khi cleanup. `TEST_ADMIN_EMAIL` và `TEST_ADMIN_PASSWORD` chỉ là override tùy chọn khi cần dùng tài khoản admin test có sẵn; hai biến phải đi cùng nhau. Có thể dùng `TEST_ADMIN_TOKEN` khi backend test đã chạy sẵn và token hợp lệ. Nếu dùng backend đã chạy sẵn, bắt buộc có `TEST_MONGO_URI` để tránh ghi vào database thật. Nếu backend chưa chạy, harness tự khởi động process riêng với database cô lập từ `MONGO_URI`. Không đặt secret hoặc mật khẩu trong source code. Tài liệu cũ tham chiếu `.env.example`, nhưng file mẫu chưa được xác minh tồn tại trong checkout hiện tại; cần bổ sung trước khi chuẩn hóa onboarding test.
+Integration suite ưu tiên biến env thật `MONGO_URI`, `BASE_URL`/`BACKEND_URL`, `ADMIN_EMAIL`/`ADMIN_PASSWORD` và `ADMIN_TOKEN`, đồng thời vẫn hỗ trợ các biến `TEST_*` để override. Harness dùng database/backend thật theo cấu hình hiện tại, tự tạo fixture động, đăng nhập qua `POST /api/users/login` nếu chưa có token, rồi chỉ xóa fixture do test tạo khi cleanup; không tự `dropDatabase()`. Không đặt secret hoặc mật khẩu trong source code.

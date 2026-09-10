@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
 
+process.env.NODE_ENV = 'test';
 const { app } = require('../app');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');

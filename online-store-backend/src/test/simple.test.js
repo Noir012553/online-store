@@ -1,11 +1,12 @@
 const http = require('http');
-
+const https = require('https');
 const { baseUrl: configuredBaseUrl } = require('./test-config');
 const baseUrl = new URL(configuredBaseUrl);
 
 function makeRequest(method, path, body = null) {
   return new Promise((resolve, reject) => {
-    const request = http.request({
+    const transport = baseUrl.protocol === 'https:' ? https : http;
+    const request = transport.request({
       hostname: baseUrl.hostname,
       port: baseUrl.port || (baseUrl.protocol === 'https:' ? 443 : 80),
       path,

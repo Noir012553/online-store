@@ -16,6 +16,8 @@
 const { expect } = require('chai');
 const request = require('supertest');
 const mongoose = require('mongoose');
+process.env.NODE_ENV = 'test';
+const { mongoUri } = require('./test-config');
 const { app } = require('../app');
 
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
@@ -35,7 +37,8 @@ describe('PHASE 4: E2E Integration Tests', () => {
   const testLang = getActiveLangCodes()[1] || getDefaultLanguage().code;
 
   before(async function() {
-    this.timeout(10000);
+    this.timeout(30000);
+    await mongoose.connect(mongoUri);
     // Setup test data
     const product = await Product.create({
       user: testUserId,
@@ -77,6 +80,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
       await Review.deleteOne({ _id: testReviewId });
       await UserContentTranslationCache.deleteMany({ entityId: testReviewId });
     }
+    await mongoose.disconnect();
   });
 
   // ============ TEST 1: NEW Schema Query ============

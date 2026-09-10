@@ -502,7 +502,7 @@ class EndpointTester {
       integrationEnvironment = null;
     }
 
-    this.printResults();
+    return this.printResults();
   }
 
   printResults() {

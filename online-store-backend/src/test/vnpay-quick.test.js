@@ -85,12 +85,9 @@ async function testVNPAY() {
     const requestData = createResult.data.requestData;
     
     // Rebuild signature data to verify
-    const signatureData = Object.keys(requestData)
-      .filter(key => key !== 'vnp_SecureHash')
-      .sort()
-      .map(key => `${key}=${requestData[key]}`)
-      .join('&');
-
+    const signatureFields = { ...requestData };
+    delete signatureFields.vnp_SecureHash;
+    const signatureData = adapter.createVnpaySignatureString(adapter.sortObject(signatureFields));
     const expectedHash = adapter.createSignature(signatureData, realConfig.partnerKey, 'sha512');
     const hashMatch = hashFromUrl === expectedHash;
 
@@ -121,7 +118,7 @@ async function testVNPAY() {
 
     // Create valid signature for IPN
     const ipnSortedData = adapter.sortObject(mockIpnData);
-    const ipnSignatureData = adapter.formatDataForSignature(ipnSortedData, 'query');
+    const ipnSignatureData = adapter.createVnpayIpnSignatureString(ipnSortedData);
     const ipnSignature = adapter.createSignature(ipnSignatureData, realConfig.partnerKey, 'sha512');
 
     const ipnDataWithSignature = { ...mockIpnData, vnp_SecureHash: ipnSignature };
@@ -134,7 +131,8 @@ async function testVNPAY() {
     // ============================================
 
   } catch (error) {
-    process.exit(1);
+    console.error(`[vnpay-quick] ${error.stack || error.message}`);
+    process.exitCode = 1;
   }
 }
 
