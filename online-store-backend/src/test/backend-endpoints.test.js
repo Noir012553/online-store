@@ -20,33 +20,13 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationAuditLog = require('../models/TranslationAuditLog');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { baseUrl, timeoutMs } = require('./test-config');
+const { baseUrl, mongoUri, timeoutMs } = require('./test-config');
+const { startIntegrationEnvironment } = require('./integrationHarness');
 
-const BASE_URL = baseUrl;
 const TEST_TIMEOUT = timeoutMs;
-const MONGO_URI = process.env.TEST_MONGO_URI || process.env.MONGO_URI || '';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-
-const assertIntegrationEnvironment = async () => {
-  if (!MONGO_URI) {
-    throw new Error('Missing TEST_MONGO_URI or MONGO_URI for the dynamic database fixture');
-  }
-  if (!ADMIN_TOKEN) {
-    throw new Error('Missing ADMIN_TOKEN for the admin manual-override integration test');
-  }
-
-  try {
-    const response = await axios.get(`${BASE_URL}/readyz`, {
-      timeout: TEST_TIMEOUT,
-      validateStatus: () => true,
-    });
-    if (response.status !== 200) {
-      throw new Error(`readiness status ${response.status}`);
-    }
-  } catch (error) {
-    throw new Error(`Backend is unavailable or not ready at ${BASE_URL}: ${error.code || error.message}`);
-  }
-};
+let BASE_URL = baseUrl;
+let MONGO_URI = mongoUri;
+let ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 const getTargetLanguage = () => (
   getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
@@ -56,7 +36,7 @@ const getTargetLanguage = () => (
 const requestProducts = async (pageSize = 2) => {
   const response = await axios.get(
     `${BASE_URL}/api/products?pageNumber=1&pageSize=${pageSize}`,
-    { validateStatus: () => true }
+    { timeout: TEST_TIMEOUT, validateStatus: () => true }
   );
 
   if (response.status !== 200) {
@@ -72,10 +52,8 @@ const requestProducts = async (pageSize = 2) => {
 };
 
 const createLegacyFallbackFixture = async (targetLang) => {
-  await mongoose.connect(MONGO_URI);
   const sourceProduct = await Product.findOne({ isDeleted: false }).lean();
   if (!sourceProduct) {
-    await mongoose.disconnect();
     throw new Error('No product source is available for fallback fixture');
   }
 
@@ -126,7 +104,6 @@ const createLegacyFallbackFixture = async (targetLang) => {
       await ProductCatalogTranslationCache.deleteMany({ entityId: product._id.toString() });
       await LiveTranslationCache.deleteMany({ entityId: product._id.toString() });
       await Product.deleteOne({ _id: product._id });
-      await mongoose.disconnect();
     },
   };
 };
@@ -134,7 +111,7 @@ const createLegacyFallbackFixture = async (targetLang) => {
 const getStaticNamespace = async () => {
   const response = await axios.get(
     `${BASE_URL}/api/translations/namespaces`,
-    { validateStatus: () => true }
+    { timeout: TEST_TIMEOUT, validateStatus: () => true }
   );
 
   if (response.status !== 200) {
@@ -196,7 +173,7 @@ class EndpointTester {
 
     const response = await axios.get(
       `${BASE_URL}/api/products/${productId}/translations?lang=${lang}`,
-      { validateStatus: () => true }
+      { timeout: TEST_TIMEOUT, validateStatus: () => true }
     );
 
     if (response.status === 404) {
@@ -236,7 +213,7 @@ class EndpointTester {
     try {
       const response = await axios.get(
         `${BASE_URL}/api/products/${fixture.productId}/translations?lang=${lang}`,
-        { validateStatus: () => true }
+        { timeout: TEST_TIMEOUT, validateStatus: () => true }
       );
 
       if (response.status !== 200) {
@@ -260,7 +237,7 @@ class EndpointTester {
 
     const response = await axios.get(
       `${BASE_URL}/api/translations/reviews/${reviewId}?lang=${lang}`,
-      { validateStatus: () => true }
+      { timeout: TEST_TIMEOUT, validateStatus: () => true }
     );
 
     if (response.status !== 200) {
@@ -274,10 +251,12 @@ class EndpointTester {
   }
 
   async test4_TranslateTextWithShadowWrite() {
-    // Test that translateText creates shadow writes
     const testText = `Test translation at ${new Date().toISOString()}`;
     const targetLang = getTargetLanguage();
     const sourceLang = getDefaultLanguage().code;
+    const hashKey = crypto.createHash('md5')
+      .update(JSON.stringify([testText, sourceLang, targetLang]))
+      .digest('hex');
 
     const response = await axios.post(
       `${BASE_URL}/api/translations/translate`,
@@ -285,9 +264,9 @@ class EndpointTester {
         text: testText,
         targetLang,
         sourceLang,
-        useCache: false, // Force new translation
+        useCache: false,
       },
-      { validateStatus: () => true }
+      { timeout: TEST_TIMEOUT, validateStatus: () => true }
     );
 
     if (response.status === 429) {
@@ -305,58 +284,56 @@ class EndpointTester {
     }
 
     const { success, data } = response.data;
-    if (!success) {
-      throw new Error('Translation failed');
+    if (!success || !data.translatedText) {
+      throw new Error('Translation response did not contain translated text');
     }
 
-    if (!data.translatedText || data.translatedText.length === 0) {
-      throw new Error('No translated text returned');
+    const cacheRecord = await LiveTranslationCache.findOne({ hashKey }).lean();
+    try {
+      if (!cacheRecord || cacheRecord.translatedText !== data.translatedText) {
+        throw new Error('Shadow write was not persisted to LiveTranslationCache');
+      }
+      log.info(`  └─ Shadow write verified for ${hashKey}`);
+    } finally {
+      await LiveTranslationCache.deleteMany({ hashKey });
     }
-
-    log.info(`  └─ Translated: "${testText.substring(0, 30)}..." → "${data.translatedText.substring(0, 30)}..."`);
-
-    // Verify cache write (check LiveTranslationCache was updated)
-    log.info(`  └─ Shadow write should have been created in LiveTranslationCache`);
   }
 
   async test5_RateLimitingBehavior() {
-    // Test that rapid requests trigger rate limiting
     log.info('  └─ Testing rate limiting (sending 10 rapid requests)');
+    const prefix = `Integration rate-limit ${Date.now()}`;
+    const texts = Array.from({ length: 10 }, (_, index) => `${prefix} ${index}`);
 
-    const requests = [];
-    for (let i = 0; i < 10; i++) {
-      requests.push(
-        axios.post(
-          `${BASE_URL}/api/translations/translate`,
-          {
-            text: `Test ${i}`,
-            targetLang: testLang,
-            sourceLang: getDefaultLanguage().code,
-          },
-          { validateStatus: () => true }
-        )
-      );
-    }
+    try {
+      const results = await Promise.allSettled(texts.map((text) => axios.post(
+        `${BASE_URL}/api/translations/translate`,
+        {
+          text,
+          targetLang: testLang,
+          sourceLang: getDefaultLanguage().code,
+        },
+        { timeout: TEST_TIMEOUT, validateStatus: () => true }
+      )));
+      const statuses = results.map((result) => (
+        result.status === 'fulfilled' ? result.value.status : 500
+      ));
+      const rateLimited = statuses.filter((status) => status === 429).length;
+      const successful = statuses.filter((status) => status === 200).length;
+      const rejected = results.filter((result) => result.status === 'rejected').length;
 
-    const results = await Promise.allSettled(requests);
-    const statuses = results.map((r) =>
-      r.status === 'fulfilled' ? r.value.status : 500
-    );
+      log.info(`    - Successful: ${successful}, Rate limited: ${rateLimited}, Rejected: ${rejected}`);
 
-    const rateLimited = statuses.filter((s) => s === 429).length;
-    const successful = statuses.filter((s) => s === 200).length;
+      if (rejected > 0) {
+        throw new Error(`Rate-limit requests failed to reach the backend (${rejected} rejected requests)`);
+      }
 
-    const rejected = results.filter((result) => result.status === 'rejected').length;
-    log.info(`    - Successful: ${successful}, Rate limited: ${rateLimited}, Rejected: ${rejected}`);
-
-    if (rejected > 0) {
-      throw new Error(`Rate-limit requests failed to reach the backend (${rejected} rejected requests)`);
-    }
-
-    if (rateLimited > 0) {
-      log.info('    - Rate limiting is active ✓');
-    } else {
-      log.warn('    - No rate limiting observed (might be configured differently)');
+      if (rateLimited > 0) {
+        log.info('    - Rate limiting is active ✓');
+      } else {
+        log.warn('    - No rate limiting observed (might be configured differently)');
+      }
+    } finally {
+      await LiveTranslationCache.deleteMany({ originalText: { $in: texts } });
     }
   }
 
@@ -414,7 +391,7 @@ class EndpointTester {
     const lang = getTargetLanguage();
     const response = await axios.get(
       `${BASE_URL}/api/translations?lang=${lang}&ns=${encodeURIComponent(namespace)}`,
-      { validateStatus: () => true }
+      { timeout: TEST_TIMEOUT, validateStatus: () => true }
     );
 
     if (response.status === 404) {
@@ -445,7 +422,7 @@ class EndpointTester {
     const sourceLang = getDefaultLanguage().code;
     const response = await axios.get(
       `${BASE_URL}/api/products/${product._id}/translations?lang=${sourceLang}`,
-      { validateStatus: () => true }
+      { timeout: TEST_TIMEOUT, validateStatus: () => true }
     );
 
     if (response.status !== 200) {
@@ -466,45 +443,61 @@ class EndpointTester {
     console.log('  BACKEND TRANSLATION ENDPOINTS TEST SUITE (Phase 3 #7c)');
     console.log('═══════════════════════════════════════════════════════════\n');
 
-    const environmentReady = await this.runTest('Integration environment preflight', () => (
-      assertIntegrationEnvironment()
-    ));
-    if (this.failedTests > 0) {
-      this.printResults();
-      return environmentReady;
+    try {
+      integrationEnvironment = await startIntegrationEnvironment({
+        configuredBaseUrl: baseUrl,
+        configuredMongoUri: mongoUri,
+        configuredAdminToken: ADMIN_TOKEN,
+        timeoutMs: TEST_TIMEOUT,
+      });
+      BASE_URL = integrationEnvironment.baseUrl;
+      MONGO_URI = integrationEnvironment.mongoUri;
+      ADMIN_TOKEN = integrationEnvironment.adminToken;
+      this.passedTests++;
+      this.testResults.push({ name: 'Integration environment setup', status: 'PASS' });
+      log.success('Integration environment setup');
+    } catch (error) {
+      this.failedTests++;
+      this.testResults.push({ name: 'Integration environment setup', status: 'FAIL', error: error.message });
+      return this.printResults();
     }
 
-    await this.runTest('Test 1: Product Translations from New Schema', () =>
-      this.test1_ProductTranslationsNewSchema()
-    );
+    try {
+      await this.runTest('Test 1: Product Translations from New Schema', () =>
+        this.test1_ProductTranslationsNewSchema()
+      );
 
-    await this.runTest('Test 2: Product Translations Fallback to Old Schema', () =>
-      this.test2_ProductTranslationsFallback()
-    );
+      await this.runTest('Test 2: Product Translations Fallback to Old Schema', () =>
+        this.test2_ProductTranslationsFallback()
+      );
 
-    await this.runTest('Test 3: Review Translations from New Schema', () =>
-      this.test3_ReviewTranslationsNewSchema()
-    );
+      await this.runTest('Test 3: Review Translations from New Schema', () =>
+        this.test3_ReviewTranslationsNewSchema()
+      );
 
-    await this.runTest('Test 4: Shadow Write on Translate Text', () =>
-      this.test4_TranslateTextWithShadowWrite()
-    );
+      await this.runTest('Test 4: Shadow Write on Translate Text', () =>
+        this.test4_TranslateTextWithShadowWrite()
+      );
 
-    await this.runTest('Test 5: Rate Limiting Behavior', () =>
-      this.test5_RateLimitingBehavior()
-    );
+      await this.runTest('Test 5: Rate Limiting Behavior', () =>
+        this.test5_RateLimitingBehavior()
+      );
 
-    await this.runTest('Test 6: Manual Override Audit Logging', () =>
-      this.test6_ManualOverrideAudit()
-    );
+      await this.runTest('Test 6: Manual Override Audit Logging', () =>
+        this.test6_ManualOverrideAudit()
+      );
 
-    await this.runTest('Test 7: Cache Headers Present', () =>
-      this.test7_CacheHeadersPresent()
-    );
+      await this.runTest('Test 7: Cache Headers Present', () =>
+        this.test7_CacheHeadersPresent()
+      );
 
-    await this.runTest('Test 8: Vietnamese Language No Translation', () =>
-      this.test8_VietnameseLangNoTranslation()
-    );
+      await this.runTest('Test 8: Vietnamese Language No Translation', () =>
+        this.test8_VietnameseLangNoTranslation()
+      );
+    } finally {
+      await integrationEnvironment.cleanup();
+      integrationEnvironment = null;
+    }
 
     this.printResults();
   }
@@ -538,13 +531,14 @@ class EndpointTester {
     );
     console.log(`Success Rate: ${percentage}%\n`);
 
-    process.exit(this.failedTests > 0 ? 1 : 0);
+    return this.failedTests > 0 ? 1 : 0;
   }
 }
 
-// Run tests
 const tester = new EndpointTester();
-tester.runAllTests().catch((error) => {
-  log.error(`Unexpected error: ${error.message}`);
-  process.exit(1);
-});
+tester.runAllTests()
+  .then((exitCode) => process.exit(exitCode || 0))
+  .catch((error) => {
+    log.error(`Unexpected error: ${error.message}`);
+    process.exit(1);
+  });

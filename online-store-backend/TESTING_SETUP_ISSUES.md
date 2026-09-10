@@ -111,3 +111,13 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 - Test kiểm tra cả response API và thay đổi dữ liệu quan trọng trong database.
 - Báo cáo phân biệt rõ lỗi setup, lỗi contract và lỗi logic.
 - Các test thanh toán không chỉ kiểm tra redirect mà còn kiểm tra webhook và cập nhật order.
+
+## Đã triển khai
+
+- `src/test/integrationHarness.js` tự chọn port, khởi động backend khi chưa có backend readiness, tạo database test cô lập, tạo admin user/token và tạo product/category fixture.
+- `backend-endpoints.test.js` dùng harness, kiểm tra đúng route admin manual override, xác nhận cache và audit log, có timeout cho request và cleanup tập trung.
+- `backend-endpoints.test.js` không còn coi `ECONNREFUSED`, thiếu MongoDB hoặc thiếu token là pass.
+- `package.json` có script `test:integration` để chạy riêng integration suite; test mặc định không tự chạy các integration file.
+- Các option Mongoose deprecated `{ new: true }` đã được thay bằng `{ returnDocument: 'after' }`.
+
+Integration suite vẫn cần `TEST_MONGO_URI` hoặc `MONGO_URI` trỏ tới MongoDB test. Nếu dùng backend đã chạy sẵn, bắt buộc có `TEST_MONGO_URI` để tránh ghi vào database thật; harness dùng `ADMIN_TOKEN` nếu có, nếu không sẽ tự tạo admin user/token bằng JWT secret của backend và xóa user sau test. Nếu backend chưa chạy, harness tự khởi động process riêng với database cô lập từ `MONGO_URI`.
