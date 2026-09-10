@@ -7,20 +7,25 @@
  */
 
 const http = require('http');
+const https = require('https');
+const { baseUrl, adminToken } = require('./test-config');
 
-function makeRequest(method, path, body = null) {
+function makeRequest(method, requestPath, body = null) {
   return new Promise((resolve, reject) => {
+    const url = new URL(requestPath, baseUrl);
+    const transport = url.protocol === 'https:' ? https : http;
     const options = {
-      hostname: 'localhost',
-      port: 5000,
-      path: path,
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname + url.search,
       method: method,
       headers: {
         'Content-Type': 'application/json',
+        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
       }
     };
 
-    const req = http.request(options, (res) => {
+    const req = transport.request(options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {

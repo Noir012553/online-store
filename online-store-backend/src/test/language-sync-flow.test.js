@@ -13,7 +13,8 @@
 
 const http = require('http');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { baseUrl, languageCode, backgroundTimeoutMs } = require('./test-config');
+const { baseUrl, languageCode, backgroundTimeoutMs, timeoutMs } = require('./test-config');
+const { getAdminToken } = require('./adminAuth');
 
 const BASE_URL = baseUrl;
 const TEST_LANG = process.argv[2] || languageCode;
@@ -36,7 +37,7 @@ const log = {
   test: (msg) => console.log(`\n${colors.blue}═══ ${msg} ═══${colors.reset}`),
 };
 
-function makeRequest(method, path, body = null) {
+function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE_URL);
     const options = {
@@ -46,6 +47,7 @@ function makeRequest(method, path, body = null) {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     };
 
@@ -87,11 +89,12 @@ async function sleep(ms) {
 
 async function testLanguageSync() {
   try {
+    const adminToken = await getAdminToken(BASE_URL, timeoutMs);
     log.test(`Testing Language Synchronization for: ${TEST_LANG.toUpperCase()}`);
 
     // Test 1: Check if language already exists
     log.test('TEST 1: Check Existing Languages');
-    let res = await makeRequest('GET', '/api/languages');
+    let res = await makeRequest('GET', '/api/languages', null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to fetch languages: ${res.status}`);
     }
@@ -107,7 +110,7 @@ async function testLanguageSync() {
     res = await makeRequest('POST', '/api/languages', {
       code: TEST_LANG,
       name: `Test Language ${TEST_LANG.toUpperCase()}`,
-    });
+    }, adminToken);
 
     if (res.status !== 201) {
       throw new Error(`Failed to create language: ${res.status} ${JSON.stringify(res.data)}`);
@@ -125,7 +128,7 @@ async function testLanguageSync() {
 
     // Test 4: Get supported languages (should include new language now)
     log.test('TEST 4: Check Supported Languages');
-    res = await makeRequest('GET', '/api/languages/supported');
+    res = await makeRequest('GET', '/api/languages/supported', null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to fetch supported languages: ${res.status}`);
     }
@@ -139,7 +142,7 @@ async function testLanguageSync() {
 
     // Test 5: Get static translations for new language
     log.test('TEST 5: Get Static Translations');
-    res = await makeRequest('GET', `/api/translations?lang=${TEST_LANG}&ns=common`);
+    res = await makeRequest('GET', `/api/translations?lang=${TEST_LANG}&ns=common`, null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to fetch translations: ${res.status}`);
     }
@@ -152,7 +155,7 @@ async function testLanguageSync() {
 
     // Test 6: Get cache statistics
     log.test('TEST 6: Check Translation Cache Stats');
-    res = await makeRequest('GET', '/api/translations/cache/stats');
+    res = await makeRequest('GET', '/api/translations/cache/stats', null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to fetch translation cache stats: ${res.status}`);
     }
@@ -172,7 +175,7 @@ async function testLanguageSync() {
     let productId = null;
     
     // First, get a product
-    res = await makeRequest('GET', '/api/products?limit=1');
+    res = await makeRequest('GET', '/api/products?limit=1', null, adminToken);
     if (res.status !== 200 || !res.data.data || res.data.data.length === 0) {
       throw new Error(`Failed to load a product fixture: ${res.status}`);
     }
@@ -180,7 +183,7 @@ async function testLanguageSync() {
     log.success(`Found product: ${productId}`);
 
     // Get translations for this product
-    res = await makeRequest('GET', `/api/products/${productId}/translations?lang=${TEST_LANG}`);
+    res = await makeRequest('GET', `/api/products/${productId}/translations?lang=${TEST_LANG}`, null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to get product translations: ${res.status}`);
     }
@@ -193,7 +196,7 @@ async function testLanguageSync() {
 
     // Test 8: Check language in active languages list
     log.test('TEST 8: Verify Language Activation');
-    res = await makeRequest('GET', '/api/languages');
+    res = await makeRequest('GET', '/api/languages', null, adminToken);
     if (res.status !== 200) {
       throw new Error(`Failed to fetch active languages: ${res.status}`);
     }

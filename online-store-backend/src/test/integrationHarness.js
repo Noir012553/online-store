@@ -19,14 +19,6 @@ const getFreePort = () => new Promise((resolve, reject) => {
   });
 });
 
-const getDatabaseName = () => `online_store_test_${process.pid}_${Date.now()}`;
-
-const buildIsolatedMongoUri = (sourceUri) => {
-  const uri = new URL(sourceUri);
-  uri.pathname = `/${getDatabaseName()}`;
-  return uri.toString();
-};
-
 const isReady = async (baseUrl, timeoutMs) => {
   try {
     const response = await axios.get(`${baseUrl}/readyz`, {
@@ -168,8 +160,8 @@ const startIntegrationEnvironment = async ({
   configuredBaseUrl,
   configuredMongoUri,
   configuredAdminToken,
-  configuredAdminEmail = process.env.TEST_ADMIN_EMAIL,
-  configuredAdminPassword = process.env.TEST_ADMIN_PASSWORD,
+  configuredAdminEmail = process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || process.env.EXPORT_TEST_EMAIL,
+  configuredAdminPassword = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || process.env.EXPORT_TEST_PASSWORD,
   timeoutMs = 30_000,
 } = {}) => {
   if (!configuredMongoUri) {
@@ -178,9 +170,6 @@ const startIntegrationEnvironment = async ({
 
   const existingBaseUrl = configuredBaseUrl || 'http://127.0.0.1:5000';
   if (await isReady(existingBaseUrl, timeoutMs)) {
-    if (!process.env.TEST_MONGO_URI) {
-      throw new Error('TEST_MONGO_URI is required when using an existing backend server');
-    }
     await mongoose.connect(configuredMongoUri);
     try {
       const admin = configuredAdminToken
@@ -209,7 +198,6 @@ const startIntegrationEnvironment = async ({
     }
   }
 
-  const isolatedMongoUri = buildIsolatedMongoUri(configuredMongoUri);
   const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
@@ -221,8 +209,8 @@ const startIntegrationEnvironment = async ({
     ...process.env,
     NODE_ENV: 'test',
     PORT: String(port),
-    MONGO_URI: isolatedMongoUri,
-    TEST_MONGO_URI: isolatedMongoUri,
+    MONGO_URI: configuredMongoUri,
+    TEST_MONGO_URI: configuredMongoUri,
     JWT_ACCESS_SECRET: accessSecret,
     JWT_REFRESH_SECRET: refreshSecret,
     EXPORT_STORAGE: 'local',
@@ -239,7 +227,7 @@ const startIntegrationEnvironment = async ({
 
   try {
     await waitForReady(baseUrl, timeoutMs);
-    await mongoose.connect(isolatedMongoUri);
+    await mongoose.connect(configuredMongoUri);
     const admin = await createAdminSession({
       baseUrl,
       email: configuredAdminEmail,
@@ -250,13 +238,12 @@ const startIntegrationEnvironment = async ({
 
     return {
       baseUrl,
-      mongoUri: isolatedMongoUri,
+      mongoUri: configuredMongoUri,
       adminToken: admin.token,
       productId: fixture.productId,
       cleanup: async () => {
         await fixture.cleanup();
         if (mongoose.connection.readyState === 1) {
-          await mongoose.connection.dropDatabase();
           await mongoose.disconnect();
         }
         if (!child.killed) child.kill('SIGTERM');
@@ -265,7 +252,6 @@ const startIntegrationEnvironment = async ({
   } catch (error) {
     if (!child.killed) child.kill('SIGTERM');
     if (mongoose.connection.readyState === 1) {
-      await mongoose.connection.dropDatabase();
       await mongoose.disconnect();
     }
     const details = output.trim().split(/\r?\n/).slice(-12).join('\n');

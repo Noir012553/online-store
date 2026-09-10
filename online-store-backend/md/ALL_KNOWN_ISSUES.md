@@ -115,14 +115,14 @@ Trước đây test phụ thuộc backend/MongoDB/token thủ công và có th�
 
 Đã thêm harness để:
 
-1. Kiểm tra `TEST_MONGO_URI`/`MONGO_URI`.
+1. Kiểm tra `TEST_MONGO_URI` hoặc `MONGO_URI` từ môi trường thật.
 2. Chọn port trống.
 3. Khởi động backend thật nếu chưa readiness.
-4. Dùng database cô lập.
+4. Dùng database/backend thật theo cấu hình env hiện tại.
 5. Tạo admin/product/category fixture động.
 6. Gọi route thật.
 7. Kiểm tra response và database.
-8. Cleanup fixture, database và child process.
+8. Cleanup fixture và child process; không tự xoá database thật.
 
 ### Translation route
 

@@ -455,8 +455,12 @@ const run = async args => {
   const frontendUrl = args.frontendBaseUrl || process.env.EXPORT_FRONTEND_BASE_URL || DEFAULT_URLS[environment].frontend;
   const backendUrl = args.backendBaseUrl || process.env.EXPORT_BACKEND_BASE_URL || DEFAULT_URLS[environment].backend;
   const baseUrl = (args.baseUrl || (target === 'frontend' ? frontendUrl : backendUrl)).replace(/\/+$/, '');
-  let email = process.env[args.emailEnv || 'EXPORT_TEST_EMAIL'];
-  let password = process.env[args.passwordEnv || 'EXPORT_TEST_PASSWORD'];
+  let email = process.env[args.emailEnv || 'EXPORT_TEST_EMAIL']
+    || process.env.TEST_ADMIN_EMAIL
+    || process.env.ADMIN_EMAIL;
+  let password = process.env[args.passwordEnv || 'EXPORT_TEST_PASSWORD']
+    || process.env.TEST_ADMIN_PASSWORD
+    || process.env.ADMIN_PASSWORD;
   if (isPlaceholderCredential(email) || isPlaceholderCredential(password)) {
     const credentialPath = path.resolve(
       args.credentialPath

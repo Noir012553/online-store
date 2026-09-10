@@ -13,10 +13,10 @@
 
 const axios = require('axios');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { apiBaseUrl, adminToken } = require('./test-config');
+const { apiBaseUrl, timeoutMs } = require('./test-config');
+const { getAdminToken } = require('./adminAuth');
 
 const API_BASE = apiBaseUrl.replace(/\/+$/, '') + '/api';
-const ADMIN_TOKEN = adminToken;
 
 // Color output for logs
 const colors = {
@@ -38,14 +38,11 @@ function sleep(ms) {
 
 async function runTest() {
   try {
+    const adminTokenValue = await getAdminToken(apiBaseUrl, timeoutMs);
     log(colors.cyan, `\n${CLI_SYMBOLS.rocket} START: End-to-End Translation System Test\n`);
 
     // ============ TEST 1: Check admin token ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 1: Verify Admin Token`);
-    if (!ADMIN_TOKEN) {
-      log(colors.red, `${CLI_SYMBOLS.error} ERROR: TEST_ADMIN_TOKEN is not set in the environment`);
-      process.exit(1);
-    }
     log(colors.green, `${CLI_SYMBOLS.success} Admin token configured\n`);
 
     // ============ TEST 2: Create new language ============
@@ -58,7 +55,7 @@ async function runTest() {
         name: 'Português (Test)',
       },
       {
-        headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+        headers: { Authorization: `Bearer ${adminTokenValue}` },
       }
     );
     log(colors.green, `${CLI_SYMBOLS.success} Language created: ${createLangRes.data.data.code}`);
@@ -78,7 +75,7 @@ async function runTest() {
       const statusRes = await axios.get(
         `${API_BASE}/languages/${createLangRes.data.data.code}/setup-status`,
         {
-          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+          headers: { Authorization: `Bearer ${adminTokenValue}` },
         }
       );
 
@@ -106,7 +103,7 @@ async function runTest() {
     const statusRes = await axios.get(
       `${API_BASE}/translations/admin/status/${langCode2}`,
       {
-        headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+        headers: { Authorization: `Bearer ${adminTokenValue}` },
       }
     );
 
@@ -129,7 +126,7 @@ async function runTest() {
     const staticTransRes = await axios.get(
       `${API_BASE}/translations/lang/${langCode2}`,
       {
-        headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+        headers: { Authorization: `Bearer ${adminTokenValue}` },
       }
     );
     const staticCount = staticTransRes.data.data.length;
@@ -147,7 +144,7 @@ async function runTest() {
       const failedRes = await axios.get(
         `${API_BASE}/translations/admin/failed/${langCode2}?limit=10`,
         {
-          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+          headers: { Authorization: `Bearer ${adminTokenValue}` },
         }
       );
       const failedItems = failedRes.data.data.items;
@@ -164,7 +161,7 @@ async function runTest() {
         `${API_BASE}/translations/admin/retry/${langCode2}`,
         {},
         {
-          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+          headers: { Authorization: `Bearer ${adminTokenValue}` },
         }
       );
       log(colors.green, `${CLI_SYMBOLS.success} ${retryRes.data.message}`);
@@ -177,7 +174,7 @@ async function runTest() {
       const updatedStatusRes = await axios.get(
         `${API_BASE}/translations/admin/status/${langCode2}`,
         {
-          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+          headers: { Authorization: `Bearer ${adminTokenValue}` },
         }
       );
       log(colors.cyan, `   Updated error count: ${updatedStatusRes.data.data.totalErrors}\n`);
@@ -188,7 +185,7 @@ async function runTest() {
     // ============ TEST 8: Verify language in supported list ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 8: Verify language appears in active languages`);
     const langsRes = await axios.get(`${API_BASE}/languages`, {
-      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+      headers: { Authorization: `Bearer ${adminTokenValue}` },
     });
     const foundLang = langsRes.data.data.find(l => l.code === langCode2 && l.isReady);
     if (foundLang) {

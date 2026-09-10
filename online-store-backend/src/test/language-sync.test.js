@@ -15,7 +15,8 @@
 require('dotenv').config();
 const axios = require('axios');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { apiBaseUrl } = require('./test-config');
+const { apiBaseUrl, timeoutMs } = require('./test-config');
+const { getAdminToken, getAuthHeaders } = require('./adminAuth');
 
 const API_BASE = `${apiBaseUrl}/api`;
 
@@ -41,6 +42,7 @@ async function test(name, fn) {
 
 async function main() {
   console.log(`${CLI_SYMBOLS.rocket} Language Synchronization Test Suite\n`);
+  const authConfig = { headers: getAuthHeaders(await getAdminToken(apiBaseUrl, timeoutMs)) };
 
   // Test 1: Get supported languages
   let supportedLangs = [];
@@ -59,7 +61,7 @@ async function main() {
   // Test 2: Get active languages (before adding PT)
   let initialActiveLangs = [];
   await test('GET /api/languages (before adding PT)', async () => {
-    const res = await axios.get(`${API_BASE}/languages`);
+    const res = await axios.get(`${API_BASE}/languages`, authConfig);
     if (!res.data.success || !Array.isArray(res.data.data)) {
       throw new Error('Invalid response format');
     }
@@ -77,7 +79,7 @@ async function main() {
       const res = await axios.post(`${API_BASE}/languages`, {
         code: 'pt',
         name: 'Português',
-      });
+      }, authConfig);
       if (!res.data.success || !res.data.data) {
         throw new Error('Failed to create language');
       }
@@ -96,6 +98,7 @@ async function main() {
   await test('GET /api/translations?lang=pt&ns=common', async () => {
     const res = await axios.get(`${API_BASE}/translations`, {
       params: { lang: 'pt', ns: 'common' },
+      ...authConfig,
     });
     if (!res.data.success) {
       throw new Error(`Expected 200, got error: ${res.data.message}`);
@@ -111,6 +114,7 @@ async function main() {
   await test('GET /api/translations?lang=pt&ns=footer', async () => {
     const res = await axios.get(`${API_BASE}/translations`, {
       params: { lang: 'pt', ns: 'footer' },
+      ...authConfig,
     });
     if (!res.data.success) {
       throw new Error(`Expected 200, got error: ${res.data.message}`);
@@ -125,7 +129,7 @@ async function main() {
   // Test 6: Get products and check translations
   let productId = null;
   await test('GET /api/products (to find a product ID)', async () => {
-    const res = await axios.get(`${API_BASE}/products?page=1&limit=1`);
+    const res = await axios.get(`${API_BASE}/products?page=1&limit=1`, authConfig);
     if (!Array.isArray(res.data.products) || res.data.products.length === 0) {
       throw new Error('No products found');
     }
@@ -138,6 +142,7 @@ async function main() {
     await test(`GET /api/products/${productId}/translations?lang=pt`, async () => {
       const res = await axios.get(`${API_BASE}/products/${productId}/translations`, {
         params: { lang: 'pt' },
+        ...authConfig,
       });
       if (!res.data.success) {
         throw new Error(`Expected 200, got error: ${res.data.message}`);
@@ -152,7 +157,7 @@ async function main() {
     const { getActiveLangCodes } = require('../config/languageInventory');
     const expectedLangs = getActiveLangCodes();
 
-    const res = await axios.get(`${API_BASE}/languages`);
+    const res = await axios.get(`${API_BASE}/languages`, authConfig);
     const activeLangs = res.data.data.map(l => l.code);
     console.log(`   Active languages: ${activeLangs.join(', ')}`);
 
