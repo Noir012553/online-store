@@ -687,7 +687,7 @@ const getProductById = asyncHandler(async (req, res) => {
   // Validate MongoDB ObjectId format
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
-    throw new Error(getMessage(lang, 'product.notFound'));
+    throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
 
   const product = await withTimeout(
@@ -703,7 +703,7 @@ const getProductById = asyncHandler(async (req, res) => {
 
     if (!visibleProductIds.has(productObj._id.toString())) {
       res.status(404);
-      throw new Error(getMessage(lang, 'product.notFound'));
+      throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
     }
 
     const translatedProduct = await overlayTranslation(productObj, 'product', lang);
@@ -712,7 +712,7 @@ const getProductById = asyncHandler(async (req, res) => {
     res.json((await formatProductsForDisplay([localizedProduct], reportingCurrency, req.locale))[0]);
   } else {
     res.status(404);
-    throw new Error(getMessage(lang, 'product.notFound'));
+    throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
 });
 
@@ -735,7 +735,7 @@ const createProduct = asyncHandler(async (req, res) => {
   // 2. File (legacy backend upload) - req.file
   if (!image && !req.file) {
     res.status(400);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.imageRequired'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_image_required'));
   }
 
   // ==================== VALIDATE PRICE AND STOCK ====================
@@ -745,13 +745,13 @@ const createProduct = asyncHandler(async (req, res) => {
   if (isNaN(numPrice) || numPrice <= 0) {
     console.error('Price validation failed:', { isNaN: isNaN(numPrice), numPrice });
     res.status(400);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidPrice'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_invalid_price'));
   }
 
   if (isNaN(numCountInStock) || numCountInStock < 0) {
     console.error('Stock validation failed:', { isNaN: isNaN(numCountInStock), numCountInStock });
     res.status(400);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidStock'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_invalid_stock'));
   }
 
   if (!category || !mongoose.Types.ObjectId.isValid(category)) {
@@ -914,7 +914,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
 
   // ==================== VALIDATE PRICE AND STOCK ====================
@@ -923,7 +923,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     const numPrice = parseFloat(price);
     if (isNaN(numPrice) || numPrice <= 0) {
       res.status(400);
-      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidPrice'));
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_invalid_price'));
     }
   }
 
@@ -931,7 +931,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     const numCountInStock = parseInt(countInStock);
     if (isNaN(numCountInStock) || numCountInStock < 0) {
       res.status(400);
-      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.invalidStock'));
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_invalid_stock'));
     }
   }
 
@@ -1146,13 +1146,13 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
 
   // Prevent double soft-delete
   if (product.isDeleted) {
     res.status(400);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.alreadyDeleted'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_already_deleted'));
   }
 
   product.isDeleted = true;
@@ -1178,7 +1178,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     console.warn('[WARNING] Failed to broadcast product delete:', err.message);
   }
 
-  res.json({ message: getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.deletedSuccessfully') });
+  res.json({ message: getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_deleted') });
 });
 
 /**
@@ -1192,12 +1192,12 @@ const restoreProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
 
   if (!product.isDeleted) {
     res.status(400);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notDeleted'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_deleted'));
   }
 
   product.isDeleted = false;
@@ -1285,7 +1285,7 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     res.status(404);
-    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'product.notFound'));
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
 
   try {

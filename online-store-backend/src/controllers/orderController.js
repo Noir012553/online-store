@@ -63,7 +63,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.notFound'));
+    throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 
   let updated = false;
@@ -131,7 +131,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
   if (!cartItems || cartItems.length === 0) {
     res.status(400);
-    throw createOrderError(lang, 'ORDER_NO_ITEMS', 'order.noCartItems');
+    throw createOrderError(lang, 'ORDER_NO_ITEMS', 'orders.error_cart_empty');
   }
 
   // ==================== IDEMPOTENCY CHECK ====================
@@ -172,7 +172,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     }
     if (!Number.isInteger(quantity) || quantity <= 0) {
       res.status(400);
-      throw createOrderError(lang, 'ORDER_INVALID_QUANTITY', 'validation.product.quantityInvalid');
+      throw createOrderError(lang, 'ORDER_INVALID_QUANTITY', 'validation.quantity.invalid');
     }
 
     const key = String(productId);
@@ -199,13 +199,13 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
     if (!product) {
       res.status(404);
-      throw createOrderError(lang, 'ORDER_PRODUCT_NOT_FOUND', 'product.notFound');
+      throw createOrderError(lang, 'ORDER_PRODUCT_NOT_FOUND', 'api-errors.product_not_found');
     }
 
     // Stock check
     if (product.countInStock < item.quantity) {
       res.status(400);
-      throw createOrderError(lang, 'ORDER_INSUFFICIENT_STOCK', 'product.insufficientStock');
+      throw createOrderError(lang, 'ORDER_INSUFFICIENT_STOCK', 'errors.insufficient_stock');
     }
 
     productMap.set(productId, {
@@ -247,7 +247,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
         if (!customerName) {
           res.status(400);
-          throw createOrderError(lang, 'CUSTOMER_NAME_REQUIRED', 'product.customerNameRequired');
+          throw createOrderError(lang, 'CUSTOMER_NAME_REQUIRED', 'login.name_required');
         }
 
         // Generate a unique phone number if not provided
@@ -287,7 +287,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       if (err.code === 11000) {
         const field = Object.keys(err.keyPattern)[0];
         res.status(409);
-        throw createOrderError(lang, 'CUSTOMER_FIELD_IN_USE', 'product.fieldInUse');
+        throw createOrderError(lang, 'CUSTOMER_FIELD_IN_USE', 'common.error_generic');
       }
       throw err;
     }
@@ -405,17 +405,17 @@ const addOrderItems = asyncHandler(async (req, res) => {
 
     if (!coupon) {
       res.status(404);
-      throw createOrderError(lang, 'ORDER_COUPON_NOT_FOUND', 'order.invalidPromoCode');
+      throw createOrderError(lang, 'ORDER_COUPON_NOT_FOUND', 'coupons.error_not_found');
     }
 
     const now = new Date();
     if (coupon.startDate > now || coupon.endDate < now) {
       res.status(400);
-      throw createOrderError(lang, 'ORDER_COUPON_EXPIRED', 'order.couponExpired');
+      throw createOrderError(lang, 'ORDER_COUPON_EXPIRED', 'coupons.error_coupon_expired');
     }
     if (coupon.currentUses >= coupon.maxUses) {
       res.status(400);
-      throw createOrderError(lang, 'ORDER_COUPON_USAGE_LIMIT_REACHED', 'order.couponLimitExceeded');
+      throw createOrderError(lang, 'ORDER_COUPON_USAGE_LIMIT_REACHED', 'coupons.error_usage_limit_reached');
     }
     if (!coupon.currencyCode) {
       res.status(400);
@@ -430,7 +430,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     const baseMinOrderAmount = convertToBaseCurrency(coupon.minOrderAmount, couponCurrencyCode);
     if (calculatedItemsPrice < baseMinOrderAmount) {
       res.status(400);
-      throw createOrderError(lang, 'ORDER_COUPON_MINIMUM_NOT_REACHED', 'order.couponMinAmount');
+      throw createOrderError(lang, 'ORDER_COUPON_MINIMUM_NOT_REACHED', 'coupons.error_min_order_requirement');
     }
 
     const requestedDiscountAmount = coupon.discountType === 'percentage'
@@ -668,13 +668,13 @@ const getOrderById = asyncHandler(async (req, res) => {
 
     if (!isOwner && !isAdmin) {
       res.status(403);
-      throw new Error(getMessage(lang, 'order.notAuthorized'));
+      throw new Error(getMessage(lang, 'auth.notAuthorized'));
     }
 
     res.json((await formatOrderResponse([order], req))[0]);
   } else {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.notFound'));
+    throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 });
 
@@ -872,7 +872,7 @@ const deleteOrder = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.alreadyDeleted'));
+    throw new Error(getMessage(lang, 'admin-controllers-messages.order_already_deleted'));
   }
 
   order.isDeleted = true;
@@ -903,12 +903,12 @@ const restoreOrder = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.notFound'));
+    throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 
   if (!order.isDeleted) {
     res.status(400);
-    throw new Error(getMessage(lang, 'order.notDeleted'));
+    throw new Error(getMessage(lang, 'admin-controllers-messages.order_not_deleted'));
   }
 
   order.isDeleted = false;
@@ -992,7 +992,7 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.notFound'));
+    throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 
   order.isDelivered = true;
@@ -1043,7 +1043,7 @@ const hardDeleteOrder = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(lang, 'order.notFound'));
+    throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 
   await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);

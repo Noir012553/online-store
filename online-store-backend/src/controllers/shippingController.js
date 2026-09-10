@@ -73,7 +73,7 @@ const calculateShipping = asyncHandler(async (req, res) => {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     return res.status(400).json({
       success: false,
-      message: getMessage(lang, 'order.noCartItems'),
+      message: getMessage(lang, 'orders.error_cart_empty'),
     });
   }
 
@@ -89,7 +89,7 @@ const calculateShipping = asyncHandler(async (req, res) => {
   if (products.length !== new Set(productIds).size) {
     return res.status(404).json({
       success: false,
-      message: getMessage(lang, 'product.notFound'),
+      message: getMessage(lang, 'api-errors.product_not_found'),
     });
   }
 

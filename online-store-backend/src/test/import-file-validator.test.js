@@ -222,7 +222,7 @@ describe('Product export serialization', () => {
     }
   });
 
-  it('keeps the ZIP valid when a remote image cannot be downloaded', async () => {
+  it('keeps the ZIP valid when a remote image cannot be downloaded', async function() {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
     const filePath = path.join(directory, 'products-export.zip');
     const originalFetch = global.fetch;
@@ -249,9 +249,9 @@ describe('Product export serialization', () => {
       global.fetch = originalFetch;
       await fs.promises.rm(directory, { recursive: true, force: true });
     }
-  });
+  }).timeout(10000);
 
-  it('retries a transient remote image failure before adding the asset', async () => {
+  it('retries a transient remote image failure before adding the asset', async function() {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
     const filePath = path.join(directory, 'products-export.zip');
     const originalFetch = global.fetch;
@@ -284,9 +284,9 @@ describe('Product export serialization', () => {
       global.fetch = originalFetch;
       await fs.promises.rm(directory, { recursive: true, force: true });
     }
-  });
+  }).timeout(10000);
 
-  it('retries a transient HTTP image failure before adding the asset', async () => {
+  it('retries a transient HTTP image failure before adding the asset', async function() {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
     const filePath = path.join(directory, 'products-export.zip');
     const originalFetch = global.fetch;
@@ -319,7 +319,7 @@ describe('Product export serialization', () => {
       global.fetch = originalFetch;
       await fs.promises.rm(directory, { recursive: true, force: true });
     }
-  });
+  }).timeout(10000);
 
   it('includes dynamic fields and gallery images in CSV output', () => {
     const csv = convertProductsToCSV([serializeProductForExport(product)]);

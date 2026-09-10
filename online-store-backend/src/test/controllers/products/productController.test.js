@@ -223,7 +223,8 @@ describe('Product Controller', () => {
           category: categoryId.toString(),
           baseCurrencyCode: 'VND',
         },
-        file: { path: 'uploads/test.jpg' }
+        file: { path: 'uploads/test.jpg' },
+        app: { get: sandbox.stub().returns(null) },
       };
       const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
       await createProduct(req, res);
@@ -246,6 +247,7 @@ describe('Product Controller', () => {
         params: { id: product._id.toString() },
         query: {},
         body: { name: 'Updated Laptop' },
+        app: { get: sandbox.stub().returns(null) },
       };
       const res = { json: sandbox.stub() };
       await updateProduct(req, res);
@@ -271,7 +273,10 @@ describe('Product Controller', () => {
       const product = { _id: new mongoose.Types.ObjectId(), isDeleted: false, save: sandbox.stub().resolves() };
       sandbox.stub(Product, 'findById').resolves(product);
 
-      const req = { params: { id: product._id.toString() } };
+      const req = {
+        params: { id: product._id.toString() },
+        app: { get: sandbox.stub().returns(null) },
+      };
       const res = { json: sandbox.stub() };
       await deleteProduct(req, res);
       expect(product.isDeleted).to.be.true;
