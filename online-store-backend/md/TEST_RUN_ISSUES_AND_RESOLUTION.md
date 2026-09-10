@@ -37,14 +37,18 @@ Con số `38/38` không khớp inventory hiện tại và chưa được chạy 
 
 ### Tiến độ cập nhật hiện tại
 
-- Đã bổ sung assertion/exit code cho các test VNPay, language sync, migration smoke và rollback có nhánh pass giả.
-- Đã tách các test cần MongoDB/backend/network/VNPAY sandbox khỏi default discovery trong `src/test/test-config.js`.
-- `test-runner.js` tự tạo `reports/test`; root `npm test` đã chuyển sang backend runner.
-- `npm run test:vnpay:signature` đã chạy PASS.
-- Các file JavaScript đã sửa đã qua `node --check`; `git diff --check` không có lỗi whitespace.
-- Chưa chạy được toàn bộ test runtime vì workspace thiếu `node_modules` backend/frontend: `dotenv` và `typescript` chưa có.
+- Đã bổ sung assertion/exit code cho các test VNPay, language sync, migration smoke, rollback và các test standalone có nguy cơ pass giả.
+- `src/test/test-config.js` hiện cho phép `npm test` chạy cả integration test theo mặc định; chỉ test production `export-production.test.js` vẫn tách riêng.
+- Có thể tắt integration khi cần chẩn đoán unit bằng `RUN_INTEGRATION_TESTS=false`; có thể bật production test riêng bằng `RUN_PRODUCTION_TESTS=true`.
+- `with-order.test.js` hiện nằm trong default discovery, nên `npm test` đã bao gồm nội dung của `npm run test:flow` mà không cần chạy lặp.
+- `test-runner.js` tự tạo `reports/test`, ghi summary/full/log JSON và exit code cuối phản ánh số test file thất bại.
+- Log JSON lưu theo thứ tự thời gian, phân biệt `stdout`/`stderr`, tên file nguồn và che các trường nhạy cảm.
+- `npm run test:vnpay:signature` đã chạy PASS trong bằng chứng trước đó; các file JavaScript đã sửa qua `node --check` và `git diff --check` không có lỗi whitespace.
+- Chưa có runtime report toàn bộ sau thay đổi default discovery trong workspace agent vì thiếu dependency `dotenv`; không dùng kết quả cũ `26/26` để kết luận toàn bộ integration đã pass.
 
-Backend startup cũng chỉ có bằng chứng lịch sử:
+Backend startup do người dùng cung cấp gần nhất đã báo `[STARTUP] backend ready`; đây là bằng chứng backend khởi động được, không thay thế kết quả `npm test`.
+
+Backend startup cũng có bằng chứng lịch sử:
 
 ```text
 [STARTUP] mongo-connect completed in 1783ms
@@ -67,9 +71,9 @@ Không chạy `npm run build` theo quy định của dự án; lần cập nhậ
 | Lỗi logic scheduler | Nuốt lỗi database và log `cập nhật thành công: 0` | Đã sửa |
 | Lỗi test timing | Test ảnh remote timeout do DNS chậm | Đã sửa bằng timeout riêng |
 | Lỗi test migration | Đọc TTL index trước khi Mongoose tạo index | Đã cải thiện test setup |
-| Môi trường | MongoDB/`MONGO_URI` từng thiếu hoặc connection bị đóng | Đã giải quyết ở lần chạy cuối |
-| Môi trường | Backend chưa chạy port 5000 | Đã giải quyết ở lần chạy cuối |
-| Môi trường | JWT secret chưa được nạp | Đã giải quyết ở lần chạy cuối |
+| Môi trường | MongoDB/`MONGO_URI` thiếu hoặc connection bị đóng | Phải preflight; chưa kết luận runtime mới |
+| Môi trường | Backend chưa chạy port 5000 | Người dùng đã cung cấp log `backend ready`; cần chạy test lại để xác minh endpoint |
+| Môi trường | JWT/admin credential chưa được nạp | Integration/E2E phải fail rõ ràng nếu thiếu, không coi là pass |
 | Test có chủ đích | Invalid signature, file quá lớn, ảnh remote lỗi, DB fallback | Không phải failure |
 
 ## 4. Các lỗi đã phát hiện và cách xử lý
@@ -385,7 +389,7 @@ userController.test.js: 9 passing
 
 Không hard-code secret vào source code.
 
-### 5.4. Backend chưa chạy port 5000
+### 5.4. Backend chưa chạy port 5000 (bằng chứng lịch sử)
 
 Lỗi cũ:
 
@@ -552,7 +556,7 @@ Bảng dưới đây là kết quả từ các lần chạy trước, không ph�
 | `shadow-writes.test.js` | Đạt |
 | `vnpay-quick.test.js` | Đạt |
 | `vnpay-signature-fix.test.js` | Đạt |
-| Unified runner | 38/38 passing (lịch sử) |
+| Unified runner | 38/38 passing (lịch sử, không đại diện cho discovery hiện tại) |
 
 ## 9. Các file production đã thay đổi
 
@@ -585,46 +589,48 @@ src/locales/vi/admin-controllers-messages.json
 src/test/controllers/products/productController.test.js
 src/test/import-file-validator.test.js
 src/test/translation-migration-smoke.test.js
+src/test/test-config.js
+src/test/test-runner.js
+src/test/simple.test.js
+src/test/brands.test.js
+src/test/db-brands.test.js
+src/test/db-state.test.js
+src/test/products.test.js
+src/test/shadow-writes.test.js
 ```
 
 ## 11. Kiểm tra đã thực hiện
 
-Đã hoàn tất:
+Đã thực hiện hoặc có bằng chứng trước đó:
 
 - JavaScript syntax check.
 - Locale JSON validation.
 - Kiểm tra translation key ở 9 ngôn ngữ.
-- Product controller test.
-- Order/review controller test.
-- Import validator test.
-- Full unified test runner.
-- MongoDB state check.
-- Translation migration check.
+- Product, order/review và import validator test.
+- MongoDB state check và translation migration check.
 - Backend startup check.
 - Cloudinary rotation test.
 - VNPAY signature/timezone test.
+- Cập nhật unified runner và log JSON.
 
-Full runtime test cuối cùng:
+Runtime report người dùng cung cấp trước khi đổi default discovery:
 
 ```text
-38 discovered
-38 passed
+26 discovered
+26 passed
 0 failed
 ```
 
+Report `38/38` là bằng chứng lịch sử cũ. Chưa có runtime report mới sau khi `npm test` được mở rộng để chạy integration mặc định.
+
 ## 12. Trạng thái cuối cùng
 
-Backend hiện đã đạt trạng thái kiểm tra thành công:
+Trạng thái hiện tại:
 
-- Không còn failure trong 38 test module.
-- MongoDB kết nối được.
-- Translation system load đủ 684 file cho 9 ngôn ngữ.
-- Các controller dùng translation key hợp lệ.
-- Scheduler không còn báo thành công giả khi không có thay đổi.
-- Product test không còn broadcast warning do mock thiếu `req.app`.
-- Import/export remote image test không còn timeout giả.
-- VNPAY test pass.
-- Cloudinary account rotation test pass.
-- Backend startup báo `backend ready`.
-
-Log TTL diagnostic vẫn cần được theo dõi nếu muốn xác minh sâu metadata `expireAfterSeconds` trong MongoDB, nhưng không làm test suite fail hiện tại.
+- `npm test` đã được cấu hình để không bỏ qua integration test; `with-order.test.js` được chạy mặc định.
+- `export-production.test.js` vẫn cần bật chủ động bằng `RUN_PRODUCTION_TESTS=true`.
+- Runner tạo summary/full/log JSON và trả exit code theo test file thất bại.
+- Backend startup đã có log người dùng cung cấp là `backend ready`.
+- Chưa kết luận toàn bộ test pass sau thay đổi discovery; cần chạy lại trong môi trường có dependency, MongoDB, backend readiness và credential hợp lệ.
+- Log lỗi có chủ đích như VNPAY invalid input, ZIP quá lớn, remote image unavailable và Cloudinary 429 không tự động là failure; phải xem exit code và `errors` trong report.
+- Log TTL diagnostic vẫn cần được theo dõi nếu muốn xác minh sâu metadata `expireAfterSeconds` trong MongoDB.

@@ -128,17 +128,18 @@ Chúng cần các điều kiện ngoài code test:
 - Export cần user/admin credential và quyền phù hợp.
 - E2E dừng ngay nếu thiếu credential authentication trong env.
 
-`src/test/test-config.js:8-17` đánh dấu chúng là integration test; mặc định runner loại chúng trừ khi `RUN_INTEGRATION_TESTS=true`.
+`src/test/test-config.js:8-17` đánh dấu chúng là integration test; hiện `npm test` chạy chúng mặc định. Có thể tắt nhóm này khi chẩn đoán unit bằng `RUN_INTEGRATION_TESTS=false`. Riêng `export-production.test.js` vẫn bị loại khỏi default discovery và chỉ chạy khi `RUN_PRODUCTION_TESTS=true`.
 
 ## 5. Kết quả xác minh trong phiên này
 
 - Đã kiểm tra syntax bằng `node --check` cho các controller và test/config file đã sửa.
 - Đã bổ sung assertion/exit code cho VNPay, language sync, migration smoke và rollback; các nhánh pass rỗng chính đã được loại bỏ.
-- Đã mở rộng `test-config.js` để default discovery không chạy nhầm các test phụ thuộc MongoDB/backend/network/VNPAY sandbox.
-- Đã sửa `test-runner.js` tự tạo `reports/test` và root `npm test` chuyển tiếp tới backend runner.
-- `npm run test:vnpay:signature` đã chạy PASS.
-- Đã chạy `git diff --check` thành công.
-- Chưa có số liệu pass/fail runtime toàn bộ vì workspace thiếu dependency local (`dotenv`, `typescript`), MongoDB, backend ready và credential hợp lệ.
+- Đã cập nhật `test-config.js` để default discovery chạy cả integration test cần MongoDB/backend/network/VNPAY sandbox; production export vẫn là opt-in.
+- Đã sửa `test-runner.js` tự tạo `reports/test`, ghi summary/full/log JSON và trả exit code theo số test file lỗi.
+- `with-order.test.js` đã được gộp vào default discovery; `npm run test:flow` vẫn giữ làm lệnh chạy riêng.
+- Một số test standalone đã dùng chung `TEST_MONGO_URI`/`MONGO_URI` và không còn nuốt lỗi thành pass: `brands`, `db-brands`, `db-state`, `products`, `shadow-writes`, `simple`.
+- `npm run test:vnpay:signature` đã chạy PASS trong bằng chứng trước đó; `node --check` và `git diff --check` đã qua.
+- Chưa có số liệu pass/fail runtime toàn bộ sau thay đổi discovery trong workspace agent vì thiếu dependency local (`dotenv`); log `npm start` do người dùng cung cấp đã xác nhận backend đạt `[STARTUP] backend ready`.
 - Không chạy `npm run build` theo yêu cầu.
 
 ## 6. Thứ tự xử lý đề xuất
@@ -148,7 +149,7 @@ Chúng cần các điều kiện ngoài code test:
 3. Chuẩn hoá assertion message theo error code hoặc message tiếng Anh ổn định; xử lý encoding terminal/log riêng.
 4. Sửa URL và auth của integration tests; tạo fixture đúng Product/Review schema.
 5. Sửa `lang` thành `resolvedLang` trong fallback/health controller.
-6. Chỉ chạy integration/export/import/E2E sau khi Mongo, backend, dữ liệu và token đã được cấu hình.
+6. `npm test` chạy cả unit và integration sau khi Mongo, backend, dữ liệu và token đã được cấu hình; chỉ chạy `export-production.test.js` khi chủ động đặt `RUN_PRODUCTION_TESTS=true`.
 
 ## 7. Đối chiếu bổ sung: các vấn đề trước đây còn thiếu
 

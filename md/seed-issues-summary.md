@@ -169,7 +169,7 @@ Lỗi brand hiện tại được xử lý khi API đọc brand từ `Product`, 
 Đã cập nhật test tooling và assertion:
 
 - Root `npm test` đã chuyển từ script placeholder sang backend test runner.
-- Các test phụ thuộc MongoDB, backend, network hoặc VNPAY sandbox được tách khỏi default discovery; chạy integration cần bật `RUN_INTEGRATION_TESTS=true`.
+- `npm test` hiện chạy cả test phụ thuộc MongoDB, backend, network hoặc VNPAY sandbox; có thể tắt integration bằng `RUN_INTEGRATION_TESTS=false`. Riêng production export vẫn cần `RUN_PRODUCTION_TESTS=true`.
 - VNPay payment/IPN signature, language sync, migration smoke và rollback đã có assertion/exit code rõ ràng hơn, không còn các nhánh pass rỗng chính đã phát hiện.
 - Test runner tự tạo `reports/test` trước khi ghi báo cáo.
 - `check-ui-emoji.js` đã sửa import `fs` và không còn quét thư mục `src/test` không tồn tại.
