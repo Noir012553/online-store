@@ -478,3 +478,10 @@ Không chạy `npm run build`.
 - Product/Banner chưa lưu mapping account Cloudinary đầy đủ cho từng ảnh, nên cleanup/validate cần tiếp tục kiểm tra metadata.
 - Chưa có manifest/checksum đầy đủ, CSV formula-injection protection hoặc SVG sanitization.
 - Chưa có runtime/load test mới trong Builder; không chạy `npm run build`.
+
+## 10. Cập nhật xác minh source
+
+- `translationController.js` đã bổ sung import `StaticTranslation` để các luồng static translation không còn lỗi model chưa khai báo.
+- `safeRemoteUrl.js` đã bổ sung `dns.promises`, sửa đường DNS validation được dùng khi production hoặc cờ bảo mật DNS được bật.
+- CSV formula injection đã có neutralization trong export; CSV import hiện từ chối row lệch cột và quote chưa đóng. SVG cũng không thuộc allowlist export hiện hành.
+- Các kết quả runtime ở tài liệu này vẫn là lịch sử. Chưa có deploy hoặc runtime/load test mới trong môi trường hiện tại.

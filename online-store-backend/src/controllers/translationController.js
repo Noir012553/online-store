@@ -2,6 +2,7 @@ const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+const StaticTranslation = require('../models/StaticTranslation');
 const Product = require('../models/Product');
 const translationValidator = require('../utils/translationValidator');
 const cloudflareAiService = require('../services/cloudflareAiService');

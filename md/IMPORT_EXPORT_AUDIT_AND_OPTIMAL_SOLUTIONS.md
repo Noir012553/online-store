@@ -1339,3 +1339,11 @@ Các mục còn lại cần được hoàn thiện trước khi coi ZIP là back
 - `node --check` các file backend đã sửa: PASS.
 - `git diff --check`: PASS.
 - Không chạy `npm run build`.
+
+### Cập nhật xác minh source
+
+- `translationController.js` đã nạp `StaticTranslation`; static translation không còn vấp lỗi model chưa được khai báo.
+- `safeRemoteUrl.js` đã nạp DNS promise API, nên DNS validation dùng bởi export/Cloudinary không còn lỗi khi kích hoạt.
+- CSV export đã có neutralization formula; CSVAdapter đã reject row lệch cột và quote không đóng. Các mục tương ứng trong phần rủi ro được giữ lại như hardening/regression-test, không phải blocker code hiện tại.
+- SVG bị từ chối trong allowlist export hiện hành. Export và Cloudinary remote download đều dùng fetcher an toàn có redirect thủ công.
+- Chưa triển khai production hay chạy runtime/load test mới trong phiên này. Không chạy `npm run build`.
