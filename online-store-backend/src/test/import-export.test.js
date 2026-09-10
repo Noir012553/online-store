@@ -5,8 +5,8 @@ const { spawnSync } = require('child_process');
 
 const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'test-export-dynamic.js');
 const args = [
-  '--environment', 'production',
-  '--target', 'frontend',
+  '--environment', 'local',
+  '--target', 'backend',
   '--format', 'json',
   '--mode', 'upsert',
   '--limit', '10',
