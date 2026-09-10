@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const net = require('net');
 const { spawn } = require('child_process');
 const axios = require('axios');
@@ -48,19 +49,32 @@ const waitForReady = async (baseUrl, timeoutMs) => {
 };
 
 const createAdminSession = async ({ baseUrl, email, password, timeoutMs }) => {
-  if (!email || !password) {
-    throw new Error('Missing TEST_ADMIN_EMAIL or TEST_ADMIN_PASSWORD for admin login setup');
+  const hasEmail = Boolean(email);
+  const hasPassword = Boolean(password);
+  if (hasEmail !== hasPassword) {
+    throw new Error('TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD must be provided together');
   }
 
-  let user = await User.findOne({ email: email.trim().toLowerCase() });
+  const usesDynamicCredentials = !hasEmail;
+  const credentials = usesDynamicCredentials
+    ? {
+      email: `integration-admin-${process.pid}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}@test.invalid`,
+      password: crypto.randomBytes(24).toString('base64url'),
+    }
+    : {
+      email: email.trim().toLowerCase(),
+      password,
+    };
+
+  let user = await User.findOne({ email: credentials.email });
   let createdUser = false;
   if (!user) {
     user = await User.create({
-      username: `integration-admin-${process.pid}-${Date.now()}`,
+      username: `integration-admin-${process.pid}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
       name: 'Integration Test Admin',
-      email,
+      email: credentials.email,
       role: 'admin',
-      password,
+      password: credentials.password,
       provider: 'local',
       isDeleted: false,
     });
@@ -73,7 +87,7 @@ const createAdminSession = async ({ baseUrl, email, password, timeoutMs }) => {
   try {
     response = await axios.post(
       `${baseUrl}/api/users/login`,
-      { email, password },
+      { email: credentials.email, password: credentials.password },
       { timeout: timeoutMs, validateStatus: () => true },
     );
   } catch (error) {
@@ -96,6 +110,7 @@ const createAdminSession = async ({ baseUrl, email, password, timeoutMs }) => {
     userId: user._id,
     email: user.email,
     createdUser,
+    credentialSource: usesDynamicCredentials ? 'database-fixture' : 'environment-override',
   };
 };
 
