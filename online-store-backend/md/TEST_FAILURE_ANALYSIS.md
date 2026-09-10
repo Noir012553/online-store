@@ -177,9 +177,9 @@ Báo cáo ban đầu chưa bao quát hết các lỗi contract xác định đư
 
 ## 8. Thay đổi đã triển khai trong lượt này
 
-- `src/controllers/translationController.js`: loại bỏ khai báo `StaticTranslation` trùng khiến module không parse được; fallback dùng `resolvedLang` cho `requestedLang` và `fallbackUsed`; health dùng `resolvedLang` khi query `StaticTranslation`, tạo response và ghi cache.
+- `src/controllers/translationController.js`: đã xử lý lỗi khai báo `StaticTranslation` trùng trong lịch sử và fallback dùng `resolvedLang` cho `requestedLang`/`fallbackUsed`; tuy nhiên source hiện tại cần xác minh lại import `StaticTranslation` vì các luồng static translation, fallback và health vẫn gọi model này.
 - `src/controllers/reviewController.js`: overlay `role` theo ngôn ngữ yêu cầu, fallback về ngôn ngữ mặc định hoặc chuỗi rỗng.
-- `src/test/translation-integration.test.js`: sửa import app, dùng đúng path parameter, bổ sung `qualityStatus: 'approved'`, thay fixture Product/Review theo schema hiện hành, sửa manual override sang route admin có Bearer token và bỏ assertion pass giả.
+- `src/test/translation-integration.test.js`: sửa import app, dùng đúng path parameter, bổ sung `qualityStatus: 'approved'`, thay fixture Product/Review theo schema hiện hành và sửa manual override sang route admin có Bearer token. Vẫn còn assertion tổng quát kiểu `<400`/`<500` cần thay bằng contract cụ thể.
 - `src/test/translation-e2e.test.js`: sửa các endpoint sang `/languages` và `/translations` đúng với app mount.
 - `src/test/language-sync.test.js`: đọc danh sách sản phẩm từ `res.data.products` theo response contract thực tế.
 - `src/test/test-registry.js`: thay các đường dẫn controller test không tồn tại bằng test file hiện có, tránh cảnh báo file thiếu khi chọn suite.
@@ -197,4 +197,4 @@ Các hạng mục sau chưa thể xác nhận hoặc hoàn tất chỉ bằng s�
 
 ## Kết luận
 
-Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái, lỗi parse test runner và khoảng trống role localization đã được bổ sung. Các lỗi cache dùng raw `lang`, overlay role, fixture/route/assertion translation, registry và import trùng khiến test runner không parse được đã được triển khai. Phần còn lại chủ yếu là đồng bộ mock unit, khởi động backend/MongoDB đúng lifecycle và xác minh runtime với credential hợp lệ.
+Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái, lỗi parse test runner và khoảng trống role localization đã được bổ sung. Các lỗi cache dùng raw `lang`, overlay role, fixture/route translation, registry và import trùng lịch sử đã được xử lý một phần. Phần còn lại gồm xác minh import `StaticTranslation`, loại test phụ thuộc MongoDB khỏi discovery mặc định, thay assertion tổng quát bằng contract cụ thể, đồng bộ mock unit, khởi động backend/MongoDB đúng lifecycle và xác minh runtime với credential hợp lệ.

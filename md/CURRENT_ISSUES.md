@@ -234,3 +234,33 @@ npm run seed
 ```
 
 Full seed có thể chạy product pipeline, dịch sản phẩm và các seed khác. Không cần chạy `npm run build` chỉ để kiểm tra các vấn đề trong tài liệu này.
+
+## 7. Đối chiếu source và test hiện tại
+
+Phần này phản ánh trạng thái được đối chiếu từ source/test hiện tại, không phải kết quả runtime mới.
+
+### Lỗi cần xử lý trước khi kết luận test translation đã pass
+
+- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng hiện chưa thấy import `../models/StaticTranslation` tương ứng ở đầu file. Cần bổ sung hoặc xác minh dependency trước khi kết luận các endpoint này hoạt động.
+- `online-store-backend/src/test/test-config.js` chỉ loại một danh sách cố định khỏi test mặc định. Các file `translation-api.test.js`, `db-state.test.js` và `language-sync-flow.test.js` vẫn có nguy cơ được discovery dù phụ thuộc MongoDB/backend hoặc có thể kết thúc mà không fail process khi request lỗi. Phải tách chúng thành integration/manual test hoặc sửa runner.
+- `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`. Đây không đủ để xác nhận response contract; test phải kiểm tra status mong đợi, body và thay đổi dữ liệu.
+- Regression test ZIP tại `online-store-backend/src/test/import-file-validator.test.js` kiểm tra metadata kích thước sai, trong khi `online-store-backend/src/utils/zipImport.js` vẫn dùng metadata cho compression ratio trước khi đọc buffer thật. Cần đồng bộ code và test.
+
+### Cảnh báo bảo mật và độ tin cậy chưa hoàn tất
+
+- SSRF chưa có policy đồng nhất: validator import chưa resolve DNS private IP và `cloudinaryService.js` còn tải URL bằng `fetch(..., redirect: 'follow')` trực tiếp.
+- ZIP import vẫn giữ archive, dữ liệu giải nén và asset trong memory; giới hạn kích thước chưa loại bỏ hoàn toàn rủi ro OOM.
+- CSV export chưa trung hòa giá trị bắt đầu bằng `=`, `+`, `-` hoặc `@`.
+- SVG chưa được sanitize đầy đủ cho script, event handler, `foreignObject` và external reference.
+- Import chưa atomic trên toàn bộ Product, Category, translation và Cloudinary; vẫn cần test concurrent import, duplicate key và rollback khi lỗi giữa chừng.
+- Quota export/import và disk cleanup vẫn có khả năng race giữa bước kiểm tra quota và bước tạo job/upload.
+
+### Frontend và môi trường kiểm thử
+
+- Frontend hiện chưa có test runner, test script hoặc script `typecheck` chính thức; việc kiểm tra type phải chạy riêng từ `online-store-frontend` bằng `npx --no-install tsc --noEmit`.
+- `online-store-frontend/scripts/check-ui-emoji.js` quét `src/test`, nhưng thư mục này hiện không tồn tại; `npm run check:emoji` cần được sửa trước khi dùng làm quality check.
+- Root `package.json` đang bị xóa trong working tree và không thấy `pnpm-lock.yaml` trong repository; không chạy workflow npm/pnpm ở root cho tới khi xác minh đây là thay đổi có chủ ý.
+
+### Contract `specs`
+
+Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thành `{}`; `specs: {}` cũng là trạng thái hợp lệ theo code/test hiện tại. Không được ghi hoặc test theo giả định cũ rằng `specs` luôn bắt buộc và phải không rỗng.
