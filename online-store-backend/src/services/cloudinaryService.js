@@ -10,6 +10,7 @@
 
 const cloudinary = require('cloudinary').v2;
 const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
+const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 
 const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
 let cloudinaryConfigQueue = Promise.resolve();
@@ -256,13 +257,12 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
  * @returns {Promise<Object>} - { url, publicId, format }
  */
 const downloadRemoteImage = async (sourceUrl) => {
-  const response = await fetch(sourceUrl, {
+  const response = await fetchSafeRemoteImage(sourceUrl, {
     headers: {
       Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
     },
     signal: AbortSignal.timeout(30000),
-    redirect: 'follow',
   });
 
   if (!response.ok) {
@@ -462,8 +462,14 @@ const deleteCloudinaryImagesByPrefix = async (prefix, accountId = '1') => (
  * @returns {Boolean}
  */
 const isCloudinaryUrl = (url) => {
-  if (!url) return false;
-  return url.includes('cloudinary.com') || url.includes('res.cloudinary.com');
+  if (typeof url !== 'string' || !url.trim()) return false;
+
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === 'cloudinary.com' || hostname.endsWith('.cloudinary.com');
+  } catch {
+    return false;
+  }
 };
 
 /**

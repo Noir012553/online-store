@@ -1745,7 +1745,6 @@ const EXPORT_IMAGE_EXTENSIONS = {
   'image/webp': 'webp',
   'image/gif': 'gif',
   'image/avif': 'avif',
-  'image/svg+xml': 'svg',
 };
 
 const createExportImageStats = () => ({
@@ -1815,10 +1814,6 @@ const hasValidImageSignature = (buffer, contentType) => {
   if (contentType === 'image/avif') {
     return buffer.subarray(4, 8).toString('ascii') === 'ftyp'
       && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii'));
-  }
-  if (contentType === 'image/svg+xml') {
-    const text = buffer.subarray(0, 1024).toString('utf8').trimStart().toLowerCase();
-    return text.includes('<svg') || (text.startsWith('<?xml') && text.includes('<svg'));
   }
   return false;
 };
@@ -2545,9 +2540,12 @@ const serializeCSVValue = value => {
   return String(value);
 };
 
+const CSV_FORMULA_PREFIX = /^[\uFEFF\u0000-\u0020]*[=+\-@]/;
+
 const escapeCSV = value => {
-  const stringValue = serializeCSVValue(value);
-  return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+  let stringValue = serializeCSVValue(value);
+  if (CSV_FORMULA_PREFIX.test(stringValue)) stringValue = `'${stringValue}`;
+  return /[",\r\n]/.test(stringValue)
     ? `"${stringValue.replace(/"/g, '""')}"`
     : stringValue;
 };

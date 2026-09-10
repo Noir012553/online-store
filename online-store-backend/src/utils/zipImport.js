@@ -45,6 +45,80 @@ const isSafeEntryName = (entryName) => {
 
 const getEntrySize = (entry) => Number(entry.vars?.uncompressedSize ?? 0);
 
+const readEntryBuffer = async (entry, maxBytes, limitErrorCode) => {
+  const chunks = [];
+  let totalBytes = 0;
+  let stream;
+
+  try {
+    stream = entry.stream();
+    for await (const chunk of stream) {
+      totalBytes += chunk.length;
+      if (totalBytes > maxBytes) {
+        stream.destroy();
+        throw createZipImportError(limitErrorCode);
+      }
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    if (error.code === limitErrorCode) throw error;
+    throw createZipImportError('IMPORT_ZIP_CONTENT_INVALID');
+  }
+
+  return Buffer.concat(chunks, totalBytes);
+};
+
+const getActualCompressedSize = (buffer, entry, directory) => {
+  const localHeaderOffset = Number(entry.vars?.offsetToLocalFileHeader);
+  if (!Number.isSafeInteger(localHeaderOffset) || localHeaderOffset < 0
+    || localHeaderOffset + 30 > buffer.length
+    || buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
+    return null;
+  }
+
+  const flags = buffer.readUInt16LE(localHeaderOffset + 6);
+  const localCompressedSize = buffer.readUInt32LE(localHeaderOffset + 18);
+  const fileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+  const extraFieldLength = buffer.readUInt16LE(localHeaderOffset + 28);
+  const dataStart = localHeaderOffset + 30 + fileNameLength + extraFieldLength;
+
+  if (dataStart > buffer.length) return null;
+  if (!(flags & 0x08) || localCompressedSize > 0) {
+    return dataStart + localCompressedSize <= buffer.length ? localCompressedSize : null;
+  }
+
+  const centralDirectoryOffset = Number(directory.vars?.offsetToStartOfCentralDirectory);
+  const nextLocalHeaderOffset = directory.files
+    .map(file => Number(file.vars?.offsetToLocalFileHeader))
+    .filter(offset => Number.isSafeInteger(offset) && offset > localHeaderOffset)
+    .sort((left, right) => left - right)[0];
+  const dataEnd = Math.min(
+    Number.isSafeInteger(nextLocalHeaderOffset) ? nextLocalHeaderOffset : buffer.length,
+    Number.isSafeInteger(centralDirectoryOffset) && centralDirectoryOffset > dataStart
+      ? centralDirectoryOffset
+      : buffer.length,
+  );
+
+  if (dataEnd <= dataStart) return null;
+
+  let descriptorLength = 12;
+  if (dataEnd - dataStart >= 16 && buffer.readUInt32LE(dataEnd - 16) === 0x08074b50) {
+    descriptorLength = 16;
+  }
+  return dataEnd - dataStart - descriptorLength >= 0
+    ? dataEnd - dataStart - descriptorLength
+    : null;
+};
+
+const validateActualCompressionRatio = (buffer, entry, directory, actualSize) => {
+  if (actualSize === 0) return;
+
+  const compressedSize = getActualCompressedSize(buffer, entry, directory);
+  if (!compressedSize || actualSize / compressedSize > MAX_ZIP_COMPRESSION_RATIO) {
+    throw createZipImportError('IMPORT_ZIP_COMPRESSION_RATIO_INVALID');
+  }
+};
+
 const readImportZip = async (buffer) => {
   if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > MAX_IMPORT_ZIP_FILE_SIZE_BYTES) {
     throw createZipImportError('IMPORT_ZIP_SIZE_INVALID');
