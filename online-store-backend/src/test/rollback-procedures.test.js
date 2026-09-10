@@ -21,12 +21,14 @@ const { app } = require('../app');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationAuditLog = require('../models/TranslationAuditLog');
+const { mongoUri, timeoutMs } = require('./test-config');
 
 describe('ROLLBACK PROCEDURES', function() {
-  const testProductId = `rollback-test-${new mongoose.Types.ObjectId()}`;
+  this.timeout(timeoutMs);
+  const testProductId = new mongoose.Types.ObjectId().toString();
 
   before(async function() {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(mongoUri);
   });
 
   after(async function() {
