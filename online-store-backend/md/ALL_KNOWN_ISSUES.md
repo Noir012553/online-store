@@ -180,3 +180,9 @@ Frontend chỉ chứa các biến public `NEXT_PUBLIC_*`. Không đặt MongoDB,
 - Bổ sung env template theo các nhóm backend đang đọc.
 
 Chưa thể chạy đầy đủ integration suite nếu môi trường chưa có MongoDB test và credential hợp lệ. Không chạy `npm run build` theo yêu cầu.
+
+## 6. Cập nhật xác minh source
+
+- `src/controllers/translationController.js` đã nạp `StaticTranslation`, vì vậy các luồng static translation không còn tham chiếu model chưa khai báo.
+- `src/utils/safeRemoteUrl.js` đã nạp `dns.promises`, khắc phục lỗi runtime trong DNS validation khi kiểm tra URL ảnh từ xa.
+- Chưa có deploy hoặc test integration/runtime mới trong môi trường này; cần MongoDB test và credential hợp lệ để xác nhận các endpoint liên quan.

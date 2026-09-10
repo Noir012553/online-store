@@ -270,3 +270,17 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 ### Contract `specs`
 
 Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thành `{}`; `specs: {}` cũng là trạng thái hợp lệ theo code/test hiện tại. Không được ghi hoặc test theo giả định cũ rằng `specs` luôn bắt buộc và phải không rỗng.
+
+## 8. Cập nhật xác minh source
+
+Đã đối chiếu source trong phiên cập nhật này:
+
+- Đã thêm import `StaticTranslation` vào `online-store-backend/src/controllers/translationController.js`; trước đó controller gọi model này ở các luồng static translation nhưng không nạp model.
+- Đã thêm `require('dns').promises` vào `online-store-backend/src/utils/safeRemoteUrl.js`; DNS validation sẽ không còn lỗi `ReferenceError` khi được bật ở production hoặc qua `ENFORCE_EXPORT_IMAGE_DNS_SECURITY=true`.
+- CSV export đã neutralize cell bắt đầu bằng khoảng trắng/control character rồi `=`, `+`, `-` hoặc `@` tại `productImportController.js`; mục CSV formula injection trong phần cảnh báo cũ không còn là lỗi mã nguồn hiện tại, nhưng vẫn cần regression test riêng.
+- `CSVAdapter` hiện từ chối row lệch số cột và quote không đóng thay vì bỏ qua âm thầm. Parser vẫn là implementation tự viết, vì vậy việc thay bằng parser RFC 4180 streaming là hạng mục hardening sau này, không phải hotfix.
+- Export ảnh hiện từ chối `image/svg+xml`; không còn đường export SVG chưa sanitize trong flow này.
+- Export ảnh và Cloudinary remote-download đã dùng `fetchSafeRemoteImage()` với redirect thủ công. Import URL hiện chỉ validation, chưa fetch; policy chung vẫn là hạng mục cần hoàn thiện nếu sau này import tải URL.
+- Root `package.json` hiện có trong repository. Chỉ chạy command theo từng package backend/frontend, không suy luận root package bị xóa từ báo cáo lịch sử.
+
+Chưa có deploy hoặc runtime test mới trong môi trường này. Những thao tác này cần môi trường backend/MongoDB/Cloudinary hợp lệ và xác nhận triển khai riêng; không chạy `npm run build`.

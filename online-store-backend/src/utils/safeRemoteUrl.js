@@ -1,5 +1,5 @@
-const dns = require('dns').promises;
 const net = require('net');
+const dns = require('dns').promises;
 
 const MAX_REDIRECTS = 3;
 
