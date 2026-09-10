@@ -31,7 +31,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - Kiểm tra production hiện tại: `backend.manln.online/readyz` trả `200 ready`, `manln.online/api/languages/active-config` trả `200`; request `/api/orders` không token trả `401` đúng lớp xác thực. Các lỗi 503 trước đó được đánh giá là sự cố tạm thời của backend/Mongo readiness.
 - ZIP bị giới hạn kích thước nén 100 MB, tổng kích thước giải nén 256 MB, số entry 10.000, số image entry 5.000 và tỷ lệ nén tối đa 100:1.
 - Archive phải chứa đúng một `products.json` hoặc `products.csv`; chỉ cho phép data entry ở root và asset entry dưới `assets/images/`.
-- Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock` và `specs`; thiếu hoặc sai dữ liệu sẽ từ chối toàn bộ lượt nhập.
+- Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description` và `countInStock`; `specs` là tùy chọn và được normalize thành `{}` nếu thiếu. Dữ liệu sai kiểu hoặc sai định dạng vẫn bị từ chối.
 - `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
 - Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
 - Kiểm tra cú pháp backend đã PASS; một số regression runtime test chưa chạy được trong môi trường agent vì thiếu `mongoose`/Mocha. Node dynamic runner đã kiểm tra syntax và được dùng để test local qua PowerShell.
@@ -53,9 +53,9 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 
 2. **Dữ liệu sản phẩm thiếu trường bắt buộc**
    - Chế độ ZIP dùng strict validation trước khi ghi database.
-   - Required fields: `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description`, `countInStock`, `specs`.
+   - Required fields: `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description` và `countInStock`.
    - `countInStock: 0` vẫn hợp lệ.
-   - `specs` phải là object không rỗng hoặc chuỗi JSON biểu diễn object không rỗng; array, chuỗi sai JSON hoặc giá trị rỗng bị từ chối.
+   - `specs` là tùy chọn; object rỗng hoặc thiếu được normalize thành `{}`. Array, chuỗi sai JSON hoặc giá trị có kiểu không hợp lệ vẫn bị từ chối.
    - Một row lỗi sẽ làm lượt import bị từ chối, không được bypass bằng frontend validation.
 
 3. **Luồng giao diện import khó kiểm soát**
@@ -75,11 +75,10 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
    - Ví dụ: `products-export-1788837742211.zip`.
    - Chỉ dùng tên cố định khi truyền rõ `--zip-output`.
 
-6. **False negative khi validate `specs`**
-   - Lần test đầu export thành công nhưng runner báo `ZIP_REQUIRED_FIELDS_MISSING` ở `specs`.
-   - Nguyên nhân: một số sản phẩm export `specs` dưới dạng chuỗi JSON, trong khi runner chỉ kiểm tra object.
-   - Đã đồng bộ runner với backend validator: parse chuỗi JSON trước khi kiểm tra object không rỗng.
-   - Lỗi này xảy ra trước bước import nên không ghi dữ liệu sai vào database.
+6. **Khác biệt kiểu dữ liệu `specs` giữa export và import**
+   - Một số sản phẩm export `specs` dưới dạng chuỗi JSON, nên runner phải parse trước khi kiểm tra.
+   - Backend hiện cho phép thiếu `specs` hoặc `specs: {}` và normalize thành object rỗng; không được dùng tiêu chí “object không rỗng” làm required field.
+   - Dữ liệu sai JSON, array hoặc sai kiểu vẫn phải bị từ chối trước khi ghi database.
 
 7. **Lỗi availability của API và Cloudflare/Tunnel**
    - `active-config` và `orders` từng trả `503`; `translations`, `categories`, `currencies` từng có `530/1033`.
