@@ -634,3 +634,43 @@ Trạng thái hiện tại:
 - Chưa kết luận toàn bộ test pass sau thay đổi discovery; cần chạy lại trong môi trường có dependency, MongoDB, backend readiness và credential hợp lệ.
 - Log lỗi có chủ đích như VNPAY invalid input, ZIP quá lớn, remote image unavailable và Cloudinary 429 không tự động là failure; phải xem exit code và `errors` trong report.
 - Log TTL diagnostic vẫn cần được theo dõi nếu muốn xác minh sâu metadata `expireAfterSeconds` trong MongoDB.
+
+## 13. Kết quả chạy suite products gần nhất
+
+Lệnh đã chạy:
+
+```text
+npm run test -- --suite=products
+```
+
+Thời điểm report: `2026-09-10T14:56:33.792Z`
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+Các file đã pass:
+
+- `import-file-validator.test.js` — 54 passing
+- `export-job-service.test.js` — 7 passing
+- `translation-helper.test.js` — 25 passing
+- `products.test.js` — pass
+
+File còn fail:
+
+- `translation-migration-smoke.test.js` — 8 passing, 2 failing
+
+Hai assertion fail đều do MongoDB đã có index `createdAt_1` nhưng index này thiếu `expireAfterSeconds`:
+
+- `ProductCatalogTranslationCache` yêu cầu TTL 90 ngày (`7776000` giây).
+- `UserContentTranslationCache` yêu cầu TTL 30 ngày (`2592000` giây).
+
+Đã cập nhật `src/scripts/setup-production-indexes.js` để khi phát hiện index cùng key nhưng sai TTL, script thay index cũ bằng index có TTL đúng. Chưa chạy lại script đồng bộ index hoặc test sau thay đổi này.
+
+## 14. Lưu ý về clear và seed
+
+`npm run clear` là thao tác phá hủy dữ liệu: xóa toàn bộ collection, xóa index và xóa ảnh Cloudinary theo prefix `laptop-store/`. Không chạy trên database production hoặc database chứa dữ liệu cần giữ.
+
+Sau khi clear, `npm run seed` có thể chạy lại để tạo dữ liệu demo/test, nhưng đây là một pipeline lớn có thể gọi crawler, import và dịch dữ liệu. Nên chỉ chạy khi đã xác nhận đúng `MONGO_URI`, đúng database cần reset và đã sao lưu dữ liệu cần giữ. Sau seed cần chạy lại script setup index trước khi kiểm tra TTL.

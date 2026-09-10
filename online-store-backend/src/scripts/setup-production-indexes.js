@@ -47,7 +47,8 @@ const ensureIndex = async (collection, keys, options) => {
 
   if (options.expireAfterSeconds !== undefined
     && existingIndex.expireAfterSeconds !== options.expireAfterSeconds) {
-    throw new Error(`Existing index ${existingIndex.name} has a different TTL option`);
+    await collection.dropIndex(existingIndex.name);
+    return collection.createIndex(keys, options);
   }
 
   return existingIndex.name;
