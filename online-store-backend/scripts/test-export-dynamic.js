@@ -134,7 +134,7 @@ const readWindowsCredential = credentialPath => {
         '-ExecutionPolicy',
         'Bypass',
         '-Command',
-        '$credential = Import-Clixml -LiteralPath $env:EXPORT_CREDENTIAL_PATH; [pscustomobject]@{ email = $credential.UserName; password = $credential.GetNetworkCredential().Password } | ConvertTo-Json -Compress',
+        '$credential = Import-Clixml -LiteralPath $env:EXPORT_CREDENTIAL_PATH; if ($null -eq $credential -or $credential -isnot [System.Management.Automation.PSCredential]) { throw "Credential file must contain a PSCredential created by the current Windows user" }; [pscustomobject]@{ email = $credential.UserName; password = $credential.GetNetworkCredential().Password } | ConvertTo-Json -Compress',
       ],
       {
         encoding: 'utf8',

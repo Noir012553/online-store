@@ -57,10 +57,10 @@ async function test() {
   const orderId = process.argv[2];
 
   if (!orderId) {
-    process.exit(1);
+    console.error('Usage: npm run test:flow -- <orderId>');
+    process.exitCode = 1;
+    return;
   }
-
-
 
   try {
     const response = await makeRequest(
@@ -69,18 +69,14 @@ async function test() {
       { orderId }
     );
 
-    if (response.data.success) {
-      
-    } else {
-      
-      if (response.data.details?.error?.includes('not found')) {
-      }
+    if (!response.data?.success) {
+      throw new Error(`Payment flow failed: ${response.status} ${JSON.stringify(response.data)}`);
     }
 
-
-    process.exit(response.data.success ? 0 : 1);
+    console.log(`Payment flow completed for order ${orderId}`);
   } catch (error) {
-    process.exit(1);
+    console.error(`[test-flow] ${error.message}`);
+    process.exitCode = 1;
   }
 }
 

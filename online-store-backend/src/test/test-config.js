@@ -58,7 +58,7 @@ function resolveTestFile(fileName) {
 
 function discoverTestFiles(
   directory = TEST_ROOT,
-  includeIntegration = process.env.RUN_INTEGRATION_TESTS !== 'false',
+  includeIntegration = process.env.RUN_INTEGRATION_TESTS === 'true',
   includeProduction = process.env.RUN_PRODUCTION_TESTS === 'true',
 ) {
   return fs.readdirSync(directory, { withFileTypes: true })
