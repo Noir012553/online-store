@@ -8,7 +8,9 @@ Báo cáo không ghi mật khẩu, token, API secret hoặc nội dung credentia
 
 ## 2. Kết luận nhanh
 
-Lần chạy đầy đủ gần nhất đã hoàn tất thành công:
+### Bằng chứng lịch sử
+
+Lần chạy đầy đủ được ghi nhận trước đây:
 
 ```text
 Discovered: 38 test files
@@ -16,7 +18,7 @@ Passed:     38 test files
 Failed:     0 test files
 ```
 
-Report runtime:
+Report runtime lịch sử:
 
 ```json
 {
@@ -31,7 +33,18 @@ Report runtime:
 }
 ```
 
-Backend cũng khởi động thành công:
+Con số `38/38` không khớp inventory hiện tại và chưa được chạy lại trong workspace cập nhật, vì vậy không được dùng làm bằng chứng PASS hiện tại.
+
+### Tiến độ cập nhật hiện tại
+
+- Đã bổ sung assertion/exit code cho các test VNPay, language sync, migration smoke và rollback có nhánh pass giả.
+- Đã tách các test cần MongoDB/backend/network/VNPAY sandbox khỏi default discovery trong `src/test/test-config.js`.
+- `test-runner.js` tự tạo `reports/test`; root `npm test` đã chuyển sang backend runner.
+- `npm run test:vnpay:signature` đã chạy PASS.
+- Các file JavaScript đã sửa đã qua `node --check`; `git diff --check` không có lỗi whitespace.
+- Chưa chạy được toàn bộ test runtime vì workspace thiếu `node_modules` backend/frontend: `dotenv` và `typescript` chưa có.
+
+Backend startup cũng chỉ có bằng chứng lịch sử:
 
 ```text
 [STARTUP] mongo-connect completed in 1783ms
@@ -43,7 +56,7 @@ Backend cũng khởi động thành công:
 
 `Không có tỷ giá thay đổi` là trạng thái hợp lệ, không phải lỗi cập nhật database.
 
-Không chạy `npm run build` theo yêu cầu của dự án; việc xác minh tập trung vào syntax check, test runtime và startup backend.
+Không chạy `npm run build` theo quy định của dự án; lần cập nhật này chỉ kiểm tra source, cú pháp và test độc lập không cần dependency ngoài.
 
 ## 3. Phân loại vấn đề
 
@@ -517,9 +530,11 @@ Failed to fetch languages: 401
 
 Đây là flow kiểm tra lỗi xác thực, test vẫn pass vì đã xử lý trạng thái reject theo mục tiêu của test.
 
-## 8. Kết quả từng nhóm test quan trọng
+## 8. Kết quả từng nhóm test quan trọng (lịch sử)
 
-| Test suite | Kết quả |
+Bảng dưới đây là kết quả từ các lần chạy trước, không phải runtime verification của checkout hiện tại. Một số file được nhắc trong bảng không còn nằm trong inventory hiện tại.
+
+| Test suite | Kết quả lịch sử |
 | --- | --- |
 | `vnpayAdapter.test.js` | 37 passing |
 | `app-readiness.test.js` | 3 passing |
@@ -537,7 +552,7 @@ Failed to fetch languages: 401
 | `shadow-writes.test.js` | Đạt |
 | `vnpay-quick.test.js` | Đạt |
 | `vnpay-signature-fix.test.js` | Đạt |
-| Unified runner | 38/38 passing |
+| Unified runner | 38/38 passing (lịch sử) |
 
 ## 9. Các file production đã thay đổi
 

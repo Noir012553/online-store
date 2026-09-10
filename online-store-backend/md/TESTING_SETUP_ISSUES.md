@@ -117,7 +117,19 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 - `src/test/integrationHarness.js` tự chọn port, khởi động backend khi chưa có backend readiness, tạo database test cô lập, tạo admin user/token và tạo product/category fixture.
 - `backend-endpoints.test.js` dùng harness, kiểm tra đúng route admin manual override, xác nhận cache và audit log, có timeout cho request và cleanup tập trung.
 - `backend-endpoints.test.js` không còn coi `ECONNREFUSED`, thiếu MongoDB hoặc thiếu token là pass.
-- `package.json` có script `test:integration` để chạy riêng các file trong danh sách integration hiện tại. Tuy nhiên discovery vẫn dựa trên tên file cố định; `translation-api.test.js`, `db-state.test.js` và `language-sync-flow.test.js` cần được phân loại lại trước khi khẳng định test mặc định hoàn toàn độc lập MongoDB/backend.
+- `test-config.js` đã mở rộng danh sách loại khỏi default discovery cho các test cần MongoDB, backend, network hoặc VNPAY sandbox, gồm `db-state.test.js`, `languages-flow.test.js`, `language-sync-flow.test.js`, `translation-api.test.js`, `translation-migration-smoke.test.js`, `shadow-writes.test.js`, `simple.test.js` và các test integration liên quan.
+- `test:integration` vẫn là suite có chọn lọc theo registry; muốn chạy toàn bộ file integration đã phân loại cần đặt `RUN_INTEGRATION_TESTS=true`.
+- Các script VNPay, language sync, migration smoke và rollback đã có assertion/exit code rõ ràng hơn; backup không có trong checkout sẽ được đánh dấu skip thay vì pass giả.
+- `test-runner.js` tự tạo `reports/test` trước khi ghi error/summary report.
+- Root `package.json` đã chuyển `npm test` từ placeholder sang `npm --prefix online-store-backend test`.
 - Các option Mongoose deprecated `{ new: true }` đã được thay bằng `{ returnDocument: 'after' }`.
 
-Integration suite dùng `TEST_MONGO_URI` hoặc `MONGO_URI` trỏ tới MongoDB test, `JWT_ACCESS_SECRET` và `JWT_REFRESH_SECRET` cho backend cô lập, cùng `TEST_BASE_URL`/`TEST_API_BASE_URL` cho endpoint. Mặc định harness tự tạo một admin fixture duy nhất trong database test, sinh password chỉ trong memory, đăng nhập qua `POST /api/users/login` rồi xóa fixture khi cleanup. `TEST_ADMIN_EMAIL` và `TEST_ADMIN_PASSWORD` chỉ là override tùy chọn khi cần dùng tài khoản admin test có sẵn; hai biến phải đi cùng nhau. Có thể dùng `TEST_ADMIN_TOKEN` khi backend test đã chạy sẵn và token hợp lệ. Nếu dùng backend đã chạy sẵn, bắt buộc có `TEST_MONGO_URI` để tránh ghi vào database thật. Nếu backend chưa chạy, harness tự khởi động process riêng với database cô lập từ `MONGO_URI`. Không đặt secret hoặc mật khẩu trong source code; file mẫu là `.env.example`.
+Đã xác minh cục bộ:
+
+- `npm run test:vnpay:signature`: PASS.
+- Các file JavaScript đã sửa: qua `node --check`.
+- `git diff --check`: PASS.
+
+Chưa có kết quả runtime toàn bộ: workspace hiện thiếu `node_modules` của backend/frontend, nên `test:list` dừng ở dependency `dotenv` và `check:emoji` dừng ở dependency `typescript`. Không dùng claim `38/38 PASS` lịch sử để kết luận trạng thái hiện tại.
+
+Integration suite dùng `TEST_MONGO_URI` hoặc `MONGO_URI` trỏ tới MongoDB test, `JWT_ACCESS_SECRET` và `JWT_REFRESH_SECRET` cho backend cô lập, cùng `TEST_BASE_URL`/`TEST_API_BASE_URL` cho endpoint. Mặc định harness tự tạo một admin fixture duy nhất trong database test, sinh password chỉ trong memory, đăng nhập qua `POST /api/users/login` rồi xóa fixture khi cleanup. `TEST_ADMIN_EMAIL` và `TEST_ADMIN_PASSWORD` chỉ là override tùy chọn khi cần dùng tài khoản admin test có sẵn; hai biến phải đi cùng nhau. Có thể dùng `TEST_ADMIN_TOKEN` khi backend test đã chạy sẵn và token hợp lệ. Nếu dùng backend đã chạy sẵn, bắt buộc có `TEST_MONGO_URI` để tránh ghi vào database thật. Nếu backend chưa chạy, harness tự khởi động process riêng với database cô lập từ `MONGO_URI`. Không đặt secret hoặc mật khẩu trong source code. Tài liệu cũ tham chiếu `.env.example`, nhưng file mẫu chưa được xác minh tồn tại trong checkout hiện tại; cần bổ sung trước khi chuẩn hóa onboarding test.

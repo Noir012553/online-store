@@ -93,14 +93,12 @@ async function testLanguageSync() {
     log.test('TEST 1: Check Existing Languages');
     let res = await makeRequest('GET', '/api/languages');
     if (res.status !== 200) {
-      log.error(`Failed to fetch languages: ${res.status}`);
-      return;
+      throw new Error(`Failed to fetch languages: ${res.status}`);
     }
     const existingLangs = res.data.data || [];
     const existingLang = existingLangs.find(l => l.code === TEST_LANG);
     if (existingLang) {
-      log.warn(`Language ${TEST_LANG} already exists`);
-      return;
+      throw new Error(`Language ${TEST_LANG} already exists; use a fresh TEST_LANGUAGE_CODE`);
     }
     log.success(`Language ${TEST_LANG} does not exist yet`);
 
@@ -112,9 +110,7 @@ async function testLanguageSync() {
     });
 
     if (res.status !== 201) {
-      log.error(`Failed to create language: ${res.status}`);
-      log.error(JSON.stringify(res.data, null, 2));
-      return;
+      throw new Error(`Failed to create language: ${res.status} ${JSON.stringify(res.data)}`);
     }
     log.success(`Language created: ${TEST_LANG}`);
     log.info(`Response: ${JSON.stringify(res.data.data, null, 2)}`);
@@ -130,46 +126,46 @@ async function testLanguageSync() {
     // Test 4: Get supported languages (should include new language now)
     log.test('TEST 4: Check Supported Languages');
     res = await makeRequest('GET', '/api/languages/supported');
-    if (res.status === 200) {
-      const langs = res.data.data || [];
-      const found = langs.find(l => l.code === TEST_LANG);
-      if (found) {
-        log.success(`${TEST_LANG} is in supported languages`);
-        log.info(`Name: ${found.name}`);
-      } else {
-        log.error(`${TEST_LANG} not found in supported languages`);
-      }
+    if (res.status !== 200) {
+      throw new Error(`Failed to fetch supported languages: ${res.status}`);
     }
+    const langs = res.data.data || [];
+    const found = langs.find(l => l.code === TEST_LANG);
+    if (!found) {
+      throw new Error(`${TEST_LANG} not found in supported languages`);
+    }
+    log.success(`${TEST_LANG} is in supported languages`);
+    log.info(`Name: ${found.name}`);
 
     // Test 5: Get static translations for new language
     log.test('TEST 5: Get Static Translations');
     res = await makeRequest('GET', `/api/translations?lang=${TEST_LANG}&ns=common`);
-    if (res.status === 200) {
-      log.success(`Static translations found for ${TEST_LANG}`);
-      const transCount = Object.keys(res.data.data?.translations || {}).length;
-      log.info(`Translation keys: ${transCount}`);
-    } else if (res.status === 404) {
-      log.error(`Static translations not found (404). Background job may not have completed.`);
-    } else {
-      log.error(`Failed to fetch translations: ${res.status}`);
+    if (res.status !== 200) {
+      throw new Error(`Failed to fetch translations: ${res.status}`);
     }
+    const transCount = Object.keys(res.data.data?.translations || {}).length;
+    if (transCount === 0) {
+      throw new Error(`No static translations found for ${TEST_LANG}`);
+    }
+    log.success(`Static translations found for ${TEST_LANG}`);
+    log.info(`Translation keys: ${transCount}`);
 
     // Test 6: Get cache statistics
     log.test('TEST 6: Check Translation Cache Stats');
     res = await makeRequest('GET', '/api/translations/cache/stats');
-    if (res.status === 200) {
-      const stats = res.data.data || {};
-      log.success(`Cache stats retrieved`);
-      log.info(`Total cached translations: ${stats.totalCachedTranslations}`);
-      const byLang = stats.byLanguage || [];
-      const newLangStat = byLang.find(s => s._id === TEST_LANG);
-      if (newLangStat) {
-        log.success(`${TEST_LANG}: ${newLangStat.count} translations cached`);
-      } else {
-        log.warn(`${TEST_LANG} not yet in cache (background job may still be running)`);
-      }
-      log.info(`All languages: ${JSON.stringify(byLang)}`);
+    if (res.status !== 200) {
+      throw new Error(`Failed to fetch translation cache stats: ${res.status}`);
     }
+    const stats = res.data.data || {};
+    log.success(`Cache stats retrieved`);
+    log.info(`Total cached translations: ${stats.totalCachedTranslations}`);
+    const byLang = stats.byLanguage || [];
+    const newLangStat = byLang.find(s => s._id === TEST_LANG);
+    if (!newLangStat || newLangStat.count < 1) {
+      throw new Error(`${TEST_LANG} has no cached translations`);
+    }
+    log.success(`${TEST_LANG}: ${newLangStat.count} translations cached`);
+    log.info(`All languages: ${JSON.stringify(byLang)}`);
 
     // Test 7: Get a product and its translations
     log.test('TEST 7: Get Product Translations');
@@ -177,35 +173,36 @@ async function testLanguageSync() {
     
     // First, get a product
     res = await makeRequest('GET', '/api/products?limit=1');
-    if (res.status === 200 && res.data.data && res.data.data.length > 0) {
-      productId = res.data.data[0]._id;
-      log.success(`Found product: ${productId}`);
-
-      // Get translations for this product
-      res = await makeRequest('GET', `/api/products/${productId}/translations?lang=${TEST_LANG}`);
-      if (res.status === 200) {
-        log.success(`Product translations retrieved`);
-        const transData = res.data.data || {};
-        log.info(`Translations: ${JSON.stringify(transData, null, 2)}`);
-      } else if (res.status === 400) {
-        log.warn(`Language not yet activated (400). This is expected if background job is still running.`);
-      } else {
-        log.error(`Failed to get product translations: ${res.status}`);
-      }
+    if (res.status !== 200 || !res.data.data || res.data.data.length === 0) {
+      throw new Error(`Failed to load a product fixture: ${res.status}`);
     }
+    productId = res.data.data[0]._id;
+    log.success(`Found product: ${productId}`);
+
+    // Get translations for this product
+    res = await makeRequest('GET', `/api/products/${productId}/translations?lang=${TEST_LANG}`);
+    if (res.status !== 200) {
+      throw new Error(`Failed to get product translations: ${res.status}`);
+    }
+    const transData = res.data.data || {};
+    if (!transData.name) {
+      throw new Error(`Product translation for ${TEST_LANG} is missing a name`);
+    }
+    log.success(`Product translations retrieved`);
+    log.info(`Translations: ${JSON.stringify(transData, null, 2)}`);
 
     // Test 8: Check language in active languages list
     log.test('TEST 8: Verify Language Activation');
     res = await makeRequest('GET', '/api/languages');
-    if (res.status === 200) {
-      const activeLang = res.data.data?.find(l => l.code === TEST_LANG);
-      if (activeLang) {
-        log.success(`Language ${TEST_LANG} is active in system`);
-        log.info(`Active: ${activeLang.isActive}`);
-      } else {
-        log.error(`Language ${TEST_LANG} not found in active languages`);
-      }
+    if (res.status !== 200) {
+      throw new Error(`Failed to fetch active languages: ${res.status}`);
     }
+    const activeLang = res.data.data?.find(l => l.code === TEST_LANG);
+    if (!activeLang || activeLang.isActive !== true) {
+      throw new Error(`Language ${TEST_LANG} is not active`);
+    }
+    log.success(`Language ${TEST_LANG} is active in system`);
+    log.info(`Active: ${activeLang.isActive}`);
 
     log.test('ALL TESTS COMPLETED');
     log.success(`Language synchronization test for ${TEST_LANG} finished`);
@@ -223,6 +220,7 @@ async function testLanguageSync() {
   } catch (error) {
     log.error(`Test failed with error: ${error.message}`);
     console.error(error);
+    process.exitCode = 1;
   }
 }
 

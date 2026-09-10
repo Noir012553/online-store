@@ -27,6 +27,7 @@ const {
 const { getRunnerForFile } = require('./test-config');
 
 const REPORT_DIR = path.resolve(__dirname, '../../reports/test');
+fs.mkdirSync(REPORT_DIR, { recursive: true });
 const REPORT_STARTED_AT = new Date();
 const REPORT_TIMESTAMP = REPORT_STARTED_AT.toISOString().replace(/[.:]/g, '-');
 const TEST_ERROR_REPORT = path.join(REPORT_DIR, `npm-test-errors-${REPORT_TIMESTAMP}.json`);

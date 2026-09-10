@@ -133,9 +133,12 @@ Chúng cần các điều kiện ngoài code test:
 ## 5. Kết quả xác minh trong phiên này
 
 - Đã kiểm tra syntax bằng `node --check` cho các controller và test/config file đã sửa.
-- Đã kiểm tra `test-registry.js` resolve đúng các suite Products/Orders/VNPAY, không còn cảnh báo từ các path test controller đã bị thiếu.
+- Đã bổ sung assertion/exit code cho VNPay, language sync, migration smoke và rollback; các nhánh pass rỗng chính đã được loại bỏ.
+- Đã mở rộng `test-config.js` để default discovery không chạy nhầm các test phụ thuộc MongoDB/backend/network/VNPAY sandbox.
+- Đã sửa `test-runner.js` tự tạo `reports/test` và root `npm test` chuyển tiếp tới backend runner.
+- `npm run test:vnpay:signature` đã chạy PASS.
 - Đã chạy `git diff --check` thành công.
-- Chưa có số liệu pass/fail runtime đáng tin cậy cho integration vì cần dependency local đúng phiên bản, MongoDB, backend ready và credential hợp lệ.
+- Chưa có số liệu pass/fail runtime toàn bộ vì workspace thiếu dependency local (`dotenv`, `typescript`), MongoDB, backend ready và credential hợp lệ.
 - Không chạy `npm run build` theo yêu cầu.
 
 ## 6. Thứ tự xử lý đề xuất
@@ -197,4 +200,4 @@ Các hạng mục sau chưa thể xác nhận hoặc hoàn tất chỉ bằng s�
 
 ## Kết luận
 
-Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái, lỗi parse test runner và khoảng trống role localization đã được bổ sung. Các lỗi cache dùng raw `lang`, overlay role, fixture/route translation, registry và import trùng lịch sử đã được xử lý một phần. Phần còn lại gồm xác minh import `StaticTranslation`, loại test phụ thuộc MongoDB khỏi discovery mặc định, thay assertion tổng quát bằng contract cụ thể, đồng bộ mock unit, khởi động backend/MongoDB đúng lifecycle và xác minh runtime với credential hợp lệ.
+Báo cáo ban đầu chưa đủ toàn bộ vấn đề dự đoán gặp; các nhóm route sai, harness chưa ready, response shape lệch, assertion pass giả, fixture thiếu trạng thái, lỗi parse test runner và khoảng trống role localization đã được bổ sung. Các lỗi cache dùng raw `lang`, overlay role, fixture/route translation, registry và import trùng lịch sử đã được xử lý một phần. Đã tách phần lớn test phụ thuộc MongoDB/backend khỏi default discovery và siết assertion ở các nhóm test chính. Phần còn lại gồm xác minh import `StaticTranslation`, sửa import `net` trong `safeRemoteUrl`, thay assertion tổng quát trong `translation-integration.test.js` bằng contract cụ thể, đồng bộ mock unit, khởi động backend/MongoDB đúng lifecycle và xác minh runtime với credential hợp lệ.

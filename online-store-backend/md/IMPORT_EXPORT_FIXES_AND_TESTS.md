@@ -30,19 +30,26 @@ Không ghi email, mật khẩu, token hoặc nội dung credential XML.
 
 ### Chưa fix hoặc chưa xác minh runtime hiện tại
 
-- `translationController.js` đang gọi `StaticTranslation` nhưng chưa import model này.
+- `translationController.js` đang gọi `StaticTranslation` nhưng source hiện tại chưa import model này.
+- `safeRemoteUrl.js` dùng `net.isIP()` nhưng cần xác minh import `net` trong runtime hiện tại.
 - ZIP vẫn dùng kích thước metadata central directory cho một phần compression/total-size check; cần đồng bộ với kiểm tra buffer thực tế.
-- CSV chưa chống formula injection và SVG chưa sanitize đầy đủ.
-- Import chưa atomic toàn bộ Product, Category, translation và Cloudinary; chưa có idempotency bền vững theo nội dung ZIP.
-- Chưa có manifest/checksum đầy đủ cho ZIP.
-- Chưa có runtime/load test mới trong môi trường hiện tại.
+- ZIP import vẫn dùng `memoryStorage()`, chưa có streaming/staging atomic; import chưa atomic toàn bộ Product, Category, translation và Cloudinary.
+- Chưa có idempotency bền vững theo nội dung ZIP, manifest/checksum đầy đủ hoặc distributed coordination cho import/export.
+- Mapping `cloudinaryAccountId` chưa được lưu tương ứng trên mọi field ảnh Product/Banner.
+- Chưa có runtime/load test mới trong môi trường hiện tại vì workspace thiếu dependencies test.
+
+Đã cập nhật trong source nhưng cần runtime verification:
+
+- CSV export đã neutralize công thức spreadsheet.
+- SVG đã được loại khỏi allowlist export.
+- Assertion/exit code của một số test diagnostic đã được siết chặt.
 
 Các kết quả `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` và `38/38 test pass` trong phần dưới là kết quả lịch sử, không phải bằng chứng runtime mới. Không dùng chúng để kết luận trạng thái production hiện tại nếu chưa chạy lại đúng môi trường.
 
 ## Quy ước module test hiện tại
 
 - File test JavaScript trong `online-store-backend/src/test` dùng thống nhất dạng `<module>.test.js`; không thêm tiền tố `test-`.
-- `src/test/testConfig.js` cung cấp biến môi trường, timeout, đường dẫn frontend và discovery động cho các file `.test.js`.
+- `src/test/test-config.js` cung cấp biến môi trường, timeout, đường dẫn frontend và discovery động cho các file `.test.js`.
 - `npm test` chạy qua `src/test/test-runner.js`; module có cấu trúc Mocha được chạy bằng Mocha, script độc lập được chạy bằng Node.
 - Test kiểm tra offline bằng Node nằm tại `online-store-backend/src/test/frontend-offline-manual.test.js` và chạy bằng:
 

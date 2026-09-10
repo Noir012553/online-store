@@ -241,18 +241,18 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 
 ### Lỗi cần xử lý trước khi kết luận test translation đã pass
 
-- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng chưa import `../models/StaticTranslation` ở đầu file. Chưa kết luận các endpoint này hoạt động cho tới khi sửa và kiểm tra runtime.
-- `online-store-backend/src/test/test-config.js` chỉ loại một danh sách cố định khỏi test mặc định. Các file `translation-api.test.js`, `db-state.test.js` và `language-sync-flow.test.js` vẫn có nguy cơ được discovery dù phụ thuộc MongoDB/backend hoặc có thể kết thúc mà không fail process khi request lỗi.
+- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng source hiện tại vẫn chưa import `../models/StaticTranslation` ở đầu file. Chưa kết luận các endpoint này hoạt động cho tới khi sửa và kiểm tra runtime.
+- `online-store-backend/src/test/test-config.js` đã mở rộng danh sách loại khỏi default discovery cho các test phụ thuộc MongoDB/backend/network. Các test integration vẫn cần chạy riêng với môi trường test cô lập.
 - `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`; cần kiểm tra status mong đợi, body và thay đổi dữ liệu cụ thể.
 - Regression test ZIP tại `online-store-backend/src/test/import-file-validator.test.js` kiểm tra metadata kích thước sai, trong khi `online-store-backend/src/utils/zipImport.js` vẫn dùng metadata cho compression ratio trước khi đọc buffer thật. Cần đồng bộ code và test.
 
 ### Cảnh báo bảo mật và độ tin cậy chưa hoàn tất
 
-- SSRF exporter đã được harden một phần bằng `safeRemoteUrl.js`, nhưng policy chưa dùng chung: validator import chưa resolve DNS private IP và `cloudinaryService.js` còn tải URL bằng `fetch(..., redirect: 'follow')` trực tiếp. Ngoài ra `safeRemoteUrl.js` hiện gọi `dns.lookup()` nhưng cần xác minh import `dns` trước khi bật DNS validation.
+- SSRF exporter đã được harden một phần bằng `safeRemoteUrl.js`, nhưng policy chưa dùng chung: validator import chưa resolve DNS private IP và `cloudinaryService.js` còn tải URL bằng `fetch(..., redirect: 'follow')` trực tiếp. Ngoài ra `safeRemoteUrl.js` đang gọi `net.isIP()` nhưng source hiện tại cần bổ sung/xác minh import `net` trước khi bật DNS validation.
 - Product/Banner chưa lưu mapping account Cloudinary đầy đủ theo từng ảnh. Claim upload có `cloudinaryAccountId`, nhưng không được dùng làm bằng chứng rằng mọi cleanup/validate về sau luôn đúng account.
 - ZIP import vẫn giữ archive, dữ liệu giải nén và asset trong memory; giới hạn kích thước chưa loại bỏ hoàn toàn rủi ro OOM.
-- CSV export chưa trung hòa giá trị bắt đầu bằng `=`, `+`, `-` hoặc `@`.
-- SVG chưa được sanitize đầy đủ cho script, event handler, `foreignObject` và external reference.
+- CSV export đã neutralize công thức trong source hiện tại; cần regression test runtime riêng.
+- SVG đã được loại khỏi allowlist export; các flow khác chưa được xem là đã sanitize toàn bộ.
 - Import chưa atomic trên toàn bộ Product, Category, translation và Cloudinary; vẫn cần test concurrent import, duplicate key và rollback khi lỗi giữa chừng.
 - Quota export/import và disk cleanup vẫn có khả năng race giữa bước kiểm tra quota và bước tạo job/upload.
 
@@ -264,8 +264,8 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 ### Frontend và môi trường kiểm thử
 
 - Frontend hiện chưa có test runner, test script hoặc script `typecheck` chính thức; việc kiểm tra type phải chạy riêng từ `online-store-frontend` bằng `npx --no-install tsc --noEmit`.
-- `online-store-frontend/scripts/check-ui-emoji.js` quét `src/test`, nhưng thư mục này hiện không tồn tại; `npm run check:emoji` cần được sửa trước khi dùng làm quality check.
-- Root `package.json` đang bị xóa trong working tree và không thấy `pnpm-lock.yaml` trong repository; không chạy workflow npm/pnpm ở root cho tới khi xác minh đây là thay đổi có chủ ý.
+- `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; runtime vẫn chưa xác minh vì thiếu dependency `typescript`.
+- Root `package.json` hiện có script `npm test` chuyển tiếp tới backend runner; không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies hoặc môi trường MongoDB.
 
 ### Contract `specs`
 
@@ -275,12 +275,12 @@ Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thà
 
 Đã đối chiếu source trong phiên cập nhật này:
 
-- Đã thêm import `StaticTranslation` vào `online-store-backend/src/controllers/translationController.js`; trước đó controller gọi model này ở các luồng static translation nhưng không nạp model.
-- Đã thêm `require('dns').promises` vào `online-store-backend/src/utils/safeRemoteUrl.js`; DNS validation sẽ không còn lỗi `ReferenceError` khi được bật ở production hoặc qua `ENFORCE_EXPORT_IMAGE_DNS_SECURITY=true`.
+- Đã xác định cần sửa import `StaticTranslation` trong `online-store-backend/src/controllers/translationController.js`; source hiện tại chưa chứng minh lỗi này đã được xử lý.
+- `safeRemoteUrl.js` đã có `dns`, nhưng cần sửa import `net` trước khi kết luận DNS validation runtime an toàn.
 - CSV export đã neutralize cell bắt đầu bằng khoảng trắng/control character rồi `=`, `+`, `-` hoặc `@` tại `productImportController.js`; mục CSV formula injection trong phần cảnh báo cũ không còn là lỗi mã nguồn hiện tại, nhưng vẫn cần regression test riêng.
 - `CSVAdapter` hiện từ chối row lệch số cột và quote không đóng thay vì bỏ qua âm thầm. Parser vẫn là implementation tự viết, vì vậy việc thay bằng parser RFC 4180 streaming là hạng mục hardening sau này, không phải hotfix.
 - Export ảnh hiện từ chối `image/svg+xml`; không còn đường export SVG chưa sanitize trong flow này.
 - Export ảnh và Cloudinary remote-download đã dùng `fetchSafeRemoteImage()` với redirect thủ công. Import URL hiện chỉ validation, chưa fetch; policy chung vẫn là hạng mục cần hoàn thiện nếu sau này import tải URL.
-- Root `package.json` hiện có trong repository. Chỉ chạy command theo từng package backend/frontend, không suy luận root package bị xóa từ báo cáo lịch sử.
+- Root `package.json` hiện có trong repository và `npm test` đã chuyển tiếp tới backend test runner. Runtime root vẫn phụ thuộc `online-store-backend/node_modules` và môi trường test.
 
 Chưa có deploy hoặc runtime test mới trong môi trường này. Những thao tác này cần môi trường backend/MongoDB/Cloudinary hợp lệ và xác nhận triển khai riêng; không chạy `npm run build`.

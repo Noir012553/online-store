@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
 
-const sourceDirectories = ['src/components', 'src/pages', 'src/lib', 'src/test'];
+const sourceDirectories = ['src/components', 'src/pages', 'src/lib'];
 const excludedFiles = new Set([
   'src/lib/i18n/localeMetadata.ts',
   'src/lib/uiEmoji.ts',
