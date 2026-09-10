@@ -13,10 +13,11 @@ const StaticTranslation = require('../models/StaticTranslation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { mongoUri } = require('./test-config');
 
 async function main() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(mongoUri);
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Check Languages

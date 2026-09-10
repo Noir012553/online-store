@@ -242,7 +242,7 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 ### Lỗi cần xử lý trước khi kết luận test translation đã pass
 
 - `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng source hiện tại vẫn chưa import `../models/StaticTranslation` ở đầu file. Chưa kết luận các endpoint này hoạt động cho tới khi sửa và kiểm tra runtime.
-- `online-store-backend/src/test/test-config.js` đã mở rộng danh sách loại khỏi default discovery cho các test phụ thuộc MongoDB/backend/network. Các test integration vẫn cần chạy riêng với môi trường test cô lập.
+- `online-store-backend/src/test/test-config.js` hiện cho phép default discovery chạy cả test phụ thuộc MongoDB/backend/network; có thể tắt bằng `RUN_INTEGRATION_TESTS=false`. `export-production.test.js` vẫn là opt-in qua `RUN_PRODUCTION_TESTS=true`.
 - `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`; cần kiểm tra status mong đợi, body và thay đổi dữ liệu cụ thể.
 - Regression test ZIP tại `online-store-backend/src/test/import-file-validator.test.js` kiểm tra metadata kích thước sai, trong khi `online-store-backend/src/utils/zipImport.js` vẫn dùng metadata cho compression ratio trước khi đọc buffer thật. Cần đồng bộ code và test.
 
@@ -265,7 +265,7 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 
 - Frontend hiện chưa có test runner, test script hoặc script `typecheck` chính thức; việc kiểm tra type phải chạy riêng từ `online-store-frontend` bằng `npx --no-install tsc --noEmit`.
 - `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; runtime vẫn chưa xác minh vì thiếu dependency `typescript`.
-- Root `package.json` hiện có script `npm test` chuyển tiếp tới backend runner; không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies hoặc môi trường MongoDB.
+- Root `package.json` hiện có script `npm test` chuyển tiếp tới backend runner; runner bao gồm integration test, tạo summary/full/log JSON và trả exit code theo test file lỗi. Không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies, MongoDB, backend readiness hoặc credential.
 
 ### Contract `specs`
 
@@ -283,4 +283,4 @@ Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thà
 - Export ảnh và Cloudinary remote-download đã dùng `fetchSafeRemoteImage()` với redirect thủ công. Import URL hiện chỉ validation, chưa fetch; policy chung vẫn là hạng mục cần hoàn thiện nếu sau này import tải URL.
 - Root `package.json` hiện có trong repository và `npm test` đã chuyển tiếp tới backend test runner. Runtime root vẫn phụ thuộc `online-store-backend/node_modules` và môi trường test.
 
-Chưa có deploy hoặc runtime test mới trong môi trường này. Những thao tác này cần môi trường backend/MongoDB/Cloudinary hợp lệ và xác nhận triển khai riêng; không chạy `npm run build`.
+Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổi default discovery vì thiếu dependency `dotenv`; người dùng đã cung cấp log backend đạt `[STARTUP] backend ready`. Những thao tác integration cần MongoDB/credential hợp lệ và chạy lại `npm test`; không chạy `npm run build`.

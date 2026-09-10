@@ -19,13 +19,12 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const TranslationAuditLog = require('../models/TranslationAuditLog');
 const crypto = require('crypto');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-
-const MONGO_URI = process.env.MONGO_URI;
+const { mongoUri } = require('./test-config');
 
 async function testShadowWrites() {
   try {
     console.log(`${CLI_SYMBOLS.progress} Connecting to MongoDB...`);
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(mongoUri);
     console.log(`${CLI_SYMBOLS.success} Connected`);
 
     // Enable shadow writes for testing
@@ -70,8 +69,7 @@ async function testShadowWrites() {
     if (oldFetch && newFetch) {
       console.log(`  ${CLI_SYMBOLS.success} Both schemas have data`);
     } else {
-      console.log(`  ${CLI_SYMBOLS.error} Missing data in schemas`);
-      return;
+      throw new Error('Missing data in schemas');
     }
 
     // Test 2: Product Translation
@@ -104,7 +102,7 @@ async function testShadowWrites() {
     if (fetchedProduct.specs && Object.keys(fetchedProduct.specs).length === 3) {
       console.log(`  ${CLI_SYMBOLS.success} Specs aggregated correctly:`, Object.keys(fetchedProduct.specs));
     } else {
-      console.log(`  ${CLI_SYMBOLS.error} Specs not aggregated`);
+      throw new Error('Specs not aggregated');
     }
 
 
@@ -172,6 +170,7 @@ async function testShadowWrites() {
 
   } catch (error) {
     console.error(`${CLI_SYMBOLS.error} Test failed:`, error);
+    process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
     console.log(`\n${CLI_SYMBOLS.connection} Disconnected from MongoDB`);

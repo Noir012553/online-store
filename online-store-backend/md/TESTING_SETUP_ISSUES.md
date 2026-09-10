@@ -117,8 +117,9 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 - `src/test/integrationHarness.js` tự chọn port, khởi động backend khi chưa có backend readiness, dùng database/backend theo env thật, tạo admin user/token và tạo product/category fixture.
 - `backend-endpoints.test.js` dùng harness, kiểm tra đúng route admin manual override, xác nhận cache và audit log, có timeout cho request và cleanup tập trung.
 - `backend-endpoints.test.js` không còn coi `ECONNREFUSED`, thiếu MongoDB hoặc thiếu token là pass.
-- `test-config.js` đã mở rộng danh sách loại khỏi default discovery cho các test cần MongoDB, backend, network hoặc VNPAY sandbox, gồm `db-state.test.js`, `languages-flow.test.js`, `language-sync-flow.test.js`, `translation-api.test.js`, `translation-migration-smoke.test.js`, `shadow-writes.test.js`, `simple.test.js` và các test integration liên quan.
-- `test:integration` vẫn là suite có chọn lọc theo registry; muốn chạy toàn bộ file integration đã phân loại cần đặt `RUN_INTEGRATION_TESTS=true`.
+- `test-config.js` hiện phân loại rõ các test cần MongoDB, backend, network hoặc VNPAY sandbox; các test integration được `npm test` chạy mặc định để không bỏ sót flow.
+- Có thể tắt nhóm integration khi chẩn đoán unit bằng `RUN_INTEGRATION_TESTS=false`; `test:integration` vẫn là suite backend có chọn lọc theo registry.
+- `export-production.test.js` tiếp tục không chạy mặc định; chỉ bật bằng `RUN_PRODUCTION_TESTS=true` vì đây là flow production cần chủ động xác nhận.
 - Các script VNPay, language sync, migration smoke và rollback đã có assertion/exit code rõ ràng hơn; backup không có trong checkout sẽ được đánh dấu skip thay vì pass giả.
 - `test-runner.js` tự tạo `reports/test` trước khi ghi error/summary report.
 - Root `package.json` đã chuyển `npm test` từ placeholder sang `npm --prefix online-store-backend test`.
@@ -130,6 +131,6 @@ Ngày giờ trong test phải được tạo động theo timezone VNPAY, không
 - Các file JavaScript đã sửa: qua `node --check`.
 - `git diff --check`: PASS.
 
-Chưa có kết quả runtime toàn bộ: workspace hiện thiếu `node_modules` của backend/frontend, nên `test:list` dừng ở dependency `dotenv` và `check:emoji` dừng ở dependency `typescript`. Không dùng claim `38/38 PASS` lịch sử để kết luận trạng thái hiện tại.
+Chưa có kết quả runtime toàn bộ sau khi đổi default discovery: workspace agent hiện thiếu `node_modules` backend, nên lệnh runner dừng ở dependency `dotenv`. Log `npm start` do người dùng cung cấp đã xác nhận backend đạt `[STARTUP] backend ready`, nhưng vẫn cần một lần `npm test` mới để xác nhận toàn bộ integration. Không dùng claim `38/38 PASS` hoặc `26/26 PASS` lịch sử để kết luận trạng thái hiện tại.
 
 Integration suite ưu tiên biến env thật `MONGO_URI`, `BASE_URL`/`BACKEND_URL`, `ADMIN_EMAIL`/`ADMIN_PASSWORD` và `ADMIN_TOKEN`, đồng thời vẫn hỗ trợ các biến `TEST_*` để override. Harness dùng database/backend thật theo cấu hình hiện tại, tự tạo fixture động, đăng nhập qua `POST /api/users/login` nếu chưa có token, rồi chỉ xóa fixture do test tạo khi cleanup; không tự `dropDatabase()`. Không đặt secret hoặc mật khẩu trong source code.

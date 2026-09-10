@@ -1,10 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { mongoUri } = require('./test-config');
 
 const checkProducts = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(mongoUri);
     const Product = require('../models/Product');
 
     // Check products without brands

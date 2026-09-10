@@ -16,7 +16,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const util = require('util');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const testLogEntries = [];
 const {
   TEST_SUITES,
   listSuites,
@@ -32,6 +34,7 @@ const REPORT_STARTED_AT = new Date();
 const REPORT_TIMESTAMP = REPORT_STARTED_AT.toISOString().replace(/[.:]/g, '-');
 const TEST_SUMMARY_REPORT = path.join(REPORT_DIR, `npm-test-summary-${REPORT_TIMESTAMP}.json`);
 const TEST_FULL_REPORT = path.join(REPORT_DIR, `npm-test-full-${REPORT_TIMESTAMP}.json`);
+const TEST_LOG_REPORT = path.join(REPORT_DIR, `npm-test-logs-${REPORT_TIMESTAMP}.json`);
 
 function stripAnsi(value) {
   return value.replace(/[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g, '');
@@ -103,6 +106,26 @@ function redactSensitive(value) {
   );
 }
 
+function recordTestLog(stream, chunk, filePath = 'test-runner') {
+  testLogEntries.push({
+    timestamp: new Date().toISOString(),
+    file: path.basename(filePath),
+    stream,
+    content: redactSensitive(chunk.toString()),
+  });
+}
+
+function captureRunnerConsole() {
+  ['log', 'warn', 'error'].forEach(method => {
+    const original = console[method].bind(console);
+    const stream = method === 'error' ? 'stderr' : 'stdout';
+    console[method] = (...args) => {
+      recordTestLog(stream, util.format(...args));
+      original(...args);
+    };
+  });
+}
+
 function errorSignature(errorText) {
   const lines = errorText.split('\n');
   const firstErrorLine = lines.find(line => /(?:[A-Za-z]+Error|Exception):|expected .* to|actual .*|Timeout of \d+ms exceeded|\b(?:invalid scheme|not configured|econnrefused|enoent)\b/i.test(line))
@@ -159,25 +182,34 @@ function writeReports({ cliArgs, suitesToRun, testFiles, testResults, failedTest
     startedAt,
     finishedAt,
   });
+  const reports = {
+    summary: path.basename(TEST_SUMMARY_REPORT),
+    full: path.basename(TEST_FULL_REPORT),
+    logs: path.basename(TEST_LOG_REPORT),
+  };
   const summary = {
     ...metadata,
-    reports: {
-      full: path.basename(TEST_FULL_REPORT),
-    },
+    reports,
   };
   const full = {
     ...metadata,
     testResults,
     errors,
-    reports: {
-      summary: path.basename(TEST_SUMMARY_REPORT),
-    },
+    reports,
+  };
+  const logs = {
+    ...metadata,
+    logs: testLogEntries,
+    reports,
   };
 
   fs.writeFileSync(TEST_SUMMARY_REPORT, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
   fs.writeFileSync(TEST_FULL_REPORT, `${JSON.stringify(full, null, 2)}\n`, 'utf8');
   console.log(`${CLI_SYMBOLS.report} Summary report saved to ${TEST_SUMMARY_REPORT}`);
   console.log(`${CLI_SYMBOLS.report} Full report saved to ${TEST_FULL_REPORT}`);
+  fs.writeFileSync(TEST_LOG_REPORT, `${JSON.stringify(logs, null, 2)}\n`, 'utf8');
+  console.log(`${CLI_SYMBOLS.report} Log report saved to ${TEST_LOG_REPORT}`);
+  fs.writeFileSync(TEST_LOG_REPORT, `${JSON.stringify(logs, null, 2)}\n`, 'utf8');
 }
 
 // Parse CLI args
@@ -241,10 +273,12 @@ function runTestFile(filePath) {
 
     test.stdout.on('data', chunk => {
       output += chunk.toString();
+      recordTestLog('stdout', chunk, filePath);
       process.stdout.write(chunk);
     });
     test.stderr.on('data', chunk => {
       output += chunk.toString();
+      recordTestLog('stderr', chunk, filePath);
       process.stderr.write(chunk);
     });
 
@@ -366,6 +400,18 @@ async function main() {
         });
       }
     }
+    const finishedAt = new Date();
+    console.log('\n' + '='.repeat(60));
+    if (failedTests.length === 0) {
+      console.log(`${CLI_SYMBOLS.success} All tests passed!\n`);
+    } else {
+      console.log(`${CLI_SYMBOLS.error} ${failedTests.length} test file(s) failed:\n`);
+      failedTests.forEach(file => {
+        console.log(`  - ${path.basename(file)}`);
+      });
+      console.log();
+    }
+
     writeReports({
       cliArgs,
       suitesToRun,
@@ -374,26 +420,15 @@ async function main() {
       failedTests,
       errors: [...errorMap.values()],
       startedAt,
-      finishedAt: new Date(),
+      finishedAt,
     });
 
-    // Summary
-    console.log('\n' + '='.repeat(60));
-    if (failedTests.length === 0) {
-      console.log(`${CLI_SYMBOLS.success} All tests passed!\n`);
-      process.exit(0);
-    } else {
-      console.log(`${CLI_SYMBOLS.error} ${failedTests.length} test file(s) failed:\n`);
-      failedTests.forEach(file => {
-        console.log(`  - ${path.basename(file)}`);
-      });
-      console.log();
-      process.exit(1);
-    }
+    process.exit(failedTests.length === 0 ? 0 : 1);
   } catch (error) {
     console.error(`\n${CLI_SYMBOLS.error} Test runner error:`, error.message);
     process.exit(1);
   }
 }
 
+captureRunnerConsole();
 main();
