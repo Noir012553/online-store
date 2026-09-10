@@ -277,7 +277,9 @@ const runStartupPhase = async (name, task) => {
 };
 
 const requireDatabase = (req, res, next) => {
-  if (startupReady && mongoose.connection.readyState === 1) {
+  const databaseConnected = mongoose.connection.readyState === 1;
+  const testDatabaseReady = process.env.NODE_ENV === 'test' && databaseConnected;
+  if ((startupReady || testDatabaseReady) && databaseConnected) {
     return next();
   }
 

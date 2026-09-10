@@ -120,7 +120,6 @@ describe('PHASE 4: E2E Verification Tests', function() {
   // ============ TEST 4: TTL Index Verification ============
   describe('Test 4: TTL Indexes (Auto-cleanup)', () => {
     it(`${CLI_SYMBOLS.success} ProductCatalogTranslationCache has TTL (90 days)`, async function() {
-      await ProductCatalogTranslationCache.createIndexes();
       const indexes = await ProductCatalogTranslationCache.collection.getIndexes();
       
       const hasTTL = Object.keys(indexes).some(key => 
@@ -133,7 +132,6 @@ describe('PHASE 4: E2E Verification Tests', function() {
     });
 
     it(`${CLI_SYMBOLS.success} UserContentTranslationCache has TTL (30 days)`, async function() {
-      await UserContentTranslationCache.createIndexes();
       const indexes = await UserContentTranslationCache.collection.getIndexes();
       
       const hasTTL = Object.keys(indexes).some(key => 

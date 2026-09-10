@@ -81,9 +81,9 @@ class TranslationShadowWriteService {
    */
   static async logAuditTrail(auditData) {
     try {
-      const { userId, userName, action, oldValue, newValue, entityId, entityType, targetLang, reason, ipAddress, userAgent } = auditData;
+      const { hashKey: auditHashKey, userId, userName, action, oldValue, newValue, entityId, entityType, targetLang, reason, ipAddress, userAgent } = auditData;
 
-      const hashKey = crypto
+      const hashKey = auditHashKey || crypto
         .createHash('md5')
         .update(`${newValue}:${targetLang}`)
         .digest('hex');
