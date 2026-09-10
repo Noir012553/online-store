@@ -13,9 +13,10 @@
 
 const axios = require('axios');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { apiBaseUrl, adminToken } = require('./test-config');
 
-const API_BASE = process.env.API_BASE || 'http://localhost:5000/api';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ''; // Set your admin token
+const API_BASE = apiBaseUrl.replace(/\/+$/, '') + '/api';
+const ADMIN_TOKEN = adminToken;
 
 // Color output for logs
 const colors = {
@@ -42,7 +43,7 @@ async function runTest() {
     // ============ TEST 1: Check admin token ============
     log(colors.blue, `${CLI_SYMBOLS.edit} TEST 1: Verify Admin Token`);
     if (!ADMIN_TOKEN) {
-      log(colors.red, `${CLI_SYMBOLS.error} ERROR: ADMIN_TOKEN not set. Export it: export ADMIN_TOKEN="your_token"`);
+      log(colors.red, `${CLI_SYMBOLS.error} ERROR: TEST_ADMIN_TOKEN is not set in the environment`);
       process.exit(1);
     }
     log(colors.green, `${CLI_SYMBOLS.success} Admin token configured\n`);

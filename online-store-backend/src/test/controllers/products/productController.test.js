@@ -10,8 +10,16 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const Product = require('../../../models/Product');
+const Category = require('../../../models/Category');
 const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
+const Currency = require('../../../models/Currency');
+const cloudinaryService = require('../../../services/cloudinaryService');
+const originalUploadToCloudinary = cloudinaryService.uploadToCloudinary;
+cloudinaryService.uploadToCloudinary = async () => ({
+  url: 'https://res.cloudinary.com/test/image/upload/laptop-store/admins/test.jpg',
+  publicId: 'laptop-store/admins/test',
+});
 const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
 const createProductQuery = (sandbox, products = []) => ({
@@ -19,9 +27,9 @@ const createProductQuery = (sandbox, products = []) => ({
   limit: sandbox.stub().returnsThis(),
   skip: sandbox.stub().returnsThis(),
   sort: sandbox.stub().returnsThis(),
+  maxTimeMS: sandbox.stub().returnsThis(),
   select: sandbox.stub().returnsThis(),
   lean: sandbox.stub().returnsThis(),
-  maxTimeMS: sandbox.stub().returnsThis(),
   then: (onFulfilled, onRejected) => Promise.resolve(products).then(onFulfilled, onRejected),
 });
 
@@ -34,10 +42,16 @@ describe('Product Controller', () => {
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
+    sandbox.stub(Currency, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    sandbox.stub(Currency, 'exists').resolves({ _id: new mongoose.Types.ObjectId() });
   });
 
   afterEach(() => {
     sandbox.restore();
+  });
+
+  after(() => {
+    cloudinaryService.uploadToCloudinary = originalUploadToCloudinary;
   });
 
   describe('getProducts', () => {
@@ -68,6 +82,7 @@ describe('Product Controller', () => {
       const products = [{
         _id: new mongoose.Types.ObjectId(),
         name: 'Laptop',
+        brand: 'Test Brand',
         category: { _id: categoryId, name: 'Máy tính', description: 'Mô tả gốc' },
       }];
       const mockChain = createProductQuery(sandbox, products);
@@ -76,7 +91,14 @@ describe('Product Controller', () => {
       sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
         select: sandbox.stub().returnsThis(),
         maxTimeMS: sandbox.stub().returnsThis(),
-        lean: sandbox.stub().resolves([]),
+        lean: sandbox.stub().resolves([{
+          entityId: products[0]._id.toString(),
+          targetLang: 'en',
+          status: 'success',
+          qualityStatus: 'approved',
+          name: 'Laptop',
+          brand: 'Test Brand',
+        }]),
       });
       const categoryFind = sandbox.stub(CategoryCatalogTranslationCache, 'find').returns({
         select: sandbox.stub().returnsThis(),
@@ -180,12 +202,27 @@ describe('Product Controller', () => {
   describe('createProduct', () => {
     it('should create a new product', async () => {
       const userId = new mongoose.Types.ObjectId();
+      const categoryId = new mongoose.Types.ObjectId();
       const newProduct = { _id: new mongoose.Types.ObjectId(), name: 'Laptop', price: 1000, image: '/uploads/test.jpg', user: userId };
       sandbox.stub(Product.prototype, 'save').resolves(newProduct);
+      sandbox.stub(Product, 'findById').returns({
+        populate: sandbox.stub().returnsThis(),
+      });
+      sandbox.stub(Category, 'findOne').returns({
+        select: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().resolves({ _id: categoryId }),
+      });
 
-      const req = { 
+      const req = {
         user: { _id: userId },
-        body: { name: 'Laptop', price: 1000, description: 'Test' },
+        body: {
+          name: 'Laptop',
+          price: 1000,
+          description: 'Test',
+          countInStock: 5,
+          category: categoryId.toString(),
+          baseCurrencyCode: 'VND',
+        },
         file: { path: 'uploads/test.jpg' }
       };
       const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
@@ -198,10 +235,18 @@ describe('Product Controller', () => {
   describe('updateProduct', () => {
     it('should update an existing product', async () => {
       const product = { _id: new mongoose.Types.ObjectId(), name: 'Laptop', price: 1000, save: sandbox.stub().resolvesThis() };
-      sandbox.stub(Product, 'findById').resolves(product);
+      const populatedProduct = { ...product };
+      const findByIdStub = sandbox.stub(Product, 'findById');
+      findByIdStub.onFirstCall().resolves(product);
+      findByIdStub.onSecondCall().returns({
+        populate: sandbox.stub().withArgs('category').resolves(populatedProduct),
+      });
       sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
-
-      const req = { params: { id: product._id.toString() }, body: { name: 'Updated Laptop' } };
+      const req = {
+        params: { id: product._id.toString() },
+        query: {},
+        body: { name: 'Updated Laptop' },
+      };
       const res = { json: sandbox.stub() };
       await updateProduct(req, res);
       expect(res.json.calledOnce).to.be.true;

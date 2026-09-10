@@ -78,7 +78,7 @@ describe('Review Controller - getProductReviews', () => {
 
     expect(res.json.calledOnce).to.be.true;
     const responseData = res.json.getCall(0).args[0];
-    expect(responseData.reviews).to.deep.equal(reviews);
+    expect(responseData.reviews).to.deep.equal(reviews.map((review) => ({ ...review, role: '' })));
     expect(responseData.page).to.equal(1);
   });
 
@@ -117,6 +117,6 @@ describe('Review Controller - getProductReviews', () => {
 
     expect(res.json.calledOnce).to.be.true;
     const responseData = res.json.getCall(0).args[0];
-    expect(responseData.reviews).to.deep.equal(reviews);
+    expect(responseData.reviews).to.deep.equal(reviews.map((review) => ({ ...review, role: '' })));
   });
 });

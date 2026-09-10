@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 const Category = require('../../../models/Category');
 const Product = require('../../../models/Product');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
+const { getMessage } = require('../../../i18n/messages');
 const { getCategoryById, createCategory, updateCategory, deleteCategory, hardDeleteCategory } = require('../../../controllers/categoryController');
 
 describe('Category Controller - CRUD Operations', () => {
@@ -262,6 +263,7 @@ describe('Category Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: categoryId.toString() },
+        lang: 'en',
       };
       const res = {
         json: sandbox.stub(),
@@ -272,7 +274,9 @@ describe('Category Controller - CRUD Operations', () => {
 
       expect(category.isDeleted).to.be.true;
       expect(category.save.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Category removed' })).to.be.true;
+      expect(res.json.calledWith({
+        message: getMessage('en', 'admin-controllers-messages.category_removed'),
+      })).to.be.true;
     });
 
     it('should return 404 if category not found for deletion', async () => {
@@ -318,6 +322,7 @@ describe('Category Controller - CRUD Operations', () => {
 
       const req = {
         params: { id: categoryId.toString() },
+        lang: 'en',
       };
       const res = {
         json: sandbox.stub(),
@@ -327,7 +332,9 @@ describe('Category Controller - CRUD Operations', () => {
       await hardDeleteCategory(req, res);
 
       expect(category.deleteOne.calledOnce).to.be.true;
-      expect(res.json.calledWith({ message: 'Category permanently removed' })).to.be.true;
+      expect(res.json.calledWith({
+        message: getMessage('en', 'admin-controllers-messages.category_permanently_removed'),
+      })).to.be.true;
     });
 
     it('should return 404 if category not found for hard delete', async () => {

@@ -8,6 +8,7 @@
     "dev": "nodemon src/app.js",
     "tunnel": "node scripts/tunnel.js",
     "test": "node src/test/test-runner.js",
+    "test:integration": "node src/test/test-runner.js -- --suite=backend",
     "test:offline": "node src/test/frontend-offline-manual.test.js",
     "test:export:dynamic": "node scripts/test-export-dynamic.js",
     "test:export:production": "node src/test/export-production.test.js",

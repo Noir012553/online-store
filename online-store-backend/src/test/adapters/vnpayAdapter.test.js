@@ -143,16 +143,38 @@ describe('VNPAYAdapter', () => {
   });
 
   describe('formatDate', () => {
-    it('should format date as YYYYMMDDHHMMSS', () => {
-      const date = new Date('2024-01-15T10:30:45');
+    const formatExpectedDate = (date, timeZone) => {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone,
+        hour12: false,
+      }).formatToParts(date);
+      const getValue = (type) => parts.find((part) => part.type === type)?.value || '00';
+      return ['year', 'month', 'day', 'hour', 'minute', 'second'].map(getValue).join('');
+    };
+
+    it('should format an instant in the VNPAY timezone', () => {
+      const date = new Date('2024-01-15T10:30:45Z');
       const formatted = adapter.formatDate(date);
-      expect(formatted).to.equal('20240115173045');
+      const expected = formatExpectedDate(date, 'Asia/Ho_Chi_Minh');
+
+      expect(formatted).to.equal(expected);
+      expect(formatted).to.match(/^\d{14}$/);
     });
 
-    it('should pad single digit values', () => {
-      const date = new Date('2024-01-05T09:05:03');
+    it('should preserve zero padding for single digit components', () => {
+      const date = new Date('2024-01-05T09:05:03Z');
       const formatted = adapter.formatDate(date);
-      expect(formatted).to.equal('20240105160503');
+      const expected = formatExpectedDate(date, 'Asia/Ho_Chi_Minh');
+
+      expect(formatted).to.equal(expected);
+      expect(formatted.slice(4, 8)).to.equal('0105');
+      expect(formatted.slice(10, 14)).to.equal('0503');
     });
   });
 

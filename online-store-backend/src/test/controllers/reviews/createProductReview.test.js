@@ -61,6 +61,7 @@ describe('Review Controller - createProductReview', () => {
 
     const req = {
       params: { productId: productId.toString() },
+      query: {},
       user: { _id: userId, name: 'Test User' },
       body: {
         rating: 5,
@@ -86,6 +87,7 @@ describe('Review Controller - createProductReview', () => {
 
     const req = {
       params: { productId: productId.toString() },
+      query: {},
       user: { _id: userId },
       body: {
         rating: 5,
@@ -127,6 +129,7 @@ describe('Review Controller - createProductReview', () => {
 
     const req = {
       params: { productId: productId.toString() },
+      query: {},
       user: { _id: userId },
       body: {
         rating: 4,
