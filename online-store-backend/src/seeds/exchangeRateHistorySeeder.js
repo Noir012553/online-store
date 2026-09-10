@@ -4,10 +4,11 @@
  * Chạy: npm run seed -- --only-module=exchange-rate-history
  */
 
-const mongoose = require('mongoose');
 const ExchangeRateHistory = require('../models/ExchangeRateHistory');
 const SeedStatus = require('../models/SeedStatus');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const EXCHANGE_RATE_HISTORY_SEED_PHASE = 'EXCHANGE_RATE_HISTORY';
 
 const DEMO_HISTORY = [
   // VND <-> USD history (10 entries, 3 days back)
@@ -212,8 +213,10 @@ async function seedExchangeRateHistory() {
     console.log('[ExchangeRateHistorySeeder] Bắt đầu seed...');
 
     // Check if already seeded
-    const status = await SeedStatus.findOne({ module: 'exchangeRateHistory' });
-    if (status && status.isCompleted) {
+    const status = await SeedStatus.findOne({
+      phase: EXCHANGE_RATE_HISTORY_SEED_PHASE,
+    });
+    if (status?.status === 'completed') {
       console.log('[ExchangeRateHistorySeeder] Đã seed trước đó, skip...');
       return;
     }
@@ -227,13 +230,18 @@ async function seedExchangeRateHistory() {
 
     // Mark as completed
     await SeedStatus.updateOne(
-      { module: 'exchangeRateHistory' },
+      { phase: EXCHANGE_RATE_HISTORY_SEED_PHASE },
       {
-        module: 'exchangeRateHistory',
-        isCompleted: true,
-        completedAt: new Date(),
+        $set: {
+          status: 'completed',
+          completedAt: new Date(),
+          lastError: null,
+        },
+        $setOnInsert: {
+          phase: EXCHANGE_RATE_HISTORY_SEED_PHASE,
+        },
       },
-      { upsert: true }
+      { upsert: true, setDefaultsOnInsert: true },
     );
 
     console.log(`[ExchangeRateHistorySeeder] ${CLI_SYMBOLS.success} Hoàn thành`);
