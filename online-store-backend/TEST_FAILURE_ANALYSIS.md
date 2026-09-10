@@ -123,9 +123,10 @@ Chúng cần các điều kiện ngoài code test:
 
 - MongoDB kết nối được và có dữ liệu Product/Category/Currency hợp lệ.
 - Backend đang chạy đúng base URL.
-- `ADMIN_TOKEN` hợp lệ; token mặc định `test-token` sẽ gây 401.
+- `TEST_ADMIN_TOKEN` hợp lệ nếu dùng backend test đã chạy sẵn; không còn token mặc định giả `test-token`.
+- Các flow cần đăng nhập dùng `TEST_ADMIN_EMAIL` và `TEST_ADMIN_PASSWORD` qua API login.
 - Export cần user/admin credential và quyền phù hợp.
-- E2E dừng ngay nếu không có `ADMIN_TOKEN`.
+- E2E dừng ngay nếu thiếu credential authentication trong env.
 
 `src/test/test-config.js:8-17` đánh dấu chúng là integration test; mặc định runner loại chúng trừ khi `RUN_INTEGRATION_TESTS=true`.
 

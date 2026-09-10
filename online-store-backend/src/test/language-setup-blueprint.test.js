@@ -8,9 +8,10 @@
 
 const axios = require('axios');
 const mongoose = require('mongoose');
+const { apiBaseUrl, adminToken } = require('./test-config');
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'test-token'; // Set in .env
+const API_BASE = apiBaseUrl.replace(/\/+$/, '');
+const ADMIN_TOKEN = adminToken;
 
 const Language = require('../models/Language');
 const StaticTranslation = require('../models/StaticTranslation');

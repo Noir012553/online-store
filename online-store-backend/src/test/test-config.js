@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
@@ -24,6 +25,11 @@ const testConfig = Object.freeze({
   mongoUri: process.env.TEST_MONGO_URI || process.env.MONGO_URI || '',
   baseUrl: process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:5000',
   apiBaseUrl: process.env.TEST_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:5000',
+  adminEmail: process.env.TEST_ADMIN_EMAIL || '',
+  adminPassword: process.env.TEST_ADMIN_PASSWORD || '',
+  adminToken: process.env.TEST_ADMIN_TOKEN || '',
+  accessSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || '',
+  refreshSecret: process.env.JWT_REFRESH_SECRET || '',
   languageCode: process.env.TEST_LANGUAGE_CODE || 'fr',
   timeoutMs: Number.isFinite(configuredTimeout) && configuredTimeout > 0
     ? configuredTimeout

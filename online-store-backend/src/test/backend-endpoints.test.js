@@ -20,13 +20,13 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationAuditLog = require('../models/TranslationAuditLog');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { baseUrl, mongoUri, timeoutMs } = require('./test-config');
+const { baseUrl, mongoUri, adminToken, adminEmail, adminPassword, timeoutMs } = require('./test-config');
 const { startIntegrationEnvironment } = require('./integrationHarness');
 
 const TEST_TIMEOUT = timeoutMs;
 let BASE_URL = baseUrl;
 let MONGO_URI = mongoUri;
-let ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+let ADMIN_TOKEN = adminToken;
 
 const getTargetLanguage = () => (
   getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
@@ -448,6 +448,8 @@ class EndpointTester {
         configuredBaseUrl: baseUrl,
         configuredMongoUri: mongoUri,
         configuredAdminToken: ADMIN_TOKEN,
+        configuredAdminEmail: adminEmail,
+        configuredAdminPassword: adminPassword,
         timeoutMs: TEST_TIMEOUT,
       });
       BASE_URL = integrationEnvironment.baseUrl;

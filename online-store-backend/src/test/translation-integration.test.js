@@ -25,6 +25,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const { getDefaultLanguage, getActiveLangCodes } = require('../config/languageInventory');
+const { adminToken } = require('./test-config');
 
 describe('PHASE 4: E2E Integration Tests', () => {
   let testProductId;
@@ -286,7 +287,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
   // ============ TEST 5: Audit Logging ============
   describe('Test 5: Audit Logging - Admin Override', () => {
     it('✅ Manual override is logged to TranslationAuditLog', async function() {
-      if (!process.env.ADMIN_TOKEN) this.skip();
+      if (!adminToken) this.skip();
 
       const hashKey = `${testProductId}_test_override`;
       await LiveTranslationCache.create({
@@ -302,7 +303,7 @@ describe('PHASE 4: E2E Integration Tests', () => {
 
       const res = await request(app)
         .post('/api/translations/admin/manual-override')
-        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           hashKey,
           newValue: 'New translation',

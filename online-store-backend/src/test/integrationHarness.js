@@ -1,8 +1,6 @@
 const path = require('path');
 const net = require('net');
-const crypto = require('crypto');
 const { spawn } = require('child_process');
-const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const mongoose = require('mongoose');
 const User = require('../models/User');
@@ -49,29 +47,55 @@ const waitForReady = async (baseUrl, timeoutMs) => {
   throw new Error(`Backend did not become ready at ${baseUrl} within ${timeoutMs}ms`);
 };
 
-const createAdminToken = async ({ mongoUri, accessSecret }) => {
-  if (!accessSecret) throw new Error('Missing JWT_ACCESS_SECRET or JWT_SECRET for admin token setup');
-  await mongoose.connect(mongoUri);
-  const email = `integration-admin-${process.pid}-${Date.now()}@test.invalid`;
-  const user = await User.create({
-    username: email,
-    name: 'Integration Test Admin',
-    email,
-    role: 'admin',
-    password: null,
-    provider: 'local',
-    isDeleted: false,
-  });
-  const token = jwt.sign(
-    { id: user._id.toString(), type: 'access' },
-    accessSecret,
-    { algorithm: 'HS256', expiresIn: '15m' },
-  );
+const createAdminSession = async ({ baseUrl, email, password, timeoutMs }) => {
+  if (!email || !password) {
+    throw new Error('Missing TEST_ADMIN_EMAIL or TEST_ADMIN_PASSWORD for admin login setup');
+  }
+
+  let user = await User.findOne({ email: email.trim().toLowerCase() });
+  let createdUser = false;
+  if (!user) {
+    user = await User.create({
+      username: `integration-admin-${process.pid}-${Date.now()}`,
+      name: 'Integration Test Admin',
+      email,
+      role: 'admin',
+      password,
+      provider: 'local',
+      isDeleted: false,
+    });
+    createdUser = true;
+  } else if (!['admin', 'super-admin'].includes(user.role)) {
+    throw new Error(`TEST_ADMIN_EMAIL must belong to an admin account, received role ${user.role}`);
+  }
+
+  let response;
+  try {
+    response = await axios.post(
+      `${baseUrl}/api/users/login`,
+      { email, password },
+      { timeout: timeoutMs, validateStatus: () => true },
+    );
+  } catch (error) {
+    if (createdUser) await User.deleteOne({ _id: user._id });
+    throw error;
+  }
+  if (response.status !== 200) {
+    if (createdUser) await User.deleteOne({ _id: user._id });
+    throw new Error(`Admin login failed with status ${response.status}`);
+  }
+
+  const token = response.data.accessToken || response.data.token;
+  if (!token) {
+    if (createdUser) await User.deleteOne({ _id: user._id });
+    throw new Error('Admin login response did not include an access token');
+  }
 
   return {
     token,
     userId: user._id,
-    email,
+    email: user.email,
+    createdUser,
   };
 };
 
@@ -129,6 +153,8 @@ const startIntegrationEnvironment = async ({
   configuredBaseUrl,
   configuredMongoUri,
   configuredAdminToken,
+  configuredAdminEmail = process.env.TEST_ADMIN_EMAIL,
+  configuredAdminPassword = process.env.TEST_ADMIN_PASSWORD,
   timeoutMs = 30_000,
 } = {}) => {
   if (!configuredMongoUri) {
@@ -143,10 +169,12 @@ const startIntegrationEnvironment = async ({
     await mongoose.connect(configuredMongoUri);
     try {
       const admin = configuredAdminToken
-        ? { token: configuredAdminToken, userId: null }
-        : await createAdminToken({
-          mongoUri: configuredMongoUri,
-          accessSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
+        ? { token: configuredAdminToken, userId: null, createdUser: false }
+        : await createAdminSession({
+          baseUrl: existingBaseUrl,
+          email: configuredAdminEmail,
+          password: configuredAdminPassword,
+          timeoutMs,
         });
       const fixture = await createProductFixture(admin.userId);
       return {
@@ -156,7 +184,7 @@ const startIntegrationEnvironment = async ({
         productId: fixture.productId,
         cleanup: async () => {
           await fixture.cleanup();
-          if (admin.userId) await User.deleteOne({ _id: admin.userId });
+          if (admin.createdUser) await User.deleteOne({ _id: admin.userId });
           await mongoose.disconnect();
         },
       };
@@ -169,8 +197,11 @@ const startIntegrationEnvironment = async ({
   const isolatedMongoUri = buildIsolatedMongoUri(configuredMongoUri);
   const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const accessSecret = process.env.JWT_ACCESS_SECRET || crypto.randomBytes(32).toString('hex');
-  const refreshSecret = process.env.JWT_REFRESH_SECRET || crypto.randomBytes(32).toString('hex');
+  const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+  if (!accessSecret || !refreshSecret) {
+    throw new Error('Missing JWT_ACCESS_SECRET/JWT_REFRESH_SECRET for isolated backend setup');
+  }
   const childEnv = {
     ...process.env,
     NODE_ENV: 'test',
@@ -193,7 +224,13 @@ const startIntegrationEnvironment = async ({
 
   try {
     await waitForReady(baseUrl, timeoutMs);
-    const admin = await createAdminToken({ mongoUri: isolatedMongoUri, accessSecret });
+    await mongoose.connect(isolatedMongoUri);
+    const admin = await createAdminSession({
+      baseUrl,
+      email: configuredAdminEmail,
+      password: configuredAdminPassword,
+      timeoutMs,
+    });
     const fixture = await createProductFixture(admin.userId);
 
     return {
