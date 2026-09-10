@@ -674,3 +674,25 @@ Hai assertion fail đều do MongoDB đã có index `createdAt_1` nhưng index n
 `npm run clear` là thao tác phá hủy dữ liệu: xóa toàn bộ collection, xóa index và xóa ảnh Cloudinary theo prefix `laptop-store/`. Không chạy trên database production hoặc database chứa dữ liệu cần giữ.
 
 Sau khi clear, `npm run seed` có thể chạy lại để tạo dữ liệu demo/test, nhưng đây là một pipeline lớn có thể gọi crawler, import và dịch dữ liệu. Nên chỉ chạy khi đã xác nhận đúng `MONGO_URI`, đúng database cần reset và đã sao lưu dữ liệu cần giữ. Sau seed cần chạy lại script setup index trước khi kiểm tra TTL.
+
+## 15. Lần chạy lại suite products
+
+Lệnh người dùng chạy lại:
+
+```text
+npm run test -- --suite=products
+```
+
+Thời điểm report: `2026-09-10T15:08:35.048Z`
+
+Kết quả vẫn giữ nguyên:
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+`translation-migration-smoke.test.js` vẫn fail đúng 2 assertion TTL ở dòng 130 và 142. Dữ liệu, migration, language coverage, query performance và các test import/export khác đều pass. Lần chạy này chỉ chạy test, chưa chạy `npm run setup-i18n-indexes`, nên index MongoDB chưa được repair.
+
+Dòng cảnh báo `Would need 10 queries to get 1 product's specs` là output mô tả so sánh O(N), không phải failure.
