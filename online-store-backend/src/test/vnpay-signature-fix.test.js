@@ -11,6 +11,7 @@
  * Chạy: npm run test:vnpay:signature hoặc node test/test-vnpay-signature-fix.js
  */
 
+const assert = require('node:assert/strict');
 const crypto = require('crypto');
 
 // ============================================
@@ -35,7 +36,7 @@ const expressDecodedData = {
   'vnp_TxnRef': '69781d4587a2d32b280d207a-1769479504891'
 };
 
-const VNPAY_SECRET = 'A6RUZCM16RI19H8M63R0H6SCQEJPBX94';
+const VNPAY_SECRET = 'test-vnpay-secret';
 
 
 // ============================================
@@ -115,7 +116,9 @@ const encoded = encodeURIComponent(orderInfoValue).replace(/%20/g, '+');
 
 
 
-// ============================================
-// Final verdict
-// ============================================
+assert.notEqual(hashOld, hashNew, 'The fixed signature must differ from the legacy signature');
+assert.match(hashNew, /^[a-f0-9]{128}$/, 'VNPAY signature must be a SHA-512 hex digest');
+assert.match(signatureDataNew, /vnp_OrderInfo=Thanh\+toan\+don\+hang\+69781d/);
+assert.equal(encoded, 'Thanh+toan+don+hang+69781d');
 
+console.log('VNPAY signature fix verified.');

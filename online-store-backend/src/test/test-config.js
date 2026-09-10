@@ -6,14 +6,26 @@ const TEST_ROOT = __dirname;
 const projectRoot = path.resolve(TEST_ROOT, '../..');
 const configuredTimeout = Number(process.env.TEST_TIMEOUT_MS);
 const INTEGRATION_TEST_FILES = new Set([
+  'app-readiness.test.js',
+  'backend-endpoints.test.js',
+  'brands.test.js',
+  'db-brands.test.js',
+  'db-state.test.js',
   'export-production.test.js',
   'import-export.test.js',
   'language-setup-blueprint.test.js',
+  'language-sync-flow.test.js',
   'language-sync.test.js',
+  'languages-flow.test.js',
+  'products.test.js',
   'rollback-procedures.test.js',
+  'shadow-writes.test.js',
+  'simple.test.js',
+  'translation-api.test.js',
   'translation-e2e.test.js',
   'translation-integration.test.js',
-  'backend-endpoints.test.js',
+  'translation-migration-smoke.test.js',
+  'vnpay-quick.test.js',
   'with-order.test.js',
 ]);
 

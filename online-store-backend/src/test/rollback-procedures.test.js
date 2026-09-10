@@ -74,12 +74,9 @@ describe('ROLLBACK PROCEDURES', function() {
         .query({ lang: 'en' });
 
       // Should query new schema (returns new schema data)
-      if (res.status === 200) {
-        assert.ok(res.body.data);
-        // Note: Actual implementation checks which schema was hit
-      }
-
-      assert.ok(res.status < 500);
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data);
+      // Note: Actual implementation checks which schema was hit
     });
 
     it('✅ Feature flag disabled (USE_NEW_SCHEMA=false): Fallback to OLD schema only', async () => {
@@ -90,11 +87,8 @@ describe('ROLLBACK PROCEDURES', function() {
         .query({ lang: 'en' });
 
       // Should query old schema only (returns old schema data)
-      if (res.status === 200) {
-        assert.ok(res.body.data);
-      }
-
-      assert.ok(res.status < 500);
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data);
 
       // Reset flag
       process.env.USE_NEW_SCHEMA = 'true';
@@ -114,8 +108,10 @@ describe('ROLLBACK PROCEDURES', function() {
         .query({ lang: 'en' });
 
       // Both should work (toggle works)
-      assert.ok(res1.status < 500);
-      assert.ok(res2.status < 500);
+      assert.equal(res1.status, 200);
+      assert.equal(res2.status, 200);
+      assert.ok(res1.body.data);
+      assert.ok(res2.body.data);
 
       // Reset
       process.env.USE_NEW_SCHEMA = 'true';
@@ -124,78 +120,62 @@ describe('ROLLBACK PROCEDURES', function() {
 
   // ============ SCENARIO 2: Database Restore ============
   describe('Scenario 2: Database Restore from Backup', () => {
-    it('✅ Backup file exists and is valid JSON', () => {
+    it('✅ Backup file exists and is valid JSON', function() {
       const backupDir = path.join(__dirname, '../backups');
+      if (!fs.existsSync(backupDir)) this.skip();
 
-      // Should have at least one backup file
-      if (fs.existsSync(backupDir)) {
-        const files = fs.readdirSync(backupDir)
-          .filter(f => f.includes('livetranslationcache'))
-          .filter(f => f.endsWith('.json'));
+      const files = fs.readdirSync(backupDir)
+        .filter(f => f.includes('livetranslationcache'))
+        .filter(f => f.endsWith('.json'));
+      if (files.length === 0) this.skip();
 
-        if (files.length > 0) {
-          const backupFile = path.join(backupDir, files[0]);
-          const content = fs.readFileSync(backupFile, 'utf-8');
-          const data = JSON.parse(content);
+      const backupFile = path.join(backupDir, files[0]);
+      const content = fs.readFileSync(backupFile, 'utf-8');
+      const data = JSON.parse(content);
 
-          assert.ok(data);
-          assert.ok(Array.isArray(data) || typeof data === 'object');
-        }
-      }
+      assert.ok(data);
+      assert.ok(Array.isArray(data) || typeof data === 'object');
     });
 
-    it('✅ Backup contains required fields', () => {
+    it('✅ Backup contains required fields', function() {
       const backupDir = path.join(__dirname, '../backups');
+      if (!fs.existsSync(backupDir)) this.skip();
 
-      if (fs.existsSync(backupDir)) {
-        const files = fs.readdirSync(backupDir)
-          .filter(f => f.includes('livetranslationcache'))
-          .filter(f => f.endsWith('.json'));
+      const files = fs.readdirSync(backupDir)
+        .filter(f => f.includes('livetranslationcache'))
+        .filter(f => f.endsWith('.json'));
+      if (files.length === 0) this.skip();
 
-        if (files.length > 0) {
-          const backupFile = path.join(backupDir, files[0]);
-          const content = fs.readFileSync(backupFile, 'utf-8');
-          const data = JSON.parse(content);
-
-          // Check if data has required fields
-          if (Array.isArray(data) && data.length > 0) {
-            const sample = data[0];
-            // Should have at least _id or hashKey
-            assert.ok(sample._id || sample.hashKey);
-          }
-        }
-      }
+      const backupFile = path.join(backupDir, files[0]);
+      const content = fs.readFileSync(backupFile, 'utf-8');
+      const data = JSON.parse(content);
+      assert.ok(Array.isArray(data) && data.length > 0, 'Backup contains no records');
+      const sample = data[0];
+      assert.ok(sample._id || sample.hashKey, 'Backup record has no identity field');
     });
 
-    it('✅ MongoDB restore command would work', async () => {
-      // Test that mongorestore can be called (command syntax check)
+    it('✅ MongoDB restore command would work', async function() {
       const backupDir = path.join(__dirname, '../backups');
+      if (!fs.existsSync(backupDir)) this.skip();
 
-      if (fs.existsSync(backupDir)) {
-        const files = fs.readdirSync(backupDir)
-          .filter(f => f.includes('mongo_dump'))
-          .slice(0, 1);
+      const files = fs.readdirSync(backupDir)
+        .filter(f => f.includes('mongo_dump'))
+        .slice(0, 1);
+      if (files.length === 0) this.skip();
 
-        if (files.length > 0) {
-          // Backup exists, restore command would be valid
-          const backupPath = path.join(backupDir, files[0]);
-          assert.ok(fs.existsSync(backupPath) || true);
-        }
-      }
+      const backupPath = path.join(backupDir, files[0]);
+      assert.equal(fs.existsSync(backupPath), true);
     });
 
-    it('✅ Can verify backup integrity', () => {
+    it('✅ Can verify backup integrity', function() {
       const backupDir = path.join(__dirname, '../backups');
+      if (!fs.existsSync(backupDir)) this.skip();
 
-      if (fs.existsSync(backupDir)) {
-        const manifestFile = path.join(backupDir, 'manifest.json');
+      const manifestFile = path.join(backupDir, 'manifest.json');
+      if (!fs.existsSync(manifestFile)) this.skip();
 
-        // Should have manifest
-        if (fs.existsSync(manifestFile)) {
-          const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf-8'));
-          assert.ok(manifest.backups || manifest.backup);
-        }
-      }
+      const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf-8'));
+      assert.ok(manifest.backups || manifest.backup);
     });
   });
 
@@ -267,8 +247,8 @@ describe('ROLLBACK PROCEDURES', function() {
         .get(`/api/translations/products/${testProductId}`)
         .query({ lang: 'en' });
 
-      // Should not crash, either returns data or graceful error
-      assert.ok(res.status < 500);
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data);
 
       await LiveTranslationCache.deleteMany({ entityId: testProductId });
     });
@@ -282,10 +262,8 @@ describe('ROLLBACK PROCEDURES', function() {
         .get(`/api/translations/products/${testProductId}`)
         .query({ lang: 'en' });
 
-      // Should return graceful error (404 not 500)
-      if (res.status >= 400) {
-        assert.ok(res.status < 500);
-      }
+      assert.equal(res.status, 404);
+      assert.ok(res.body.message || res.body.error);
     });
 
     it('✅ Error responses have helpful messages', async () => {
@@ -293,10 +271,8 @@ describe('ROLLBACK PROCEDURES', function() {
         .get('/api/translations/products/nonexistent-id')
         .query({ lang: 'en' });
 
-      // Should have message field
-      if (res.status >= 400) {
-        assert.ok(res.body.message || res.body.error);
-      }
+      assert.ok([400, 404].includes(res.status));
+      assert.ok(res.body.message || res.body.error);
     });
   });
 

@@ -11,6 +11,7 @@
  * - Copy URL vào browser để test
  */
 
+const assert = require('node:assert/strict');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const VnpayAdapter = require('../adapters/payment/VnpayAdapter');
@@ -28,7 +29,7 @@ const realConfig = {
 
 // Validate config
 if (!realConfig.partnerId || !realConfig.partnerKey) {
-  process.exit(1);
+  throw new Error('VNPAY_TMN_CODE and VNPAY_HASH_SECRET are required');
 }
 
 async function testVNPAY() {
@@ -59,9 +60,9 @@ async function testVNPAY() {
 
     const createResult = await adapter.createPaymentUrl(paymentData);
 
-    if (!createResult.success) {
-      process.exit(1);
-    }
+    assert.equal(createResult.success, true, 'VNPAY payment URL creation failed');
+    assert.ok(createResult.data?.redirectUrl, 'VNPAY redirect URL is missing');
+    assert.ok(createResult.data?.requestData, 'VNPAY request data is missing');
 
 
     // ============================================
@@ -71,29 +72,10 @@ async function testVNPAY() {
     const url = createResult.data.redirectUrl;
     const urlParams = new URLSearchParams(new URL(url).search);
 
-    const importantParams = [
-      'vnp_TmnCode',
-      'vnp_Amount',
-      'vnp_TxnRef',
-      'vnp_OrderInfo',
-      'vnp_SecureHash',
-      'vnp_Email',
-      'vnp_PhoneNumber',
-    ];
-
-    importantParams.forEach(param => {
-      const value = urlParams.get(param);
-      if (value) {
-        if (param === 'vnp_SecureHash') {
-        } else if (param === 'vnp_Amount') {
-        } else {
-        }
-      } else {
-        if (param === 'vnp_Email' || param === 'vnp_PhoneNumber') {
-        } else {
-        }
-      }
-    });
+    ['vnp_TmnCode', 'vnp_Amount', 'vnp_TxnRef', 'vnp_OrderInfo', 'vnp_SecureHash']
+      .forEach((param) => assert.ok(urlParams.get(param), `${param} is missing from payment URL`));
+    assert.equal(urlParams.get('vnp_TmnCode'), realConfig.partnerId);
+    assert.equal(urlParams.get('vnp_Amount'), '10000000');
 
     // ============================================
     // TEST 3: Verify Signature
@@ -112,8 +94,7 @@ async function testVNPAY() {
     const expectedHash = adapter.createSignature(signatureData, realConfig.partnerKey, 'sha512');
     const hashMatch = hashFromUrl === expectedHash;
 
-    if (!hashMatch) {
-    }
+    assert.equal(hashMatch, true, 'VNPAY payment URL signature is invalid');
 
     // ============================================
     // TEST 4: Generate Payment Link
@@ -146,6 +127,7 @@ async function testVNPAY() {
     const ipnDataWithSignature = { ...mockIpnData, vnp_SecureHash: ipnSignature };
 
     const verifyResult = await adapter.verifyChecksum(ipnDataWithSignature, ipnSignature);
+    assert.equal(verifyResult.valid, true, verifyResult.error || 'VNPAY IPN signature is invalid');
 
     // ============================================
     // SUMMARY

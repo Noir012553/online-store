@@ -3,6 +3,7 @@
  * Focus on: Migration validation + Health check
  */
 
+const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
@@ -29,25 +30,17 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  Products: ${productCount}`);
       console.log(`  User content: ${userContentCount}`);
       
-      // At least some data migrated
-      if (productCount > 0 || userContentCount > 0) {
-        console.log(`  ${CLI_SYMBOLS.success} Migration data present`);
-      }
+      assert.ok(productCount > 0 || userContentCount > 0, 'Migration produced no documents');
+      console.log(`  ${CLI_SYMBOLS.success} Migration data present`);
     });
 
     it(`${CLI_SYMBOLS.success} Products have aggregated specs (O(1) query)`, async function() {
       const product = await ProductCatalogTranslationCache.findOne({});
       
-      if (!product) {
-        console.log(`  ${CLI_SYMBOLS.warning}  No product translations found (will create during seeding)`);
-        return;
-      }
-
-      // Verify aggregation
-      if (product.specs && typeof product.specs === 'object') {
-        console.log(`  ${CLI_SYMBOLS.success} Specs correctly aggregated into single object`);
-        console.log(`     Keys: ${Object.keys(product.specs).join(', ')}`);
-      }
+      assert.ok(product, 'No product translation document found');
+      assert.ok(product.specs && typeof product.specs === 'object', 'Product specs are not aggregated');
+      console.log(`  ${CLI_SYMBOLS.success} Specs correctly aggregated into single object`);
+      console.log(`     Keys: ${Object.keys(product.specs).join(', ')}`);
 
     });
 
@@ -63,10 +56,9 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  Failed products: ${failedProducts}`);
       console.log(`  Failed user content: ${failedUserContent}`);
       
-      // Should be 0
-      if (failedProducts === 0 && failedUserContent === 0) {
-        console.log(`  ${CLI_SYMBOLS.success} All documents have success status`);
-      }
+      assert.equal(failedProducts, 0, 'Product translation cache contains failed documents');
+      assert.equal(failedUserContent, 0, 'User content translation cache contains failed documents');
+      console.log(`  ${CLI_SYMBOLS.success} All documents have success status`);
     });
   });
 
@@ -84,9 +76,9 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  Query time: ${duration}ms`);
       console.log(`  Docs returned: 1 (all specs aggregated)`);
       
-      if (duration < 100) {
-        console.log(`  ${CLI_SYMBOLS.success} O(1) query performance achieved`);
-      }
+      assert.ok(product, 'No English product translation found');
+      assert.ok(Number.isFinite(duration), 'Product query duration is invalid');
+      console.log(`  ${CLI_SYMBOLS.success} O(1) query completed`);
     });
 
     it(`${CLI_SYMBOLS.success} Old schema: N queries for product specs (O(N) demo)`, async function() {
@@ -120,9 +112,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
         console.log(`    ${lang._id}: ${lang.count} documents`);
       });
 
-      if (langDist.length > 0) {
-        console.log(`  ${CLI_SYMBOLS.success} Multi-language support verified`);
-      }
+      assert.ok(langDist.length > 0, 'No language distribution data found');
+      console.log(`  ${CLI_SYMBOLS.success} Multi-language support verified`);
     });
   });
 
@@ -137,11 +128,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
       );
 
       console.log('  Indexes:', Object.keys(indexes));
-      if (hasTTL) {
-        console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
-      } else {
-        console.log(`  ${CLI_SYMBOLS.warning}  TTL index not yet created (will create on first insert)`);
-      }
+      assert.equal(hasTTL, true, 'ProductCatalogTranslationCache TTL index is missing');
+      console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
     });
 
     it(`${CLI_SYMBOLS.success} UserContentTranslationCache has TTL (30 days)`, async function() {
@@ -153,11 +141,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
       );
 
       console.log('  Indexes:', Object.keys(indexes));
-      if (hasTTL) {
-        console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
-      } else {
-        console.log(`  ${CLI_SYMBOLS.warning}  TTL index not yet created (will create on first insert)`);
-      }
+      assert.equal(hasTTL, true, 'UserContentTranslationCache TTL index is missing');
+      console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
     });
   });
 
@@ -171,11 +156,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  NEW schema: ${newCount} documents`);
       console.log(`  OLD schema: ${oldCount} documents`);
 
-      if (oldCount > newCount) {
-        console.log(`  ${CLI_SYMBOLS.success} Fallback needed: API will check NEW first, then OLD`);
-      } else {
-        console.log(`  ${CLI_SYMBOLS.success} NEW schema has sufficient data`);
-      }
+      assert.ok(newCount > 0 || oldCount > 0, 'No translation data is available to exercise fallback');
+      console.log(`  ${CLI_SYMBOLS.success} Translation data is available for fallback checks`);
     });
   });
 
@@ -193,9 +175,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  NEW schemas total: ${newTotal} documents`);
       console.log(`  Migration progress: ${migrationProgress}%`);
 
-      if (migrationProgress > 30) {
-        console.log(`  ${CLI_SYMBOLS.success} Migration progress is healthy (>30%)`);
-      }
+      assert.ok(newTotal > 0, 'No documents exist in the new translation schemas');
+      console.log(`  ${CLI_SYMBOLS.success} New schema contains migrated data (${migrationProgress}% of old-schema volume)`);
 
       // Error rate
       const oldErrors = await LiveTranslationCache.countDocuments({ status: { $nin: ['success', null] } });
@@ -205,9 +186,8 @@ describe('PHASE 4: E2E Verification Tests', function() {
       console.log(`  OLD schema error rate: ${oldTotal > 0 ? ((oldErrors / oldTotal) * 100).toFixed(2) : 0}%`);
       console.log(`  NEW schema error rate: ${newTotal > 0 ? ((newErrors / newTotal) * 100).toFixed(2) : 0}%`);
 
-      if (newErrors === 0 || newTotal === 0) {
-        console.log(`  ${CLI_SYMBOLS.success} NEW schemas have 0% error rate`);
-      }
+      assert.equal(newErrors, 0, 'New translation schemas contain failed documents');
+      console.log(`  ${CLI_SYMBOLS.success} NEW schemas have 0% error rate`);
 
       console.log(`\n${CLI_SYMBOLS.success} PHASE 2 MIGRATION: COMPLETE`);
       console.log(`${CLI_SYMBOLS.success} Ready for Phase 3: Switch Reading\n`);
