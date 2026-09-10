@@ -30,8 +30,8 @@ const REPORT_DIR = path.resolve(__dirname, '../../reports/test');
 fs.mkdirSync(REPORT_DIR, { recursive: true });
 const REPORT_STARTED_AT = new Date();
 const REPORT_TIMESTAMP = REPORT_STARTED_AT.toISOString().replace(/[.:]/g, '-');
-const TEST_ERROR_REPORT = path.join(REPORT_DIR, `npm-test-errors-${REPORT_TIMESTAMP}.json`);
-const TEST_SUMMARY_REPORT = path.join(REPORT_DIR, `npm-test-report-${REPORT_TIMESTAMP}.json`);
+const TEST_SUMMARY_REPORT = path.join(REPORT_DIR, `npm-test-summary-${REPORT_TIMESTAMP}.json`);
+const TEST_FULL_REPORT = path.join(REPORT_DIR, `npm-test-full-${REPORT_TIMESTAMP}.json`);
 
 function stripAnsi(value) {
   return value.replace(/[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]+)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g, '');
@@ -130,18 +130,8 @@ function addFailureToReport(errorMap, filePath, output) {
   });
 }
 
-function writeErrorReport(failedTests, errorMap) {
-  const report = {
-    generatedAt: new Date().toISOString(),
-    failedFiles: failedTests.map(file => path.basename(file)),
-    errors: [...errorMap.values()],
-  };
-  fs.writeFileSync(TEST_ERROR_REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.log(`${CLI_SYMBOLS.report} Error report saved to ${TEST_ERROR_REPORT}`);
-}
-
-function writeSummaryReport({ cliArgs, suitesToRun, testFiles, testResults, failedTests, errors, startedAt, finishedAt }) {
-  const report = {
+function buildReportMetadata({ cliArgs, suitesToRun, testFiles, testResults, failedTests, startedAt, finishedAt }) {
+  return {
     generatedAt: finishedAt.toISOString(),
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
@@ -155,16 +145,39 @@ function writeSummaryReport({ cliArgs, suitesToRun, testFiles, testResults, fail
       passed: testResults.filter(result => result.status === 'passed').length,
       failed: failedTests.length,
     },
-    testResults,
     failedFiles: failedTests.map(file => path.basename(file)),
+  };
+}
+
+function writeReports({ cliArgs, suitesToRun, testFiles, testResults, failedTests, errors, startedAt, finishedAt }) {
+  const metadata = buildReportMetadata({
+    cliArgs,
+    suitesToRun,
+    testFiles,
+    testResults,
+    failedTests,
+    startedAt,
+    finishedAt,
+  });
+  const summary = {
+    ...metadata,
+    reports: {
+      full: path.basename(TEST_FULL_REPORT),
+    },
+  };
+  const full = {
+    ...metadata,
+    testResults,
     errors,
     reports: {
-      errors: path.basename(TEST_ERROR_REPORT),
       summary: path.basename(TEST_SUMMARY_REPORT),
     },
   };
-  fs.writeFileSync(TEST_SUMMARY_REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+
+  fs.writeFileSync(TEST_SUMMARY_REPORT, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(TEST_FULL_REPORT, `${JSON.stringify(full, null, 2)}\n`, 'utf8');
   console.log(`${CLI_SYMBOLS.report} Summary report saved to ${TEST_SUMMARY_REPORT}`);
+  console.log(`${CLI_SYMBOLS.report} Full report saved to ${TEST_FULL_REPORT}`);
 }
 
 // Parse CLI args
@@ -243,7 +256,7 @@ function runTestFile(filePath) {
     test.on('close', code => {
       if (code === 0) {
         console.log(`${CLI_SYMBOLS.success} ${path.basename(filePath)}\n`);
-        resolve();
+        resolve({ output });
       } else {
         console.error(`${CLI_SYMBOLS.error} ${path.basename(filePath)} failed\n`);
         const error = new Error(`Test failed: ${filePath}`);
@@ -332,26 +345,28 @@ async function main() {
     for (const testFile of testFiles) {
       const testStartedAt = new Date();
       try {
-        await runTestFile(testFile);
+        const result = await runTestFile(testFile);
         testResults.push({
           file: path.basename(testFile),
           runner: getRunnerForFile(testFile),
           status: 'passed',
           durationMs: Date.now() - testStartedAt.getTime(),
+          output: redactSensitive(result.output),
         });
       } catch (error) {
         failedTests.push(testFile);
-        addFailureToReport(errorMap, testFile, error.testOutput || error.message);
+        const output = error.testOutput || error.message;
+        addFailureToReport(errorMap, testFile, output);
         testResults.push({
           file: path.basename(testFile),
           runner: getRunnerForFile(testFile),
           status: 'failed',
           durationMs: Date.now() - testStartedAt.getTime(),
+          output: redactSensitive(output),
         });
       }
     }
-    writeErrorReport(failedTests, errorMap);
-    writeSummaryReport({
+    writeReports({
       cliArgs,
       suitesToRun,
       testFiles,

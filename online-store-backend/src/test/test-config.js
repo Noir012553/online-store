@@ -28,6 +28,9 @@ const INTEGRATION_TEST_FILES = new Set([
   'vnpay-quick.test.js',
   'with-order.test.js',
 ]);
+const PRODUCTION_TEST_FILES = new Set([
+  'export-production.test.js',
+]);
 
 const testConfig = Object.freeze({
   projectRoot,
@@ -53,14 +56,19 @@ function resolveTestFile(fileName) {
   return path.resolve(TEST_ROOT, fileName);
 }
 
-function discoverTestFiles(directory = TEST_ROOT, includeIntegration = process.env.RUN_INTEGRATION_TESTS === 'true') {
+function discoverTestFiles(
+  directory = TEST_ROOT,
+  includeIntegration = process.env.RUN_INTEGRATION_TESTS !== 'false',
+  includeProduction = process.env.RUN_PRODUCTION_TESTS === 'true',
+) {
   return fs.readdirSync(directory, { withFileTypes: true })
     .flatMap((entry) => {
       const entryPath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
-        return discoverTestFiles(entryPath, includeIntegration);
+        return discoverTestFiles(entryPath, includeIntegration, includeProduction);
       }
       if (!entry.name.endsWith('.test.js')) return [];
+      if (!includeProduction && PRODUCTION_TEST_FILES.has(entry.name)) return [];
       if (!includeIntegration && INTEGRATION_TEST_FILES.has(entry.name)) return [];
       return [entryPath];
     })

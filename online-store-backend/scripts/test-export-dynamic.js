@@ -216,6 +216,12 @@ const parseCsv = text => {
   ));
 };
 
+const parseDelimitedValue = value => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+  return value.split('|').map(item => item.trim()).filter(Boolean);
+};
+
 const findEndOfCentralDirectory = buffer => {
   for (let index = buffer.length - 22; index >= 0; index -= 1) {
     if (buffer.readUInt32LE(index) === 0x06054b50) return index;
@@ -334,11 +340,16 @@ const validateZip = (zipPath, headers, contentFormat) => {
   if (missingFields.length) result.zipError ||= `ZIP_REQUIRED_FIELDS_MISSING:${JSON.stringify(missingFields.slice(0, 10))}`;
   const referencedAssets = new Set();
   for (const product of products) {
-    if (Array.isArray(product.imageAssetPaths)) {
-      product.imageAssetPaths.filter(Boolean).forEach(assetPath => referencedAssets.add(assetPath));
-    }
-    if (!Array.isArray(product.images)) continue;
-    for (const image of product.images) {
+    const imageAssetPaths = parseDelimitedValue(product.imageAssetPaths);
+    imageAssetPaths.forEach(assetPath => referencedAssets.add(assetPath));
+
+    const images = Array.isArray(product.images)
+      ? product.images
+      : parseDelimitedValue(product.images).map((url, index) => ({
+        url,
+        assetPath: imageAssetPaths[index],
+      }));
+    for (const image of images) {
       if (!image?.url) continue;
       result.imageReferences += 1;
       if (image.assetPath) {

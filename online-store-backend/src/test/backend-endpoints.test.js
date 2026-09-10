@@ -27,6 +27,7 @@ const TEST_TIMEOUT = timeoutMs;
 let BASE_URL = baseUrl;
 let MONGO_URI = mongoUri;
 let ADMIN_TOKEN = adminToken;
+let integrationEnvironment = null;
 
 const getTargetLanguage = () => (
   getActiveLangCodes().find((code) => code !== getDefaultLanguage().code)
