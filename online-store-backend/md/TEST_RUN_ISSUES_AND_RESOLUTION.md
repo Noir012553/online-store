@@ -724,3 +724,35 @@ Hai TTL assertion tiếp tục fail. Đã cập nhật code để:
 - Test migration cũng kiểm tra chính xác `expireAfterSeconds` tương ứng.
 
 Chưa chạy lại test sau thay đổi verify này.
+
+## 17. Kết quả xác nhận TTL sau khi sửa verify
+
+Lệnh đã chạy:
+
+```text
+npm run setup-i18n-indexes
+npm run test -- --suite=products
+```
+
+Kết quả setup index thành công. Test đã đọc metadata raw từ MongoDB và xác nhận:
+
+- `ProductCatalogTranslationCache.createdAt` có `expireAfterSeconds: 7776000` (90 ngày).
+- `UserContentTranslationCache.createdAt` có `expireAfterSeconds: 2592000` (30 ngày).
+
+Kết quả suite:
+
+```text
+Discovered: 5 test files
+Passed:     5 test files
+Failed:     0 test files
+```
+
+Chi tiết:
+
+- `translation-migration-smoke.test.js` — 10 passing
+- `import-file-validator.test.js` — 54 passing
+- `export-job-service.test.js` — 7 passing
+- `translation-helper.test.js` — 25 passing
+- `products.test.js` — pass
+
+Kết luận: lỗi TTL đã được xử lý; không cần chạy `npm run clear` hoặc `npm run seed` cho việc sửa index này.
