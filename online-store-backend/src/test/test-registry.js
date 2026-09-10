@@ -98,6 +98,16 @@ const TEST_SUITES = {
     ],
   },
 
+  'import-export': {
+    name: 'Import & Export Integration Flow',
+    category: 'INTEGRATION',
+    importance: 'HIGH',
+    tags: ['import', 'export', 'integration'],
+    files: [
+      'import-export.test.js',
+    ],
+  },
+
   rollback: {
     name: 'Database Rollback & Recovery Tests',
     category: 'MAINTENANCE',
