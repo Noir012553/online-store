@@ -32,7 +32,7 @@ Tài liệu này là kết quả audit, kế hoạch hardening và cập nhật 
 - ZIP bị giới hạn kích thước nén 100 MB, tổng kích thước giải nén 256 MB, số entry 10.000, số image entry 5.000 và tỷ lệ nén tối đa 100:1.
 - Archive phải chứa đúng một `products.json` hoặc `products.csv`; chỉ cho phép data entry ở root và asset entry dưới `assets/images/`.
 - Mỗi sản phẩm trong ZIP phải có `name`, `brand`, `price`, `category`, `baseCurrencyCode`, `image`, `description` và `countInStock`; `specs` là tùy chọn và được normalize thành `{}` nếu thiếu. Dữ liệu sai kiểu hoặc sai định dạng vẫn bị từ chối.
-- `assets/images` hiện chưa được upload lại lên Cloudinary; import vẫn dùng URL/public ID trong metadata sản phẩm.
+- `assets/images` được kiểm tra trong dry-run và có thể upload lại lên Cloudinary khi commit import; cần tiếp tục xác minh mapping account Cloudinary được lưu đầy đủ trên mọi field ảnh.
 - Đã bổ sung regression test cho ZIP export hợp lệ, path traversal, archive có hai data entry và product thiếu trường bắt buộc.
 - Kiểm tra cú pháp backend đã PASS; một số regression runtime test chưa chạy được trong môi trường agent vì thiếu `mongoose`/Mocha. Node dynamic runner đã kiểm tra syntax và được dùng để test local qua PowerShell.
 - Đã bổ sung test dynamic export → validate ZIP → import ZIP bằng Node Playwright global tại `online-store-backend/scripts/test-export-dynamic.js` và wrapper Node.js `online-store-backend/src/test/import-export.test.js`.
@@ -734,32 +734,17 @@ Không nên báo thành công chung nếu có row bị skip hoặc fail mà ngư
 
 ---
 
-## P1-E. Category ID/name chưa được xác minh đầy đủ
+## P1-E. Category ID/name — đã có kiểm tra tồn tại, cần tiếp tục harden
 
-### Hiện trạng
+### Trạng thái source hiện tại
 
-Validator mới kiểm tra category có giá trị và chuẩn hóa chuỗi:
+`productImportController.js` đã resolve category trước khi ghi và từ chối category không tồn tại trong import validation. Vì vậy tuyên bố cũ rằng category chỉ được kiểm tra format không còn đúng.
 
-```js
-if (product.category) {
-  cleaned.category = String(product.category).trim();
-  // TODO: Check nếu category tồn tại trong DB
-}
-```
+Các việc còn cần kiểm tra:
 
-### Rủi ro
-
-- Product tham chiếu category không tồn tại.
-- Category name khác hoa thường tạo dữ liệu không thống nhất.
-- ID hợp lệ về format nhưng là ID đã xóa hoặc không thuộc tenant/store hiện tại.
-
-### Giải pháp tối ưu
-
-- Resolve toàn bộ category trước khi ghi bằng một query batch.
-- Ưu tiên `categoryId` đã xác minh; fallback sang tên đã normalize.
-- Reject category không tồn tại trong dry-run, không âm thầm tạo reference sai.
-- Kiểm tra `isDeleted: false` và tenant/store scope.
-- Trả lỗi theo row và hiển thị mapping category trong preview.
+- Chuẩn hóa khác hoa thường và mapping tên/ID trong mọi mode import.
+- Scope `isDeleted` và tenant/store nếu deployment có nhiều scope.
+- Regression test cho category bị xóa, ID hợp lệ nhưng không thuộc scope và import concurrent.
 
 ---
 
@@ -1246,10 +1231,10 @@ Metrics cần có request ID/job ID và không ghi secret/token trong log.
 - Tái sử dụng JSONAdapter/CSVAdapter, dry-run và mode import hiện có.
 - Frontend upload trực tiếp ZIP.
 
-Chưa triển khai:
+Chưa hoàn tất:
 
 - Manifest/version và checksum cho từng asset.
-- Upload binary `assets/images` lên Cloudinary.
+- Xác minh mapping `cloudinaryAccountId` bền vững cho binary `assets/images` trên Product/Banner và cleanup về sau.
 - Transaction/staging riêng cho toàn bộ ZIP.
 - Kiểm thử tích hợp qua production proxy và deploy production.
 
@@ -1310,20 +1295,19 @@ Chưa triển khai:
 - Giảm perceived loading cho `/admin/dashboard` và `/admin/statistics`.
 - Tách request chính/phụ và xử lý lỗi phụ bằng `Promise.allSettled`.
 - Điều tra async export và xác định ý nghĩa `queued -> processing -> ready`.
-- Xác nhận ZIP hiện không import trực tiếp được.
-- Xác nhận `products.json` sau khi giải nén có thể đi qua JSON import nếu hợp lệ.
+- Xác nhận trước đây ZIP chưa import trực tiếp được; hiện route ZIP-only đã triển khai.
+- Xác nhận `products.json` sau khi giải nén có thể đi qua JSONAdapter/import pipeline nếu hợp lệ.
 - Đọc các báo cáo Markdown hiện có về export incident, troubleshooting và seed issues.
 
 ### Chưa triển khai trong audit này
 
-- SSRF protection đầy đủ.
-- Giới hạn import theo records/depth/field và streaming parser.
-- Sửa `path` thiếu trong `uploadValidationMiddleware.js`.
+- SSRF protection dùng chung đầy đủ cho importer, exporter và Cloudinary.
+- Streaming parser/temp-file staging thay cho việc giữ toàn bộ ZIP trong memory.
 - CSV formula injection protection.
-- Unique index/idempotency/transaction hoặc staging import.
-- Category existence validation.
-- ZIP import trực tiếp đã có ở source; cần hoàn tất kiểm thử tích hợp và deploy.
-- Bộ security regression test đầy đủ cho ZIP bomb, symlink và checksum.
+- Unique index/idempotency bền vững, transaction hoặc staging import.
+- Mapping account Cloudinary đầy đủ trên Product/Banner và cleanup theo metadata.
+- Manifest/version/checksum và bộ security regression test đầy đủ cho ZIP bomb, symlink và checksum.
+- Kiểm thử tích hợp production và load test.
 
 Các mục còn lại cần được hoàn thiện trước khi coi ZIP là backup đầy đủ, đặc biệt là asset import, checksum và staging/transaction.
 
