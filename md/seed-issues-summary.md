@@ -163,3 +163,21 @@ Lỗi brand hiện tại được xử lý khi API đọc brand từ `Product`, 
 - `brandSeeder.js` hiện chỉ chứa một số brand cố định và chưa phải cơ chế đồng bộ đầy đủ từ sản phẩm.
 - Nếu muốn lưu lâu dài toàn bộ brand vào collection `Brand` để quản lý logo, mô tả và trang chi tiết, cần thêm bước đồng bộ distinct `Product.brand` sang `Brand`.
 - Không cần chạy `npm run build` trong quá trình xử lý này.
+
+## 7. Tiến độ kiểm tra test hiện tại
+
+Đã cập nhật test tooling và assertion:
+
+- Root `npm test` đã chuyển từ script placeholder sang backend test runner.
+- Các test phụ thuộc MongoDB, backend, network hoặc VNPAY sandbox được tách khỏi default discovery; chạy integration cần bật `RUN_INTEGRATION_TESTS=true`.
+- VNPay payment/IPN signature, language sync, migration smoke và rollback đã có assertion/exit code rõ ràng hơn, không còn các nhánh pass rỗng chính đã phát hiện.
+- Test runner tự tạo `reports/test` trước khi ghi báo cáo.
+- `check-ui-emoji.js` đã sửa import `fs` và không còn quét thư mục `src/test` không tồn tại.
+
+Đã xác minh trong workspace:
+
+- Test fixture chữ ký VNPay: PASS.
+- Các JavaScript đã sửa: qua kiểm tra cú pháp.
+- `git diff --check`: PASS.
+
+Chưa xác minh runtime toàn bộ vì workspace hiện thiếu `node_modules` của backend/frontend (`dotenv`, `typescript`). Các claim `38/38 PASS` ở tài liệu cũ vẫn là kết quả lịch sử, không phải kết quả chạy lại hiện tại.

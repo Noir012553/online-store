@@ -87,9 +87,10 @@ online-store-backend/python/iKBC_Durgod_Keyboard_Scraper.py
 
 ## Kiểm tra đã thực hiện
 
-- Kiểm tra syntax các script/test JavaScript đã đổi tên.
-- Kiểm tra `package.json` hợp lệ.
-- Chạy `npm run check:emoji` thành công.
-- Chạy `--help` cho các wrapper export/import thành công.
+- Kiểm tra syntax các script/test JavaScript đã đổi tên và các file test vừa cập nhật.
+- Kiểm tra cấu trúc script trong `package.json`.
+- Đã sửa `check-ui-emoji.js` để import `fs` và chỉ quét các thư mục frontend hiện có.
+- `npm run check:emoji` chưa chạy runtime thành công trong workspace hiện tại vì thiếu dependency `typescript`; không ghi nhận là PASS.
+- Chạy `--help` cho các wrapper export/import thành công theo bằng chứng lịch sử.
 - Xác nhận không còn đường dẫn cũ đến các file đã xoá/đổi tên.
 - Không chạy `npm run build` theo quy ước dự án.
