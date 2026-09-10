@@ -627,8 +627,8 @@ Report `38/38` là bằng chứng lịch sử cũ. Chưa có runtime report mớ
 
 Trạng thái hiện tại:
 
-- `npm test` đã được cấu hình để không bỏ qua integration test; `with-order.test.js` được chạy mặc định.
-- `export-production.test.js` vẫn cần bật chủ động bằng `RUN_PRODUCTION_TESTS=true`.
+- `npm test` chạy suite `products` mặc định, gồm 5 file kiểm tra migration, import/export, translation helper và products.
+- `npm run test:all` chạy toàn bộ test được discovery; `export-production.test.js` vẫn cần bật chủ động bằng `RUN_PRODUCTION_TESTS=true`.
 - Runner tạo summary/full/log JSON và trả exit code theo test file thất bại.
 - Backend startup đã có log người dùng cung cấp là `backend ready`.
 - Chưa kết luận toàn bộ test pass sau thay đổi discovery; cần chạy lại trong môi trường có dependency, MongoDB, backend readiness và credential hợp lệ.
