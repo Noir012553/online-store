@@ -48,11 +48,7 @@ const nextConfig: NextConfig = {
    */
   async rewrites() {
   // Keep production as the default; NEXT_PUBLIC_API_BASE_URL is an explicit override for local/staging.
-  const backendUrl = (
-    process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-    || process.env.BACKEND_URL?.trim()
-    || 'https://backend.manln.online'
-  ).replace(/\/+$/, '');
+  const backendUrl = (process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'https://backend.manln.online').replace(/\/+$/, '');
 
   return {
     beforeFiles: [
