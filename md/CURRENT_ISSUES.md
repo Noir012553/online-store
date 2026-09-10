@@ -241,19 +241,25 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 
 ### Lỗi cần xử lý trước khi kết luận test translation đã pass
 
-- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng hiện chưa thấy import `../models/StaticTranslation` tương ứng ở đầu file. Cần bổ sung hoặc xác minh dependency trước khi kết luận các endpoint này hoạt động.
-- `online-store-backend/src/test/test-config.js` chỉ loại một danh sách cố định khỏi test mặc định. Các file `translation-api.test.js`, `db-state.test.js` và `language-sync-flow.test.js` vẫn có nguy cơ được discovery dù phụ thuộc MongoDB/backend hoặc có thể kết thúc mà không fail process khi request lỗi. Phải tách chúng thành integration/manual test hoặc sửa runner.
-- `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`. Đây không đủ để xác nhận response contract; test phải kiểm tra status mong đợi, body và thay đổi dữ liệu.
+- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng chưa import `../models/StaticTranslation` ở đầu file. Chưa kết luận các endpoint này hoạt động cho tới khi sửa và kiểm tra runtime.
+- `online-store-backend/src/test/test-config.js` chỉ loại một danh sách cố định khỏi test mặc định. Các file `translation-api.test.js`, `db-state.test.js` và `language-sync-flow.test.js` vẫn có nguy cơ được discovery dù phụ thuộc MongoDB/backend hoặc có thể kết thúc mà không fail process khi request lỗi.
+- `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`; cần kiểm tra status mong đợi, body và thay đổi dữ liệu cụ thể.
 - Regression test ZIP tại `online-store-backend/src/test/import-file-validator.test.js` kiểm tra metadata kích thước sai, trong khi `online-store-backend/src/utils/zipImport.js` vẫn dùng metadata cho compression ratio trước khi đọc buffer thật. Cần đồng bộ code và test.
 
 ### Cảnh báo bảo mật và độ tin cậy chưa hoàn tất
 
-- SSRF chưa có policy đồng nhất: validator import chưa resolve DNS private IP và `cloudinaryService.js` còn tải URL bằng `fetch(..., redirect: 'follow')` trực tiếp.
+- SSRF exporter đã được harden một phần bằng `safeRemoteUrl.js`, nhưng policy chưa dùng chung: validator import chưa resolve DNS private IP và `cloudinaryService.js` còn tải URL bằng `fetch(..., redirect: 'follow')` trực tiếp. Ngoài ra `safeRemoteUrl.js` hiện gọi `dns.lookup()` nhưng cần xác minh import `dns` trước khi bật DNS validation.
+- Product/Banner chưa lưu mapping account Cloudinary đầy đủ theo từng ảnh. Claim upload có `cloudinaryAccountId`, nhưng không được dùng làm bằng chứng rằng mọi cleanup/validate về sau luôn đúng account.
 - ZIP import vẫn giữ archive, dữ liệu giải nén và asset trong memory; giới hạn kích thước chưa loại bỏ hoàn toàn rủi ro OOM.
 - CSV export chưa trung hòa giá trị bắt đầu bằng `=`, `+`, `-` hoặc `@`.
 - SVG chưa được sanitize đầy đủ cho script, event handler, `foreignObject` và external reference.
 - Import chưa atomic trên toàn bộ Product, Category, translation và Cloudinary; vẫn cần test concurrent import, duplicate key và rollback khi lỗi giữa chừng.
 - Quota export/import và disk cleanup vẫn có khả năng race giữa bước kiểm tra quota và bước tạo job/upload.
+
+### Đã đối chiếu và không còn là blocker cũ
+
+- Category existence validation đã có trong `productImportController.js`; các tài liệu cũ ghi “category chỉ kiểm tra format” không còn phản ánh source hiện tại.
+- Import ZIP trực tiếp đã có ở route `/api/products/admin/import-file`; các báo cáo cũ nói chỉ có thể giải nén offline cần được xem là lịch sử.
 
 ### Frontend và môi trường kiểm thử
 

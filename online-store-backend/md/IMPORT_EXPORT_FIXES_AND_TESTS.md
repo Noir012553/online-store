@@ -8,28 +8,36 @@ Không ghi email, mật khẩu, token hoặc nội dung credential XML.
 
 ## Kết luận hiện tại
 
-Các lỗi đã được xử lý theo từng lớp:
+Đối chiếu source hiện tại cho thấy:
 
-- Login từ credential XML hoạt động.
-- Lỗi Cloudflare HTTP 530 được tách khỏi lỗi backend bằng test trực tiếp vào backend local.
-- ZIP export không còn bị đánh fail chỉ vì sản phẩm không có thông số kỹ thuật.
-- Các dạng `specs` cũ được chuẩn hóa khi export.
+### Đã có trong source
+
+- Import sản phẩm chỉ nhận ZIP, có dry-run và các mode `insert/update/upsert`.
+- ZIP có giới hạn kích thước, số entry, số image entry, compression ratio và chặn path traversal/collision.
+- Product validation strict đã có; `specs` thiếu hoặc `{}` được normalize thành `{}`.
+- Category được resolve và kiểm tra tồn tại trước khi ghi.
+- Export ZIP finalize và chờ stream hoàn tất trước khi download; ảnh lỗi được bỏ qua có chủ ý.
 - Giới hạn ảnh 5 MiB được dùng chung giữa exporter, ZIP importer và Cloudinary.
-- Export không còn giữ lại reference ảnh nếu binary asset không được đưa vào ZIP.
+- Async export có idempotency key, lease/recovery, giới hạn queue và frontend xử lý abort/429.
+- Cloudinary có rotation theo nhóm biến môi trường và claim upload có `cloudinaryAccountId`.
 
-Bản test runtime gần nhất đã đạt:
+### Đã có nhưng chưa đủ
 
-```text
-[validate] valid=true products=10 images=78
-```
+- SSRF exporter đã có kiểm tra private IP, DNS tùy cấu hình và redirect thủ công, nhưng policy chưa dùng chung cho importer/Cloudinary.
+- Import concurrency và export quota mới được bảo vệ trong một process; chưa có distributed coordination.
+- ZIP import vẫn dùng `memoryStorage()`, chưa có streaming/staging atomic.
+- Cloudinary account ID chưa được lưu tương ứng trên mọi field ảnh của Product/Banner; không được kết luận cleanup luôn đúng account trong mọi đường đi.
 
-Sau đó phát hiện lỗi tiếp theo ở bước import ảnh:
+### Chưa fix hoặc chưa xác minh runtime hiện tại
 
-```text
-IMPORT_ZIP_IMAGE_SIZE_INVALID
-```
+- `translationController.js` đang gọi `StaticTranslation` nhưng chưa import model này.
+- ZIP vẫn dùng kích thước metadata central directory cho một phần compression/total-size check; cần đồng bộ với kiểm tra buffer thực tế.
+- CSV chưa chống formula injection và SVG chưa sanitize đầy đủ.
+- Import chưa atomic toàn bộ Product, Category, translation và Cloudinary; chưa có idempotency bền vững theo nội dung ZIP.
+- Chưa có manifest/checksum đầy đủ cho ZIP.
+- Chưa có runtime/load test mới trong môi trường hiện tại.
 
-Bản fix xử lý lỗi ảnh đã được thêm sau lần test này và cần chạy lại integration test sau khi restart backend.
+Các kết quả `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` và `38/38 test pass` trong phần dưới là kết quả lịch sử, không phải bằng chứng runtime mới. Không dùng chúng để kết luận trạng thái production hiện tại nếu chưa chạy lại đúng môi trường.
 
 ## Quy ước module test hiện tại
 
@@ -442,15 +450,15 @@ Kết quả:
 [FINAL RESULT] PASS
 ```
 
-Kết luận: luồng `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` đã hoạt động thành công với 10 sản phẩm và 78 ảnh.
+Kết quả này là **báo cáo runtime lịch sử**, không phải lần chạy xác minh trong phiên cập nhật tài liệu này. Nó xác nhận tại thời điểm đó luồng `EXPORT -> ZIP VALIDATE -> IMPORT DRY-RUN` đã hoạt động với 10 sản phẩm và 78 ảnh.
 
-Bài test này không cố tình tạo lỗi rate limit Cloudinary vì import dry-run không upload ảnh thật. Rotation Cloudinary cần được xác nhận thêm bằng một lần upload thực tế khi các nhóm key bổ sung đã được cấu hình.
+Bài test không cố tình tạo lỗi rate limit Cloudinary vì import dry-run không upload ảnh thật. Rotation Cloudinary đã có unit test/source support, nhưng vẫn cần một lần upload thực tế với nhóm key bổ sung để xác minh cấu hình triển khai.
 
 Không chạy `npm run build`.
 
 ## 9. Cập nhật tiến độ xử lý đồng thời
 
-### Đã triển khai
+### Đã triển khai trong source
 
 - Export async nhận `Idempotency-Key`, lưu khóa trên `ExportJob` và trả lại job hiện có khi request được gửi lại.
 - Queue export giới hạn mặc định 2 job active mỗi admin và 8 job active toàn hệ thống; cấu hình qua `MAX_ACTIVE_EXPORT_JOBS_PER_USER` và `MAX_ACTIVE_EXPORT_JOBS_GLOBAL`.
@@ -458,11 +466,15 @@ Không chạy `npm run build`.
 - Frontend export chống double-click, polling có abort, backoff và xử lý `429`/`Retry-After`.
 - Import ZIP giới hạn mặc định 2 request đồng thời trên mỗi backend process qua `MAX_IMPORT_CONCURRENCY`.
 - Import update/upsert kiểm tra `__v` để trả conflict khi dữ liệu đã bị thay đổi bởi lượt import khác.
-- Test syntax backend, test syntax export job và `git diff --check` đã PASS.
+- Category existence validation, strict product validation và ZIP safety checks đã có trong source.
+- Test syntax backend, test syntax export job và `git diff --check` từng được ghi nhận PASS.
 
-### Giới hạn cần theo dõi
+### Chưa hoàn tất hoặc cần xác minh thêm
 
 - Import product chưa có idempotency bền vững theo nội dung ZIP, transaction/staging toàn bộ hoặc khóa phân tán giữa nhiều backend replica.
 - Các thao tác import vẫn có thể cần RAM lớn vì ZIP được nhận bằng `memoryStorage`.
 - Local export storage chỉ an toàn trong một instance hoặc shared volume; nhiều instance nên dùng S3/shared storage.
-- Chưa chạy runtime/load test trong Builder do setup `pnpm install` lỗi Corepack; không chạy `npm run build`.
+- SSRF policy chưa dùng chung cho `cloudinaryService.js`; đường tải remote riêng vẫn dùng `redirect: 'follow'`.
+- Product/Banner chưa lưu mapping account Cloudinary đầy đủ cho từng ảnh, nên cleanup/validate cần tiếp tục kiểm tra metadata.
+- Chưa có manifest/checksum đầy đủ, CSV formula-injection protection hoặc SVG sanitization.
+- Chưa có runtime/load test mới trong Builder; không chạy `npm run build`.
