@@ -696,3 +696,31 @@ Failed:     1 test file
 `translation-migration-smoke.test.js` vẫn fail đúng 2 assertion TTL ở dòng 130 và 142. Dữ liệu, migration, language coverage, query performance và các test import/export khác đều pass. Lần chạy này chỉ chạy test, chưa chạy `npm run setup-i18n-indexes`, nên index MongoDB chưa được repair.
 
 Dòng cảnh báo `Would need 10 queries to get 1 product's specs` là output mô tả so sánh O(N), không phải failure.
+
+## 16. Kết quả sau khi chạy setup index
+
+Lệnh đã chạy:
+
+```text
+npm run setup-i18n-indexes
+npm run test -- --suite=products
+```
+
+`npm run setup-i18n-indexes` kết thúc với thông báo `Setup complete`, nhưng phần verify chỉ in tên index (`createdAt_1`), chưa in metadata `expireAfterSeconds`. Vì vậy chưa đủ bằng chứng rằng TTL đã được áp dụng.
+
+Lần test ngay sau đó vẫn có kết quả:
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+Hai TTL assertion tiếp tục fail. Đã cập nhật code để:
+
+- Verify bằng metadata raw từ `listIndexes()` thay vì chỉ in tên index.
+- Kiểm tra đúng index `createdAt` với TTL 90 ngày và 30 ngày.
+- Không báo setup thành công nếu metadata TTL không đúng.
+- Test migration cũng kiểm tra chính xác `expireAfterSeconds` tương ứng.
+
+Chưa chạy lại test sau thay đổi verify này.

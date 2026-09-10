@@ -120,26 +120,28 @@ describe('PHASE 4: E2E Verification Tests', function() {
   // ============ TEST 4: TTL Index Verification ============
   describe('Test 4: TTL Indexes (Auto-cleanup)', () => {
     it(`${CLI_SYMBOLS.success} ProductCatalogTranslationCache has TTL (90 days)`, async function() {
-      const indexes = await ProductCatalogTranslationCache.collection.getIndexes();
-      
-      const hasTTL = Object.keys(indexes).some(key => 
-        indexes[key].expireAfterSeconds !== undefined
-      );
+      const indexes = await ProductCatalogTranslationCache.collection.listIndexes().toArray();
+      const ttlIndex = indexes.find(index => (
+        index.key?.createdAt === 1
+        && Object.keys(index.key).length === 1
+        && index.expireAfterSeconds === 7776000
+      ));
 
-      console.log('  Indexes:', Object.keys(indexes));
-      assert.equal(hasTTL, true, 'ProductCatalogTranslationCache TTL index is missing');
+      console.log('  Indexes:', indexes);
+      assert.ok(ttlIndex, 'ProductCatalogTranslationCache TTL index is missing or invalid');
       console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
     });
 
     it(`${CLI_SYMBOLS.success} UserContentTranslationCache has TTL (30 days)`, async function() {
-      const indexes = await UserContentTranslationCache.collection.getIndexes();
-      
-      const hasTTL = Object.keys(indexes).some(key => 
-        indexes[key].expireAfterSeconds !== undefined
-      );
+      const indexes = await UserContentTranslationCache.collection.listIndexes().toArray();
+      const ttlIndex = indexes.find(index => (
+        index.key?.createdAt === 1
+        && Object.keys(index.key).length === 1
+        && index.expireAfterSeconds === 2592000
+      ));
 
-      console.log('  Indexes:', Object.keys(indexes));
-      assert.equal(hasTTL, true, 'UserContentTranslationCache TTL index is missing');
+      console.log('  Indexes:', indexes);
+      assert.ok(ttlIndex, 'UserContentTranslationCache TTL index is missing or invalid');
       console.log(`  ${CLI_SYMBOLS.success} TTL index found (auto-cleanup enabled)`);
     });
   });
