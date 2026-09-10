@@ -209,6 +209,7 @@ function writeReports({ cliArgs, suitesToRun, testFiles, testResults, failedTest
   console.log(`${CLI_SYMBOLS.report} Full report saved to ${TEST_FULL_REPORT}`);
   fs.writeFileSync(TEST_LOG_REPORT, `${JSON.stringify(logs, null, 2)}\n`, 'utf8');
   console.log(`${CLI_SYMBOLS.report} Log report saved to ${TEST_LOG_REPORT}`);
+  fs.writeFileSync(TEST_LOG_REPORT, `${JSON.stringify(logs, null, 2)}\n`, 'utf8');
 }
 
 // Parse CLI args
@@ -399,6 +400,18 @@ async function main() {
         });
       }
     }
+    const finishedAt = new Date();
+    console.log('\n' + '='.repeat(60));
+    if (failedTests.length === 0) {
+      console.log(`${CLI_SYMBOLS.success} All tests passed!\n`);
+    } else {
+      console.log(`${CLI_SYMBOLS.error} ${failedTests.length} test file(s) failed:\n`);
+      failedTests.forEach(file => {
+        console.log(`  - ${path.basename(file)}`);
+      });
+      console.log();
+    }
+
     writeReports({
       cliArgs,
       suitesToRun,
@@ -407,22 +420,10 @@ async function main() {
       failedTests,
       errors: [...errorMap.values()],
       startedAt,
-      finishedAt: new Date(),
+      finishedAt,
     });
 
-    // Summary
-    console.log('\n' + '='.repeat(60));
-    if (failedTests.length === 0) {
-      console.log(`${CLI_SYMBOLS.success} All tests passed!\n`);
-      process.exit(0);
-    } else {
-      console.log(`${CLI_SYMBOLS.error} ${failedTests.length} test file(s) failed:\n`);
-      failedTests.forEach(file => {
-        console.log(`  - ${path.basename(file)}`);
-      });
-      console.log();
-      process.exit(1);
-    }
+    process.exit(failedTests.length === 0 ? 0 : 1);
   } catch (error) {
     console.error(`\n${CLI_SYMBOLS.error} Test runner error:`, error.message);
     process.exit(1);

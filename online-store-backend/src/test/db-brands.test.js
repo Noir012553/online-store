@@ -1,10 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { mongoUri } = require('./test-config');
 
 const checkBrands = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(mongoUri);
     const Product = require('../models/Product');
 
     console.log(`\n${CLI_SYMBOLS.chart} CHECKING BRANDS FROM DATABASE...\n`);
@@ -50,6 +51,7 @@ const checkBrands = async () => {
     await mongoose.connection.close();
   } catch (error) {
     console.error(`${CLI_SYMBOLS.error} Error:`, error.message);
+    process.exitCode = 1;
   }
 };
 
