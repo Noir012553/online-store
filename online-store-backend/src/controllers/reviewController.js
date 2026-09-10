@@ -258,7 +258,7 @@ const deleteReview = asyncHandler(async (req, res) => {
     product.rating = ratingStats[0]?.avgRating || 0;
     await product.save();
 
-    res.json({ message: getMessage(lang, 'admin-controllers-messages.review_deleted') });
+    res.json({ message: getMessage(lang, 'admin-controllers-messages.review_removed') });
   } else {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.review_not_found'));
@@ -305,7 +305,7 @@ const hardDeleteReview = asyncHandler(async (req, res) => {
   product.rating = ratingStats[0]?.avgRating || 0;
   await product.save();
 
-  res.json({ message: getMessage(lang, 'admin-controllers-messages.review_permanently_deleted') });
+  res.json({ message: getMessage(lang, 'admin-controllers-messages.review_permanently_removed') });
 });
 
 module.exports = {

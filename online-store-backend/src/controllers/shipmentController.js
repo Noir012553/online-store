@@ -62,14 +62,14 @@ const createShipment = asyncHandler(async (req, res) => {
 
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
     res.status(400);
-    throw createShipmentError(req.lang, 'ORDER_INVALID_ID', 'order.notFound', { orderId });
+    throw createShipmentError(req.lang, 'ORDER_INVALID_ID', 'orders.order_not_found', { orderId });
   }
 
   // Get order
   const order = await withTimeout(Order.findById(orderId).populate('customer'), 8000);
   if (!order) {
     res.status(404);
-    throw createShipmentError(req.lang, 'ORDER_NOT_FOUND', 'order.notFound', { orderId });
+    throw createShipmentError(req.lang, 'ORDER_NOT_FOUND', 'orders.order_not_found', { orderId });
   }
 
   if (order.ghnOrderCode) {
@@ -329,7 +329,7 @@ const getShipmentInfo = asyncHandler(async (req, res) => {
   const order = await withTimeout(Order.findById(orderId), 8000);
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(req.lang, 'order.notFound'));
+    throw new Error(getMessage(req.lang, 'orders.order_not_found'));
   }
 
   if (!order.ghnOrderCode) {
@@ -364,7 +364,7 @@ const getPrintLabel = asyncHandler(async (req, res) => {
   const order = await withTimeout(Order.findById(orderId), 8000);
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(req.lang, 'order.notFound'));
+    throw new Error(getMessage(req.lang, 'orders.order_not_found'));
   }
 
   if (!order.ghnOrderCode) {
@@ -427,7 +427,7 @@ const cancelShipment = asyncHandler(async (req, res) => {
   const order = await withTimeout(Order.findById(orderId), 8000);
   if (!order) {
     res.status(404);
-    throw new Error(getMessage(req.lang, 'order.notFound'));
+    throw new Error(getMessage(req.lang, 'orders.order_not_found'));
   }
 
   if (!order.ghnOrderCode) {

@@ -107,7 +107,11 @@ class ExchangeRateSchedulerService {
         updatedCount += await this._updateRate(fromCode, toCode, newRate, externalApi || 'manual');
       }
 
-      console.log(`[ExchangeRateScheduler] Cập nhật thành công: ${updatedCount} tỷ giá`);
+      if (updatedCount > 0) {
+        console.log(`[ExchangeRateScheduler] Cập nhật thành công: ${updatedCount} tỷ giá thay đổi`);
+      } else {
+        console.log('[ExchangeRateScheduler] Không có tỷ giá thay đổi');
+      }
       return updatedCount;
     } catch (err) {
       console.error('[ExchangeRateScheduler] Lỗi cập nhật:', err);
@@ -179,7 +183,7 @@ class ExchangeRateSchedulerService {
       return 0;
     } catch (err) {
       console.error(`[ExchangeRateScheduler] Lỗi cập nhật ${fromCode}->${toCode}:`, err);
-      return 0;
+      throw err;
     }
   }
 
