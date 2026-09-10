@@ -756,3 +756,17 @@ Chi tiết:
 - `products.test.js` — pass
 
 Kết luận: lỗi TTL đã được xử lý; không cần chạy `npm run clear` hoặc `npm run seed` cho việc sửa index này.
+
+## 18. Phạm vi clear và seed sau khi hoàn thiện
+
+`npm run clear` được thiết kế để xóa dữ liệu ứng dụng, không xóa tài nguyên ngoài ứng dụng:
+
+- Xóa toàn bộ document trong MongoDB và các index phụ.
+- Xóa asset dưới prefix `laptop-store/` trên tất cả Cloudinary account đã cấu hình (`CLOUDINARY_*`, `_2`, `_3`, ...).
+- Xóa resource type `image`, `video` và `raw` trong prefix quản lý.
+- Xóa file/thư mục local dưới `online-store-backend/uploads`, giữ `.gitkeep`.
+- URL ảnh Wikimedia, Unsplash hoặc dịch vụ ngoài chỉ bị xóa khỏi MongoDB; không thể xóa file gốc của dịch vụ ngoài.
+
+`npm run seed` chạy pipeline khởi tạo đầy đủ gồm currencies, exchange-rate history, languages, translations, brand translations, spec labels, users, categories, brands, banners, customers, shipping, locations, addresses, category translations, product import/crawler, about media, inventory, out-of-stock products, reviews, orders, coupons và product spec translations.
+
+Các script bảo trì như retranslate hoặc reseed translations vẫn không tự chạy trong seed mặc định vì có thể xóa dữ liệu riêng hoặc gọi dịch vụ AI; chúng cần được chạy chủ động.

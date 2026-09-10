@@ -422,6 +422,67 @@ const deleteMultipleFromCloudinary = async (items) => {
   return { deleted, failed, errors };
 };
 
+const deleteCloudinaryResourcesByPrefix = async (prefix = 'laptop-store/') => {
+  const accounts = getCloudinaryAccounts();
+  if (accounts.length === 0) throw new Error('No Cloudinary account is configured');
+
+  const totals = {
+    deleted: 0,
+    failed: 0,
+    accounts: [],
+  };
+
+  for (const account of accounts) {
+    const accountResult = {
+      accountId: account.id,
+      deleted: 0,
+      resourceTypes: {},
+    };
+
+    for (const resourceType of ['image', 'video', 'raw']) {
+      let nextCursor;
+      let deleted = 0;
+
+      do {
+        const resources = await runCloudinaryOperation(
+          () => cloudinary.api.resources({
+            resource_type: resourceType,
+            type: 'upload',
+            prefix,
+            max_results: 500,
+            ...(nextCursor ? { next_cursor: nextCursor } : {}),
+          }),
+          account.id,
+        );
+
+        const publicIds = resources.resources.map(resource => resource.public_id);
+        for (let index = 0; index < publicIds.length; index += 100) {
+          const batch = publicIds.slice(index, index + 100);
+          const result = await runCloudinaryOperation(
+            () => cloudinary.api.delete_resources(batch, {
+              resource_type: resourceType,
+              type: 'upload',
+              invalidate: true,
+            }),
+            account.id,
+          );
+          deleted += Object.keys(result.deleted || {}).length;
+        }
+
+        nextCursor = resources.next_cursor;
+      } while (nextCursor);
+
+      accountResult.resourceTypes[resourceType] = deleted;
+      accountResult.deleted += deleted;
+      totals.deleted += deleted;
+    }
+
+    totals.accounts.push(accountResult);
+  }
+
+  return totals;
+};
+
 const deleteCloudinaryImagesByPrefix = async (prefix, accountId = '1') => (
   runCloudinaryOperation(async () => {
     let nextCursor;
@@ -531,6 +592,7 @@ module.exports = {
   deleteFromCloudinary,
   deleteMultipleFromCloudinary,
   deleteCloudinaryImagesByPrefix,
+  deleteCloudinaryResourcesByPrefix,
   isCloudinaryUrl,
   extractPublicIdFromUrl,
   getCloudinaryResource,

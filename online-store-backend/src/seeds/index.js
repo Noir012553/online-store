@@ -326,6 +326,19 @@ const seed = async () => {
             }
           }
           result = await seederFn();
+        } else if (moduleName === 'outOfStock') {
+          if (!seedContext.users || !seedContext.categories) {
+            const User = require('../models/User');
+            const Category = require('../models/Category');
+            seedContext.users = await User.find({ isDeleted: false }).lean();
+            seedContext.categories = await Category.find({ isDeleted: false }).lean();
+          }
+          const seedUser = seedContext.users.find(user => ['admin', 'super-admin'].includes(user.role));
+          if (!seedUser) throw new Error('Cannot seed out-of-stock products without an admin user');
+          result = await seederFn(
+            seedUser._id,
+            seedContext.categories.map(category => category._id),
+          );
         } else {
           // Simple seeders with no parameters
           result = await seederFn();

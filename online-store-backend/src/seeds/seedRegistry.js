@@ -28,12 +28,26 @@ const SEED_MODULES = {
     seeder: require('./translationSeeder'),
     importance: 'CRITICAL',
   },
+  brandTranslations: {
+    name: 'Brand Translations (products namespace)',
+    layer: 1,
+    depends: ['translations'],
+    seeder: require('./brandTranslationsSeeder'),
+    importance: 'HIGH',
+  },
   specKeyCache: {
     name: 'Spec Key Label Cache (Static Seed)',
     layer: 1,
     depends: ['languages'],
     seeder: require('./specKeyCacheSeeder'),
     importance: 'HIGH',
+  },
+  exchangeRateHistory: {
+    name: 'Exchange Rate History (Demo Data)',
+    layer: 1,
+    depends: ['currencies'],
+    seeder: require('./exchangeRateHistorySeeder'),
+    importance: 'MEDIUM',
   },
   bannerSlotLabels: {
     name: 'Banner Slot Labels i18n (Rule #1: Static UI)',
@@ -63,6 +77,13 @@ const SEED_MODULES = {
     layer: 2,
     depends: [],
     seeder: require('./categorySeeder'),
+    importance: 'HIGH',
+  },
+  brands: {
+    name: 'Brands (Dell, HP, Lenovo, Asus, Acer, MSI)',
+    layer: 2,
+    depends: [],
+    seeder: require('./brandSeeder'),
     importance: 'HIGH',
   },
   banners: {
@@ -114,6 +135,13 @@ const SEED_MODULES = {
     seeder: require('./inventorySeeder'),
     importance: 'CRITICAL',
   },
+  outOfStock: {
+    name: 'Out-of-Stock Demo Products',
+    layer: 2,
+    depends: ['users', 'categories'],
+    seeder: require('./outOfStockSeeder'),
+    importance: 'MEDIUM',
+  },
   reviews: {
     name: 'Product Reviews',
     layer: 2,
@@ -161,20 +189,24 @@ const SEED_MODULES = {
 const SEED_PHASES = {
   preProducts: [
     'currencies',
+    'exchangeRateHistory',
     'languages',
     'translations',
+    'brandTranslations',
     'specKeyCache',
     'bannerSlotLabels',
     'testimonialLabels',
     'users',
     'categories',
+    'brands',
+    'banners',
     'customers',
     'shippingProviders',
     'locations',
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['aboutMedia', 'inventory', 'reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['aboutMedia', 'inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
