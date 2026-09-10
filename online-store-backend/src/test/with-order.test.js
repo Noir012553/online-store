@@ -1,16 +1,36 @@
 #!/usr/bin/env node
 
 /**
- * Test complete payment flow with a specific order ID
- * Run: npm run test:flow <orderId> or node test/with-order.test.js <orderId>
- * Example: node test/with-order.test.js 696b670b041e2f97fa56677c
+ * Test complete payment flow with the latest unpaid order from MongoDB.
+ * Run: npm run test:flow
  */
 
 const http = require('http');
 const https = require('https');
-const { baseUrl, adminToken } = require('./test-config');
+const mongoose = require('mongoose');
+const Order = require('../models/Order');
+const { baseUrl, mongoUri, timeoutMs } = require('./test-config');
+const { getAdminToken } = require('./adminAuth');
 
-function makeRequest(method, requestPath, body = null) {
+async function findTestOrder() {
+  const order = await Order.findOne({
+    isPaid: false,
+    isDeleted: false,
+    'orderItems.0': { $exists: true },
+    totalPrice: { $gt: 0 },
+  })
+    .sort({ createdAt: -1 })
+    .select('_id')
+    .lean();
+
+  if (!order) {
+    throw new Error('No eligible unpaid order found in MongoDB');
+  }
+
+  return order._id.toString();
+}
+
+function makeRequest(method, requestPath, token, body = null) {
   return new Promise((resolve, reject) => {
     const url = new URL(requestPath, baseUrl);
     const transport = url.protocol === 'https:' ? https : http;
@@ -21,7 +41,7 @@ function makeRequest(method, requestPath, body = null) {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+        Authorization: `Bearer ${token}`,
       }
     };
 
@@ -54,19 +74,19 @@ function makeRequest(method, requestPath, body = null) {
 }
 
 async function test() {
-  const orderId = process.argv[2];
-
-  if (!orderId) {
-    console.error('Usage: npm run test:flow -- <orderId>');
-    process.exitCode = 1;
-    return;
+  if (!mongoUri) {
+    throw new Error('TEST_MONGO_URI or MONGO_URI is required');
   }
 
+  await mongoose.connect(mongoUri);
   try {
+    const orderId = await findTestOrder();
+    const token = await getAdminToken(baseUrl, timeoutMs);
     const response = await makeRequest(
       'POST',
       '/api/payments/debug/test-complete-flow',
-      { orderId }
+      token,
+      { orderId },
     );
 
     if (!response.data?.success) {
@@ -74,10 +94,12 @@ async function test() {
     }
 
     console.log(`Payment flow completed for order ${orderId}`);
-  } catch (error) {
-    console.error(`[test-flow] ${error.message}`);
-    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
 }
 
-test();
+test().catch((error) => {
+  console.error(`[test-flow] ${error.message}`);
+  process.exitCode = 1;
+});
