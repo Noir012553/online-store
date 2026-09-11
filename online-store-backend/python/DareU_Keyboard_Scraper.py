@@ -66,13 +66,13 @@ def scrape_full():
   data_list = []
 
   for url in product_urls:
-    print(f'Đang xử lý: {url}')
     try:
       res = requests.get(url, headers=HEADERS, timeout=10)
       soup = BeautifulSoup(res.text, 'html.parser')
       if not product_matches_collection(soup, url):
         print(f"Bỏ qua sản phẩm không khớp collection: {url}")
         continue
+      print(f'Đang xử lý: {url}')
 
       # --- DỌN DẸP RÁC ---
       for block in soup.find_all('section'):
