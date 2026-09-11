@@ -14,6 +14,7 @@ const envKeys = [...new Set([
 const originalEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
 envKeys.forEach(key => delete process.env[key]);
 const originalUploadStream = cloudinary.uploader.upload_stream;
+const originalUsage = cloudinary.api.usage;
 
 process.env.CLOUDINARY_CLOUD_NAME = 'cloud-one';
 process.env.CLOUDINARY_API_KEY = 'key-one';
@@ -27,19 +28,29 @@ const {
   getCloudinaryUploadAccount,
   getCloudinaryAccountIdForUrl,
   uploadToCloudinary,
+  resetCloudinaryRuntimeState,
 } = require('../services/cloudinaryService');
 
 describe('Cloudinary account rotation', () => {
+  beforeEach(() => {
+    resetCloudinaryRuntimeState();
+    cloudinary.api.usage = async () => ({
+      credits: { usage: 0.1, limit: 25 },
+    });
+  });
+
   after(() => {
     cloudinary.uploader.upload_stream = originalUploadStream;
+    cloudinary.api.usage = originalUsage;
     envKeys.forEach(key => {
       if (originalEnv[key] === undefined) delete process.env[key];
       else process.env[key] = originalEnv[key];
     });
   });
 
-  it('selects the next configured account when the first is excluded', () => {
-    expect(getCloudinaryUploadAccount(['1'])).to.include({ id: '2', cloudName: 'cloud-two' });
+  it('selects the next configured account when the first is excluded', async () => {
+    const account = await getCloudinaryUploadAccount(['1']);
+    expect(account).to.include({ id: '2', cloudName: 'cloud-two' });
   });
 
   it('resolves an account from a Cloudinary delivery URL', () => {
@@ -77,5 +88,47 @@ describe('Cloudinary account rotation', () => {
 
     expect(attempts).to.equal(2);
     expect(result).to.include({ cloudinaryAccountId: '2', cloudName: 'cloud-two' });
+  });
+
+  it('skips an account at the configured quota threshold', async () => {
+    cloudinary.api.usage = async () => ({
+      credits: {
+        usage: cloudinary.config().cloud_name === 'cloud-one' ? 20 : 0.1,
+        limit: 25,
+      },
+    });
+
+    const account = await getCloudinaryUploadAccount();
+    expect(account).to.include({ id: '2', cloudName: 'cloud-two' });
+  });
+
+  it('does not upload to an account at the quota threshold', async () => {
+    let uploadedAccount;
+    cloudinary.api.usage = async () => ({
+      credits: {
+        usage: cloudinary.config().cloud_name === 'cloud-one' ? 20 : 0.1,
+        limit: 25,
+      },
+    });
+    cloudinary.uploader.upload_stream = (options, callback) => {
+      uploadedAccount = cloudinary.config().cloud_name;
+      queueMicrotask(() => callback(null, {
+        resource_type: 'image',
+        width: 50,
+        height: 50,
+        bytes: 12,
+        format: 'jpg',
+        public_id: 'laptop-store/users/quota-test',
+        secure_url: `https://res.cloudinary.com/${uploadedAccount}/image/upload/laptop-store/users/quota-test.jpg`,
+      }));
+      return { end: () => {} };
+    };
+
+    const buffer = Buffer.alloc(12);
+    buffer.set([0xff, 0xd8, 0xff]);
+    const result = await uploadToCloudinary(buffer, 'users');
+
+    expect(uploadedAccount).to.equal('cloud-two');
+    expect(result.cloudinaryAccountId).to.equal('2');
   });
 });

@@ -34,6 +34,14 @@ const aboutMediaSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    cloudinaryAccountId: {
+      type: String,
+      default: '1',
+    },
+    cloudName: {
+      type: String,
+      default: null,
+    },
     sortOrder: {
       type: Number,
       default: 0,

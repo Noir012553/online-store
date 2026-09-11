@@ -2,6 +2,7 @@ const cloudinary = require('cloudinary').v2;
 const { getMessage } = require('../i18n/messages');
 const {
   getCloudinaryUploadAccount,
+  invalidateCloudinaryQuota,
   signCloudinaryUploadParams,
   validateCloudinaryImage,
 } = require('../services/cloudinaryService');
@@ -72,7 +73,7 @@ exports.getCloudinarySignature = async (req, res) => {
       .split(',')
       .map(value => value.trim())
       .filter(Boolean);
-    const cloudinaryAccount = getCloudinaryUploadAccount(excludedAccountIds);
+    const cloudinaryAccount = await getCloudinaryUploadAccount(excludedAccountIds);
     if (!cloudinaryAccount) {
       return sendCloudinaryError(
         res,
@@ -217,6 +218,7 @@ exports.validateUploadedImage = async (req, res) => {
       claim.url = resource.secure_url;
       claim.status = 'validated';
       await claim.save();
+      invalidateCloudinaryQuota(claim.cloudinaryAccountId);
 
       await writeCloudinaryAudit({
         actorId: req.user._id,
@@ -249,6 +251,7 @@ exports.validateUploadedImage = async (req, res) => {
     } catch (error) {
       claim.status = 'failed';
       await claim.save();
+      invalidateCloudinaryQuota(claim.cloudinaryAccountId);
       await writeCloudinaryAudit({
         actorId: req.user._id,
         actorRole: req.user.role,

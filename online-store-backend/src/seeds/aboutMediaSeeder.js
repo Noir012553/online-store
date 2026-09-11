@@ -3,6 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const AboutMedia = require('../models/AboutMedia');
 const {
+  getCloudinaryResource,
+  uploadFileToCloudinary,
+  uploadVideoFileToCloudinary,
+} = require('../services/cloudinaryService');
+const {
   ABOUT_MEDIA,
   getCloudinaryDeliveryUrl,
   getCloudinaryVideoPosterUrl,
@@ -49,6 +54,20 @@ const toAssetMetadata = (resource) => ({
   height: resource.height,
   bytes: resource.bytes,
   resourceType: resource.resource_type,
+  cloudinaryAccountId: resource.cloudinaryAccountId,
+  cloudName: resource.cloudName,
+});
+
+const toServiceAssetMetadata = (resource, resourceType) => ({
+  publicId: resource.publicId,
+  secureUrl: resource.url,
+  format: resource.format,
+  width: resource.width,
+  height: resource.height,
+  bytes: resource.bytes,
+  resourceType: resource.resourceType || resourceType,
+  cloudinaryAccountId: resource.cloudinaryAccountId,
+  cloudName: resource.cloudName,
 });
 
 const verifyAsset = (asset, publicId) => {
@@ -70,7 +89,7 @@ const verifyAsset = (asset, publicId) => {
 
 const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
   try {
-    const resource = await cloudinary.api.resource(publicId, { resource_type: 'image' });
+    const resource = await getCloudinaryResource(publicId, '1', 'image');
     return verifyAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
     const httpCode = error?.http_code ?? error?.error?.http_code;
@@ -82,13 +101,8 @@ const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
   }
 
   try {
-    const uploaded = await cloudinary.uploader.upload(sourceUrl, {
-      public_id: publicId,
-      resource_type: 'image',
-      overwrite: false,
-      unique_filename: false,
-    });
-    return verifyAsset(toAssetMetadata(uploaded), publicId);
+    const uploaded = await uploadFileToCloudinary(sourceUrl, 'about', publicId);
+    return verifyAsset(toServiceAssetMetadata(uploaded, 'image'), publicId);
   } catch (error) {
     throw new Error(`Cloudinary upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
       cause: error,
@@ -109,7 +123,7 @@ const verifyVideoAsset = (asset, publicId) => {
 
 const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
   try {
-    const resource = await cloudinary.api.resource(publicId, { resource_type: 'video' });
+    const resource = await getCloudinaryResource(publicId, '1', 'video');
     return verifyVideoAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
     const httpCode = error?.http_code ?? error?.error?.http_code;
@@ -125,13 +139,8 @@ const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
   }
 
   try {
-    const uploaded = await cloudinary.uploader.upload(sourceUrl, {
-      public_id: publicId,
-      resource_type: 'video',
-      overwrite: false,
-      unique_filename: false,
-    });
-    return verifyVideoAsset(toAssetMetadata(uploaded), publicId);
+    const uploaded = await uploadVideoFileToCloudinary(sourceUrl, publicId);
+    return verifyVideoAsset(toServiceAssetMetadata(uploaded, 'video'), publicId);
   } catch (error) {
     throw new Error(`Cloudinary video upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
       cause: error,
@@ -147,12 +156,6 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     throw new Error(`Missing required environment variables: ${missingEnvironment.join(', ')}`);
   }
 
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
-
   const teamRecords = [];
   for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {
     try {
@@ -162,7 +165,7 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
       });
       const widths = [640, 1200];
       const srcSet = widths
-        .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width)} ${width}w`)
+        .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width, asset.cloudName)} ${width}w`)
         .join(', ');
 
       teamRecords.push({
@@ -173,6 +176,8 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
         srcSet,
         sourceUrl: media.sourceUrl,
         sortOrder,
+        cloudinaryAccountId: asset.cloudinaryAccountId || '1',
+        cloudName: asset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
       });
     } catch (error) {
       throw new Error(`About media ${media.key} failed: ${getErrorMessage(error)}`, {
@@ -197,9 +202,11 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     kind: 'hero',
     publicId: heroAsset.publicId,
     url: heroAsset.secureUrl,
-    posterUrl: getCloudinaryVideoPosterUrl(heroAsset.publicId),
+    posterUrl: getCloudinaryVideoPosterUrl(heroAsset.publicId, heroAsset.cloudName),
     sourceUrl: process.env.ABOUT_HERO_SOURCE || null,
     sortOrder: 0,
+    cloudinaryAccountId: heroAsset.cloudinaryAccountId || '1',
+    cloudName: heroAsset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
   };
   const records = [...teamRecords, heroRecord];
 

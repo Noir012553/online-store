@@ -13,9 +13,12 @@ const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 
 const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
+const CLOUDINARY_QUOTA_CACHE_TTL_MS = 30 * 1000;
+const DEFAULT_CLOUDINARY_QUOTA_THRESHOLD_PERCENT = 80;
 let cloudinaryConfigQueue = Promise.resolve();
 let accountCursor = 0;
 const accountCooldowns = new Map();
+const accountQuotaCache = new Map();
 
 const getCloudinaryAccounts = () => {
   const accounts = [];
@@ -82,12 +85,42 @@ const normalizeCloudinaryError = (error, context = 'Cloudinary operation failed'
 const isCloudinaryRateLimitError = (error) => {
   const status = Number(error?.http_code ?? error?.statusCode ?? error?.status);
   return [420, 429].includes(status)
-    || /(rate limit|too many requests|quota exceeded|resource limit)/i.test(String(error?.message || ''));
+    || /(rate limit|too many requests|quota exceeded|resource limit|usage limit|credits exhausted|exceeded your plan)/i.test(String(error?.message || ''));
 };
 
 const getCloudinaryAccountEnvPrefix = (accountId) => (
   String(accountId) === '1' ? 'CLOUDINARY_*' : `CLOUDINARY_*_${accountId}`
 );
+
+const getCloudinaryQuotaThresholdPercent = () => {
+  const configured = Number(process.env.CLOUDINARY_QUOTA_THRESHOLD_PERCENT);
+  if (!Number.isFinite(configured) || configured <= 0 || configured >= 100) {
+    return DEFAULT_CLOUDINARY_QUOTA_THRESHOLD_PERCENT;
+  }
+  return configured;
+};
+
+const getCloudinaryQuotaCacheKey = account => account.id;
+
+const logCloudinaryQuotaRotation = (account, quota) => {
+  console.warn('[CLOUDINARY_QUOTA_ROTATION]', {
+    accountId: account.id,
+    usedCredits: quota.usedCredits,
+    limitCredits: quota.limitCredits,
+    usedPercent: Number(quota.usedPercent.toFixed(2)),
+    thresholdPercent: quota.thresholdPercent,
+  });
+};
+
+const createCloudinaryQuotaError = (account, quota) => {
+  const error = new Error(
+    `Cloudinary account ${account.id} reached the upload safety threshold: ${quota.usedPercent.toFixed(2)}% of ${quota.limitCredits} credits used`,
+  );
+  error.code = 'CLOUDINARY_QUOTA_NEAR_LIMIT';
+  error.cloudinaryAccountId = account.id;
+  error.cloudinaryQuota = quota;
+  return error;
+};
 
 const markCloudinaryAccountRateLimited = (accountId) => {
   accountCooldowns.set(String(accountId), Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
@@ -145,6 +178,57 @@ const runCloudinaryOperation = async (operation, accountId = null) => {
   throw lastRateLimitError || new Error('No Cloudinary account is available');
 };
 
+const runCloudinaryUploadOperation = async (operation, accountId = null) => {
+  const accounts = getCloudinaryAccounts();
+  const attemptedIds = new Set();
+  let lastRotationError = null;
+
+  while (attemptedIds.size < accounts.length) {
+    const account = accountId
+      ? getCloudinaryAccount(accountId)
+      : selectCloudinaryAccount(attemptedIds);
+    if (!account || attemptedIds.has(account.id)) break;
+    attemptedIds.add(account.id);
+
+    try {
+      await assertCloudinaryUploadCapacity(account);
+      const result = await withConfiguredCloudinary(account, () => operation(account));
+      accountQuotaCache.delete(account.id);
+      return result;
+    } catch (error) {
+      const normalizedError = normalizeCloudinaryError(
+        error,
+        `Cloudinary account ${account.id} upload operation failed`,
+      );
+      if (/disabled customer/i.test(normalizedError.message)) {
+        throw new Error(
+          `Cloudinary account ${account.id} is disabled ("disabled customer"). Check ${getCloudinaryAccountEnvPrefix(account.id)} credentials or re-enable the account.`,
+          { cause: normalizedError },
+        );
+      }
+      const shouldRotate = normalizedError.code === 'CLOUDINARY_QUOTA_NEAR_LIMIT'
+        || isCloudinaryRateLimitError(normalizedError);
+      if (!shouldRotate || accountId) throw normalizedError;
+
+      accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+      accountQuotaCache.delete(account.id);
+      lastRotationError = normalizedError;
+    }
+  }
+
+  throw lastRotationError || new Error('No Cloudinary account with upload capacity is available');
+};
+
+const invalidateCloudinaryQuota = (accountId) => {
+  if (accountId) accountQuotaCache.delete(String(accountId));
+};
+
+const resetCloudinaryRuntimeState = () => {
+  accountCursor = 0;
+  accountCooldowns.clear();
+  accountQuotaCache.clear();
+};
+
 const getCloudinaryAccountIdForUrl = (url) => {
   try {
     const hostname = new URL(url).hostname;
@@ -157,9 +241,87 @@ const getCloudinaryAccountIdForUrl = (url) => {
   }
 };
 
-const getCloudinaryUploadAccount = (excludedAccountIds = []) => (
-  selectCloudinaryAccount(new Set(excludedAccountIds.map(String)))
-);
+const getCloudinaryQuota = async (account, { force = false } = {}) => {
+  const cacheKey = getCloudinaryQuotaCacheKey(account);
+  const cached = accountQuotaCache.get(cacheKey);
+  if (!force && cached && cached.expiresAt > Date.now()) return cached.value;
+
+  let usage;
+  try {
+    usage = await withConfiguredCloudinary(account, () => cloudinary.api.usage());
+  } catch (error) {
+    throw normalizeCloudinaryError(
+      error,
+      `Cloudinary account ${account.id} usage check failed`,
+    );
+  }
+
+  const usedCredits = Number(usage?.credits?.usage);
+  const limitCredits = Number(usage?.credits?.limit);
+  if (!Number.isFinite(usedCredits) || !Number.isFinite(limitCredits) || limitCredits <= 0) {
+    throw new Error(`Cloudinary account ${account.id} returned invalid credits usage metadata`);
+  }
+
+  const quota = {
+    usedCredits,
+    limitCredits,
+    usedPercent: (usedCredits / limitCredits) * 100,
+    thresholdPercent: getCloudinaryQuotaThresholdPercent(),
+  };
+  accountQuotaCache.set(cacheKey, {
+    value: quota,
+    expiresAt: Date.now() + CLOUDINARY_QUOTA_CACHE_TTL_MS,
+  });
+  return quota;
+};
+
+const assertCloudinaryUploadCapacity = async (account) => {
+  const quota = await getCloudinaryQuota(account);
+  if (quota.usedPercent >= quota.thresholdPercent) {
+    accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+    logCloudinaryQuotaRotation(account, quota);
+    throw createCloudinaryQuotaError(account, quota);
+  }
+  return quota;
+};
+
+const getCloudinaryUploadAccount = async (excludedAccountIds = []) => {
+  const excluded = new Set(excludedAccountIds.map(String));
+  const accounts = getCloudinaryAccounts();
+  const now = Date.now();
+
+  for (let offset = 0; offset < accounts.length; offset += 1) {
+    const index = (accountCursor + offset) % accounts.length;
+    const account = accounts[index];
+    if (excluded.has(account.id) || (accountCooldowns.get(account.id) || 0) > now) continue;
+
+    let quota;
+    try {
+      quota = await getCloudinaryQuota(account);
+    } catch (error) {
+      const normalizedError = normalizeCloudinaryError(
+        error,
+        `Cloudinary account ${account.id} usage check failed`,
+      );
+      if (!isCloudinaryRateLimitError(normalizedError)) throw normalizedError;
+      accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+      excluded.add(account.id);
+      continue;
+    }
+
+    if (quota.usedPercent >= quota.thresholdPercent) {
+      accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+      excluded.add(account.id);
+      logCloudinaryQuotaRotation(account, quota);
+      continue;
+    }
+
+    accountCursor = (index + 1) % accounts.length;
+    return { ...account, quota };
+  }
+
+  return null;
+};
 
 const signCloudinaryUploadParams = (params, accountId) => {
   const account = getCloudinaryAccount(accountId);
@@ -182,6 +344,15 @@ const isSupportedImageBuffer = (fileBuffer) => {
 
   return isJpeg || isPng || isGif || isWebp;
 };
+
+const getCloudinaryUploadIdentity = (folder, publicId) => (
+  publicId && publicId.startsWith('laptop-store/')
+    ? { public_id: publicId }
+    : {
+      folder: `laptop-store/${folder}`,
+      public_id: publicId || undefined,
+    }
+);
 
 const isValidImageResource = (resource) => {
   const minDimension = 50;
@@ -216,11 +387,10 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
     throw new Error('Unsupported image content');
   }
 
-  return runCloudinaryOperation((account) => new Promise((resolve, reject) => {
+  return runCloudinaryUploadOperation((account) => new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: `laptop-store/${folder}`,
-        public_id: publicId || undefined,
+        ...getCloudinaryUploadIdentity(folder, publicId),
         overwrite: Boolean(publicId),
         invalidate: Boolean(publicId),
         resource_type: 'image',
@@ -334,15 +504,17 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
         url: uploadedImage.url,
         publicId: uploadedImage.publicId,
         format: uploadedImage.format,
+        width: uploadedImage.width,
+        height: uploadedImage.height,
+        bytes: uploadedImage.bytes,
         cloudinaryAccountId: uploadedImage.cloudinaryAccountId,
         cloudName: uploadedImage.cloudName,
       };
     }
 
-    return runCloudinaryOperation(async (account) => {
+    return runCloudinaryUploadOperation(async (account) => {
       const result = await cloudinary.uploader.upload(filePath, {
-        folder: `laptop-store/${folder}`,
-        public_id: publicId || undefined,
+        ...getCloudinaryUploadIdentity(folder, publicId),
         overwrite: Boolean(publicId),
         invalidate: Boolean(publicId),
         resource_type: 'image',
@@ -359,6 +531,9 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
         url: result.secure_url,
         publicId: result.public_id,
         format: result.format,
+        width: result.width,
+        height: result.height,
+        bytes: result.bytes,
         cloudinaryAccountId: account.id,
         cloudName: account.cloudName,
       };
@@ -375,6 +550,34 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
     throw error;
   }
 };
+
+const uploadVideoFileToCloudinary = async (filePath, publicId = null) => (
+  runCloudinaryUploadOperation(async (account) => {
+    const result = await cloudinary.uploader.upload(filePath, {
+      ...getCloudinaryUploadIdentity('about', publicId),
+      overwrite: Boolean(publicId),
+      invalidate: Boolean(publicId),
+      resource_type: 'video',
+      unique_filename: false,
+    });
+
+    if (result.resource_type !== 'video' || !result.secure_url || !Number.isFinite(result.bytes) || result.bytes <= 0) {
+      throw new Error('Cloudinary video metadata is invalid');
+    }
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format,
+      width: result.width,
+      height: result.height,
+      bytes: result.bytes,
+      resourceType: result.resource_type,
+      cloudinaryAccountId: account.id,
+      cloudName: account.cloudName,
+    };
+  })
+);
 
 /**
  * Delete file từ Cloudinary
@@ -580,9 +783,9 @@ const isCloudinaryUrl = (url) => {
  * @param {String} cloudinaryUrl - URL từ Cloudinary (https://res.cloudinary.com/.../...)
  * @returns {String} - Public ID (folder/filename)
  */
-const getCloudinaryResource = async (publicId, accountId = '1') => (
+const getCloudinaryResource = async (publicId, accountId = '1', resourceType = 'image') => (
   runCloudinaryOperation(
-    () => cloudinary.api.resource(publicId, { resource_type: 'image' }),
+    () => cloudinary.api.resource(publicId, { resource_type: resourceType }),
     accountId,
   )
 );
@@ -626,10 +829,13 @@ const extractPublicIdFromUrl = (cloudinaryUrl) => {
 
 module.exports = {
   getCloudinaryUploadAccount,
+  invalidateCloudinaryQuota,
+  resetCloudinaryRuntimeState,
   signCloudinaryUploadParams,
   getCloudinaryAccountIdForUrl,
   uploadToCloudinary,
   uploadFileToCloudinary,
+  uploadVideoFileToCloudinary,
   deleteFromCloudinary,
   deleteMultipleFromCloudinary,
   deleteCloudinaryImagesByPrefix,

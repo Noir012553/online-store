@@ -1,10 +1,15 @@
 require('dotenv').config();
 
+require('dotenv').config();
+
 const mongoose = require('mongoose');
-const cloudinary = require('cloudinary').v2;
 const Review = require('../models/Review');
 const { ABOUT_MEDIA } = require('../config/aboutMedia');
 const seedAboutMedia = require('../seeds/aboutMediaSeeder');
+const {
+  getCloudinaryResource,
+  uploadFileToCloudinary,
+} = require('../services/cloudinaryService');
 
 const REVIEWER_SOURCES = [
   'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
@@ -49,7 +54,7 @@ const verifyAsset = (asset, publicId, resourceType) => {
 
 const getExistingAsset = async (publicId, resourceType) => {
   try {
-    const resource = await cloudinary.api.resource(publicId, { resource_type: resourceType });
+    const resource = await getCloudinaryResource(publicId, '1', resourceType);
     return verifyAsset(toAssetMetadata(resource), publicId, resourceType);
   } catch (error) {
     const httpCode = error.http_code ?? error.error?.http_code;
@@ -62,14 +67,20 @@ const uploadAsset = async (source, publicId, resourceType = 'image') => {
   const existingAsset = await getExistingAsset(publicId, resourceType);
   if (existingAsset) return existingAsset;
 
-  const result = await cloudinary.uploader.upload(source, {
-    public_id: publicId,
-    resource_type: resourceType,
-    overwrite: false,
-    unique_filename: false,
-  });
+  if (resourceType !== 'image') {
+    throw new Error(`Unsupported migration resource type: ${resourceType}`);
+  }
 
-  return verifyAsset(toAssetMetadata(result), publicId, resourceType);
+  const result = await uploadFileToCloudinary(source, 'reviewers', publicId);
+  return verifyAsset({
+    publicId: result.publicId,
+    secureUrl: result.url,
+    format: result.format,
+    width: result.width,
+    height: result.height,
+    bytes: result.bytes,
+    resourceType: 'image',
+  }, publicId, resourceType);
 };
 
 const migrateImages = async () => {
@@ -106,12 +117,6 @@ const main = async () => {
   if (missingEnvironment.length) {
     throw new Error(`Missing required environment variables: ${missingEnvironment.join(', ')}`);
   }
-
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
 
   await mongoose.connect(process.env.MONGO_URI);
   await migrateImages();

@@ -35,23 +35,23 @@ const ABOUT_MEDIA = {
   audio: { publicId: 'laptop-store/about/audio/about-music' },
 };
 
-const getCloudinaryDeliveryUrl = (publicId, width) => {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const getCloudinaryDeliveryUrl = (publicId, width, configuredCloudName = null) => {
+  const cloudName = configuredCloudName || process.env.CLOUDINARY_CLOUD_NAME;
   if (!cloudName) return null;
 
   const transformation = width ? `f_jpg,q_auto,w_${width}` : 'f_jpg,q_auto';
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transformation}/${publicId}`;
 };
 
-const getCloudinaryVideoUrl = (publicId) => {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const getCloudinaryVideoUrl = (publicId, configuredCloudName = null) => {
+  const cloudName = configuredCloudName || process.env.CLOUDINARY_CLOUD_NAME;
   if (!cloudName) return null;
 
   return `https://res.cloudinary.com/${cloudName}/video/upload/q_auto/${publicId}`;
 };
 
-const getCloudinaryVideoPosterUrl = (publicId) => {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const getCloudinaryVideoPosterUrl = (publicId, configuredCloudName = null) => {
+  const cloudName = configuredCloudName || process.env.CLOUDINARY_CLOUD_NAME;
   if (!cloudName) return null;
 
   return `https://res.cloudinary.com/${cloudName}/video/upload/so_0,q_auto,w_1200/${publicId}.jpg`;
