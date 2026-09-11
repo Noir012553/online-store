@@ -10,7 +10,7 @@
 
 const cloudinary = require('cloudinary').v2;
 const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
-const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
+const { validateSafeRemoteUrl } = require('../utils/safeRemoteUrl');
 
 const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
 const CLOUDINARY_QUOTA_CACHE_TTL_MS = 30 * 1000;
@@ -469,66 +469,42 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
  * @param {String|null} publicId - Public ID ổn định để ghi đè asset khi cần
  * @returns {Promise<Object>} - { url, publicId, format }
  */
-const downloadRemoteImage = async (sourceUrl) => {
-  const response = await fetchSafeRemoteImage(sourceUrl, {
-    headers: {
-      Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
-    },
-    signal: AbortSignal.timeout(getCloudinaryRemoteImageTimeout()),
-  });
+const uploadRemoteImageToCloudinary = async (sourceUrl, folder, publicId, allowSvg) => {
+  const safeSourceUrl = await validateSafeRemoteUrl(sourceUrl);
 
-  if (!response.ok) {
-    throw new Error(`Remote image request failed with status ${response.status}`);
-  }
+  return runCloudinaryUploadOperation(async (account) => {
+    const result = await cloudinary.uploader.upload(safeSourceUrl.toString(), {
+      ...getCloudinaryUploadIdentity(folder, publicId),
+      overwrite: Boolean(publicId),
+      invalidate: Boolean(publicId),
+      resource_type: 'image',
+      timeout: getCloudinaryRemoteImageTimeout(),
+      ...(allowSvg ? { format: 'svg' } : { quality: 'auto', fetch_format: 'auto' }),
+    });
 
-  const contentLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
-    throw new Error('Remote image exceeds the 5 MB limit');
-  }
-
-  if (!response.body) {
-    throw new Error('Remote image response has no body');
-  }
-
-  const reader = response.body.getReader();
-  const chunks = [];
-  let totalBytes = 0;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    totalBytes += value.byteLength;
-    if (totalBytes > MAX_IMAGE_BYTES) {
-      await reader.cancel();
-      throw new Error('Remote image exceeds the 5 MB limit');
+    if (!isValidImageResource(result, { allowSvg })) {
+      await cloudinary.uploader.destroy(result.public_id, { resource_type: 'image' });
+      throw new Error('Cloudinary image metadata is invalid');
     }
-    chunks.push(Buffer.from(value));
-  }
 
-  return Buffer.concat(chunks, totalBytes);
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format,
+      width: result.width,
+      height: result.height,
+      bytes: result.bytes,
+      cloudinaryAccountId: account.id,
+      cloudName: account.cloudName,
+    };
+  });
 };
 
 const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null, options = {}) => {
   const allowSvg = options.allowSvg === true;
   try {
     if (/^https?:\/\//i.test(String(filePath || '').trim())) {
-      const uploadedImage = await uploadToCloudinary(
-        await downloadRemoteImage(filePath),
-        folder,
-        publicId
-      );
-      return {
-        url: uploadedImage.url,
-        publicId: uploadedImage.publicId,
-        format: uploadedImage.format,
-        width: uploadedImage.width,
-        height: uploadedImage.height,
-        bytes: uploadedImage.bytes,
-        cloudinaryAccountId: uploadedImage.cloudinaryAccountId,
-        cloudName: uploadedImage.cloudName,
-      };
+      return await uploadRemoteImageToCloudinary(String(filePath).trim(), folder, publicId, allowSvg);
     }
 
     return runCloudinaryUploadOperation(async (account) => {
