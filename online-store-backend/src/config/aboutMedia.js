@@ -32,6 +32,7 @@ const ABOUT_MEDIA = {
     { key: 'reviewer-8', name: 'Reviewer Eight', publicId: 'laptop-store/about/reviewers/reviewer-8' },
   ],
   hero: { publicId: 'laptop-store/about/hero/about-hero' },
+  loading: { publicId: 'laptop-store/ui/loading' },
   audio: { publicId: 'laptop-store/about/audio/about-music' },
 };
 

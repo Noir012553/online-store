@@ -1430,7 +1430,7 @@ const getStatsOverview = asyncHandler(async (req, res) => {
  * @access Public
  */
 const getAboutMedia = asyncHandler(async (req, res) => {
-  const [team, hero] = await Promise.all([
+  const [team, hero, loading] = await Promise.all([
     withTimeout(
       AboutMedia.find({ kind: 'team' })
         .sort({ sortOrder: 1 })
@@ -1444,6 +1444,12 @@ const getAboutMedia = asyncHandler(async (req, res) => {
         .lean(),
       8000,
     ),
+    withTimeout(
+      AboutMedia.findOne({ kind: 'loading', key: 'global-loading' })
+        .select('url -_id')
+        .lean(),
+      8000,
+    ),
   ]);
 
   res.json({
@@ -1452,6 +1458,7 @@ const getAboutMedia = asyncHandler(async (req, res) => {
       url: hero?.url || null,
       poster: hero?.posterUrl || null,
     },
+    loading: loading?.url || null,
   });
 });
 
