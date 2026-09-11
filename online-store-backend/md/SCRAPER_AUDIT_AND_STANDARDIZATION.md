@@ -11,7 +11,7 @@ Mục tiêu:
 - Chuẩn hóa cách lấy collection, đọc trang sản phẩm và ghi dữ liệu.
 - Dự đoán các lỗi có thể xuất hiện sau khi sửa bộ lọc.
 
-Các đề xuất trong tài liệu đã được triển khai tiếp nối trong `online-store-backend/python/scraper_runner.py` và 34 scraper cấu hình; phần còn lại của tài liệu giữ vai trò audit và tiêu chí kiểm tra.
+Các hạng mục ưu tiên đã được triển khai trong `online-store-backend/python/scraper_runner.py` và 34 scraper cấu hình; các giới hạn còn lại được ghi ở mục 10 để tiếp tục theo dõi.
 
 ## 2. Quy ước metadata từ tên file
 
@@ -53,7 +53,7 @@ Quy tắc nên dùng:
 5. Không dùng `laptop` làm key chung cho `Laptop Gaming` và `Laptop Office`.
 6. Nếu record đã có `Brand` hoặc `Categories`, ưu tiên dữ liệu record; tên file là fallback metadata của batch.
 
-## 3. Lỗi nghiêm trọng hiện tại
+## 3. Lỗi nghiêm trọng được xác định trước triển khai
 
 ### 3.1. Truyền product URL vào bộ lọc collection
 
@@ -292,15 +292,15 @@ GalleryImages
 URL
 ```
 
-## 7. Thứ tự xử lý đề xuất
+## 7. Trạng thái xử lý
 
-1. Sửa lỗi truyền nhầm product URL vào bộ lọc collection.
-2. Ngừng dùng metadata trang chi tiết làm điều kiện loại bắt buộc.
-3. Tạo parser metadata từ tên file `.py` và dùng cho output.
-4. Đưa extractor chung vào một module dùng cho mọi scraper.
-5. Chuẩn hóa xử lý JSON-LD, giá, ảnh, specs, retry và HTTP status.
-6. Thêm test âm cho sai brand, sai category, product URL và thiếu metadata.
-7. Chỉ sau khi test đạt mới cân nhắc loại bỏ code trùng lặp trong từng scraper.
+1. **Đã triển khai:** loại bỏ việc truyền product URL vào bộ lọc collection; 34 scraper lấy phạm vi từ collection listing.
+2. **Đã triển khai:** dùng metadata từ tên file và chuẩn hóa brand/category key.
+3. **Đã triển khai:** gom pipeline vào `scraper_runner.py`, gồm fetch, parse, validate cơ bản, deduplicate và output.
+4. **Đã triển khai:** parse nhiều JSON-LD, `@graph`, `offers` dạng list, retry HTTP và status validation.
+5. **Đã triển khai:** detail request chạy song song có giới hạn, tái sử dụng session theo worker.
+6. **Đã triển khai:** test cho taxonomy, retry, JSON-LD, deduplicate, giới hạn worker và thứ tự output.
+7. **Còn theo dõi:** test runtime chưa chạy được trong môi trường hiện tại vì lệnh Python bị ACL chặn.
 
 ## 8. Kết luận
 
@@ -309,3 +309,10 @@ Bộ scraper hiện không chỉ có vấn đề dữ liệu lẫn loại; còn 
 ## 9. Tối ưu tốc độ đã triển khai
 
 `scraper_runner.py` xử lý các trang chi tiết bằng `ThreadPoolExecutor`, mặc định 4 worker và giới hạn tối đa 8 worker qua `SCRAPER_MAX_WORKERS`. Mỗi worker tái sử dụng một `requests.Session`; retry/backoff vẫn giữ nguyên cho từng request. Kết quả được gom theo URL đầu vào để concurrency không làm thay đổi thứ tự output, còn lỗi bất kỳ vẫn chặn ghi batch chưa hoàn chỉnh.
+
+## 10. Giới hạn và việc cần theo dõi
+
+- Pagination collection vẫn tuần tự vì trang kế tiếp phụ thuộc điều kiện kết thúc của trang trước.
+- `Asus_Laptop_Scraper.py` dùng category batch `Laptop` theo metadata filename; không tự suy đoán Gaming/Office từ breadcrumb hoặc tên sản phẩm.
+- Tên file output vẫn có độ phân giải ngày; không nên chạy nhiều batch cùng brand/category trong cùng ngày nếu chưa bổ sung run ID.
+- Không tự động chuyển tài khoản, di chuyển hoặc xóa dữ liệu cũ trong các luồng upload ảnh.
