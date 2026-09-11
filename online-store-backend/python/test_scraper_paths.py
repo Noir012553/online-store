@@ -59,7 +59,7 @@ class ScraperPathsTest(unittest.TestCase):
                 "brand": "Acer",
                 "categories": "Laptop Gaming",
                 "brand_key": "acer",
-                "categories_key": "laptop gaming",
+                "categories_key": "laptop_gaming",
             },
         )
         self.assertEqual(
@@ -72,8 +72,8 @@ class ScraperPathsTest(unittest.TestCase):
             },
         )
 
-    def test_accepts_product_url_without_detail_page_taxonomy(self):
-        self.assertTrue(
+    def test_rejects_product_url_as_collection_context(self):
+        self.assertFalse(
             product_matches_collection(
                 BeautifulSoup("", "html.parser"),
                 "https://gearvn.com/products/example-product",
