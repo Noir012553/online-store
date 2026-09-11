@@ -1,4 +1,6 @@
 const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
+const path = require('path');
 const AboutMedia = require('../models/AboutMedia');
 const {
   ABOUT_MEDIA,
@@ -11,6 +13,25 @@ const REQUIRED_ENVIRONMENT = [
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
 ];
+const FRONTEND_PUBLIC_DIR = path.resolve(__dirname, '../../../online-store-frontend/public');
+
+const getLocalTeamSource = (key) => path.join(
+  FRONTEND_PUBLIC_DIR,
+  'images',
+  'team',
+  `${key}.jpg`,
+);
+
+const getLocalHeroSource = () => path.join(
+  FRONTEND_PUBLIC_DIR,
+  'assets',
+  'videos',
+  'about-hero.mp4',
+);
+
+const resolveMediaSource = (preferredSource, localSource) => (
+  fs.existsSync(localSource) ? localSource : preferredSource
+);
 
 const getErrorMessage = (error) => {
   if (typeof error === 'string') return error;
@@ -135,7 +156,10 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
   const teamRecords = [];
   for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {
     try {
-      const asset = await ensureCloudinaryAsset(media);
+      const asset = await ensureCloudinaryAsset({
+        ...media,
+        sourceUrl: resolveMediaSource(media.sourceUrl, getLocalTeamSource(media.key)),
+      });
       const widths = [640, 1200];
       const srcSet = widths
         .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width)} ${width}w`)
@@ -160,7 +184,7 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
   let heroAsset;
   try {
     heroAsset = await ensureCloudinaryVideo({
-      sourceUrl: process.env.ABOUT_HERO_SOURCE,
+      sourceUrl: resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource()),
       publicId: ABOUT_MEDIA.hero.publicId,
     });
   } catch (error) {
