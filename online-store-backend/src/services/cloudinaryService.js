@@ -16,6 +16,7 @@ const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
 const CLOUDINARY_QUOTA_CACHE_TTL_MS = 30 * 1000;
 const DEFAULT_CLOUDINARY_QUOTA_THRESHOLD_PERCENT = 80;
 const DEFAULT_CLOUDINARY_REMOTE_IMAGE_TIMEOUT_MS = 300 * 1000;
+const DEFAULT_CLOUDINARY_REMOTE_IMAGE_RETRIES = 2;
 const DEFAULT_CLOUDINARY_UPLOAD_TIMEOUT_MS = 120 * 1000;
 
 const getCloudinaryTimeout = (environmentKey, fallback) => {
@@ -32,6 +33,46 @@ const getCloudinaryUploadTimeout = () => getCloudinaryTimeout(
   'CLOUDINARY_UPLOAD_TIMEOUT_MS',
   DEFAULT_CLOUDINARY_UPLOAD_TIMEOUT_MS,
 );
+
+const getCloudinaryRemoteImageRetries = () => {
+  const configured = Number(process.env.CLOUDINARY_REMOTE_IMAGE_RETRIES);
+  return Number.isInteger(configured) && configured >= 0
+    ? Math.min(configured, 5)
+    : DEFAULT_CLOUDINARY_REMOTE_IMAGE_RETRIES;
+};
+
+const isRetryableRemoteImageError = error => (
+  !error?.errorCode
+  && (['AbortError', 'TimeoutError'].includes(error?.name)
+    || (error?.name === 'TypeError' && /fetch failed/i.test(String(error?.message || ''))))
+);
+
+const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+const getErrorDetails = error => {
+  const details = {
+    name: error?.name,
+    message: error?.message,
+    errorCode: error?.errorCode,
+    httpCode: error?.http_code,
+    statusCode: error?.statusCode,
+    stack: error?.stack,
+  };
+
+  if (error?.cause) {
+    details.cause = {
+      name: error.cause.name,
+      message: error.cause.message,
+      code: error.cause.code,
+      errno: error.cause.errno,
+      syscall: error.cause.syscall,
+      hostname: error.cause.hostname,
+    };
+  }
+
+  return details;
+};
+
 let cloudinaryConfigQueue = Promise.resolve();
 let accountCursor = 0;
 const accountCooldowns = new Map();
@@ -470,50 +511,73 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
  * @returns {Promise<Object>} - { url, publicId, format }
  */
 const downloadRemoteImage = async (sourceUrl) => {
-  const response = await fetchSafeRemoteImage(sourceUrl, {
-    headers: {
-      Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
-    },
-    signal: AbortSignal.timeout(getCloudinaryRemoteImageTimeout()),
-  });
+  const maxAttempts = getCloudinaryRemoteImageRetries() + 1;
+  let lastError;
 
-  if (!response.ok) {
-    throw new Error(`Remote image request failed with status ${response.status}`);
-  }
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetchSafeRemoteImage(sourceUrl, {
+        headers: {
+          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
+        },
+        signal: AbortSignal.timeout(getCloudinaryRemoteImageTimeout()),
+      });
 
-  const contentLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
-    throw new Error('Remote image exceeds the 5 MB limit');
-  }
+      if (!response.ok) {
+        throw new Error(`Remote image request failed with status ${response.status}`);
+      }
 
-  if (!response.body) {
-    throw new Error('Remote image response has no body');
-  }
+      const contentLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(contentLength) && contentLength > MAX_IMAGE_BYTES) {
+        throw new Error('Remote image exceeds the 5 MB limit');
+      }
 
-  const reader = response.body.getReader();
-  const chunks = [];
-  let totalBytes = 0;
+      if (!response.body) {
+        throw new Error('Remote image response has no body');
+      }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+      const reader = response.body.getReader();
+      const chunks = [];
+      let totalBytes = 0;
 
-    totalBytes += value.byteLength;
-    if (totalBytes > MAX_IMAGE_BYTES) {
-      await reader.cancel();
-      throw new Error('Remote image exceeds the 5 MB limit');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        totalBytes += value.byteLength;
+        if (totalBytes > MAX_IMAGE_BYTES) {
+          await reader.cancel();
+          throw new Error('Remote image exceeds the 5 MB limit');
+        }
+        chunks.push(Buffer.from(value));
+      }
+
+      return Buffer.concat(chunks, totalBytes);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableRemoteImageError(error) || attempt === maxAttempts) throw error;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[REMOTE_IMAGE_RETRY]', {
+          attempt,
+          nextAttempt: attempt + 1,
+          ...getErrorDetails(error),
+        });
+      }
+      await wait(500 * attempt);
     }
-    chunks.push(Buffer.from(value));
   }
 
-  return Buffer.concat(chunks, totalBytes);
+  throw lastError;
 };
 
 const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null, options = {}) => {
   const allowSvg = options.allowSvg === true;
-  try {
-    if (/^https?:\/\//i.test(String(filePath || '').trim())) {
+  const isRemoteImage = /^https?:\/\//i.test(String(filePath || '').trim());
+
+  if (isRemoteImage) {
+    try {
       const uploadedImage = await uploadToCloudinary(
         await downloadRemoteImage(filePath),
         folder,
@@ -529,8 +593,15 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
         cloudinaryAccountId: uploadedImage.cloudinaryAccountId,
         cloudName: uploadedImage.cloudName,
       };
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[REMOTE_IMAGE_UPLOAD_ERROR]', getErrorDetails(error));
+      }
+      throw error;
     }
+  }
 
+  try {
     return runCloudinaryUploadOperation(async (account) => {
       const result = await cloudinary.uploader.upload(filePath, {
         ...getCloudinaryUploadIdentity(folder, publicId),
@@ -558,12 +629,7 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
     });
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('[CLOUDINARY_UPLOAD_ERROR]', {
-        name: error?.name,
-        message: error?.message,
-        httpCode: error?.http_code,
-        stack: error?.stack,
-      });
+      console.error('[CLOUDINARY_UPLOAD_ERROR]', getErrorDetails(error));
     }
     throw error;
   }
@@ -883,6 +949,7 @@ module.exports = {
   getCloudinaryAccountIdForUrl,
   uploadToCloudinary,
   uploadFileToCloudinary,
+  downloadRemoteImage,
   uploadVideoFileToCloudinary,
   deleteFromCloudinary,
   deleteMultipleFromCloudinary,
