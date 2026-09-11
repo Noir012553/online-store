@@ -33,7 +33,35 @@ const {
   uploadProductImage,
   assignInitialHighlights,
   getInitialStock,
+  filterSeedProducts,
+  normalizeSeedCategory,
 } = require('../seeds/productSeedPipeline');
+
+describe('Scraped product filtering', () => {
+  it('normalizes supported categories and rejects software, consoles, and unknown categories', () => {
+    expect(normalizeSeedCategory('Headphone')).to.equal('Headphones');
+    expect(normalizeSeedCategory('Laptop_Gaming')).to.equal('Gaming Laptop');
+
+    const result = filterSeedProducts([
+      { name: 'Bàn phím cơ gaming', category: 'Keyboard' },
+      {
+        name: 'Phần mềm Windows 11 Home Online',
+        category: 'Laptop Gaming',
+        sourceUrl: 'https://gearvn.com/products/phan-mem-windows-11-home-online-dwnld-nr-kw9-00664',
+      },
+      {
+        name: 'Lenovo Legion Go',
+        category: 'Laptop Gaming',
+        sourceUrl: 'https://gearvn.com/products/may-choi-game-cam-tay-lenovo-legion-go',
+      },
+      { name: 'Sản phẩm chưa phân loại', category: 'Laptop' },
+    ]);
+
+    expect(result.acceptedProducts).to.have.length(1);
+    expect(result.acceptedProducts[0].category).to.equal('Keyboard');
+    expect(result.rejectedProducts).to.have.length(3);
+  });
+});
 
 describe('ZIP upload boundary errors', () => {
   const invokeErrorHandler = (error, path) => {
