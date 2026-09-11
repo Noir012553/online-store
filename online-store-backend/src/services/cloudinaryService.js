@@ -68,6 +68,17 @@ const withConfiguredCloudinary = async (account, operation) => {
   }
 };
 
+const normalizeCloudinaryError = (error, context = 'Cloudinary operation failed') => {
+  if (error instanceof Error) return error;
+
+  const message = error?.message || error?.error?.message || (
+    error == null ? 'Unknown Cloudinary error' : String(error)
+  );
+  const normalized = new Error(`${context}: ${message}`);
+  if (error && typeof error === 'object') Object.assign(normalized, error);
+  return normalized;
+};
+
 const isCloudinaryRateLimitError = (error) => {
   const status = Number(error?.http_code ?? error?.statusCode ?? error?.status);
   return [420, 429].includes(status)
@@ -108,11 +119,15 @@ const runCloudinaryOperation = async (operation, accountId = null) => {
     try {
       return await withConfiguredCloudinary(account, () => operation(account));
     } catch (error) {
-      if (!isCloudinaryRateLimitError(error) || accountId) throw error;
+      const normalizedError = normalizeCloudinaryError(
+        error,
+        `Cloudinary account ${account.id} operation failed`,
+      );
+      if (!isCloudinaryRateLimitError(normalizedError) || accountId) throw normalizedError;
       markCloudinaryAccountRateLimited(account.id);
-      lastRateLimitError = error;
+      lastRateLimitError = normalizedError;
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[CLOUDINARY_ACCOUNT_ROTATION]', { accountId: account.id, message: error.message });
+        console.warn('[CLOUDINARY_ACCOUNT_ROTATION]', { accountId: account.id, message: normalizedError.message });
       }
     }
   }
@@ -444,28 +459,44 @@ const deleteCloudinaryResourcesByPrefix = async (prefix = 'laptop-store/') => {
       let deleted = 0;
 
       do {
-        const resources = await runCloudinaryOperation(
-          () => cloudinary.api.resources({
-            resource_type: resourceType,
-            type: 'upload',
-            prefix,
-            max_results: 500,
-            ...(nextCursor ? { next_cursor: nextCursor } : {}),
-          }),
-          account.id,
-        );
+        let resources;
+        try {
+          resources = await runCloudinaryOperation(
+            () => cloudinary.api.resources({
+              resource_type: resourceType,
+              type: 'upload',
+              prefix,
+              max_results: 500,
+              ...(nextCursor ? { next_cursor: nextCursor } : {}),
+            }),
+            account.id,
+          );
+        } catch (error) {
+          throw new Error(
+            `Cloudinary account ${account.id} resource listing failed for ${resourceType}: ${normalizeCloudinaryError(error).message}`,
+            { cause: error },
+          );
+        }
 
         const publicIds = resources.resources.map(resource => resource.public_id);
         for (let index = 0; index < publicIds.length; index += 100) {
           const batch = publicIds.slice(index, index + 100);
-          const result = await runCloudinaryOperation(
-            () => cloudinary.api.delete_resources(batch, {
-              resource_type: resourceType,
-              type: 'upload',
-              invalidate: true,
-            }),
-            account.id,
-          );
+          let result;
+          try {
+            result = await runCloudinaryOperation(
+              () => cloudinary.api.delete_resources(batch, {
+                resource_type: resourceType,
+                type: 'upload',
+                invalidate: true,
+              }),
+              account.id,
+            );
+          } catch (error) {
+            throw new Error(
+              `Cloudinary account ${account.id} deletion failed for ${resourceType}: ${normalizeCloudinaryError(error).message}`,
+              { cause: error },
+            );
+          }
           deleted += Object.keys(result.deleted || {}).length;
         }
 

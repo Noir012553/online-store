@@ -59,10 +59,19 @@ const clearDatabase = async () => {
       const result = await db.collection(collectionInfo.name).deleteMany({});
       deletedCollections++;
     }
-    process.exit(0);
+    console.log(`[CLEAR] Deleted data from ${deletedCollections} collections and dropped indexes from ${indexDropCount} collections`);
   } catch (error) {
-    console.error('[CLEAR_ERROR]', error.message);
-    process.exit(1);
+    const errorMessage = error?.message
+      || error?.error?.message
+      || (error ? String(error) : 'Unknown clear error');
+    const errorStack = error?.stack || error?.error?.stack;
+    console.error('[CLEAR_ERROR]', errorMessage);
+    if (errorStack) console.error(errorStack);
+    process.exitCode = 1;
+  } finally {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   }
 };
 
