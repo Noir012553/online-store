@@ -93,15 +93,30 @@ products.csv
 
 thì JSON được ưu tiên.
 
-Seed bình thường sẽ:
+Seed sản phẩm tự động phát hiện dữ liệu trong `data/scraped-products` (hoặc `SCRAPER_OUTPUT_DIR`):
 
-1. Chạy crawler.
-2. Tạo file dữ liệu sản phẩm.
-3. Chuẩn hóa và upload ảnh lên Cloudinary.
-4. Validate dữ liệu JSON/CSV.
-5. Import sản phẩm.
-6. Dịch sản phẩm.
-7. Cập nhật `storefrontReady`.
+- Nếu đã có file JSON/CSV hợp lệ, pipeline bỏ qua crawler và dùng lại file hiện có.
+- Nếu chưa có file, pipeline chạy crawler rồi đọc các file vừa tạo.
+- Nếu truyền `--file` hoặc `--directory`, pipeline dùng input được chỉ định và không chạy crawler.
+- Nếu cần cào lại bắt buộc, dùng `--force-scrape`.
+- `--scrape=<target>` cũng là yêu cầu chạy target crawler tương ứng.
+
+Sau khi xác định input, pipeline sẽ:
+
+1. Chuẩn hóa và upload ảnh lên Cloudinary.
+2. Validate dữ liệu JSON/CSV.
+3. Import sản phẩm.
+4. Dịch sản phẩm.
+5. Cập nhật `storefrontReady`.
+
+Ví dụ:
+
+```bash
+npm run seed
+npm run seed -- --force-scrape
+npm run seed -- --skip-scrape
+npm run seed -- --directory=data/scraped-products
+```
 
 Các file manifest Cloudinary chỉ là báo cáo mapping ảnh nguồn với URL/public ID trên Cloudinary; manifest không phải input để seed sản phẩm.
 

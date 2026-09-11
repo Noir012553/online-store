@@ -110,6 +110,7 @@ function parseCliArgs() {
     languages,
     batchSize,
     skipScrape: args.includes('--skip-scrape'),
+    forceScrape: args.includes('--force-scrape'),
     skipTranslate: args.includes('--skip-translate'),
     shutdownMachine: args.includes('--shutdown-machine'),
   };
@@ -250,6 +251,7 @@ const seed = async () => {
           file: cliArgs.file,
           directory: cliArgs.directory,
           scrapeTarget: cliArgs.scrapeTarget,
+          forceScrape: cliArgs.forceScrape,
           languages: cliArgs.languages,
           batchSize: cliArgs.batchSize,
           skipScrape: cliArgs.skipScrape,
