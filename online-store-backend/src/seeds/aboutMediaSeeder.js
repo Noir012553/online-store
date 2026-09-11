@@ -12,6 +12,14 @@ const REQUIRED_ENVIRONMENT = [
   'CLOUDINARY_API_SECRET',
 ];
 
+const getErrorMessage = (error) => {
+  if (typeof error === 'string') return error;
+  return error?.message
+    || error?.error?.message
+    || (error ? JSON.stringify(error) : null)
+    || 'Unknown Cloudinary error';
+};
+
 const toAssetMetadata = (resource) => ({
   publicId: resource.public_id,
   secureUrl: resource.secure_url,
@@ -44,17 +52,27 @@ const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
     const resource = await cloudinary.api.resource(publicId, { resource_type: 'image' });
     return verifyAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
-    const httpCode = error.http_code ?? error.error?.http_code;
-    if (httpCode !== 404) throw error;
+    const httpCode = error?.http_code ?? error?.error?.http_code;
+    if (httpCode !== 404) {
+      throw new Error(`Cloudinary lookup failed for ${publicId}: ${getErrorMessage(error)}`, {
+        cause: error,
+      });
+    }
   }
 
-  const uploaded = await cloudinary.uploader.upload(sourceUrl, {
-    public_id: publicId,
-    resource_type: 'image',
-    overwrite: false,
-    unique_filename: false,
-  });
-  return verifyAsset(toAssetMetadata(uploaded), publicId);
+  try {
+    const uploaded = await cloudinary.uploader.upload(sourceUrl, {
+      public_id: publicId,
+      resource_type: 'image',
+      overwrite: false,
+      unique_filename: false,
+    });
+    return verifyAsset(toAssetMetadata(uploaded), publicId);
+  } catch (error) {
+    throw new Error(`Cloudinary upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
+      cause: error,
+    });
+  }
 };
 
 const verifyVideoAsset = (asset, publicId) => {
@@ -73,21 +91,31 @@ const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
     const resource = await cloudinary.api.resource(publicId, { resource_type: 'video' });
     return verifyVideoAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
-    const httpCode = error.http_code ?? error.error?.http_code;
-    if (httpCode !== 404) throw error;
+    const httpCode = error?.http_code ?? error?.error?.http_code;
+    if (httpCode !== 404) {
+      throw new Error(`Cloudinary lookup failed for ${publicId}: ${getErrorMessage(error)}`, {
+        cause: error,
+      });
+    }
   }
 
   if (!sourceUrl) {
     throw new Error(`Missing ABOUT_HERO_SOURCE for Cloudinary asset: ${publicId}`);
   }
 
-  const uploaded = await cloudinary.uploader.upload(sourceUrl, {
-    public_id: publicId,
-    resource_type: 'video',
-    overwrite: false,
-    unique_filename: false,
-  });
-  return verifyVideoAsset(toAssetMetadata(uploaded), publicId);
+  try {
+    const uploaded = await cloudinary.uploader.upload(sourceUrl, {
+      public_id: publicId,
+      resource_type: 'video',
+      overwrite: false,
+      unique_filename: false,
+    });
+    return verifyVideoAsset(toAssetMetadata(uploaded), publicId);
+  } catch (error) {
+    throw new Error(`Cloudinary video upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
+      cause: error,
+    });
+  }
 };
 
 const seedAboutMedia = async ({ dryRun = false } = {}) => {
@@ -104,28 +132,42 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  const teamRecords = await Promise.all(ABOUT_MEDIA.team.map(async (media, sortOrder) => {
-    const asset = await ensureCloudinaryAsset(media);
-    const widths = [640, 1200];
-    const srcSet = widths
-      .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width)} ${width}w`)
-      .join(', ');
+  const teamRecords = [];
+  for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {
+    try {
+      const asset = await ensureCloudinaryAsset(media);
+      const widths = [640, 1200];
+      const srcSet = widths
+        .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width)} ${width}w`)
+        .join(', ');
 
-    return {
-      key: media.key,
-      kind: 'team',
-      publicId: asset.publicId,
-      url: asset.secureUrl,
-      srcSet,
-      sourceUrl: media.sourceUrl,
-      sortOrder,
-    };
-  }));
+      teamRecords.push({
+        key: media.key,
+        kind: 'team',
+        publicId: asset.publicId,
+        url: asset.secureUrl,
+        srcSet,
+        sourceUrl: media.sourceUrl,
+        sortOrder,
+      });
+    } catch (error) {
+      throw new Error(`About media ${media.key} failed: ${getErrorMessage(error)}`, {
+        cause: error,
+      });
+    }
+  }
 
-  const heroAsset = await ensureCloudinaryVideo({
-    sourceUrl: process.env.ABOUT_HERO_SOURCE,
-    publicId: ABOUT_MEDIA.hero.publicId,
-  });
+  let heroAsset;
+  try {
+    heroAsset = await ensureCloudinaryVideo({
+      sourceUrl: process.env.ABOUT_HERO_SOURCE,
+      publicId: ABOUT_MEDIA.hero.publicId,
+    });
+  } catch (error) {
+    throw new Error(`About hero media failed: ${getErrorMessage(error)}`, {
+      cause: error,
+    });
+  }
   const heroRecord = {
     key: 'about-hero',
     kind: 'hero',

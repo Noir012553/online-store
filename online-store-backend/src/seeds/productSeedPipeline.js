@@ -414,6 +414,13 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
   };
 
   console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, ${validation.invalidProducts.length} dòng lỗi, ${unique.length} dòng hợp lệ sau dedupe`);
+  if (validation.invalidProducts.length > 0) {
+    const validationExamples = validation.invalidProducts
+      .slice(0, 3)
+      .map(item => `row ${item.rowIndex}: ${item.errors.join('; ')}`)
+      .join(' | ');
+    console.warn(`[ProductPipeline] Lý do validation mẫu: ${validationExamples}`);
+  }
 
   for (let offset = 0; offset < unique.length; offset += batchSize) {
     const batch = unique.slice(offset, offset + batchSize);

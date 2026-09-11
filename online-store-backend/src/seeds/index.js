@@ -451,9 +451,13 @@ const seed = async () => {
     process.exit(0);
   } catch (error) {
     const cliArgs = parseCliArgs();
-    seedLogger.error(`\nSeeding failed with error: ${error.message}`);
-    if (error.stack) {
-      seedLogger.error(error.stack);
+    const errorMessage = error?.message
+      || error?.error?.message
+      || (error ? String(error) : 'Unknown seeding error');
+    const errorStack = error?.stack || error?.error?.stack;
+    seedLogger.error(`\nSeeding failed with error: ${errorMessage}`);
+    if (errorStack) {
+      seedLogger.error(errorStack);
     }
     finalizeSeed({ cliArgs, status: 'FAILED', exitCode: 1 });
     process.exit(1);
