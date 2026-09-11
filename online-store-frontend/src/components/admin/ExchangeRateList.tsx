@@ -7,7 +7,6 @@ import { useTranslation, useLanguage } from '../../lib/i18n';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { toast } from 'sonner';
-import { UI_EMOJI } from '../../lib/uiEmoji';
 
 interface ExchangeRateListProps {
   onEdit: (rate: ExchangeRate) => void;
@@ -153,7 +152,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                         onClick={() =>
                           handleDelete(
                             rate._id,
-                            `${rate.fromCode} ${UI_EMOJI.arrowRight} ${rate.toCode}`
+                            `${rate.fromCode} - ${rate.toCode}`
                           )
                         }
                         className="p-2"

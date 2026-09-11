@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { CheckCircle, ShoppingBag, Wallet, Package, Truck } from 'lucide-react';
+import { Check, CheckCircle, ShoppingBag, Wallet, Package, Truck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -9,7 +9,6 @@ import { useAuth } from '../lib/context/AuthContext';
 import { useTranslation, useLanguage } from '../lib/i18n';
 import { toast } from 'sonner';
 import { formatDate } from '../lib/utils';
-import { UI_EMOJI } from '../lib/uiEmoji';
 import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
 import { interpolateTranslation } from '../lib/translationInterpolate';
@@ -321,15 +320,15 @@ export default function OrderSuccess() {
           <h3 className="font-semibold text-blue-900 mb-3">{t('next_steps_title', 'order-success')}</h3>
           <ul className="space-y-2 text-blue-800 text-sm">
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
+              <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t('next_steps_email_confirmation', 'order-success')}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
+              <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t('next_steps_complete_payment', 'order-success')}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="font-bold mt-0.5">{UI_EMOJI.feature}</span>
+              <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t('next_steps_track_orders', 'order-success')}</span>
             </li>
           </ul>

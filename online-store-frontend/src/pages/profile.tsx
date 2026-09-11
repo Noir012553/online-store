@@ -10,7 +10,6 @@ import { Mail, Phone, MapPin, Lock, Edit2, Check, X, ArrowLeft, Camera } from 'l
 import { authAPI, getAuthToken } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { useTranslation } from '../lib/i18n';
-import { UI_EMOJI } from '../lib/uiEmoji';
 import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
 import { ImageViewer } from '../components/ImageViewer';
 

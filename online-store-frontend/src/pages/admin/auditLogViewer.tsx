@@ -1,11 +1,10 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Search, RefreshCw, Download, Filter, Eye, EyeOff } from 'lucide-react';
+import { Search, RefreshCw, Download, Filter, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, Locale } from '../../lib/i18n/types';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
-import { UI_EMOJI } from '../../lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 interface AuditLogRecord {
@@ -410,7 +409,7 @@ const AuditLogViewerContent = () => {
                           {log.oldValue || log.newValue ? (
                             <div className="audit-log-change-preview">
                               <div className="audit-log-old">{log.oldValue?.substring(0, 30)}...</div>
-                              <div className="audit-log-arrow">{UI_EMOJI.arrowRight}</div>
+                              <div className="audit-log-arrow"><ArrowRight className="h-4 w-4" aria-hidden="true" /></div>
                               <div className="audit-log-new">{log.newValue?.substring(0, 30)}...</div>
                             </div>
                           ) : (

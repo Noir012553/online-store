@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { Search, Eye, Pencil, Trash2, RotateCcw, AlertCircle, CheckCircle2, Users, Shield, X, Copy } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, RotateCcw, AlertCircle, CheckCircle2, Users, Shield, X, Copy, TriangleAlert } from "lucide-react";
 import { formatDate } from "../../lib/utils";
 import { apiCall } from "../../lib/api";
 import { Button } from "../../components/ui/button";
@@ -17,7 +17,6 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { toast } from "sonner";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
-import { UI_EMOJI } from '../../lib/uiEmoji';
 import { Pagination } from "../../components/admin/Pagination";
 import { PermissionDenied } from "../../components/admin/PermissionDenied";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -479,7 +478,7 @@ function UsersAdminContent() {
               <strong>{hardDeleteConfirmUser?.email}</strong>?
             </p>
             <p className="text-sm text-red-600 font-medium">
-              {UI_EMOJI.statusWarning} {t('hard_delete_warning')}
+              <><TriangleAlert className="mr-1 inline h-4 w-4 align-text-bottom" aria-hidden="true" />{t('hard_delete_warning')}</>
             </p>
           </div>
 

@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useLanguage } from "../../lib/i18n";
 import { Button } from "../ui/button";
-import { UI_EMOJI } from "../../lib/uiEmoji";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal } from "lucide-react";
 
 interface PaginationProps {
   currentPage: number;
@@ -90,7 +90,7 @@ export function Pagination({
                     key={`ellipsis-${index}`}
                     className="px-2 py-2 text-gray-400 text-sm"
                   >
-                    {UI_EMOJI.ellipsis}
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                   </span>
                 );
               }

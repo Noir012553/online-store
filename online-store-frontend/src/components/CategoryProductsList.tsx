@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, X, PackageSearch } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, X, PackageSearch } from "lucide-react";
 import { productAPI } from "../lib/api";
 import { ProductCard } from "./ProductCard";
 import { Button } from "./ui/button";
@@ -17,7 +17,6 @@ import {
   AccordionContent,
 } from "./ui/accordion";
 import { useTranslation, useLanguage } from "../lib/i18n";
-import { UI_EMOJI } from "../lib/uiEmoji";
 import { formatNumber } from "../lib/utils";
 
 interface CategoryProductsListProps {
@@ -770,7 +769,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                   disabled={page === 1}
                   className="px-3"
                 >
-                  {UI_EMOJI.arrowLeft} {t('filter_prev', 'products')}
+                  <><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t('filter_prev', 'products')}</>
                 </Button>
 
                 {(() => {
@@ -849,7 +848,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                   disabled={page === totalPages}
                   className="px-3"
                 >
-                  {t('filter_next', 'products')} {UI_EMOJI.arrowRight}
+                  <>{t('filter_next', 'products')}<ArrowRight className="h-4 w-4" aria-hidden="true" /></>
                 </Button>
               </div>
             )}

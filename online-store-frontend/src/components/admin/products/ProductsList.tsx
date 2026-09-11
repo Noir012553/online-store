@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle, Star } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
@@ -22,7 +22,6 @@ import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/router';
 import { getAuthToken } from "../../../lib/api";
-import { UI_EMOJI } from "../../../lib/uiEmoji";
 import { formatNumber } from "../../../lib/utils";
 import { useCategories } from "../../../lib/context/CategoryContext";
 
@@ -396,7 +395,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                       <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">
                         <div className="flex items-center gap-1 whitespace-nowrap">
                           <span className="font-medium">{formatNumber(product.rating || 0, locale)}</span>
-                          <span>{UI_EMOJI.featured}</span>
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
                           {product.numReviews > 0 && (
                             <span className="text-sm text-gray-500">({product.numReviews})</span>
                           )}

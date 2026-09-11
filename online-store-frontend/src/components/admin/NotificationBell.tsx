@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Bell, AlertCircle, CheckCircle, Clock, TrendingUp, X } from "lucide-react";
+import { Bell, AlertCircle, CheckCircle, Clock, RefreshCw, TrendingUp, X } from "lucide-react";
 import { orderAPI } from "../../lib/api";
 import { formatDate } from "../../lib/utils";
 import { toast } from "sonner";
@@ -12,7 +12,6 @@ import {
   PopoverTrigger,
 } from "../ui/popover";
 import { Button } from "../ui/button";
-import { UI_EMOJI } from "../../lib/uiEmoji";
 import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import {
@@ -266,7 +265,7 @@ export function NotificationBell() {
               size="sm"
               className="w-full text-xs font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700"
             >
-              {UI_EMOJI.refresh} {t('refresh', 'notifications')}
+              <><RefreshCw className="h-4 w-4" aria-hidden="true" />{t('refresh', 'notifications')}</>
             </Button>
           </div>
         </div>

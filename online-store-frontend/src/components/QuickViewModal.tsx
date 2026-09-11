@@ -9,7 +9,7 @@ import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { UI_EMOJI } from "../lib/uiEmoji";
+import { Flame, Star, X } from "lucide-react";
 import { formatNumber } from "../lib/utils";
 import { ImageViewer } from "./ImageViewer";
 
@@ -99,13 +99,13 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                         : 'bg-black'
                   }`}
                 >
-                  <span className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce' : ''}`}>{UI_EMOJI.hotDeal}</span>
+                  <Flame className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce' : ''}`} />
                   {t(hasShockDiscount ? 'shock_discount_badge' : 'hot_deal_badge', 'products')}
                 </Badge>
               )}
               {laptop.featured && !hasActiveDeal && !hasShockDiscount && (
                 <Badge className="absolute top-3 left-3 bg-red-600 text-white flex items-center gap-1">
-                  <span className="w-4 h-4">{UI_EMOJI.featured}</span>
+                  <Star className="w-4 h-4 fill-current" />
                   {t('featured_badge', 'products')}
                 </Badge>
               )}

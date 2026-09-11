@@ -10,7 +10,6 @@ import { analyticsAPI } from "../../lib/api";
 import { onOrderDeleted, offEvent } from "../../lib/socket";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { DateRangePickerModal } from "../../components/admin/DateRangePickerModal";
-import { UI_EMOJI } from "../../lib/uiEmoji";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
 
 // In-memory cache manager (safe, TTL-based, no localStorage)
@@ -433,7 +432,7 @@ function DashboardContent() {
     if (timeFrame === 'day') {
       const startFormatted = dayRange.start.toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
       const endFormatted = dayRange.end.toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
-      return `${startFormatted} ${UI_EMOJI.arrowRight} ${endFormatted}`;
+      return `${startFormatted} – ${endFormatted}`;
     } else if (timeFrame === 'month') {
       const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
       const startMonth = months[monthRange.startMonth];

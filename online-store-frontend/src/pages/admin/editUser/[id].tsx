@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../../lib/context/AuthContext";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle, TriangleAlert } from "lucide-react";
 import { apiCall } from "../../../lib/api";
 import { useCloudinaryUpload } from "../../../hooks/useCloudinaryUpload";
 import { Button } from "../../../components/ui/button";
@@ -18,7 +18,6 @@ import {
 } from "../../../components/ui/dialog";
 import { toast } from "sonner";
 import { useTranslation } from '@/lib/i18n';
-import { UI_EMOJI } from '@/lib/uiEmoji';
 import { ImageViewer } from '../../../components/ImageViewer';
 import { getUserFriendlyErrorMessage } from '../../../lib/errorHandler';
 
@@ -282,7 +281,7 @@ function EditUserContent() {
             {formData.role !== 'user' && (
               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-3">
                 <p className="text-sm text-blue-800">
-                  {UI_EMOJI.statusWarning} {t('admin_role_access_warning')}
+                  <><TriangleAlert className="mr-1 inline h-4 w-4 align-text-bottom" aria-hidden="true" />{t('admin_role_access_warning')}</>
                 </p>
               </div>
             )}

@@ -1,6 +1,6 @@
 import { useLanguage, useTranslation } from '../../../lib/i18n';
+import { Star } from 'lucide-react';
 import { getProductCategoryName, getProductName } from '../../../lib/data';
-import { UI_EMOJI } from '../../../lib/uiEmoji';
 
 function StatisticsCategoryName({ product }: { product: any }) {
   return <>{getProductCategoryName(product)}</>;
@@ -44,7 +44,7 @@ export function DetailViewProduct({ detail }: DetailViewProductProps) {
             {t('detail_rating_label')}
           </div>
           <div className="mt-1 font-semibold text-gray-900">
-            {Number(detail.item.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}
+            {Number(detail.item.rating || 0).toFixed(1)} <Star className="inline h-4 w-4 fill-amber-400 text-amber-400 align-text-bottom" aria-hidden="true" />
           </div>
         </div>
         <div className="rounded-xl border border-gray-100 p-4">
