@@ -142,29 +142,38 @@ def extract_source_categories(soup):
 
     for element in soup.select(
         '[itemprop="category"], meta[property="product:category"], meta[name="category"], '
-        '[itemprop="itemListElement"] [itemprop="name"]'
+        '[itemprop="itemListElement"] [itemprop="name"], [class*="breadcrumb"] a, '
+        '[class*="breadcrumb"] [itemprop="name"], nav[aria-label*="breadcrumb"] a'
     ):
         values.append(element.get("content") or element.get_text(" ", strip=True))
 
     return [_normalize_taxonomy_text(value) for value in values if _normalize_taxonomy_text(value)]
 
 
-def _collection_product_type(collection_url):
+def _collection_product_tokens(collection_url):
     path_parts = [part for part in urlsplit(collection_url).path.split("/") if part]
     try:
         collection_index = path_parts.index("collections")
     except ValueError:
-        return ""
+        return []
     collection_slug = path_parts[collection_index + 1] if len(path_parts) > collection_index + 1 else ""
-    first_segment = collection_slug.split("-")[0]
-    return _normalize_taxonomy_text(first_segment)
+    return [
+        token
+        for token in (_normalize_taxonomy_text(part) for part in collection_slug.split("-"))
+        if len(token) >= 3
+    ]
 
 
 def product_matches_collection(soup, collection_url):
-    expected_type = _collection_product_type(collection_url)
-    if not expected_type:
+    expected_tokens = _collection_product_tokens(collection_url)
+    source_categories = extract_source_categories(soup)
+    if not expected_tokens or not source_categories:
         return False
-    return any(expected_type in category for category in extract_source_categories(soup))
+    return any(
+        token in category
+        for token in expected_tokens
+        for category in source_categories
+    )
 
 
 def get_output_directory():

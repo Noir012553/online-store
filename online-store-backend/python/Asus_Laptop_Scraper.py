@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from scraper_paths import (
     PRODUCT_OUTPUT_FIELDS,
     collect_product_links,
+    product_matches_collection,
     extract_product_image_urls,
     extract_product_prices,
     get_output_paths,
@@ -62,7 +63,10 @@ def scrape_full():
         try:
             res = requests.get(url, headers=HEADERS, timeout=10)
             soup = BeautifulSoup(res.text, "html.parser")
-            
+            if not product_matches_collection(soup, url):
+                print(f"Bỏ qua sản phẩm không khớp collection: {url}")
+                continue
+
             # --- DỌN DẸP RÁC ---
             for block in soup.find_all("section"):
                 if any(text in block.text for text in ["Sản phẩm tương tự", "Sản phẩm đã xem", "Mua kèm giá sốc"]):
