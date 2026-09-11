@@ -11,7 +11,7 @@ Mục tiêu:
 - Chuẩn hóa cách lấy collection, đọc trang sản phẩm và ghi dữ liệu.
 - Dự đoán các lỗi có thể xuất hiện sau khi sửa bộ lọc.
 
-Tài liệu này chỉ ghi nhận vấn đề và thiết kế đề xuất, không thay đổi code scraper.
+Các đề xuất trong tài liệu đã được triển khai tiếp nối trong `online-store-backend/python/scraper_runner.py` và 34 scraper cấu hình; phần còn lại của tài liệu giữ vai trò audit và tiêu chí kiểm tra.
 
 ## 2. Quy ước metadata từ tên file
 

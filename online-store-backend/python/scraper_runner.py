@@ -27,7 +27,8 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 MAX_ATTEMPTS = 3
 
 
-def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep=time.sleep):
+def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep=None):
+    sleep = sleep or time.sleep
     for attempt in range(attempts):
         try:
             response = requests.get(url, headers=headers, timeout=timeout)
@@ -102,7 +103,8 @@ def _canonical_product_url(url):
     return urlunsplit(("https", "gearvn.com", parsed.path.rstrip("/"), "", ""))
 
 
-def collect_collection_urls(collection_url_template, *, sleep=time.sleep):
+def collect_collection_urls(collection_url_template, *, sleep=None):
+    sleep = sleep or time.sleep
     urls = []
     seen = set()
     page = 1
