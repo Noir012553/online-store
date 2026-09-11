@@ -3,7 +3,7 @@ const { Province, District, Ward } = require('../models/Location');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const PROVIDER = 'ghn';
-const WARD_FETCH_CONCURRENCY = 5;
+const GHN_SYNC_CONCURRENCY = 5;
 
 const syncWardIndexes = async () => {
   const indexes = await Ward.collection.indexes();
@@ -51,8 +51,10 @@ const seedLocations = async () => {
     await syncWardIndexes();
     console.log(`${CLI_SYMBOLS.success} Old data cleared\n`);
 
+    const ghnClient = await ghnService.getGhnClient();
+
     console.log(`${CLI_SYMBOLS.download} Fetching provinces from GHN API...`);
-    const provinces = await ghnService.getProvinces();
+    const provinces = await ghnService.getProvinces(ghnClient);
     if (!provinces || provinces.length === 0) {
       throw new Error('No provinces fetched from GHN API');
     }
@@ -78,12 +80,14 @@ const seedLocations = async () => {
     console.log(`${CLI_SYMBOLS.download} Fetching districts from GHN API...`);
     let totalDistricts = 0;
     const allDistrictData = [];
+    const districtBatchSize = GHN_SYNC_CONCURRENCY;
 
-    for (const province of provinces) {
-      try {
-        const districts = await ghnService.getDistricts(province.ProvinceID);
-        if (districts && districts.length > 0) {
-          const districtData = districts.map((d) => ({
+    for (let batchStart = 0; batchStart < provinces.length; batchStart += districtBatchSize) {
+      const provinceBatch = provinces.slice(batchStart, batchStart + districtBatchSize);
+      const districtResults = await Promise.all(provinceBatch.map(async province => {
+        try {
+          const districts = await ghnService.getDistricts(province.ProvinceID, undefined, ghnClient);
+          return districts.map(d => ({
             provider: PROVIDER,
             provinceId: province.ProvinceID,
             districtId: d.DistrictID,
@@ -91,12 +95,16 @@ const seedLocations = async () => {
             code: d.Code || null,
             isActive: true,
           }));
-          allDistrictData.push(...districtData);
-          totalDistricts += districts.length;
+        } catch (error) {
+          console.warn(`${CLI_SYMBOLS.warning}  Failed to fetch districts for province ${province.ProvinceID}: ${error.message}`);
+          return [];
         }
-      } catch (error) {
-        console.warn(`${CLI_SYMBOLS.warning}  Failed to fetch districts for province ${province.ProvinceID}: ${error.message}`);
-      }
+      }));
+
+      districtResults.forEach(districtData => {
+        allDistrictData.push(...districtData);
+        totalDistricts += districtData.length;
+      });
     }
     console.log(`${CLI_SYMBOLS.success} Fetched ${totalDistricts} districts\n`);
 
@@ -122,7 +130,7 @@ const seedLocations = async () => {
       while (nextDistrictIndex < allDistrictData.length) {
         const districtData = allDistrictData[nextDistrictIndex++];
         try {
-          const wards = await ghnService.getWards(districtData.districtId);
+          const wards = await ghnService.getWards(districtData.districtId, undefined, ghnClient);
           if (wards && wards.length > 0) {
             const wardData = wards
               .map((ward) => normalizeWard(districtData.districtId, ward))
@@ -143,7 +151,7 @@ const seedLocations = async () => {
 
     await Promise.all(
       Array.from(
-        { length: Math.min(WARD_FETCH_CONCURRENCY, allDistrictData.length) },
+        { length: Math.min(GHN_SYNC_CONCURRENCY, allDistrictData.length) },
         () => fetchWardBatch(),
       ),
     );
