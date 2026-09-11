@@ -85,6 +85,10 @@ const isCloudinaryRateLimitError = (error) => {
     || /(rate limit|too many requests|quota exceeded|resource limit)/i.test(String(error?.message || ''));
 };
 
+const getCloudinaryAccountEnvPrefix = (accountId) => (
+  String(accountId) === '1' ? 'CLOUDINARY_*' : `CLOUDINARY_*_${accountId}`
+);
+
 const markCloudinaryAccountRateLimited = (accountId) => {
   accountCooldowns.set(String(accountId), Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
 };
@@ -123,6 +127,12 @@ const runCloudinaryOperation = async (operation, accountId = null) => {
         error,
         `Cloudinary account ${account.id} operation failed`,
       );
+      if (/disabled customer/i.test(normalizedError.message)) {
+        throw new Error(
+          `Cloudinary account ${account.id} is disabled ("disabled customer"). Check ${getCloudinaryAccountEnvPrefix(account.id)} credentials or re-enable the account; clear stopped before MongoDB deletion.`,
+          { cause: normalizedError },
+        );
+      }
       if (!isCloudinaryRateLimitError(normalizedError) || accountId) throw normalizedError;
       markCloudinaryAccountRateLimited(account.id);
       lastRateLimitError = normalizedError;
