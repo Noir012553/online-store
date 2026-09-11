@@ -1,4 +1,4 @@
-import { ShoppingCart, Star, Eye } from "lucide-react";
+import { ShoppingCart, Star, Eye, Flame } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal, isShockDiscount } from "../lib/data";
@@ -10,7 +10,6 @@ import { useLanguage } from "../lib/i18n";
 import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
-import { Eye, Flame, Star } from "lucide-react";
 import { BackendProduct } from "../lib/api";
 
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mod.QuickViewModal), {

@@ -1,4 +1,4 @@
-import { Star, ShoppingCart, X } from "lucide-react";
+import { Star, ShoppingCart, X, Flame } from "lucide-react";
 import { Laptop, isActiveDeal, isShockDiscount } from "../lib/data";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -9,7 +9,6 @@ import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { Flame, Star, X } from "lucide-react";
 import { formatNumber } from "../lib/utils";
 import { ImageViewer } from "./ImageViewer";
 
