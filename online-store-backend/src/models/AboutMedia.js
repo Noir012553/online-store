@@ -10,7 +10,7 @@ const aboutMediaSchema = new mongoose.Schema(
     },
     kind: {
       type: String,
-      enum: ['team', 'hero'],
+      enum: ['team', 'hero', 'loading'],
       required: true,
       index: true,
     },

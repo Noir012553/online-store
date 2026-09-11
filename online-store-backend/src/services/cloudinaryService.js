@@ -354,9 +354,10 @@ const getCloudinaryUploadIdentity = (folder, publicId) => (
     }
 );
 
-const isValidImageResource = (resource) => {
+const isValidImageResource = (resource, { allowSvg = false } = {}) => {
   const minDimension = 50;
   const maxDimension = 10000;
+  const allowedFormats = allowSvg ? [...ALLOWED_IMAGE_FORMATS, 'svg'] : ALLOWED_IMAGE_FORMATS;
 
   return resource.resource_type === 'image'
     && Number.isFinite(resource.width)
@@ -368,7 +369,7 @@ const isValidImageResource = (resource) => {
     && Number.isFinite(resource.bytes)
     && resource.bytes > 0
     && resource.bytes <= MAX_IMAGE_BYTES
-    && ALLOWED_IMAGE_FORMATS.includes(String(resource.format).toLowerCase());
+    && allowedFormats.includes(String(resource.format).toLowerCase());
 };
 
 const primaryCloudinaryAccount = getCloudinaryAccount('1');
@@ -492,7 +493,8 @@ const downloadRemoteImage = async (sourceUrl) => {
   return Buffer.concat(chunks, totalBytes);
 };
 
-const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null) => {
+const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = null, options = {}) => {
+  const allowSvg = options.allowSvg === true;
   try {
     if (/^https?:\/\//i.test(String(filePath || '').trim())) {
       const uploadedImage = await uploadToCloudinary(
@@ -518,11 +520,10 @@ const uploadFileToCloudinary = async (filePath, folder = 'admins', publicId = nu
         overwrite: Boolean(publicId),
         invalidate: Boolean(publicId),
         resource_type: 'image',
-        quality: 'auto',
-        fetch_format: 'auto',
+        ...(allowSvg ? { format: 'svg' } : { quality: 'auto', fetch_format: 'auto' }),
       });
 
-      if (!isValidImageResource(result)) {
+      if (!isValidImageResource(result, { allowSvg })) {
         await cloudinary.uploader.destroy(result.public_id, { resource_type: 'image' });
         throw new Error('Cloudinary image metadata is invalid');
       }

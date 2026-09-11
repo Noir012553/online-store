@@ -29,6 +29,12 @@ const getLocalHeroSource = () => path.join(
   'about-hero.mp4',
 );
 
+const getLocalLoadingSource = () => path.join(
+  FRONTEND_PUBLIC_DIR,
+  'animations',
+  'loading.svg',
+);
+
 const resolveMediaSource = (preferredSource, localSource) => (
   fs.existsSync(localSource) ? localSource : preferredSource
 );
@@ -65,8 +71,10 @@ const toServiceAssetMetadata = (resource, resourceType) => ({
   cloudName: resource.cloudName,
 });
 
-const verifyAsset = (asset, publicId) => {
-  const allowedImageFormats = ['jpeg', 'jpg', 'png', 'webp'];
+const verifyAsset = (asset, publicId, { allowSvg = false } = {}) => {
+  const allowedImageFormats = allowSvg
+    ? ['jpeg', 'jpg', 'png', 'webp', 'svg']
+    : ['jpeg', 'jpg', 'png', 'webp'];
   const isValid = asset.publicId === publicId
     && asset.resourceType === 'image'
     && Boolean(asset.secureUrl)
@@ -82,10 +90,10 @@ const verifyAsset = (asset, publicId) => {
   return asset;
 };
 
-const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
+const ensureCloudinaryAsset = async ({ sourceUrl, publicId, folder = 'about', allowSvg = false }) => {
   try {
     const resource = await getCloudinaryResource(publicId, null, 'image');
-    return verifyAsset(toAssetMetadata(resource), publicId);
+    return verifyAsset(toAssetMetadata(resource), publicId, { allowSvg });
   } catch (error) {
     const httpCode = error?.http_code ?? error?.error?.http_code;
     if (httpCode !== 404) {
@@ -96,8 +104,8 @@ const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
   }
 
   try {
-    const uploaded = await uploadFileToCloudinary(sourceUrl, 'about', publicId);
-    return verifyAsset(toServiceAssetMetadata(uploaded, 'image'), publicId);
+    const uploaded = await uploadFileToCloudinary(sourceUrl, folder, publicId, { allowSvg });
+    return verifyAsset(toServiceAssetMetadata(uploaded, 'image'), publicId, { allowSvg });
   } catch (error) {
     throw new Error(`Cloudinary upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
       cause: error,
@@ -141,6 +149,44 @@ const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
       cause: error,
     });
   }
+};
+
+const seedLoadingMedia = async ({ dryRun = false, requireSource = false } = {}) => {
+  if (dryRun) return null;
+
+  const sourcePath = getLocalLoadingSource();
+  if (!fs.existsSync(sourcePath)) {
+    if (requireSource) {
+      throw new Error(`Missing loading asset: ${sourcePath}`);
+    }
+    return null;
+  }
+
+  const media = ABOUT_MEDIA.loading;
+  const asset = await ensureCloudinaryAsset({
+    sourceUrl: sourcePath,
+    publicId: media.publicId,
+    folder: 'ui',
+    allowSvg: true,
+  });
+  const record = {
+    key: 'global-loading',
+    kind: 'loading',
+    publicId: asset.publicId,
+    url: asset.secureUrl,
+    sourceUrl: '/animations/loading.svg',
+    sortOrder: 0,
+    cloudinaryAccountId: asset.cloudinaryAccountId || '1',
+    cloudName: asset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
+  };
+
+  await AboutMedia.updateOne(
+    { key: record.key },
+    { $set: record },
+    { upsert: true },
+  );
+
+  return record;
 };
 
 const seedAboutMedia = async ({ dryRun = false } = {}) => {
@@ -198,7 +244,8 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     cloudinaryAccountId: heroAsset.cloudinaryAccountId || '1',
     cloudName: heroAsset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
   };
-  const records = [...teamRecords, heroRecord];
+  const loadingRecord = await seedLoadingMedia({ dryRun });
+  const records = [...teamRecords, heroRecord, ...(loadingRecord ? [loadingRecord] : [])];
 
   await AboutMedia.bulkWrite(records.map((record) => ({
     updateOne: {
@@ -212,3 +259,4 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
 };
 
 module.exports = seedAboutMedia;
+module.exports.seedLoadingMedia = seedLoadingMedia;

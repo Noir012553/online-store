@@ -39,6 +39,7 @@
     "seed:pre-products": "node --expose-gc src/seeds/index.js -- --phase=pre-products",
     "seed:post-products": "node --expose-gc src/seeds/index.js -- --phase=post-products",
     "seed:about-media": "node src/scripts/seed-about-media.js",
+    "seed:loading-media": "node src/scripts/seed-loading-media.js",
     "seed:with-dashboard-data": "npm run seed && npm run indexes:dashboard:apply && npm run check:dashboard-data",
     "media:upload": "node src/scripts/upload-scraped-images.js",
     "test:ghn-ward": "node scripts/test-ghn-ward.js",
