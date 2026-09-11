@@ -28,13 +28,17 @@ const seedAddresses = async () => {
 
     const provinceIds = provinces.map(p => p.provinceId);
 
-    // Fetch ALL districts for ALL provinces in ONE query
-    const allDistricts = await District.find({
-      provider: 'ghn',
-      provinceId: { $in: provinceIds },
-    }).lean();
-
-    const allWards = await Ward.find({ provider: 'ghn' }).lean();
+    const [allDistricts, allWards] = await Promise.all([
+      District.find({
+        provider: 'ghn',
+        provinceId: { $in: provinceIds },
+      })
+        .select({ _id: 0, provinceId: 1, districtId: 1, districtName: 1 })
+        .lean(),
+      Ward.find({ provider: 'ghn' })
+        .select({ _id: 0, districtId: 1, wardId: 1, wardName: 1 })
+        .lean(),
+    ]);
 
     console.timeEnd(`  ${CLI_SYMBOLS.duration} Bulk location pre-load`);
     console.log(getMessage(seedLang, 'seeder-messages.locations_loaded', {
