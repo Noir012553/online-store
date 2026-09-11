@@ -81,20 +81,12 @@ const runScraper = async (scrapeTarget = 'all') => {
   console.log(`[ProductPipeline] Bắt đầu crawler: ${scriptName}`);
   console.log(`[ProductPipeline] Thư mục scraper: ${scraperRoot}`);
   console.log(`[ProductPipeline] Thư mục output: ${process.env.SCRAPER_OUTPUT_DIR || defaultProductDirectory}`);
-  const scraperStartedAt = Date.now() / 1000;
-
   if (process.platform === 'win32') {
     const npmCommand = `${getNpmCommand()} run ${scriptName}`;
     await runCommand(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', npmCommand], { cwd: scraperRoot });
   } else {
     await runCommand(getNpmCommand(), ['run', scriptName], { cwd: scraperRoot });
   }
-
-  await runCommand(
-    process.env.PYTHON_COMMAND || 'python',
-    ['prepare_product_images.py', '--since', String(scraperStartedAt)],
-    { cwd: scraperRoot }
-  );
 };
 
 const chooseProductFiles = (directory) => {
