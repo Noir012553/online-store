@@ -38,28 +38,24 @@ const {
 } = require('../seeds/productSeedPipeline');
 
 describe('Scraped product filtering', () => {
-  it('normalizes supported categories and rejects software, consoles, and unknown categories', () => {
-    expect(normalizeSeedCategory('Headphone')).to.equal('Headphones');
-    expect(normalizeSeedCategory('Laptop_Gaming')).to.equal('Gaming Laptop');
+  it('normalizes categories from the database taxonomy and rejects unknown categories', () => {
+    const categoryCatalog = [
+      { name: 'Keyboard', sourceNames: ['Bàn Phím'] },
+      { name: 'Gaming Laptop', sourceNames: ['Laptop Gaming'] },
+    ];
+
+    expect(normalizeSeedCategory('Bàn Phím', categoryCatalog)).to.equal('Keyboard');
+    expect(normalizeSeedCategory('Laptop Gaming', categoryCatalog)).to.equal('Gaming Laptop');
 
     const result = filterSeedProducts([
-      { name: 'Bàn phím cơ gaming', category: 'Keyboard' },
-      {
-        name: 'Phần mềm Windows 11 Home Online',
-        category: 'Laptop Gaming',
-        sourceUrl: 'https://gearvn.com/products/phan-mem-windows-11-home-online-dwnld-nr-kw9-00664',
-      },
-      {
-        name: 'Lenovo Legion Go',
-        category: 'Laptop Gaming',
-        sourceUrl: 'https://gearvn.com/products/may-choi-game-cam-tay-lenovo-legion-go',
-      },
+      { name: 'Bàn phím cơ gaming', category: 'Bàn Phím' },
+      { name: 'Laptop gaming', category: 'Laptop Gaming' },
       { name: 'Sản phẩm chưa phân loại', category: 'Laptop' },
-    ]);
+    ], categoryCatalog);
 
-    expect(result.acceptedProducts).to.have.length(1);
+    expect(result.acceptedProducts).to.have.length(2);
     expect(result.acceptedProducts[0].category).to.equal('Keyboard');
-    expect(result.rejectedProducts).to.have.length(3);
+    expect(result.rejectedProducts).to.have.length(1);
   });
 });
 

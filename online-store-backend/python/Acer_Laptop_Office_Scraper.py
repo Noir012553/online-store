@@ -7,6 +7,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from scraper_paths import (
     PRODUCT_OUTPUT_FIELDS,
+    collect_product_links,
     extract_product_image_urls,
     extract_product_prices,
     get_output_paths,
@@ -30,7 +31,7 @@ def get_all_collection_urls():
                 break
             soup = BeautifulSoup(res.text, "html.parser")
             # Lấy tất cả link sản phẩm
-            links = [a['href'] for a in soup.select("a[href*='/products/']")]
+            links = collect_product_links(soup, url)
             
             # Loại bỏ trùng lặp và kiểm tra xem còn sản phẩm không
             found_any = False

@@ -1,5 +1,8 @@
 import os
+import json
 import os
+import re
+import unicodedata
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
@@ -71,7 +74,7 @@ def _is_product_card(anchor):
             return True
         if current.get("data-product-id") or current.get("data-product"):
             return True
-        if current.get("itemtype", "").lower().endswith("product"):
+        if str(current.get("itemtype") or "").lower().endswith("product"):
             return True
         if current.name in ("article", "li") and current.select_one("img") and current.select_one(
             "[class*=price], [data-price], [data-product-price], meta[itemprop=price]"
@@ -107,6 +110,61 @@ def collect_product_links(soup, collection_url):
             seen.add(clean_url)
             links.append(clean_url)
     return links
+
+
+def _normalize_taxonomy_text(value):
+    normalized = unicodedata.normalize("NFKD", str(value or ""))
+    normalized = "".join(character for character in normalized if not unicodedata.combining(character))
+    return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
+
+
+def _iter_json_ld_objects(value):
+    if isinstance(value, list):
+        for item in value:
+            yield from _iter_json_ld_objects(item)
+    elif isinstance(value, dict):
+        yield value
+        if "@graph" in value:
+            yield from _iter_json_ld_objects(value["@graph"])
+
+
+def extract_source_categories(soup):
+    values = []
+    for script in soup.select('script[type="application/ld+json"]'):
+        try:
+            payload = json.loads(script.string or script.get_text())
+        except (TypeError, ValueError):
+            continue
+        for item in _iter_json_ld_objects(payload):
+            category = item.get("category")
+            if isinstance(category, (str, list)):
+                values.extend(category if isinstance(category, list) else [category])
+
+    for element in soup.select(
+        '[itemprop="category"], meta[property="product:category"], meta[name="category"], '
+        '[itemprop="itemListElement"] [itemprop="name"]'
+    ):
+        values.append(element.get("content") or element.get_text(" ", strip=True))
+
+    return [_normalize_taxonomy_text(value) for value in values if _normalize_taxonomy_text(value)]
+
+
+def _collection_product_type(collection_url):
+    path_parts = [part for part in urlsplit(collection_url).path.split("/") if part]
+    try:
+        collection_index = path_parts.index("collections")
+    except ValueError:
+        return ""
+    collection_slug = path_parts[collection_index + 1] if len(path_parts) > collection_index + 1 else ""
+    first_segment = collection_slug.split("-")[0]
+    return _normalize_taxonomy_text(first_segment)
+
+
+def product_matches_collection(soup, collection_url):
+    expected_type = _collection_product_type(collection_url)
+    if not expected_type:
+        return False
+    return any(expected_type in category for category in extract_source_categories(soup))
 
 
 def get_output_directory():

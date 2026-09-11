@@ -125,52 +125,24 @@ const normalizeName = value => String(value || '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '');
 
-const SEED_CATEGORY_ALIASES = new Map([
-  ['keyboard', 'Keyboard'],
-  ['banphim', 'Keyboard'],
-  ['mouse', 'Mouse'],
-  ['chuot', 'Mouse'],
-  ['headphone', 'Headphones'],
-  ['headphones', 'Headphones'],
-  ['tainghe', 'Headphones'],
-  ['cooling', 'Cooling'],
-  ['tannhiet', 'Cooling'],
-  ['gaminglaptop', 'Gaming Laptop'],
-  ['laptopgaming', 'Gaming Laptop'],
-  ['laptopchoigame', 'Gaming Laptop'],
-  ['officelaptop', 'Office Laptop'],
-  ['laptopoffice', 'Office Laptop'],
-  ['laptopvanphong', 'Office Laptop'],
-  ['monitor', 'Monitor'],
-  ['manhinh', 'Monitor'],
-  ['gamingmonitor', 'Gaming Monitor'],
-  ['manhinhgaming', 'Gaming Monitor'],
-  ['audio', 'Audio'],
-  ['thietbiamthanh', 'Audio'],
-]);
+const normalizeSeedCategory = (value, categoryCatalog = []) => {
+  const normalizedValue = normalizeName(value);
+  const matchedCategory = categoryCatalog.find(category => [
+    category.name,
+    ...(category.sourceNames || []),
+  ].some(candidate => normalizeName(candidate) === normalizedValue));
+  return matchedCategory?.name || null;
+};
 
-const BLOCKED_SEED_PRODUCT_PATTERNS = [
-  /windows/i,
-  /microsoft/i,
-  /(?:phanmem|software|license|licence|banquyen|dwnld|download|activation|productkey)/i,
-  /(?:maychoigame|console|handheld|steamdeck|rogally|legiongo|msiclaw|playstation|xbox|nintendoswitch)/i,
-];
-
-const normalizeSeedCategory = value => SEED_CATEGORY_ALIASES.get(normalizeName(value)) || null;
-
-const filterSeedProducts = (products) => {
+const filterSeedProducts = (products, categoryCatalog = []) => {
   const acceptedProducts = [];
   const rejectedProducts = [];
 
   products.forEach((product, index) => {
-    const category = normalizeSeedCategory(product.category);
-    const identity = normalizeName(`${product.name || ''} ${product.sourceUrl || ''}`);
-    const blockedPattern = BLOCKED_SEED_PRODUCT_PATTERNS.find(pattern => pattern.test(identity));
+    const category = normalizeSeedCategory(product.category, categoryCatalog);
     const reason = !category
-      ? `Danh mục không được phép: ${product.category || '(trống)'}`
-      : blockedPattern
-        ? 'Tên hoặc URL thuộc nhóm phần mềm/console không kinh doanh'
-        : null;
+      ? `Danh mục không có trong taxonomy: ${product.category || '(trống)'}`
+      : null;
 
     if (reason) {
       rejectedProducts.push({
@@ -453,7 +425,10 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     ...product,
     category: inferCategoryFromFilename(product, filePath),
   }));
-  const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts);
+  const categoryCatalog = await Category.find({ isDeleted: false })
+    .select('name sourceNames')
+    .lean();
+  const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts, categoryCatalog);
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
   const validation = await manager.validate(dedupedProducts, format);
   const productsToImport = initializeHighlights && !dryRun
