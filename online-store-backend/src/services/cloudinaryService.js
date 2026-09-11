@@ -15,6 +15,23 @@ const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 const CLOUDINARY_ROTATION_COOLDOWN_MS = 60 * 1000;
 const CLOUDINARY_QUOTA_CACHE_TTL_MS = 30 * 1000;
 const DEFAULT_CLOUDINARY_QUOTA_THRESHOLD_PERCENT = 80;
+const DEFAULT_CLOUDINARY_REMOTE_IMAGE_TIMEOUT_MS = 120 * 1000;
+const DEFAULT_CLOUDINARY_UPLOAD_TIMEOUT_MS = 120 * 1000;
+
+const getCloudinaryTimeout = (environmentKey, fallback) => {
+  const configured = Number(process.env[environmentKey]);
+  return Number.isFinite(configured) && configured > 0 ? configured : fallback;
+};
+
+const getCloudinaryRemoteImageTimeout = () => getCloudinaryTimeout(
+  'CLOUDINARY_REMOTE_IMAGE_TIMEOUT_MS',
+  DEFAULT_CLOUDINARY_REMOTE_IMAGE_TIMEOUT_MS,
+);
+
+const getCloudinaryUploadTimeout = () => getCloudinaryTimeout(
+  'CLOUDINARY_UPLOAD_TIMEOUT_MS',
+  DEFAULT_CLOUDINARY_UPLOAD_TIMEOUT_MS,
+);
 let cloudinaryConfigQueue = Promise.resolve();
 let accountCursor = 0;
 const accountCooldowns = new Map();
@@ -397,7 +414,7 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
         resource_type: 'image',
         quality: 'auto',
         fetch_format: 'auto',
-        timeout: 30000,
+        timeout: getCloudinaryUploadTimeout(),
       },
       async (error, result) => {
         if (error) {
@@ -458,7 +475,7 @@ const downloadRemoteImage = async (sourceUrl) => {
       Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreSeeder/1.0)',
     },
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(getCloudinaryRemoteImageTimeout()),
   });
 
   if (!response.ok) {
