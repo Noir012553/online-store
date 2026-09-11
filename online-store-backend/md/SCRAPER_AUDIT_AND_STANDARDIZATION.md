@@ -305,3 +305,7 @@ URL
 ## 8. Kết luận
 
 Bộ scraper hiện không chỉ có vấn đề dữ liệu lẫn loại; còn có lỗi luồng khiến dữ liệu đúng bị bỏ qua. Nguồn phân loại đáng tin cậy nhất trong kiến trúc hiện tại là metadata từ tên file scraper kết hợp với field `Brand` và `Categories` trong record. Danh sách 9 category hard-code không nên được dùng làm whitelist bắt buộc cho dữ liệu crawler.
+
+## 9. Tối ưu tốc độ đã triển khai
+
+`scraper_runner.py` xử lý các trang chi tiết bằng `ThreadPoolExecutor`, mặc định 4 worker và giới hạn tối đa 8 worker qua `SCRAPER_MAX_WORKERS`. Mỗi worker tái sử dụng một `requests.Session`; retry/backoff vẫn giữ nguyên cho từng request. Kết quả được gom theo URL đầu vào để concurrency không làm thay đổi thứ tự output, còn lỗi bất kỳ vẫn chặn ghi batch chưa hoàn chỉnh.

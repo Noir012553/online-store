@@ -2,7 +2,9 @@ import csv
 import datetime
 import json
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -25,13 +27,32 @@ HEADERS = {
 }
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 MAX_ATTEMPTS = 3
+DEFAULT_MAX_WORKERS = 4
+MAX_MAX_WORKERS = 8
+_thread_local = threading.local()
+
+
+def _request_get(url, headers, timeout):
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = requests.Session()
+        _thread_local.session = session
+    return session.get(url, headers=headers, timeout=timeout)
+
+
+def get_max_workers():
+    try:
+        configured = int(os.getenv("SCRAPER_MAX_WORKERS", DEFAULT_MAX_WORKERS))
+    except (TypeError, ValueError):
+        configured = DEFAULT_MAX_WORKERS
+    return min(max(configured, 1), MAX_MAX_WORKERS)
 
 
 def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep=None):
     sleep = sleep or time.sleep
     for attempt in range(attempts):
         try:
-            response = requests.get(url, headers=headers, timeout=timeout)
+            response = _request_get(url, headers, timeout)
         except requests.RequestException as error:
             if attempt == attempts - 1:
                 print(f"Lỗi request {url}: {error}")
@@ -193,30 +214,54 @@ def write_output_atomically(records, file_prefix):
     return csv_path, json_path
 
 
+def _scrape_product(url, brand, categories):
+    try:
+        response = fetch_html(url)
+        if response is None:
+            return url, None
+        soup = BeautifulSoup(response.text, "html.parser")
+        return url, _product_record(soup, url, brand, categories)
+    except Exception as error:
+        print(f"Lỗi xử lý {url}: {error}")
+        return url, None
+
+
+def scrape_products(product_urls, brand, categories, max_workers=None):
+    worker_count = max_workers or get_max_workers()
+    records_by_url = {}
+    failed_urls = []
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures = {
+            executor.submit(_scrape_product, url, brand, categories): url
+            for url in product_urls
+        }
+        for future in as_completed(futures):
+            url, record = future.result()
+            if record is None:
+                failed_urls.append(url)
+            else:
+                records_by_url[url] = record
+    records = [records_by_url[url] for url in product_urls if url in records_by_url]
+    return records, failed_urls
+
+
 def run_scraper(script_path, collection_slug):
     metadata = parse_scraper_metadata(script_path)
     collection_url_template = f"https://gearvn.com/collections/{collection_slug}?page={{page}}"
-    print(f">>> Bắt đầu quét {metadata['brand']} {metadata['categories']}...")
+    worker_count = get_max_workers()
+    print(f">>> Bắt đầu quét {metadata['brand']} {metadata['categories']} với {worker_count} workers...")
     product_urls, collection_complete = collect_collection_urls(collection_url_template)
     if not collection_complete:
         raise RuntimeError("Không thể hoàn tất việc đọc collection; output cũ được giữ nguyên")
     if not product_urls:
         raise RuntimeError("Collection không có sản phẩm; output cũ được giữ nguyên")
 
-    records = []
-    failed_urls = []
-    for url in product_urls:
-        response = fetch_html(url)
-        if response is None:
-            failed_urls.append(url)
-            continue
-        soup = BeautifulSoup(response.text, "html.parser")
-        record = _product_record(soup, url, metadata["brand"], metadata["categories"])
-        if record is None:
-            failed_urls.append(url)
-            continue
-        records.append(record)
-
+    records, failed_urls = scrape_products(
+        product_urls,
+        metadata["brand"],
+        metadata["categories"],
+        worker_count,
+    )
     if failed_urls:
         raise RuntimeError(f"{len(failed_urls)} sản phẩm không đọc được; không ghi batch chưa hoàn chỉnh")
     records = deduplicate_records(records)
