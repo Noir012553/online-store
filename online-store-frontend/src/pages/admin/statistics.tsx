@@ -1647,7 +1647,10 @@ function StatisticsContent() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_price_label')}</div><div className="mt-1 font-semibold text-gray-900">{selectedDetail.item.formattedPrice}</div></div>
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_stock_label')}</div><div className="mt-1 font-semibold text-gray-900">{selectedDetail.item.countInStock ?? 0}</div></div>
-                    <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_rating_label')}</div><div className="mt-1 font-semibold text-gray-900">{Number(selectedDetail.item.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}</div></div>
+                    <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_rating_label')}</div><div className="mt-1 flex items-center gap-1 font-semibold text-gray-900">
+                        {Number(selectedDetail.item.rating || 0).toFixed(1)}
+                        <Star className="h-4 w-4 fill-current" aria-hidden="true" />
+                      </div></div>
                     <div className="rounded-xl border border-gray-100 p-4"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_reviews_label')}</div><div className="mt-1 font-semibold text-gray-900">{selectedDetail.item.numReviews || 0}</div></div>
                     <div className="rounded-xl border border-gray-100 p-4 sm:col-span-2"><div className="text-xs uppercase tracking-wider text-gray-500">{t('detail_category_label')}</div><div className="mt-1 font-semibold text-gray-900"><StatisticsCategoryName product={selectedDetail.item} /> {!selectedDetail.item.categoryId && !selectedDetail.item.category?._id && t('not_available')}</div></div>
                     {selectedDetail.item.image && (

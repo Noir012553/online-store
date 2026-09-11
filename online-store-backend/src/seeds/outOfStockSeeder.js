@@ -55,6 +55,9 @@ const seedOutOfStockProducts = async (userId, categoryIds) => {
     for (let i = 0; i < categoryIds.length && i < CATEGORY_KEYS.length; i++) {
       const imageUrl = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400';
       const categoryKey = CATEGORY_KEYS[i];
+      const localizedName = buildProductName(categoryKey);
+      const localizedDescription = buildProductDescription(categoryKey);
+      const fallbackLang = SUPPORTED_LANGS[0];
 
       // Dynamic fallback chain - not hardcoded to 'en'
       let brand = brandName[defaultLang];
@@ -70,7 +73,7 @@ const seedOutOfStockProducts = async (userId, categoryIds) => {
 
       const productData = {
         user: userId,
-        name: buildProductName(categoryKey),
+        name: localizedName[defaultLang] || localizedName[fallbackLang],
         brand: brand,
         category: categoryIds[i],
         image: imageUrl,
@@ -79,7 +82,7 @@ const seedOutOfStockProducts = async (userId, categoryIds) => {
         baseCurrencyCode: 'VND',
         originalPrice: 1500000 + i * 100000,
         countInStock: 0,
-        description: buildProductDescription(categoryKey),
+        description: localizedDescription[defaultLang] || localizedDescription[fallbackLang],
         rating: 4.5,
         numReviews: Math.floor(Math.random() * 50),
         featured: false,

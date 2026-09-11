@@ -441,7 +441,7 @@ export default function Profile() {
                           { key: 'permission_view_dashboard' },
                         ].map((permission) => (
                           <div key={permission.key} className="flex items-center gap-3 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg hover:shadow-md transition-shadow">
-                            <span className="text-green-600 font-bold">{UI_EMOJI.feature}</span>
+                            <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
                             <p className="text-green-800 font-medium text-sm sm:text-base">{t(permission.key, 'profile')}</p>
                           </div>
                         ))}
