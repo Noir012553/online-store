@@ -22,7 +22,7 @@ const REVIEWER_SOURCES = [
   'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
 ];
 
-const requiredEnvironment = ['MONGO_URI', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const requiredEnvironment = ['MONGO_URI'];
 
 const toAssetMetadata = (resource) => ({
   publicId: resource.public_id,
@@ -32,6 +32,8 @@ const toAssetMetadata = (resource) => ({
   height: resource.height,
   bytes: resource.bytes,
   resourceType: resource.resource_type,
+  cloudinaryAccountId: resource.cloudinaryAccountId,
+  cloudName: resource.cloudName,
 });
 
 const verifyAsset = (asset, publicId, resourceType) => {
@@ -54,7 +56,7 @@ const verifyAsset = (asset, publicId, resourceType) => {
 
 const getExistingAsset = async (publicId, resourceType) => {
   try {
-    const resource = await getCloudinaryResource(publicId, '1', resourceType);
+    const resource = await getCloudinaryResource(publicId, null, resourceType);
     return verifyAsset(toAssetMetadata(resource), publicId, resourceType);
   } catch (error) {
     const httpCode = error.http_code ?? error.error?.http_code;
@@ -80,6 +82,8 @@ const uploadAsset = async (source, publicId, resourceType = 'image') => {
     height: result.height,
     bytes: result.bytes,
     resourceType: 'image',
+    cloudinaryAccountId: result.cloudinaryAccountId,
+    cloudName: result.cloudName,
   }, publicId, resourceType);
 };
 

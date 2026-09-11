@@ -13,11 +13,6 @@ const {
   getCloudinaryVideoPosterUrl,
 } = require('../config/aboutMedia');
 
-const REQUIRED_ENVIRONMENT = [
-  'CLOUDINARY_CLOUD_NAME',
-  'CLOUDINARY_API_KEY',
-  'CLOUDINARY_API_SECRET',
-];
 const FRONTEND_PUBLIC_DIR = path.resolve(__dirname, '../../../online-store-frontend/public');
 
 const getLocalTeamSource = (key) => path.join(
@@ -89,7 +84,7 @@ const verifyAsset = (asset, publicId) => {
 
 const ensureCloudinaryAsset = async ({ sourceUrl, publicId }) => {
   try {
-    const resource = await getCloudinaryResource(publicId, '1', 'image');
+    const resource = await getCloudinaryResource(publicId, null, 'image');
     return verifyAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
     const httpCode = error?.http_code ?? error?.error?.http_code;
@@ -123,7 +118,7 @@ const verifyVideoAsset = (asset, publicId) => {
 
 const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
   try {
-    const resource = await getCloudinaryResource(publicId, '1', 'video');
+    const resource = await getCloudinaryResource(publicId, null, 'video');
     return verifyVideoAsset(toAssetMetadata(resource), publicId);
   } catch (error) {
     const httpCode = error?.http_code ?? error?.error?.http_code;
@@ -150,11 +145,6 @@ const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
 
 const seedAboutMedia = async ({ dryRun = false } = {}) => {
   if (dryRun) return [];
-
-  const missingEnvironment = REQUIRED_ENVIRONMENT.filter((key) => !process.env[key]);
-  if (missingEnvironment.length) {
-    throw new Error(`Missing required environment variables: ${missingEnvironment.join(', ')}`);
-  }
 
   const teamRecords = [];
   for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {

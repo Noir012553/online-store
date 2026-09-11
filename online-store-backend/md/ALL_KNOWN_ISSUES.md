@@ -517,3 +517,72 @@ npm run seed
 ```
 
 8. Đọc report seed và chỉ kết luận thành công khi `aboutMedia`, product pipeline, các post-product seed và dashboard data check đều hoàn thành; phải xem log validation mẫu của crawler, không chỉ nhìn process exit.
+
+## 9. Runtime report mới nhất: clear thành công, seed fail ở Cloudinary config cũ
+
+### 9.1. Kết quả `npm run clear`
+
+Lệnh đã chạy thành công trên workspace người dùng:
+
+```text
+[CLEAR] Deleted 0 managed Cloudinary resources
+[CLEAR] Cloudinary account 2: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 3: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 4: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 5: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 6: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 7: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 8: { image: 0, video: 0, raw: 0 }
+[CLEAR] Cloudinary account 9: { image: 0, video: 0, raw: 0 }
+[CLEAR] Deleted 2 local upload directories/files
+[CLEAR] Deleted data from 50 collections and dropped indexes from 50 collections
+```
+
+Điều này xác nhận lần chạy đó đã:
+
+- Duyệt các Cloudinary account `2` đến `9`.
+- Không tìm thấy asset app-managed còn lại dưới `laptop-store/` trên các account đã duyệt.
+- Xóa local uploads.
+- Xóa dữ liệu MongoDB của 50 collections và drop index tương ứng.
+
+Không được suy ra rằng asset trên account disabled cũ đã bị xóa; account đó không xuất hiện trong danh sách account được API duyệt.
+
+### 9.2. Nguyên nhân `npm run seed` fail
+
+Seed dừng ở module critical đầu tiên:
+
+```text
+Running: About Media (Cloudinary team assets)
+Missing required environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+```
+
+Nguyên nhân là source cũ của `src/seeds/aboutMediaSeeder.js` kiểm tra cứng nhóm biến base trước khi gọi service multi-account:
+
+```js
+const REQUIRED_ENVIRONMENT = [
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+];
+```
+
+Trong khi runtime đang cấu hình account hậu tố `_2` đến `_9`. Đây là lỗi kiểm tra cấu hình của seeder, không phải lỗi thiếu file team hoặc video local và cũng không phải lỗi MongoDB.
+
+### 9.3. Bản sửa đã áp dụng
+
+`aboutMediaSeeder` hiện:
+
+- Không bắt buộc nhóm base nếu nhóm account hậu tố đã được cấu hình.
+- Lookup ảnh/video hiện có trên mọi account đã cấu hình khi không truyền account cụ thể.
+- Upload mới vẫn đi qua `cloudinaryService`, nên vẫn kiểm tra quota và tự chọn account còn capacity.
+- Lưu đúng `cloudinaryAccountId` và `cloudName` của account tìm thấy/upload thành công.
+
+`src/services/cloudinaryService.js` đã đổi `getCloudinaryResource(publicId, null, resourceType)` thành lookup tuần tự các account. Lỗi `404` được phép thử account tiếp theo; lỗi xác thực, account disabled, file hoặc dữ liệu không hợp lệ vẫn fail-fast theo quy ước. `src/scripts/migrate-about-media-to-cloudinary.js` cũng đã bỏ yêu cầu cứng nhóm base và lookup account `1` để đồng bộ với cơ chế này.
+
+Sau bản sửa, cần chạy lại:
+
+```text
+npm run seed
+```
+
+Không cần chạy lại `npm run clear` trước khi thử lại seed vì database đã được clear thành công. Nếu seed vẫn fail, lỗi tiếp theo cần đọc là lỗi quota/auth/asset cụ thể, không còn là lỗi bắt buộc nhóm biến base.

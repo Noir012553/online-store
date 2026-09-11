@@ -783,12 +783,42 @@ const isCloudinaryUrl = (url) => {
  * @param {String} cloudinaryUrl - URL từ Cloudinary (https://res.cloudinary.com/.../...)
  * @returns {String} - Public ID (folder/filename)
  */
-const getCloudinaryResource = async (publicId, accountId = '1', resourceType = 'image') => (
-  runCloudinaryOperation(
-    () => cloudinary.api.resource(publicId, { resource_type: resourceType }),
-    accountId,
-  )
-);
+const getCloudinaryResource = async (publicId, accountId = null, resourceType = 'image') => {
+  if (accountId) {
+    return runCloudinaryOperation(
+      () => cloudinary.api.resource(publicId, { resource_type: resourceType }),
+      accountId,
+    );
+  }
+
+  const accounts = getCloudinaryAccounts();
+  let notFoundError = null;
+
+  for (const account of accounts) {
+    try {
+      const resource = await runCloudinaryOperation(
+        () => cloudinary.api.resource(publicId, { resource_type: resourceType }),
+        account.id,
+      );
+
+      return {
+        ...resource,
+        cloudinaryAccountId: account.id,
+        cloudName: account.cloudName,
+      };
+    } catch (error) {
+      const status = Number(error?.http_code ?? error?.statusCode ?? error?.status);
+      if (status === 404) {
+        notFoundError = error;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (notFoundError) throw notFoundError;
+  throw new Error('No Cloudinary account is configured');
+};
 
 const validateCloudinaryImage = async ({ publicId, url, accountId = null, allowedFolders = ['admins', 'users', 'reviewers', 'banners'] }) => {
   if (!publicId || !url) {
