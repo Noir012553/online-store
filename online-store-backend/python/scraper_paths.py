@@ -1,13 +1,112 @@
 import os
 import os
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
 PRODUCT_OUTPUT_FIELDS = (
     "Brand", "ID", "Name", "SKU", "Price_VND", "Regular_Price", "InStock",
     "Categories", "Attributes", "Description", "MainImage", "GalleryImages", "URL",
 )
+
+_PRODUCT_CARD_MARKERS = (
+    "product-card",
+    "product_card",
+    "product-item",
+    "product_item",
+    "product-grid",
+    "product_grid",
+    "grid__item",
+    "grid-item",
+)
+_LISTING_SCOPE_SELECTORS = (
+    "main",
+    "[role=\"main\"]",
+    "#MainContent",
+    "[data-collection-products]",
+    "[data-product-grid]",
+)
+_EXCLUDED_CONTAINER_MARKERS = (
+    "related",
+    "recommend",
+    "recent",
+    "viewed",
+    "upsell",
+    "cross-sell",
+    "cross_sell",
+    "accessor",
+    "bundle",
+)
+
+
+def _container_signature(node):
+    classes = " ".join(node.get("class", []))
+    values = (
+        classes,
+        str(node.get("id", "")),
+        str(node.get("aria-label", "")),
+        str(node.get("data-section-type", "")),
+    )
+    return " ".join(values).lower()
+
+
+def _is_excluded_container(node):
+    current = node
+    for _ in range(6):
+        if current is None or not getattr(current, "name", None):
+            break
+        if any(marker in _container_signature(current) for marker in _EXCLUDED_CONTAINER_MARKERS):
+            return True
+        current = current.parent
+    return False
+
+
+def _is_product_card(anchor):
+    current = anchor
+    for _ in range(6):
+        if current is None or not getattr(current, "name", None):
+            break
+        signature = _container_signature(current)
+        if any(marker in signature for marker in _PRODUCT_CARD_MARKERS):
+            return True
+        if current.get("data-product-id") or current.get("data-product"):
+            return True
+        if current.get("itemtype", "").lower().endswith("product"):
+            return True
+        if current.name in ("article", "li") and current.select_one("img") and current.select_one(
+            "[class*=price], [data-price], [data-product-price], meta[itemprop=price]"
+        ):
+            return True
+        current = current.parent
+    return False
+
+
+def collect_product_links(soup, collection_url):
+    """Collect unique same-site product URLs from actual collection cards."""
+    collection = urlsplit(collection_url)
+    allowed_hosts = {collection.netloc.lower(), "gearvn.com", "www.gearvn.com"}
+    anchors = []
+    for selector in _LISTING_SCOPE_SELECTORS:
+        anchors.extend(soup.select(f'{selector} a[href*="/products/"]'))
+    if not anchors:
+        anchors = soup.select('a[href*="/products/"]')
+
+    links = []
+    seen = set()
+    for anchor in anchors:
+        if _is_excluded_container(anchor) or not _is_product_card(anchor):
+            continue
+        href = str(anchor.get("href") or "").strip()
+        if not href:
+            continue
+        parsed = urlsplit(urljoin(collection_url, href))
+        if parsed.netloc.lower() not in allowed_hosts or not parsed.path.startswith("/products/"):
+            continue
+        clean_url = urlunsplit(("https", "gearvn.com", parsed.path.rstrip("/"), "", ""))
+        if clean_url not in seen:
+            seen.add(clean_url)
+            links.append(clean_url)
+    return links
 
 
 def get_output_directory():
