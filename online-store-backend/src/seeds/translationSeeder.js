@@ -67,6 +67,9 @@ const seedTranslations = async () => {
     const results = [];
 
     for (const lang of SUPPORTED_LANGUAGES) {
+      const operations = [];
+      const entries = [];
+
       for (const namespace of SUPPORTED_NAMESPACES) {
         try {
           const filePath = path.join(LOCALES_PATH, lang, `${namespace}.json`);
@@ -78,40 +81,39 @@ const seedTranslations = async () => {
           const fileContent = fs.readFileSync(filePath, 'utf-8');
           const translations = JSON.parse(fileContent);
 
-          // FIX: Replace entire translations object to avoid stale keys
-          // Instead of partial update ($set), use full replacement to ensure old keys are removed
-          const updatedDoc = await StaticTranslation.findOneAndUpdate(
-            { code: lang, namespace },
-            {
-              code: lang,
-              namespace,
-              translations, // Replace entire object, not merge
+          operations.push({
+            updateOne: {
+              filter: { code: lang, namespace },
+              update: {
+                $set: {
+                  code: lang,
+                  namespace,
+                  translations,
+                },
+              },
+              upsert: true,
             },
-            { upsert: true, returnDocument: 'after', overwrite: false } // overwrite: false allows partial update but we replace translations field
-          );
-
-          const keyCount = Object.keys(translations).length;
-
-          results.push({
-            language: lang,
-            namespace,
-            status: 'success',
-            keysCount: keyCount,
           });
-
-          totalSeeded++;
+          entries.push({ language: lang, namespace, keysCount: Object.keys(translations).length });
         } catch (error) {
-
           results.push({
             language: lang,
             namespace,
             status: 'failed',
             error: error.message,
           });
-
           totalFailed++;
         }
       }
+
+      if (operations.length === 0) {
+        continue;
+      }
+
+      await StaticTranslation.bulkWrite(operations, { ordered: false });
+      entries.forEach(entry => results.push({ ...entry, status: 'success' }));
+      totalSeeded += entries.length;
+      console.log(`[TranslationSeeder] ${lang}: ${entries.length} namespace(s) seeded`);
     }
 
     return results;

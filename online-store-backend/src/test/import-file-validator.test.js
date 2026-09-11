@@ -38,23 +38,18 @@ const {
 } = require('../seeds/productSeedPipeline');
 
 describe('Scraped product filtering', () => {
-  it('normalizes categories from the database taxonomy and rejects unknown categories', () => {
-    const categoryCatalog = [
-      { name: 'Keyboard', sourceNames: ['Bàn Phím'] },
-      { name: 'Gaming Laptop', sourceNames: ['Laptop Gaming'] },
-    ];
-
-    expect(normalizeSeedCategory('Bàn Phím', categoryCatalog)).to.equal('Keyboard');
-    expect(normalizeSeedCategory('Laptop Gaming', categoryCatalog)).to.equal('Gaming Laptop');
+  it('preserves source categories and rejects only missing categories', () => {
+    expect(normalizeSeedCategory(' Bàn Phím ')).to.equal('Bàn Phím');
+    expect(normalizeSeedCategory('Laptop Gaming')).to.equal('Laptop Gaming');
 
     const result = filterSeedProducts([
       { name: 'Bàn phím cơ gaming', category: 'Bàn Phím' },
       { name: 'Laptop gaming', category: 'Laptop Gaming' },
-      { name: 'Sản phẩm chưa phân loại', category: 'Laptop' },
-    ], categoryCatalog);
+      { name: 'Sản phẩm chưa phân loại', category: '' },
+    ]);
 
     expect(result.acceptedProducts).to.have.length(2);
-    expect(result.acceptedProducts[0].category).to.equal('Keyboard');
+    expect(result.acceptedProducts[0].category).to.equal('Bàn Phím');
     expect(result.rejectedProducts).to.have.length(1);
   });
 });

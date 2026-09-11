@@ -125,30 +125,22 @@ const normalizeName = value => String(value || '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '');
 
-const normalizeSeedCategory = (value, categoryCatalog = []) => {
-  const normalizedValue = normalizeName(value);
-  const matchedCategory = categoryCatalog.find(category => [
-    category.name,
-    ...(category.sourceNames || []),
-  ].some(candidate => normalizeName(candidate) === normalizedValue));
-  return matchedCategory?.name || null;
+const normalizeSeedCategory = value => {
+  const category = String(value || '').trim();
+  return category || null;
 };
 
-const filterSeedProducts = (products, categoryCatalog = []) => {
+const filterSeedProducts = (products) => {
   const acceptedProducts = [];
   const rejectedProducts = [];
 
   products.forEach((product, index) => {
-    const category = normalizeSeedCategory(product.category, categoryCatalog);
-    const reason = !category
-      ? `Danh mục không có trong taxonomy: ${product.category || '(trống)'}`
-      : null;
-
-    if (reason) {
+    const category = normalizeSeedCategory(product.category);
+    if (!category) {
       rejectedProducts.push({
         rowIndex: index + 1,
         name: product.name || product.sourceUrl || '(không tên)',
-        reason,
+        reason: 'Thiếu danh mục sản phẩm',
       });
       return;
     }
@@ -425,16 +417,13 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     ...product,
     category: inferCategoryFromFilename(product, filePath),
   }));
-  const categoryCatalog = await Category.find({ isDeleted: false })
-    .select('name sourceNames')
-    .lean();
-  const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts, categoryCatalog);
+  await ensureSourceCategories(parsedProducts, filePath, dryRun);
+  const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts);
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
   const validation = await manager.validate(dedupedProducts, format);
   const productsToImport = initializeHighlights && !dryRun
     ? assignInitialHighlights(validation.validProducts)
     : validation.validProducts;
-  await ensureSourceCategories(productsToImport, filePath, dryRun);
   const unique = dryRun
     ? productsToImport
     : await prepareProductImages(productsToImport);

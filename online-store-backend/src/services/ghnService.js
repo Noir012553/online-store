@@ -96,10 +96,10 @@ async function validateDistrictIds({ from_district_id, to_district_id }) {
   }
 }
 
-async function getProvinces() {
+async function getProvinces(client = null) {
   try {
-    const client = await getGhnClient();
-    const response = await client.get('/master-data/province');
+    const ghnClient = client || await getGhnClient();
+    const response = await ghnClient.get('/master-data/province');
 
     if (response.data && response.data.code === 200) {
       return response.data.data || [];
@@ -112,7 +112,7 @@ async function getProvinces() {
   }
 }
 
-async function getDistricts(provinceId, lang) {
+async function getDistricts(provinceId, lang, client = null) {
   const { getDefaultLanguage } = require('../config/languageInventory');
   const ghnLang = lang || getDefaultLanguage().code.toUpperCase();
 
@@ -121,8 +121,8 @@ async function getDistricts(provinceId, lang) {
   }
 
   try {
-    const client = await getGhnClient();
-    const response = await client.post('/master-data/district', {
+    const ghnClient = client || await getGhnClient();
+    const response = await ghnClient.post('/master-data/district', {
       province_id: provinceId,
     });
 
@@ -138,7 +138,7 @@ async function getDistricts(provinceId, lang) {
   }
 }
 
-async function getWards(districtId, lang) {
+async function getWards(districtId, lang, client = null) {
   const { getDefaultLanguage } = require('../config/languageInventory');
   const ghnLang = lang || getDefaultLanguage().code.toUpperCase();
 
@@ -147,7 +147,7 @@ async function getWards(districtId, lang) {
   }
 
   try {
-    const client = await getGhnClient();
+    const ghnClient = client || await getGhnClient();
     const normalizedDistrictId = Number(districtId);
     const getWardList = (payload) => {
       const data = payload?.data;
@@ -157,7 +157,7 @@ async function getWards(districtId, lang) {
       return data?.WardCode || data?.wardCode ? [data] : [];
     };
 
-    const getResponse = await client.get(
+    const getResponse = await ghnClient.get(
       `/master-data/ward?district_id=${normalizedDistrictId}`
     );
     if (getResponse.data?.code === 200) {
@@ -165,7 +165,7 @@ async function getWards(districtId, lang) {
       if (wards.length > 0) return wards;
     }
 
-    const postResponse = await client.post(
+    const postResponse = await ghnClient.post(
       `/master-data/ward?district_id=${normalizedDistrictId}`,
       { district_id: normalizedDistrictId },
     );
@@ -654,6 +654,7 @@ async function getShipmentInfo(orderCode) {
 }
 
 module.exports = {
+  getGhnClient,
   getProvinces,
   getDistricts,
   getWards,

@@ -10,9 +10,14 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     get_output_paths,
+    parse_scraper_metadata,
 )
 import pandas as pd
 import requests
+
+SCRAPER_METADATA = parse_scraper_metadata(__file__)
+SCRAPER_BRAND = SCRAPER_METADATA["brand"]
+SCRAPER_CATEGORIES = SCRAPER_METADATA["categories"]
 
 HEADERS = {
     'User-Agent': (
@@ -72,17 +77,8 @@ def scrape_full():
                 if any(text in block.text for text in ["Sản phẩm tương tự", "Sản phẩm đã xem", "Mua kèm giá sốc"]):
                     block.decompose()
 
-            # --- TRÍCH XUẤT DATA & PHÂN LOẠI DANH MỤC ---
+            # --- TRÍCH XUẤT DATA ---
             name = soup.h1.text.strip() if soup.h1 else "N/A"
-            
-            # Logic phân loại tự động cho Asus
-            name_upper = name.upper()
-            if any(keyword in name_upper for keyword in ["ROG", "TUF", "GAMING"]):
-                category_name = "Laptop Gaming"
-            elif any(keyword in name_upper for keyword in ["VIVOBOOK", "ZENBOOK", "EXPERTBOOK", "OLED"]):
-                category_name = "Laptop Office"
-            else:
-                category_name = "Laptop" # Fallback nếu không xác định được
             
             price, sku, instock = "N/A", "N/A", "In Stock"
             json_ld = soup.find("script", type="application/ld+json")
@@ -120,14 +116,14 @@ def scrape_full():
             price, regular_price = extract_product_prices(soup, price)
 
             data_list.append({
-                "Brand": "Asus",
+                "Brand": SCRAPER_BRAND,
                 "ID": url.split("/")[-1],
                 "Name": name,
                 "SKU": sku,
                 "Price_VND": price,
                 "Regular_Price": regular_price,
                 "InStock": instock,
-                "Categories": category_name,
+                "Categories": SCRAPER_CATEGORIES,
                 "Attributes": json.dumps(specs, ensure_ascii=False),
                 "Description": "Thông số: " + str(specs),
                 "MainImage": main_img,
@@ -140,7 +136,7 @@ def scrape_full():
     # --- LƯU FILE ---
     
     date_str = datetime.datetime.now().strftime("%Y%m%d")
-    file_prefix = f"Asus_Laptop_{date_str}"
+    file_prefix = f"{SCRAPER_BRAND}_{SCRAPER_CATEGORIES.replace(' ', '_')}_{date_str}"
     csv_filename, json_filename = get_output_paths(file_prefix)
 
     df = pd.DataFrame(data_list, columns=PRODUCT_OUTPUT_FIELDS)

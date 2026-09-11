@@ -10,9 +10,14 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     get_output_paths,
+    parse_scraper_metadata,
 )
 import pandas as pd
 import requests
+
+SCRAPER_METADATA = parse_scraper_metadata(__file__)
+SCRAPER_BRAND = SCRAPER_METADATA["brand"]
+SCRAPER_CATEGORIES = SCRAPER_METADATA["categories"]
 
 HEADERS = {
     'User-Agent': (
@@ -125,14 +130,14 @@ def scrape_full():
       price, regular_price = extract_product_prices(soup, price)
 
       data_list.append({
-          'Brand': 'Akko',
+          'Brand': SCRAPER_BRAND,
           'ID': url.split('/')[-1],
           'Name': name,
           'SKU': sku,
           'Price_VND': price,
           'Regular_Price': regular_price,
           'InStock': instock,
-          'Categories': 'Keyboard',
+          'Categories': SCRAPER_CATEGORIES,
           'Attributes': json.dumps(specs, ensure_ascii=False),
           'Description': 'Thông số: ' + str(specs),
           'MainImage': main_img,
@@ -146,7 +151,7 @@ def scrape_full():
 
   date_str = datetime.datetime.now().strftime('%Y%m%d')
   # Đã sửa lại định dạng tên file xuất ra theo quy tắc viết hoa gạch dưới
-  file_prefix = f'Akko_Keyboard_{date_str}'
+  file_prefix = f"{SCRAPER_BRAND}_{SCRAPER_CATEGORIES.replace(' ', '_')}_{date_str}"
   csv_filename, json_filename = get_output_paths(file_prefix)
 
   df = pd.DataFrame(data_list, columns=PRODUCT_OUTPUT_FIELDS)
