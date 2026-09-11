@@ -33,7 +33,31 @@ const {
   uploadProductImage,
   assignInitialHighlights,
   getInitialStock,
+  filterSeedProducts,
+  normalizeSeedCategory,
 } = require('../seeds/productSeedPipeline');
+
+describe('Scraped product filtering', () => {
+  it('normalizes categories from the database taxonomy and rejects unknown categories', () => {
+    const categoryCatalog = [
+      { name: 'Keyboard', sourceNames: ['Bàn Phím'] },
+      { name: 'Gaming Laptop', sourceNames: ['Laptop Gaming'] },
+    ];
+
+    expect(normalizeSeedCategory('Bàn Phím', categoryCatalog)).to.equal('Keyboard');
+    expect(normalizeSeedCategory('Laptop Gaming', categoryCatalog)).to.equal('Gaming Laptop');
+
+    const result = filterSeedProducts([
+      { name: 'Bàn phím cơ gaming', category: 'Bàn Phím' },
+      { name: 'Laptop gaming', category: 'Laptop Gaming' },
+      { name: 'Sản phẩm chưa phân loại', category: 'Laptop' },
+    ], categoryCatalog);
+
+    expect(result.acceptedProducts).to.have.length(2);
+    expect(result.acceptedProducts[0].category).to.equal('Keyboard');
+    expect(result.rejectedProducts).to.have.length(1);
+  });
+});
 
 describe('ZIP upload boundary errors', () => {
   const invokeErrorHandler = (error, path) => {

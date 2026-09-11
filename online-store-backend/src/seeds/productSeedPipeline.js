@@ -125,6 +125,40 @@ const normalizeName = value => String(value || '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '');
 
+const normalizeSeedCategory = (value, categoryCatalog = []) => {
+  const normalizedValue = normalizeName(value);
+  const matchedCategory = categoryCatalog.find(category => [
+    category.name,
+    ...(category.sourceNames || []),
+  ].some(candidate => normalizeName(candidate) === normalizedValue));
+  return matchedCategory?.name || null;
+};
+
+const filterSeedProducts = (products, categoryCatalog = []) => {
+  const acceptedProducts = [];
+  const rejectedProducts = [];
+
+  products.forEach((product, index) => {
+    const category = normalizeSeedCategory(product.category, categoryCatalog);
+    const reason = !category
+      ? `Danh mục không có trong taxonomy: ${product.category || '(trống)'}`
+      : null;
+
+    if (reason) {
+      rejectedProducts.push({
+        rowIndex: index + 1,
+        name: product.name || product.sourceUrl || '(không tên)',
+        reason,
+      });
+      return;
+    }
+
+    acceptedProducts.push({ ...product, category });
+  });
+
+  return { acceptedProducts, rejectedProducts };
+};
+
 const inferCategoryFromFilename = (product, filePath) => {
   if (product.category?.trim()) return product.category.trim();
 
@@ -391,7 +425,11 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     ...product,
     category: inferCategoryFromFilename(product, filePath),
   }));
-  const { unique: dedupedProducts, duplicateCount } = dedupeProducts(parsedProducts);
+  const categoryCatalog = await Category.find({ isDeleted: false })
+    .select('name sourceNames')
+    .lean();
+  const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts, categoryCatalog);
+  const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
   const validation = await manager.validate(dedupedProducts, format);
   const productsToImport = initializeHighlights && !dryRun
     ? assignInitialHighlights(validation.validProducts)
@@ -406,6 +444,7 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     read: parsedProducts.length,
     invalid: validation.invalidProducts.length,
     warnings: validation.warnings.length,
+    filteredOut: rejectedProducts.length,
     duplicates: duplicateCount,
     inserted: 0,
     updated: 0,
@@ -413,7 +452,14 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     batches: 0,
   };
 
-  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, ${validation.invalidProducts.length} dòng lỗi, ${unique.length} dòng hợp lệ sau dedupe`);
+  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, loại ${rejectedProducts.length} dòng ngoài phạm vi, ${validation.invalidProducts.length} dòng lỗi, ${unique.length} dòng hợp lệ sau dedupe`);
+  if (rejectedProducts.length > 0) {
+    const filteredExamples = rejectedProducts
+      .slice(0, 5)
+      .map(item => `row ${item.rowIndex}: ${item.name} (${item.reason})`)
+      .join(' | ');
+    console.warn(`[ProductPipeline] Đã loại sản phẩm ngoài phạm vi: ${filteredExamples}`);
+  }
   if (validation.invalidProducts.length > 0) {
     const validationExamples = validation.invalidProducts
       .slice(0, 3)
@@ -556,6 +602,8 @@ module.exports = {
   uploadProductImages,
   assignInitialHighlights,
   getInitialStock,
+  filterSeedProducts,
+  normalizeSeedCategory,
   getProductDataDirectory,
   runScraper,
   runProductSeedPipeline,
