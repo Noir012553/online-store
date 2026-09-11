@@ -4,6 +4,7 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const PROVIDER = 'ghn';
 const GHN_SYNC_CONCURRENCY = 5;
+const WARD_WRITE_BATCH_SIZE = 500;
 
 const syncWardIndexes = async () => {
   const indexes = await Ward.collection.indexes();
@@ -166,20 +167,24 @@ const seedLocations = async () => {
     ).values()];
 
     if (uniqueWardData.length > 0) {
-      await Ward.bulkWrite(
-        uniqueWardData.map(ward => ({
-          updateOne: {
-            filter: {
-              provider: ward.provider,
-              districtId: ward.districtId,
-              wardCode: ward.wardCode,
+      for (let batchStart = 0; batchStart < uniqueWardData.length; batchStart += WARD_WRITE_BATCH_SIZE) {
+        const wardBatch = uniqueWardData.slice(batchStart, batchStart + WARD_WRITE_BATCH_SIZE);
+        await Ward.bulkWrite(
+          wardBatch.map(ward => ({
+            updateOne: {
+              filter: {
+                provider: ward.provider,
+                districtId: ward.districtId,
+                wardCode: ward.wardCode,
+              },
+              update: { $set: ward },
+              upsert: true,
             },
-            update: { $set: ward },
-            upsert: true,
-          },
-        })),
-        { ordered: false },
-      );
+          })),
+          { ordered: false },
+        );
+        console.log(`[LocationSeeder] Ward write progress: ${Math.min(batchStart + wardBatch.length, uniqueWardData.length)}/${uniqueWardData.length}`);
+      }
     }
 
     const savedWardCount = await Ward.countDocuments({ provider: PROVIDER });
