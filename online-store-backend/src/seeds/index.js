@@ -211,7 +211,7 @@ const seed = async () => {
       if (runFullPipeline) {
         modulesToRun.push('__product-pipeline__');
         if (!cliArgs.dryRun) modulesToRun.push(...SEED_PHASES.postProducts);
-        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: Crawler -> import -> translation -> post-products\n`);
+        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: About Media -> baseline -> crawler/import -> translation -> post-products\n`);
       } else {
         seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
       }

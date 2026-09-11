@@ -188,6 +188,7 @@ const SEED_MODULES = {
 
 const SEED_PHASES = {
   preProducts: [
+    'aboutMedia',
     'currencies',
     'exchangeRateHistory',
     'languages',
@@ -206,7 +207,7 @@ const SEED_PHASES = {
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['aboutMedia', 'inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
