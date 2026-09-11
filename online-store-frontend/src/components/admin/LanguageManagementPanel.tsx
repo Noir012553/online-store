@@ -107,7 +107,9 @@ export function LanguageManagementPanel() {
               className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <span className="text-2xl">{AVAILABLE_LOCALES[lang.lang].flag}</span>
+                <span className="inline-flex min-w-8 items-center justify-center rounded bg-gray-100 px-1 text-[10px] font-semibold uppercase text-gray-600">
+                  {lang.lang}
+                </span>
                 <div className="min-w-0">
                   <p className="font-medium">{t(AVAILABLE_LOCALES[lang.lang].labelKey, 'admin-translation')}</p>
                 </div>
@@ -145,7 +147,7 @@ export function LanguageManagementPanel() {
             <select value={selectedLang} onChange={(event) => setSelectedLang(event.target.value as Locale)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 flex-1">
               <option value="" disabled>{t('language_management_select_placeholder', 'admin')}</option>
               {availableLangs.map((lang) => (
-                <option key={lang} value={lang}>{AVAILABLE_LOCALES[lang].flag + ' ' + t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}</option>
+                <option key={lang} value={lang}>{lang.toUpperCase() + ' ' + t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}</option>
               ))}
             </select>
             <Button

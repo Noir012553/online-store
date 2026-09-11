@@ -437,11 +437,11 @@ function DashboardContent() {
       const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
       const startMonth = months[monthRange.startMonth];
       const endMonth = months[monthRange.endMonth];
-      return `${t('month', 'admin')} ${startMonth}/${monthRange.startYear} ${UI_EMOJI.arrowRight} ${t('month', 'admin')} ${endMonth}/${monthRange.endYear}`;
+      return `${t('month', 'admin')} ${startMonth}/${monthRange.startYear} - ${t('month', 'admin')} ${endMonth}/${monthRange.endYear}`;
     } else if (timeFrame === 'quarter') {
-      return `${t('quarter_display', 'admin')}${quarterRange.startQuarter}/${quarterRange.startYear} ${UI_EMOJI.arrowRight} ${t('quarter_display', 'admin')}${quarterRange.endQuarter}/${quarterRange.endYear}`;
+      return `${t('quarter_display', 'admin')}${quarterRange.startQuarter}/${quarterRange.startYear} - ${t('quarter_display', 'admin')}${quarterRange.endQuarter}/${quarterRange.endYear}`;
     } else if (timeFrame === 'year') {
-      return `${t('year', 'admin')} ${yearRange.startYear} ${UI_EMOJI.arrowRight} ${t('year', 'admin')} ${yearRange.endYear}`;
+      return `${t('year', 'admin')} ${yearRange.startYear} - ${t('year', 'admin')} ${yearRange.endYear}`;
     }
     return '';
   };

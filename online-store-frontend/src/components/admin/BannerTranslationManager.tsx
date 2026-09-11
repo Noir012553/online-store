@@ -251,7 +251,9 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
                 const isTranslated = translations.some((t) => t.language === lang);
                 return (
                   <div key={lang} className="flex items-center gap-1">
-                    <span className="text-lg">{AVAILABLE_LOCALES[lang].flag}</span>
+                    <span className="inline-flex min-w-8 items-center justify-center rounded bg-gray-100 px-1 text-[10px] font-semibold uppercase text-gray-600">
+                      {lang}
+                    </span>
                     <Badge
                       variant={isTranslated ? 'default' : 'outline'}
                       className={isTranslated ? 'bg-emerald-600 text-white' : 'border-gray-300 text-gray-600'}
@@ -288,7 +290,9 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xl">{AVAILABLE_LOCALES[translation.language].flag}</span>
+                      <span className="inline-flex min-w-8 items-center justify-center rounded bg-gray-100 px-1 text-[10px] font-semibold uppercase text-gray-600">
+                        {translation.language}
+                      </span>
                       <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
                         {getLanguageName(translation.language)}
                       </Badge>
@@ -348,7 +352,9 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
                   className="border-amber-300 text-amber-800 cursor-pointer hover:bg-amber-100"
                   onClick={() => router.push(`/admin/bannerTranslations/${bannerId}/translate`)}
                 >
-                  <span className="mr-2">{AVAILABLE_LOCALES[lang].flag}</span>
+                  <span className="mr-2 inline-flex min-w-8 items-center justify-center rounded bg-amber-100 px-1 text-[10px] font-semibold uppercase text-amber-800">
+                    {lang}
+                  </span>
                   {t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}
                 </Badge>
               ))}

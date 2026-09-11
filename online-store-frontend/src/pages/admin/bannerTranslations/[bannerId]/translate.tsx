@@ -210,7 +210,9 @@ function TranslateEditContent() {
                           : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
                     }`}
                   >
-                    <span className="text-lg">{AVAILABLE_LOCALES[lang].flag}</span>
+                    <span className="inline-flex min-w-8 items-center justify-center rounded bg-gray-100 px-1 text-[10px] font-semibold uppercase text-gray-600">
+                      {lang}
+                    </span>
                     <span>{getLanguageName(lang)}</span>
                   </button>
                 ))}
