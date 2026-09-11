@@ -119,6 +119,25 @@ def normalize_metadata_key(value):
     return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
 
 
+def metadata_key(value):
+    return normalize_metadata_key(value).replace(" ", "_")
+
+
+_BRAND_DISPLAY_NAMES = {
+    "asus": "Asus",
+    "dareu": "DareU",
+    "flesports": "FLEsports",
+    "hp": "HP",
+    "hyperx": "HyperX",
+    "msi": "MSI",
+}
+
+
+def normalize_brand_display(value):
+    brand = str(value or "").strip()
+    return _BRAND_DISPLAY_NAMES.get(normalize_metadata_key(brand), brand)
+
+
 def _normalize_taxonomy_text(value):
     return normalize_metadata_key(value)
 
@@ -137,13 +156,13 @@ def parse_scraper_metadata(scraper_path):
             "categories_key": "",
         }
 
-    brand = parts[0]
+    brand = normalize_brand_display(parts[0])
     categories = " ".join(parts[1:])
     return {
         "brand": brand,
         "categories": categories,
         "brand_key": normalize_metadata_key(brand),
-        "categories_key": normalize_metadata_key(categories),
+        "categories_key": metadata_key(categories),
     }
 
 
@@ -216,10 +235,10 @@ def _collection_product_tokens(collection_url):
 
 
 def product_matches_collection(soup, collection_url):
-    """Validate collection metadata, while accepting links collected as products."""
+    """Validate detail metadata when a collection URL is explicitly provided."""
     path = urlsplit(str(collection_url or "")).path.lower()
     if path.startswith("/products/"):
-        return True
+        return False
 
     expected_tokens = _collection_product_tokens(collection_url)
     source_brands = extract_source_brands(soup)
