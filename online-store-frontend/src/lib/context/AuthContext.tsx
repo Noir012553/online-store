@@ -107,7 +107,7 @@ export const AuthProvider = ({
       const accessToken = response.accessToken || response.token;
 
       authVersionRef.current += 1;
-      // ✅ Store access token in Memory (RAM) - XSS Protection
+      // Store access token in Memory (RAM) - XSS Protection
       setInMemoryAccessToken(accessToken);
 
       const userData: User = {
@@ -170,7 +170,7 @@ export const AuthProvider = ({
       const response = await authAPI.register(name, email, password);
       const accessToken = response.accessToken || response.token;
 
-      // ✅ Store access token in Memory (RAM) - XSS Protection
+      // Store access token in Memory (RAM) - XSS Protection
       setInMemoryAccessToken(accessToken);
 
       const userData: User = {
@@ -218,13 +218,13 @@ export const AuthProvider = ({
       // Log but continue with logout - client-side security is critical
     } finally {
       // Step 2-5: Always clear all auth state (even if API fails)
-      // ✅ Step 2: Clear memory token (XSS Protection)
+      // Step 2: Clear memory token (XSS Protection)
       setInMemoryAccessToken(null);
 
-      // ✅ Step 4: Clear React state
+      // Step 4: Clear React state
       setUser(null);
 
-      // ✅ Step 5: Emit logout event for other contexts to cleanup their state
+      // Step 5: Emit logout event for other contexts to cleanup their state
       // This ensures CartContext, etc also clear any session-specific data
       const event = new CustomEvent('auth:logout');
       window.dispatchEvent(event);

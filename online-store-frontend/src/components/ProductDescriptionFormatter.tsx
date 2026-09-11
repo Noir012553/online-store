@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { DESCRIPTION_EMOJI } from '@/lib/uiEmoji';
 
 interface Props {
   text?: string;
@@ -68,8 +67,7 @@ const sanitizeDescription = (text: string): string => {
 /**
  * Component để hiển thị mô tả sản phẩm với xuống dòng tự động
  * - Xuống dòng SAU dấu "."
- * - Xuống dòng TRƯỚC icon/emoji
- * - Thay thế "##" bằng emoji 📌
+ * - Thay thế "##" bằng xuống dòng
  * - Chức năng "Xem chi tiết" / "Thu lại"
  */
 export const ProductDescriptionFormatter: React.FC<Props> = ({
@@ -127,22 +125,9 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
 
   let processedText = sanitizedText.replace(/##/g, '\n');
 
-  const symbols = DESCRIPTION_EMOJI;
-
-  const isEmoji = (char: string): boolean => {
-    if (symbols.has(char)) return true;
-    const code = char.charCodeAt(0);
-    if (code >= 0x1F300 && code <= 0x1F9FF) return true;
-    if (code >= 0x2600 && code <= 0x26FF) return true;
-    if (code >= 0x2700 && code <= 0x27BF) return true;
-    return false;
-  };
-
   // Tìm tất cả break positions
   const breakPositions: number[] = [];
   
-  let previousChar = '';
-
   for (let i = 0; i < processedText.length;) {
     const char = String.fromCodePoint(processedText.codePointAt(i)!);
 
@@ -155,12 +140,6 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
       }
     }
 
-    // Break trước emoji
-    if (isEmoji(char) && i > 0 && !isEmoji(previousChar)) {
-      breakPositions.push(i);
-    }
-
-    previousChar = char;
     i += char.length;
   }
 

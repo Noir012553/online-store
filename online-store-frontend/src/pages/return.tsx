@@ -93,7 +93,7 @@ export default function PaymentResultPage() {
         let verificationError: string | null = null;
 
         if (method === 'cod') {
-          // ✅ COD FLOW: Order created = payment is pending (cash on delivery)
+          // COD flow: Order created = payment is pending (cash on delivery)
           // No need to call confirmPayment API
           isSuccess = true;
         } else if (vnpayResponseCode && vnpayResponseCode !== '00') {
@@ -106,7 +106,7 @@ export default function PaymentResultPage() {
             // The IPN may have already processed the payment.
           }
 
-          // 💳 VNPAY FLOW: Verify payment status with backend.
+          // VNPAY flow: Verify payment status with backend.
           // IPN (webhook) may arrive slightly after user redirect, so poll
           // up to 10 times (3s apart) before showing the verification state.
           const MAX_POLL = 10;
