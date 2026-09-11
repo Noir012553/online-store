@@ -4,11 +4,12 @@
  * Unified Test Runner
  * 
  * Cách dùng:
- * npm run test                               # Run all tests
- * npm run test -- --list                     # List all test suites  
- * npm run test -- --suite=i18n               # Run only i18n tests
- * npm run test -- --suites=i18n,products     # Run i18n + products tests
- * npm run test -- --tags=payments            # Run tests tagged with "payments"
+ * npm run test                               # Run products tests
+ * npm run test:all                           # Run all tests
+ * npm run test:all -- --list                # List all test suites
+ * npm run test:all -- --suite=i18n          # Run only i18n tests
+ * npm run test:all -- --suites=i18n,products # Run i18n + products tests
+ * npm run test:all -- --tags=payments       # Run tests tagged with "payments"
  * npm run test -- --verbose                  # Verbose output
  */
 

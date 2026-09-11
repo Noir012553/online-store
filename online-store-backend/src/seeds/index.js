@@ -211,7 +211,7 @@ const seed = async () => {
       if (runFullPipeline) {
         modulesToRun.push('__product-pipeline__');
         if (!cliArgs.dryRun) modulesToRun.push(...SEED_PHASES.postProducts);
-        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: Crawler -> import -> translation -> post-products\n`);
+        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: About Media -> baseline -> crawler/import -> translation -> post-products\n`);
       } else {
         seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
       }
@@ -326,6 +326,19 @@ const seed = async () => {
             }
           }
           result = await seederFn();
+        } else if (moduleName === 'outOfStock') {
+          if (!seedContext.users || !seedContext.categories) {
+            const User = require('../models/User');
+            const Category = require('../models/Category');
+            seedContext.users = await User.find({ isDeleted: false }).lean();
+            seedContext.categories = await Category.find({ isDeleted: false }).lean();
+          }
+          const seedUser = seedContext.users.find(user => ['admin', 'super-admin'].includes(user.role));
+          if (!seedUser) throw new Error('Cannot seed out-of-stock products without an admin user');
+          result = await seederFn(
+            seedUser._id,
+            seedContext.categories.map(category => category._id),
+          );
         } else {
           // Simple seeders with no parameters
           result = await seederFn();
@@ -438,9 +451,13 @@ const seed = async () => {
     process.exit(0);
   } catch (error) {
     const cliArgs = parseCliArgs();
-    seedLogger.error(`\nSeeding failed with error: ${error.message}`);
-    if (error.stack) {
-      seedLogger.error(error.stack);
+    const errorMessage = error?.message
+      || error?.error?.message
+      || (error ? String(error) : 'Unknown seeding error');
+    const errorStack = error?.stack || error?.error?.stack;
+    seedLogger.error(`\nSeeding failed with error: ${errorMessage}`);
+    if (errorStack) {
+      seedLogger.error(errorStack);
     }
     finalizeSeed({ cliArgs, status: 'FAILED', exitCode: 1 });
     process.exit(1);

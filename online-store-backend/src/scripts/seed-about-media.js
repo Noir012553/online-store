@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+require('dotenv').config();
+
 const mongoose = require('mongoose');
 const { connectMongo } = require('../config/mongoConnection');
 const seedAboutMedia = require('../seeds/aboutMediaSeeder');

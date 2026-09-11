@@ -627,10 +627,146 @@ Report `38/38` là bằng chứng lịch sử cũ. Chưa có runtime report mớ
 
 Trạng thái hiện tại:
 
-- `npm test` đã được cấu hình để không bỏ qua integration test; `with-order.test.js` được chạy mặc định.
-- `export-production.test.js` vẫn cần bật chủ động bằng `RUN_PRODUCTION_TESTS=true`.
+- `npm test` chạy suite `products` mặc định, gồm 5 file kiểm tra migration, import/export, translation helper và products.
+- `npm run test:all` chạy toàn bộ test được discovery; `export-production.test.js` vẫn cần bật chủ động bằng `RUN_PRODUCTION_TESTS=true`.
 - Runner tạo summary/full/log JSON và trả exit code theo test file thất bại.
 - Backend startup đã có log người dùng cung cấp là `backend ready`.
 - Chưa kết luận toàn bộ test pass sau thay đổi discovery; cần chạy lại trong môi trường có dependency, MongoDB, backend readiness và credential hợp lệ.
 - Log lỗi có chủ đích như VNPAY invalid input, ZIP quá lớn, remote image unavailable và Cloudinary 429 không tự động là failure; phải xem exit code và `errors` trong report.
 - Log TTL diagnostic vẫn cần được theo dõi nếu muốn xác minh sâu metadata `expireAfterSeconds` trong MongoDB.
+
+## 13. Kết quả chạy suite products gần nhất
+
+Lệnh đã chạy:
+
+```text
+npm run test -- --suite=products
+```
+
+Thời điểm report: `2026-09-10T14:56:33.792Z`
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+Các file đã pass:
+
+- `import-file-validator.test.js` — 54 passing
+- `export-job-service.test.js` — 7 passing
+- `translation-helper.test.js` — 25 passing
+- `products.test.js` — pass
+
+File còn fail:
+
+- `translation-migration-smoke.test.js` — 8 passing, 2 failing
+
+Hai assertion fail đều do MongoDB đã có index `createdAt_1` nhưng index này thiếu `expireAfterSeconds`:
+
+- `ProductCatalogTranslationCache` yêu cầu TTL 90 ngày (`7776000` giây).
+- `UserContentTranslationCache` yêu cầu TTL 30 ngày (`2592000` giây).
+
+Đã cập nhật `src/scripts/setup-production-indexes.js` để khi phát hiện index cùng key nhưng sai TTL, script thay index cũ bằng index có TTL đúng. Chưa chạy lại script đồng bộ index hoặc test sau thay đổi này.
+
+## 14. Lưu ý về clear và seed
+
+`npm run clear` là thao tác phá hủy dữ liệu: xóa toàn bộ collection, xóa index và xóa ảnh Cloudinary theo prefix `laptop-store/`. Không chạy trên database production hoặc database chứa dữ liệu cần giữ.
+
+Sau khi clear, `npm run seed` có thể chạy lại để tạo dữ liệu demo/test, nhưng đây là một pipeline lớn có thể gọi crawler, import và dịch dữ liệu. Nên chỉ chạy khi đã xác nhận đúng `MONGO_URI`, đúng database cần reset và đã sao lưu dữ liệu cần giữ. Sau seed cần chạy lại script setup index trước khi kiểm tra TTL.
+
+## 15. Lần chạy lại suite products
+
+Lệnh người dùng chạy lại:
+
+```text
+npm run test -- --suite=products
+```
+
+Thời điểm report: `2026-09-10T15:08:35.048Z`
+
+Kết quả vẫn giữ nguyên:
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+`translation-migration-smoke.test.js` vẫn fail đúng 2 assertion TTL ở dòng 130 và 142. Dữ liệu, migration, language coverage, query performance và các test import/export khác đều pass. Lần chạy này chỉ chạy test, chưa chạy `npm run setup-i18n-indexes`, nên index MongoDB chưa được repair.
+
+Dòng cảnh báo `Would need 10 queries to get 1 product's specs` là output mô tả so sánh O(N), không phải failure.
+
+## 16. Kết quả sau khi chạy setup index
+
+Lệnh đã chạy:
+
+```text
+npm run setup-i18n-indexes
+npm run test -- --suite=products
+```
+
+`npm run setup-i18n-indexes` kết thúc với thông báo `Setup complete`, nhưng phần verify chỉ in tên index (`createdAt_1`), chưa in metadata `expireAfterSeconds`. Vì vậy chưa đủ bằng chứng rằng TTL đã được áp dụng.
+
+Lần test ngay sau đó vẫn có kết quả:
+
+```text
+Discovered: 5 test files
+Passed:     4 test files
+Failed:     1 test file
+```
+
+Hai TTL assertion tiếp tục fail. Đã cập nhật code để:
+
+- Verify bằng metadata raw từ `listIndexes()` thay vì chỉ in tên index.
+- Kiểm tra đúng index `createdAt` với TTL 90 ngày và 30 ngày.
+- Không báo setup thành công nếu metadata TTL không đúng.
+- Test migration cũng kiểm tra chính xác `expireAfterSeconds` tương ứng.
+
+Chưa chạy lại test sau thay đổi verify này.
+
+## 17. Kết quả xác nhận TTL sau khi sửa verify
+
+Lệnh đã chạy:
+
+```text
+npm run setup-i18n-indexes
+npm run test -- --suite=products
+```
+
+Kết quả setup index thành công. Test đã đọc metadata raw từ MongoDB và xác nhận:
+
+- `ProductCatalogTranslationCache.createdAt` có `expireAfterSeconds: 7776000` (90 ngày).
+- `UserContentTranslationCache.createdAt` có `expireAfterSeconds: 2592000` (30 ngày).
+
+Kết quả suite:
+
+```text
+Discovered: 5 test files
+Passed:     5 test files
+Failed:     0 test files
+```
+
+Chi tiết:
+
+- `translation-migration-smoke.test.js` — 10 passing
+- `import-file-validator.test.js` — 54 passing
+- `export-job-service.test.js` — 7 passing
+- `translation-helper.test.js` — 25 passing
+- `products.test.js` — pass
+
+Kết luận: lỗi TTL đã được xử lý; không cần chạy `npm run clear` hoặc `npm run seed` cho việc sửa index này.
+
+## 18. Phạm vi clear và seed sau khi hoàn thiện
+
+`npm run clear` được thiết kế để xóa dữ liệu ứng dụng, không xóa tài nguyên ngoài ứng dụng:
+
+- Xóa toàn bộ document trong MongoDB và các index phụ.
+- Xóa asset dưới prefix `laptop-store/` trên tất cả Cloudinary account đã cấu hình (`CLOUDINARY_*`, `_2`, `_3`, ...).
+- Xóa resource type `image`, `video` và `raw` trong prefix quản lý.
+- Xóa file/thư mục local dưới `online-store-backend/uploads`, giữ `.gitkeep`.
+- URL ảnh Wikimedia, Unsplash hoặc dịch vụ ngoài chỉ bị xóa khỏi MongoDB; không thể xóa file gốc của dịch vụ ngoài.
+
+`npm run seed` chạy pipeline khởi tạo đầy đủ gồm currencies, exchange-rate history, languages, translations, brand translations, spec labels, users, categories, brands, banners, customers, shipping, locations, addresses, category translations, product import/crawler, about media, inventory, out-of-stock products, reviews, orders, coupons và product spec translations.
+
+Các script bảo trì như retranslate hoặc reseed translations vẫn không tự chạy trong seed mặc định vì có thể xóa dữ liệu riêng hoặc gọi dịch vụ AI; chúng cần được chạy chủ động.

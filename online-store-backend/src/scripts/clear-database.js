@@ -5,15 +5,35 @@
  */
 
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
-const { deleteCloudinaryImagesByPrefix } = require('../services/cloudinaryService');
+const { deleteCloudinaryResourcesByPrefix } = require('../services/cloudinaryService');
+
+const clearLocalUploads = () => {
+  const uploadsDir = path.resolve(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadsDir)) return 0;
+
+  let deleted = 0;
+  for (const entry of fs.readdirSync(uploadsDir, { withFileTypes: true })) {
+    if (entry.name === '.gitkeep') continue;
+    fs.rmSync(path.join(uploadsDir, entry.name), { recursive: true, force: true });
+    deleted += 1;
+  }
+
+  return deleted;
+};
 
 const clearDatabase = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
 
-    const cloudinaryResult = await deleteCloudinaryImagesByPrefix('laptop-store/');
-    console.log(`[CLEAR] Deleted ${cloudinaryResult.deleted} Cloudinary images`);
+    const cloudinaryResult = await deleteCloudinaryResourcesByPrefix('laptop-store/');
+    console.log(`[CLEAR] Deleted ${cloudinaryResult.deleted} managed Cloudinary resources`);
+    cloudinaryResult.accounts.forEach(({ accountId, resourceTypes }) => {
+      console.log(`[CLEAR] Cloudinary account ${accountId}:`, resourceTypes);
+    });
+    console.log(`[CLEAR] Deleted ${clearLocalUploads()} local upload directories/files`);
 
     const db = mongoose.connection.db;
 
@@ -39,10 +59,19 @@ const clearDatabase = async () => {
       const result = await db.collection(collectionInfo.name).deleteMany({});
       deletedCollections++;
     }
-    process.exit(0);
+    console.log(`[CLEAR] Deleted data from ${deletedCollections} collections and dropped indexes from ${indexDropCount} collections`);
   } catch (error) {
-    console.error('[CLEAR_ERROR]', error.message);
-    process.exit(1);
+    const errorMessage = error?.message
+      || error?.error?.message
+      || (error ? String(error) : 'Unknown clear error');
+    const errorStack = error?.stack || error?.error?.stack;
+    console.error('[CLEAR_ERROR]', errorMessage);
+    if (errorStack) console.error(errorStack);
+    process.exitCode = 1;
+  } finally {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   }
 };
 

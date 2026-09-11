@@ -47,10 +47,25 @@ const ensureIndex = async (collection, keys, options) => {
 
   if (options.expireAfterSeconds !== undefined
     && existingIndex.expireAfterSeconds !== options.expireAfterSeconds) {
-    throw new Error(`Existing index ${existingIndex.name} has a different TTL option`);
+    await collection.dropIndex(existingIndex.name);
+    return collection.createIndex(keys, options);
   }
 
   return existingIndex.name;
+};
+
+const verifyTtlIndex = async (collection, label, expectedSeconds) => {
+  const indexes = await collection.listIndexes().toArray();
+  const ttlIndex = indexes.find(index => (
+    hasSameIndexKeys(index.key, { createdAt: 1 })
+    && index.expireAfterSeconds === expectedSeconds
+  ));
+
+  if (!ttlIndex) {
+    throw new Error(`${label} TTL index is missing or has an unexpected expiration`);
+  }
+
+  return ttlIndex;
 };
 
 const STOREFRONT_BACKFILL_OPTIONS = {
@@ -179,6 +194,10 @@ async function setupIndexes() {
     );
     console.log(`   ${CLI_SYMBOLS.check} UserContentTranslationCache TTL: 30 days`);
 
+    await verifyTtlIndex(ProductCatalogTranslationCache.collection, 'ProductCatalogTranslationCache', 7776000);
+    await verifyTtlIndex(UserContentTranslationCache.collection, 'UserContentTranslationCache', 2592000);
+    console.log(`   ${CLI_SYMBOLS.check} TTL metadata verified`);
+
     await Product.createIndexes();
     console.log(`   ${CLI_SYMBOLS.check} Product indexes synchronized`);
 
@@ -201,11 +220,11 @@ async function setupIndexes() {
     const liveIndexes = await LiveTranslationCache.collection.getIndexes();
     console.log('LiveTranslationCache indexes:', Object.keys(liveIndexes));
 
-    const productCatalogTranslationIndexes = await ProductCatalogTranslationCache.collection.getIndexes();
-    console.log('ProductCatalogTranslationCache indexes:', Object.keys(productCatalogTranslationIndexes));
+    const productCatalogTranslationIndexes = await ProductCatalogTranslationCache.collection.listIndexes().toArray();
+    console.log('ProductCatalogTranslationCache indexes:', productCatalogTranslationIndexes);
 
-    const userContentTranslationIndexes = await UserContentTranslationCache.collection.getIndexes();
-    console.log('UserContentTranslationCache indexes:', Object.keys(userContentTranslationIndexes));
+    const userContentTranslationIndexes = await UserContentTranslationCache.collection.listIndexes().toArray();
+    console.log('UserContentTranslationCache indexes:', userContentTranslationIndexes);
 
     const productIndexes = await Product.collection.getIndexes();
     console.log('Product indexes:', Object.keys(productIndexes));

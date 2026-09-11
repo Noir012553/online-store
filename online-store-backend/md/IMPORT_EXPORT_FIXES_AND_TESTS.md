@@ -423,7 +423,13 @@ CLOUDINARY_API_KEY_3
 CLOUDINARY_API_SECRET_3
 ```
 
-Khi upload gặp HTTP `420`, `429` hoặc lỗi rate limit/quota, hệ thống thử tài khoản tiếp theo. Claim upload lưu `cloudinaryAccountId`; validate và cleanup dùng đúng tài khoản đã upload để tránh thao tác nhầm ảnh giữa các cloud.
+Trước khi cấp chữ ký hoặc upload backend, hệ thống gọi Admin API `usage()` và đọc `credits.usage/limit`. Mặc định account bị loại khỏi upload từ ngưỡng 80%; có thể cấu hình bằng biến backend:
+
+```env
+CLOUDINARY_QUOTA_THRESHOLD_PERCENT=80
+```
+
+Cache usage trong 30 giây để tránh gọi Admin API quá dày. Khi account đạt ngưỡng, hệ thống không upload thêm vào account đó và thử account kế tiếp. Khi tất cả account đều không còn capacity, upload bị từ chối. HTTP `420`, `429` hoặc lỗi rate limit/quota từ Cloudinary cũng làm account bị cooldown và thử account tiếp theo; lỗi xác thực hoặc account bị disabled trả lỗi ngay, không tự xoay qua account khác. Claim upload lưu `cloudinaryAccountId`; validate và cleanup dùng đúng tài khoản đã upload để tránh thao tác nhầm ảnh giữa các cloud.
 
 Các file chính:
 
