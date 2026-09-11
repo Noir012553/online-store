@@ -127,7 +127,7 @@ def scrape_full():
 
     # --- LƯU FILE ---
     date_str = datetime.datetime.now().strftime("%Y%m%d")
-    file_prefix = f"Lenovo_Laptop_Gaming_{date_str}"
+    file_prefix = f"{SCRAPER_BRAND}_{SCRAPER_CATEGORIES.replace(' ', '_')}_{date_str}"
     csv_filename, json_filename = get_output_paths(file_prefix)
 
     df = pd.DataFrame(data_list, columns=PRODUCT_OUTPUT_FIELDS)
