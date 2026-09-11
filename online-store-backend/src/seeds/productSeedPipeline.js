@@ -503,7 +503,18 @@ const translateProducts = async (languages) => {
 
 const runProductSeedPipeline = async (options = {}) => {
   const dryRun = Boolean(options.dryRun);
-  const skipScrape = Boolean(options.skipScrape || dryRun || options.file || options.directory);
+  const hasExplicitInput = Boolean(options.file || options.directory);
+  const inputDirectory = options.directory
+    ? path.resolve(backendRoot, options.directory)
+    : getProductDataDirectory();
+  const existingFiles = options.file ? [] : chooseProductFiles(inputDirectory);
+  const forceScrape = Boolean(options.forceScrape || options.scrapeTarget);
+  const skipScrape = Boolean(
+    dryRun
+      || options.skipScrape
+      || hasExplicitInput
+      || (!forceScrape && existingFiles.length > 0),
+  );
   const batchSize = Number(options.batchSize || 50);
 
   if (!Number.isInteger(batchSize) || batchSize < 1) {
@@ -512,8 +523,10 @@ const runProductSeedPipeline = async (options = {}) => {
 
   if (!skipScrape) {
     await runScraper(options.scrapeTarget || 'all');
+  } else if (existingFiles.length > 0) {
+    console.log(`[ProductPipeline] Phát hiện ${existingFiles.length} file dữ liệu hiện có, bỏ qua crawler`);
   } else {
-    console.log('[ProductPipeline] Bỏ qua crawler, dùng file sản phẩm hiện có');
+    console.log('[ProductPipeline] Bỏ qua crawler, dùng file sản phẩm được chỉ định');
   }
 
   const files = getInputFiles(options);
