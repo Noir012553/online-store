@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { UI_EMOJI, DESCRIPTION_EMOJI } from '@/lib/uiEmoji';
+import { DESCRIPTION_EMOJI } from '@/lib/uiEmoji';
 
 interface Props {
   text?: string;
@@ -125,8 +125,7 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
     return <p className={className}>{t('no_description', 'products')}</p>;
   }
 
-  // Thay thế "##" bằng emoji 📌
-  let processedText = sanitizedText.replace(/##/g, UI_EMOJI.descriptionMarker);
+  let processedText = sanitizedText.replace(/##/g, '\n');
 
   const symbols = DESCRIPTION_EMOJI;
 

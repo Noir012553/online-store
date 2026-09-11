@@ -10,8 +10,7 @@ import { useLanguage } from "../lib/i18n";
 import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
-import { EmojiSvg } from "./EmojiSvg";
-import { UI_EMOJI } from "../lib/uiEmoji";
+import { Eye, Flame, Star } from "lucide-react";
 import { BackendProduct } from "../lib/api";
 
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mod.QuickViewModal), {
@@ -138,16 +137,13 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                         : 'bg-black'
                   }`}
                 >
-                  <EmojiSvg
-                    emoji={UI_EMOJI.hotDeal}
-                    className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`}
-                  />
+                  <Flame className={`w-4 h-4 ${isFeaturedHotDeal && !hasShockDiscount ? 'motion-safe:animate-bounce drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]' : ''}`} />
                   {t(hasShockDiscount ? 'shock_discount_badge' : 'hot_deal_badge', 'products')}
                 </Badge>
               )}
               {convertedLaptop.featured && !hasActiveDeal && !hasShockDiscount && (
                 <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
-                  <EmojiSvg emoji={UI_EMOJI.featured} className="w-4 h-4" />
+                  <Star className="w-4 h-4 fill-current" />
                   {t('featured_badge', 'products')}
                 </Badge>
               )}

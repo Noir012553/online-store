@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Package, DollarSign, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
 import { DEFAULT_LOCALE } from "../../../lib/i18n/types";
@@ -15,7 +15,6 @@ import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useCloudinaryUpload } from "@/hooks/useCloudinaryUpload";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
-import { UI_EMOJI } from "@/lib/uiEmoji";
 import { useCategories } from "../../../lib/context/CategoryContext";
 
 interface ProductFormProps {
@@ -330,7 +329,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                   }}
                   className="flex-1"
                 >
-                  {UI_EMOJI.feature} {t('existing_category', 'admin')}
+                  <><Check className="h-4 w-4" aria-hidden="true" />{t('existing_category', 'admin')}</>
                 </Button>
                 <Button
                   type="button"

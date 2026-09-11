@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Target, Eye, Heart, Award, Users, TrendingUp } from "lucide-react";
+import { Target, Eye, Heart, Award, Users, TrendingUp, Check } from "lucide-react";
 import { productAPI } from "../lib/api";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { useAuth } from "../lib/context/AuthContext";
 import { useLanguage } from "../lib/i18n";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
-import { UI_EMOJI } from '../lib/uiEmoji';
 import { ImageViewer } from '../components/ImageViewer';
 import { getReviewerFallbackUrl, getTeamFallbackUrl } from '../lib/aboutMedia';
 
@@ -266,7 +265,7 @@ function AboutContent() {
             {commitmentKeys.map((key, index) => (
               <div key={index} className="flex items-start gap-3 bg-white border rounded-lg p-4">
                 <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-white text-sm">{UI_EMOJI.feature}</span>
+                  <Check className="h-4 w-4 text-white" aria-hidden="true" />
                 </div>
                 <span className="text-gray-700">{t(key, 'about')}</span>
               </div>

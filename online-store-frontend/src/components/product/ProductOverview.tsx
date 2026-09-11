@@ -4,7 +4,6 @@ import { Laptop } from '../../lib/data';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { interpolateTranslation } from '../../lib/translationInterpolate';
-import { UI_EMOJI } from '../../lib/uiEmoji';
 import { formatNumber } from '../../lib/utils';
 
 interface ProductOverviewProps {
@@ -80,7 +79,7 @@ export function ProductOverview({
           <div className="space-y-1 sm:space-y-2 text-gray-700">
             {Object.entries(product.specs).slice(0, 5).map(([key, value]) => (
               <div key={key} className="flex items-start justify-between gap-4 text-xs sm:text-sm">
-                <span className="font-medium">{UI_EMOJI.bullet} {product.specLabels?.[key] || key}:</span>
+                <span className="flex items-center gap-2 font-medium"><span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />{product.specLabels?.[key] || key}:</span>
                 <span className="space-y-0.5 text-right leading-5">
                   {String(value).split(';').map((item, index) => (
                     <span key={`${item}-${index}`} className="block">

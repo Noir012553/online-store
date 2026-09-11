@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckoutStep } from '../../context/CheckoutContext';
 import { useTranslation } from '../../lib/i18n';
-import { UI_EMOJI } from '../../lib/uiEmoji';
+import { Check } from 'lucide-react';
 
 interface StepIndicatorProps {
   currentStep: CheckoutStep;
@@ -46,7 +46,7 @@ export function StepIndicator({ currentStep, totalSteps = 4 }: StepIndicatorProp
                 }`}
               >
                 {currentStep > step.number ? (
-                  <span className="text-lg">{UI_EMOJI.feature}</span>
+                  <Check className="h-5 w-5" aria-hidden="true" />
                 ) : (
                   step.number
                 )}

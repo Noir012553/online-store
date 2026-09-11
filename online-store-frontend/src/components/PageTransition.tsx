@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/lib/i18n';
-import { UI_EMOJI } from '@/lib/uiEmoji';
+import { Leaf, LoaderCircle } from 'lucide-react';
 
 export const PandaRolling = () => {
   const [isClient, setIsClient] = useState(false);
@@ -29,18 +29,18 @@ export const PandaRolling = () => {
             rotate: { repeat: Infinity, duration: 1, ease: "linear" },
             x: { repeat: Infinity, duration: 2, ease: "easeInOut", repeatType: "reverse" }
           }}
-          className="text-6xl absolute"
+          className="absolute text-red-600"
         >
-          {UI_EMOJI.panda}
+          <LoaderCircle className="h-14 w-14" aria-hidden="true" />
         </motion.div>
       </div>
       <div className="flex items-center gap-3 mt-6">
         <motion.span
           animate={{ rotate: [-5, 5, -5] }}
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          className="text-2xl origin-bottom"
+          className="origin-bottom text-green-600"
         >
-          {UI_EMOJI.bamboo}
+          <Leaf className="h-6 w-6" aria-hidden="true" />
         </motion.span>
         <motion.p
           initial={{ opacity: 0 }}
@@ -53,9 +53,9 @@ export const PandaRolling = () => {
         <motion.span
           animate={{ rotate: [5, -5, 5] }}
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          className="text-2xl origin-bottom"
+          className="origin-bottom text-green-600"
         >
-          {UI_EMOJI.bamboo}
+          <Leaf className="h-6 w-6" aria-hidden="true" />
         </motion.span>
       </div>
     </div>

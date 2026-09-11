@@ -28,7 +28,6 @@ import {
 } from '../../lib/socket';
 import { formatCurrency, formatDate, formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
-import { UI_EMOJI } from '../../lib/uiEmoji';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import { getCategoryName, getProductCategoryName, getTranslatedValue, getProductName } from '../../lib/data';
@@ -854,7 +853,7 @@ function StatisticsContent() {
                     <p className="text-sm text-gray-500"><StatisticsCategoryName product={product} /></p>
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-amber-600">{Number(product.rating || 0).toFixed(1)} {UI_EMOJI.ratingStar}</p>
+                    <p className="flex items-center gap-1 text-sm font-semibold text-amber-600">{Number(product.rating || 0).toFixed(1)} <Star className="h-4 w-4 fill-current" aria-hidden="true" /></p>
                     <p className="text-xs text-gray-500">{product.numReviews || 0} {t('admin_statistics_reviews')}</p>
                   </div>
                 </button>
