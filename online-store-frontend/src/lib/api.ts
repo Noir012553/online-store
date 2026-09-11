@@ -1944,7 +1944,7 @@ export const orderAPI = {
 
   /**
    * Xác nhận thanh toán với backend (bảo mật)
-   * ⚠️ Gọi endpoint này thay vì tin URL params từ payment gateway
+   * Gọi endpoint này thay vì tin URL params từ payment gateway
    * Backend sẽ verify: payment record tồn tại, amount khớp, status là success
    * @param orderId - ID của đơn hàng
    */

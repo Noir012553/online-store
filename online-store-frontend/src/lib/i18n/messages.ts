@@ -1,7 +1,7 @@
 /**
  * Frontend i18n messages
  * 
- * ⚠️ DEPRECATED: All messages are now stored in backend (MongoDB)
+ * DEPRECATED: All messages are now stored in backend (MongoDB)
  * Use the useTranslation hook to fetch translations from backend API
  * 
  * Example:

@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, type ChangeEvent, useMemo } from 'react';
-import { ArrowLeft, Upload, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle2, Circle, Languages } from 'lucide-react';
 import { withAdminLayout } from '../../../../components/admin/withAdminLayout';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
@@ -388,7 +388,7 @@ function BannerCreatePageContent() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      <span>{AVAILABLE_LOCALES[lang].flag}</span>
+                      <Languages className="h-4 w-4" aria-hidden="true" />
                       <span>{t(`locale_label_${lang}`, 'admin-translation')}</span>
                       {isComplete && <CheckCircle2 className="h-4 w-4" />}
                     </button>
@@ -579,7 +579,7 @@ function BannerCreatePageContent() {
               <div className="mt-2 space-y-1 text-xs">
                 {getIncompleteLanguages(banner, selectedSlotGuidance?.hasCTA || false).map(lang => (
                   <div key={lang} className="flex items-center gap-2">
-                    <span>{AVAILABLE_LOCALES[lang].flag}</span>
+                    <Languages className="h-4 w-4" aria-hidden="true" />
                     <span>{t(AVAILABLE_LOCALES[lang].labelKey, 'admin-banners')} ({lang.toUpperCase()})</span>
                   </div>
                 ))}
