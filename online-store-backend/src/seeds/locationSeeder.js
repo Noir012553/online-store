@@ -3,6 +3,7 @@ const { Province, District, Ward } = require('../models/Location');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const PROVIDER = 'ghn';
+const WARD_FETCH_CONCURRENCY = 5;
 
 const syncWardIndexes = async () => {
   const indexes = await Ward.collection.indexes();
@@ -113,22 +114,39 @@ const seedLocations = async () => {
 
     console.log(`${CLI_SYMBOLS.download} Fetching wards from GHN API...`);
     let totalWards = 0;
+    let completedDistricts = 0;
     const allWardData = [];
+    let nextDistrictIndex = 0;
 
-    for (const districtData of allDistrictData) {
-      try {
-        const wards = await ghnService.getWards(districtData.districtId);
-        if (wards && wards.length > 0) {
-          const wardData = wards
-            .map((ward) => normalizeWard(districtData.districtId, ward))
-            .filter(Boolean);
-          allWardData.push(...wardData);
-          totalWards += wardData.length;
+    const fetchWardBatch = async () => {
+      while (nextDistrictIndex < allDistrictData.length) {
+        const districtData = allDistrictData[nextDistrictIndex++];
+        try {
+          const wards = await ghnService.getWards(districtData.districtId);
+          if (wards && wards.length > 0) {
+            const wardData = wards
+              .map((ward) => normalizeWard(districtData.districtId, ward))
+              .filter(Boolean);
+            allWardData.push(...wardData);
+            totalWards += wardData.length;
+          }
+        } catch (error) {
+          console.warn(`${CLI_SYMBOLS.warning}  Failed to fetch wards for district ${districtData.districtId}: ${error.message}`);
+        } finally {
+          completedDistricts++;
+          if (completedDistricts % 25 === 0 || completedDistricts === allDistrictData.length) {
+            console.log(`[LocationSeeder] Wards progress: ${completedDistricts}/${allDistrictData.length} districts`);
+          }
         }
-      } catch (error) {
-        console.warn(`${CLI_SYMBOLS.warning}  Failed to fetch wards for district ${districtData.districtId}: ${error.message}`);
       }
-    }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(WARD_FETCH_CONCURRENCY, allDistrictData.length) },
+        () => fetchWardBatch(),
+      ),
+    );
     console.log(`${CLI_SYMBOLS.success} Fetched ${totalWards} wards\n`);
 
     console.log(`${CLI_SYMBOLS.save} Saving wards to database...`);
