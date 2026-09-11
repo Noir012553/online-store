@@ -228,6 +228,14 @@ const uploadProductImage = async (sourceUrl, publicId) => {
   return uploadFileToCloudinary(resolveProductImagePath(normalizedSource), 'products', publicId);
 };
 
+const getProductImageErrorMessage = (error) => {
+  const cause = error?.cause;
+  const causeMessage = cause?.code || cause?.message || cause?.name;
+  return causeMessage
+    ? `${error.message} (cause: ${causeMessage})`
+    : error.message;
+};
+
 const uploadProductImages = async (product) => {
   const sourceImage = String(product.image || '').trim();
   const sourceGallery = Array.isArray(product.images)
@@ -250,7 +258,7 @@ const uploadProductImages = async (product) => {
       galleryImages.push(uploadedImage.url);
       galleryPublicIds.push(uploadedImage.publicId);
     } catch (error) {
-      console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${error.message}`);
+      console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
     }
   }
 
@@ -269,7 +277,7 @@ const prepareProductImages = async (products) => {
     try {
       preparedProducts.push(await uploadProductImages(product));
     } catch (error) {
-      console.warn(`[ProductPipeline] Bỏ qua sản phẩm "${product.name}" vì không tải được ảnh chính: ${error.message}`);
+      console.warn(`[ProductPipeline] Bỏ qua sản phẩm "${product.name}" vì không tải được ảnh chính: ${getProductImageErrorMessage(error)}`);
     }
   }
   return preparedProducts;

@@ -17,6 +17,7 @@ const CLOUDINARY_QUOTA_CACHE_TTL_MS = 30 * 1000;
 const DEFAULT_CLOUDINARY_QUOTA_THRESHOLD_PERCENT = 80;
 const DEFAULT_CLOUDINARY_REMOTE_IMAGE_TIMEOUT_MS = 300 * 1000;
 const DEFAULT_CLOUDINARY_REMOTE_IMAGE_RETRIES = 2;
+const DEFAULT_CLOUDINARY_UPLOAD_RETRIES = 2;
 const DEFAULT_CLOUDINARY_UPLOAD_TIMEOUT_MS = 120 * 1000;
 
 const getCloudinaryTimeout = (environmentKey, fallback) => {
@@ -41,9 +42,17 @@ const getCloudinaryRemoteImageRetries = () => {
     : DEFAULT_CLOUDINARY_REMOTE_IMAGE_RETRIES;
 };
 
-const isRetryableRemoteImageError = error => (
+const getCloudinaryUploadRetries = () => {
+  const configured = Number(process.env.CLOUDINARY_UPLOAD_RETRIES);
+  return Number.isInteger(configured) && configured >= 0
+    ? Math.min(configured, 5)
+    : DEFAULT_CLOUDINARY_UPLOAD_RETRIES;
+};
+
+const isRetryableNetworkError = error => (
   !error?.errorCode
   && (['AbortError', 'TimeoutError'].includes(error?.name)
+    || ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(error?.code)
     || (error?.name === 'TypeError' && /fetch failed/i.test(String(error?.message || ''))))
 );
 
@@ -248,29 +257,45 @@ const runCloudinaryUploadOperation = async (operation, accountId = null) => {
     if (!account || attemptedIds.has(account.id)) break;
     attemptedIds.add(account.id);
 
-    try {
-      await assertCloudinaryUploadCapacity(account);
-      const result = await withConfiguredCloudinary(account, () => operation(account));
-      accountQuotaCache.delete(account.id);
-      return result;
-    } catch (error) {
-      const normalizedError = normalizeCloudinaryError(
-        error,
-        `Cloudinary account ${account.id} upload operation failed`,
-      );
-      if (/disabled customer/i.test(normalizedError.message)) {
-        throw new Error(
-          `Cloudinary account ${account.id} is disabled ("disabled customer"). Check ${getCloudinaryAccountEnvPrefix(account.id)} credentials or re-enable the account.`,
-          { cause: normalizedError },
+    const maxAttempts = getCloudinaryUploadRetries() + 1;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await assertCloudinaryUploadCapacity(account);
+        const result = await withConfiguredCloudinary(account, () => operation(account));
+        accountQuotaCache.delete(account.id);
+        return result;
+      } catch (error) {
+        const normalizedError = normalizeCloudinaryError(
+          error,
+          `Cloudinary account ${account.id} upload operation failed`,
         );
-      }
-      const shouldRotate = normalizedError.code === 'CLOUDINARY_QUOTA_NEAR_LIMIT'
-        || isCloudinaryRateLimitError(normalizedError);
-      if (!shouldRotate || accountId) throw normalizedError;
+        if (/disabled customer/i.test(normalizedError.message)) {
+          throw new Error(
+            `Cloudinary account ${account.id} is disabled ("disabled customer"). Check ${getCloudinaryAccountEnvPrefix(account.id)} credentials or re-enable the account.`,
+            { cause: normalizedError },
+          );
+        }
+        const shouldRotate = normalizedError.code === 'CLOUDINARY_QUOTA_NEAR_LIMIT'
+          || isCloudinaryRateLimitError(normalizedError);
+        if (shouldRotate) {
+          if (accountId) throw normalizedError;
+          accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
+          accountQuotaCache.delete(account.id);
+          lastRotationError = normalizedError;
+          break;
+        }
+        if (!isRetryableNetworkError(normalizedError) || attempt === maxAttempts) throw normalizedError;
 
-      accountCooldowns.set(account.id, Date.now() + CLOUDINARY_ROTATION_COOLDOWN_MS);
-      accountQuotaCache.delete(account.id);
-      lastRotationError = normalizedError;
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[CLOUDINARY_UPLOAD_RETRY]', {
+            accountId: account.id,
+            attempt,
+            nextAttempt: attempt + 1,
+            ...getErrorDetails(normalizedError),
+          });
+        }
+        await wait(500 * attempt);
+      }
     }
   }
 
@@ -462,10 +487,7 @@ const uploadToCloudinary = async (fileBuffer, folder = 'admins', publicId = null
           if (process.env.NODE_ENV === 'development') {
             console.error('[CLOUDINARY_ERROR]', {
               accountId: account.id,
-              name: error?.name,
-              message: error?.message,
-              httpCode: error?.http_code,
-              stack: error?.stack,
+              ...getErrorDetails(error),
             });
           }
           reject(error);
@@ -556,7 +578,7 @@ const downloadRemoteImage = async (sourceUrl) => {
       return Buffer.concat(chunks, totalBytes);
     } catch (error) {
       lastError = error;
-      if (!isRetryableRemoteImageError(error) || attempt === maxAttempts) throw error;
+      if (!isRetryableNetworkError(error) || attempt === maxAttempts) throw error;
 
       if (process.env.NODE_ENV === 'development') {
         console.warn('[REMOTE_IMAGE_RETRY]', {

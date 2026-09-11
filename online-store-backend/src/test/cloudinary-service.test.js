@@ -11,6 +11,7 @@ const envKeys = [...new Set([
   'CLOUDINARY_API_KEY_2',
   'CLOUDINARY_API_SECRET_2',
   'CLOUDINARY_REMOTE_IMAGE_RETRIES',
+  'CLOUDINARY_UPLOAD_RETRIES',
 ])];
 const originalEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
 envKeys.forEach(key => delete process.env[key]);
@@ -61,6 +62,40 @@ describe('Cloudinary account rotation', () => {
     expect(getCloudinaryAccountIdForUrl(
       'https://res.cloudinary.com/cloud-two/image/upload/laptop-store/users/example.jpg',
     )).to.equal('2');
+  });
+
+  it('retries transient upload failures on the same account', async () => {
+    process.env.CLOUDINARY_UPLOAD_RETRIES = '1';
+    let attempts = 0;
+    cloudinary.uploader.upload_stream = (options, callback) => {
+      attempts += 1;
+      const account = cloudinary.config().cloud_name;
+      queueMicrotask(() => {
+        if (attempts === 1) {
+          callback(Object.assign(new TypeError('fetch failed'), {
+            cause: { code: 'ECONNRESET' },
+          }));
+          return;
+        }
+        callback(null, {
+          resource_type: 'image',
+          width: 50,
+          height: 50,
+          bytes: 12,
+          format: 'jpg',
+          public_id: 'laptop-store/users/network-retry',
+          secure_url: `https://res.cloudinary.com/${account}/image/upload/laptop-store/users/network-retry.jpg`,
+        });
+      });
+      return { end: () => {} };
+    };
+
+    const buffer = Buffer.alloc(12);
+    buffer.set([0xff, 0xd8, 0xff]);
+    const result = await uploadToCloudinary(buffer, 'users');
+
+    expect(attempts).to.equal(2);
+    expect(result).to.include({ cloudinaryAccountId: '1', cloudName: 'cloud-one' });
   });
 
   it('retries an upload after a rate-limit response', async () => {
