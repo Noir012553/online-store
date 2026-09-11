@@ -2,7 +2,11 @@ import unittest
 
 from bs4 import BeautifulSoup
 
-from scraper_paths import collect_product_links, product_matches_collection
+from scraper_paths import (
+    collect_product_links,
+    parse_scraper_metadata,
+    product_matches_collection,
+)
 
 
 class ScraperPathsTest(unittest.TestCase):
@@ -45,6 +49,61 @@ class ScraperPathsTest(unittest.TestCase):
             product_matches_collection(
                 soup,
                 "https://gearvn.com/collections/laptop-gaming-acer?page=1",
+            )
+        )
+
+    def test_parses_metadata_from_scraper_filename(self):
+        self.assertEqual(
+            parse_scraper_metadata("/tmp/Acer_Laptop_Gaming_Scraper.py"),
+            {
+                "brand": "Acer",
+                "categories": "Laptop Gaming",
+                "brand_key": "acer",
+                "categories_key": "laptop gaming",
+            },
+        )
+        self.assertEqual(
+            parse_scraper_metadata("Razer_Keyboard_Scraper.py"),
+            {
+                "brand": "Razer",
+                "categories": "Keyboard",
+                "brand_key": "razer",
+                "categories_key": "keyboard",
+            },
+        )
+
+    def test_accepts_product_url_without_detail_page_taxonomy(self):
+        self.assertTrue(
+            product_matches_collection(
+                BeautifulSoup("", "html.parser"),
+                "https://gearvn.com/products/example-product",
+            )
+        )
+
+    def test_rejects_wrong_collection_category_or_brand(self):
+        soup = BeautifulSoup(
+            """
+            <script type="application/ld+json">
+              {
+                "@type":"Product",
+                "category":"Laptop Gaming",
+                "brand":{"@type":"Brand","name":"Acer"}
+              }
+            </script>
+            """,
+            "html.parser",
+        )
+
+        self.assertFalse(
+            product_matches_collection(
+                soup,
+                "https://gearvn.com/collections/laptop-office-acer?page=1",
+            )
+        )
+        self.assertFalse(
+            product_matches_collection(
+                soup,
+                "https://gearvn.com/collections/laptop-gaming-razer?page=1",
             )
         )
 

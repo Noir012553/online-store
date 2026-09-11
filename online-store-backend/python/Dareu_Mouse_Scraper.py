@@ -12,7 +12,12 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     get_output_paths,
+    parse_scraper_metadata,
 )
+
+SCRAPER_METADATA = parse_scraper_metadata(__file__)
+SCRAPER_BRAND = SCRAPER_METADATA["brand"]
+SCRAPER_CATEGORIES = SCRAPER_METADATA["categories"]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -103,14 +108,14 @@ def scrape_full():
             price, regular_price = extract_product_prices(soup, price)
 
             data_list.append({
-                "Brand": "DareU",
+                "Brand": SCRAPER_BRAND,
                 "ID": url.split("/")[-1],
                 "Name": name,
                 "SKU": sku,
                 "Price_VND": price,
                 "Regular_Price": regular_price,
                 "InStock": instock,
-                "Categories": "Mouse",
+                "Categories": SCRAPER_CATEGORIES,
                 "Attributes": json.dumps(specs, ensure_ascii=False),
                 "Description": "Thông số: " + str(specs),
                 "MainImage": main_img,

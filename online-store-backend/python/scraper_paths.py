@@ -112,10 +112,39 @@ def collect_product_links(soup, collection_url):
     return links
 
 
-def _normalize_taxonomy_text(value):
+def normalize_metadata_key(value):
+    """Return a stable key for comparing scraper metadata and source taxonomy."""
     normalized = unicodedata.normalize("NFKD", str(value or ""))
     normalized = "".join(character for character in normalized if not unicodedata.combining(character))
     return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
+
+
+def _normalize_taxonomy_text(value):
+    return normalize_metadata_key(value)
+
+
+def parse_scraper_metadata(scraper_path):
+    """Parse output metadata from a scraper filename without a fixed taxonomy list."""
+    stem = Path(scraper_path).stem
+    if stem.endswith("_Scraper"):
+        stem = stem[:-len("_Scraper")]
+    parts = [part for part in stem.split("_") if part]
+    if not parts:
+        return {
+            "brand": "",
+            "categories": "",
+            "brand_key": "",
+            "categories_key": "",
+        }
+
+    brand = parts[0]
+    categories = " ".join(parts[1:])
+    return {
+        "brand": brand,
+        "categories": categories,
+        "brand_key": normalize_metadata_key(brand),
+        "categories_key": normalize_metadata_key(categories),
+    }
 
 
 def _iter_json_ld_objects(value):
@@ -150,6 +179,28 @@ def extract_source_categories(soup):
     return [_normalize_taxonomy_text(value) for value in values if _normalize_taxonomy_text(value)]
 
 
+def extract_source_brands(soup):
+    values = []
+    for script in soup.select('script[type="application/ld+json"]'):
+        try:
+            payload = json.loads(script.string or script.get_text())
+        except (TypeError, ValueError):
+            continue
+        for item in _iter_json_ld_objects(payload):
+            brand = item.get("brand")
+            if isinstance(brand, dict):
+                brand = brand.get("name")
+            if isinstance(brand, str):
+                values.append(brand)
+
+    for element in soup.select(
+        '[itemprop="brand"], meta[property="product:brand"], meta[name="brand"]'
+    ):
+        values.append(element.get("content") or element.get_text(" ", strip=True))
+
+    return [_normalize_taxonomy_text(value) for value in values if _normalize_taxonomy_text(value)]
+
+
 def _collection_product_tokens(collection_url):
     path_parts = [part for part in urlsplit(collection_url).path.split("/") if part]
     try:
@@ -165,15 +216,36 @@ def _collection_product_tokens(collection_url):
 
 
 def product_matches_collection(soup, collection_url):
+    """Validate collection metadata, while accepting links collected as products."""
+    path = urlsplit(str(collection_url or "")).path.lower()
+    if path.startswith("/products/"):
+        return True
+
     expected_tokens = _collection_product_tokens(collection_url)
-    source_categories = extract_source_categories(soup)
+    source_brands = extract_source_brands(soup)
+    source_categories = [
+        category
+        for category in extract_source_categories(soup)
+        if category not in set(source_brands)
+    ]
     if not expected_tokens or not source_categories:
         return False
-    return any(
-        token in category
-        for token in expected_tokens
+
+    collection_key = normalize_metadata_key(" ".join(expected_tokens))
+    if not any(
+        category == collection_key or category in collection_key
         for category in source_categories
-    )
+    ):
+        return False
+
+    source_brands = extract_source_brands(soup)
+    if source_brands:
+        return any(
+            brand == collection_key
+            or re.search(rf"(?:^| ){re.escape(brand)}(?: |$)", collection_key)
+            for brand in source_brands
+        )
+    return True
 
 
 def get_output_directory():
