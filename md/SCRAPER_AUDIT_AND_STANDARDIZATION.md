@@ -124,6 +124,8 @@ Nếu truyền đúng collection URL, chỉ cần token `laptop` hoặc `gaming`
 
 Các sản phẩm Asus Gaming được xử lý riêng bởi `Asus_Laptop_Gaming_Scraper.py`.
 
+Các output cũ có tên `Asus_Laptop_YYYYMMDD.csv/json` và giá trị category `Laptop` được product pipeline chuẩn hóa thành `Laptop Office` khi import. Không tự động xóa hoặc di chuyển các file cũ; lần cào mới sẽ tạo `Asus_Laptop_Office_YYYYMMDD.csv/json`.
+
 ### 4.2. Category trong output bị hard-code ở từng file
 
 Nhiều scraper ghi trực tiếp:
