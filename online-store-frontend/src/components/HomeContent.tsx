@@ -106,7 +106,8 @@ const describeProductPayload = (payload: any) => ({
 
 const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-gaming': '/products/gaming-laptop',
-  '/products/laptop-van-phong': '/products/laptop-office',
+  '/products/laptop-van-phong': '/products/office-laptop',
+  '/products/laptop-office': '/products/office-laptop',
 };
 
 const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
@@ -800,7 +801,7 @@ export default function Home() {
           <div
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
-            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-[240px] transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
           </div>
@@ -808,7 +809,7 @@ export default function Home() {
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
           <div
             aria-hidden={!isBannerVisible}
-            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-[240px] transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
           </div>
