@@ -122,6 +122,19 @@ const normalizeSeedCategory = value => {
   return category || null;
 };
 
+const normalizeSourceCategory = (value, filePath) => {
+  const category = normalizeSeedCategory(value);
+  if (!category) return null;
+
+  const fileStem = path.basename(filePath, path.extname(filePath));
+  if (/^Asus_Laptop_\d{8}$/i.test(fileStem) && normalizeName(category) === 'laptop') {
+    console.warn(`[ProductPipeline] Chuẩn hóa output legacy ${path.basename(filePath)}: Laptop -> Laptop Office`);
+    return 'Laptop Office';
+  }
+
+  return category;
+};
+
 const filterSeedProducts = (products) => {
   const acceptedProducts = [];
   const rejectedProducts = [];
@@ -144,14 +157,15 @@ const filterSeedProducts = (products) => {
 };
 
 const inferCategoryFromFilename = (product, filePath) => {
-  if (product.category?.trim()) return product.category.trim();
+  const sourceCategory = normalizeSourceCategory(product.category, filePath);
+  if (sourceCategory) return sourceCategory;
 
   const name = path.basename(filePath, path.extname(filePath)).replace(/_\d{8}$/, '');
   const parts = name.split('_').filter(Boolean);
   const brandKey = normalizeName(product.brand || product.Brand);
   for (let index = 1; index < parts.length; index++) {
     if (normalizeName(parts.slice(0, index).join('_')) === brandKey) {
-      return parts.slice(index).join(' ');
+      return normalizeSourceCategory(parts.slice(index).join(' '), filePath);
     }
   }
 
@@ -606,6 +620,7 @@ module.exports = {
   getInitialStock,
   filterSeedProducts,
   normalizeSeedCategory,
+  inferCategoryFromFilename,
   getProductDataDirectory,
   runScraper,
   runProductSeedPipeline,

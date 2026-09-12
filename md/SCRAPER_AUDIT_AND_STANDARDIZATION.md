@@ -120,15 +120,11 @@ Nếu truyền đúng collection URL, chỉ cần token `laptop` hoặc `gaming`
 
 ### 4.1. Phân loại Asus Laptop khác các scraper khác
 
-`Asus_Laptop_Scraper.py:78-85` tự phân loại bằng tên sản phẩm:
+`Asus_Laptop_Office_Scraper.py` dùng metadata từ tên file để xác định batch là `Laptop Office`. File này không còn dùng fallback `Laptop`, vì danh mục đã được xác định rõ ngay từ tên scraper.
 
-```text
-ROG/TUF/GAMING → Laptop Gaming
-VIVOBOOK/ZENBOOK/EXPERTBOOK/OLED → Laptop Office
-fallback        → Laptop
-```
+Các sản phẩm Asus Gaming được xử lý riêng bởi `Asus_Laptop_Gaming_Scraper.py`.
 
-Fallback `Laptop` không phân biệt được loại sản phẩm và có thể không khớp taxonomy hiện tại.
+Các output cũ có tên `Asus_Laptop_YYYYMMDD.csv/json` và giá trị category `Laptop` được product pipeline chuẩn hóa thành `Laptop Office` khi import. Không tự động xóa hoặc di chuyển các file cũ; lần cào mới sẽ tạo `Asus_Laptop_Office_YYYYMMDD.csv/json`.
 
 ### 4.2. Category trong output bị hard-code ở từng file
 
@@ -142,7 +138,7 @@ Nhiều scraper ghi trực tiếp:
 "Categories": "Headphone"
 ```
 
-Tên file đã chứa cùng metadata nhưng hiện chưa được dùng làm nguồn chung. Khi đổi tên file mà quên đổi giá trị trong code, dữ liệu sẽ lệch.
+Runner dùng metadata từ tên file để tạo record thống nhất. Khi đổi tên file, phải cập nhật cả lệnh gọi scraper tương ứng để output không bị lệch danh mục.
 
 ### 4.3. Logic trích xuất bị nhân bản
 
@@ -169,7 +165,7 @@ Nhiều file chỉ đọc script JSON-LD đầu tiên và lấy phần tử đ�
 
 ### 4.5. Collection URL không phải lúc nào cũng phản ánh category output
 
-Một số file có collection theo brand hoặc nhóm rộng nhưng output category chi tiết hơn. Ví dụ `Asus_Laptop_Scraper.py` dùng collection `laptop-asus` rồi tự chia Gaming/Office theo tên sản phẩm.
+Một số file có collection theo brand hoặc nhóm rộng nhưng output category chi tiết hơn. `Asus_Laptop_Office_Scraper.py` dùng collection `laptop-asus` và gắn batch này với `Laptop Office`; sản phẩm Gaming được tách sang scraper Gaming riêng.
 
 Cần xác định rõ metadata batch và category record, không dùng một điều kiện chung áp dụng mù cho tất cả scraper.
 
@@ -186,7 +182,7 @@ Cần xác định rõ metadata batch và category record, không dùng một đ
 
 1. Bộ lọc OR chỉ cần khớp một token `laptop`, `gaming` hoặc brand.
 2. Sản phẩm thuộc collection liên quan bị thu thập nhưng không được kiểm tra đủ brand/category.
-3. `Asus_Laptop_Scraper.py` fallback thành category `Laptop`.
+3. Scraper Asus dùng tên file không đủ cụ thể có thể tạo category `Laptop`; batch văn phòng phải dùng `Asus_Laptop_Office_Scraper.py`.
 4. Tên file và field `Categories` khác nhau nhưng không có cảnh báo.
 5. Brand viết khác hoa thường: `HP`, `Hp`, `ASUS`, `Asus`, `MSI`, `Msi` tạo ra nhiều giá trị khác nhau nếu không normalize.
 6. Tên brand có nhiều từ hoặc chứa dấu gạch dưới sẽ làm parser tên file sai.
@@ -313,6 +309,6 @@ Bộ scraper hiện không chỉ có vấn đề dữ liệu lẫn loại; còn 
 ## 10. Giới hạn và việc cần theo dõi
 
 - Pagination collection vẫn tuần tự vì trang kế tiếp phụ thuộc điều kiện kết thúc của trang trước.
-- `Asus_Laptop_Scraper.py` dùng category batch `Laptop` theo metadata filename; không tự suy đoán Gaming/Office từ breadcrumb hoặc tên sản phẩm.
+- `Asus_Laptop_Office_Scraper.py` dùng category batch `Laptop Office` theo metadata filename; không tự suy đoán Gaming/Office từ breadcrumb hoặc tên sản phẩm.
 - Tên file output vẫn có độ phân giải ngày; không nên chạy nhiều batch cùng brand/category trong cùng ngày nếu chưa bổ sung run ID.
 - Không tự động chuyển tài khoản, di chuyển hoặc xóa dữ liệu cũ trong các luồng upload ảnh.

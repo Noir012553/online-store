@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { AlertCircle, ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
@@ -106,7 +106,8 @@ const describeProductPayload = (payload: any) => ({
 
 const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-gaming': '/products/gaming-laptop',
-  '/products/laptop-van-phong': '/products/laptop-office',
+  '/products/laptop-van-phong': '/products/office-laptop',
+  '/products/laptop-office': '/products/office-laptop',
 };
 
 const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
@@ -219,7 +220,6 @@ export default function Home() {
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasProductLoadError, setHasProductLoadError] = useState(false);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -302,7 +302,6 @@ export default function Home() {
         isLoadingCategories,
       });
       setIsLoading(true);
-      setHasProductLoadError(false);
       return;
     }
 
@@ -414,7 +413,6 @@ export default function Home() {
         categories: contentCategories,
       });
       setIsLoading(true);
-      setHasProductLoadError(false);
 
       try {
         const [categoryResults, flashResults] = await Promise.all([
@@ -471,9 +469,6 @@ export default function Home() {
           .map((product) => getDealEndTimestamp(product.deal))
           .filter((endTime): endTime is number => endTime !== null);
         setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
-        setHasProductLoadError(
-          categoryResults.length > 0 && categoryResults.every((result) => result.status === 'rejected'),
-        );
       } catch (error) {
         debugHomepage('products:fetch-error', {
           durationMs: Date.now() - fetchStartedAt,
@@ -483,7 +478,6 @@ export default function Home() {
         if (isMounted) {
           setCategoryProducts({});
           setDealProducts([]);
-          setHasProductLoadError(true);
         }
       } finally {
         debugHomepage('products:fetch-finish', {
@@ -696,7 +690,6 @@ export default function Home() {
 
   debugHomepage('render:sections', {
     isLoading,
-    hasProductLoadError,
     categoryCount: Array.isArray(categories) ? categories.length : 0,
     categorySections: categorySections.map(({ category, products }) => ({
       categoryId: category._id,
@@ -808,7 +801,7 @@ export default function Home() {
           <div
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
-            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-[240px] transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
           </div>
@@ -816,7 +809,7 @@ export default function Home() {
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
           <div
             aria-hidden={!isBannerVisible}
-            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-[240px] pointer-events-none transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100'}`}
+            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-[240px] transition-opacity duration-300 xl:block 2xl:w-[280px] ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
           </div>
@@ -846,8 +839,9 @@ export default function Home() {
             </section>
           )}
 
-          <section className="mt-4 bg-white pt-6 pb-6 sm:mt-0 sm:pt-8 sm:pb-8">
-            <div className="container mx-auto section-container-px">
+          {(isLoading || sectionsToRender.length > 0) && (
+            <section className="mt-4 bg-white pt-6 pb-6 sm:mt-0 sm:pt-8 sm:pb-8">
+              <div className="container mx-auto section-container-px">
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
                   {Array(8).fill(null).map((_, index) => (
@@ -914,32 +908,15 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
-                  <AlertCircle className="mx-auto mb-4 h-10 w-10 text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {hasProductLoadError ? t('products_unavailable_title') : t('no_products_found')}
-                  </h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
-                    {t('products_unavailable_description')}
-                  </p>
-                  <Link href="/products" className="mt-5 inline-flex text-sm font-medium text-red-600 hover:text-red-700 hover:underline">
-                    {t('view_all_products')}
-                  </Link>
-                </div>
-              )}
+              ) : null}
 
               <div className="mt-10 mb-8">
                 <BannerSlot slot="homepage_inline" variant="strip" limit={3} />
               </div>
 
-              <div className="flex justify-center">
-                <Link href="/products">
-                  <Button className="bg-red-600 hover:bg-red-700 text-black hover:text-yellow-400">{t('view_all_products')}</Button>
-                </Link>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {dealProducts.length > 0 && (
             <section className="bg-white container mx-auto section-container-px py-8 sm:py-12">

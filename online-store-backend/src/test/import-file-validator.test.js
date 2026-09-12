@@ -35,6 +35,7 @@ const {
   getInitialStock,
   filterSeedProducts,
   normalizeSeedCategory,
+  inferCategoryFromFilename,
 } = require('../seeds/productSeedPipeline');
 
 describe('Scraped product filtering', () => {
@@ -51,6 +52,25 @@ describe('Scraped product filtering', () => {
     expect(result.acceptedProducts).to.have.length(2);
     expect(result.acceptedProducts[0].category).to.equal('Bàn Phím');
     expect(result.rejectedProducts).to.have.length(1);
+  });
+});
+
+describe('Scraped product category compatibility', () => {
+  it('maps legacy Asus Laptop output to Laptop Office', () => {
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop', brand: 'Asus' },
+      '/tmp/Asus_Laptop_20260911.json',
+    )).to.equal('Laptop Office');
+
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop Gaming', brand: 'Asus' },
+      '/tmp/Asus_Laptop_20260911.json',
+    )).to.equal('Laptop Gaming');
+
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop Office', brand: 'Asus' },
+      '/tmp/Asus_Laptop_Office_20260911.json',
+    )).to.equal('Laptop Office');
   });
 });
 

@@ -68,17 +68,27 @@ function HeaderComponent() {
               onMouseEnter={() => setProductDropdownOpen(true)}
               onMouseLeave={() => setProductDropdownOpen(false)}
             >
-              <button className="flex items-center gap-1 hover:text-red-600 transition-colors cursor-pointer py-2">
+              <button
+                type="button"
+                className="flex items-center gap-1 hover:text-red-600 transition-colors cursor-pointer py-2"
+                aria-expanded={productDropdownOpen}
+                aria-haspopup="menu"
+                onClick={() => setProductDropdownOpen((isOpen) => !isOpen)}
+              >
                 {t('products', 'common')}
                 <ChevronDown className="w-4 h-4" />
               </button>
 
               {/* Dropdown Content */}
-              <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 transition-opacity duration-200 ${
-                productDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
-              }`}>
+              <div
+                role="menu"
+                className={`absolute left-1/2 -translate-x-1/2 top-full mt-0 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 transition-opacity duration-200 ${
+                  productDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+                }`}
+              >
                 <Link
                   href="/products"
+                  onClick={() => setProductDropdownOpen(false)}
                   className="block px-4 py-3 hover:bg-gray-100 hover:text-red-600 transition-colors text-gray-900 first:rounded-t-lg border-b border-gray-200 text-sm"
                 >
                   {t('allProducts')}
@@ -90,6 +100,7 @@ function HeaderComponent() {
                     <Link
                       key={category._id}
                       href={`/products/${slug}`}
+                      onClick={() => setProductDropdownOpen(false)}
                       className={`block px-4 py-3 hover:bg-gray-100 hover:text-red-600 transition-colors text-gray-900 border-b border-gray-200 last:border-b-0 text-sm ${index === categories.length - 1 ? 'rounded-b-lg' : ''}`}
                     >
                       {displayName}
