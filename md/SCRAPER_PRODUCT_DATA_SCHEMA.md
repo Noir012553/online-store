@@ -72,9 +72,10 @@ pre-products
   -> post-products
 ```
 
-Từ thư mục repository root hoặc `online-store-backend`, các lệnh tương ứng là:
+Seed thuộc workspace backend. Chạy các lệnh sau từ thư mục `online-store-backend`:
 
 ```bash
+cd online-store-backend
 npm run seed
 npm run seed:dry-run
 npm run seed:pre-products
