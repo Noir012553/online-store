@@ -221,7 +221,10 @@ const ensureSourceCategories = async (products, filePath, dryRun) => {
 };
 
 const getProductImagePublicId = (product, slot, index = 0) => {
-  const identity = product.sku || product.URL || `${product.brand}:${product.name}`;
+  const identity = product.sourceProductId
+    || product.sku
+    || product.sourceUrl
+    || `${product.brand}:${product.name}`;
   const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
   return `${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
 };
@@ -314,17 +317,23 @@ const getInputFiles = ({ file, directory }) => {
   return files;
 };
 
+const getSeedIdentityKey = (product) => {
+  const identities = [
+    ['sourceProductId', product.sourceProductId],
+    ['sku', product.sku],
+    ['sourceUrl', product.sourceUrl],
+  ];
+  const identity = identities.find(([, value]) => value !== undefined && value !== null && String(value).trim());
+  return identity ? `${identity[0]}:${String(identity[1]).trim().toLowerCase()}` : null;
+};
+
 const dedupeProducts = (products) => {
   const seen = new Set();
   const unique = [];
   let duplicateCount = 0;
 
   products.forEach((product) => {
-    const dedupeKey = product.sku
-      ? `sku:${String(product.sku).trim().toLowerCase()}`
-      : product.URL
-        ? `url:${String(product.URL).trim()}`
-        : null;
+    const dedupeKey = getSeedIdentityKey(product);
 
     if (dedupeKey && seen.has(dedupeKey)) {
       duplicateCount++;
@@ -621,6 +630,8 @@ module.exports = {
   filterSeedProducts,
   normalizeSeedCategory,
   inferCategoryFromFilename,
+  getSeedIdentityKey,
+  dedupeProducts,
   getProductDataDirectory,
   runScraper,
   runProductSeedPipeline,

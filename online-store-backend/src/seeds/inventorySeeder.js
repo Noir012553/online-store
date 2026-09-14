@@ -4,11 +4,17 @@ const TARGET_STOCK = 25;
 
 const seedInventory = async () => {
   const result = await Product.updateMany(
-    { isDeleted: false },
+    {
+      isDeleted: false,
+      $and: [
+        { $or: [{ sourceProductId: { $exists: false } }, { sourceProductId: null }, { sourceProductId: '' }] },
+        { $or: [{ sourceUrl: { $exists: false } }, { sourceUrl: null }, { sourceUrl: '' }] },
+      ],
+    },
     { $set: { countInStock: TARGET_STOCK } }
   );
 
-  console.log(`Inventory normalized: ${result.modifiedCount} products set to ${TARGET_STOCK} units`);
+  console.log(`Inventory normalized: ${result.modifiedCount} non-scraped products set to ${TARGET_STOCK} units`);
 
   return {
     matchedProducts: result.matchedCount,

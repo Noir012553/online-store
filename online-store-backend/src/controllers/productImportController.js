@@ -546,11 +546,13 @@ const findDuplicateImportIssues = (products) => {
   products.forEach((product, index) => {
     const identities = [
       ['productId', product.productId],
+      ['sourceProductId', product.sourceProductId],
       ['sku', product.sku],
+      ['sourceUrl', product.sourceUrl],
       ['name_brand', `${product.name}|${product.brand}`],
-    ].filter(([, value]) => value !== undefined && value !== null && value !== '');
+    ].filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '');
     identities.forEach(([field, value]) => {
-      const key = `${field}:${String(value)}`;
+      const key = `${field}:${String(value).trim()}`;
       if (seen.has(key)) {
         issues.push({ index: index + 1, code: 'IMPORT_DUPLICATE_INPUT', field, value });
       } else {
@@ -606,10 +608,25 @@ const getImportProductId = (product) => (
   mongoose.Types.ObjectId.isValid(product.productId) ? product.productId.toString() : null
 );
 
+const getTrimmedIdentity = (value) => {
+  if (value === undefined || value === null) return null;
+  const normalized = String(value).trim();
+  return normalized || null;
+};
+
 const getProductLookupFilter = (product) => {
   const productId = getImportProductId(product);
   if (productId) return { _id: productId, isDeleted: false };
-  if (product.sku) return { sku: product.sku, isDeleted: false };
+
+  const sourceProductId = getTrimmedIdentity(product.sourceProductId);
+  if (sourceProductId) return { sourceProductId, isDeleted: false };
+
+  const sku = getTrimmedIdentity(product.sku);
+  if (sku) return { sku, isDeleted: false };
+
+  const sourceUrl = getTrimmedIdentity(product.sourceUrl);
+  if (sourceUrl) return { sourceUrl, isDeleted: false };
+
   return { name: product.name, brand: product.brand, isDeleted: false };
 };
 
@@ -720,10 +737,19 @@ const queueObsoleteProductImages = async (items = []) => {
   )));
 };
 
-const findExistingProduct = (byId, bySku, byNameAndBrand, product) => {
+const findExistingProduct = (byId, bySourceProductId, bySku, bySourceUrl, byNameAndBrand, product) => {
   const productId = getImportProductId(product);
   if (productId) return byId.get(productId);
-  if (product.sku) return bySku.get(product.sku);
+
+  const sourceProductId = getTrimmedIdentity(product.sourceProductId);
+  if (sourceProductId) return bySourceProductId.get(sourceProductId);
+
+  const sku = getTrimmedIdentity(product.sku);
+  if (sku) return bySku.get(sku);
+
+  const sourceUrl = getTrimmedIdentity(product.sourceUrl);
+  if (sourceUrl) return bySourceUrl.get(sourceUrl);
+
   return byNameAndBrand.get(`${product.name}|${product.brand}`);
 };
 
@@ -1352,19 +1378,30 @@ async function handleInsertMode(products) {
       isDeleted: false,
       $or: products.map(getProductLookupFilter),
     },
-    { name: 1, brand: 1, sku: 1 }
+    { name: 1, brand: 1, sourceProductId: 1, sourceUrl: 1, sku: 1 }
   );
 
   const existingKeys = new Set(existingProducts.flatMap((product) => [
+    product._id ? `productId:${product._id.toString()}` : null,
+    product.sourceProductId ? `sourceProductId:${product.sourceProductId}` : null,
     product.sku ? `sku:${product.sku}` : null,
-    `name:${product.name}|${product.brand}`,
+    product.sourceUrl ? `sourceUrl:${product.sourceUrl}` : null,
+    `name_brand:${product.name}|${product.brand}`,
   ].filter(Boolean)));
   // Separate products into insert and skip
   const toInsert = [];
   const skipped = [];
 
   products.forEach(product => {
-    const key = product.sku ? `sku:${product.sku}` : `name:${product.name}|${product.brand}`;
+    const key = getImportProductId(product)
+      ? `productId:${getImportProductId(product)}`
+      : getTrimmedIdentity(product.sourceProductId)
+        ? `sourceProductId:${getTrimmedIdentity(product.sourceProductId)}`
+        : getTrimmedIdentity(product.sku)
+          ? `sku:${getTrimmedIdentity(product.sku)}`
+          : getTrimmedIdentity(product.sourceUrl)
+            ? `sourceUrl:${getTrimmedIdentity(product.sourceUrl)}`
+            : `name_brand:${product.name}|${product.brand}`;
     const exists = existingKeys.has(key);
     if (exists) {
       skipped.push({ name: product.name, brand: product.brand, reasonCode: 'IMPORT_PRODUCT_EXISTS' });
@@ -1408,7 +1445,9 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   const filters = productsWithEnrichedIds.map(getProductLookupFilter);
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
-  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [product.sku, product]));
+  const existingBySourceProductId = new Map(existingProducts.filter(product => product.sourceProductId).map((product) => [String(product.sourceProductId).trim(), product]));
+  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [String(product.sku).trim(), product]));
+  const existingBySourceUrl = new Map(existingProducts.filter(product => product.sourceUrl).map((product) => [String(product.sourceUrl).trim(), product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
 
   const bulkOps = [];
@@ -1416,7 +1455,14 @@ async function handleUpdateMode(productsWithEnrichedIds) {
   const obsoleteImagePublicIds = [];
 
   for (const product of productsWithEnrichedIds) {
-    const existing = findExistingProduct(existingById, existingBySku, existingByNameAndBrand, product);
+    const existing = findExistingProduct(
+      existingById,
+      existingBySourceProductId,
+      existingBySku,
+      existingBySourceUrl,
+      existingByNameAndBrand,
+      product,
+    );
     if (!existing) {
       notFound.push({ name: product.name, brand: product.brand });
       continue;
@@ -1473,13 +1519,22 @@ async function handleUpsertMode(products, preserveExistingStock = false) {
   const filters = products.map(getProductLookupFilter);
   const existingProducts = await Product.find({ $or: filters, isDeleted: false }).lean();
   const existingById = new Map(existingProducts.map((product) => [product._id.toString(), product]));
-  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [product.sku, product]));
+  const existingBySourceProductId = new Map(existingProducts.filter(product => product.sourceProductId).map((product) => [String(product.sourceProductId).trim(), product]));
+  const existingBySku = new Map(existingProducts.filter(product => product.sku).map((product) => [String(product.sku).trim(), product]));
+  const existingBySourceUrl = new Map(existingProducts.filter(product => product.sourceUrl).map((product) => [String(product.sourceUrl).trim(), product]));
   const existingByNameAndBrand = new Map(existingProducts.map((product) => [`${product.name}|${product.brand}`, product]));
 
   const affectedTranslations = [];
   const obsoleteImagePublicIds = [];
   const bulkOps = products.map((product) => {
-    const existing = findExistingProduct(existingById, existingBySku, existingByNameAndBrand, product);
+    const existing = findExistingProduct(
+      existingById,
+      existingBySourceProductId,
+      existingBySku,
+      existingBySourceUrl,
+      existingByNameAndBrand,
+      product,
+    );
     if (existing) {
       const currentImagePublicIds = getProductImagePublicIds(product);
     obsoleteImagePublicIds.push(
@@ -2528,7 +2583,7 @@ const exportProducts = asyncHandler(async (req, res) => {
  */
 const STANDARD_CSV_HEADERS = [
   'productId', 'sku', 'name', 'brand', 'sourceProductId', 'sourceUrl', 'price', 'baseCurrencyCode', 'originalPrice',
-  'categoryId', 'category', 'description', 'image', 'imagePublicId', 'imagePublicIds', 'images',
+  'categoryId', 'category', 'description', 'technicalDescription', 'descriptionImages', 'promotions', 'image', 'imagePublicId', 'imagePublicIds', 'images',
   'countInStock', 'rating', 'numReviews', 'featured', 'deal_discount', 'deal_endTime', 'imageAssetPaths',
 ];
 
@@ -2544,8 +2599,7 @@ const getExportCSVHeaders = products => {
 
 const serializeCSVValue = value => {
   if (value === null || value === undefined) return '';
-  if (Array.isArray(value)) return value.map(item => serializeCSVValue(item)).join('|');
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value);
   return String(value);
 };
 
@@ -2562,7 +2616,8 @@ const escapeCSV = value => {
 const convertProductToCSVRow = (product, headers) => headers.map(header => {
   if (header === 'deal_discount') return escapeCSV(product.deal?.discount);
   if (header === 'deal_endTime') return escapeCSV(product.deal?.endTime);
-  if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image));
+  if (header === 'images') return escapeCSV((product.images || []).map(image => image?.url || image).join('|'));
+  if (header === 'imagePublicIds') return escapeCSV((product.imagePublicIds || []).join('|'));
   if (header === 'imageAssetPaths') return escapeCSV((product.imageAssetPaths || []).join('|'));
   if (header.startsWith('specs_')) return escapeCSV(product.specs?.[header.slice('specs_'.length)]);
   return escapeCSV(product[header]);
@@ -2703,6 +2758,8 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  getProductLookupFilter,
+  findDuplicateImportIssues,
   getTranslationWithFallback,
   serializeProductForExport,
   convertProductsToCSV,

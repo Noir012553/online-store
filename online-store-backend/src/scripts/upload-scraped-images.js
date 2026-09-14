@@ -21,7 +21,7 @@ const getRecentJsonFiles = (directory, startedAt) => fs.readdirSync(directory, {
 const buildImageManifest = (product, uploadedProduct) => ({
   productId: product.productId || null,
   sku: product.sku || null,
-  url: product.URL || null,
+  url: product.sourceUrl || null,
   name: product.name,
   image: {
     sourcePath: product.image,
@@ -57,7 +57,7 @@ const uploadFileImages = async (filePath, manager) => {
     } catch (error) {
       failures.push({
         sku: product.sku || null,
-        url: product.URL || null,
+        url: product.sourceUrl || null,
         name: product.name,
         sourcePath: product.image,
         error: error.message,
