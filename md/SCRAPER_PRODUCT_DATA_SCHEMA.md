@@ -780,6 +780,100 @@ Chạy theo thứ tự:
 4. Batch theo brand/category nhỏ.
 5. Chỉ mở rộng lên khoảng 1.000 sản phẩm sau khi đạt ngưỡng chất lượng.
 
+#### Quy trình seed an toàn
+
+Không chạy full seed trực tiếp cho batch 1.000 sản phẩm. Dùng thứ tự sau:
+
+1. Xem danh sách module và phase trước khi chạy:
+
+   ```bash
+   npm run seed:list
+   npm run seed:modules
+   ```
+
+2. Chạy dry-run để kiểm tra luồng seed, không ghi Product và không gọi AI:
+
+   ```bash
+   npm run seed:dry-run
+   ```
+
+   Dry-run vẫn cần `MONGO_URI` và cấu hình runtime hợp lệ; không được hiểu là test offline hoàn toàn.
+
+3. Kiểm tra riêng tầng i18n trước khi đụng product:
+
+   ```bash
+   npm run seed -- --i18n-only --dry-run
+   npm run check:language-inventory
+   npm run check:translation-keys
+   npm run check:translation-consistency
+   npm run check:translation-fallback
+   ```
+
+4. Chạy incremental cho phần còn thiếu, giới hạn rõ target language:
+
+   ```bash
+   npm run seed -- --incremental --languages=en --batch-size=10
+   ```
+
+   `--incremental` chỉ xử lý phần thiếu theo policy hiện tại. `--batch-size` điều khiển batch pipeline sản phẩm, không phải số request AI; throughput AI vẫn do queue, concurrency, throttle và cache quyết định.
+
+5. Chạy theo phase khi dữ liệu product đã sẵn sàng:
+
+   ```bash
+   npm run seed:pre-products
+   npm run seed:post-products
+   ```
+
+   `post-products` chỉ chạy khi Product đã import thành công và cần tạo dữ liệu phụ thuộc như reviews, orders, coupons hoặc spec translations.
+
+6. Chỉ sau khi batch nhỏ đạt tiêu chí mới chạy các target language tiếp theo và mở rộng brand/category. Mỗi lần chạy phải ghi `runId`, config/model, target language, số insert/update/skip/fail và trạng thái translation/R2.
+
+7. Không chạy `npm run seed` full trên production nếu chưa có backup, manifest, quota baseline, thời gian rollback và giới hạn batch rõ ràng.
+
+#### Ma trận test bắt buộc
+
+| Nhóm | Phạm vi | Cách chạy/kiểm tra | Điều kiện |
+|---|---|---|---|
+| Python scraper | Selector, lazy-load image, dedupe, promotion, canonical 16 fields | `python -m unittest discover -p 'test_*.py'` từ `online-store-backend/python` | Không gọi network thật; dùng fixture/mock |
+| JavaScript syntax | Service, seeder, adapter, controller đã chỉnh | `node --check <file>` | Không cần Mongo hoặc AI |
+| Import/normalize | JSON, CSV, legacy key, array/object mới, validator | Test adapter/import hiện có và bổ sung case field mới | Không ghi production DB |
+| Translation unit | Cache key, field mapping, fallback, completeness, quality | `npm run test:all -- --list`, sau đó chạy suite translation phù hợp | Có fixture source/target, không gọi provider thật |
+| Cloudflare pool | 420/429/quota xoay; 400/401/403/404 không xoay; hết config dừng | Mock Axios/provider response | Không dùng token thật trong test |
+| Translation seed | Incremental, retry, chunk 6.000 ký tự, cache hit/miss, multi-language | Chạy trên Mongo test/staging với batch 10–20 | Có quota baseline và report |
+| R2 adapter | Chọn account, object key/hash, metadata, retry/idempotency, rollback | Mock S3/R2 hoặc bucket staging riêng | Không xóa object production |
+| API contract | Product list/detail/translation trả camelCase và field mới | Test API backend + fixture response | Kiểm tra source locale và target locale |
+| Frontend adapter | Zod giữ đủ field mới, legacy không lỗi | Type-check/test adapter theo tooling frontend | Frontend hiện chưa có test script tự động |
+| Frontend UI | Plain text, alt, promotions, fallback source, không raw HTML | Browser smoke test sau khi code triển khai | Kiểm tra locale vi và locale đích |
+| Regression | Import/export, storefrontReady, currency, gallery cũ | `npm run test:import:export:dynamic` và suite liên quan | Chạy dry-run trước commit import |
+
+Các test integration phải dùng database/staging riêng. Không dùng `npm run build`; test UI cần chạy dev server và kiểm tra golden path sau khi frontend được triển khai.
+
+#### Thứ tự test trước mỗi rollout
+
+```text
+1. node --check các file thay đổi
+2. Python scraper fixture tests
+3. Adapter/validator/import unit tests
+4. Translation unit + Cloudflare pool mock tests
+5. R2 adapter mock/staging tests
+6. API integration source/target locale
+7. Import/export regression dry-run
+8. Browser smoke test frontend
+9. Batch 10–20 sản phẩm trên staging
+10. Review report rồi mới mở rộng batch
+```
+
+#### Tiêu chí dừng seed
+
+Dừng ngay và không xoay vòng vô hạn khi:
+
+- Có lỗi 400, 401, 403, 404 hoặc payload/schema không hợp lệ.
+- Tất cả Cloudflare config đều trả 420/429/quota sau giới hạn retry.
+- Tỷ lệ translation fail hoặc asset upload fail vượt ngưỡng đã chốt trong report.
+- Có product bị ghi thiếu identity, ghi đè dữ liệu tốt hoặc mất field source.
+- Có mismatch giữa manifest R2 và reference trong Product.
+- Test contract API/frontend làm mất field mới.
+
 Theo dõi tối thiểu:
 
 - Request/attempt theo Cloudflare config và model.
