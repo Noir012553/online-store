@@ -1,4 +1,5 @@
 import csv
+import csv
 import datetime
 import json
 import os
@@ -15,8 +16,12 @@ from bs4 import BeautifulSoup
 from scraper_paths import (
     PRODUCT_OUTPUT_FIELDS,
     collect_product_links,
+    extract_product_description,
+    extract_product_description_images,
     extract_product_image_urls,
     extract_product_prices,
+    extract_product_promotions,
+    extract_product_specs,
     get_output_paths,
     parse_scraper_metadata,
 )
@@ -162,19 +167,22 @@ def _product_record(soup, url, brand, categories):
     instock = "In Stock" if availability.endswith("instock") else "Out of Stock"
     specs = extract_product_specs(soup)
     return {
-        "Brand": brand,
-        "ID": url.rstrip("/").split("/")[-1],
-        "Name": name,
-        "SKU": sku,
-        "Price_VND": price,
-        "Regular_Price": regular_price,
-        "InStock": instock,
-        "Categories": categories,
-        "Attributes": json.dumps(specs, ensure_ascii=False),
-        "Description": "Thông số: " + str(specs),
-        "MainImage": image_urls[0] if image_urls else "",
-        "GalleryImages": " || ".join(image_urls[1:]),
-        "URL": url,
+        "ProductBrand": brand,
+        "ProductID": url.rstrip("/").split("/")[-1],
+        "ProductName": name,
+        "ProductSKU": sku,
+        "ProductPriceVND": price,
+        "ProductRegularPriceVND": regular_price,
+        "ProductStockStatus": instock,
+        "ProductCategory": categories,
+        "ProductSpecifications": specs,
+        "ProductTechnicalDescription": "Thông số: " + json.dumps(specs, ensure_ascii=False),
+        "ProductDescription": extract_product_description(soup),
+        "ProductDescriptionImages": extract_product_description_images(soup),
+        "ProductPromotions": extract_product_promotions(soup),
+        "ProductMainImage": image_urls[0] if image_urls else "",
+        "ProductGalleryImages": image_urls[1:],
+        "ProductURL": url,
     }
 
 
@@ -183,11 +191,11 @@ def deduplicate_records(records):
     seen_urls = set()
     seen_skus = set()
     for record in records:
-        url = _canonical_product_url(record["URL"])
-        sku = str(record.get("SKU") or "").strip().lower()
+        url = _canonical_product_url(record["ProductURL"])
+        sku = str(record.get("ProductSKU") or "").strip().lower()
         if url in seen_urls or (sku and sku != "n/a" and sku in seen_skus):
             continue
-        record["URL"] = url
+        record["ProductURL"] = url
         seen_urls.add(url)
         if sku and sku != "n/a":
             seen_skus.add(sku)
@@ -204,7 +212,14 @@ def write_output_atomically(records, file_prefix):
     json_tmp = output_dir / f".{json_path.name}.part"
     try:
         frame = pd.DataFrame(records, columns=PRODUCT_OUTPUT_FIELDS)
-        frame.to_csv(csv_tmp, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)
+        csv_frame = frame.apply(
+            lambda column: column.map(
+                lambda value: json.dumps(value, ensure_ascii=False)
+                if isinstance(value, (dict, list))
+                else value
+            )
+        )
+        csv_frame.to_csv(csv_tmp, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)
         frame.to_json(json_tmp, orient="records", indent=4, force_ascii=False)
         os.replace(csv_tmp, csv_path)
         os.replace(json_tmp, json_path)

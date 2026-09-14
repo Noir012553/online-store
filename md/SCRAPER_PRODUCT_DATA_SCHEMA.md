@@ -8,16 +8,18 @@ Tài liệu này ghi nhận bộ key sản phẩm dự kiến sau khi bổ sung:
 - Ảnh nằm bên trong mô tả sản phẩm.
 - Khuyến mãi và quà tặng đi kèm.
 
-Tài liệu chỉ chốt schema và rủi ro. Chưa thay đổi scraper Python, adapter import hoặc model MongoDB.
+Tài liệu này đồng thời ghi nhận phần triển khai schema đã thực hiện ở scraper Python, adapter import, validator và Product model. Luồng upload asset mô tả lên Cloudinary/R2 riêng vẫn chưa được bật.
 
 ## 2. Trạng thái hiện tại
 
-Scraper hiện vẫn xuất 13 key cũ trong:
+Trước thay đổi, scraper xuất 13 key cũ. Hiện record mới đã chuyển sang bộ 16 key canonical; adapter vẫn giữ khả năng đọc file legacy để không làm hỏng dữ liệu cũ.
+
+Các file scraper chính:
 
 - `online-store-backend/python/scraper_paths.py`
 - `online-store-backend/python/scraper_runner.py`
 
-Adapter Node hiện cũng đang đọc trực tiếp các key cũ như `Name`, `Brand`, `ID`, `Description`, `MainImage` và `GalleryImages` tại:
+Adapter Node tại đây hỗ trợ cả bộ key canonical mới và các key legacy như `Name`, `Brand`, `ID`, `Description`, `MainImage` và `GalleryImages`:
 
 - `online-store-backend/src/utils/importAdapters/BaseImportAdapter.js`
 
@@ -25,7 +27,7 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 
 ## 3. Bộ key chuẩn độc nhất
 
-Bộ key canonical dự kiến gồm 16 key. Tất cả đều có tiền tố `Product` để tránh tên chung và tránh va chạm nghĩa:
+Bộ key canonical gồm 16 key. Tất cả đều có tiền tố `Product` để tránh tên chung và tránh va chạm nghĩa:
 
 ```text
 ProductBrand
@@ -537,6 +539,6 @@ Trước khi import thật:
 
 ## 12. Kết luận
 
-Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Tuy nhiên, schema mới chưa được triển khai trong code. Rủi ro lớn nhất là đổi output Python mà không cập nhật adapter Node, khiến dữ liệu mới không được import đúng.
+Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, output schema, adapter normalize, validator, Product model và import guide đã được cập nhật. Luồng upload riêng cho ảnh trong mô tả chưa được bật; hiện các URL ảnh mô tả được validate và lưu reference.
 
-Triển khai an toàn cần đi theo thứ tự: fixture HTML, extractor, record builder, adapter, validator, asset pipeline, dry-run rồi mới upsert. Tầng crawler chỉ chịu trách nhiệm lấy dữ liệu; storage, database và frontend phải dùng contract riêng và không phụ thuộc trực tiếp vào HTML của GearVN.
+Triển khai an toàn tiếp theo là chạy fixture/unit test, dry-run một batch nhỏ và kiểm tra dữ liệu trước khi upsert diện rộng. Tầng crawler chỉ chịu trách nhiệm lấy dữ liệu; storage, database và frontend phải dùng contract riêng và không phụ thuộc trực tiếp vào HTML của GearVN.

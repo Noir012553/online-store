@@ -4,7 +4,9 @@ from unittest.mock import Mock, patch
 
 from bs4 import BeautifulSoup
 
+from scraper_paths import PRODUCT_OUTPUT_FIELDS
 from scraper_runner import (
+    _product_record,
     deduplicate_records,
     extract_product_json_ld,
     fetch_html,
@@ -42,8 +44,8 @@ class ScraperRunnerTest(unittest.TestCase):
 
     def test_scrapes_products_concurrently_and_preserves_input_order(self):
         records = {
-            "https://gearvn.com/products/a": {"URL": "https://gearvn.com/products/a", "SKU": "A"},
-            "https://gearvn.com/products/b": {"URL": "https://gearvn.com/products/b", "SKU": "B"},
+            "https://gearvn.com/products/a": {"ProductURL": "https://gearvn.com/products/a", "ProductSKU": "A"},
+            "https://gearvn.com/products/b": {"ProductURL": "https://gearvn.com/products/b", "ProductSKU": "B"},
         }
 
         with patch("scraper_runner._scrape_product", side_effect=lambda url, brand, categories: (url, records[url])) as scrape:
@@ -69,17 +71,37 @@ class ScraperRunnerTest(unittest.TestCase):
         self.assertEqual(product["name"], "Example")
         self.assertEqual(product["offers"][0]["price"], "1000")
 
+    def test_builds_product_record_with_the_canonical_schema(self):
+        soup = BeautifulSoup(
+            """
+            <h1>Example Product</h1>
+            <script type="application/ld+json">
+              {"@type":"Product","sku":"SKU-1","offers":{"price":"1000","availability":"https://schema.org/InStock"}}
+            </script>
+            <section><h2>Thông tin sản phẩm</h2><div class="news-html-content"><p>Mô tả sản phẩm</p></div></section>
+            """,
+            "html.parser",
+        )
+
+        record = _product_record(soup, "https://gearvn.com/products/example", "Brand", "Category")
+
+        self.assertEqual(set(record), set(PRODUCT_OUTPUT_FIELDS))
+        self.assertEqual(record["ProductName"], "Example Product")
+        self.assertEqual(record["ProductTechnicalDescription"], "Thông số: {}")
+        self.assertEqual(record["ProductDescription"], "Mô tả sản phẩm")
+        self.assertEqual(record["ProductPromotions"], [])
+
     def test_deduplicates_by_url_and_sku(self):
         records = [
-            {"URL": "https://gearvn.com/products/a/", "SKU": "A"},
-            {"URL": "https://gearvn.com/products/a", "SKU": "A-OTHER"},
-            {"URL": "https://gearvn.com/products/b", "SKU": "A"},
-            {"URL": "https://gearvn.com/products/c", "SKU": "C"},
+            {"ProductURL": "https://gearvn.com/products/a/", "ProductSKU": "A"},
+            {"ProductURL": "https://gearvn.com/products/a", "ProductSKU": "A-OTHER"},
+            {"ProductURL": "https://gearvn.com/products/b", "ProductSKU": "A"},
+            {"ProductURL": "https://gearvn.com/products/c", "ProductSKU": "C"},
         ]
 
         result = deduplicate_records(records)
 
-        self.assertEqual([record["URL"] for record in result], [
+        self.assertEqual([record["ProductURL"] for record in result], [
             "https://gearvn.com/products/a",
             "https://gearvn.com/products/c",
         ])

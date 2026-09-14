@@ -4,6 +4,9 @@ from bs4 import BeautifulSoup
 
 from scraper_paths import (
     collect_product_links,
+    extract_product_description,
+    extract_product_description_images,
+    extract_product_promotions,
     parse_scraper_metadata,
     product_matches_collection,
 )
@@ -70,6 +73,55 @@ class ScraperPathsTest(unittest.TestCase):
                 "brand_key": "razer",
                 "categories_key": "keyboard",
             },
+        )
+
+    def test_extracts_product_description_images_and_promotions(self):
+        soup = BeautifulSoup(
+            """
+            <section>
+              <h2>Thông tin sản phẩm</h2>
+              <div class="news-html-content">
+                <h2>Hiệu năng ổn định</h2>
+                <p>Phù hợp cho công việc văn phòng.</p>
+                <p><img src="//cdn.example.com/feature.jpg" alt="Ảnh tính năng"></p>
+              </div>
+            </section>
+            <section>
+              <div><span>Ưu đãi đi kèm</span></div>
+              <p>Tặng ngay 1 x <a href="/products/gift-mouse">Chuột không dây</a> (trị giá 360.000đ)</p>
+              <p>[Laptop] Giảm 1% tối đa 500k cho HSSV khi mua laptop</p>
+              <button>Xem thêm 1 ưu đãi</button>
+            </section>
+            """,
+            "html.parser",
+        )
+
+        self.assertIn("Hiệu năng ổn định", extract_product_description(soup))
+        self.assertEqual(
+            extract_product_description_images(soup),
+            [{
+                "ProductDescriptionImageURL": "https://cdn.example.com/feature.jpg",
+                "ProductDescriptionImageAlt": "Ảnh tính năng",
+            }],
+        )
+        self.assertEqual(
+            extract_product_promotions(soup),
+            [
+                {
+                    "ProductPromotionType": "Gift",
+                    "ProductPromotionTitle": "Tặng ngay 1 x Chuột không dây (trị giá 360.000đ)",
+                    "ProductPromotionGiftQuantity": 1,
+                    "ProductPromotionGiftProductName": "Chuột không dây",
+                    "ProductPromotionGiftProductURL": "https://gearvn.com/products/gift-mouse",
+                    "ProductPromotionGiftValueVND": 360000,
+                },
+                {
+                    "ProductPromotionType": "Discount",
+                    "ProductPromotionTitle": "[Laptop] Giảm 1% tối đa 500k cho HSSV khi mua laptop",
+                    "ProductPromotionDiscountText": "[Laptop] Giảm 1% tối đa 500k cho HSSV khi mua laptop",
+                    "ProductPromotionScope": "Laptop",
+                },
+            ],
         )
 
     def test_rejects_product_url_as_collection_context(self):

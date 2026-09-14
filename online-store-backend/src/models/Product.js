@@ -165,6 +165,40 @@ const productSchema = mongoose.Schema(
       type: String,
       default: '',
     },
+    technicalDescription: {
+      type: String,
+      default: '',
+    },
+    descriptionImages: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        alt: {
+          type: String,
+          default: '',
+        },
+      },
+    ],
+    promotions: [
+      {
+        type: {
+          type: String,
+          required: true,
+        },
+        title: {
+          type: String,
+          required: true,
+        },
+        giftQuantity: Number,
+        giftProductName: String,
+        giftProductUrl: String,
+        giftValueVND: Number,
+        scope: String,
+        discountText: String,
+      },
+    ],
     specs: {
       type: mongoose.Schema.Types.Mixed,
       default: {},

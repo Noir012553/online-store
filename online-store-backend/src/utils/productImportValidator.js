@@ -20,6 +20,7 @@ const MAX_IMPORT_PRODUCTS = 5000;
 const MAX_IMPORT_OBJECT_DEPTH = 8;
 const MAX_IMPORT_STRING_LENGTH = 100000;
 const MAX_IMPORT_IMAGES = 50;
+const MAX_PRODUCT_PROMOTIONS = 50;
 const NUMERIC_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -42,7 +43,7 @@ const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInSto
  */
 const OPTIONAL_FIELDS = [
   'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
-  'rating', 'numReviews', 'featured', 'deal', 'translations'
+  'rating', 'numReviews', 'featured', 'deal', 'technicalDescription', 'descriptionImages', 'promotions', 'translations'
 ];
 
 /**
@@ -304,6 +305,99 @@ function validateProduct(product, rowIndex = 0, options = {}) {
       errors.push(`Row ${rowIndex}: Image URL must be a valid public HTTP(S) URL`);
     }
   });
+
+  if (product.technicalDescription !== undefined && product.technicalDescription !== null) {
+    cleaned.technicalDescription = sanitizeDescriptionText(product.technicalDescription);
+  }
+
+  if (product.descriptionImages !== undefined && product.descriptionImages !== null) {
+    let descriptionImages = product.descriptionImages;
+    if (typeof descriptionImages === 'string') {
+      try {
+        descriptionImages = JSON.parse(descriptionImages);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid descriptionImages JSON, skipped`);
+        descriptionImages = [];
+      }
+    }
+    if (!Array.isArray(descriptionImages)) {
+      warnings.push(`Row ${rowIndex}: descriptionImages must be an array, skipped`);
+    } else if (descriptionImages.length > MAX_IMPORT_IMAGES) {
+      errors.push(`Row ${rowIndex}: Too many description images; maximum is ${MAX_IMPORT_IMAGES}`);
+    } else {
+      cleaned.descriptionImages = descriptionImages.flatMap((image) => {
+        const entry = typeof image === 'string' ? { url: image } : image;
+        const url = String(entry?.url || '').trim();
+        if (!url || !validateImportUrl(url)) {
+          warnings.push(`Row ${rowIndex}: Invalid description image URL, skipped`);
+          return [];
+        }
+        return [{
+          url: new URL(url).toString(),
+          alt: sanitizePlainText(entry?.alt || ''),
+        }];
+      });
+    }
+  }
+
+  if (product.promotions !== undefined && product.promotions !== null) {
+    let promotions = product.promotions;
+    if (typeof promotions === 'string') {
+      try {
+        promotions = JSON.parse(promotions);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid promotions JSON, skipped`);
+        promotions = [];
+      }
+    }
+    if (!Array.isArray(promotions)) {
+      warnings.push(`Row ${rowIndex}: promotions must be an array, skipped`);
+    } else if (promotions.length > MAX_PRODUCT_PROMOTIONS) {
+      errors.push(`Row ${rowIndex}: Too many promotions; maximum is ${MAX_PRODUCT_PROMOTIONS}`);
+    } else {
+      cleaned.promotions = promotions.flatMap((promotion) => {
+        if (!promotion || typeof promotion !== 'object' || Array.isArray(promotion)) {
+          warnings.push(`Row ${rowIndex}: Invalid promotion, skipped`);
+          return [];
+        }
+        const title = sanitizePlainText(promotion.title || '');
+        const type = sanitizePlainText(promotion.type || '');
+        if (!title || !type) {
+          warnings.push(`Row ${rowIndex}: Promotion type/title is required, skipped`);
+          return [];
+        }
+        const cleanedPromotion = { type, title };
+        if (promotion.giftQuantity !== undefined && promotion.giftQuantity !== null && String(promotion.giftQuantity).trim() !== '') {
+          const quantity = toStrictNumber(promotion.giftQuantity);
+          if (quantity === null || !Number.isSafeInteger(quantity) || quantity < 1) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift quantity, skipped`);
+            return [];
+          }
+          cleanedPromotion.giftQuantity = quantity;
+        }
+        if (promotion.giftProductName) cleanedPromotion.giftProductName = sanitizePlainText(promotion.giftProductName);
+        if (promotion.giftProductUrl) {
+          const giftProductUrl = String(promotion.giftProductUrl).trim();
+          if (validateImportUrl(giftProductUrl)) {
+            cleanedPromotion.giftProductUrl = new URL(giftProductUrl).toString();
+          } else {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift URL, skipped`);
+          }
+        }
+        if (promotion.giftValueVND !== undefined && promotion.giftValueVND !== null && String(promotion.giftValueVND).trim() !== '') {
+          const giftValue = toStrictNumber(promotion.giftValueVND);
+          if (giftValue === null || giftValue < 0) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift value, skipped`);
+          } else {
+            cleanedPromotion.giftValueVND = giftValue;
+          }
+        }
+        if (promotion.scope) cleanedPromotion.scope = sanitizePlainText(promotion.scope);
+        if (promotion.discountText) cleanedPromotion.discountText = sanitizeDescriptionText(promotion.discountText);
+        return [cleanedPromotion];
+      });
+    }
+  }
 
   if (product.imagePublicId) {
     cleaned.imagePublicId = String(product.imagePublicId).trim();
