@@ -7,6 +7,10 @@ export interface ProductDescriptionImage {
   alt?: string;
   sourceUrl?: string;
   publicUrl?: string;
+  storageProvider?: string;
+  storageAccount?: string;
+  storageKey?: string;
+  bucket?: string;
 }
 
 export interface ProductPromotion {
