@@ -6,7 +6,11 @@ const os = require('os');
 const archiverModule = require('archiver');
 const path = require('path');
 const { validateImportFile } = require('../utils/fileUtils');
-const { validateProduct, validateProductArray } = require('../utils/productImportValidator');
+const {
+  validateProduct,
+  validateProductArray,
+  normalizeProductContentFields,
+} = require('../utils/productImportValidator');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const { errorHandler } = require('../middleware/errorMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
@@ -90,6 +94,28 @@ describe('Canonical scraper contract', () => {
       type: 'Gift',
       title: 'Tặng chuột',
     }]);
+  });
+
+  it('deduplicates structured content and rejects unknown promotion types', () => {
+    const normalized = normalizeProductContentFields({
+      descriptionImages: [
+        { url: 'https://example.invalid/description.jpg', alt: 'Ảnh đầu tiên' },
+        { url: 'https://example.invalid/description.jpg', alt: 'Ảnh trùng' },
+      ],
+      promotions: [
+        { type: 'Gift', title: 'Tặng chuột', giftProductUrl: 'https://example.invalid/mouse' },
+        { type: 'Gift', title: 'Tặng chuột', giftProductUrl: 'https://example.invalid/mouse' },
+      ],
+    }, 1);
+
+    expect(normalized.errors).to.deep.equal([]);
+    expect(normalized.cleaned.descriptionImages).to.have.length(1);
+    expect(normalized.cleaned.promotions).to.have.length(1);
+
+    const invalid = normalizeProductContentFields({
+      promotions: [{ type: 'Custom', title: 'Ưu đãi không hợp lệ' }],
+    }, 1);
+    expect(invalid.errors).to.deep.equal(['Row 1: Invalid promotion type "Custom"']);
   });
 
   it('round-trips structured fields through CSV as JSON', async () => {

@@ -201,6 +201,83 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].data.name).to.equal('Manual laptop');
   });
 
+  it('rejects manual translations that alter structured source identifiers', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    sandbox.stub(Product, 'findById').returns({
+      lean: sandbox.stub().resolves({
+        name: 'Laptop source',
+        descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Ảnh nguồn' }],
+        promotions: [{ type: 'Gift', title: 'Tặng chuột', giftQuantity: 1, giftValueVND: 360000 }],
+      }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    const res = createResponse();
+
+    await saveProductTranslation({
+      params: { id: productId },
+      query: { lang: 'en' },
+      body: {
+        descriptionImages: [{ url: 'https://example.invalid/replaced.jpg', alt: 'Translated image' }],
+        promotions: [{ type: 'Discount', title: 'Translated gift', giftQuantity: 1, giftValueVND: 360000 }],
+      },
+      lang: 'en',
+    }, res);
+
+    expect(res.status.calledWith(400)).to.be.true;
+  });
+
+  it('keeps source nested values when no text is available to retranslate', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    sandbox.stub(Product, 'findById').returns({
+      lean: sandbox.stub().resolves({
+        name: 'Laptop source',
+        description: 'Source description',
+        brand: 'Source brand',
+        specs: {},
+        descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: '' }],
+        promotions: [{ type: 'Gift', title: '' }],
+      }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        name: 'Existing laptop',
+        descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Old alt' }],
+        promotions: [{ type: 'Gift', title: 'Old title' }],
+        manualFields: [],
+      }),
+    });
+    sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      validationErrors: [],
+      qualityScore: 100,
+      qualityStatus: 'approved',
+    });
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({ qualityStatus: 'approved', validationErrors: [] }),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: new mongoose.Types.ObjectId(productId), name: 'Laptop source' }]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    const res = createResponse();
+
+    await retranslateProduct({
+      params: { id: productId },
+      body: { lang: 'en' },
+      lang: 'en',
+    }, res);
+
+    const update = findOneAndUpdate.firstCall.args[1].$set;
+    expect(update.descriptionImages).to.deep.equal([{ url: 'https://example.invalid/source.jpg', alt: '' }]);
+    expect(update.promotions).to.deep.equal([{ type: 'Gift', title: '' }]);
+  });
+
   it('keeps manual fields unchanged when retranslating the remaining product fields', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(Product, 'findById').returns({
@@ -397,6 +474,44 @@ describe('Product translation cache controller', () => {
 
     expect(deleteOne.calledOnce).to.be.true;
     expect(res.status.calledWith(500)).to.be.true;
+  });
+
+  it('rejects imported translations that alter structured source identifiers', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const deleteOne = sandbox.stub().resolves();
+    sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'batch-request', deleteOne });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returns({
+        lean: sandbox.stub().resolves([{
+          _id: new mongoose.Types.ObjectId(productId),
+          name: 'Laptop source',
+          brand: 'Source brand',
+          descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Ảnh nguồn' }],
+          promotions: [{ type: 'Gift', title: 'Tặng chuột', giftQuantity: 1 }],
+        }]),
+      }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    const res = createResponse();
+
+    await importProductTranslationCache({
+      body: {
+        records: [{
+          productId,
+          targetLang: 'en',
+          translations: {
+            descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Translated alt' }],
+            promotions: [{ type: 'Gift', title: 'Translated gift', giftQuantity: 2 }],
+          },
+        }],
+        idempotencyKey: 'translation-import-structured-0001',
+      },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(deleteOne.calledOnce).to.be.true;
+    expect(res.status.calledWith(400)).to.be.true;
   });
 
   it('does not overwrite manual translation fields during import by default', async () => {
