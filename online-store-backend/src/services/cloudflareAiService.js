@@ -18,6 +18,22 @@ IMPORTANT:
 - Professional, formal tone for products`;
 
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
+const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
+
+const isRateLimitOrQuotaError = (error) => {
+  if (RATE_LIMIT_STATUS_CODES.has(error.response?.status)) return true;
+
+  const providerErrors = Array.isArray(error.response?.data?.errors)
+    ? error.response.data.errors
+    : [];
+  const messages = [
+    error.message,
+    error.response?.data?.message,
+    ...providerErrors.map((entry) => entry?.message),
+  ].filter(Boolean).join(' ');
+
+  return /rate[\s-]?limit|quota|too many requests/i.test(messages);
+};
 
 class SimpleQueue {
   constructor(concurrency = 3) {
@@ -219,7 +235,15 @@ class CloudflareAiService {
     }
   }
 
-  async _doTranslate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000) {
+  async _doTranslate(
+    text,
+    sourceLang,
+    targetLang,
+    signal = null,
+    retries = 3,
+    baseDelay = 2000,
+    attemptedConfigIndexes = new Set(),
+  ) {
     // Validate required parameters
     if (!sourceLang) {
       throw new Error('Source language (sourceLang) is required');
@@ -308,19 +332,33 @@ class CloudflareAiService {
         });
       }
 
-      const isRateLimited =
-        error.response?.status === 429 ||
-        error.message?.includes('429');
+      const isRateLimited = isRateLimitOrQuotaError(error);
 
-      // If rate limited and multiple configs, try next config
-      if (isRateLimited && this.configs.length > 1) {
+      if (isRateLimited) {
         this.currentConfig.errorCount++;
-        this.currentConfig.lastError = 'Rate limited (429)';
+        this.currentConfig.lastError = `Rate limited or quota exhausted (${error.response?.status || 'provider message'})`;
         this.currentConfig.lastErrorTime = new Date();
-        this.rotateConfig();
-        console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rate limit hit - switched to config #${this.currentConfig.index}`);
-        // Retry with new config immediately
-        return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay);
+
+        const attemptedConfigs = new Set(attemptedConfigIndexes);
+        attemptedConfigs.add(this.currentConfig.index);
+        if (this.configs.length > 1 && attemptedConfigs.size < this.configs.length) {
+          this.rotateConfig();
+          console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rate limit or quota hit - switched to config #${this.currentConfig.index}`);
+          return this._doTranslate(
+            text,
+            sourceLang,
+            targetLang,
+            signal,
+            retries,
+            baseDelay,
+            attemptedConfigs,
+          );
+        }
+
+        if (this.configs.length > 1) {
+          console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} All Cloudflare configurations are rate limited or out of quota`);
+          throw error;
+        }
       }
 
       // Retry transient network, rate limit, timeout, and server errors
