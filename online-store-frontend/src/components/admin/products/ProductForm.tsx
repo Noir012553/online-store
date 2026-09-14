@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check } from "lucide-react";
+import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
 import { DEFAULT_LOCALE } from "../../../lib/i18n/types";
@@ -93,6 +93,9 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         numReviews: 0,
         countInStock: 0,
         description: "",
+        technicalDescription: "",
+        descriptionImages: [],
+        promotions: [],
         featured: false,
       });
     }
@@ -194,6 +197,9 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);
         formData.append("description", product.description);
+        formData.append("technicalDescription", product.technicalDescription || '');
+        formData.append("descriptionImages", JSON.stringify(product.descriptionImages || []));
+        formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
 
@@ -201,7 +207,6 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         if (imageUrl) {
           formData.append("image", imageUrl);
           formData.append("imagePublicId", imagePublicId || '');
-        formData.append("imageClaimId", imageClaimId || '');
           formData.append("imageClaimId", imageClaimId || '');
         }
 
@@ -227,6 +232,9 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);
         formData.append("description", product.description);
+        formData.append("technicalDescription", product.technicalDescription || '');
+        formData.append("descriptionImages", JSON.stringify(product.descriptionImages || []));
+        formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
         formData.append("featured", product.featured ? "true" : "false");
@@ -518,6 +526,206 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               className="transition-colors focus:ring-2 focus:ring-blue-500"
               autoComplete="off"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="product-technical-description" className="text-sm font-medium">
+              {t('technical_description', 'products', 'Mô tả kỹ thuật')}
+            </Label>
+            <Textarea
+              id="product-technical-description"
+              name="product-technical-description"
+              value={product.technicalDescription || ""}
+              onChange={(e) => setProduct({ ...product, technicalDescription: e.target.value })}
+              rows={3}
+              placeholder={t('technical_description', 'products', 'Mô tả kỹ thuật')}
+              className="transition-colors focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="space-y-3 border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium">{t('description_images', 'products', 'Ảnh trong mô tả')}</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setProduct({
+                  ...product,
+                  descriptionImages: [...(product.descriptionImages || []), { url: '', alt: '' }],
+                })}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                {t('add', 'admin', 'Thêm')}
+              </Button>
+            </div>
+            {(product.descriptionImages || []).map((descriptionImage: any, index: number) => (
+              <div key={index} className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_auto]">
+                <Input
+                  type="url"
+                  value={descriptionImage.url || ''}
+                  onChange={(e) => setProduct({
+                    ...product,
+                    descriptionImages: product.descriptionImages.map((image: any, imageIndex: number) => imageIndex === index
+                      ? { ...image, url: e.target.value }
+                      : image),
+                  })}
+                  placeholder="https://..."
+                  aria-label={t('description_image_url', 'products', 'URL ảnh mô tả')}
+                />
+                <Input
+                  value={descriptionImage.alt || ''}
+                  onChange={(e) => setProduct({
+                    ...product,
+                    descriptionImages: product.descriptionImages.map((image: any, imageIndex: number) => imageIndex === index
+                      ? { ...image, alt: e.target.value }
+                      : image),
+                  })}
+                  placeholder={t('description_image_alt', 'products', 'Mô tả ảnh')}
+                  aria-label={t('description_image_alt', 'products', 'Mô tả ảnh')}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setProduct({
+                    ...product,
+                    descriptionImages: product.descriptionImages.filter((_: unknown, imageIndex: number) => imageIndex !== index),
+                  })}
+                  aria-label={t('remove', 'admin', 'Xóa')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3 border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium">{t('promotions', 'products', 'Ưu đãi đi kèm')}</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setProduct({
+                  ...product,
+                  promotions: [...(product.promotions || []), { type: 'Gift', title: '' }],
+                })}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                {t('add', 'admin', 'Thêm')}
+              </Button>
+            </div>
+            {(product.promotions || []).map((promotion: any, index: number) => (
+              <div key={index} className="space-y-3 rounded-lg border border-slate-200 p-3">
+                <div className="grid gap-3 sm:grid-cols-[10rem_1fr_auto]">
+                  <select
+                    value={promotion.type || 'Gift'}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, type: e.target.value }
+                        : item),
+                    })}
+                    aria-label={t('promotion_type', 'products', 'Loại ưu đãi')}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="Gift">Gift</option>
+                    <option value="Discount">Discount</option>
+                  </select>
+                  <Input
+                    value={promotion.title || ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, title: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_title', 'products', 'Nội dung ưu đãi')}
+                    aria-label={t('promotion_title', 'products', 'Nội dung ưu đãi')}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setProduct({
+                      ...product,
+                      promotions: product.promotions.filter((_: unknown, itemIndex: number) => itemIndex !== index),
+                    })}
+                    aria-label={t('remove', 'admin', 'Xóa')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={promotion.giftProductName || ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, giftProductName: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_gift_name', 'products', 'Tên quà tặng')}
+                  />
+                  <Input
+                    type="url"
+                    value={promotion.giftProductUrl || ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, giftProductUrl: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_gift_url', 'products', 'URL quà tặng')}
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={promotion.giftQuantity ?? ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, giftQuantity: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_gift_quantity', 'products', 'Số lượng quà')}
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    value={promotion.giftValueVND ?? ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, giftValueVND: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_gift_value', 'products', 'Giá trị quà (VND)')}
+                  />
+                  <Input
+                    value={promotion.scope || ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, scope: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_scope', 'products', 'Phạm vi áp dụng')}
+                  />
+                  <Input
+                    value={promotion.discountText || ''}
+                    onChange={(e) => setProduct({
+                      ...product,
+                      promotions: product.promotions.map((item: any, itemIndex: number) => itemIndex === index
+                        ? { ...item, discountText: e.target.value }
+                        : item),
+                    })}
+                    placeholder={t('promotion_discount', 'products', 'Nội dung giảm giá')}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex items-center gap-3 p-3 border-l-4 border-blue-600 bg-blue-50 rounded">

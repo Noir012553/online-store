@@ -179,6 +179,12 @@ const productSchema = mongoose.Schema(
           type: String,
           default: '',
         },
+        sourceUrl: String,
+        publicUrl: String,
+        storageProvider: String,
+        storageAccount: String,
+        storageKey: String,
+        bucket: String,
       },
     ],
     promotions: [

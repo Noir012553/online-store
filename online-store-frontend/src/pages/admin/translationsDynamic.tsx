@@ -13,6 +13,7 @@ import { Pagination } from "../../components/admin/Pagination";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useTranslation } from "@/lib/i18n";
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types";
+import type { ProductDescriptionImage, ProductPromotion } from "../../lib/data";
 
 const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
 const RETRANSLATE_TIMEOUT_MS = 30_000;
@@ -33,6 +34,9 @@ interface ProductTranslation {
   description?: string;
   brand?: string;
   specs?: Record<string, string>;
+  technicalDescription?: string;
+  descriptionImages?: ProductDescriptionImage[];
+  promotions?: ProductPromotion[];
 }
 
 interface TranslationStatus {
@@ -412,11 +416,25 @@ function ProductTranslationCard({
 
         const data = await response.json();
 
+        const translatedImages = Array.isArray(data.data?.descriptionImages) ? data.data.descriptionImages : [];
+        const translatedPromotions = Array.isArray(data.data?.promotions) ? data.data.promotions : [];
         setTranslations({
           name: data.data?.name || '',
           description: data.data?.description || '',
           brand: data.data?.brand || '',
           specs: data.data?.specs || {},
+          technicalDescription: data.data?.technicalDescription || '',
+          descriptionImages: (product.descriptionImages || []).map((image: ProductDescriptionImage, index: number) => ({
+            ...image,
+            alt: translatedImages[index]?.alt || '',
+          })),
+          promotions: (product.promotions || []).map((promotion: ProductPromotion, index: number) => ({
+            ...promotion,
+            title: translatedPromotions[index]?.title || '',
+            giftProductName: translatedPromotions[index]?.giftProductName || '',
+            scope: translatedPromotions[index]?.scope || '',
+            discountText: translatedPromotions[index]?.discountText || '',
+          })),
         });
       } catch (error) {
         toast.error(t('load_failed', 'productsTranslations'));
@@ -443,6 +461,29 @@ function ProductTranslationCard({
       delete newSpecs[key];
     }
     handleFieldChange('specs', newSpecs);
+  };
+
+  const handleDescriptionImageAltChange = (index: number, alt: string) => {
+    const descriptionImages = (product.descriptionImages || []).map((image: ProductDescriptionImage, imageIndex: number) => ({
+      ...image,
+      alt: imageIndex === index ? alt : translations.descriptionImages?.[imageIndex]?.alt || '',
+    }));
+    handleFieldChange('descriptionImages', descriptionImages);
+  };
+
+  const handlePromotionTextChange = (
+    index: number,
+    field: 'title' | 'giftProductName' | 'scope' | 'discountText',
+    value: string,
+  ) => {
+    const promotions = (product.promotions || []).map((promotion: ProductPromotion, promotionIndex: number) => ({
+      ...promotion,
+      title: promotionIndex === index ? (field === 'title' ? value : translations.promotions?.[promotionIndex]?.title || '') : translations.promotions?.[promotionIndex]?.title || '',
+      giftProductName: promotionIndex === index ? (field === 'giftProductName' ? value : translations.promotions?.[promotionIndex]?.giftProductName || '') : translations.promotions?.[promotionIndex]?.giftProductName || '',
+      scope: promotionIndex === index ? (field === 'scope' ? value : translations.promotions?.[promotionIndex]?.scope || '') : translations.promotions?.[promotionIndex]?.scope || '',
+      discountText: promotionIndex === index ? (field === 'discountText' ? value : translations.promotions?.[promotionIndex]?.discountText || '') : translations.promotions?.[promotionIndex]?.discountText || '',
+    }));
+    handleFieldChange('promotions', promotions);
   };
 
   return (
@@ -508,6 +549,8 @@ function ProductTranslationCard({
           isLoading={loadingTranslation}
           onFieldChange={handleFieldChange}
           onSpecChange={handleSpecChange}
+          onDescriptionImageAltChange={handleDescriptionImageAltChange}
+          onPromotionTextChange={handlePromotionTextChange}
           onCancel={onCancel}
           onSave={() => onSave(translations)}
           isSubmitting={isSubmitting}
@@ -606,6 +649,8 @@ interface EditViewProps {
   isLoading: boolean;
   onFieldChange: (field: keyof ProductTranslation, value: any) => void;
   onSpecChange: (key: string, value: string) => void;
+  onDescriptionImageAltChange: (index: number, value: string) => void;
+  onPromotionTextChange: (index: number, field: 'title' | 'giftProductName' | 'scope' | 'discountText', value: string) => void;
   onCancel: () => void;
   onSave: () => void;
   isSubmitting: boolean;
@@ -618,6 +663,8 @@ function EditView({
   isLoading,
   onFieldChange,
   onSpecChange,
+  onDescriptionImageAltChange,
+  onPromotionTextChange,
   onCancel,
   onSave,
   isSubmitting,
@@ -655,6 +702,89 @@ function EditView({
         onChange={(value) => onFieldChange('description', value)}
         isTextarea
       />
+
+      <TranslationField
+        label={t('technical_description', 'products', 'Mô tả kỹ thuật')}
+        sourceValue={product?.technicalDescription || ''}
+        targetValue={translations?.technicalDescription || ''}
+        sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
+        targetLanguage={selectedLang?.name || selectedLanguage}
+        onChange={(value) => onFieldChange('technicalDescription', value)}
+        isTextarea
+      />
+
+      {Array.isArray(product?.descriptionImages) && product.descriptionImages.length > 0 && (
+        <div className="space-y-4 p-5">
+          <h4 className="font-semibold text-gray-900">{t('description_images', 'products', 'Ảnh trong mô tả')}</h4>
+          {product.descriptionImages.map((image: ProductDescriptionImage, index: number) => (
+            <div key={`${image.url}-${index}`} className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-semibold text-gray-600">{defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}</Label>
+                <div className="mt-1 rounded bg-gray-100 p-3 text-sm text-gray-900">{image.alt || '-'}</div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-gray-600">{selectedLang?.name || selectedLanguage}</Label>
+                <Input
+                  className="mt-1 text-sm"
+                  value={translations.descriptionImages?.[index]?.alt || ''}
+                  onChange={(event) => onDescriptionImageAltChange(index, event.target.value)}
+                  placeholder={t('description_image_alt', 'products', 'Mô tả ảnh')}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {Array.isArray(product?.promotions) && product.promotions.length > 0 && (
+        <div className="space-y-5 p-5">
+          <h4 className="font-semibold text-gray-900">{t('promotions', 'products', 'Ưu đãi đi kèm')}</h4>
+          {product.promotions.map((promotion: ProductPromotion, index: number) => (
+            <div key={`${promotion.type}-${promotion.title}-${index}`} className="space-y-3 rounded-lg border border-gray-200 p-4">
+              <TranslationField
+                label={t('promotion_title', 'products', 'Nội dung ưu đãi')}
+                sourceValue={promotion.title || ''}
+                targetValue={translations.promotions?.[index]?.title || ''}
+                sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
+                targetLanguage={selectedLang?.name || selectedLanguage}
+                onChange={(value) => onPromotionTextChange(index, 'title', value)}
+                isTextarea
+              />
+              {promotion.giftProductName && (
+                <TranslationField
+                  label={t('promotion_gift_name', 'products', 'Tên quà tặng')}
+                  sourceValue={promotion.giftProductName}
+                  targetValue={translations.promotions?.[index]?.giftProductName || ''}
+                  sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
+                  targetLanguage={selectedLang?.name || selectedLanguage}
+                  onChange={(value) => onPromotionTextChange(index, 'giftProductName', value)}
+                />
+              )}
+              {promotion.scope && (
+                <TranslationField
+                  label={t('promotion_scope', 'products', 'Phạm vi áp dụng')}
+                  sourceValue={promotion.scope}
+                  targetValue={translations.promotions?.[index]?.scope || ''}
+                  sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
+                  targetLanguage={selectedLang?.name || selectedLanguage}
+                  onChange={(value) => onPromotionTextChange(index, 'scope', value)}
+                />
+              )}
+              {promotion.discountText && (
+                <TranslationField
+                  label={t('promotion_discount', 'products', 'Nội dung giảm giá')}
+                  sourceValue={promotion.discountText}
+                  targetValue={translations.promotions?.[index]?.discountText || ''}
+                  sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
+                  targetLanguage={selectedLang?.name || selectedLanguage}
+                  onChange={(value) => onPromotionTextChange(index, 'discountText', value)}
+                  isTextarea
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Specs */}
       {product?.specs && Object.keys(product.specs).length > 0 && (

@@ -96,6 +96,10 @@ export const LaptopSchema = z.object({
     alt: z.string().optional(),
     sourceUrl: z.string().optional(),
     publicUrl: z.string().optional(),
+    storageProvider: z.string().optional(),
+    storageAccount: z.string().optional(),
+    storageKey: z.string().optional(),
+    bucket: z.string().optional(),
   })).default([]),
   promotions: z.array(z.object({
     type: z.string().trim().min(1),
@@ -177,6 +181,10 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
             alt: typeof image.alt === 'string' ? image.alt : undefined,
             sourceUrl: typeof image.sourceUrl === 'string' ? image.sourceUrl : undefined,
             publicUrl: typeof image.publicUrl === 'string' ? image.publicUrl : undefined,
+            storageProvider: typeof image.storageProvider === 'string' ? image.storageProvider : undefined,
+            storageAccount: typeof image.storageAccount === 'string' ? image.storageAccount : undefined,
+            storageKey: typeof image.storageKey === 'string' ? image.storageKey : undefined,
+            bucket: typeof image.bucket === 'string' ? image.bucket : undefined,
           } : null;
         })
         .filter((image): image is ProductDescriptionImage => Boolean(image))

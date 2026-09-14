@@ -115,9 +115,20 @@ export function ProductInformationTabs({
                 {product.promotions.map((promotion, index) => (
                   <article key={`${promotion.type}-${promotion.title}-${index}`} className="rounded-lg border border-red-100 bg-red-50/50 p-4">
                     <p className="font-semibold text-gray-900">{promotion.title}</p>
+                    {promotion.type && (
+                      <p className="mt-1 text-sm text-gray-700">
+                        {t('promotion_type', 'products', 'Loại ưu đãi')}: {promotion.type}
+                      </p>
+                    )}
+                    {promotion.scope && (
+                      <p className="mt-1 text-sm text-gray-700">
+                        {t('promotion_scope', 'products', 'Phạm vi áp dụng')}: {promotion.scope}
+                      </p>
+                    )}
                     {promotion.giftProductName && (
                       <p className="mt-1 text-sm text-gray-700">
                         {promotion.giftQuantity ? `${promotion.giftQuantity} x ` : ''}{promotion.giftProductName}
+                        {typeof promotion.giftValueVND === 'number' && ` (${new Intl.NumberFormat('vi-VN').format(promotion.giftValueVND)} VND)`}
                       </p>
                     )}
                     {promotion.giftProductUrl && (
