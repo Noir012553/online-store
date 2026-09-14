@@ -57,6 +57,7 @@ const TEST_SUITES = {
     files: [
       'translation-migration-smoke.test.js',
       'import-file-validator.test.js',
+      'r2-asset-service.test.js',
       'export-job-service.test.js',
       'translation-helper.test.js',
       'products.test.js',

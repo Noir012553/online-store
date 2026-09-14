@@ -17,11 +17,7 @@ const { refreshStorefrontReadiness } = require('../services/translationHelper');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const SeedStatus = require('../models/SeedStatus');
-const {
-  extractPublicIdFromUrl,
-  isCloudinaryUrl,
-  uploadFileToCloudinary,
-} = require('../services/cloudinaryService');
+const { uploadAsset } = require('../services/r2AssetService');
 
 const backendRoot = path.resolve(__dirname, '../..');
 const scraperRoot = path.join(backendRoot, 'python');
@@ -229,20 +225,23 @@ const getProductImagePublicId = (product, slot, index = 0) => {
   return `${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
 };
 
-const uploadProductImage = async (sourceUrl, publicId) => {
-  if (isCloudinaryUrl(sourceUrl)) {
-    return {
-      url: sourceUrl,
-      publicId: extractPublicIdFromUrl(sourceUrl) || publicId,
-    };
-  }
-
+const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = {}) => {
   const normalizedSource = String(sourceUrl || '').trim();
-  if (/^https?:\/\//i.test(normalizedSource)) {
-    return uploadFileToCloudinary(normalizedSource, 'products', publicId);
-  }
-
-  return uploadFileToCloudinary(resolveProductImagePath(normalizedSource), 'products', publicId);
+  if (!normalizedSource) throw new Error('Thiếu nguồn ảnh sản phẩm');
+  const source = /^https?:\/\//i.test(normalizedSource)
+    ? normalizedSource
+    : resolveProductImagePath(normalizedSource);
+  const asset = await uploadAsset(source, {
+    role,
+    stableKey: publicId,
+    publicKey: product.sourceProductId || product.sku || product.sourceUrl,
+  });
+  return {
+    ...asset,
+    url: asset.publicUrl,
+    publicUrl: asset.publicUrl,
+    publicId: asset.publicId || asset.storageKey,
+  };
 };
 
 const getProductImageErrorMessage = (error) => {
@@ -261,21 +260,51 @@ const uploadProductImages = async (product) => {
 
   const mainImage = await uploadProductImage(
     sourceImage,
-    getProductImagePublicId(product, 'main')
+    getProductImagePublicId(product, 'main'),
+    'main',
+    product,
   );
   const galleryImages = [];
   const galleryPublicIds = [];
+  const galleryAssets = [];
 
   for (let index = 0; index < sourceGallery.length; index += 1) {
     try {
       const uploadedImage = await uploadProductImage(
         sourceGallery[index],
-        getProductImagePublicId(product, 'gallery', index)
+        getProductImagePublicId(product, 'gallery', index),
+        'gallery',
+        product,
       );
       galleryImages.push(uploadedImage.url);
       galleryPublicIds.push(uploadedImage.publicId);
+      galleryAssets.push(uploadedImage);
     } catch (error) {
       console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
+    }
+  }
+
+  const descriptionImages = [];
+  for (let index = 0; index < (Array.isArray(product.descriptionImages) ? product.descriptionImages.length : 0); index += 1) {
+    const descriptionImage = product.descriptionImages[index];
+    const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
+    const source = descriptionEntry.url || descriptionEntry.sourceUrl;
+    if (!source) continue;
+    try {
+      const uploadedImage = await uploadProductImage(
+        source,
+        getProductImagePublicId(product, 'description', index),
+        'description',
+        product,
+      );
+      descriptionImages.push({
+        ...descriptionEntry,
+        ...uploadedImage,
+        url: uploadedImage.url,
+        publicUrl: uploadedImage.publicUrl,
+      });
+    } catch (error) {
+      console.warn(`[ProductPipeline] Bỏ qua ảnh mô tả ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
     }
   }
 
@@ -283,8 +312,11 @@ const uploadProductImages = async (product) => {
     ...product,
     image: mainImage.url,
     imagePublicId: mainImage.publicId,
+    imageAsset: mainImage,
     images: galleryImages,
     imagePublicIds: galleryPublicIds,
+    imageAssets: galleryAssets,
+    descriptionImages,
   };
 };
 

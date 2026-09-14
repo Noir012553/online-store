@@ -52,7 +52,7 @@ const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInSto
  */
 const OPTIONAL_FIELDS = [
   'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
-  'rating', 'numReviews', 'featured', 'deal', 'technicalDescription', 'descriptionImages', 'promotions', 'translations'
+  'rating', 'numReviews', 'featured', 'deal', 'technicalDescription', 'descriptionImages', 'promotions', 'imageAsset', 'imageAssets', 'translations'
 ];
 
 /**
@@ -157,11 +157,21 @@ function normalizeProductContentFields(product, rowIndex = 0) {
         };
         if (entry?.sourceUrl) normalizedImage.sourceUrl = url;
         if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
-        ['storageProvider', 'storageAccount', 'storageKey', 'bucket'].forEach((field) => {
+        if (entry?.assetPath) {
+          if (!isSafeAssetPath(entry.assetPath)) {
+            errors.push(`Row ${rowIndex}: Invalid description image asset path`);
+            return [];
+          }
+          normalizedImage.assetPath = entry.assetPath;
+        }
+        ['storageProvider', 'storageAccount', 'storageKey', 'bucket', 'publicId', 'contentHash', 'mimeType'].forEach((field) => {
           if (typeof entry?.[field] === 'string' && entry[field].trim()) {
             normalizedImage[field] = entry[field].trim();
           }
         });
+        if (entry?.bytes !== undefined && Number.isSafeInteger(Number(entry.bytes)) && Number(entry.bytes) > 0) {
+          normalizedImage.bytes = Number(entry.bytes);
+        }
         return [normalizedImage];
       });
     }
@@ -452,6 +462,26 @@ function validateProduct(product, rowIndex = 0, options = {}) {
 
   if (Array.isArray(product.imagePublicIds)) {
     cleaned.imagePublicIds = product.imagePublicIds.map(publicId => String(publicId).trim()).filter(Boolean);
+  }
+
+  const normalizeAssetReference = (asset) => {
+    if (!asset || typeof asset !== 'object' || Array.isArray(asset)) return null;
+    const normalized = {};
+    ['sourceUrl', 'storageProvider', 'storageAccount', 'bucket', 'storageKey', 'publicUrl', 'publicId', 'contentHash', 'mimeType']
+      .forEach((field) => {
+        if (typeof asset[field] === 'string' && asset[field].trim()) normalized[field] = asset[field].trim();
+      });
+    if (asset.bytes !== undefined && Number.isSafeInteger(Number(asset.bytes)) && Number(asset.bytes) > 0) {
+      normalized.bytes = Number(asset.bytes);
+    }
+    return Object.keys(normalized).length > 0 ? normalized : null;
+  };
+  if (product.imageAsset) {
+    const normalizedAsset = normalizeAssetReference(product.imageAsset);
+    if (normalizedAsset) cleaned.imageAsset = normalizedAsset;
+  }
+  if (Array.isArray(product.imageAssets)) {
+    cleaned.imageAssets = product.imageAssets.map(normalizeAssetReference).filter(Boolean);
   }
 
   if (product.featured !== undefined) {

@@ -975,16 +975,9 @@ describe('Product seed image backup', () => {
     expect(galleryId).to.match(/^[a-f0-9]{24}\/gallery-2$/);
   });
 
-  it('does not re-upload an image that is already on Cloudinary', async () => {
-    const result = await uploadProductImage(
-      'https://res.cloudinary.com/demo/image/upload/laptop-store/products/product/main.jpg',
-      'ignored-public-id'
-    );
-
-    expect(result).to.deep.equal({
-      url: 'https://res.cloudinary.com/demo/image/upload/laptop-store/products/product/main.jpg',
-      publicId: 'laptop-store/products/product/main',
-    });
+  it('uses R2 asset roles while keeping a stable product identity key', () => {
+    expect(getProductImagePublicId({ sourceProductId: 'source-1' }, 'main'))
+      .to.match(/^[a-f0-9]{24}\/main$/);
   });
 });
 

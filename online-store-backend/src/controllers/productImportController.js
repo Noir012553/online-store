@@ -62,15 +62,12 @@ const {
 } = require('../config/languageInventory');
 const LanguageService = require('../services/languageService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 const {
-  uploadToCloudinary,
-  deleteMultipleFromCloudinary,
-  getCloudinaryAccountIdForUrl,
-  extractPublicIdFromUrl,
-} = require('../services/cloudinaryService');
+  uploadBuffer,
+  deleteR2Assets,
+} = require('../services/r2AssetService');
 
 const configuredExportQueryTimeout = Number(process.env.EXPORT_QUERY_TIMEOUT_MS);
 const MIN_EXPORT_QUERY_TIMEOUT_MS = 120000;
@@ -379,7 +376,7 @@ const getExportSpecs = product => {
 
 const getExportImages = (productData) => {
   const imageEntries = [];
-  const addImage = ({ url, publicId, alt, type }) => {
+  const addImage = ({ url, publicId, alt, type, asset }) => {
     if (!url || imageEntries.some(image => image.url === url)) return;
     imageEntries.push({
       url,
@@ -387,12 +384,14 @@ const getExportImages = (productData) => {
       position: imageEntries.length,
       type,
       ...(publicId ? { publicId } : {}),
+      ...(asset ? { ...asset } : {}),
     });
   };
 
   addImage({
-    url: productData.image,
-    publicId: productData.imagePublicId,
+    url: productData.imageAsset?.publicUrl || productData.image,
+    publicId: productData.imageAsset?.publicId || productData.imagePublicId,
+    asset: productData.imageAsset,
     type: 'main',
   });
 
@@ -405,7 +404,8 @@ const getExportImages = (productData) => {
     const source = typeof image === 'string' ? { url: image } : image || {};
     addImage({
       url: source.url,
-      publicId: source.publicId || galleryPublicIds[index],
+      publicId: source.publicId || galleryPublicIds[index] || productData.imageAssets?.[index]?.publicId,
+      asset: productData.imageAssets?.[index],
       alt: source.alt,
       type: source.type || 'gallery',
     });
@@ -467,6 +467,9 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
   products.forEach((product) => {
     if (product.imageAssetPath) referencedAssetPaths.add(product.imageAssetPath);
     (product.imageAssetPaths || []).forEach(assetPath => referencedAssetPaths.add(assetPath));
+    (product.descriptionImages || []).forEach(image => {
+      if (image?.assetPath) referencedAssetPaths.add(image.assetPath);
+    });
   });
 
   if (referencedAssetPaths.size === 0) {
@@ -478,7 +481,7 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
   }
 
   const uploadedByPath = new Map();
-  const uploadedPublicIds = [];
+  const uploadedR2Assets = [];
   const uploadAsset = async (assetPath, product, slot, index) => {
     if (!assetPath) return null;
     if (!assets.has(assetPath)) throw createImportError('IMPORT_ZIP_ASSET_MISSING');
@@ -486,19 +489,17 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
 
     let uploadPromise = uploadedByPath.get(assetPath);
     if (!uploadPromise) {
-      uploadPromise = uploadToCloudinary(
-        assets.get(assetPath),
-        'products',
-        createZipAssetPublicId(product, slot, index),
-      );
+      uploadPromise = uploadBuffer(assets.get(assetPath), {
+        role: slot,
+        stableKey: createZipAssetPublicId(product, slot, index),
+        sourceUrl: assetPath,
+        sourceName: assetPath,
+      });
       uploadedByPath.set(assetPath, uploadPromise);
     }
     const uploaded = await uploadPromise;
-    if (!uploadedPublicIds.some(item => item.publicId === uploaded.publicId)) {
-      uploadedPublicIds.push({
-        publicId: uploaded.publicId,
-        accountId: uploaded.cloudinaryAccountId,
-      });
+    if (!uploadedR2Assets.some(item => item.storageKey === uploaded.storageKey)) {
+      uploadedR2Assets.push(uploaded);
     }
     return uploaded;
   };
@@ -513,33 +514,48 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
       for (let index = 0; index < galleryImages.length; index += 1) {
         galleryUploads.push(await uploadAsset(galleryAssetPaths[index], product, 'gallery', index));
       }
+      const descriptionUploads = [];
+      const descriptionImages = Array.isArray(product.descriptionImages) ? product.descriptionImages : [];
+      for (let index = 0; index < descriptionImages.length; index += 1) {
+        descriptionUploads.push(await uploadAsset(descriptionImages[index]?.assetPath, product, 'description', index));
+      }
 
       const restored = { ...product };
       delete restored.imageAssetPath;
       delete restored.imageAssetPaths;
       if (mainUpload && !dryRun) {
-        restored.image = mainUpload.url;
+        restored.image = mainUpload.publicUrl;
         restored.imagePublicId = mainUpload.publicId;
+        restored.imageAsset = mainUpload;
       }
       if (!dryRun && galleryUploads.some(Boolean)) {
         const existingPublicIds = Array.isArray(restored.imagePublicIds) ? restored.imagePublicIds : [];
-        restored.images = galleryImages.map((image, index) => galleryUploads[index]?.url || image);
+        restored.images = galleryImages.map((image, index) => galleryUploads[index]?.publicUrl || image);
         restored.imagePublicIds = galleryImages.map((image, index) => (
           galleryUploads[index]?.publicId || existingPublicIds[index + 1]
         )).filter(Boolean);
+        restored.imageAssets = galleryUploads.filter(Boolean);
+      }
+      if (!dryRun && descriptionUploads.some(Boolean)) {
+        restored.descriptionImages = descriptionImages.map((image, index) => ({
+          ...image,
+          ...(descriptionUploads[index] || {}),
+          url: descriptionUploads[index]?.publicUrl || image.url,
+          publicUrl: descriptionUploads[index]?.publicUrl || image.publicUrl,
+        }));
       }
       restoredProducts.push(restored);
     }
 
     return {
       products: restoredProducts,
-      uploadedPublicIds,
+      uploadedR2Assets,
       restoredImageAssets: referencedAssetPaths.size,
     };
   } catch (error) {
-    if (uploadedPublicIds.length > 0) {
+    if (uploadedR2Assets.length > 0) {
       try {
-        await deleteMultipleFromCloudinary(uploadedPublicIds);
+        await deleteR2Assets(uploadedR2Assets);
       } catch (cleanupError) {
         console.error('[IMPORT_ZIP_ASSET_CLEANUP_FAILED]', { message: cleanupError.message });
       }
@@ -711,38 +727,22 @@ const getProductImagePublicIds = (product) => [
   ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
 ].filter(Boolean);
 
-const getProductImageCleanupItems = (product) => {
-  const items = [];
-  if (product.imagePublicId) {
-    items.push({
-      publicId: product.imagePublicId,
-      url: product.image,
-      accountId: getCloudinaryAccountIdForUrl(product.image) || '1',
-    });
-  }
-  (product.images || []).forEach((url, index) => {
-    const publicId = extractPublicIdFromUrl(url);
-    if (publicId) {
-      items.push({
-        publicId,
-        url,
-        accountId: getCloudinaryAccountIdForUrl(url) || '1',
-      });
-    } else if (product.imagePublicIds?.[index + 1]) {
-      items.push({
-        publicId: product.imagePublicIds[index + 1],
-        accountId: '1',
-      });
-    }
-  });
-  return items;
-};
+const getProductImageCleanupItems = (product) => [
+  product.imageAsset,
+  ...(Array.isArray(product.imageAssets) ? product.imageAssets : []),
+  ...(Array.isArray(product.descriptionImages) ? product.descriptionImages : []),
+].filter(asset => asset?.storageProvider === 'r2' && asset.storageKey);
+
+const getProductR2AssetKeys = (product) => getProductImageCleanupItems(product)
+  .map(asset => asset.storageKey)
+  .filter(Boolean);
 
 const queueObsoleteProductImages = async (items = []) => {
-  const uniqueItems = new Map(items.map(item => [item.publicId, item]));
-  await Promise.all([...uniqueItems.values()].map(item => (
-    enqueueCloudinaryCleanup(item.publicId, item.accountId)
-  )));
+  const uniqueItems = new Map(items.map(item => [
+    `${item.storageAccount}:${item.bucket}:${item.storageKey}`,
+    item,
+  ]));
+  await deleteR2Assets([...uniqueItems.values()]);
 };
 
 const findExistingProduct = (byId, bySourceProductId, bySku, bySourceUrl, byNameAndBrand, product) => {
@@ -979,7 +979,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       isDryRun(dryRun),
     );
     validProducts = restoredAssets.products;
-    uploadedZipImagePublicIds = restoredAssets.uploadedPublicIds;
+    uploadedZipImagePublicIds = restoredAssets.uploadedR2Assets;
 
     if (isDryRun(dryRun)) {
       return res.json({
@@ -1181,7 +1181,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
 
     if (!productWriteStarted && uploadedZipImagePublicIds.length > 0) {
       try {
-        await deleteMultipleFromCloudinary(uploadedZipImagePublicIds);
+        await deleteR2Assets(uploadedZipImagePublicIds);
       } catch (cleanupError) {
         console.error('[IMPORT_ZIP_ASSET_CLEANUP_FAILED]', { message: cleanupError.message });
       }
@@ -1478,9 +1478,11 @@ async function handleUpdateMode(productsWithEnrichedIds) {
 
     const changedFields = getChangedTranslatableFields(existing, product);
     const currentImagePublicIds = getProductImagePublicIds(product);
+    const currentR2AssetKeys = getProductR2AssetKeys(product);
     obsoleteImagePublicIds.push(
       ...getProductImageCleanupItems(existing)
-        .filter(({ publicId }) => !currentImagePublicIds.includes(publicId))
+        .filter(asset => !currentImagePublicIds.includes(asset.publicId)
+          && !currentR2AssetKeys.includes(asset.storageKey))
     );
     const updateDoc = withoutImportProductId(product);
     delete updateDoc.user;
@@ -1545,10 +1547,12 @@ async function handleUpsertMode(products, preserveExistingStock = false) {
     );
     if (existing) {
       const currentImagePublicIds = getProductImagePublicIds(product);
-    obsoleteImagePublicIds.push(
-      ...getProductImageCleanupItems(existing)
-        .filter(({ publicId }) => !currentImagePublicIds.includes(publicId))
-    );
+      const currentR2AssetKeys = getProductR2AssetKeys(product);
+      obsoleteImagePublicIds.push(
+        ...getProductImageCleanupItems(existing)
+          .filter(asset => !currentImagePublicIds.includes(asset.publicId)
+            && !currentR2AssetKeys.includes(asset.storageKey))
+      );
       const changedFields = getChangedTranslatableFields(existing, product);
       if (changedFields.length > 0) {
         affectedTranslations.push({ productId: existing._id, fields: changedFields });
@@ -2101,22 +2105,26 @@ const prepareExportBatchForArchive = async (
   const preparedImagesByProduct = batch.map(product => (
     Array.isArray(product.images) ? [...product.images] : []
   ));
+  const preparedDescriptionImagesByProduct = batch.map(product => (
+    Array.isArray(product.descriptionImages) ? [...product.descriptionImages] : []
+  ));
   const imageTasks = [];
 
   batch.forEach((product, productIndex) => {
     const images = Array.isArray(product.images) ? product.images : [];
     if (images.length > 0 && exportImageStats) exportImageStats.productsWithImages += 1;
-    images.forEach((image, imageIndex) => {
-      if (exportImageStats) {
-        exportImageStats.imageReferences += 1;
-        if (image?.url) exportImageStats.referencesWithUrl += 1;
-        else exportImageStats.referencesWithoutUrl += 1;
-      }
+    const descriptionImages = Array.isArray(product.descriptionImages) ? product.descriptionImages : [];
+    [...images.map((image, imageIndex) => ({ image, imageIndex, role: image?.type || 'gallery', target: 'images' })),
+      ...descriptionImages.map((image, imageIndex) => ({ image, imageIndex, role: 'description', target: 'descriptionImages' }))]
+      .forEach(({ image, imageIndex, role, target }) => {
+        if (exportImageStats) {
+          exportImageStats.imageReferences += 1;
+          if (image?.url) exportImageStats.referencesWithUrl += 1;
+          else exportImageStats.referencesWithoutUrl += 1;
+        }
 
-      if (image?.url) {
-        imageTasks.push({ product, productIndex, image, imageIndex });
-      }
-    });
+        if (image?.url) imageTasks.push({ product, productIndex, image, imageIndex, role, target });
+      });
   });
 
   let nextTaskIndex = 0;
@@ -2124,7 +2132,7 @@ const prepareExportBatchForArchive = async (
     while (nextTaskIndex < imageTasks.length) {
       const task = imageTasks[nextTaskIndex];
       nextTaskIndex += 1;
-      const { product, productIndex, image, imageIndex } = task;
+      const { product, productIndex, image, imageIndex, role, target } = task;
 
       let assetPromise = assetsByUrl.get(image.url);
       if (!assetPromise) {
@@ -2135,7 +2143,7 @@ const prepareExportBatchForArchive = async (
             const position = Number.isInteger(image.position) && image.position >= 0
               ? image.position
               : imageIndex;
-            const assetPath = `assets/images/${product.productId}-${position}.${extension}`;
+            const assetPath = `assets/images/${product.productId}-${role}-${position}.${extension}`;
             archive.append(buffer, { name: assetPath });
             if (exportImageStats) {
               exportImageStats.uniqueUrlsSucceeded += 1;
@@ -2158,9 +2166,10 @@ const prepareExportBatchForArchive = async (
       }
 
       const assetPath = await assetPromise;
-      preparedImagesByProduct[productIndex][imageIndex] = assetPath
-        ? { ...image, assetPath }
-        : image;
+      const preparedImages = target === 'descriptionImages'
+        ? preparedDescriptionImagesByProduct[productIndex]
+        : preparedImagesByProduct[productIndex];
+      preparedImages[imageIndex] = assetPath ? { ...image, assetPath } : image;
     }
   };
 
@@ -2184,6 +2193,7 @@ const prepareExportBatchForArchive = async (
 
   return batch.map((product, productIndex) => {
     const preparedImages = preparedImagesByProduct[productIndex];
+    const preparedDescriptionImages = preparedDescriptionImagesByProduct[productIndex];
 
     if (exportImageStats) {
       exportImageStats.referencesWithAssetPath += preparedImages.filter(image => image?.assetPath).length;
@@ -2204,6 +2214,7 @@ const prepareExportBatchForArchive = async (
     return {
       ...product,
       images: bundledImages,
+      descriptionImages: preparedDescriptionImages,
       ...(imageAssetPaths.length ? { imageAssetPaths } : {}),
     };
   });
