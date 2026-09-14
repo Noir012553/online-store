@@ -18,6 +18,7 @@ const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 const { localizeProductSpecFields, refreshStorefrontReadiness } = require('../services/translationHelper');
 const { normalizeSpecs } = require('../utils/specNormalizer');
+const { normalizeProductContentFields } = require('../utils/productImportValidator');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
@@ -596,6 +597,9 @@ exports.getProductCatalogTranslations = async (req, res) => {
       brand: null,
       specs: {},
       specLabels: {},
+      technicalDescription: null,
+      descriptionImages: [],
+      promotions: [],
     };
 
     // Phase 3: Try to read from NEW schema first
@@ -615,6 +619,9 @@ exports.getProductCatalogTranslations = async (req, res) => {
         name: newSchemaData.name,
         description: newSchemaData.description,
         brand: newSchemaData.brand,
+        technicalDescription: newSchemaData.technicalDescription || null,
+        descriptionImages: Array.isArray(newSchemaData.descriptionImages) ? newSchemaData.descriptionImages : [],
+        promotions: Array.isArray(newSchemaData.promotions) ? newSchemaData.promotions : [],
         ...localizedSpecData,
       });
       res.set('Cache-Control', 'public, max-age=3600');
@@ -944,7 +951,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
   const sourceProduct = includeNonSuccess
     ? null
-    : await Product.findById(productId).select('name description brand specs').lean();
+    : await Product.findById(productId).select('name description brand specs technicalDescription descriptionImages promotions').lean();
 
   if (translation) {
     const data = {
@@ -952,6 +959,9 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
       description: translation.description || undefined,
       brand: translation.brand || undefined,
       specs: normalizeSpecs(translation.specs instanceof Map ? Object.fromEntries(translation.specs) : translation.specs || {}),
+      technicalDescription: translation.technicalDescription || undefined,
+      descriptionImages: Array.isArray(translation.descriptionImages) ? translation.descriptionImages : [],
+      promotions: Array.isArray(translation.promotions) ? translation.promotions : [],
     };
     if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, data)) return null;
     return data;
@@ -1070,14 +1080,25 @@ exports.saveProductTranslation = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
     const translations = req.body || {};
-    const allowedFields = ['name', 'description', 'brand', 'specs'];
+    const allowedFields = [
+      'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
+    ];
     const fields = Object.keys(translations).filter((field) => allowedFields.includes(field));
 
     if (!isProductId(productId) || fields.length === 0) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_FIELDS_REQUIRED', 'translation_fields_required');
     }
-    if (fields.some((field) => ['name', 'description'].includes(field) && typeof translations[field] !== 'string')
+    if (fields.some((field) => ['name', 'description', 'technicalDescription'].includes(field) && typeof translations[field] !== 'string')
       || ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs)))) {
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
+    }
+
+    const normalizedContent = normalizeProductContentFields({
+      technicalDescription: translations.technicalDescription,
+      descriptionImages: translations.descriptionImages,
+      promotions: translations.promotions,
+    });
+    if (normalizedContent.errors.length > 0 || normalizedContent.warnings.length > 0) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
     }
 
@@ -1090,7 +1111,11 @@ exports.saveProductTranslation = async (req, res) => {
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
     const allowedTranslations = Object.fromEntries(fields.map((field) => [
       field,
-      field === 'specs' ? normalizeSpecs(translations[field]) : translations[field],
+      field === 'specs'
+        ? normalizeSpecs(translations[field])
+        : normalizedContent.cleaned[field] !== undefined
+          ? normalizedContent.cleaned[field]
+          : translations[field],
     ]));
     const update = {
       ...allowedTranslations,

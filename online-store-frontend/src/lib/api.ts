@@ -13,6 +13,7 @@
  */
 
 import { BACKEND_URL, API_BASE_PATH } from '../config';
+import type { ProductDescriptionImage, ProductPromotion } from './data';
 import { handleApiError } from './errorHandler';
 import { productAdapter } from './adapters';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './i18n/types';
@@ -86,6 +87,9 @@ export interface BackendProduct {
   specs?: Record<string, string | number>;
   specLabels?: Record<string, string>;
   description?: string;
+  technicalDescription?: string;
+  descriptionImages?: ProductDescriptionImage[];
+  promotions?: ProductPromotion[];
   specDisplay?: Array<{ field: string; label: string; value: string }>;
   featured?: boolean;
   deal?: { discount: number; endTime?: string | Date };

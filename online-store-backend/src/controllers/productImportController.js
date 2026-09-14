@@ -258,6 +258,9 @@ const toExportTranslation = (translation) => ({
   description: translation.description,
   brand: translation.brand,
   specs: translation.specs || {},
+  technicalDescription: translation.technicalDescription,
+  descriptionImages: translation.descriptionImages || [],
+  promotions: translation.promotions || [],
   manualFields: translation.manualFields || [],
   status: translation.status,
   qualityStatus: translation.qualityStatus,
@@ -296,7 +299,7 @@ const getProductTranslationsForExport = async (
           targetLang: { $in: lookupLocales },
           status: 'success',
         })
-          .select('entityId targetLang name description brand specs manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
+          .select('entityId targetLang name description brand specs technicalDescription descriptionImages promotions manualFields status qualityStatus qualityScore validationErrors lastTranslatedAt retryCount lastErrorMessage lastRetryAt')
           .maxTimeMS(EXPORT_QUERY_TIMEOUT_MS)
           .lean(),
         'translation_cache',
@@ -337,6 +340,9 @@ const getProductTranslationsForExport = async (
       description: product.description,
       brand: product.brand,
       specs: product.specs || {},
+      technicalDescription: product.technicalDescription || '',
+      descriptionImages: product.descriptionImages || [],
+      promotions: product.promotions || [],
     });
 
     return {
@@ -443,7 +449,9 @@ const adapterManager = new ImportAdapterManager();
 
 // Config: Max new categories per import (to prevent abuse)
 const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
-const TRANSLATABLE_PRODUCT_FIELDS = ['name', 'description', 'brand', 'specs'];
+const TRANSLATABLE_PRODUCT_FIELDS = [
+  'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
+];
 
 const isDryRun = (value) => value === true || value === 'true';
 const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
@@ -665,7 +673,7 @@ const getProductTranslationImportRecords = (products) => {
         productId: String(product.productId),
         targetLang,
         translations: Object.fromEntries(
-          ['name', 'description', 'brand', 'specs']
+          ['name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions']
             .map(field => [field, translation[field]])
             .filter(([, value]) => value !== undefined && value !== null)
         ),

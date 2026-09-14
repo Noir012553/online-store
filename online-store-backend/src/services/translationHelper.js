@@ -42,7 +42,9 @@ const CACHE_MODELS = {
  * Map entity type → Translatable fields
  */
 const TRANSLATABLE_FIELDS = {
-  product: ['name', 'description', 'brand', 'specs'],
+  product: [
+    'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
+  ],
   brand: ['name', 'description'],
   userContent: ['title', 'content'],
   coupon: ['name', 'description', 'codeDescription', 'termsAndConditions'],
@@ -320,13 +322,17 @@ function applyTranslationOverlay(entity, entityType, translation) {
   const translatableFields = TRANSLATABLE_FIELDS[entityType] || [];
 
   translatableFields.forEach(field => {
-    if (field in translation && translation[field]) {
-      // Xử lý Map fields (ví dụ specs)
-      if (field === 'specs' && translation[field] instanceof Map) {
-        result[field] = new Map(translation[field]);
-      } else {
-        result[field] = translation[field];
-      }
+    const value = translation[field];
+    const isEmptyStructuredValue = ['descriptionImages', 'promotions'].includes(field)
+      && Array.isArray(value)
+      && value.length === 0;
+    if (!(field in translation) || !value || isEmptyStructuredValue) return;
+
+    // Xử lý Map fields (ví dụ specs)
+    if (field === 'specs' && value instanceof Map) {
+      result[field] = new Map(value);
+    } else {
+      result[field] = value;
     }
   });
 

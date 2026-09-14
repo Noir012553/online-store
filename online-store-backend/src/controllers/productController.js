@@ -18,6 +18,7 @@ const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
+const { normalizeProductContentFields } = require('../utils/productImportValidator');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { sanitizePlainText, sanitizeDescriptionText } = require('../utils/plainTextSanitizer');
 const { broadcastNewProduct, broadcastProductUpdated, broadcastProductDeleted, broadcastProductRestored } = require('../socket/socketHandler');
@@ -726,7 +727,8 @@ const createProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId,
+    technicalDescription, descriptionImages, promotions
   } = req.body;
   const parsedDeal = parseDealInput(deal);
 
@@ -772,6 +774,11 @@ const createProduct = asyncHandler(async (req, res) => {
     throw new Error('This brand is not allowed');
   }
   const normalizedDescription = sanitizeDescriptionText(description);
+  const contentFields = normalizeProductContentFields({ technicalDescription, descriptionImages, promotions });
+  if (contentFields.errors.length > 0) {
+    res.status(400);
+    throw new Error(contentFields.errors.join('; '));
+  }
   await registerUnknownSpecKeys(specs || {});
   const normalizedSpecs = normalizeSpecs(specs || {});
   const normalizedBaseCurrencyCode = typeof baseCurrencyCode === 'string'
@@ -841,6 +848,9 @@ const createProduct = asyncHandler(async (req, res) => {
     category: resolvedCategory._id,
     countInStock: numCountInStock,
     description: normalizedDescription,
+    technicalDescription: contentFields.cleaned.technicalDescription || '',
+    descriptionImages: contentFields.cleaned.descriptionImages || [],
+    promotions: contentFields.cleaned.promotions || [],
     featured: featured || false,
     specs: normalizedSpecs,
     deal: parsedDeal,
@@ -906,9 +916,12 @@ const updateProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId,
+    technicalDescription, descriptionImages, promotions
   } = req.body;
-  const sourceFieldsChanged = [name, description, brand, specs].some((value) => value !== undefined);
+  const sourceFieldsChanged = [
+    name, description, brand, specs, technicalDescription, descriptionImages, promotions,
+  ].some((value) => value !== undefined);
 
   const product = await withTimeout(Product.findById(req.params.id), 8000);
 
@@ -937,6 +950,11 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (specs) await registerUnknownSpecKeys(specs);
   const normalizedSpecs = specs ? normalizeSpecs(specs) : product.specs;
+  const contentFields = normalizeProductContentFields({ technicalDescription, descriptionImages, promotions });
+  if (contentFields.errors.length > 0) {
+    res.status(400);
+    throw new Error(contentFields.errors.join('; '));
+  }
 
   if (name !== undefined) {
     product.name = sanitizePlainText(name);
@@ -970,6 +988,18 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   if (description !== undefined) {
     product.description = sanitizeDescriptionText(description);
+  }
+
+  if (technicalDescription !== undefined) {
+    product.technicalDescription = contentFields.cleaned.technicalDescription || '';
+  }
+
+  if (descriptionImages !== undefined) {
+    product.descriptionImages = contentFields.cleaned.descriptionImages || [];
+  }
+
+  if (promotions !== undefined) {
+    product.promotions = contentFields.cleaned.promotions || [];
   }
 
   if (brand !== undefined) {

@@ -436,6 +436,15 @@ export default function ProductDetail() {
     isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description,
   );
   const localizedBrand = isSourceLocale ? laptop.brand : translation?.brand?.trim() || laptop.brand;
+  const localizedTechnicalDescription = isSourceLocale
+    ? laptop.technicalDescription
+    : translation?.technicalDescription?.trim() || laptop.technicalDescription;
+  const localizedDescriptionImages = isSourceLocale
+    ? laptop.descriptionImages ?? []
+    : (translation?.descriptionImages?.length ? translation.descriptionImages : laptop.descriptionImages ?? []);
+  const localizedPromotions = isSourceLocale
+    ? laptop.promotions ?? []
+    : (translation?.promotions?.length ? translation.promotions : laptop.promotions ?? []);
   const sourceSpecs = laptop.specs ?? {};
   const localizedSpecs = isSourceLocale
     ? sourceSpecs
@@ -480,6 +489,9 @@ export default function ProductDetail() {
     specs: localizedSpecs,
     specLabels,
     description: localizedDescription,
+    technicalDescription: localizedTechnicalDescription,
+    descriptionImages: localizedDescriptionImages,
+    promotions: localizedPromotions,
     featured: laptop.featured ?? false,
     deal: laptop.deal,
   };

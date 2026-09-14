@@ -32,6 +32,18 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       default: {},
       description: 'Aggregated specs: { "RAM": "16GB DDR5", "Storage": "512GB NVMe" }',
     },
+    technicalDescription: {
+      type: String,
+      default: '',
+    },
+    descriptionImages: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    promotions: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
     status: {
       type: String,
       enum: ['success', 'failed_rate_limit', 'failed_error', 'pending_retry'],
