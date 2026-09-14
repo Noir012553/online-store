@@ -32,6 +32,14 @@ const isSafeAssetPath = (value) => {
   return !segments.some(segment => !segment || segment === '.' || segment === '..');
 };
 
+const isSafeProductImagePath = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('images/')) return false;
+  const relativePath = value.slice('images/'.length);
+  if (!relativePath || relativePath.includes('\\') || relativePath.includes(':')) return false;
+  const segments = relativePath.split('/');
+  return !segments.some(segment => !segment || segment === '.' || segment === '..');
+};
+
 /**
  * Required fields khi import products
  */
@@ -301,8 +309,8 @@ function validateProduct(product, rowIndex = 0, options = {}) {
     errors.push(`Row ${rowIndex}: Too many image URLs; maximum is ${MAX_IMPORT_IMAGES}`);
   }
   imageUrls.forEach((imageUrl) => {
-    if (!validateImportUrl(imageUrl)) {
-      errors.push(`Row ${rowIndex}: Image URL must be a valid public HTTP(S) URL`);
+    if (!validateImportUrl(imageUrl) && !isSafeProductImagePath(imageUrl)) {
+      errors.push(`Row ${rowIndex}: Image URL must be a valid public HTTP(S) URL or a safe scraper image path`);
     }
   });
 

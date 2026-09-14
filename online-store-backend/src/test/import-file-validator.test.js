@@ -13,6 +13,8 @@ const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
 const {
   buildUpsertProductUpdate,
+  getProductLookupFilter,
+  findDuplicateImportIssues,
   serializeProductForExport,
   convertProductsToCSV,
   writeExportZipFile,
@@ -36,7 +38,124 @@ const {
   filterSeedProducts,
   normalizeSeedCategory,
   inferCategoryFromFilename,
+  getSeedIdentityKey,
+  dedupeProducts,
 } = require('../seeds/productSeedPipeline');
+
+describe('Canonical scraper contract', () => {
+  const canonicalProduct = {
+    ProductBrand: 'Acer',
+    ProductID: 'gearvn-001',
+    ProductName: 'Acer Aspire',
+    ProductSKU: 'ACER-001',
+    ProductPriceVND: 1000000,
+    ProductRegularPriceVND: null,
+    ProductStockStatus: 'In Stock',
+    ProductCategory: 'Laptop',
+    ProductSpecifications: { CPU: 'Intel' },
+    ProductTechnicalDescription: 'Thông số: Intel',
+    ProductDescription: 'Mô tả',
+    ProductDescriptionImages: [{
+      ProductDescriptionImageURL: 'https://example.invalid/description.jpg',
+      ProductDescriptionImageAlt: 'Ảnh mô tả',
+    }],
+    ProductPromotions: [{
+      ProductPromotionType: 'Gift',
+      ProductPromotionTitle: 'Tặng chuột',
+      ProductPromotionGiftValueVND: null,
+    }],
+    ProductMainImage: 'https://example.invalid/main.jpg',
+    ProductGalleryImages: ['https://example.invalid/gallery.jpg'],
+    ProductURL: 'https://example.invalid/products/acer-001',
+  };
+
+  it('maps canonical JSON fields and keeps nullable optional fields valid', async () => {
+    const adapter = new JSONAdapter();
+    const [parsed] = await adapter.parse(JSON.stringify([canonicalProduct]));
+    const result = validateProduct(parsed, 1);
+
+    expect(parsed).to.include({
+      sourceProductId: 'gearvn-001',
+      sourceUrl: 'https://example.invalid/products/acer-001',
+      name: 'Acer Aspire',
+      sku: 'ACER-001',
+      description: 'Mô tả',
+    });
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.descriptionImages).to.deep.equal([{
+      url: 'https://example.invalid/description.jpg',
+      alt: 'Ảnh mô tả',
+    }]);
+    expect(result.cleaned.promotions).to.deep.equal([{
+      type: 'Gift',
+      title: 'Tặng chuột',
+    }]);
+  });
+
+  it('round-trips structured fields through CSV as JSON', async () => {
+    const quote = value => `"${value.replace(/"/g, '""')}"`;
+    const csv = [
+      'ProductName,ProductBrand,ProductPriceVND,ProductCategory,ProductMainImage,ProductDescriptionImages,ProductPromotions',
+      [
+        'Acer Aspire',
+        'Acer',
+        '1000000',
+        'Laptop',
+        'https://example.invalid/main.jpg',
+        quote(JSON.stringify(canonicalProduct.ProductDescriptionImages)),
+        quote(JSON.stringify(canonicalProduct.ProductPromotions)),
+      ].join(','),
+    ].join('\n');
+    const adapter = new CSVAdapter();
+    const [parsed] = await adapter.parse(csv);
+
+    expect(JSON.parse(parsed.descriptionImages)).to.deep.equal(canonicalProduct.ProductDescriptionImages);
+    expect(JSON.parse(parsed.promotions)).to.deep.equal(canonicalProduct.ProductPromotions);
+  });
+
+  it('uses ProductID, SKU, then source URL for seed dedupe', () => {
+    expect(getSeedIdentityKey({ sourceProductId: 'ID-1', sku: 'SKU-1', sourceUrl: 'https://example.invalid/1' }))
+      .to.equal('sourceProductId:id-1');
+    const result = dedupeProducts([
+      { sourceProductId: 'ID-1', sku: 'SKU-1', sourceUrl: 'https://example.invalid/1' },
+      { sourceProductId: 'ID-1', sku: 'SKU-2', sourceUrl: 'https://example.invalid/2' },
+      { sourceUrl: 'https://example.invalid/3' },
+      { sourceUrl: 'https://example.invalid/3' },
+    ]);
+    expect(result.duplicateCount).to.equal(2);
+    expect(result.unique).to.have.length(2);
+  });
+
+  it('uses source identity for upsert and duplicate checks', () => {
+    expect(getProductLookupFilter({ sourceProductId: 'gearvn-001', sku: 'SKU-1' })).to.deep.equal({
+      sourceProductId: 'gearvn-001',
+      isDeleted: false,
+    });
+    expect(getProductLookupFilter({ sourceUrl: 'https://example.invalid/products/1' })).to.deep.equal({
+      sourceUrl: 'https://example.invalid/products/1',
+      isDeleted: false,
+    });
+    expect(findDuplicateImportIssues([
+      { name: 'A', brand: 'B', sourceProductId: 'same' },
+      { name: 'C', brand: 'D', sourceProductId: 'same' },
+    ])).to.deep.include({ field: 'sourceProductId', value: 'same' });
+  });
+
+  it('accepts safe local image paths produced by the scraper image preparation step', () => {
+    const result = validateProduct({
+      name: 'Acer Aspire',
+      brand: 'Acer',
+      price: 1000000,
+      baseCurrencyCode: 'VND',
+      category: 'Laptop',
+      image: 'images/batch/product/main.jpg',
+      images: ['images/batch/product/gallery.jpg'],
+    });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.image).to.equal('images/batch/product/main.jpg');
+  });
+});
 
 describe('Scraped product filtering', () => {
   it('preserves source categories and rejects only missing categories', () => {
@@ -368,6 +487,22 @@ describe('Product export serialization', () => {
     expect(csv).to.include('customField');
     expect(csv).to.include('https://example.invalid/main.jpg|https://example.invalid/gallery.jpg');
     expect(csv).to.include('products/main|products/gallery');
+  });
+
+  it('serializes description images and promotions as JSON in CSV', async () => {
+    const csv = convertProductsToCSV([{
+      ...product,
+      descriptionImages: [{ url: 'https://example.invalid/description.jpg', alt: 'Ảnh' }],
+      promotions: [{ type: 'Gift', title: 'Tặng chuột', giftValueVND: 0 }],
+    }]);
+    const [parsed] = await new CSVAdapter().parse(csv);
+
+    expect(JSON.parse(parsed.descriptionImages)).to.deep.equal([
+      { url: 'https://example.invalid/description.jpg', alt: 'Ảnh' },
+    ]);
+    expect(JSON.parse(parsed.promotions)).to.deep.equal([
+      { type: 'Gift', title: 'Tặng chuột', giftValueVND: 0 },
+    ]);
   });
 });
 
