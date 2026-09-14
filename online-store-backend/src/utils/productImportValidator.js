@@ -110,6 +110,120 @@ function validateImportUrl(value) {
   }
 }
 
+function normalizeProductContentFields(product, rowIndex = 0) {
+  const errors = [];
+  const warnings = [];
+  const cleaned = {};
+
+  if (product.technicalDescription !== undefined && product.technicalDescription !== null) {
+    cleaned.technicalDescription = sanitizeDescriptionText(product.technicalDescription);
+  }
+
+  if (product.descriptionImages !== undefined && product.descriptionImages !== null) {
+    let descriptionImages = product.descriptionImages;
+    if (typeof descriptionImages === 'string') {
+      try {
+        descriptionImages = JSON.parse(descriptionImages);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid descriptionImages JSON, skipped`);
+        descriptionImages = [];
+      }
+    }
+    if (!Array.isArray(descriptionImages)) {
+      warnings.push(`Row ${rowIndex}: descriptionImages must be an array, skipped`);
+    } else if (descriptionImages.length > MAX_IMPORT_IMAGES) {
+      errors.push(`Row ${rowIndex}: Too many description images; maximum is ${MAX_IMPORT_IMAGES}`);
+    } else {
+      cleaned.descriptionImages = descriptionImages.flatMap((image) => {
+        const entry = typeof image === 'string' ? { url: image } : image;
+        const sourceUrl = String(entry?.url || entry?.sourceUrl || '').trim();
+        const publicUrl = String(entry?.publicUrl || '').trim();
+        if (!sourceUrl || !validateImportUrl(sourceUrl)) {
+          warnings.push(`Row ${rowIndex}: Invalid description image URL, skipped`);
+          return [];
+        }
+        if (publicUrl && !validateImportUrl(publicUrl)) {
+          warnings.push(`Row ${rowIndex}: Invalid description image publicUrl, skipped`);
+          return [];
+        }
+        const normalizedImage = {
+          url: new URL(sourceUrl).toString(),
+          alt: sanitizePlainText(entry?.alt || ''),
+        };
+        if (entry?.sourceUrl) normalizedImage.sourceUrl = normalizedImage.url;
+        if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
+        ['storageProvider', 'storageAccount', 'storageKey', 'bucket'].forEach((field) => {
+          if (typeof entry?.[field] === 'string' && entry[field].trim()) {
+            normalizedImage[field] = entry[field].trim();
+          }
+        });
+        return [normalizedImage];
+      });
+    }
+  }
+
+  if (product.promotions !== undefined && product.promotions !== null) {
+    let promotions = product.promotions;
+    if (typeof promotions === 'string') {
+      try {
+        promotions = JSON.parse(promotions);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid promotions JSON, skipped`);
+        promotions = [];
+      }
+    }
+    if (!Array.isArray(promotions)) {
+      warnings.push(`Row ${rowIndex}: promotions must be an array, skipped`);
+    } else if (promotions.length > MAX_PRODUCT_PROMOTIONS) {
+      errors.push(`Row ${rowIndex}: Too many promotions; maximum is ${MAX_PRODUCT_PROMOTIONS}`);
+    } else {
+      cleaned.promotions = promotions.flatMap((promotion) => {
+        if (!promotion || typeof promotion !== 'object' || Array.isArray(promotion)) {
+          warnings.push(`Row ${rowIndex}: Invalid promotion, skipped`);
+          return [];
+        }
+        const title = sanitizePlainText(promotion.title || '');
+        const type = sanitizePlainText(promotion.type || '');
+        if (!title || !type) {
+          warnings.push(`Row ${rowIndex}: Promotion type/title is required, skipped`);
+          return [];
+        }
+        const cleanedPromotion = { type, title };
+        if (promotion.giftQuantity !== undefined && promotion.giftQuantity !== null && String(promotion.giftQuantity).trim() !== '') {
+          const quantity = toStrictNumber(promotion.giftQuantity);
+          if (quantity === null || !Number.isSafeInteger(quantity) || quantity < 1) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift quantity, skipped`);
+            return [];
+          }
+          cleanedPromotion.giftQuantity = quantity;
+        }
+        if (promotion.giftProductName) cleanedPromotion.giftProductName = sanitizePlainText(promotion.giftProductName);
+        if (promotion.giftProductUrl) {
+          const giftProductUrl = String(promotion.giftProductUrl).trim();
+          if (validateImportUrl(giftProductUrl)) {
+            cleanedPromotion.giftProductUrl = new URL(giftProductUrl).toString();
+          } else {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift URL, skipped`);
+          }
+        }
+        if (promotion.giftValueVND !== undefined && promotion.giftValueVND !== null && String(promotion.giftValueVND).trim() !== '') {
+          const giftValue = toStrictNumber(promotion.giftValueVND);
+          if (giftValue === null || giftValue < 0) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift value, skipped`);
+          } else {
+            cleanedPromotion.giftValueVND = giftValue;
+          }
+        }
+        if (promotion.scope) cleanedPromotion.scope = sanitizePlainText(promotion.scope);
+        if (promotion.discountText) cleanedPromotion.discountText = sanitizeDescriptionText(promotion.discountText);
+        return [cleanedPromotion];
+      });
+    }
+  }
+
+  return { errors, warnings, cleaned };
+}
+
 function validateProduct(product, rowIndex = 0, options = {}) {
   const errors = [];
   if (!product || typeof product !== 'object' || Array.isArray(product)) {
@@ -314,98 +428,10 @@ function validateProduct(product, rowIndex = 0, options = {}) {
     }
   });
 
-  if (product.technicalDescription !== undefined && product.technicalDescription !== null) {
-    cleaned.technicalDescription = sanitizeDescriptionText(product.technicalDescription);
-  }
-
-  if (product.descriptionImages !== undefined && product.descriptionImages !== null) {
-    let descriptionImages = product.descriptionImages;
-    if (typeof descriptionImages === 'string') {
-      try {
-        descriptionImages = JSON.parse(descriptionImages);
-      } catch {
-        warnings.push(`Row ${rowIndex}: Invalid descriptionImages JSON, skipped`);
-        descriptionImages = [];
-      }
-    }
-    if (!Array.isArray(descriptionImages)) {
-      warnings.push(`Row ${rowIndex}: descriptionImages must be an array, skipped`);
-    } else if (descriptionImages.length > MAX_IMPORT_IMAGES) {
-      errors.push(`Row ${rowIndex}: Too many description images; maximum is ${MAX_IMPORT_IMAGES}`);
-    } else {
-      cleaned.descriptionImages = descriptionImages.flatMap((image) => {
-        const entry = typeof image === 'string' ? { url: image } : image;
-        const url = String(entry?.url || '').trim();
-        if (!url || !validateImportUrl(url)) {
-          warnings.push(`Row ${rowIndex}: Invalid description image URL, skipped`);
-          return [];
-        }
-        return [{
-          url: new URL(url).toString(),
-          alt: sanitizePlainText(entry?.alt || ''),
-        }];
-      });
-    }
-  }
-
-  if (product.promotions !== undefined && product.promotions !== null) {
-    let promotions = product.promotions;
-    if (typeof promotions === 'string') {
-      try {
-        promotions = JSON.parse(promotions);
-      } catch {
-        warnings.push(`Row ${rowIndex}: Invalid promotions JSON, skipped`);
-        promotions = [];
-      }
-    }
-    if (!Array.isArray(promotions)) {
-      warnings.push(`Row ${rowIndex}: promotions must be an array, skipped`);
-    } else if (promotions.length > MAX_PRODUCT_PROMOTIONS) {
-      errors.push(`Row ${rowIndex}: Too many promotions; maximum is ${MAX_PRODUCT_PROMOTIONS}`);
-    } else {
-      cleaned.promotions = promotions.flatMap((promotion) => {
-        if (!promotion || typeof promotion !== 'object' || Array.isArray(promotion)) {
-          warnings.push(`Row ${rowIndex}: Invalid promotion, skipped`);
-          return [];
-        }
-        const title = sanitizePlainText(promotion.title || '');
-        const type = sanitizePlainText(promotion.type || '');
-        if (!title || !type) {
-          warnings.push(`Row ${rowIndex}: Promotion type/title is required, skipped`);
-          return [];
-        }
-        const cleanedPromotion = { type, title };
-        if (promotion.giftQuantity !== undefined && promotion.giftQuantity !== null && String(promotion.giftQuantity).trim() !== '') {
-          const quantity = toStrictNumber(promotion.giftQuantity);
-          if (quantity === null || !Number.isSafeInteger(quantity) || quantity < 1) {
-            warnings.push(`Row ${rowIndex}: Invalid promotion gift quantity, skipped`);
-            return [];
-          }
-          cleanedPromotion.giftQuantity = quantity;
-        }
-        if (promotion.giftProductName) cleanedPromotion.giftProductName = sanitizePlainText(promotion.giftProductName);
-        if (promotion.giftProductUrl) {
-          const giftProductUrl = String(promotion.giftProductUrl).trim();
-          if (validateImportUrl(giftProductUrl)) {
-            cleanedPromotion.giftProductUrl = new URL(giftProductUrl).toString();
-          } else {
-            warnings.push(`Row ${rowIndex}: Invalid promotion gift URL, skipped`);
-          }
-        }
-        if (promotion.giftValueVND !== undefined && promotion.giftValueVND !== null && String(promotion.giftValueVND).trim() !== '') {
-          const giftValue = toStrictNumber(promotion.giftValueVND);
-          if (giftValue === null || giftValue < 0) {
-            warnings.push(`Row ${rowIndex}: Invalid promotion gift value, skipped`);
-          } else {
-            cleanedPromotion.giftValueVND = giftValue;
-          }
-        }
-        if (promotion.scope) cleanedPromotion.scope = sanitizePlainText(promotion.scope);
-        if (promotion.discountText) cleanedPromotion.discountText = sanitizeDescriptionText(promotion.discountText);
-        return [cleanedPromotion];
-      });
-    }
-  }
+  const contentFields = normalizeProductContentFields(product, rowIndex);
+  errors.push(...contentFields.errors);
+  warnings.push(...contentFields.warnings);
+  Object.assign(cleaned, contentFields.cleaned);
 
   if (product.imagePublicId) {
     cleaned.imagePublicId = String(product.imagePublicId).trim();
@@ -480,13 +506,13 @@ function validateProduct(product, rowIndex = 0, options = {}) {
         }
 
         const cleanedTranslation = {};
-        ['name', 'description', 'brand'].forEach((field) => {
+        ['name', 'description', 'brand', 'technicalDescription'].forEach((field) => {
           if (translation[field] !== undefined && translation[field] !== null) {
             if (typeof translation[field] !== 'string') {
               errors.push(`Row ${rowIndex}: Translation field "${field}" must be a string`);
               return;
             }
-            cleanedTranslation[field] = field === 'description'
+            cleanedTranslation[field] = ['description', 'technicalDescription'].includes(field)
               ? sanitizeDescriptionText(translation[field])
               : sanitizePlainText(translation[field]);
           }
@@ -498,9 +524,21 @@ function validateProduct(product, rowIndex = 0, options = {}) {
             cleanedTranslation.specs = translation.specs;
           }
         }
+        const translatedContent = normalizeProductContentFields({
+          descriptionImages: translation.descriptionImages,
+          promotions: translation.promotions,
+        }, rowIndex);
+        errors.push(...translatedContent.errors);
+        warnings.push(...translatedContent.warnings);
+        if (translatedContent.cleaned.descriptionImages !== undefined) {
+          cleanedTranslation.descriptionImages = translatedContent.cleaned.descriptionImages;
+        }
+        if (translatedContent.cleaned.promotions !== undefined) {
+          cleanedTranslation.promotions = translatedContent.cleaned.promotions;
+        }
         if (Array.isArray(translation.manualFields)) {
           cleanedTranslation.manualFields = translation.manualFields.filter(field => (
-            ['name', 'description', 'brand', 'specs'].includes(field)
+            ['name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions'].includes(field)
           ));
         }
         if (Object.keys(cleanedTranslation).some(field => field !== 'manualFields')) {
@@ -722,6 +760,7 @@ function sanitizeCategoryName(name) {
 
 module.exports = {
   validateProduct,
+  normalizeProductContentFields,
   validateProductArray,
   normalizeSpecNames,
   validateCategoryName,

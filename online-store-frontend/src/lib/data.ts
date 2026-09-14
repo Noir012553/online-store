@@ -2,6 +2,24 @@ import { DEFAULT_LOCALE } from './i18n/types';
 
 // Data types for the laptop store
 
+export interface ProductDescriptionImage {
+  url: string;
+  alt?: string;
+  sourceUrl?: string;
+  publicUrl?: string;
+}
+
+export interface ProductPromotion {
+  type: string;
+  title: string;
+  giftQuantity?: number;
+  giftProductName?: string;
+  giftProductUrl?: string;
+  giftValueVND?: number;
+  scope?: string;
+  discountText?: string;
+}
+
 export interface Laptop {
   id: string;
   _id?: string;
@@ -21,9 +39,13 @@ export interface Laptop {
   rating: number;
   reviews: number;
   inStock?: boolean;
+  countInStock?: number;
   specs: Record<string, string | number>;
   specLabels?: Record<string, string>;
   description?: string;
+  technicalDescription?: string;
+  descriptionImages?: ProductDescriptionImage[];
+  promotions?: ProductPromotion[];
   featured?: boolean;
   deal?: {
     discount: number;

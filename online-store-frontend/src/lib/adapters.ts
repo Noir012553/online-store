@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Laptop } from './data';
+import { Laptop, ProductDescriptionImage, ProductPromotion } from './data';
 
 /**
  * Base Adapter class to handle data transformation and validation
@@ -90,6 +90,23 @@ export const LaptopSchema = z.object({
     }),
   specLabels: z.record(z.string(), z.string()).default({}),
   description: z.string().optional(),
+  technicalDescription: z.string().optional(),
+  descriptionImages: z.array(z.object({
+    url: z.string().trim().min(1),
+    alt: z.string().optional(),
+    sourceUrl: z.string().optional(),
+    publicUrl: z.string().optional(),
+  })).default([]),
+  promotions: z.array(z.object({
+    type: z.string().trim().min(1),
+    title: z.string().trim().min(1),
+    giftQuantity: z.number().optional(),
+    giftProductName: z.string().optional(),
+    giftProductUrl: z.string().optional(),
+    giftValueVND: z.number().optional(),
+    scope: z.string().optional(),
+    discountText: z.string().optional(),
+  })).default([]),
   specDisplay: z.array(z.object({
     field: z.string(),
     label: z.string(),
@@ -144,6 +161,44 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
         .filter(([, value]) => value !== null && value !== undefined)
         .map(([key, value]) => [key, typeof value === 'string' || typeof value === 'number' ? value : String(value)])
     );
+
+    if (normalized.technicalDescription !== undefined && normalized.technicalDescription !== null) {
+      normalized.technicalDescription = String(normalized.technicalDescription);
+    }
+
+    normalized.descriptionImages = Array.isArray(normalized.descriptionImages)
+      ? normalized.descriptionImages
+        .map((image: any): ProductDescriptionImage | null => {
+          if (typeof image === 'string') return { url: image };
+          if (!image || typeof image !== 'object') return null;
+          const url = String(image.publicUrl || image.url || '').trim();
+          return url ? {
+            url,
+            alt: typeof image.alt === 'string' ? image.alt : undefined,
+            sourceUrl: typeof image.sourceUrl === 'string' ? image.sourceUrl : undefined,
+            publicUrl: typeof image.publicUrl === 'string' ? image.publicUrl : undefined,
+          } : null;
+        })
+        .filter((image): image is ProductDescriptionImage => Boolean(image))
+      : [];
+
+    normalized.promotions = Array.isArray(normalized.promotions)
+      ? normalized.promotions
+        .filter((promotion: any): promotion is ProductPromotion => (
+          promotion && typeof promotion === 'object'
+          && typeof promotion.type === 'string'
+          && typeof promotion.title === 'string'
+        ))
+        .map((promotion: ProductPromotion) => ({
+          ...promotion,
+          ...(promotion.giftQuantity !== undefined && { giftQuantity: Number(promotion.giftQuantity) }),
+          ...(promotion.giftValueVND !== undefined && { giftValueVND: Number(promotion.giftValueVND) }),
+        }))
+        .filter((promotion: ProductPromotion) => (
+          (promotion.giftQuantity === undefined || Number.isFinite(promotion.giftQuantity))
+          && (promotion.giftValueVND === undefined || Number.isFinite(promotion.giftValueVND))
+        ))
+      : [];
 
     // Handle specDisplay array
     if (!Array.isArray(normalized.specDisplay)) {

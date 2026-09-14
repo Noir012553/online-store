@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '../lib/api';
+import type { ProductDescriptionImage, ProductPromotion } from '../lib/data';
 import { useLanguage } from '../lib/context/LanguageContext';
 
 interface TranslatedProduct {
@@ -8,6 +9,9 @@ interface TranslatedProduct {
   brand?: string;
   specs?: Record<string, string>;
   specLabels?: Record<string, string>;
+  technicalDescription?: string;
+  descriptionImages?: ProductDescriptionImage[];
+  promotions?: ProductPromotion[];
 }
 
 export function useProductTranslation(productId: string | null) {
