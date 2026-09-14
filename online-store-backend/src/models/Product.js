@@ -192,6 +192,7 @@ const productSchema = mongoose.Schema(
         type: {
           type: String,
           required: true,
+          enum: ['Gift', 'Discount'],
         },
         title: {
           type: String,

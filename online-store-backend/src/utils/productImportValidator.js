@@ -21,6 +21,7 @@ const MAX_IMPORT_OBJECT_DEPTH = 8;
 const MAX_IMPORT_STRING_LENGTH = 100000;
 const MAX_IMPORT_IMAGES = 50;
 const MAX_PRODUCT_PROMOTIONS = 50;
+const PRODUCT_PROMOTION_TYPES = new Set(['Gift', 'Discount']);
 const NUMERIC_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -134,6 +135,7 @@ function normalizeProductContentFields(product, rowIndex = 0) {
     } else if (descriptionImages.length > MAX_IMPORT_IMAGES) {
       errors.push(`Row ${rowIndex}: Too many description images; maximum is ${MAX_IMPORT_IMAGES}`);
     } else {
+      const seenImageUrls = new Set();
       cleaned.descriptionImages = descriptionImages.flatMap((image) => {
         const entry = typeof image === 'string' ? { url: image } : image;
         const sourceUrl = String(entry?.url || entry?.sourceUrl || '').trim();
@@ -146,11 +148,14 @@ function normalizeProductContentFields(product, rowIndex = 0) {
           warnings.push(`Row ${rowIndex}: Invalid description image publicUrl, skipped`);
           return [];
         }
+        const url = new URL(sourceUrl).toString();
+        if (seenImageUrls.has(url)) return [];
+        seenImageUrls.add(url);
         const normalizedImage = {
-          url: new URL(sourceUrl).toString(),
+          url,
           alt: sanitizePlainText(entry?.alt || ''),
         };
-        if (entry?.sourceUrl) normalizedImage.sourceUrl = normalizedImage.url;
+        if (entry?.sourceUrl) normalizedImage.sourceUrl = url;
         if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
         ['storageProvider', 'storageAccount', 'storageKey', 'bucket'].forEach((field) => {
           if (typeof entry?.[field] === 'string' && entry[field].trim()) {
@@ -177,6 +182,7 @@ function normalizeProductContentFields(product, rowIndex = 0) {
     } else if (promotions.length > MAX_PRODUCT_PROMOTIONS) {
       errors.push(`Row ${rowIndex}: Too many promotions; maximum is ${MAX_PRODUCT_PROMOTIONS}`);
     } else {
+      const seenPromotions = new Set();
       cleaned.promotions = promotions.flatMap((promotion) => {
         if (!promotion || typeof promotion !== 'object' || Array.isArray(promotion)) {
           warnings.push(`Row ${rowIndex}: Invalid promotion, skipped`);
@@ -186,6 +192,10 @@ function normalizeProductContentFields(product, rowIndex = 0) {
         const type = sanitizePlainText(promotion.type || '');
         if (!title || !type) {
           warnings.push(`Row ${rowIndex}: Promotion type/title is required, skipped`);
+          return [];
+        }
+        if (!PRODUCT_PROMOTION_TYPES.has(type)) {
+          errors.push(`Row ${rowIndex}: Invalid promotion type "${type}"`);
           return [];
         }
         const cleanedPromotion = { type, title };
@@ -216,6 +226,9 @@ function normalizeProductContentFields(product, rowIndex = 0) {
         }
         if (promotion.scope) cleanedPromotion.scope = sanitizePlainText(promotion.scope);
         if (promotion.discountText) cleanedPromotion.discountText = sanitizeDescriptionText(promotion.discountText);
+        const identity = `${type}\u0000${title}\u0000${cleanedPromotion.giftProductUrl || ''}`;
+        if (seenPromotions.has(identity)) return [];
+        seenPromotions.add(identity);
         return [cleanedPromotion];
       });
     }

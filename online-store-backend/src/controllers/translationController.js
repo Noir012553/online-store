@@ -956,6 +956,49 @@ const getSpecEntries = (specs) => (
       : []
 );
 
+const getTranslationContentInvariantErrors = (sourceProduct, translatedContent) => {
+  const errors = [];
+  if (translatedContent.descriptionImages !== undefined) {
+    const sourceImages = Array.isArray(sourceProduct?.descriptionImages) ? sourceProduct.descriptionImages : [];
+    const translatedImages = translatedContent.descriptionImages;
+    if (translatedImages.length !== sourceImages.length || translatedImages.some((image, index) => (
+      image.url !== sourceImages[index]?.url
+    ))) {
+      errors.push('description_images_mismatch');
+    }
+  }
+  if (translatedContent.promotions !== undefined) {
+    const sourcePromotions = Array.isArray(sourceProduct?.promotions) ? sourceProduct.promotions : [];
+    const translatedPromotions = translatedContent.promotions;
+    const immutableFields = ['type', 'giftQuantity', 'giftProductUrl', 'giftValueVND'];
+    if (translatedPromotions.length !== sourcePromotions.length || translatedPromotions.some((promotion, index) => (
+      immutableFields.some((field) => (promotion[field] ?? null) !== (sourcePromotions[index]?.[field] ?? null))
+    ))) {
+      errors.push('promotions_invariant_mismatch');
+    }
+  }
+  return errors;
+};
+
+const mergeTranslatedContentWithSource = (sourceProduct, translatedContent) => {
+  const merged = {};
+  if (translatedContent.descriptionImages !== undefined) {
+    merged.descriptionImages = sourceProduct.descriptionImages.map((image, index) => ({
+      ...image,
+      alt: translatedContent.descriptionImages[index].alt,
+    }));
+  }
+  if (translatedContent.promotions !== undefined) {
+    merged.promotions = sourceProduct.promotions.map((promotion, index) => ({
+      ...promotion,
+      ...Object.fromEntries(['title', 'giftProductName', 'scope', 'discountText']
+        .filter((field) => translatedContent.promotions[index][field] !== undefined)
+        .map((field) => [field, translatedContent.promotions[index][field]])),
+    }));
+  }
+  return merged;
+};
+
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
   const requiredFields = ['name', 'brand'];
   if (typeof sourceProduct?.description === 'string' && sourceProduct.description.trim()) {
@@ -1149,14 +1192,19 @@ exports.saveProductTranslation = async (req, res) => {
       ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang: lang }).lean(),
     ]);
     if (!product) return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
+    const invariantErrors = getTranslationContentInvariantErrors(product, normalizedContent.cleaned);
+    if (invariantErrors.length > 0) {
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
+    }
+    const translatedContent = mergeTranslatedContentWithSource(product, normalizedContent.cleaned);
 
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
     const allowedTranslations = Object.fromEntries(fields.map((field) => [
       field,
       field === 'specs'
         ? normalizeSpecs(translations[field])
-        : normalizedContent.cleaned[field] !== undefined
-          ? normalizedContent.cleaned[field]
+        : translatedContent[field] !== undefined
+          ? translatedContent[field]
           : translations[field],
     ]));
     const update = {
@@ -1302,11 +1350,14 @@ exports.importProductTranslationCache = async (req, res) => {
 
     const productIds = normalizedRecords.map(({ productId }) => productId);
     const [products, existingTranslations] = await Promise.all([
-      Product.find({ _id: { $in: productIds }, isDeleted: false }).select('name brand').lean(),
+      Product.find({ _id: { $in: productIds }, isDeleted: false })
+        .select('name brand descriptionImages promotions')
+        .lean(),
       ProductCatalogTranslationCache.find({
         $or: normalizedRecords.map(({ productId, targetLang }) => ({ entityId: productId, targetLang })),
       }).lean(),
     ]);
+    const sourceProducts = new Map(products.map((product) => [product._id.toString(), product]));
     const productNames = new Map(products.map((product) => [product._id.toString(), product.name]));
     const productBrands = new Map(products.map((product) => [product._id.toString(), product.brand]));
     if (productNames.size !== new Set(productIds).size) {
@@ -1326,6 +1377,27 @@ exports.importProductTranslationCache = async (req, res) => {
         }
       );
     }
+    const translationContentErrors = normalizedRecords.flatMap(({ line, productId, translations }) => {
+      const normalizedContent = normalizeProductContentFields({
+        descriptionImages: translations.descriptionImages,
+        promotions: translations.promotions,
+      }, line);
+      return getTranslationContentInvariantErrors(sourceProducts.get(productId), normalizedContent.cleaned)
+        .map((reason) => ({ line, reasons: [reason] }));
+    });
+    if (translationContentErrors.length > 0) {
+      if (batchRequest) await batchRequest.deleteOne();
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_IMPORT_RECORD_INVALID',
+        'operation_failed',
+        {},
+        { records: translationContentErrors }
+      );
+    }
+
     const existingByKey = new Map(existingTranslations.map((translation) => [`${translation.entityId}:${translation.targetLang}`, translation]));
     let skippedManualFields = 0;
     let wouldInsert = 0;
@@ -1376,12 +1448,16 @@ exports.importProductTranslationCache = async (req, res) => {
         descriptionImages: translations.descriptionImages,
         promotions: translations.promotions,
       });
+      const translatedContent = mergeTranslatedContentWithSource(
+        sourceProducts.get(productId),
+        normalizedContent.cleaned,
+      );
       const importedFields = Object.fromEntries(importableFields.map((field) => [
         field,
         field === 'specs'
           ? normalizeSpecs(translations[field])
-          : normalizedContent.cleaned[field] !== undefined
-            ? normalizedContent.cleaned[field]
+          : translatedContent[field] !== undefined
+            ? translatedContent[field]
             : translations[field],
       ]));
       return [{
@@ -1456,12 +1532,17 @@ exports.retranslateProduct = async (req, res) => {
       }).lean();
     const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations, product);
     const manualFields = catalogTranslation?.manualFields || [];
-    const translateField = async (field, source, entityType) => {
-      if (manualFields.includes(field) || !source) return { value: existing?.[field], validation: null };
+    const translateSourceText = async (source, entityType) => {
+      if (!source) return { value: source, validation: null };
       const value = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
       const validation = await translationValidator.validateTranslation(source, value, targetLang, entityType);
       return { value, validation };
     };
+    const translateField = async (field, source, entityType) => (
+      manualFields.includes(field)
+        ? { value: existing?.[field], validation: null }
+        : translateSourceText(source, entityType)
+    );
 
     const [nameResult, descResult, technicalDescriptionResult] = await Promise.all([
       translateField('name', product.name, 'product_name'),
@@ -1489,8 +1570,7 @@ exports.retranslateProduct = async (req, res) => {
       : [];
     if (!manualFields.includes('descriptionImages')) {
       for (const [index, image] of (product.descriptionImages || []).entries()) {
-        const { value: alt, validation } = await translateField(
-          'descriptionImages',
+        const { value: alt, validation } = await translateSourceText(
           image?.alt,
           'product_description_image_alt',
         );
@@ -1506,7 +1586,7 @@ exports.retranslateProduct = async (req, res) => {
       for (const promotion of product.promotions || []) {
         const translatedPromotion = { ...promotion };
         for (const field of ['title', 'giftProductName', 'scope', 'discountText']) {
-          const { value, validation } = await translateField('promotions', promotion?.[field], 'product_promotion');
+          const { value, validation } = await translateSourceText(promotion?.[field], 'product_promotion');
           if (value) translatedPromotion[field] = value;
           if (validation) validationResults.push(validation);
         }
