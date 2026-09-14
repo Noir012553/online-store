@@ -33,13 +33,13 @@ HEADERS = {
 
 
 def normalize_identity(product):
-    sku = str(product.get('SKU') or '').strip()
+    sku = str(product.get('ProductSKU') or product.get('SKU') or '').strip()
     if sku.lower() not in INVALID_IDENTITIES:
         return sku
 
-    brand = str(product.get('Brand') or '').strip()
-    name = str(product.get('Name') or '').strip()
-    return str(product.get('URL') or f'{brand}:{name}').strip()
+    brand = str(product.get('ProductBrand') or product.get('Brand') or '').strip()
+    name = str(product.get('ProductName') or product.get('Name') or '').strip()
+    return str(product.get('ProductURL') or product.get('URL') or f'{brand}:{name}').strip()
 
 
 def get_product_key(product):
@@ -168,7 +168,10 @@ def to_relative_path(output_root, file_path):
 def infer_existing_batch_id(products, output_root):
     image_root = output_root / 'images'
     for product in products:
-        image_values = [product.get('MainImage'), *split_gallery(product.get('GalleryImages'))]
+        image_values = [
+            product.get('ProductMainImage') or product.get('MainImage'),
+            *split_gallery(product.get('ProductGalleryImages') or product.get('GalleryImages')),
+        ]
         for image_value in image_values:
             relative_path = Path(str(image_value or '').replace('\\', '/'))
             if len(relative_path.parts) > 1 and relative_path.parts[0] == 'images':
@@ -208,18 +211,20 @@ def process_file(json_path, output_root, batch_id=None):
         product_dir = output_root / 'images' / batch_id / json_path.stem / product_key
         entry = {
             'batchId': batch_id,
-            'productUrl': product.get('URL'),
+            'productUrl': product.get('ProductURL') or product.get('URL'),
             'productKey': product_key,
             'main': [],
             'gallery': [],
         }
 
-        main_source = product.get('MainImage')
+        main_key = 'ProductMainImage' if 'ProductMainImage' in product else 'MainImage'
+        gallery_key = 'ProductGalleryImages' if 'ProductGalleryImages' in product else 'GalleryImages'
+        main_source = product.get(main_key)
         if is_remote_image(main_source):
             try:
                 main_path, source_url = process_image(main_source, product_dir, 'main')
-                product['MainImage'] = to_relative_path(output_root, main_path)
-                entry['main'] = {'sourceUrl': source_url, 'localPath': product['MainImage'], 'status': 'downloaded'}
+                product[main_key] = to_relative_path(output_root, main_path)
+                entry['main'] = {'sourceUrl': source_url, 'localPath': product[main_key], 'status': 'downloaded'}
                 changed = True
             except Exception as error:
                 main_failures.append(f'{json_path.name} row {index + 1}: {main_source} ({error})')
@@ -227,7 +232,7 @@ def process_file(json_path, output_root, batch_id=None):
         else:
             entry['main'] = {'localPath': main_source, 'status': 'local'}
 
-        gallery_sources = split_gallery(product.get('GalleryImages'))
+        gallery_sources = split_gallery(product.get(gallery_key))
         gallery_paths = []
         for gallery_index, gallery_source in enumerate(gallery_sources):
             slot = f'gallery-{gallery_index + 1:02d}'
@@ -248,7 +253,8 @@ def process_file(json_path, output_root, batch_id=None):
                 entry['gallery'].append({'localPath': gallery_source, 'status': 'local'})
 
         if gallery_paths:
-            product['GalleryImages'] = ' || '.join(gallery_paths)
+            product[gallery_key] = gallery_paths if gallery_key == 'ProductGalleryImages' else ' || '.join(gallery_paths)
+
         manifest[product_key] = entry
 
     if changed:

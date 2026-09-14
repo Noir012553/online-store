@@ -72,8 +72,25 @@ class BaseImportAdapter {
       'quantity in stock': 'countInStock',
       'description': 'description',
       'specifications': 'specs',
+      'productbrand': 'brand',
+      'productid': 'sourceProductId',
+      'productname': 'name',
+      'productsku': 'sku',
+      'productpricevnd': 'price',
+      'productregularpricevnd': 'originalPrice',
+      'productstockstatus': 'stockStatus',
+      'productcategory': 'category',
+      'productspecifications': 'specs',
+      'producttechnicaldescription': 'technicalDescription',
+      'productdescription': 'description',
+      'productdescriptionimages': 'descriptionImages',
+      'productpromotions': 'promotions',
+      'productmainimage': 'image',
+      'productgalleryimages': 'images',
+      'producturl': 'sourceUrl',
     };
-    const isCrawlerProduct = Object.hasOwn(product, 'Price_VND');
+    const isCrawlerProduct = Object.hasOwn(product, 'Price_VND')
+      || Object.hasOwn(product, 'ProductPriceVND');
     const normalized = {};
 
     for (const [key, value] of Object.entries(product)) {
@@ -83,19 +100,60 @@ class BaseImportAdapter {
 
     if (!isCrawlerProduct) return normalized;
 
-    normalized.name = product.Name;
-    normalized.brand = product.Brand;
-    normalized.sku = product.SKU;
-    normalized.sourceProductId = product.ID;
-    normalized.sourceUrl = product.URL;
-    normalized.price = product.Price_VND;
-    normalized.originalPrice = product.Regular_Price;
-    normalized.category = product.Categories;
-    normalized.specs = product.Attributes;
-    normalized.description = product.Description;
-    normalized.image = product.MainImage;
-    normalized.images = product.GalleryImages;
-    const isInStock = /^(in stock|còn hàng|true|1)$/i.test(String(product.InStock).trim());
+    const isNewCrawlerProduct = Object.hasOwn(product, 'ProductPriceVND');
+    const getCrawlerValue = (newKey, legacyKey) => (
+      isNewCrawlerProduct ? product[newKey] : product[legacyKey]
+    );
+    const parseCrawlerArray = (value) => {
+      if (Array.isArray(value)) return value;
+      if (typeof value !== 'string' || !value.trim()) return value;
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : value;
+      } catch {
+        return value;
+      }
+    };
+
+    normalized.name = getCrawlerValue('ProductName', 'Name');
+    normalized.brand = getCrawlerValue('ProductBrand', 'Brand');
+    normalized.sku = getCrawlerValue('ProductSKU', 'SKU');
+    normalized.sourceProductId = getCrawlerValue('ProductID', 'ID');
+    normalized.sourceUrl = getCrawlerValue('ProductURL', 'URL');
+    normalized.price = getCrawlerValue('ProductPriceVND', 'Price_VND');
+    normalized.originalPrice = getCrawlerValue('ProductRegularPriceVND', 'Regular_Price');
+    normalized.category = getCrawlerValue('ProductCategory', 'Categories');
+    normalized.specs = getCrawlerValue('ProductSpecifications', 'Attributes');
+    normalized.technicalDescription = getCrawlerValue('ProductTechnicalDescription', 'Description');
+    normalized.description = isNewCrawlerProduct
+      ? product.ProductDescription
+      : product.Description;
+    normalized.descriptionImages = isNewCrawlerProduct
+      ? (Array.isArray(product.ProductDescriptionImages)
+        ? product.ProductDescriptionImages.map(image => ({
+          url: image?.ProductDescriptionImageURL || image?.url,
+          alt: image?.ProductDescriptionImageAlt || image?.alt || '',
+        }))
+        : product.ProductDescriptionImages)
+      : undefined;
+    normalized.promotions = isNewCrawlerProduct
+      ? (Array.isArray(product.ProductPromotions)
+        ? product.ProductPromotions.map(promotion => ({
+          type: promotion?.ProductPromotionType || promotion?.type,
+          title: promotion?.ProductPromotionTitle || promotion?.title,
+          giftQuantity: promotion?.ProductPromotionGiftQuantity ?? promotion?.giftQuantity,
+          giftProductName: promotion?.ProductPromotionGiftProductName || promotion?.giftProductName,
+          giftProductUrl: promotion?.ProductPromotionGiftProductURL || promotion?.giftProductUrl,
+          giftValueVND: promotion?.ProductPromotionGiftValueVND ?? promotion?.giftValueVND,
+          scope: promotion?.ProductPromotionScope || promotion?.scope,
+          discountText: promotion?.ProductPromotionDiscountText || promotion?.discountText,
+        }))
+        : product.ProductPromotions)
+      : undefined;
+    normalized.image = getCrawlerValue('ProductMainImage', 'MainImage');
+    normalized.images = parseCrawlerArray(getCrawlerValue('ProductGalleryImages', 'GalleryImages'));
+    const stockStatus = getCrawlerValue('ProductStockStatus', 'InStock');
+    const isInStock = /^(in stock|còn hàng|true|1)$/i.test(String(stockStatus).trim());
     const configuredInitialStock = this.config.initialStock;
     const initialStock = Number.isInteger(configuredInitialStock) && configuredInitialStock >= 0
       ? configuredInitialStock

@@ -1596,6 +1596,7 @@ const getImportGuide = asyncHandler(async (req, res) => {
     requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'image', 'description', 'countInStock', 'specs'],
     optionalFields: [
       'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'imagePublicId', 'imagePublicIds', 'images',
+      'technicalDescription', 'descriptionImages', 'promotions',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {
@@ -1618,6 +1619,14 @@ const getImportGuide = asyncHandler(async (req, res) => {
       images: {
         format: 'Array in JSON | Pipe-separated string in CSV',
         example: 'In CSV: "https://url1.jpg|https://url2.jpg"',
+      },
+      descriptionImages: {
+        format: 'Array of { url, alt } in JSON | JSON string in CSV',
+        example: '[{"url":"https://cdn.example.com/description.jpg","alt":"Product detail"}]',
+      },
+      promotions: {
+        format: 'Array of promotion objects in JSON | JSON string in CSV',
+        example: '[{"type":"Gift","title":"Free mouse","giftQuantity":1}]',
       },
     },
   });

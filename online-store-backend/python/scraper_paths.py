@@ -8,8 +8,11 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
 PRODUCT_OUTPUT_FIELDS = (
-    "Brand", "ID", "Name", "SKU", "Price_VND", "Regular_Price", "InStock",
-    "Categories", "Attributes", "Description", "MainImage", "GalleryImages", "URL",
+    "ProductBrand", "ProductID", "ProductName", "ProductSKU", "ProductPriceVND",
+    "ProductRegularPriceVND", "ProductStockStatus", "ProductCategory",
+    "ProductSpecifications", "ProductTechnicalDescription", "ProductDescription",
+    "ProductDescriptionImages", "ProductPromotions", "ProductMainImage",
+    "ProductGalleryImages", "ProductURL",
 )
 
 _PRODUCT_CARD_MARKERS = (
@@ -288,6 +291,108 @@ def get_output_paths(file_prefix):
         output_dir / f"{file_prefix}.csv",
         output_dir / f"{file_prefix}.json",
     )
+
+
+def extract_product_description(soup):
+    content = soup.select_one('.news-html-content')
+    if not content:
+        return ""
+
+    parts = []
+    for element in content.select('h1, h2, h3, h4, h5, h6, p, li'):
+        text = element.get_text(" ", strip=True)
+        if text and text not in parts:
+            parts.append(text)
+    if parts:
+        return "\n\n".join(parts)
+    return content.get_text(" ", strip=True)
+
+
+def extract_product_description_images(soup):
+    content = soup.select_one('.news-html-content')
+    if not content:
+        return []
+
+    images = []
+    seen_urls = set()
+    for image in content.select('img'):
+        image_url = _absolute_image_url(_image_url_from_tag(image))
+        if not image_url or image_url in seen_urls:
+            continue
+        seen_urls.add(image_url)
+        images.append({
+            "ProductDescriptionImageURL": image_url,
+            "ProductDescriptionImageAlt": str(image.get("alt") or "").strip(),
+        })
+    return images
+
+
+def _parse_vnd_value(value):
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    return int(digits) if digits else None
+
+
+def _promotion_section(soup):
+    for section in soup.find_all("section"):
+        title_node = section.find(
+            string=lambda value: str(value or "").strip().casefold() == "ưu đãi đi kèm"
+        )
+        if title_node:
+            return section
+    return None
+
+
+def extract_product_promotions(soup):
+    section = _promotion_section(soup)
+    if not section:
+        return []
+
+    promotions = []
+    seen = set()
+    for paragraph in section.find_all("p"):
+        title = paragraph.get_text(" ", strip=True)
+        if not title:
+            continue
+
+        link = paragraph.find("a", href=True)
+        product_url = _absolute_image_url(link.get("href")) if link else ""
+        gift_match = re.match(
+            r"^Tặng\s+ngay\s+(\d+)\s*x\s+(.+?)(?:\s*\(trị\s*giá\s*([\d.,]+)\s*đ\))?$",
+            title,
+            flags=re.IGNORECASE,
+        )
+        if gift_match:
+            gift_name = link.get_text(" ", strip=True) if link else gift_match.group(2).strip()
+            promotion = {
+                "ProductPromotionType": "Gift",
+                "ProductPromotionTitle": title,
+                "ProductPromotionGiftQuantity": int(gift_match.group(1)),
+                "ProductPromotionGiftProductName": gift_name,
+            }
+            if product_url:
+                promotion["ProductPromotionGiftProductURL"] = product_url
+            gift_value = _parse_vnd_value(gift_match.group(3))
+            if gift_value is not None:
+                promotion["ProductPromotionGiftValueVND"] = gift_value
+        else:
+            scope_match = re.match(r"^\[([^\]]+)\]\s*", title)
+            promotion = {
+                "ProductPromotionType": "Discount",
+                "ProductPromotionTitle": title,
+                "ProductPromotionDiscountText": title,
+            }
+            if scope_match:
+                promotion["ProductPromotionScope"] = scope_match.group(1).strip()
+
+        identity = (
+            promotion["ProductPromotionType"],
+            promotion["ProductPromotionTitle"],
+            promotion.get("ProductPromotionGiftProductURL", ""),
+        )
+        if identity not in seen:
+            seen.add(identity)
+            promotions.append(promotion)
+    return promotions
 
 
 def _image_url_from_tag(image):
