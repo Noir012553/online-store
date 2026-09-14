@@ -76,6 +76,9 @@ describe('Product translation cache controller', () => {
           description: 'Source description',
           brand: 'Source brand',
           specs: { RAM: '16GB' },
+          technicalDescription: 'Technical source',
+          descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Source image' }],
+          promotions: [{ type: 'Gift', title: 'Source gift' }],
         }),
       }),
     });
@@ -93,6 +96,9 @@ describe('Product translation cache controller', () => {
       brand: 'Source brand',
       specs: { ram: '16GB' },
       specLabels: { ram: 'RAM' },
+      technicalDescription: 'Technical source',
+      descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Source image' }],
+      promotions: [{ type: 'Gift', title: 'Source gift' }],
     });
   });
 

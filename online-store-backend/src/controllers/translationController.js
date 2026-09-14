@@ -219,7 +219,7 @@ exports.getProductTranslations = async (req, res) => {
 
     if (resolvedLang === getDefaultLanguage().code) {
       const sourceProduct = await Product.findById(productId)
-        .select('name description brand specs')
+        .select('name description brand specs technicalDescription descriptionImages promotions')
         .lean();
 
       if (!sourceProduct) {
@@ -246,6 +246,9 @@ exports.getProductTranslations = async (req, res) => {
           brand: sourceProduct.brand,
           specs: localizedSpecData.specs,
           specLabels: localizedSpecData.specLabels,
+          technicalDescription: sourceProduct.technicalDescription || '',
+          descriptionImages: Array.isArray(sourceProduct.descriptionImages) ? sourceProduct.descriptionImages : [],
+          promotions: Array.isArray(sourceProduct.promotions) ? sourceProduct.promotions : [],
         },
       });
     }
@@ -888,10 +891,12 @@ const productTranslationStatus = (translation) => {
 
 const isProductId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 
-const buildLegacyProductTranslation = (translations) => {
+const buildLegacyProductTranslation = (translations, sourceProduct) => {
   if (translations.length === 0) return null;
 
   const data = { specs: {} };
+  const descriptionImageAlts = new Map();
+  const promotionTexts = new Map();
   translations.forEach((translation) => {
     switch (translation.entityType) {
       case 'product_name':
@@ -900,13 +905,45 @@ const buildLegacyProductTranslation = (translations) => {
       case 'product_description':
         data.description = translation.translatedText;
         break;
+      case 'product_brand':
+        data.brand = translation.translatedText;
+        break;
       case 'product_spec':
         if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
+        break;
+      case 'product_technical_description':
+        data.technicalDescription = translation.translatedText;
+        break;
+      case 'product_description_image_alt':
+        if (/^descriptionImages\.\d+\.alt$/.test(translation.fieldKey || '')) {
+          descriptionImageAlts.set(translation.fieldKey, translation.translatedText);
+        }
+        break;
+      case 'product_promotion':
+        if (/^promotions\.\d+\.(title|giftProductName|scope|discountText)$/.test(translation.fieldKey || '')) {
+          promotionTexts.set(translation.fieldKey, translation.translatedText);
+        }
         break;
     }
   });
 
   data.specs = normalizeSpecs(data.specs);
+  if (descriptionImageAlts.size > 0 && Array.isArray(sourceProduct?.descriptionImages)) {
+    data.descriptionImages = sourceProduct.descriptionImages.map((image, index) => ({
+      ...image,
+      alt: descriptionImageAlts.get(`descriptionImages.${index}.alt`) || image.alt || '',
+    }));
+  }
+  if (promotionTexts.size > 0 && Array.isArray(sourceProduct?.promotions)) {
+    data.promotions = sourceProduct.promotions.map((promotion, index) => {
+      const localized = { ...promotion };
+      ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+        const translation = promotionTexts.get(`promotions.${index}.${field}`);
+        if (translation) localized[field] = translation;
+      });
+      return localized;
+    });
+  }
   return data;
 };
 
@@ -954,9 +991,9 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   }
 
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
-  const sourceProduct = includeNonSuccess
-    ? null
-    : await Product.findById(productId).select('name description brand specs technicalDescription descriptionImages promotions').lean();
+  const sourceProduct = await Product.findById(productId)
+    .select('name description brand specs technicalDescription descriptionImages promotions')
+    .lean();
 
   if (translation) {
     const data = {
@@ -973,9 +1010,9 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   }
 
   const legacyTranslations = await LiveTranslationCache.find(legacyQuery).lean();
-  const legacyTranslation = buildLegacyProductTranslation(legacyTranslations);
+  const legacyTranslation = buildLegacyProductTranslation(legacyTranslations, sourceProduct);
   if (!legacyTranslation) return null;
-  legacyTranslation.brand = sourceProduct.brand;
+  legacyTranslation.brand = legacyTranslation.brand || sourceProduct?.brand;
   if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, legacyTranslation)) return null;
 
   return legacyTranslation;
@@ -1417,7 +1454,7 @@ exports.retranslateProduct = async (req, res) => {
         targetLang,
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean();
-    const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations);
+    const existing = catalogTranslation || buildLegacyProductTranslation(legacyTranslations, product);
     const manualFields = catalogTranslation?.manualFields || [];
     const translateField = async (field, source, entityType) => {
       if (manualFields.includes(field) || !source) return { value: existing?.[field], validation: null };
@@ -1529,6 +1566,9 @@ const DYNAMIC_ENTITY_TYPES = new Set([
   'product_description',
   'product_brand',
   'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
   'category_name',
   'category_description',
   'review',

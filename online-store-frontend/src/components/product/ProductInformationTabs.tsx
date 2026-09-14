@@ -89,7 +89,7 @@ export function ProductInformationTabs({
               </h3>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {product.descriptionImages.map((image, index) => {
-                  const src = getImageUrl(image.publicUrl || image.url);
+                  const src = getImageUrl(image.url);
                   if (!src) return null;
                   return (
                     <button
