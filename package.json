@@ -4,7 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm --prefix online-store-backend test"
+    "test": "npm --prefix online-store-backend test",
+    "seed": "npm --prefix online-store-backend run seed --",
+    "seed:dry-run": "npm --prefix online-store-backend run seed:dry-run --",
+    "seed:list": "npm --prefix online-store-backend run seed:list --",
+    "seed:modules": "npm --prefix online-store-backend run seed:modules --",
+    "seed:pre-products": "npm --prefix online-store-backend run seed:pre-products --",
+    "seed:post-products": "npm --prefix online-store-backend run seed:post-products --"
   },
   "keywords": [],
   "author": "",
