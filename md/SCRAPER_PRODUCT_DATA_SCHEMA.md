@@ -41,7 +41,20 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Cập nhật import guide | Hoàn tất | Bổ sung field details |
 | Test fixture/extractor Python | Đã thêm | Chưa chạy được do policy môi trường chặn Python |
 | Runtime test Node | Chưa hoàn tất | Môi trường thiếu dependency `mongoose` |
-| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL |
+| Staging metadata cho từng batch | Chưa triển khai | Chưa tạo `ScrapeRunID`, thời điểm chụp và parser version riêng |
+| Upload ảnh chính/gallery | Đã có một phần | Seed pipeline xử lý hai nhóm ảnh này |
+| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL trong `descriptionImages` |
+| Lưu metadata asset | Chưa triển khai đầy đủ | Chưa lưu đồng bộ `storageProvider`, `storageAccount`, `storageKey` cho ảnh mô tả |
+| Backend CRUD trực tiếp | Chưa hoàn tất | `createProduct`/`updateProduct` chưa nhận đủ ba field mới |
+| API response camelCase | Đã có một phần | Model/formatter có thể trả field mới; cần kiểm tra contract API đầy đủ |
+| JSON/CSV import | Đã có một phần | Adapter nhận field mới; cần test round-trip và structured data |
+| ZIP import/export | Đã có một phần | ZIP có products.json/csv và assets; description images chưa được bundle riêng đầy đủ |
+| Product/translation backup | Chưa đầy đủ | Hiện có backup LiveTranslationCache; chưa có snapshot Product/cache mới/manifest asset đầy đủ |
+| Frontend type/adapter | Chưa triển khai | `Laptop`, `BackendProduct` và adapter chưa có ba field mới |
+| Frontend UI | Chưa triển khai | Chưa hiển thị technical description, description images và promotions |
+| Translation field mới | Chưa triển khai | Cache/seeder/API chưa dịch ba field mới |
+| Cloudflare AI multi-config | Đã có một phần | Đọc nhóm hậu tố và xoay khi HTTP 429; chưa đủ 420/quota/giới hạn vòng xoay |
+| R2 multi-account adapter | Chưa triển khai | `.env.example` có mẫu account nhưng runtime chưa chọn/upload theo account |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
@@ -292,7 +305,9 @@ Extractor phải ghi cảnh báo cho dữ liệu thiếu nhưng chỉ từ chố
 
 ### 8.2. Staging
 
-Mỗi batch nên có metadata riêng:
+**Trạng thái hiện tại: chưa triển khai đầy đủ.** Output scraper hiện trả trực tiếp record 16 key canonical; chưa bọc record trong staging envelope có `ScrapeRunID`, `ScrapeCapturedAt` và `ScrapeParserVersion`.
+
+Khi triển khai staging, mỗi batch nên có metadata riêng:
 
 ```json
 {
@@ -321,6 +336,7 @@ ProductCategory             -> category
 ProductSpecifications       -> specs
 ProductTechnicalDescription -> technicalDescription
 ProductDescription          -> description
+ProductDescriptionImages    -> descriptionImages
 ProductPromotions           -> promotions
 ProductMainImage            -> image
 ProductGalleryImages        -> images
@@ -344,6 +360,8 @@ Validation phải chạy sau normalize và trước upload/import. Cần kiểm 
 
 ### 8.5. Asset processing
 
+**Trạng thái hiện tại: triển khai một phần.** Seed pipeline đã xử lý ảnh chính và gallery, nhưng chưa upload `descriptionImages` và chưa lưu đủ metadata storage cho nhóm ảnh này. Không coi việc có URL nguồn là đã upload thành công.
+
 Xử lý riêng ba nhóm asset:
 
 ```text
@@ -352,7 +370,7 @@ ProductGalleryImages
 ProductDescriptionImages
 ```
 
-Sau khi upload, reference asset cần giữ tối thiểu:
+Sau khi upload, reference asset cần giữ tối thiểu. Cấu trúc này phải được áp dụng nhất quán cho ảnh chính, gallery và ảnh trong mô tả; không chỉ lưu `url`/`alt` nếu asset đã được đưa vào storage:
 
 ```json
 {
@@ -387,6 +405,20 @@ Khi upsert:
 ### 8.7. API/frontend
 
 API chỉ trả schema nội bộ camelCase. Frontend không được biết selector GearVN, key `Product...`, Cloudinary account hay R2 secret.
+
+Trạng thái triển khai hiện tại:
+
+| Tầng | Đã có | Còn phải làm |
+|---|---|---|
+| Product model | `technicalDescription`, `descriptionImages`, `promotions` | Mở rộng asset reference nếu upload ảnh mô tả |
+| Import API | Normalize, validate và lưu được ba field mới | Bảo đảm policy upsert và báo cáo insert/update/skip/fail |
+| API đọc sản phẩm | Formatter trả dữ liệu model theo camelCase | Kiểm tra contract response và tài liệu API |
+| API CRUD trực tiếp | Luồng cũ tạo/sửa sản phẩm | Nhận, validate và lưu ba field mới trong `POST`/`PUT` |
+| Frontend types/adapter | `description`, `specs`, main/gallery | Thêm type và normalize cho `technicalDescription`, `descriptionImages`, `promotions` |
+| Frontend product detail | Tab mô tả và gallery cũ | Render mô tả kỹ thuật, ảnh trong bài viết và từng khuyến mãi |
+| Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
+
+Frontend chỉ nhận URL public/reference đã được backend kiểm tra. Frontend không tự chọn Cloudinary account, không nhận API secret và không tự tạo URL theo storage account.
 
 ## 9. Contract dữ liệu giữa các tầng
 
@@ -521,6 +553,27 @@ Cập nhật đồng bộ:
 
 Adapter phải map key mới một lần duy nhất. Validator phải xử lý array/object và giới hạn kích thước trước khi import.
 
+### Bước 4.1: Cập nhật API CRUD
+
+Sau khi import pipeline ổn định, cập nhật riêng các endpoint tạo/sửa sản phẩm:
+
+1. Nhận `technicalDescription`, `descriptionImages` và `promotions` từ request body.
+2. Dùng cùng rule normalize/validation với import, không tạo mapping khác trong controller.
+3. Không cho phép client gửi thông tin chọn Cloudinary account hoặc secret.
+4. Giữ policy identity, tồn kho và asset cũ của luồng upsert.
+5. Bổ sung test cho create, update và response sau khi lưu.
+
+### Bước 4.2: Cập nhật API contract và frontend
+
+Chỉ sau khi API response ổn định:
+
+1. Thêm ba field mới vào `BackendProduct` và `Laptop` với kiểu dữ liệu phù hợp.
+2. Cập nhật adapter frontend để giữ `descriptionImages` là danh sách ảnh và `promotions` là danh sách ưu đãi.
+3. Render `technicalDescription`, ảnh mô tả và khuyến mãi ở trang chi tiết sản phẩm.
+4. Dùng component ảnh hiện có để mở ảnh mô tả; không render HTML nguồn chưa sanitize.
+5. Cập nhật preview admin import để người dùng thấy dữ liệu sau normalize.
+6. Thêm test adapter và test UI cho dữ liệu có đủ, thiếu hoặc rỗng các field tùy chọn.
+
 ### Bước 5: Cập nhật asset pipeline
 
 - Chuẩn hóa URL ảnh.
@@ -561,7 +614,406 @@ Trước khi import thật:
 - Theo dõi lỗi network, rate limit, parser warnings, upload failures và import skips.
 - Rollback bằng cách dừng batch mới và dùng output/manifest trước đó; không rollback bằng cách xóa hàng loạt asset.
 
-## 12. Kết luận
+## 12. Kế hoạch translation, multi-account và R2
+
+Phần này là kế hoạch triển khai tiếp theo cho khoảng 1.000 sản phẩm. Chưa được coi là đã triển khai code cho đến khi từng tiêu chí nghiệm thu ở mục 12.11 đạt.
+
+### 12.1. Quyết định đã chốt
+
+- Dịch các text hiển thị của `technicalDescription`, `descriptionImages[].alt` và các text trong `promotions`.
+- Giữ `technicalDescription` là plain text; không dịch HTML raw.
+- Giữ nguyên URL, số lượng, giá trị tiền, SKU, ID và dữ liệu nghiệp vụ bất biến.
+- `descriptionImages.url` giữ nguyên; chỉ dịch `alt`.
+- `promotions.title`, `giftProductName`, `scope` và `discountText` được dịch.
+- `promotions.type` dùng label/enum có kiểm soát; không để model tự đổi giá trị nghiệp vụ.
+- Khi thiếu bản dịch, hiển thị source language; không ẩn sản phẩm và không chặn storefront chỉ vì field mới thiếu bản dịch.
+- Ảnh sản phẩm, gallery và ảnh trong mô tả lưu trên Cloudflare R2 Standard.
+- R2 access key/secret và Cloudflare AI token chỉ được backend đọc.
+
+### 12.2. Trạng thái code hiện tại cần giữ đúng trong kế hoạch
+
+- Cloudflare AI đã đọc được nhiều nhóm `CLOUDFLARE_ACCOUNT_ID_n`, `CLOUDFLARE_API_TOKEN_n`, `CLOUDFLARE_AI_MODEL_n` tại `online-store-backend/src/services/cloudflareAiService.js`.
+- Cloudflare AI hiện mới xoay config khi nhận HTTP 429; chưa hoàn chỉnh cho HTTP 420, lỗi quota theo message, giới hạn vòng xoay và thống kê bền vững.
+- R2 mới có mẫu biến môi trường nhiều account trong `online-store-backend/.env.example`; chưa coi là adapter upload multi-account đã hoàn tất.
+- Translation cache hiện chưa có `technicalDescription`, `descriptionImages` và `promotions`.
+- Frontend adapter/type/UI hiện chưa giữ và hiển thị ba field mới.
+- Không chạy batch dịch hoặc upload R2 thật trước khi hoàn tất inventory/dry-run.
+
+### 12.3. Giai đoạn 0 — Inventory và dry-run không gọi dịch
+
+Tạo một báo cáo chỉ đọc từ MongoDB và filesystem/object source, không gọi Cloudflare AI và không upload R2:
+
+1. Đếm product `isDeleted: false`.
+2. Đếm product có từng field cần dịch.
+3. Đếm tổng text `specs`, promotion và `descriptionImages[].alt`.
+4. Đo độ dài description/technicalDescription để tính số chunk.
+5. Đếm translation cache theo `targetLang` và trạng thái `approved`, `pending`, `failed`, `needs_retranslate`.
+6. Đếm số ảnh chính, gallery, ảnh mô tả và tổng dung lượng dự kiến.
+7. Kiểm tra trùng URL/hash ảnh.
+8. Ghi số target language thực tế; không mặc định chạy toàn bộ language inventory nếu chưa được chọn.
+9. Đọc usage/quota tổng hợp từ Cloudflare Dashboard/API; không ghi token vào report.
+
+Báo cáo phải có `runId`, thời điểm, số liệu theo account/model và manifest input để có thể so sánh lần chạy sau.
+
+### 12.4. Giai đoạn 1 — Chuẩn hóa pool Cloudflare AI
+
+#### Env contract
+
+Dùng nhóm biến đồng bộ theo hậu tố:
+
+```text
+CLOUDFLARE_ACCOUNT_ID_1
+CLOUDFLARE_API_TOKEN_1
+CLOUDFLARE_AI_MODEL_1
+
+CLOUDFLARE_ACCOUNT_ID_2
+CLOUDFLARE_API_TOKEN_2
+CLOUDFLARE_AI_MODEL_2
+```
+
+Có thể dùng đến `_9` hoặc hơn nếu cần. Mỗi nhóm phải có đủ account ID và token; thiếu một thành phần thì config bị loại và phải ghi cảnh báo không chứa secret.
+
+#### Quy tắc chọn và xoay
+
+- Chọn account chính theo cấu hình rõ ràng, không chọn ngẫu nhiên.
+- Chỉ xoay khi provider trả HTTP 420, HTTP 429 hoặc thông báo rate limit/quota đã được nhận diện chắc chắn.
+- Lỗi 400 do payload, 401/403 do xác thực, 404 do model/account và lỗi dữ liệu phải dừng ngay, không xoay account.
+- Mỗi request có tối đa số lần retry và số vòng xoay hữu hạn; nếu tất cả config thất bại thì đưa job về trạng thái retryable và dừng batch có kiểm soát.
+- Không tự động phân tán request giữa nhiều account chỉ để né quota.
+- Không tự động di chuyển dữ liệu hoặc asset cũ khi đổi account.
+
+#### Tối ưu request
+
+- Cache theo `sourceTextHash + sourceLang + targetLang + field + schemaVersion + model`.
+- Dedupe text giống nhau giữa các sản phẩm trước khi gọi model.
+- Dịch theo field có cấu trúc; không gửi URL, số tiền hoặc ID vào phần cần dịch.
+- Giữ chunk description dưới giới hạn context của model và thêm kiểm tra độ dài sau khi dịch.
+- Concurrency thấp ở giai đoạn đầu; chỉ tăng sau khi theo dõi 429, latency và usage.
+- Lưu attempt, config index, model, target language, thời lượng và kết quả; không lưu token.
+
+### 12.5. Giai đoạn 2 — Translation schema và quality
+
+Mở rộng `ProductCatalogTranslationCache` với:
+
+```json
+{
+  "technicalDescription": "...",
+  "descriptionImages": [
+    { "url": "https://...", "alt": "..." }
+  ],
+  "promotions": [
+    {
+      "type": "Gift",
+      "title": "...",
+      "giftQuantity": 1,
+      "giftProductName": "...",
+      "giftProductUrl": "https://...",
+      "giftValueVND": 0,
+      "scope": "...",
+      "discountText": "..."
+    }
+  ]
+}
+```
+
+- `url`, `giftProductUrl`, số lượng và giá trị phải được kiểm tra invariant với source.
+- Plain text phải được sanitize trước khi gửi và sau khi nhận.
+- Numeric token, phần trăm, đơn vị tiền và thông số kỹ thuật phải được kiểm tra không bị thay đổi.
+- Bổ sung các field mới vào seeder, retranslate, completeness check, quality report và invalidation khi source thay đổi.
+- Thiếu bản dịch field tùy chọn không làm product mất `storefrontReady`; phải ghi metric thiếu bản dịch để theo dõi.
+- Không lưu HTML chưa sanitize vào translation cache.
+
+### 12.6. Giai đoạn 3 — R2 adapter và metadata asset
+
+Dùng R2 Standard cho ảnh truy cập thường xuyên. Mỗi asset sau upload phải giữ tối thiểu:
+
+```json
+{
+  "sourceUrl": "https://...",
+  "storageProvider": "r2",
+  "storageAccount": "1",
+  "bucket": "product-assets",
+  "storageKey": "products/{productId}/{role}/{contentHash}.webp",
+  "publicUrl": "https://...",
+  "alt": "..."
+}
+```
+
+Quy tắc upload:
+
+1. Backend chọn account/bucket; frontend không được chọn storage account.
+2. Tách role `main`, `gallery` và `description`.
+3. Kiểm tra URL nguồn, MIME, magic bytes, kích thước và content type.
+4. Dedupe theo content hash; retry không tạo object khác nếu nội dung giống nhau.
+5. Upload thành công rồi mới cập nhật Product reference.
+6. Ghi `storageProvider`, `storageAccount`, `bucket`, `storageKey`, `publicUrl` cùng metadata.
+7. Không xóa asset cũ khi asset mới chưa upload và verify thành công.
+8. Không tự động di chuyển asset cũ từ provider/account cũ.
+9. Có manifest object theo batch để retry và audit.
+10. Signed URL chỉ có thời hạn phù hợp nếu asset không public; secret không bao giờ đi qua frontend.
+
+Với khoảng 1.000 sản phẩm, cần dự trù khoảng 3–30 GB tùy số lượng/kích thước ảnh. R2 Standard phù hợp hơn Infrequent Access vì ảnh storefront được đọc thường xuyên.
+
+### 12.7. Giai đoạn 4 — API và frontend
+
+#### Backend/API
+
+- Mở rộng API product translation để trả ba field mới.
+- Đồng bộ backend overlay với endpoint `/products/:id/translations`.
+- Cập nhật `createProduct`/`updateProduct` nếu CRUD trực tiếp cần nhận field mới.
+- Trả schema camelCase ổn định; không trả selector nguồn, token hoặc thông tin bí mật.
+- Fallback từng field về source, không thay thế toàn bộ product bằng một bản dịch không đầy đủ.
+
+#### Frontend
+
+- Bổ sung field vào `BackendProduct`, `Laptop`, Zod schema và `ProductAdapter`.
+- Render technical description dạng plain text.
+- Render ảnh mô tả với `alt` theo locale và URL do backend cung cấp.
+- Render promotion theo structured data; format số/tiền ở frontend nhưng không sửa giá trị source.
+- Không dùng `dangerouslySetInnerHTML` cho dữ liệu scraper.
+- Thêm test cho source locale, target locale, missing translation và dữ liệu legacy.
+
+### 12.8. Giai đoạn 4.5 — Đồng bộ import, export và backup
+
+#### Trạng thái hiện tại
+
+- `JSONAdapter`, `CSVAdapter` và `BaseImportAdapter` đã normalize các field `technicalDescription`, `descriptionImages` và `promotions`.
+- JSON/CSV validator đã xử lý array/object và có giới hạn dữ liệu mới.
+- ZIP import yêu cầu đúng một `products.json` hoặc `products.csv`, kiểm tra path, kích thước, compression ratio và asset entry.
+- Export CSV đã có header cho ba field mới và serialize array/object thành JSON; export JSON giữ structured data.
+- Luồng export asset hiện chủ yếu gom `product.images`; cần bổ sung role và asset manifest riêng cho `descriptionImages`.
+- Backup hiện có script cho `LiveTranslationCache`, chưa phải backup đầy đủ cho Product, `ProductCatalogTranslationCache`, R2 metadata và object manifest.
+- Tài liệu import/export ZIP hiện còn mô tả upload lại Cloudinary ở một số phần; phải đồng bộ lại theo provider R2 đã chốt trước rollout.
+
+#### Import contract
+
+Mọi đường import phải đi qua cùng một normalize/validate contract:
+
+1. Scraper JSON canonical dùng làm source of truth.
+2. JSON import giữ nguyên array/object.
+3. CSV serialize/parse JSON hợp lệ cho `descriptionImages` và `promotions`; không dùng delimiter `||` để biểu diễn structured data.
+4. ZIP chỉ có một data entry ở root: `products.json` hoặc `products.csv`.
+5. Asset ZIP chỉ nằm dưới `assets/images/`; cần mở rộng manifest để phân biệt `main`, `gallery`, `description`.
+6. Không cho frontend bypass validator hoặc gửi storage account/secret.
+7. Import dry-run phải kiểm tra cả field mới, asset reference, duplicate SKU/source URL và translation metadata nếu có.
+
+#### Export contract
+
+JSON, CSV và ZIP phải round-trip được các field mới:
+
+```text
+technicalDescription
+ descriptionImages[]: url, alt, sourceUrl/publicUrl/storage metadata nếu có
+promotions[]: type, title, gift fields, scope, discountText
+```
+
+Quy tắc:
+
+- JSON giữ object/array đúng kiểu.
+- CSV quote và serialize JSON UTF-8 hợp lệ.
+- URL public không được thay thế source URL nếu chưa ghi rõ metadata.
+- Export ZIP phải tạo manifest gồm product ID, role, source URL, asset path, content hash, storage account/provider và trạng thái tải asset.
+- Nếu một ảnh lỗi, không làm sai toàn bộ row; phải ghi warning và thống kê asset thiếu.
+- Import lại ZIP phải map asset path về đúng field/role, upload lên R2 theo policy và chỉ commit Product reference sau khi upload thành công.
+- Export có translation phải ghi rõ locale, source locale, translation status và snapshot/version; không trộn bản dịch vào source field một cách không truy vết được.
+
+#### Backup trước migration/seed/import commit
+
+Trước khi mở rộng schema hoặc chạy batch thật, tạo backup độc lập:
+
+1. Snapshot Product source, gồm ba field mới và các field identity.
+2. Snapshot `ProductCatalogTranslationCache`.
+3. Backup `LiveTranslationCache` trước khi migrate hoặc thay đổi policy.
+4. Backup manifest asset của main/gallery/description, gồm provider/account/bucket/key/public URL/hash.
+5. Lưu export ZIP/JSON có checksum và `runId`.
+6. Lưu cấu hình model/target languages/schema version; không lưu API token/secret.
+7. Kiểm tra restore thử trên database/bucket staging trước khi commit production.
+8. Giữ backup cũ theo retention; không ghi đè backup bằng tên cố định.
+
+Backup phải có manifest dạng tối thiểu:
+
+```json
+{
+  "runId": "...",
+  "createdAt": "...",
+  "schemaVersion": "product-schema-v2",
+  "sourceLanguage": "vi",
+  "targetLanguages": ["en"],
+  "collections": ["Product", "ProductCatalogTranslationCache"],
+  "assetManifest": "assets.manifest.json",
+  "checksums": {}
+}
+```
+
+Không xóa `LiveTranslationCache` hoặc asset cũ sau khi backup; chỉ cleanup sau khi restore test và đối soát checksum thành công.
+
+#### Kiểm thử import/export/backup
+
+- Import JSON/CSV có đủ ba field mới.
+- CSV export rồi import lại không làm mất array/object, số tiền, URL hoặc enum.
+- ZIP export → validate → import dry-run giữ đúng field/role asset.
+- ZIP có ảnh mô tả lỗi vẫn tạo report rõ ràng và không ghi reference hỏng.
+- Backup → restore Product source, translation cache và manifest trên staging.
+- Restore không đưa secret vào database, report hoặc file export.
+- Kiểm tra checksum trước/sau cho data file và asset manifest.
+- Kiểm tra rollback sau import commit thất bại giữa chừng.
+
+### 12.9. Giai đoạn 5 — Chạy batch, giám sát và rollback
+
+Chạy theo thứ tự:
+
+1. Inventory không gọi provider.
+2. Test một vài sản phẩm với một target language.
+3. Batch thử 10–20 sản phẩm.
+4. Batch theo brand/category nhỏ.
+5. Chỉ mở rộng lên khoảng 1.000 sản phẩm sau khi đạt ngưỡng chất lượng.
+
+#### Quy trình seed an toàn
+
+Không chạy full seed trực tiếp cho batch 1.000 sản phẩm. Dùng thứ tự sau:
+
+1. Xem danh sách module và phase trước khi chạy:
+
+   ```bash
+   npm run seed:list
+   npm run seed:modules
+   ```
+
+2. Chạy dry-run để kiểm tra luồng seed, không ghi Product và không gọi AI:
+
+   ```bash
+   npm run seed:dry-run
+   ```
+
+   Dry-run vẫn cần `MONGO_URI` và cấu hình runtime hợp lệ; không được hiểu là test offline hoàn toàn.
+
+3. Kiểm tra riêng tầng i18n trước khi đụng product:
+
+   ```bash
+   npm run seed -- --i18n-only --dry-run
+   npm run check:language-inventory
+   npm run check:translation-keys
+   npm run check:translation-consistency
+   npm run check:translation-fallback
+   ```
+
+4. Chạy incremental cho phần còn thiếu, giới hạn rõ target language:
+
+   ```bash
+   npm run seed -- --incremental --languages=en --batch-size=10
+   ```
+
+   `--incremental` chỉ xử lý phần thiếu theo policy hiện tại. `--batch-size` điều khiển batch pipeline sản phẩm, không phải số request AI; throughput AI vẫn do queue, concurrency, throttle và cache quyết định.
+
+5. Chạy theo phase khi dữ liệu product đã sẵn sàng:
+
+   ```bash
+   npm run seed:pre-products
+   npm run seed:post-products
+   ```
+
+   `post-products` chỉ chạy khi Product đã import thành công và cần tạo dữ liệu phụ thuộc như reviews, orders, coupons hoặc spec translations.
+
+6. Chỉ sau khi batch nhỏ đạt tiêu chí mới chạy các target language tiếp theo và mở rộng brand/category. Mỗi lần chạy phải ghi `runId`, config/model, target language, số insert/update/skip/fail và trạng thái translation/R2.
+
+7. Không chạy `npm run seed` full trên production nếu chưa có backup, manifest, quota baseline, thời gian rollback và giới hạn batch rõ ràng.
+
+#### Ma trận test bắt buộc
+
+| Nhóm | Phạm vi | Cách chạy/kiểm tra | Điều kiện |
+|---|---|---|---|
+| Python scraper | Selector, lazy-load image, dedupe, promotion, canonical 16 fields | `python -m unittest discover -p 'test_*.py'` từ `online-store-backend/python` | Không gọi network thật; dùng fixture/mock |
+| JavaScript syntax | Service, seeder, adapter, controller đã chỉnh | `node --check <file>` | Không cần Mongo hoặc AI |
+| Import/normalize | JSON, CSV, legacy key, array/object mới, validator | Test adapter/import hiện có và bổ sung case field mới | Không ghi production DB |
+| Translation unit | Cache key, field mapping, fallback, completeness, quality | `npm run test:all -- --list`, sau đó chạy suite translation phù hợp | Có fixture source/target, không gọi provider thật |
+| Cloudflare pool | 420/429/quota xoay; 400/401/403/404 không xoay; hết config dừng | Mock Axios/provider response | Không dùng token thật trong test |
+| Translation seed | Incremental, retry, chunk 6.000 ký tự, cache hit/miss, multi-language | Chạy trên Mongo test/staging với batch 10–20 | Có quota baseline và report |
+| R2 adapter | Chọn account, object key/hash, metadata, retry/idempotency, rollback | Mock S3/R2 hoặc bucket staging riêng | Không xóa object production |
+| API contract | Product list/detail/translation trả camelCase và field mới | Test API backend + fixture response | Kiểm tra source locale và target locale |
+| Frontend adapter | Zod giữ đủ field mới, legacy không lỗi | Type-check/test adapter theo tooling frontend | Frontend hiện chưa có test script tự động |
+| Frontend UI | Plain text, alt, promotions, fallback source, không raw HTML | Browser smoke test sau khi code triển khai | Kiểm tra locale vi và locale đích |
+| Regression | Import/export, storefrontReady, currency, gallery cũ | `npm run test:import:export:dynamic` và suite liên quan | Chạy dry-run trước commit import |
+
+Các test integration phải dùng database/staging riêng. Không dùng `npm run build`; test UI cần chạy dev server và kiểm tra golden path sau khi frontend được triển khai.
+
+#### Thứ tự test trước mỗi rollout
+
+```text
+1. node --check các file thay đổi
+2. Python scraper fixture tests
+3. Adapter/validator/import unit tests
+4. Translation unit + Cloudflare pool mock tests
+5. R2 adapter mock/staging tests
+6. API integration source/target locale
+7. Import/export regression dry-run
+8. Browser smoke test frontend
+9. Batch 10–20 sản phẩm trên staging
+10. Review report rồi mới mở rộng batch
+```
+
+#### Tiêu chí dừng seed
+
+Dừng ngay và không xoay vòng vô hạn khi:
+
+- Có lỗi 400, 401, 403, 404 hoặc payload/schema không hợp lệ.
+- Tất cả Cloudflare config đều trả 420/429/quota sau giới hạn retry.
+- Tỷ lệ translation fail hoặc asset upload fail vượt ngưỡng đã chốt trong report.
+- Có product bị ghi thiếu identity, ghi đè dữ liệu tốt hoặc mất field source.
+- Có mismatch giữa manifest R2 và reference trong Product.
+- Test contract API/frontend làm mất field mới.
+
+Theo dõi tối thiểu:
+
+- Request/attempt theo Cloudflare config và model.
+- 420/429/quota, 401/403, 404, 5xx và timeout.
+- Neurons/token usage và chi phí theo kỳ.
+- Cache hit/miss.
+- Số translation thiếu hoặc cần dịch lại.
+- Số ảnh upload thành công/thất bại/trùng.
+- Dung lượng và số object R2.
+- Insert/update/skip/fail của import.
+
+Rollback phải là rollback manifest/reference của batch, không xóa hàng loạt asset. Dừng batch mới, giữ output cũ và chỉ khôi phục reference đã xác định chắc chắn.
+
+### 12.10. Dự đoán lỗi và cách xử lý
+
+| Mức | Lỗi | Nguyên nhân | Cách xử lý |
+|---|---|---|---|
+| P0 | Xoay config vô hạn | Tất cả account cùng trả 429 | Giới hạn vòng xoay, chuyển job sang retryable và dừng |
+| P0 | Dùng sai account/token | Nhóm env thiếu hoặc lệch hậu tố | Validate nhóm trước khi chạy, không fallback chéo token |
+| P0 | Lộ secret | Gửi token vào frontend/log/report | Backend-only, redact log, chỉ báo `hasToken` |
+| P0 | Mất asset mới | Cập nhật Product trước khi upload/verify | Upload atomic, cập nhật reference sau cùng |
+| P0 | Xóa nhầm asset cũ | Cleanup trước khi batch thành công | Không cleanup tự động, dùng manifest |
+| P0 | Ghi đè bản dịch tốt | Source thay đổi một phần hoặc batch lỗi | Invalidation theo field, upsert có kiểm tra completeness |
+| P1 | 429 liên tục | Batch quá nhanh hoặc quota thấp | Giảm concurrency, backoff có jitter, kiểm tra Dashboard |
+| P1 | 401/403 bị xoay sai | Token hết hạn hoặc permission thiếu | Dừng ngay config đó, không coi là rate limit |
+| P1 | Model 404/deprecated | Model không còn khả dụng | Dừng batch, kiểm tra model mapping và migration có chủ đích |
+| P1 | Dịch sai số/URL | Gửi structured data như text tự do | Tách text khỏi numeric/URL, invariant validation |
+| P1 | Mô tả gây XSS | Giữ HTML raw từ scraper | Plain text hoặc AST sanitize nghiêm ngặt |
+| P1 | Ảnh trùng nhiều lần | Retry không có content hash | Key theo hash, idempotency và manifest |
+| P1 | R2 403/404 | Sai bucket/account hoặc permission | Kiểm tra config theo account, fail ngay và giữ source reference |
+| P1 | Frontend mất field mới | Zod schema chưa khai báo | Contract test API-to-adapter trước rollout |
+| P1 | Product biến mất khỏi storefront | Completeness coi field tùy chọn là bắt buộc | Fallback theo field, không chặn vì field mới thiếu |
+| P2 | Cache phình lớn | Dịch lại cùng text nhiều lần | Cache theo hash/model/schema version và báo cáo hit rate |
+| P2 | Stats sai sau restart | Counter chỉ lưu memory | Ghi usage/attempt vào persistent log hoặc metrics store |
+| P2 | Lệch locale | List và detail dùng hai flow overlay | Dùng chung response contract và regression test hai endpoint |
+| P2 | R2 tốn hơn dự kiến | Ảnh gốc quá lớn hoặc nhiều bản resize | Giới hạn kích thước, nén hợp lý, đo dung lượng trước batch |
+
+### 12.11. Tiêu chí hoàn tất
+
+Chỉ coi kế hoạch đã triển khai khi:
+
+- Có inventory report và quota baseline.
+- Multi-config Cloudflare xử lý đúng 420/429/quota, không xoay với lỗi xác thực/dữ liệu và không loop vô hạn.
+- Translation cache/API/frontend giữ đủ ba field mới.
+- R2 upload được ba role asset và lưu đúng metadata account/key.
+- Retry không tạo object trùng hoặc mất reference.
+- Batch nhỏ đạt kiểm tra chất lượng và không làm mất product khỏi storefront ngoài policy.
+- Có báo cáo usage, translation, asset và import theo `runId`.
+- Có manifest/rollback và test cho các lỗi P0/P1.
+- Chỉ chạy test cần thiết; không tự chạy `npm run build`.
+
+## 13. Kết luận
 
 Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, output schema, adapter normalize, validator, Product model và import guide đã được cập nhật. Luồng upload riêng cho ảnh trong mô tả chưa được bật; hiện các URL ảnh mô tả được validate và lưu reference.
 
