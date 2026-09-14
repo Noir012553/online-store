@@ -124,7 +124,7 @@ class ProductTranslationSeederService {
           .skip(skip)
           .limit(CHUNK_SIZE)
           .lean()
-          .select('_id name description brand specs');
+          .select('_id name description brand specs technicalDescription descriptionImages promotions');
 
         if (products.length === 0) break;
 
@@ -177,13 +177,24 @@ class ProductTranslationSeederService {
 
   static async _syncProductCatalogTranslations(targetLang) {
     const [products, translations] = await Promise.all([
-      Product.find({ isDeleted: false }).select('_id name description brand specs').lean(),
+      Product.find({ isDeleted: false })
+        .select('_id name description brand specs technicalDescription descriptionImages promotions')
+        .lean(),
       LiveTranslationCache.find({
         targetLang,
         status: 'success',
         qualityStatus: 'approved',
-        entityType: { $in: ['product_name', 'product_description', 'product_spec'] },
-      }).select('entityId entityType specKey translatedText').lean(),
+        entityType: {
+          $in: [
+            'product_name',
+            'product_description',
+            'product_spec',
+            'product_technical_description',
+            'product_description_image_alt',
+            'product_promotion',
+          ],
+        },
+      }).select('entityId entityType specKey fieldKey translatedText').lean(),
     ]);
 
     const translationsByProduct = new Map();
@@ -192,11 +203,23 @@ class ProductTranslationSeederService {
       const entry = translationsByProduct.get(productId) || {
         name: null,
         description: null,
+        technicalDescription: null,
+        descriptionImageAlts: new Map(),
+        promotionTexts: new Map(),
         specs: {},
       };
 
       if (translation.entityType === 'product_name') entry.name = translation.translatedText;
       if (translation.entityType === 'product_description') entry.description = translation.translatedText;
+      if (translation.entityType === 'product_technical_description') {
+        entry.technicalDescription = translation.translatedText;
+      }
+      if (translation.entityType === 'product_description_image_alt' && translation.fieldKey) {
+        entry.descriptionImageAlts.set(translation.fieldKey, translation.translatedText);
+      }
+      if (translation.entityType === 'product_promotion' && translation.fieldKey) {
+        entry.promotionTexts.set(translation.fieldKey, translation.translatedText);
+      }
       if (translation.entityType === 'product_spec' && translation.specKey) {
         const canonicalKey = getCanonicalSpecKey(translation.specKey);
         if (canonicalKey) entry.specs[canonicalKey] = translation.translatedText;
@@ -208,8 +231,27 @@ class ProductTranslationSeederService {
       const translated = translationsByProduct.get(product._id.toString()) || {
         name: null,
         description: null,
+        technicalDescription: null,
+        descriptionImageAlts: new Map(),
+        promotionTexts: new Map(),
         specs: {},
       };
+      const descriptionImages = Array.isArray(product.descriptionImages)
+        ? product.descriptionImages.map((image, index) => ({
+          ...image,
+          alt: translated.descriptionImageAlts.get(`descriptionImages.${index}.alt`) || image.alt || '',
+        }))
+        : [];
+      const promotions = Array.isArray(product.promotions)
+        ? product.promotions.map((promotion, index) => {
+          const localized = { ...promotion };
+          ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+            const translation = translated.promotionTexts.get(`promotions.${index}.${field}`);
+            if (translation) localized[field] = translation;
+          });
+          return localized;
+        })
+        : [];
       const validationErrors = [];
       const sourceSpecKeys = Object.entries(product.specs || {})
         .filter(([, value]) => typeof value === 'string' && value.trim())
@@ -230,6 +272,9 @@ class ProductTranslationSeederService {
         description: translated.description || null,
         brand: product.brand || null,
         specs: translated.specs,
+        technicalDescription: translated.technicalDescription || product.technicalDescription || '',
+        descriptionImages,
+        promotions,
         status: 'success',
         qualityStatus: validationErrors.length === 0 ? 'approved' : 'pending',
         qualityScore: validationErrors.length === 0 ? 100 : 0,
@@ -419,12 +464,48 @@ class ProductTranslationSeederService {
         });
       }
 
+      if (product.technicalDescription?.trim()) {
+        fieldsToTranslate.push({
+          originalText: product.technicalDescription,
+          entityType: 'product_technical_description',
+          fieldKey: 'technicalDescription',
+        });
+      }
+
+      if (Array.isArray(product.descriptionImages)) {
+        product.descriptionImages.forEach((image, index) => {
+          if (image?.alt?.trim()) {
+            fieldsToTranslate.push({
+              originalText: image.alt,
+              entityType: 'product_description_image_alt',
+              fieldKey: `descriptionImages.${index}.alt`,
+            });
+          }
+        });
+      }
+
+      if (Array.isArray(product.promotions)) {
+        product.promotions.forEach((promotion, index) => {
+          ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+            if (promotion?.[field]?.trim()) {
+              fieldsToTranslate.push({
+                originalText: promotion[field],
+                entityType: 'product_promotion',
+                fieldKey: `promotions.${index}.${field}`,
+              });
+            }
+          });
+        });
+      }
+
       // Dịch từng field
       for (const field of fieldsToTranslate) {
         try {
           const hashKey = crypto
             .createHash('md5')
-            .update(JSON.stringify([field.originalText, sourceLang, targetLang]))
+            .update(JSON.stringify(field.fieldKey
+              ? [productId, field.entityType, field.fieldKey, field.originalText, sourceLang, targetLang]
+              : [field.originalText, sourceLang, targetLang]))
             .digest('hex');
 
           // Check cache trước
@@ -438,7 +519,7 @@ class ProductTranslationSeederService {
           }
 
           // Dịch text
-          const translatedText = field.entityType === 'product_description'
+          const translatedText = ['product_description', 'product_technical_description'].includes(field.entityType)
             ? await this._translateDescription(field.originalText, sourceLang, targetLang)
             : await cloudflareAiService.translate(field.originalText, sourceLang, targetLang);
 
@@ -459,6 +540,7 @@ class ProductTranslationSeederService {
             entityId: productId,
             entityType: field.entityType,
             specKey: field.specKey || null,
+            fieldKey: field.fieldKey || null,
             status: 'success',
             qualityStatus: validationResult.qualityStatus,
             qualityScore: validationResult.qualityScore,
@@ -487,7 +569,8 @@ class ProductTranslationSeederService {
                 productId,
                 field.entityType,
                 `429 Too Many Requests from Cloudflare AI`,
-                sourceLang
+                sourceLang,
+                field.fieldKey || null,
               );
 
               rateLimitCount++;
@@ -507,7 +590,8 @@ class ProductTranslationSeederService {
               field.entityType,
               err.message,
               'failed_error',
-              sourceLang
+              sourceLang,
+              field.fieldKey || null,
             );
             otherErrorCount++;
           }
