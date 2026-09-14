@@ -2,7 +2,7 @@
 
 ## 1. Phạm vi
 
-Tài liệu này ghi nhận bộ key sản phẩm dự kiến sau khi bổ sung:
+Tài liệu này ghi nhận bộ key sản phẩm đã chốt sau khi bổ sung:
 
 - Mô tả sản phẩm dạng bài viết.
 - Ảnh nằm bên trong mô tả sản phẩm.
@@ -24,6 +24,30 @@ Adapter Node tại đây hỗ trợ cả bộ key canonical mới và các key l
 - `online-store-backend/src/utils/importAdapters/BaseImportAdapter.js`
 
 Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter sẽ làm dữ liệu không được normalize đúng khi import.
+
+### 2.1. Tiến độ triển khai
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Chốt 16 key canonical độc nhất | Hoàn tất | Dùng tiền tố `Product` |
+| Extract mô tả sản phẩm | Hoàn tất | Đọc `.news-html-content` |
+| Extract ảnh trong mô tả | Hoàn tất | Chuẩn hóa URL và dedupe |
+| Extract quà tặng/khuyến mãi | Hoàn tất | Hỗ trợ `Gift` và `Discount` |
+| Output JSON | Hoàn tất | Giữ array/object đúng kiểu |
+| Output CSV | Hoàn tất | Array/object được serialize thành JSON |
+| Adapter key mới và legacy | Hoàn tất | Normalize tập trung tại `BaseImportAdapter` |
+| Validate field mới | Hoàn tất | URL, giới hạn, kiểu dữ liệu và sanitize |
+| Lưu field vào `Product` model | Hoàn tất | `technicalDescription`, `descriptionImages`, `promotions` |
+| Cập nhật import guide | Hoàn tất | Bổ sung field details |
+| Test fixture/extractor Python | Đã thêm | Chưa chạy được do policy môi trường chặn Python |
+| Runtime test Node | Chưa hoàn tất | Môi trường thiếu dependency `mongoose` |
+| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL |
+| Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
+
+Các kiểm tra đã đạt:
+
+- `node --check` cho các file JavaScript đã sửa.
+- `git diff --check` cho toàn bộ thay đổi.
 
 ## 3. Bộ key chuẩn độc nhất
 
