@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from scraper_paths import PRODUCT_OUTPUT_FIELDS
 from scraper_runner import (
     _product_record,
+    build_staging_records,
     deduplicate_records,
     extract_product_json_ld,
     fetch_html,
@@ -90,6 +91,32 @@ class ScraperRunnerTest(unittest.TestCase):
         self.assertEqual(record["ProductTechnicalDescription"], "Thông số: {}")
         self.assertEqual(record["ProductDescription"], "Mô tả sản phẩm")
         self.assertEqual(record["ProductPromotions"], [])
+
+    def test_builds_staging_records_without_changing_canonical_product_data(self):
+        product_data = {
+            "ProductName": "Example Product",
+            "ProductURL": "https://gearvn.com/products/example",
+        }
+
+        records = build_staging_records(
+            [product_data],
+            "20260315T101530Z",
+            "2026-03-15T10:15:30Z",
+            "product-v2",
+        )
+
+        self.assertEqual(records, [{
+            "ScrapeSource": "gearvn",
+            "ScrapeURL": "https://gearvn.com/products/example",
+            "ScrapeRunID": "20260315T101530Z",
+            "ScrapeCapturedAt": "2026-03-15T10:15:30Z",
+            "ScrapeParserVersion": "product-v2",
+            "ProductData": product_data,
+        }])
+        self.assertEqual(product_data, {
+            "ProductName": "Example Product",
+            "ProductURL": "https://gearvn.com/products/example",
+        })
 
     def test_deduplicates_by_url_and_sku(self):
         records = [

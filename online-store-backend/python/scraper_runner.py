@@ -34,6 +34,8 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 MAX_ATTEMPTS = 3
 DEFAULT_MAX_WORKERS = 4
 MAX_MAX_WORKERS = 8
+SCRAPE_SOURCE = "gearvn"
+DEFAULT_PARSER_VERSION = "product-v2"
 _thread_local = threading.local()
 
 
@@ -203,13 +205,29 @@ def deduplicate_records(records):
     return result
 
 
-def write_output_atomically(records, file_prefix):
+def build_staging_records(records, run_id, captured_at, parser_version):
+    return [
+        {
+            "ScrapeSource": SCRAPE_SOURCE,
+            "ScrapeURL": record["ProductURL"],
+            "ScrapeRunID": run_id,
+            "ScrapeCapturedAt": captured_at,
+            "ScrapeParserVersion": parser_version,
+            "ProductData": record,
+        }
+        for record in records
+    ]
+
+
+def write_output_atomically(records, staging_records, file_prefix):
     if not records:
         raise RuntimeError("Không ghi output rỗng")
     output_dir = Path(get_output_paths(file_prefix)[0]).parent
     csv_path, json_path = get_output_paths(file_prefix)
+    staging_path = output_dir / f"{file_prefix}.staging.json"
     csv_tmp = output_dir / f".{csv_path.name}.part"
     json_tmp = output_dir / f".{json_path.name}.part"
+    staging_tmp = output_dir / f".{staging_path.name}.part"
     try:
         frame = pd.DataFrame(records, columns=PRODUCT_OUTPUT_FIELDS)
         csv_frame = frame.apply(
@@ -221,12 +239,17 @@ def write_output_atomically(records, file_prefix):
         )
         csv_frame.to_csv(csv_tmp, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)
         frame.to_json(json_tmp, orient="records", indent=4, force_ascii=False)
+        with staging_tmp.open("w", encoding="utf-8") as staging_file:
+            json.dump(staging_records, staging_file, ensure_ascii=False, indent=2)
+            staging_file.write("\n")
         os.replace(csv_tmp, csv_path)
         os.replace(json_tmp, json_path)
+        os.replace(staging_tmp, staging_path)
     finally:
         csv_tmp.unlink(missing_ok=True)
         json_tmp.unlink(missing_ok=True)
-    return csv_path, json_path
+        staging_tmp.unlink(missing_ok=True)
+    return csv_path, json_path, staging_path
 
 
 def _scrape_product(url, brand, categories):
@@ -280,12 +303,21 @@ def run_scraper(script_path, collection_slug):
     if failed_urls:
         raise RuntimeError(f"{len(failed_urls)} sản phẩm không đọc được; không ghi batch chưa hoàn chỉnh")
     records = deduplicate_records(records)
-    date_str = datetime.datetime.now().strftime("%Y%m%d")
-    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{date_str}"
-    csv_path, json_path = write_output_atomically(records, file_prefix)
+    captured_at = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    run_id = captured_at.strftime("%Y%m%dT%H%M%SZ")
+    parser_version = str(os.getenv("SCRAPER_PARSER_VERSION") or DEFAULT_PARSER_VERSION).strip()
+    staging_records = build_staging_records(
+        records,
+        run_id,
+        captured_at.isoformat().replace("+00:00", "Z"),
+        parser_version,
+    )
+    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{captured_at.strftime('%Y%m%d')}"
+    csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
     print(f">>> Hoàn thành: {len(records)} sản phẩm")
     print(f"- {csv_path}")
     print(f"- {json_path}")
+    print(f"- {staging_path}")
 
 
 if __name__ == "__main__":
