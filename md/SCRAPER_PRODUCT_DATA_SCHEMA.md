@@ -47,6 +47,9 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Lưu metadata asset | Chưa triển khai đầy đủ | Chưa lưu đồng bộ `storageProvider`, `storageAccount`, `storageKey` cho ảnh mô tả |
 | Backend CRUD trực tiếp | Chưa hoàn tất | `createProduct`/`updateProduct` chưa nhận đủ ba field mới |
 | API response camelCase | Đã có một phần | Model/formatter có thể trả field mới; cần kiểm tra contract API đầy đủ |
+| JSON/CSV import | Đã có một phần | Adapter nhận field mới; cần test round-trip và structured data |
+| ZIP import/export | Đã có một phần | ZIP có products.json/csv và assets; description images chưa được bundle riêng đầy đủ |
+| Product/translation backup | Chưa đầy đủ | Hiện có backup LiveTranslationCache; chưa có snapshot Product/cache mới/manifest asset đầy đủ |
 | Frontend type/adapter | Chưa triển khai | `Laptop`, `BackendProduct` và adapter chưa có ba field mới |
 | Frontend UI | Chưa triển khai | Chưa hiển thị technical description, description images và promotions |
 | Translation field mới | Chưa triển khai | Cache/seeder/API chưa dịch ba field mới |
@@ -613,7 +616,7 @@ Trước khi import thật:
 
 ## 12. Kế hoạch translation, multi-account và R2
 
-Phần này là kế hoạch triển khai tiếp theo cho khoảng 1.000 sản phẩm. Chưa được coi là đã triển khai code cho đến khi từng tiêu chí nghiệm thu ở mục 12.10 đạt.
+Phần này là kế hoạch triển khai tiếp theo cho khoảng 1.000 sản phẩm. Chưa được coi là đã triển khai code cho đến khi từng tiêu chí nghiệm thu ở mục 12.11 đạt.
 
 ### 12.1. Quyết định đã chốt
 
@@ -770,7 +773,92 @@ Với khoảng 1.000 sản phẩm, cần dự trù khoảng 3–30 GB tùy số 
 - Không dùng `dangerouslySetInnerHTML` cho dữ liệu scraper.
 - Thêm test cho source locale, target locale, missing translation và dữ liệu legacy.
 
-### 12.8. Giai đoạn 5 — Chạy batch, giám sát và rollback
+### 12.8. Giai đoạn 4.5 — Đồng bộ import, export và backup
+
+#### Trạng thái hiện tại
+
+- `JSONAdapter`, `CSVAdapter` và `BaseImportAdapter` đã normalize các field `technicalDescription`, `descriptionImages` và `promotions`.
+- JSON/CSV validator đã xử lý array/object và có giới hạn dữ liệu mới.
+- ZIP import yêu cầu đúng một `products.json` hoặc `products.csv`, kiểm tra path, kích thước, compression ratio và asset entry.
+- Export CSV đã có header cho ba field mới và serialize array/object thành JSON; export JSON giữ structured data.
+- Luồng export asset hiện chủ yếu gom `product.images`; cần bổ sung role và asset manifest riêng cho `descriptionImages`.
+- Backup hiện có script cho `LiveTranslationCache`, chưa phải backup đầy đủ cho Product, `ProductCatalogTranslationCache`, R2 metadata và object manifest.
+- Tài liệu import/export ZIP hiện còn mô tả upload lại Cloudinary ở một số phần; phải đồng bộ lại theo provider R2 đã chốt trước rollout.
+
+#### Import contract
+
+Mọi đường import phải đi qua cùng một normalize/validate contract:
+
+1. Scraper JSON canonical dùng làm source of truth.
+2. JSON import giữ nguyên array/object.
+3. CSV serialize/parse JSON hợp lệ cho `descriptionImages` và `promotions`; không dùng delimiter `||` để biểu diễn structured data.
+4. ZIP chỉ có một data entry ở root: `products.json` hoặc `products.csv`.
+5. Asset ZIP chỉ nằm dưới `assets/images/`; cần mở rộng manifest để phân biệt `main`, `gallery`, `description`.
+6. Không cho frontend bypass validator hoặc gửi storage account/secret.
+7. Import dry-run phải kiểm tra cả field mới, asset reference, duplicate SKU/source URL và translation metadata nếu có.
+
+#### Export contract
+
+JSON, CSV và ZIP phải round-trip được các field mới:
+
+```text
+technicalDescription
+ descriptionImages[]: url, alt, sourceUrl/publicUrl/storage metadata nếu có
+promotions[]: type, title, gift fields, scope, discountText
+```
+
+Quy tắc:
+
+- JSON giữ object/array đúng kiểu.
+- CSV quote và serialize JSON UTF-8 hợp lệ.
+- URL public không được thay thế source URL nếu chưa ghi rõ metadata.
+- Export ZIP phải tạo manifest gồm product ID, role, source URL, asset path, content hash, storage account/provider và trạng thái tải asset.
+- Nếu một ảnh lỗi, không làm sai toàn bộ row; phải ghi warning và thống kê asset thiếu.
+- Import lại ZIP phải map asset path về đúng field/role, upload lên R2 theo policy và chỉ commit Product reference sau khi upload thành công.
+- Export có translation phải ghi rõ locale, source locale, translation status và snapshot/version; không trộn bản dịch vào source field một cách không truy vết được.
+
+#### Backup trước migration/seed/import commit
+
+Trước khi mở rộng schema hoặc chạy batch thật, tạo backup độc lập:
+
+1. Snapshot Product source, gồm ba field mới và các field identity.
+2. Snapshot `ProductCatalogTranslationCache`.
+3. Backup `LiveTranslationCache` trước khi migrate hoặc thay đổi policy.
+4. Backup manifest asset của main/gallery/description, gồm provider/account/bucket/key/public URL/hash.
+5. Lưu export ZIP/JSON có checksum và `runId`.
+6. Lưu cấu hình model/target languages/schema version; không lưu API token/secret.
+7. Kiểm tra restore thử trên database/bucket staging trước khi commit production.
+8. Giữ backup cũ theo retention; không ghi đè backup bằng tên cố định.
+
+Backup phải có manifest dạng tối thiểu:
+
+```json
+{
+  "runId": "...",
+  "createdAt": "...",
+  "schemaVersion": "product-schema-v2",
+  "sourceLanguage": "vi",
+  "targetLanguages": ["en"],
+  "collections": ["Product", "ProductCatalogTranslationCache"],
+  "assetManifest": "assets.manifest.json",
+  "checksums": {}
+}
+```
+
+Không xóa `LiveTranslationCache` hoặc asset cũ sau khi backup; chỉ cleanup sau khi restore test và đối soát checksum thành công.
+
+#### Kiểm thử import/export/backup
+
+- Import JSON/CSV có đủ ba field mới.
+- CSV export rồi import lại không làm mất array/object, số tiền, URL hoặc enum.
+- ZIP export → validate → import dry-run giữ đúng field/role asset.
+- ZIP có ảnh mô tả lỗi vẫn tạo report rõ ràng và không ghi reference hỏng.
+- Backup → restore Product source, translation cache và manifest trên staging.
+- Restore không đưa secret vào database, report hoặc file export.
+- Kiểm tra checksum trước/sau cho data file và asset manifest.
+- Kiểm tra rollback sau import commit thất bại giữa chừng.
+
+### 12.9. Giai đoạn 5 — Chạy batch, giám sát và rollback
 
 Chạy theo thứ tự:
 
@@ -887,7 +975,7 @@ Theo dõi tối thiểu:
 
 Rollback phải là rollback manifest/reference của batch, không xóa hàng loạt asset. Dừng batch mới, giữ output cũ và chỉ khôi phục reference đã xác định chắc chắn.
 
-### 12.9. Dự đoán lỗi và cách xử lý
+### 12.10. Dự đoán lỗi và cách xử lý
 
 | Mức | Lỗi | Nguyên nhân | Cách xử lý |
 |---|---|---|---|
@@ -911,7 +999,7 @@ Rollback phải là rollback manifest/reference của batch, không xóa hàng l
 | P2 | Lệch locale | List và detail dùng hai flow overlay | Dùng chung response contract và regression test hai endpoint |
 | P2 | R2 tốn hơn dự kiến | Ảnh gốc quá lớn hoặc nhiều bản resize | Giới hạn kích thước, nén hợp lý, đo dung lượng trước batch |
 
-### 12.10. Tiêu chí hoàn tất
+### 12.11. Tiêu chí hoàn tất
 
 Chỉ coi kế hoạch đã triển khai khi:
 
