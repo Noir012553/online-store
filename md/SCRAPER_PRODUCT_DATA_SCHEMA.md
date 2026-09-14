@@ -41,7 +41,14 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Cập nhật import guide | Hoàn tất | Bổ sung field details |
 | Test fixture/extractor Python | Đã thêm | Chưa chạy được do policy môi trường chặn Python |
 | Runtime test Node | Chưa hoàn tất | Môi trường thiếu dependency `mongoose` |
-| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL |
+| Staging metadata cho từng batch | Chưa triển khai | Chưa tạo `ScrapeRunID`, thời điểm chụp và parser version riêng |
+| Upload ảnh chính/gallery | Đã có một phần | Seed pipeline xử lý hai nhóm ảnh này |
+| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL trong `descriptionImages` |
+| Lưu metadata asset | Chưa triển khai đầy đủ | Chưa lưu đồng bộ `storageProvider`, `storageAccount`, `storageKey` cho ảnh mô tả |
+| Backend CRUD trực tiếp | Chưa hoàn tất | `createProduct`/`updateProduct` chưa nhận đủ ba field mới |
+| API response camelCase | Đã có một phần | Model/formatter có thể trả field mới; cần kiểm tra contract API đầy đủ |
+| Frontend type/adapter | Chưa triển khai | `Laptop`, `BackendProduct` và adapter chưa có ba field mới |
+| Frontend UI | Chưa triển khai | Chưa hiển thị technical description, description images và promotions |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
@@ -292,7 +299,9 @@ Extractor phải ghi cảnh báo cho dữ liệu thiếu nhưng chỉ từ chố
 
 ### 8.2. Staging
 
-Mỗi batch nên có metadata riêng:
+**Trạng thái hiện tại: chưa triển khai đầy đủ.** Output scraper hiện trả trực tiếp record 16 key canonical; chưa bọc record trong staging envelope có `ScrapeRunID`, `ScrapeCapturedAt` và `ScrapeParserVersion`.
+
+Khi triển khai staging, mỗi batch nên có metadata riêng:
 
 ```json
 {
@@ -321,6 +330,7 @@ ProductCategory             -> category
 ProductSpecifications       -> specs
 ProductTechnicalDescription -> technicalDescription
 ProductDescription          -> description
+ProductDescriptionImages    -> descriptionImages
 ProductPromotions           -> promotions
 ProductMainImage            -> image
 ProductGalleryImages        -> images
@@ -344,6 +354,8 @@ Validation phải chạy sau normalize và trước upload/import. Cần kiểm 
 
 ### 8.5. Asset processing
 
+**Trạng thái hiện tại: triển khai một phần.** Seed pipeline đã xử lý ảnh chính và gallery, nhưng chưa upload `descriptionImages` và chưa lưu đủ metadata storage cho nhóm ảnh này. Không coi việc có URL nguồn là đã upload thành công.
+
 Xử lý riêng ba nhóm asset:
 
 ```text
@@ -352,7 +364,7 @@ ProductGalleryImages
 ProductDescriptionImages
 ```
 
-Sau khi upload, reference asset cần giữ tối thiểu:
+Sau khi upload, reference asset cần giữ tối thiểu. Cấu trúc này phải được áp dụng nhất quán cho ảnh chính, gallery và ảnh trong mô tả; không chỉ lưu `url`/`alt` nếu asset đã được đưa vào storage:
 
 ```json
 {
@@ -387,6 +399,20 @@ Khi upsert:
 ### 8.7. API/frontend
 
 API chỉ trả schema nội bộ camelCase. Frontend không được biết selector GearVN, key `Product...`, Cloudinary account hay R2 secret.
+
+Trạng thái triển khai hiện tại:
+
+| Tầng | Đã có | Còn phải làm |
+|---|---|---|
+| Product model | `technicalDescription`, `descriptionImages`, `promotions` | Mở rộng asset reference nếu upload ảnh mô tả |
+| Import API | Normalize, validate và lưu được ba field mới | Bảo đảm policy upsert và báo cáo insert/update/skip/fail |
+| API đọc sản phẩm | Formatter trả dữ liệu model theo camelCase | Kiểm tra contract response và tài liệu API |
+| API CRUD trực tiếp | Luồng cũ tạo/sửa sản phẩm | Nhận, validate và lưu ba field mới trong `POST`/`PUT` |
+| Frontend types/adapter | `description`, `specs`, main/gallery | Thêm type và normalize cho `technicalDescription`, `descriptionImages`, `promotions` |
+| Frontend product detail | Tab mô tả và gallery cũ | Render mô tả kỹ thuật, ảnh trong bài viết và từng khuyến mãi |
+| Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
+
+Frontend chỉ nhận URL public/reference đã được backend kiểm tra. Frontend không tự chọn Cloudinary account, không nhận API secret và không tự tạo URL theo storage account.
 
 ## 9. Contract dữ liệu giữa các tầng
 
@@ -520,6 +546,27 @@ Cập nhật đồng bộ:
 - Các test adapter/import.
 
 Adapter phải map key mới một lần duy nhất. Validator phải xử lý array/object và giới hạn kích thước trước khi import.
+
+### Bước 4.1: Cập nhật API CRUD
+
+Sau khi import pipeline ổn định, cập nhật riêng các endpoint tạo/sửa sản phẩm:
+
+1. Nhận `technicalDescription`, `descriptionImages` và `promotions` từ request body.
+2. Dùng cùng rule normalize/validation với import, không tạo mapping khác trong controller.
+3. Không cho phép client gửi thông tin chọn Cloudinary account hoặc secret.
+4. Giữ policy identity, tồn kho và asset cũ của luồng upsert.
+5. Bổ sung test cho create, update và response sau khi lưu.
+
+### Bước 4.2: Cập nhật API contract và frontend
+
+Chỉ sau khi API response ổn định:
+
+1. Thêm ba field mới vào `BackendProduct` và `Laptop` với kiểu dữ liệu phù hợp.
+2. Cập nhật adapter frontend để giữ `descriptionImages` là danh sách ảnh và `promotions` là danh sách ưu đãi.
+3. Render `technicalDescription`, ảnh mô tả và khuyến mãi ở trang chi tiết sản phẩm.
+4. Dùng component ảnh hiện có để mở ảnh mô tả; không render HTML nguồn chưa sanitize.
+5. Cập nhật preview admin import để người dùng thấy dữ liệu sau normalize.
+6. Thêm test adapter và test UI cho dữ liệu có đủ, thiếu hoặc rỗng các field tùy chọn.
 
 ### Bước 5: Cập nhật asset pipeline
 
