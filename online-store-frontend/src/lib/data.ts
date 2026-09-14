@@ -5,12 +5,6 @@ import { DEFAULT_LOCALE } from './i18n/types';
 export interface ProductDescriptionImage {
   url: string;
   alt?: string;
-  sourceUrl?: string;
-  publicUrl?: string;
-  storageProvider?: string;
-  storageAccount?: string;
-  storageKey?: string;
-  bucket?: string;
 }
 
 export interface ProductPromotion {

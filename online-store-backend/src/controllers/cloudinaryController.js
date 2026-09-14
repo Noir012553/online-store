@@ -69,11 +69,7 @@ exports.getCloudinarySignature = async (req, res) => {
       return sendCloudinaryError(res, 400, 'UPLOAD_PURPOSE_INVALID', getMessage(req.lang, 'common.upload_failed'));
     }
 
-    const excludedAccountIds = String(req.query.excludeAccountIds || '')
-      .split(',')
-      .map(value => value.trim())
-      .filter(Boolean);
-    const cloudinaryAccount = await getCloudinaryUploadAccount(excludedAccountIds);
+    const cloudinaryAccount = await getCloudinaryUploadAccount();
     if (!cloudinaryAccount) {
       return sendCloudinaryError(
         res,
@@ -145,7 +141,6 @@ exports.getCloudinarySignature = async (req, res) => {
       signature,
       api_key: cloudinaryAccount.apiKey,
       cloud_name: cloudinaryAccount.cloudName,
-      cloudinaryAccountId: cloudinaryAccount.id,
       public_id: publicId,
       allowed_formats: 'jpg,jpeg,png,webp,gif',
       overwrite: false,
