@@ -9,6 +9,8 @@ const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
+const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const {
   getProductCatalogTranslations,
@@ -250,6 +252,68 @@ describe('Product translation cache controller', () => {
     });
     expect(findOneAndUpdate.firstCall.args[1].$set.specs).to.deep.equal({ RAM: 'en:16GB' });
     expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name']);
+  });
+
+  it('dịch text scraper có cấu trúc nhưng giữ nguyên URL và giá trị nghiệp vụ', async () => {
+    const productId = new mongoose.Types.ObjectId();
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'isLocked').resolves(false);
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves();
+    sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    const saveTranslation = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({});
+    sandbox.stub(cloudflareAiService, 'translate').callsFake(async (text) => `en:${text}`);
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      validationErrors: [],
+      qualityScore: 100,
+      qualityStatus: 'approved',
+    });
+
+    const result = await ProductTranslationSeederService._translateProduct({
+      _id: productId,
+      name: 'Laptop',
+      description: 'Mô tả',
+      specs: { RAM: '16GB' },
+      technicalDescription: 'Thông số kỹ thuật',
+      descriptionImages: [{ url: 'https://example.invalid/spec.jpg', alt: 'Ảnh thông số' }],
+      promotions: [{
+        type: 'Gift',
+        title: 'Tặng chuột',
+        giftQuantity: 1,
+        giftProductName: 'Chuột không dây',
+        giftProductUrl: 'https://example.invalid/mouse',
+        giftValueVND: 360000,
+        scope: 'Toàn quốc',
+        discountText: 'Giảm 10%',
+      }],
+    }, 'en', 'vi', 0);
+
+    const records = saveTranslation.getCalls().map((call) => call.args[1].$set);
+    expect(result).to.deep.equal({ success: 9, rateLimitErr: 0, otherErr: 0 });
+    expect(records).to.deep.include({
+      entityType: 'product_technical_description',
+      fieldKey: 'technicalDescription',
+      originalText: 'Thông số kỹ thuật',
+    });
+    expect(records).to.deep.include({
+      entityType: 'product_description_image_alt',
+      fieldKey: 'descriptionImages.0.alt',
+      originalText: 'Ảnh thông số',
+    });
+    const promotionRecords = records.filter(({ entityType }) => entityType === 'product_promotion');
+    expect(promotionRecords).to.have.lengthOf(4);
+    expect(promotionRecords.some(({ fieldKey, originalText }) => (
+      fieldKey === 'promotions.0.title' && originalText === 'Tặng chuột'
+    ))).to.equal(true);
+    expect(promotionRecords.some(({ fieldKey, originalText }) => (
+      fieldKey === 'promotions.0.giftProductName' && originalText === 'Chuột không dây'
+    ))).to.equal(true);
+    expect(promotionRecords.some(({ fieldKey, originalText }) => (
+      fieldKey === 'promotions.0.scope' && originalText === 'Toàn quốc'
+    ))).to.equal(true);
+    expect(promotionRecords.some(({ fieldKey, originalText }) => (
+      fieldKey === 'promotions.0.discountText' && originalText === 'Giảm 10%'
+    ))).to.equal(true);
   });
 
   it('exports only the requested fields for valid product and language filters', async () => {

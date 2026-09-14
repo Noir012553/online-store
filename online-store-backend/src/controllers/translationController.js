@@ -862,8 +862,13 @@ const PRODUCT_TRANSLATION_ENTITY_TYPES = [
   'product_name',
   'product_description',
   'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
 ];
-const PRODUCT_TRANSLATION_FIELDS = ['name', 'description', 'brand', 'specs'];
+const PRODUCT_TRANSLATION_FIELDS = [
+  'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
+];
 const MAX_PRODUCT_TRANSLATION_RECORDS = 10000;
 
 const PRODUCT_TRANSLATION_QUALITY_STATUSES = new Set([
@@ -1214,8 +1219,18 @@ exports.importProductTranslationCache = async (req, res) => {
         if ('name' in translations && typeof translations.name !== 'string') reasons.push('name_must_be_string');
         if ('description' in translations && typeof translations.description !== 'string') reasons.push('description_must_be_string');
         if ('brand' in translations && typeof translations.brand !== 'string') reasons.push('brand_must_be_string');
+        if ('technicalDescription' in translations && typeof translations.technicalDescription !== 'string') {
+          reasons.push('technical_description_must_be_string');
+        }
         if ('specs' in translations && (!translations.specs || typeof translations.specs !== 'object' || Array.isArray(translations.specs))) {
           reasons.push('specs_must_be_object');
+        }
+        const normalizedContent = normalizeProductContentFields({
+          descriptionImages: translations.descriptionImages,
+          promotions: translations.promotions,
+        }, line);
+        if (normalizedContent.errors.length > 0 || normalizedContent.warnings.length > 0) {
+          reasons.push('invalid_structured_content');
         }
       }
       if (reasons.length > 0) invalidRecords.push({ line, reasons });
@@ -1320,9 +1335,17 @@ exports.importProductTranslationCache = async (req, res) => {
 
     const operations = importPlans.flatMap(({ productId, targetLang, translations, manualFields, existing, importableFields }) => {
       if (importableFields.length === 0) return [];
+      const normalizedContent = normalizeProductContentFields({
+        descriptionImages: translations.descriptionImages,
+        promotions: translations.promotions,
+      });
       const importedFields = Object.fromEntries(importableFields.map((field) => [
         field,
-        field === 'specs' ? normalizeSpecs(translations[field]) : translations[field],
+        field === 'specs'
+          ? normalizeSpecs(translations[field])
+          : normalizedContent.cleaned[field] !== undefined
+            ? normalizedContent.cleaned[field]
+            : translations[field],
       ]));
       return [{
         updateOne: {
@@ -1403,12 +1426,17 @@ exports.retranslateProduct = async (req, res) => {
       return { value, validation };
     };
 
-    const [nameResult, descResult] = await Promise.all([
+    const [nameResult, descResult, technicalDescriptionResult] = await Promise.all([
       translateField('name', product.name, 'product_name'),
       translateField('description', product.description, 'product_description'),
+      translateField('technicalDescription', product.technicalDescription, 'product_technical_description'),
     ]);
 
-    const validationResults = [nameResult.validation, descResult.validation].filter(Boolean);
+    const validationResults = [
+      nameResult.validation,
+      descResult.validation,
+      technicalDescriptionResult.validation,
+    ].filter(Boolean);
     const specs = {};
     for (const [key, value] of Object.entries(product.specs || {})) {
       if (manualFields.includes('specs')) {
@@ -1419,6 +1447,36 @@ exports.retranslateProduct = async (req, res) => {
         if (validation) validationResults.push(validation);
       }
     }
+    const descriptionImages = manualFields.includes('descriptionImages')
+      ? existing?.descriptionImages || product.descriptionImages || []
+      : [];
+    if (!manualFields.includes('descriptionImages')) {
+      for (const [index, image] of (product.descriptionImages || []).entries()) {
+        const { value: alt, validation } = await translateField(
+          'descriptionImages',
+          image?.alt,
+          'product_description_image_alt',
+        );
+        descriptionImages.push({ ...image, alt: alt ?? image?.alt ?? '' });
+        if (validation) validationResults.push(validation);
+      }
+    }
+
+    const promotions = manualFields.includes('promotions')
+      ? existing?.promotions || product.promotions || []
+      : [];
+    if (!manualFields.includes('promotions')) {
+      for (const promotion of product.promotions || []) {
+        const translatedPromotion = { ...promotion };
+        for (const field of ['title', 'giftProductName', 'scope', 'discountText']) {
+          const { value, validation } = await translateField('promotions', promotion?.[field], 'product_promotion');
+          if (value) translatedPromotion[field] = value;
+          if (validation) validationResults.push(validation);
+        }
+        promotions.push(translatedPromotion);
+      }
+    }
+
     const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errs }) => errs))];
     const qualityScore = validationResults.length
       ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
@@ -1432,6 +1490,9 @@ exports.retranslateProduct = async (req, res) => {
       description: descResult.value,
       brand: product.brand,
       specs,
+      technicalDescription: technicalDescriptionResult.value ?? product.technicalDescription ?? '',
+      descriptionImages,
+      promotions,
       status: 'success',
       qualityStatus,
       qualityScore,
