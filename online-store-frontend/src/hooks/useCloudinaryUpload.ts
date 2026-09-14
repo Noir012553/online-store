@@ -12,7 +12,6 @@ interface CloudinarySignatureResponse {
   allowed_formats: string;
   overwrite: boolean;
   resource_type: string;
-  cloudinaryAccountId: string;
   claimId: string;
 }
 
@@ -25,14 +24,8 @@ interface CloudinaryUploadResult {
   bytes: number;
   format: string;
   resource_type: string;
-  cloudinaryAccountId?: string;
   claimId?: string;
 }
-
-const isCloudinaryRateLimit = (status: number, message: string) => (
-  [420, 429].includes(status)
-  || /(rate limit|too many requests|quota exceeded|resource limit)/i.test(message)
-);
 
 type CloudinaryFolder = 'admins' | 'users' | 'reviewers' | 'banners';
 
@@ -43,14 +36,10 @@ export const useCloudinaryUpload = () => {
 
   const getSignature = useCallback(async (
     folder: CloudinaryFolder = 'users',
-    excludedAccountIds: string[] = [],
   ): Promise<CloudinarySignatureResponse | null> => {
     try {
       const token = getAuthToken();
       const query = new URLSearchParams({ folder });
-      if (excludedAccountIds.length > 0) {
-        query.set('excludeAccountIds', excludedAccountIds.join(','));
-      }
       const response = await fetch(`/api/cloudinary/signature?${query.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -85,13 +74,10 @@ export const useCloudinaryUpload = () => {
           return null;
         }
 
-        const attemptedAccountIds: string[] = [];
-        while (true) {
-          const signatureData = await getSignature(folder, attemptedAccountIds);
-          if (!signatureData) return null;
-          attemptedAccountIds.push(signatureData.cloudinaryAccountId);
+        const signatureData = await getSignature(folder);
+        if (!signatureData) return null;
 
-          const formData = new FormData();
+        const formData = new FormData();
           formData.append('file', file);
           formData.append('api_key', signatureData.api_key);
           formData.append('timestamp', String(signatureData.timestamp));
@@ -100,8 +86,7 @@ export const useCloudinaryUpload = () => {
           formData.append('allowed_formats', signatureData.allowed_formats);
           formData.append('overwrite', String(signatureData.overwrite));
 
-          try {
-            return await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        return await new Promise<CloudinaryUploadResult>((resolve, reject) => {
               const xhr = new XMLHttpRequest();
 
               xhr.upload.addEventListener('progress', (e) => {
@@ -124,7 +109,6 @@ export const useCloudinaryUpload = () => {
                       bytes: result.bytes,
                       format: result.format,
                       resource_type: result.resource_type,
-                      cloudinaryAccountId: signatureData.cloudinaryAccountId,
                       claimId: signatureData.claimId,
                     });
                   } catch {
@@ -140,10 +124,7 @@ export const useCloudinaryUpload = () => {
                 } catch {
                   message = `Upload failed: ${xhr.statusText}`;
                 }
-                const error = new Error(message) as Error & { status?: number; cloudinaryAccountId?: string };
-                error.status = xhr.status;
-                error.cloudinaryAccountId = signatureData.cloudinaryAccountId;
-                reject(error);
+                reject(new Error(message));
               });
 
               xhr.addEventListener('error', () => {
@@ -152,15 +133,7 @@ export const useCloudinaryUpload = () => {
 
               xhr.open('POST', `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`);
               xhr.send(formData);
-            });
-          } catch (error) {
-            const uploadError = error as Error & { status?: number; cloudinaryAccountId?: string };
-            if (!isCloudinaryRateLimit(uploadError.status || 0, uploadError.message)
-              || attemptedAccountIds.length >= 100) {
-              throw error;
-            }
-          }
-        }
+        });
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('[CLOUDINARY_UPLOAD_ERROR]', error);
@@ -192,7 +165,6 @@ export const useCloudinaryUpload = () => {
             height: uploadResult.height,
             bytes: uploadResult.bytes,
             type: uploadResult.format,
-            cloudinaryAccountId: uploadResult.cloudinaryAccountId,
             claimId: uploadResult.claimId,
           }),
           credentials: 'include',

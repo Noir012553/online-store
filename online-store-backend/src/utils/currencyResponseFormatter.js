@@ -46,12 +46,30 @@ const formatPayments = async (payments, lang) => {
   });
 };
 
+const toPublicDescriptionImages = (descriptionImages) => (
+  Array.isArray(descriptionImages)
+    ? descriptionImages.flatMap((image) => {
+      if (typeof image === 'string' && image.trim()) return [{ url: image.trim() }];
+      if (!image || typeof image !== 'object') return [];
+      const url = String(image.publicUrl || image.url || '').trim();
+      return url ? [{
+        url,
+        ...(typeof image.alt === 'string' && image.alt.trim() ? { alt: image.alt.trim() } : {}),
+      }] : [];
+    })
+    : []
+);
+
 const formatProducts = async (products, lang) => {
   const currencies = await getCurrencyMetadata(products.map((product) => product.baseCurrencyCode));
 
   return products.map((product) => {
     const data = product.toObject ? product.toObject() : product;
-    const formattedProduct = formatAmountFields(data, currencies.get(data.baseCurrencyCode), lang, [
+    const publicProduct = {
+      ...data,
+      descriptionImages: toPublicDescriptionImages(data.descriptionImages),
+    };
+    const formattedProduct = formatAmountFields(publicProduct, currencies.get(data.baseCurrencyCode), lang, [
       ['price', 'formattedPrice'],
       ...(Number.isFinite(data.originalPrice) && data.originalPrice > data.price
         ? [['originalPrice', 'formattedOriginalPrice']]
@@ -308,6 +326,7 @@ module.exports = {
   formatPaymentFields,
   formatPayments,
   formatProducts,
+  toPublicDescriptionImages,
   formatOrderFields,
   formatOrders,
   toCheckoutSummary,

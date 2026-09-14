@@ -94,12 +94,6 @@ export const LaptopSchema = z.object({
   descriptionImages: z.array(z.object({
     url: z.string().trim().min(1),
     alt: z.string().optional(),
-    sourceUrl: z.string().optional(),
-    publicUrl: z.string().optional(),
-    storageProvider: z.string().optional(),
-    storageAccount: z.string().optional(),
-    storageKey: z.string().optional(),
-    bucket: z.string().optional(),
   })).default([]),
   promotions: z.array(z.object({
     type: z.string().trim().min(1),
@@ -175,16 +169,10 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
         .map((image: any): ProductDescriptionImage | null => {
           if (typeof image === 'string') return { url: image };
           if (!image || typeof image !== 'object') return null;
-          const url = String(image.publicUrl || image.url || '').trim();
+          const url = String(image.url || '').trim();
           return url ? {
             url,
             alt: typeof image.alt === 'string' ? image.alt : undefined,
-            sourceUrl: typeof image.sourceUrl === 'string' ? image.sourceUrl : undefined,
-            publicUrl: typeof image.publicUrl === 'string' ? image.publicUrl : undefined,
-            storageProvider: typeof image.storageProvider === 'string' ? image.storageProvider : undefined,
-            storageAccount: typeof image.storageAccount === 'string' ? image.storageAccount : undefined,
-            storageKey: typeof image.storageKey === 'string' ? image.storageKey : undefined,
-            bucket: typeof image.bucket === 'string' ? image.bucket : undefined,
           } : null;
         })
         .filter((image): image is ProductDescriptionImage => Boolean(image))
