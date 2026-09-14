@@ -203,18 +203,41 @@ describe('translationHelper - Product legacy cache fallback', () => {
     mockLegacyFind.result = Promise.resolve([
       { entityId: '1', entityType: 'product_name', translatedText: 'Tên legacy' },
       { entityId: '1', entityType: 'product_spec', specKey: 'CPU', translatedText: 'Bộ xử lý' },
+      { entityId: '1', entityType: 'product_technical_description', translatedText: 'Mô tả kỹ thuật legacy' },
+      { entityId: '1', entityType: 'product_description_image_alt', fieldKey: 'descriptionImages.0.alt', translatedText: 'Ảnh legacy' },
+      { entityId: '1', entityType: 'product_promotion', fieldKey: 'promotions.0.title', translatedText: 'Quà tặng legacy' },
     ]);
 
     const result = await overlayTranslationBatchWithFallback([
-      { _id: '1', name: 'Original', specs: { CPU: 'Processor' } },
+      {
+        _id: '1',
+        name: 'Original',
+        specs: { CPU: 'Processor' },
+        technicalDescription: 'Mô tả kỹ thuật gốc',
+        descriptionImages: [{ url: 'https://example.invalid/image.jpg', alt: 'Ảnh gốc' }],
+        promotions: [{ type: 'Gift', title: 'Quà tặng gốc', giftValueVND: 360000 }],
+      },
     ], 'product', 'en');
 
     assert.strictEqual(result[0].name, 'Tên legacy');
     assert.deepStrictEqual(result[0].specs, { cpu: 'Bộ xử lý' });
+    assert.strictEqual(result[0].technicalDescription, 'Mô tả kỹ thuật legacy');
+    assert.deepStrictEqual(result[0].descriptionImages, [{ url: 'https://example.invalid/image.jpg', alt: 'Ảnh legacy' }]);
+    assert.deepStrictEqual(result[0].promotions, [{ type: 'Gift', title: 'Quà tặng legacy', giftValueVND: 360000 }]);
     assert.deepStrictEqual(mockLegacyFind.calls, [{
       entityId: { $in: ['1'] },
       targetLang: 'en',
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
+      entityType: {
+        $in: [
+          'product_name',
+          'product_description',
+          'product_brand',
+          'product_spec',
+          'product_technical_description',
+          'product_description_image_alt',
+          'product_promotion',
+        ],
+      },
       status: 'success',
       qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
     }]);

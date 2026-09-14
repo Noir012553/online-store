@@ -256,10 +256,13 @@ const refreshStorefrontReadiness = async (productIds, options = {}) => {
  * @param {Object} translation - Translation cache object từ DB
  * @returns {Object} Entity với translation overlay
  */
-function buildLegacyProductTranslation(translations) {
+function buildLegacyProductTranslation(translations, sourceProduct) {
   if (translations.length === 0) return null;
 
   const data = { specs: {} };
+  const descriptionImageAlts = new Map();
+  const promotionTexts = new Map();
+
   translations.forEach((translation) => {
     switch (translation.entityType) {
       case 'product_name':
@@ -274,25 +277,71 @@ function buildLegacyProductTranslation(translations) {
       case 'product_spec':
         if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
         break;
+      case 'product_technical_description':
+        data.technicalDescription = translation.translatedText;
+        break;
+      case 'product_description_image_alt':
+        if (/^descriptionImages\.\d+\.alt$/.test(translation.fieldKey || '')) {
+          descriptionImageAlts.set(translation.fieldKey, translation.translatedText);
+        }
+        break;
+      case 'product_promotion':
+        if (/^promotions\.\d+\.(title|giftProductName|scope|discountText)$/.test(translation.fieldKey || '')) {
+          promotionTexts.set(translation.fieldKey, translation.translatedText);
+        }
+        break;
     }
   });
+
+  if (descriptionImageAlts.size > 0 && Array.isArray(sourceProduct?.descriptionImages)) {
+    data.descriptionImages = sourceProduct.descriptionImages.map((image, index) => ({
+      ...image,
+      alt: descriptionImageAlts.get(`descriptionImages.${index}.alt`) || image.alt || '',
+    }));
+  }
+  if (promotionTexts.size > 0 && Array.isArray(sourceProduct?.promotions)) {
+    data.promotions = sourceProduct.promotions.map((promotion, index) => {
+      const localized = { ...promotion };
+      ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+        const translation = promotionTexts.get(`promotions.${index}.${field}`);
+        if (translation) localized[field] = translation;
+      });
+      return localized;
+    });
+  }
 
   return data;
 }
 
-const getLegacyProductTranslationMap = async (entityIds, targetLang) => {
-  if (!entityIds.length) return new Map();
+const getLegacyProductTranslationMap = async (products, targetLang) => {
+  if (!products.length) return new Map();
+
+  const productsById = new Map(products.map((product) => [
+    String(product._id?.toString() || product.id),
+    product,
+  ]));
+  const entityIds = [...productsById.keys()];
 
   try {
     const records = await withTimeout(
       LiveTranslationCache.find({
         entityId: { $in: entityIds },
         targetLang,
-        entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
+        entityType: {
+          $in: [
+            'product_name',
+            'product_description',
+            'product_brand',
+            'product_spec',
+            'product_technical_description',
+            'product_description_image_alt',
+            'product_promotion',
+          ],
+        },
         status: 'success',
         qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
       })
-        .select('entityId entityType specKey translatedText -_id')
+        .select('entityId entityType specKey fieldKey translatedText -_id')
         .maxTimeMS(5000)
         .lean(),
       7000
@@ -305,7 +354,7 @@ const getLegacyProductTranslationMap = async (entityIds, targetLang) => {
     });
     return new Map([...grouped].map(([entityId, translations]) => [
       entityId,
-      buildLegacyProductTranslation(translations),
+      buildLegacyProductTranslation(translations, productsById.get(entityId)),
     ]));
   } catch (error) {
     console.error('[translationHelper] Error fetching legacy product translations:', error);
@@ -406,7 +455,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       translationMap[t.entityId] = t;
     });
     const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
-      ? await getLegacyProductTranslationMap(entityIds, targetLang)
+      ? await getLegacyProductTranslationMap(entities, targetLang)
       : new Map();
 
     // For products: pre-fetch nested brand translations.
@@ -491,7 +540,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
     if (!translation && entityType === 'product') {
-      translation = (await getLegacyProductTranslationMap([entityId], targetLang)).get(String(entityId));
+      translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
     }
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -553,7 +602,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
     }).lean();
     if (!translation && entityType === 'product') {
-      translation = (await getLegacyProductTranslationMap([entityId], targetLang)).get(String(entityId));
+      translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
     }
 
     let overlayed = applyTranslationOverlay(entity, entityType, translation);
@@ -757,7 +806,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
         status: 'success',
         ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
       })
-        .select('entityId targetLang status qualityStatus name brand description specs -_id')
+        .select('entityId targetLang status qualityStatus name brand description specs technicalDescription descriptionImages promotions -_id')
         .maxTimeMS(5000)
         .lean(),
       7000
@@ -772,7 +821,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
       };
     });
     const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
-      ? await getLegacyProductTranslationMap(entityIds, targetLang)
+      ? await getLegacyProductTranslationMap(entities, targetLang)
       : new Map();
 
     // For products: pre-fetch nested brand translations.
