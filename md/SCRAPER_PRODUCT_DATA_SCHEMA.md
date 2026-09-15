@@ -44,7 +44,7 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Staging metadata cho từng batch | Hoàn tất | `scraper_runner.py` tạo `ScrapeRunID`, `ScrapeCapturedAt`, `ScrapeParserVersion` và `ProductData` |
 | Upload ảnh chính/gallery | Hoàn tất | Seed pipeline upload hai nhóm này lên Cloudflare R2 và lưu asset reference |
 | Upload ảnh mô tả lên Cloudflare R2 | Hoàn tất | Seed/import hỗ trợ role `description`, content hash và manifest R2 |
-| Lưu metadata asset | Hoàn tất một phần | Model hỗ trợ metadata; pipeline chưa áp dụng đầy đủ cho ảnh mô tả |
+| Lưu metadata asset | Hoàn tất một phần | Runtime đã lưu provider/account/bucket/key cho main, gallery và description; manifest/backup/ZIP role description chưa đầy đủ |
 | Backend CRUD trực tiếp | Hoàn tất | `createProduct`/`updateProduct` nhận, validate và lưu ba field mới |
 | API response camelCase | Hoàn tất một phần | Formatter trả field mới; cần hoàn thiện contract/integration test |
 | JSON/CSV import | Hoàn tất một phần | Adapter và validator nhận field mới; cần hoàn tất round-trip test |
@@ -54,13 +54,17 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Frontend UI | Hoàn tất | Hiển thị technical description, description images và promotions |
 | Translation field mới | Hoàn tất một phần | Cache/seeder/API đã hỗ trợ; cần hoàn thiện quality/integration test |
 | Cloudflare AI multi-config | Hoàn tất một phần | Có hậu tố và nhận diện rate-limit/quota; cần giới hạn retry/rotation và test đầy đủ |
-| R2 multi-account adapter | Hoàn tất một phần | Runtime đã chọn/upload/xóa theo account; cần hoàn thiện migration và test staging |
+| R2 multi-account adapter | Hoàn tất một phần | Đã có account gap validation, metadata validation, retry hữu hạn và upload guard fail-closed; chưa có quota provider/rotation và chưa test staging |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
 
 - `node --check` cho các file JavaScript đã sửa.
 - `git diff --check` cho toàn bộ thay đổi.
+
+Kiểm tra bị chặn:
+
+- Test runner backend chưa chạy được trong workspace vì thiếu dependency `dotenv`; không tự cài dependency và không chạy `npm run build`.
 
 ### 2.2. Luồng seed mặc định và chia phase
 
@@ -1052,6 +1056,28 @@ Chỉ coi kế hoạch đã triển khai khi:
 - Batch nhỏ đạt kiểm tra chất lượng và không làm mất product khỏi storefront ngoài policy.
 - Có báo cáo usage, translation, asset và import theo `runId`.
 - Có manifest/rollback và test cho các lỗi P0/P1.
+- Chỉ chạy test cần thiết; không tự chạy `npm run build`.
+
+## 12.12. Rà soát blocker trước seed và upload R2
+
+Các vấn đề đã xác nhận hoặc cần xử lý trước rollout được tổng hợp tại `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`.
+
+| Mức | Vấn đề | Trạng thái |
+|---|---|---|
+| P0 | `r2AssetService.js` dùng `crypto.createHash()` nhưng cần xác nhận import `crypto` trước stable-hash selection | Chưa sửa |
+| P0 | Full seed chạy `aboutMedia` trước crawler; cần `MONGO_URI`, R2 group đầy đủ và hero source | Chưa runtime verify |
+| P1 | R2 có account selection theo role/hash nhưng chưa có quota tracking hoặc failover theo rate limit | Chưa hoàn tất |
+| P1 | Upload, Product commit, cleanup và manifest chưa được chứng minh atomic toàn batch | Chưa hoàn tất |
+| P1 | ZIP/export manifest cho `description` chưa đồng nhất với main/gallery | Chưa hoàn tất |
+| P2 | Không có output scraper trong workspace; full seed sẽ cào lại nếu không truyền input | Đã xác định |
+| P2 | Dry-run bỏ qua crawler/R2 nhưng vẫn cần file input và MongoDB | Đã xác định |
+| P2 | Giới hạn 5 MiB đang dùng chung cho asset có cả video; cần policy riêng nếu upload hero video lớn | Cần kiểm tra |
+
+Quy tắc vận hành trước khi sửa code:
+
+- Không rotation account cho lỗi xác thực, bucket/account sai, MIME, chữ ký hoặc dữ liệu không hợp lệ.
+- Chỉ retry/rotation khi provider xác nhận rate limit/quota hoặc lỗi tạm thời được nhận diện rõ và luôn có giới hạn attempt.
+- Không xóa hoặc di chuyển asset cũ nếu asset mới chưa upload, verify và ghi reference thành công.
 - Chỉ chạy test cần thiết; không tự chạy `npm run build`.
 
 ## 13. Kết luận

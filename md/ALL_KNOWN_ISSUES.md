@@ -2,6 +2,8 @@
 
 Tài liệu này ghi lại các vấn đề kỹ thuật, test setup và credential đã phát hiện trong dự án. Không ghi mật khẩu, token, secret hoặc nội dung credential XML thật.
 
+Lưu ý cập nhật: các phần Cloudinary bên dưới là lịch sử/policy migration và có thể không khớp với runtime seed/import R2 hiện tại. Blocker R2, policy Cloudinary nhiều tài khoản và checklist trước khi sửa được tổng hợp tại `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`; không dùng các report Cloudinary cũ để kết luận seed hiện tại đã sẵn sàng.
+
 ## 1. Credential XML trên Windows
 
 ### Hiện tượng

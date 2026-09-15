@@ -18,20 +18,40 @@ const getRecentJsonFiles = (directory, startedAt) => fs.readdirSync(directory, {
   .filter(filePath => fs.statSync(filePath).mtimeMs >= startedAt)
   .sort();
 
+const toManifestAsset = ({ asset, role, position, sourcePath }) => ({
+  role,
+  position,
+  sourcePath: sourcePath || asset?.sourceUrl || null,
+  url: asset?.publicUrl || asset?.url || null,
+  storageProvider: asset?.storageProvider || null,
+  storageAccount: asset?.storageAccount || null,
+  bucket: asset?.bucket || null,
+  storageKey: asset?.storageKey || null,
+  asset,
+});
+
 const buildImageManifest = (product, uploadedProduct) => ({
   productId: product.productId || null,
   sku: product.sku || null,
   url: product.sourceUrl || null,
   name: product.name,
-  image: {
+  image: toManifestAsset({
+    role: 'main',
+    position: 0,
     sourcePath: product.image,
-    url: uploadedProduct.image,
     asset: uploadedProduct.imageAsset,
-  },
-  gallery: uploadedProduct.images.map((url, index) => ({
-    sourcePath: product.images[index],
-    url,
-    asset: uploadedProduct.imageAssets[index] || null,
+  }),
+  gallery: (uploadedProduct.imageAssets || []).map((asset, index) => toManifestAsset({
+    role: 'gallery',
+    position: index,
+    sourcePath: asset?.sourceUrl || null,
+    asset,
+  })),
+  description: (uploadedProduct.descriptionImages || []).map((entry, index) => toManifestAsset({
+    role: 'description',
+    position: index,
+    sourcePath: entry?.sourceUrl || entry?.url || null,
+    asset: entry,
   })),
   status: 'uploaded',
 });

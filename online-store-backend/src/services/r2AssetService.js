@@ -12,7 +12,11 @@ const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
 
 const MAX_R2_ACCOUNTS = 9;
 const DEFAULT_MAX_ASSET_BYTES = MAX_IMAGE_ASSET_BYTES;
+const DEFAULT_MAX_VIDEO_ASSET_BYTES = MAX_IMAGE_ASSET_BYTES;
+const DEFAULT_MAX_R2_RETRIES = 2;
 const DEFAULT_ASSET_ROLE = 'general';
+const TRANSIENT_R2_ERROR_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN', 'ENETUNREACH']);
+const uploadBudget = { day: null, assets: 0, bytes: 0 };
 const MIME_EXTENSIONS = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -47,8 +51,115 @@ const createR2Error = (code, message, details = {}) => {
   return error;
 };
 
+const getNonNegativeInteger = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw createR2Error('R2_CONFIG_INVALID', `${name} must be a non-negative integer`);
+  }
+  return value;
+};
+
+const getPositiveLimit = (name, fallback) => {
+  const value = getNonNegativeInteger(name, fallback);
+  if (value <= 0) throw createR2Error('R2_CONFIG_INVALID', `${name} must be a positive integer`);
+  return value;
+};
+
+const getMaxBytesForMime = mimeType => (
+  String(mimeType || '').toLowerCase().startsWith('video/')
+    ? getPositiveLimit('R2_MAX_VIDEO_BYTES', DEFAULT_MAX_VIDEO_ASSET_BYTES)
+    : getPositiveLimit('R2_MAX_IMAGE_BYTES', DEFAULT_MAX_ASSET_BYTES)
+);
+
+const getR2UploadPolicy = () => ({
+  enabled: process.env.R2_UPLOAD_ENABLED === 'true',
+  maxAssets: getNonNegativeInteger('R2_MAX_UPLOAD_COUNT', 0),
+  maxBytes: getNonNegativeInteger('R2_MAX_UPLOAD_BYTES', 0),
+  maxRetries: getNonNegativeInteger('R2_MAX_RETRIES', DEFAULT_MAX_R2_RETRIES),
+});
+
+const assertR2UploadEnabled = () => {
+  const policy = getR2UploadPolicy();
+  if (!policy.enabled) throw createR2Error('R2_UPLOAD_DISABLED', 'R2 uploads are disabled by policy');
+  if (policy.maxAssets <= 0 || policy.maxBytes <= 0) {
+    throw createR2Error('R2_UPLOAD_BUDGET_NOT_CONFIGURED', 'R2 upload budget is not configured');
+  }
+  return policy;
+};
+
+const getBudgetDay = () => new Date().toISOString().slice(0, 10);
+
+const resetUploadBudgetIfNeeded = () => {
+  const day = getBudgetDay();
+  if (uploadBudget.day !== day) {
+    uploadBudget.day = day;
+    uploadBudget.assets = 0;
+    uploadBudget.bytes = 0;
+  }
+};
+
+const reserveUploadBudget = (bytes, policy) => {
+  resetUploadBudgetIfNeeded();
+  if (uploadBudget.assets + 1 > policy.maxAssets) {
+    throw createR2Error('R2_UPLOAD_BUDGET_EXCEEDED', 'R2 upload asset limit reached', { assets: uploadBudget.assets, maxAssets: policy.maxAssets });
+  }
+  if (uploadBudget.bytes + bytes > policy.maxBytes) {
+    throw createR2Error('R2_UPLOAD_BUDGET_EXCEEDED', 'R2 upload byte limit reached', { bytes: uploadBudget.bytes, maxBytes: policy.maxBytes });
+  }
+  uploadBudget.assets += 1;
+  uploadBudget.bytes += bytes;
+};
+
+const releaseUploadBudget = bytes => {
+  uploadBudget.assets = Math.max(0, uploadBudget.assets - 1);
+  uploadBudget.bytes = Math.max(0, uploadBudget.bytes - bytes);
+};
+
+const getErrorStatus = error => error?.$metadata?.httpStatusCode || error?.response?.status || null;
+
+const isTransientR2Error = error => {
+  const status = getErrorStatus(error);
+  return status === 429 || (status >= 500 && status < 600) || TRANSIENT_R2_ERROR_CODES.has(error?.code);
+};
+
+const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+const sendR2Command = async (account, createCommand, maxRetries = DEFAULT_MAX_R2_RETRIES) => {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await getClient(account).send(createCommand());
+    } catch (error) {
+      if (!isTransientR2Error(error) || attempt >= maxRetries) throw error;
+      await delay(Math.min(1000 * (2 ** attempt), 5000) + Math.floor(Math.random() * 100));
+      attempt += 1;
+    }
+  }
+};
+
 const getR2Accounts = (environment = process.env) => {
   const accounts = [];
+  const configuredIndexes = [];
+  for (let index = 1; index <= MAX_R2_ACCOUNTS; index += 1) {
+    const suffix = index === 1 ? '' : `_${index}`;
+    const present = [
+      environment[`R2_ACCOUNT_ID${suffix}`],
+      environment[`R2_ACCESS_KEY_ID${suffix}`],
+      environment[`R2_SECRET_ACCESS_KEY${suffix}`],
+      environment[`R2_BUCKET_NAME${suffix}`],
+      environment[`R2_PUBLIC_BASE_URL${suffix}`],
+    ].some(Boolean);
+    if (present) configuredIndexes.push(index);
+  }
+  const highestConfiguredIndex = Math.max(0, ...configuredIndexes);
+  for (let index = 1; index <= highestConfiguredIndex; index += 1) {
+    if (!configuredIndexes.includes(index)) {
+      throw createR2Error('R2_ACCOUNT_GROUP_GAP', `R2 account group ${index} is missing`, { accountId: String(index) });
+    }
+  }
+
   for (let index = 1; index <= MAX_R2_ACCOUNTS; index += 1) {
     const suffix = index === 1 ? '' : `_${index}`;
     const values = {
@@ -108,16 +219,19 @@ const inferMimeType = buffer => {
   return MIME_MAGIC.find(candidate => candidate.matches(buffer))?.mimeType || null;
 };
 
-const validateAssetBuffer = (buffer, { mimeType, maxBytes = DEFAULT_MAX_ASSET_BYTES, allowedMimeTypes } = {}) => {
+const validateAssetBuffer = (buffer, { mimeType, maxBytes, allowedMimeTypes } = {}) => {
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
     throw createR2Error('R2_ASSET_EMPTY', 'Asset content must be a non-empty buffer');
-  }
-  if (!Number.isFinite(maxBytes) || maxBytes <= 0 || buffer.length > maxBytes) {
-    throw createR2Error('R2_ASSET_TOO_LARGE', 'Asset exceeds the configured size limit', { maxBytes, bytes: buffer.length });
   }
 
   const detectedMimeType = inferMimeType(buffer);
   const normalizedMimeType = mimeType ? String(mimeType).split(';')[0].trim().toLowerCase() : detectedMimeType;
+  const configuredMaxBytes = getMaxBytesForMime(normalizedMimeType || detectedMimeType);
+  const effectiveMaxBytes = Number.isFinite(maxBytes) ? Math.min(maxBytes, configuredMaxBytes) : configuredMaxBytes;
+  if (effectiveMaxBytes <= 0 || buffer.length > effectiveMaxBytes) {
+    throw createR2Error('R2_ASSET_TOO_LARGE', 'Asset exceeds the configured size limit', { maxBytes: effectiveMaxBytes, bytes: buffer.length });
+  }
+
   const allowed = allowedMimeTypes ? new Set(allowedMimeTypes.map(value => String(value).toLowerCase())) : null;
   if (!detectedMimeType || !normalizedMimeType || detectedMimeType !== normalizedMimeType || (allowed && !allowed.has(normalizedMimeType))) {
     throw createR2Error('R2_ASSET_CONTENT_INVALID', 'Asset MIME type does not match its magic bytes', {
@@ -175,6 +289,7 @@ const isSafeStorageKey = storageKey => (
 );
 
 const uploadBuffer = async (buffer, options = {}) => {
+  const policy = assertR2UploadEnabled();
   const validation = validateAssetBuffer(buffer, options);
   const sourceName = options.sourceName || options.filePath || '';
   const contentHash = crypto.createHash('sha256').update(buffer).digest('hex');
@@ -208,21 +323,35 @@ const uploadBuffer = async (buffer, options = {}) => {
 
   let exists = false;
   try {
-    const head = await getClient(account).send(new HeadObjectCommand({ Bucket: account.bucket, Key: storageKey }));
+    const head = await sendR2Command(
+      account,
+      () => new HeadObjectCommand({ Bucket: account.bucket, Key: storageKey }),
+      policy.maxRetries,
+    );
     exists = Number(head.ContentLength) === buffer.length;
   } catch (error) {
-    if (error?.$metadata?.httpStatusCode !== 404 && error?.name !== 'NotFound' && error?.name !== 'NoSuchKey') throw error;
+    if (getErrorStatus(error) !== 404 && error?.name !== 'NotFound' && error?.name !== 'NoSuchKey') throw error;
   }
 
   if (!exists) {
-    await getClient(account).send(new PutObjectCommand({
-      Bucket: account.bucket,
-      Key: storageKey,
-      Body: buffer,
-      ContentType: validation.mimeType,
-      ContentLength: buffer.length,
-      Metadata: { sha256: contentHash },
-    }));
+    reserveUploadBudget(buffer.length, policy);
+    try {
+      await sendR2Command(
+        account,
+        () => new PutObjectCommand({
+          Bucket: account.bucket,
+          Key: storageKey,
+          Body: buffer,
+          ContentType: validation.mimeType,
+          ContentLength: buffer.length,
+          Metadata: { sha256: contentHash },
+        }),
+        policy.maxRetries,
+      );
+    } catch (error) {
+      releaseUploadBudget(buffer.length);
+      throw error;
+    }
   }
 
   return reference;
@@ -235,7 +364,9 @@ const readRemoteBuffer = async (sourceUrl, options = {}) => {
   });
   if (!response.ok) throw createR2Error('R2_REMOTE_FETCH_FAILED', `Remote asset request failed with status ${response.status}`);
   const contentLength = Number(response.headers.get('content-length'));
-  const maxBytes = options.maxBytes || DEFAULT_MAX_ASSET_BYTES;
+  const maxBytes = Number.isFinite(options.maxBytes)
+    ? Math.min(options.maxBytes, getMaxBytesForMime(response.headers.get('content-type')))
+    : getMaxBytesForMime(response.headers.get('content-type'));
   if (Number.isFinite(contentLength) && contentLength > maxBytes) throw createR2Error('R2_ASSET_TOO_LARGE', 'Remote asset exceeds the configured size limit');
   if (!response.body) throw createR2Error('R2_REMOTE_FETCH_FAILED', 'Remote asset response has no body');
 
@@ -266,6 +397,7 @@ const uploadLocalFile = async (filePath, options = {}) => {
 };
 
 const uploadAsset = async (source, options = {}) => {
+  assertR2UploadEnabled();
   if (Buffer.isBuffer(source)) return uploadBuffer(source, options);
   const normalizedSource = String(source || '').trim();
   if (/^https?:\/\//i.test(normalizedSource)) return uploadRemoteUrl(normalizedSource, options);
@@ -288,10 +420,14 @@ const validateR2AssetReference = async reference => {
     throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference has an invalid public URL');
   }
 
-  const head = await getClient(account).send(new HeadObjectCommand({
-    Bucket: account.bucket,
-    Key: reference.storageKey,
-  }));
+  const head = await sendR2Command(
+    account,
+    () => new HeadObjectCommand({
+      Bucket: account.bucket,
+      Key: reference.storageKey,
+    }),
+    getR2UploadPolicy().maxRetries,
+  );
   if (reference.contentHash && head.Metadata?.sha256 && reference.contentHash !== head.Metadata.sha256) {
     throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset content hash does not match the stored object');
   }
@@ -315,7 +451,11 @@ const deleteR2Asset = async reference => {
   if (!account || account.bucket !== reference.bucket) {
     throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference does not match a configured bucket');
   }
-  await getClient(account).send(new DeleteObjectCommand({ Bucket: account.bucket, Key: reference.storageKey }));
+  await sendR2Command(
+    account,
+    () => new DeleteObjectCommand({ Bucket: account.bucket, Key: reference.storageKey }),
+    getR2UploadPolicy().maxRetries,
+  );
   return { deleted: true, storageAccount: account.id, bucket: account.bucket, storageKey: reference.storageKey };
 };
 
@@ -325,16 +465,24 @@ const deleteR2Assets = async references => {
   return results;
 };
 
-const getR2StorageStatus = () => ({
-  configured: getR2Accounts().length > 0,
-  accounts: getR2Accounts().map(account => ({ id: account.id, bucket: account.bucket, publicBaseUrl: account.publicBaseUrl })),
-});
+const getR2StorageStatus = () => {
+  const accounts = getR2Accounts();
+  const policy = getR2UploadPolicy();
+  return {
+    configured: accounts.length > 0,
+    uploadEnabled: policy.enabled,
+    uploadBudgetConfigured: policy.maxAssets > 0 && policy.maxBytes > 0,
+    accounts: accounts.map(account => ({ id: account.id, bucket: account.bucket, publicBaseUrl: account.publicBaseUrl })),
+  };
+};
 
 module.exports = {
   DEFAULT_MAX_ASSET_BYTES,
   MIME_EXTENSIONS,
   getR2Accounts,
   getR2Account,
+  getR2UploadPolicy,
+  isTransientR2Error,
   selectR2Account,
   inferMimeType,
   validateAssetBuffer,

@@ -19,6 +19,13 @@ IMPORTANT:
 
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
+const parseNonNegativeInteger = (name, fallback = 0) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) throw new Error(`${name} must be a non-negative integer`);
+  return value;
+};
 
 const isRateLimitOrQuotaError = (error) => {
   if (RATE_LIMIT_STATUS_CODES.has(error.response?.status)) return true;
@@ -78,6 +85,9 @@ class CloudflareAiService {
     this.queue = new SimpleQueue(3);
     this.lastRequestTime = 0;
     this.requestTimestamps = [];
+    this.usageDay = null;
+    this.usageRequests = 0;
+    this.usageInputChars = 0;
 
     // Idempotency cache (in-memory, prevents duplicate requests)
     this.pendingRequests = new Map();
@@ -108,9 +118,12 @@ class CloudflareAiService {
   _loadConfigs() {
     const configs = [];
     const envKeys = Object.keys(process.env);
-    const accountIdKeys = envKeys.filter(key => /^CLOUDFLARE_ACCOUNT_ID_\d+$/.test(key));
+    const numberedConfigIndexes = [...new Set(envKeys
+      .filter(key => /^CLOUDFLARE_(ACCOUNT_ID|API_TOKEN|AI_MODEL)_\d+$/.test(key))
+      .map(key => Number(key.match(/\d+$/)[0])))]
+      .sort((left, right) => left - right);
 
-    if (accountIdKeys.length === 0) {
+    if (numberedConfigIndexes.length === 0) {
       const fallbackAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
       const fallbackToken = process.env.CLOUDFLARE_API_TOKEN;
       const fallbackModel = process.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3-8b-instruct';
@@ -131,26 +144,33 @@ class CloudflareAiService {
       return configs;
     }
 
-    const maxIndex = Math.max(...accountIdKeys.map(key => parseInt(key.match(/\d+$/)[0])));
+    const maxIndex = Math.max(...numberedConfigIndexes);
 
     for (let i = 1; i <= maxIndex; i++) {
       const accountId = process.env[`CLOUDFLARE_ACCOUNT_ID_${i}`];
       const apiToken = process.env[`CLOUDFLARE_API_TOKEN_${i}`];
-      const model = process.env[`CLOUDFLARE_AI_MODEL_${i}`] || '@cf/meta/llama-3-8b-instruct';
+      const configuredModel = process.env[`CLOUDFLARE_AI_MODEL_${i}`];
+      const model = configuredModel || '@cf/meta/llama-3-8b-instruct';
+      const hasAnyConfig = Boolean(accountId || apiToken || configuredModel);
 
-      if (accountId && apiToken) {
-        configs.push({
-          index: i,
-          accountId,
-          apiToken,
-          model,
-          baseUrl: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
-          requestCount: 0,
-          errorCount: 0,
-          lastError: null,
-          lastErrorTime: null,
-        });
+      if (!hasAnyConfig) {
+        throw new Error(`CLOUDFLARE_CONFIG_GROUP_GAP: account ${i}`);
       }
+      if (!accountId || !apiToken) {
+        throw new Error(`CLOUDFLARE_CONFIG_GROUP_INCOMPLETE: account ${i}`);
+      }
+
+      configs.push({
+        index: i,
+        accountId,
+        apiToken,
+        model,
+        baseUrl: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
+        requestCount: 0,
+        errorCount: 0,
+        lastError: null,
+        lastErrorTime: null,
+      });
     }
 
     return configs;
@@ -207,14 +227,52 @@ class CloudflareAiService {
     return crypto.createHash('md5').update(`${text}:${targetLang}`).digest('hex');
   }
 
+  getUsagePolicy() {
+    return {
+      enabled: process.env.CLOUDFLARE_AI_ENABLED === 'true',
+      maxRequestsPerDay: parseNonNegativeInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY'),
+      maxInputCharsPerDay: parseNonNegativeInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY'),
+    };
+  }
+
+  resetUsageIfNeeded() {
+    const day = new Date().toISOString().slice(0, 10);
+    if (this.usageDay !== day) {
+      this.usageDay = day;
+      this.usageRequests = 0;
+      this.usageInputChars = 0;
+    }
+  }
+
+  reserveUsage(inputChars) {
+    const policy = this.getUsagePolicy();
+    if (!policy.enabled) throw new Error('CLOUDFLARE_AI_DISABLED');
+    if (policy.maxRequestsPerDay <= 0 || policy.maxInputCharsPerDay <= 0) {
+      throw new Error('CLOUDFLARE_AI_BUDGET_NOT_CONFIGURED');
+    }
+    this.resetUsageIfNeeded();
+    if (this.usageRequests + 1 > policy.maxRequestsPerDay) {
+      throw new Error('CLOUDFLARE_AI_REQUEST_BUDGET_EXCEEDED');
+    }
+    if (this.usageInputChars + inputChars > policy.maxInputCharsPerDay) {
+      throw new Error('CLOUDFLARE_AI_INPUT_BUDGET_EXCEEDED');
+    }
+    this.usageRequests += 1;
+    this.usageInputChars += inputChars;
+  }
+
   async translate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000) {
     // Validate required parameters
+    if (typeof text !== 'string' || text.trim() === '') {
+      throw new Error('Translation text must be a non-empty string');
+    }
     if (!sourceLang) {
       throw new Error('Source language (sourceLang) is required');
     }
     if (!targetLang) {
       throw new Error('Target language (targetLang) is required');
     }
+    if (sourceLang === targetLang) return text;
     const idempotencyKey = this.getIdempotencyKey(text, targetLang);
 
     if (this.pendingRequests.has(idempotencyKey)) {
@@ -222,7 +280,7 @@ class CloudflareAiService {
     }
 
     const promise = this.queue.add(async () => {
-      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay);
+      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay, new Set(), true);
     });
 
     this.pendingRequests.set(idempotencyKey, promise);
@@ -243,6 +301,7 @@ class CloudflareAiService {
     retries = 3,
     baseDelay = 2000,
     attemptedConfigIndexes = new Set(),
+    enforceBudget = false,
   ) {
     // Validate required parameters
     if (!sourceLang) {
@@ -264,6 +323,7 @@ class CloudflareAiService {
       }
 
       await this.throttle();
+      if (enforceBudget) this.reserveUsage(text.length);
 
       const startTime = Date.now();
       const response = await axios.post(
@@ -352,6 +412,7 @@ class CloudflareAiService {
             retries,
             baseDelay,
             attemptedConfigs,
+            enforceBudget,
           );
         }
 
@@ -378,7 +439,6 @@ class CloudflareAiService {
       if (retries > 0 && isRetryable) {
         const retriesUsed = 3 - retries;
         // For server errors (5xx), use longer exponential backoff
-        const isServerError = error.response?.status >= 500 && error.response?.status < 600;
         const serverErrorMultiplier = isServerError ? 2 : 1;
         const exponentialDelay = baseDelay * Math.pow(2, retriesUsed) * serverErrorMultiplier;
 
@@ -389,7 +449,7 @@ class CloudflareAiService {
           nextDelay: `${exponentialDelay}ms`,
         });
         await new Promise(resolve => setTimeout(resolve, exponentialDelay));
-        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay);
+        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, attemptedConfigIndexes, enforceBudget);
       }
 
       console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Translation failed (exhausted retries):`, {
@@ -410,6 +470,9 @@ class CloudflareAiService {
       pendingRequests: this.pendingRequests.size,
       queueLength: this.queue.queue.length,
       requestsPerSecond: this.maxRequestsPerSecond,
+      usageDay: this.usageDay,
+      usageRequests: this.usageRequests,
+      usageInputChars: this.usageInputChars,
       currentConfig: this.currentConfig.index,
       totalConfigs: this.configs.length,
       configs: this.configs.map(c => ({

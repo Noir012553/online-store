@@ -2,6 +2,8 @@
 
 Tài liệu này tổng hợp các lỗi đã kiểm tra và trạng thái xử lý hiện tại.
 
+Lưu ý: các mục Cloudinary cũ trong tài liệu phản ánh lịch sử/policy migration. Luồng seed/import hiện tại đang dùng Cloudflare R2; blocker R2 mới nhất và policy Cloudinary nhiều tài khoản được tách tại `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`.
+
 ## 1. Ảnh team trên Cloudinary
 
 ### Trạng thái
@@ -284,3 +286,26 @@ Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thà
 - Root `package.json` hiện có trong repository và `npm test` đã chuyển tiếp tới backend test runner. Runtime root vẫn phụ thuộc `online-store-backend/node_modules` và môi trường test.
 
 Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổi default discovery vì thiếu dependency `dotenv`; người dùng đã cung cấp log backend đạt `[STARTUP] backend ready`. Những thao tác integration cần MongoDB/credential hợp lệ và chạy lại `npm test`; không chạy `npm run build`.
+
+## 10. Rà soát mới: R2 tương tự Cloudinary và readiness của seed
+
+### Đã xác nhận từ source
+
+- R2 hỗ trợ nhiều nhóm account theo hậu tố và lưu `storageAccount`, `bucket`, `storageKey`, `publicUrl`.
+- Product seed có upload role `main`, `gallery` và `description`; full seed chạy `aboutMedia` trước crawler.
+- Import `crypto` trong `r2AssetService.js` đã có và syntax check đạt.
+- R2 đã có retry hữu hạn cho lỗi mạng/429/5xx và upload guard fail-closed; vẫn chưa có quota provider tracking hoặc rotation/failover tương đương policy Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
+- Cloudflare AI đã có free-tier guard mặc định tắt, giới hạn request/input theo ngày và fail khi nhóm config đánh số bị thiếu; quota counter hiện vẫn theo process, chưa phải billing cap bền vững đa instance.
+- `aboutMedia` cần R2 env đầy đủ và `ABOUT_HERO_SOURCE` nếu thiếu hero video local.
+- Không có output scraper mặc định trong workspace; full seed sẽ cào lại khi không có input hoặc không dùng `--skip-scrape`.
+
+### Vấn đề dự đoán trước khi fix
+
+- Asset upload thành công nhưng Product/manifest ghi thất bại có thể tạo object mồ côi.
+- Custom domain R2 chưa `Active`, base URL sai hoặc lưu sai account/bucket có thể tạo URL `404` dù object tồn tại.
+- Manifest ZIP/backup chưa phân biệt đầy đủ role `description`.
+- Retry HeadObject/PutObject chưa có chính sách hữu hạn và chưa có failover account theo lỗi rate limit.
+- Giới hạn 5 MiB đang dùng chung cho asset có thể gồm video hero.
+- Migration asset Cloudinary cũ có thể thiếu account/public ID; không được tự động xóa hoặc di chuyển.
+
+Chi tiết mức độ, file nguồn và tiêu chí nghiệm thu nằm trong `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`. Chưa chạy seed/upload thật hoặc build trong lần rà soát này.

@@ -43,6 +43,28 @@ describe('Cloudflare AI rotation', () => {
     cloudflareAiService.updateCurrentConfig();
   });
 
+  it('fails closed when the free-tier AI guard is not explicitly enabled and budgeted', async () => {
+    const original = {
+      CLOUDFLARE_AI_ENABLED: process.env.CLOUDFLARE_AI_ENABLED,
+      CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: process.env.CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY,
+      CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: process.env.CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY,
+    };
+    delete process.env.CLOUDFLARE_AI_ENABLED;
+    delete process.env.CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY;
+    delete process.env.CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY;
+    try {
+      await cloudflareAiService.translate('Nội dung', 'vi', 'en');
+      expect.fail('Expected Cloudflare AI to be disabled');
+    } catch (error) {
+      expect(error.message).to.equal('CLOUDFLARE_AI_DISABLED');
+    } finally {
+      Object.entries(original).forEach(([key, value]) => {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      });
+    }
+  });
+
   it('tries each configuration once then stops on HTTP 420', async () => {
     const error = providerError({ status: 420, message: 'Rate limit exceeded' });
     sandbox.stub(axios, 'post').rejects(error);
