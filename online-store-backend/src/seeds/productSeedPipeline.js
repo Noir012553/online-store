@@ -265,7 +265,6 @@ const uploadProductImages = async (product) => {
     product,
   );
   const galleryImages = [];
-  const galleryPublicIds = [];
   const galleryAssets = [];
 
   for (let index = 0; index < sourceGallery.length; index += 1) {
@@ -277,7 +276,6 @@ const uploadProductImages = async (product) => {
         product,
       );
       galleryImages.push(uploadedImage.url);
-      galleryPublicIds.push(uploadedImage.publicId);
       galleryAssets.push(uploadedImage);
     } catch (error) {
       console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
@@ -311,10 +309,10 @@ const uploadProductImages = async (product) => {
   return {
     ...product,
     image: mainImage.url,
-    imagePublicId: mainImage.publicId,
+    imagePublicId: null,
     imageAsset: mainImage,
     images: galleryImages,
-    imagePublicIds: galleryPublicIds,
+    imagePublicIds: [],
     imageAssets: galleryAssets,
     descriptionImages,
   };

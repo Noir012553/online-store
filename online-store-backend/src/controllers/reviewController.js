@@ -263,8 +263,8 @@ const hardDeleteReview = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.review_not_found'));
   }
 
-  if (review.avatar) {
-    await cleanupReviewAvatar(review.avatar);
+  if (review.avatarAsset) {
+    await cleanupReviewAvatar(review.avatarAsset);
   }
 
   await review.deleteOne();

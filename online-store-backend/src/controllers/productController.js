@@ -1273,7 +1273,7 @@ const getDeletedProducts = asyncHandler(async (req, res) => {
 
 /**
  * Xóa cứng sản phẩm (Admin only)
- * Workflow: Soft delete (ẩn) → Hard delete (xóa vĩnh viễn + cleanup Cloudinary)
+ * Workflow: Soft delete (ẩn) → Hard delete (xóa vĩnh viễn + cleanup asset R2)
  * @route DELETE /api/products/:id/hard
  * @access Private/Admin (admin và super-admin đều được)
  */

@@ -283,7 +283,7 @@ function BannerEditPageContent() {
           return;
         }
 
-        imageUrl = uploadResult.secure_url;
+        imageUrl = uploadResult.publicUrl;
         imageAsset = uploadResult.asset;
       } catch (error: any) {
         toast.error(error?.message || t('banner_error_load_data', 'admin-banners'));

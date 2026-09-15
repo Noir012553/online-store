@@ -14,12 +14,6 @@ const Category = require('../../../models/Category');
 const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTranslationCache');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const Currency = require('../../../models/Currency');
-const cloudinaryService = require('../../../services/cloudinaryService');
-const originalUploadToCloudinary = cloudinaryService.uploadToCloudinary;
-cloudinaryService.uploadToCloudinary = async () => ({
-  url: 'https://res.cloudinary.com/test/image/upload/laptop-store/admins/test.jpg',
-  publicId: 'laptop-store/admins/test',
-});
 const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
 const createProductQuery = (sandbox, products = []) => ({
@@ -48,10 +42,6 @@ describe('Product Controller', () => {
 
   afterEach(() => {
     sandbox.restore();
-  });
-
-  after(() => {
-    cloudinaryService.uploadToCloudinary = originalUploadToCloudinary;
   });
 
   describe('getProducts', () => {

@@ -8,7 +8,7 @@ Tài liệu này ghi nhận bộ key sản phẩm đã chốt sau khi bổ sung:
 - Ảnh nằm bên trong mô tả sản phẩm.
 - Khuyến mãi và quà tặng đi kèm.
 
-Tài liệu này đồng thời ghi nhận phần triển khai schema đã thực hiện ở scraper Python, adapter import, validator, Product model, API và frontend. Luồng upload asset riêng cho ảnh trong mô tả lên Cloudinary/R2 vẫn chưa được bật đầy đủ.
+Tài liệu này đồng thời ghi nhận phần triển khai schema đã thực hiện ở scraper Python, adapter import, validator, Product model, API và frontend. Luồng upload asset cho ảnh chính, gallery và ảnh trong mô tả dùng Cloudflare R2 ở backend; frontend chỉ nhận asset reference đã được kiểm tra.
 
 ## 2. Trạng thái hiện tại
 
@@ -42,8 +42,8 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Test fixture/extractor Python | Đã thêm | Cần chạy trong môi trường có dependency Python |
 | Runtime test Node | Chưa hoàn tất | Cần chạy suite liên quan trong môi trường có dependency backend |
 | Staging metadata cho từng batch | Hoàn tất | `scraper_runner.py` tạo `ScrapeRunID`, `ScrapeCapturedAt`, `ScrapeParserVersion` và `ProductData` |
-| Upload ảnh chính/gallery | Hoàn tất một phần | Seed pipeline upload hai nhóm này lên Cloudflare R2 |
-| Upload ảnh mô tả lên Cloudflare R2 | Hoàn tất một phần | Seed/import đã hỗ trợ reference R2; cần hoàn thiện kiểm thử và manifest |
+| Upload ảnh chính/gallery | Hoàn tất | Seed pipeline upload hai nhóm này lên Cloudflare R2 và lưu asset reference |
+| Upload ảnh mô tả lên Cloudflare R2 | Hoàn tất | Seed/import hỗ trợ role `description`, content hash và manifest R2 |
 | Lưu metadata asset | Hoàn tất một phần | Model hỗ trợ metadata; pipeline chưa áp dụng đầy đủ cho ảnh mô tả |
 | Backend CRUD trực tiếp | Hoàn tất | `createProduct`/`updateProduct` nhận, validate và lưu ba field mới |
 | API response camelCase | Hoàn tất một phần | Formatter trả field mới; cần hoàn thiện contract/integration test |
@@ -405,7 +405,7 @@ Sau khi upload, reference asset cần giữ tối thiểu. Cấu trúc này ph�
 ```json
 {
   "sourceUrl": "https://...",
-  "storageProvider": "cloudinary",
+  "storageProvider": "r2",
   "storageAccount": "1",
   "storageKey": "...",
   "publicUrl": "https://...",
@@ -434,7 +434,7 @@ Khi upsert:
 
 ### 8.7. API/frontend
 
-API chỉ trả schema nội bộ camelCase. Frontend không được biết selector GearVN, key `Product...`, Cloudinary account hay R2 secret.
+API chỉ trả schema nội bộ camelCase. Frontend không được biết selector GearVN, key `Product...`, R2 account credential hay R2 secret.
 
 Trạng thái triển khai hiện tại:
 
@@ -449,7 +449,7 @@ Trạng thái triển khai hiện tại:
 | Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
 | Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
 
-Frontend chỉ nhận URL public/reference đã được backend kiểm tra. Frontend không tự chọn Cloudinary account, không nhận API secret và không tự tạo URL theo storage account.
+Frontend chỉ nhận URL public/reference R2 đã được backend kiểm tra. Frontend không tự chọn R2 account, không nhận access key/secret và không tự tạo URL theo storage account.
 
 ## 9. Contract dữ liệu giữa các tầng
 
@@ -590,7 +590,7 @@ Sau khi import pipeline ổn định, cập nhật riêng các endpoint tạo/s�
 
 1. Nhận `technicalDescription`, `descriptionImages` và `promotions` từ request body.
 2. Dùng cùng rule normalize/validation với import, không tạo mapping khác trong controller.
-3. Không cho phép client gửi thông tin chọn Cloudinary account hoặc secret.
+3. Không cho phép client gửi thông tin chọn R2 account hoặc secret.
 4. Giữ policy identity, tồn kho và asset cũ của luồng upsert.
 5. Bổ sung test cho create, update và response sau khi lưu.
 
@@ -613,7 +613,7 @@ Chỉ sau khi API response ổn định:
 - Ghi provider/account/key sau upload.
 - Không xóa asset cũ khi upload mới hoặc validation mới chưa hoàn tất.
 
-Cloudinary multi-account và R2 chỉ được chọn ở backend. Frontend không nhận secret; nếu sau này có upload trực tiếp thì frontend chỉ nhận chữ ký, public key và endpoint cần thiết.
+R2 account/bucket chỉ được chọn ở backend. Frontend không nhận access key hoặc secret; frontend chỉ nhận asset reference public do backend upload và kiểm tra.
 
 ### Bước 6: Chạy kiểm thử theo phạm vi
 
@@ -665,7 +665,7 @@ Phần này là kế hoạch triển khai tiếp theo cho khoảng 1.000 sản p
 
 - Cloudflare AI đã đọc được nhiều nhóm `CLOUDFLARE_ACCOUNT_ID_n`, `CLOUDFLARE_API_TOKEN_n`, `CLOUDFLARE_AI_MODEL_n` tại `online-store-backend/src/services/cloudflareAiService.js`.
 - Cloudflare AI hiện mới xoay config khi nhận HTTP 429; chưa hoàn chỉnh cho HTTP 420, lỗi quota theo message, giới hạn vòng xoay và thống kê bền vững.
-- R2 mới có mẫu biến môi trường nhiều account trong `online-store-backend/.env.example`; runtime chưa có adapter upload multi-account cho product asset.
+- R2 có biến môi trường nhiều account trong `online-store-backend/.env.example`; runtime chọn account theo role hoặc stable hash cho product asset.
 - Translation cache, seeder và API đã có ba field mới; cần hoàn tất quality/integration test.
 - Frontend adapter/type/UI đã giữ và hiển thị ba field mới; cần browser smoke test theo locale.
 - Không chạy batch dịch hoặc upload R2 thật trước khi hoàn tất inventory/dry-run.

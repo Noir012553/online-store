@@ -66,14 +66,19 @@ async function main() {
     approvalRequired: true,
     approved: false,
   };
-  const cloudinaryInventory = {
+  const r2Assets = products.flatMap(product => [
+    product.imageAsset,
+    ...(Array.isArray(product.imageAssets) ? product.imageAssets : []),
+    ...(Array.isArray(product.descriptionImages) ? product.descriptionImages : []),
+  ]).filter(asset => asset?.storageProvider === 'r2' && asset.storageKey);
+  const r2Inventory = {
     environment,
     generatedAt: productInventory.generatedAt,
     sourceProfile,
-    publicIds: [...new Set(products.flatMap(product => [
-      product.imagePublicId,
-      ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
-    ]).filter(Boolean))],
+    assets: [...new Map(r2Assets.map(asset => [
+      `${asset.storageAccount}:${asset.bucket}:${asset.storageKey}`,
+      asset,
+    ])).values()],
     productIds: foundIds,
     approvalRequired: true,
     approved: false,
@@ -85,9 +90,9 @@ async function main() {
     confirmationRequired: true,
     productTargetCount: products.length,
     productDeletedCount: 0,
-    cloudinaryTargetCount: cloudinaryInventory.publicIds.length,
-    cloudinaryDeletedCount: 0,
-    cloudinaryFailedCount: 0,
+    r2AssetTargetCount: r2Inventory.assets.length,
+    r2AssetDeletedCount: 0,
+    r2AssetFailedCount: 0,
     dependentReviewCount: reviewCount,
     dependentCouponCount: coupons.length,
     dependentOrderCount: orderCount,
@@ -101,7 +106,7 @@ async function main() {
   await fs.mkdir(outputDir, { recursive: true });
   await Promise.all([
     fs.writeFile(path.join(outputDir, 'product-cleanup-inventory.json'), JSON.stringify(productInventory, null, 2)),
-    fs.writeFile(path.join(outputDir, 'cloudinary-cleanup-inventory.json'), JSON.stringify(cloudinaryInventory, null, 2)),
+    fs.writeFile(path.join(outputDir, 'r2-cleanup-inventory.json'), JSON.stringify(r2Inventory, null, 2)),
     fs.writeFile(path.join(outputDir, 'cleanup-report.json'), JSON.stringify(report, null, 2)),
   ]);
   console.log(JSON.stringify({ success: true, outputDir, report }, null, 2));

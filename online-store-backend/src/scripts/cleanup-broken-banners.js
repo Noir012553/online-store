@@ -1,30 +1,28 @@
-/**
- * Cleanup Script - Remove banners with broken Cloudinary URLs
- * 
- * Usage: node src/scripts/cleanup-broken-banners.js
- */
-
 require('dotenv').config({ path: ['.env.local', '.env'] });
 const mongoose = require('mongoose');
 const { Banner } = require('../models/Banner');
 
-const BROKEN_URLS = [
-  'https://res.cloudinary.com/dbobp2d1l/image/upload/v1775542647/laptop-store/banners/rpjr6e8z0bvzbnxxwd6y.png',
-];
+const parseUrls = () => (process.argv.find(argument => argument.startsWith('--urls=')) || '')
+  .slice('--urls='.length)
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
 
 const cleanupBrokenBanners = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
+  const urls = parseUrls();
+  if (urls.length === 0) throw new Error('BANNER_URLS_REQUIRED: pass --urls=url1,url2');
+  if (!process.env.MONGO_URI) throw new Error('MONGO_URI is required');
 
-    for (const url of BROKEN_URLS) {
-      const result = await Banner.deleteMany({ image: url });
-      console.log(`[CLEANUP] Deleted ${result.deletedCount} banner(s) with URL: ${url}`);
-    }
-
-    process.exit(0);
-  } catch (error) {
-    process.exit(1);
-  }
+  await mongoose.connect(process.env.MONGO_URI);
+  const result = await Banner.deleteMany({ image: { $in: urls } });
+  console.log(`[CLEANUP] Deleted ${result.deletedCount} banner(s)`);
 };
 
-cleanupBrokenBanners();
+cleanupBrokenBanners()
+  .catch(error => {
+    console.error(`[CLEANUP_ERROR] ${error.message}`);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
+  });

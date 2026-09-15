@@ -456,7 +456,7 @@ const TRANSLATABLE_PRODUCT_FIELDS = [
 const isDryRun = (value) => value === true || value === 'true';
 const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
 
-const createZipAssetPublicId = (product, slot, index = 0) => {
+const createZipAssetKey = (product, slot, index = 0) => {
   const identity = product.productId || product.sku || `${product.brand}:${product.name}`;
   const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
   return `zip-import/${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
@@ -473,7 +473,7 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
   });
 
   if (referencedAssetPaths.size === 0) {
-    return { products, uploadedPublicIds: [], restoredImageAssets: 0 };
+    return { products, uploadedR2Assets: [], restoredImageAssets: 0 };
   }
 
   if (!(assets instanceof Map)) {
@@ -491,7 +491,7 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
     if (!uploadPromise) {
       uploadPromise = uploadBuffer(assets.get(assetPath), {
         role: slot,
-        stableKey: createZipAssetPublicId(product, slot, index),
+        stableKey: createZipAssetKey(product, slot, index),
         sourceUrl: assetPath,
         sourceName: assetPath,
       });
@@ -525,15 +525,12 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
       delete restored.imageAssetPaths;
       if (mainUpload && !dryRun) {
         restored.image = mainUpload.publicUrl;
-        restored.imagePublicId = mainUpload.publicId;
+        restored.imagePublicId = null;
         restored.imageAsset = mainUpload;
       }
       if (!dryRun && galleryUploads.some(Boolean)) {
-        const existingPublicIds = Array.isArray(restored.imagePublicIds) ? restored.imagePublicIds : [];
         restored.images = galleryImages.map((image, index) => galleryUploads[index]?.publicUrl || image);
-        restored.imagePublicIds = galleryImages.map((image, index) => (
-          galleryUploads[index]?.publicId || existingPublicIds[index + 1]
-        )).filter(Boolean);
+        restored.imagePublicIds = [];
         restored.imageAssets = galleryUploads.filter(Boolean);
       }
       if (!dryRun && descriptionUploads.some(Boolean)) {
@@ -722,11 +719,6 @@ const importProductTranslations = async (products) => {
   return { imported: records.length };
 };
 
-const getProductImagePublicIds = (product) => [
-  product.imagePublicId,
-  ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
-].filter(Boolean);
-
 const getProductImageCleanupItems = (product) => [
   product.imageAsset,
   ...(Array.isArray(product.imageAssets) ? product.imageAssets : []),
@@ -876,7 +868,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
   }
   const allowCreateReferences = req.body.allowCreateReferences === true || req.body.allowCreateReferences === 'true';
   const adminUserId = req.user._id;
-  let uploadedZipImagePublicIds = [];
+  let uploadedZipAssets = [];
   let createdCategoryIds = [];
   let productWriteStarted = false;
 
@@ -979,7 +971,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       isDryRun(dryRun),
     );
     validProducts = restoredAssets.products;
-    uploadedZipImagePublicIds = restoredAssets.uploadedR2Assets;
+    uploadedZipAssets = restoredAssets.uploadedR2Assets;
 
     if (isDryRun(dryRun)) {
       return res.json({
@@ -1179,9 +1171,9 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       }
     }
 
-    if (!productWriteStarted && uploadedZipImagePublicIds.length > 0) {
+    if (!productWriteStarted && uploadedZipAssets.length > 0) {
       try {
-        await deleteR2Assets(uploadedZipImagePublicIds);
+        await deleteR2Assets(uploadedZipAssets);
       } catch (cleanupError) {
         console.error('[IMPORT_ZIP_ASSET_CLEANUP_FAILED]', { message: cleanupError.message });
       }

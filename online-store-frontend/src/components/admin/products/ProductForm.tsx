@@ -179,7 +179,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           return;
         }
 
-        imageUrl = uploadResult.secure_url;
+        imageUrl = uploadResult.publicUrl;
         imageAsset = uploadResult.asset;
       }
 

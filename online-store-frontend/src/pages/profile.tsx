@@ -142,7 +142,7 @@ export default function Profile() {
       }
 
       const updatedUser = await response.json();
-      updateUserProfileImage(updatedUser.profileImage || uploadResult.secure_url);
+      updateUserProfileImage(updatedUser.profileImage || uploadResult.publicUrl);
       toast.success(t('profile_avatar_success', 'profile'));
     } catch (error) {
       toast.error(t('profile_avatar_error', 'profile'));

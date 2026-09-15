@@ -965,7 +965,7 @@ describe('Crawler product field mapping', () => {
 });
 
 describe('Product seed image backup', () => {
-  it('creates a stable Cloudinary public ID from product identity', () => {
+  it('creates a stable asset identity from product identity', () => {
     const firstId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
     const secondId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
     const galleryId = getProductImagePublicId({ sku: 'SKU-001' }, 'gallery', 2);

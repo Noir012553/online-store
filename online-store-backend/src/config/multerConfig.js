@@ -1,123 +1,39 @@
-/**
- * Multer Configuration - Cấu hình upload file
- * Tách biệt: Local Storage vs Memory Storage
- */
-
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const {
   checkFileType,
   MAX_IMPORT_FILE_SIZE_BYTES,
   MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
 } = require('../utils/fileUtils');
 
-const UPLOAD_DIR = 'uploads';
-
-/**
- * Tạo thư mục nếu chưa tồn tại
- */
-const ensureUploadDir = (subDir = '') => {
-  const fullPath = subDir ? path.join(UPLOAD_DIR, subDir) : UPLOAD_DIR;
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
-  }
-  return fullPath;
-};
-
-/**
- * LOCAL STORAGE - Cho User Avatars & Review Avatars
- * Lưu trữ trực tiếp vào đĩa (uploads/users/ hoặc uploads/reviewers/)
- */
-const createLocalStorage = () => {
-  return multer.diskStorage({
-    destination: (req, file, cb) => {
-      // Xác định folder con dựa trên route
-      let subFolder = 'users';
-      
-      if (req.baseUrl.includes('/reviews')) {
-        subFolder = 'reviewers';
-      } else if (req.baseUrl.includes('/users') && req.baseUrl.includes('/avatar')) {
-        subFolder = 'users';
-      }
-      
-      const uploadPath = ensureUploadDir(subFolder);
-      cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-      // Tạo filename duy nhất: fieldname-timestamp-random.ext
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const ext = path.extname(file.originalname);
-      cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-    },
-  });
-};
-
-/**
- * MEMORY STORAGE - Cho các asset upload lên R2
- * Lưu vào RAM, backend sẽ upload lên Cloudflare R2
- */
 const memoryStorage = multer.memoryStorage();
+const imageFileFilter = (req, file, cb) => checkFileType(file, cb);
 
-/**
- * FILE FILTER - Bộ lọc định dạng file cho cả local và memory
- */
-const imageFileFilter = (req, file, cb) => {
-  checkFileType(file, cb);
-};
-
-/**
- * LOCAL UPLOAD - Dành cho User & Review Avatars
- * Lưu trực tiếp vào uploads/ folder trên server
- */
-const uploadLocal = multer({
-  storage: createLocalStorage(),
-  fileFilter: imageFileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
-});
-
-/**
- * R2 UPLOAD - Dành cho các asset cần lưu trên Cloudflare R2
- * Lưu vào memory buffer, backend sẽ upload lên R2.
- */
 const uploadMemory = multer({
   storage: memoryStorage,
   fileFilter: imageFileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-/**
- * IMPORT UPLOAD - Dành cho nhập khẩu dữ liệu bằng ZIP
- */
 const uploadImport = multer({
   storage: memoryStorage,
   fileFilter: (req, file, cb) => {
     const allowedTypes = {
       '.zip': ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip'],
     };
-    const ext = path.extname(file.originalname).toLowerCase();
+    const extension = path.extname(file.originalname).toLowerCase();
 
-    if (allowedTypes[ext]?.includes(file.mimetype)) {
+    if (allowedTypes[extension]?.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only valid .zip files are allowed'), false);
     }
   },
-  limits: {
-    fileSize: MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
-  },
+  limits: { fileSize: MAX_IMPORT_ZIP_FILE_SIZE_BYTES },
 });
 
 module.exports = {
-  uploadLocal,
   uploadMemory,
-  uploadImport,     // Cho import ZIP files
-  ensureUploadDir,
-  UPLOAD_DIR,
+  uploadImport,
   MAX_IMPORT_FILE_SIZE_BYTES,
-  MAX_IMPORT_ZIP_FILE_SIZE_BYTES,
 };

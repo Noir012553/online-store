@@ -253,7 +253,7 @@ function BannerCreatePageContent() {
           return;
         }
 
-        imageUrl = uploadResult.secure_url;
+        imageUrl = uploadResult.publicUrl;
         imageAsset = uploadResult.asset;
       }
 

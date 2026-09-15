@@ -17,11 +17,10 @@ export interface R2AssetReference {
 }
 
 export interface R2UploadResult {
-  public_id: string;
-  secure_url: string;
-  url: string;
+  storageKey: string;
+  publicUrl: string;
   bytes: number;
-  format: string;
+  mimeType: string;
   asset: R2AssetReference;
 }
 
@@ -68,11 +67,10 @@ export const useR2Upload = () => {
               }
               const asset = response.asset as R2AssetReference;
               resolve({
-                public_id: asset.storageKey,
-                secure_url: asset.publicUrl,
-                url: asset.publicUrl,
+                storageKey: asset.storageKey,
+                publicUrl: asset.publicUrl,
                 bytes: asset.bytes,
-                format: asset.mimeType.split('/')[1] || '',
+                mimeType: asset.mimeType,
                 asset,
               });
             } catch {
