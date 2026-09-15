@@ -54,13 +54,17 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Frontend UI | Hoàn tất | Hiển thị technical description, description images và promotions |
 | Translation field mới | Hoàn tất một phần | Cache/seeder/API đã hỗ trợ; cần hoàn thiện quality/integration test |
 | Cloudflare AI multi-config | Hoàn tất một phần | Có hậu tố và nhận diện rate-limit/quota; cần giới hạn retry/rotation và test đầy đủ |
-| R2 multi-account adapter | Hoàn tất một phần | Runtime đã chọn/upload/xóa theo account; còn blocker import crypto, chưa có quota/rotation/failover và chưa test staging |
+| R2 multi-account adapter | Hoàn tất một phần | Đã có account gap validation, metadata validation, retry hữu hạn và upload guard fail-closed; chưa có quota provider/rotation và chưa test staging |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
 
 - `node --check` cho các file JavaScript đã sửa.
 - `git diff --check` cho toàn bộ thay đổi.
+
+Kiểm tra bị chặn:
+
+- Test runner backend chưa chạy được trong workspace vì thiếu dependency `dotenv`; không tự cài dependency và không chạy `npm run build`.
 
 ### 2.2. Luồng seed mặc định và chia phase
 

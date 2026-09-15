@@ -7,6 +7,8 @@ Tài liệu này tách policy storage khỏi `.builderrules`, đồng thời ghi
 - Luồng seed/import hiện tại đang dùng Cloudflare R2 cho ảnh `main`, `gallery`, `description`, banner, avatar, review và About media.
 - Các tài liệu cũ vẫn có nội dung Cloudinary; cần xem những phần đó là lịch sử hoặc policy migration, không mặc định là code Cloudinary đang tồn tại trong workspace hiện tại.
 - Chưa chạy `npm run seed`, chưa chạy upload thật và không chạy `npm run build` trong lần rà soát này.
+- R2 upload guard và Cloudflare AI free-tier guard đã được thêm theo hướng fail-closed; cần cấu hình rõ ngân sách trước khi bật.
+- Test runner hiện chưa chạy được vì workspace thiếu dependency `dotenv`; không dùng `npx` để tải dependency tạm.
 
 ## 1.1. Cost guard bắt buộc
 
@@ -63,11 +65,9 @@ Có, ở các nhóm rủi ro về account, quota, metadata, URL và cleanup. Tuy
 
 ## 4. Lỗi đã phát hiện từ source
 
-### P0 — Lỗi import trong R2 account selection
+### Đã xử lý — import crypto trong R2 account selection
 
-`online-store-backend/src/services/r2AssetService.js:102` gọi `crypto.createHash(...)`, nhưng phần import đầu file chưa có `require('crypto')`.
-
-Ảnh hưởng: khi không có `R2_ACCOUNT_ROLE_*` cố định và phải chọn account bằng stable hash, upload có thể lỗi `crypto is not defined` trước khi gọi R2.
+Đã xác minh `online-store-backend/src/services/r2AssetService.js` hiện có import `crypto` và stable-hash account selection không còn thiếu import này. Không chạy upload thật để xác nhận provider.
 
 ### P0 — Full seed phụ thuộc R2 trước khi crawler chạy
 
@@ -90,9 +90,9 @@ Nếu nhóm account R2 đã bắt đầu khai báo nhưng thiếu một biến, 
 
 Không thấy file local `online-store-frontend/public/assets/videos/about-hero.mp4` trong workspace. Nếu không có file này, `ABOUT_HERO_SOURCE` phải được cấu hình; nếu không `aboutMediaSeeder` sẽ fail tại `aboutMediaSeeder.js:105-109`.
 
-### P1 — Chưa có quota/rate-limit failover cho R2
+### P1 — R2 chưa có provider quota tracking hoặc account failover
 
-`r2AssetService.js` chọn account theo role hoặc hash nhưng không theo dõi quota và không xoay account khi R2 trả lỗi tạm thời. Một account lỗi hoặc bị throttling có thể làm cả batch fail dù account khác còn khả dụng.
+R2 service hiện đã có retry hữu hạn cho lỗi mạng, HTTP `429` và `5xx`, nhưng vẫn không theo dõi quota provider và không tự xoay account. Một account lỗi hoặc bị throttling vẫn có thể làm batch fail dù account khác còn khả dụng; không được xoay account cho lỗi xác thực, bucket sai hoặc dữ liệu không hợp lệ.
 
 ### P1 — URL public có thể không dùng được ngay
 
@@ -134,7 +134,7 @@ Luồng upload kiểm tra `HeadObject` rồi mới `PutObject`. Lỗi `401/403`,
 
 | Mức | Lỗi dự đoán | Nguyên nhân | Tiêu chí xử lý |
 |---|---|---|---|
-| P0 | Upload fail trước khi gọi R2 | Thiếu import `crypto` | Sửa import và chạy syntax/unit test R2 |
+| Đã xử lý | Upload fail trước khi gọi R2 | Import `crypto` đã có trong source hiện tại | `node --check` đạt; vẫn cần unit test khi dependency sẵn sàng |
 | P0 | Seed dừng ở `aboutMedia` | Thiếu R2 env hoặc hero source | Preflight env và test About media riêng |
 | P0 | Lộ secret | Đưa R2 secret/Cloudinary API secret vào frontend, log hoặc report | Redact log; chỉ backend đọc secret |
 | P0 | Xóa nhầm asset | Không lưu đúng account/bucket/key | Xóa theo metadata exact; không fallback theo URL |
@@ -153,8 +153,8 @@ Luồng upload kiểm tra `HeadObject` rồi mới `PutObject`. Lỗi `401/403`,
 
 ## 6. Checklist trước khi sửa và chạy thật
 
-1. Sửa lỗi import `crypto` và kiểm tra syntax file liên quan.
-2. Preflight đầy đủ `MONGO_URI`, R2 account group, bucket, public base URL và `ABOUT_HERO_SOURCE`.
+1. Giữ import `crypto` đã có và kiểm tra syntax file liên quan.
+2. Preflight đầy đủ `MONGO_URI`, R2 account group, bucket, public base URL, upload guard và `ABOUT_HERO_SOURCE`.
 3. Kiểm tra không có secret trong frontend, `.next`, log, report hoặc manifest public.
 4. Xác nhận R2 custom domain đã `Active`; nếu chưa, kiểm tra object bằng endpoint phù hợp thay vì kết luận upload thất bại từ `/`.
 5. Chạy unit/mock test cho account discovery, stable hash, role routing, metadata, invalid reference và cleanup; không dùng credential thật trong test.

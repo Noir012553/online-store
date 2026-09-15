@@ -293,8 +293,9 @@ Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổ
 
 - R2 hỗ trợ nhiều nhóm account theo hậu tố và lưu `storageAccount`, `bucket`, `storageKey`, `publicUrl`.
 - Product seed có upload role `main`, `gallery` và `description`; full seed chạy `aboutMedia` trước crawler.
-- `r2AssetService.js` cần kiểm tra/sửa import `crypto` trước khi stable-hash account selection hoạt động.
-- R2 chưa có quota tracking hoặc rotation/failover tương đương policy Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
+- Import `crypto` trong `r2AssetService.js` đã có và syntax check đạt.
+- R2 đã có retry hữu hạn cho lỗi mạng/429/5xx và upload guard fail-closed; vẫn chưa có quota provider tracking hoặc rotation/failover tương đương policy Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
+- Cloudflare AI đã có free-tier guard mặc định tắt, giới hạn request/input theo ngày và fail khi nhóm config đánh số bị thiếu; quota counter hiện vẫn theo process, chưa phải billing cap bền vững đa instance.
 - `aboutMedia` cần R2 env đầy đủ và `ABOUT_HERO_SOURCE` nếu thiếu hero video local.
 - Không có output scraper mặc định trong workspace; full seed sẽ cào lại khi không có input hoặc không dùng `--skip-scrape`.
 

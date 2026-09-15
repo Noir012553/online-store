@@ -251,9 +251,9 @@ Vì R2 custom domain đang `Access: Enabled`, mọi object được truy cập q
 
 Luồng seed đã có logic tự gọi crawler khi thư mục `online-store-backend/data/scraped-products` không có CSV/JSON; có thể ép cào lại bằng `npm run seed -- --force-scrape`. Tuy nhiên chưa nên kết luận full seed sẵn sàng end-to-end vì:
 
-1. `online-store-backend/src/services/r2AssetService.js` đang gọi `crypto.createHash()` trong stable-hash account selection nhưng cần xác nhận import `crypto` trước khi upload.
+1. Import `crypto` trong `r2AssetService.js` hiện đã có; đã kiểm tra bằng `node --check`, nhưng chưa upload provider thật.
 2. `aboutMedia` là module critical chạy trước crawler; cần `MONGO_URI`, một nhóm R2 đầy đủ và `ABOUT_HERO_SOURCE` nếu thiếu file hero local.
-3. R2 hiện chưa có quota tracking hoặc rotation/failover tương đương policy nhiều tài khoản Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
+3. R2 hiện đã có retry hữu hạn cho lỗi mạng/429/5xx và guard upload fail-closed, nhưng chưa có quota provider tracking hoặc rotation/failover tương đương policy nhiều tài khoản Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
 4. `publicUrl` chỉ có thể kiểm tra chắc chắn sau khi custom domain ở trạng thái `Active`; phải lưu đúng `storageAccount`, `bucket`, `storageKey` để validate/delete.
 5. Upload, Product commit và manifest chưa được chứng minh atomic cho toàn bộ batch; không cleanup asset cũ trước khi reference mới được ghi và kiểm tra thành công.
 6. Chưa có bằng chứng runtime cho dry-run batch nhỏ, upload R2 thật và kiểm tra object bằng URL cụ thể.
