@@ -37,7 +37,7 @@ const languageRoutes = require('./routes/languageRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
 const healthRoutes = require('./routes/healthRoutes');
-const cloudinaryRoutes = require('./routes/cloudinaryRoutes');
+const r2AssetRoutes = require('./routes/r2AssetRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { globalLimiter } = require('./middleware/rateLimitMiddleware');
 const languageMiddleware = require('./middleware/languageMiddleware');
@@ -48,7 +48,6 @@ const expressJSDocSwagger = require('express-jsdoc-swagger');
 const swaggerOptions = require('./config/swagger');
 const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
-const { startCloudinaryCleanupWorker } = require('./services/cloudinaryCleanupOutbox');
 const { startExportJobWorker } = require('./services/exportJobService');
 const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
 
@@ -332,7 +331,6 @@ const connectDB = async () => {
     assertMongoConnected();
     assertStorageConfigured();
     await startServer();
-    startCloudinaryCleanupWorker();
     startExportJobWorker();
     startupReady = true;
     if (process.env.NODE_ENV === 'development') {
@@ -549,7 +547,7 @@ app.use('/api/translations', translationRoutes); // Translation service (Cloudfl
 app.use('/api/languages', languageRoutes); // Language management (admin - Tier 3)
 app.use('/api/currencies', currencyRoutes); // Currency management (admin)
 app.use('/api/exchange-rates', exchangeRateRoutes); // Exchange rate management (admin)
-app.use('/api/cloudinary', cloudinaryRoutes); // Cloudinary signed upload & validation
+app.use('/api/assets', r2AssetRoutes); // Backend-only Cloudflare R2 asset upload
 
 // ==================== Error Handling Middleware ====================
 

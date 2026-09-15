@@ -11,7 +11,7 @@ import { useLanguage, SUPPORTED_LOCALES, AVAILABLE_LOCALES, DEFAULT_LOCALE, type
 import { getTranslatedValue } from '../../../../lib/data';
 import { toast } from 'sonner';
 import { getImageUrl } from '../../../../lib/utils';
-import { useCloudinaryUpload } from '../../../../hooks/useCloudinaryUpload';
+import { useR2Upload } from '../../../../hooks/useR2Upload';
 
 export async function getServerSideProps() {
   return {
@@ -144,7 +144,7 @@ function BannerEditPageContent() {
   const router = useRouter();
   const { bannerId } = router.query;
   const { t, locale, loadNamespace } = useLanguage();
-  const { uploadToCloudinary, validateUploadedImage, uploadProgress } = useCloudinaryUpload();
+  const { uploadToR2, validateUploadedAsset, uploadProgress } = useR2Upload();
 
   useEffect(() => {
     loadNamespace('admin-banners');
@@ -266,25 +266,25 @@ function BannerEditPageContent() {
     }
 
     let imageUrl = '';
-    let imagePublicId = '';
+    let imageAsset: Record<string, unknown> | null = null;
 
     // Handle image upload to Cloudinary if a new image file is provided
     if (imageFile) {
       try {
         setIsSubmitting(true);
-        const uploadResult = await uploadToCloudinary(imageFile, 'banners');
+        const uploadResult = await uploadToR2(imageFile, 'banners');
         if (!uploadResult) {
           return;
         }
 
         // Validate the uploaded image
-        const isValid = await validateUploadedImage(uploadResult);
+        const isValid = validateUploadedAsset(uploadResult);
         if (!isValid) {
           return;
         }
 
         imageUrl = uploadResult.secure_url;
-        imagePublicId = uploadResult.public_id;
+        imageAsset = uploadResult.asset;
       } catch (error: any) {
         toast.error(error?.message || t('banner_error_load_data', 'admin-banners'));
         setIsSubmitting(false);
@@ -308,7 +308,7 @@ function BannerEditPageContent() {
 
     if (imageFile) {
       formData.append('image', imageUrl);
-      formData.append('imagePublicId', imagePublicId || '');
+      formData.append('imageAsset', JSON.stringify(imageAsset));
     }
 
     try {

@@ -22,18 +22,21 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
-const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
-const {
-  extractPublicIdFromUrl,
-  getCloudinaryAccountIdForUrl,
-} = require('../services/cloudinaryService');
-const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
-const { deleteOldFile } = require('../utils/fileCleanup');
+const { validateR2AssetReference, deleteR2Assets } = require('../services/r2AssetService');
 
-const cleanupUserAvatar = async (profileImage) => {
-  const publicId = extractPublicIdFromUrl(profileImage);
-  if (publicId) return enqueueCloudinaryCleanup(publicId, getCloudinaryAccountIdForUrl(profileImage) || '1');
-  return deleteOldFile(profileImage);
+const cleanupUserAvatar = async asset => {
+  if (asset?.storageProvider !== 'r2') return { deleted: false, skipped: true };
+  return deleteR2Assets([asset]);
+};
+
+const parseAssetReference = value => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 };
 
 const createUserError = (lang, code, messageKey) => {
@@ -327,8 +330,8 @@ const deleteUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
 
     if (user) {
-        if (user.profileImage) {
-            await cleanupUserAvatar(user.profileImage);
+        if (user.profileImageAsset) {
+            await cleanupUserAvatar(user.profileImageAsset);
         }
         user.isDeleted = true;
         await user.save();
@@ -355,8 +358,8 @@ const hardDeleteUser = asyncHandler(async (req, res) => {
         throw new Error(getMessage(lang, 'user-messages.notFound'));
     }
 
-    if (user.profileImage) {
-        await cleanupUserAvatar(user.profileImage);
+    if (user.profileImageAsset) {
+        await cleanupUserAvatar(user.profileImageAsset);
     }
 
     await user.deleteOne();
@@ -742,104 +745,70 @@ const testSendEmail = asyncHandler(async (req, res) => {
  * @route PUT /api/users/avatar
  * @access Private
  */
-const uploadUserAvatar = asyncHandler(async (req, res) => {
-  const { avatarUrl, avatarPublicId, avatarClaimId } = req.body;
-  const user = await User.findById(req.user._id);
+const updateUserAvatar = async ({ req, user }) => {
+  const asset = parseAssetReference(req.body.avatarAsset);
+  if (!asset) {
+    const error = createUserError(req.lang, 'UPLOAD_ASSET_INVALID', 'admin-controllers-messages.no_file_uploaded');
+    error.statusCode = 400;
+    throw error;
+  }
 
+  const validatedAsset = await validateR2AssetReference(asset);
+  const previousAsset = user.profileImageAsset?.toObject
+    ? user.profileImageAsset.toObject()
+    : user.profileImageAsset;
+  user.profileImage = validatedAsset.publicUrl;
+  user.profileImageAsset = validatedAsset;
+  const updatedUser = await user.save();
+
+  if (previousAsset?.storageProvider === 'r2'
+    && previousAsset.storageKey !== validatedAsset.storageKey) {
+    await deleteR2Assets([previousAsset]).catch(error => {
+      console.warn('[USER_AVATAR] Failed to clean up previous avatar:', error.message);
+    });
+  }
+
+  return updatedUser;
+};
+
+const uploadUserAvatar = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
   }
 
-  if (!avatarUrl || !avatarPublicId || !avatarClaimId) {
-    res.status(400);
-    throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
-  }
-
-  const claim = await CloudinaryUploadClaim.reserve({
-    claimId: avatarClaimId,
-    ownerId: req.user._id,
-    publicId: avatarPublicId,
-    purpose: 'avatar',
-  });
-  if (!claim || claim.url !== avatarUrl) {
-    res.status(400);
-    throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
-  }
-
-  const previousImageUrl = user.profileImage;
-  const previousImagePublicId = extractPublicIdFromUrl(previousImageUrl);
-  user.profileImage = avatarUrl;
-  const updatedUser = await user.save();
-  await CloudinaryUploadClaim.attach(avatarClaimId, req.user._id);
-
-  if (previousImagePublicId && previousImagePublicId !== avatarPublicId) {
-    await enqueueCloudinaryCleanup(
-      previousImagePublicId,
-      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
-    );
-  }
-
+  const updatedUser = await updateUserAvatar({ req, user });
   res.json({
     success: true,
     message: getMessage(req.lang, 'admin-controllers-messages.avatar_uploaded_success'),
-    profileImage: avatarUrl,
+    profileImage: updatedUser.profileImage,
     user: {
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
-      profileImage: avatarUrl,
+      profileImage: updatedUser.profileImage,
     },
   });
 });
 
 const uploadManagedUserAvatar = asyncHandler(async (req, res) => {
-  const { avatarUrl, avatarPublicId, avatarClaimId } = req.body;
   const user = await User.findOne({ _id: req.params.id, isDeleted: false });
-
   if (!user) {
     res.status(404);
     throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
   }
 
-  if (!avatarUrl || !avatarPublicId || !avatarClaimId) {
-    res.status(400);
-    throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
-  }
-
-  const claim = await CloudinaryUploadClaim.reserve({
-    claimId: avatarClaimId,
-    ownerId: req.user._id,
-    publicId: avatarPublicId,
-    purpose: 'avatar',
-  });
-  if (!claim || claim.url !== avatarUrl) {
-    res.status(400);
-    throw createUserError(req.lang, 'UPLOAD_CLAIM_INVALID', 'admin-controllers-messages.no_file_uploaded');
-  }
-
-  const previousImageUrl = user.profileImage;
-  const previousImagePublicId = extractPublicIdFromUrl(previousImageUrl);
-  user.profileImage = avatarUrl;
-  const updatedUser = await user.save();
-  await CloudinaryUploadClaim.attach(avatarClaimId, req.user._id);
-
-  if (previousImagePublicId && previousImagePublicId !== avatarPublicId) {
-    await enqueueCloudinaryCleanup(
-      previousImagePublicId,
-      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
-    );
-  }
-
+  const updatedUser = await updateUserAvatar({ req, user });
   res.json({
     success: true,
-    profileImage: avatarUrl,
+    profileImage: updatedUser.profileImage,
     user: {
       _id: updatedUser._id,
       name: updatedUser.name,
       username: updatedUser.username,
       email: updatedUser.email,
-      profileImage: avatarUrl,
+      profileImage: updatedUser.profileImage,
     },
   });
 });

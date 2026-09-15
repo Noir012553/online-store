@@ -8,7 +8,7 @@ import { useAuth } from "../../lib/context/AuthContext";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
 import { useProductTranslation } from "../../hooks/useProductTranslation";
 import { getIntlLocale } from "../../lib/localeUtils";
-import { useCloudinaryUpload } from "../../hooks/useCloudinaryUpload";
+import { useR2Upload } from "../../hooks/useR2Upload";
 import { Laptop, isActiveDeal } from "../../lib/data";
 import { Button } from "../../components/ui/button";
 import { ProductGallery } from "../../components/product/ProductGallery";
@@ -82,7 +82,7 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { loadNamespace, t, locale, isHydrated, isLoadingNamespace } = useLanguage();
   const { currencyCode } = useCurrencyContext();
-  const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
+  const { uploadToR2, validateUploadedAsset } = useR2Upload();
   const [laptop, setLaptop] = useState<any>(null);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
@@ -356,11 +356,11 @@ export default function ProductDetail() {
     try {
       setIsSubmittingReview(true);
       const uploadResult = reviewForm.avatar
-        ? await uploadToCloudinary(reviewForm.avatar, 'reviewers')
+        ? await uploadToR2(reviewForm.avatar, 'reviewers')
         : null;
 
       if (!isCurrentProduct()) return;
-      if (reviewForm.avatar && (!uploadResult || !uploadResult.claimId || !await validateUploadedImage(uploadResult))) {
+      if (reviewForm.avatar && (!uploadResult || !validateUploadedAsset(uploadResult))) {
         return;
       }
       if (!isCurrentProduct()) return;
@@ -369,8 +369,8 @@ export default function ProductDetail() {
         productId,
         reviewForm.rating,
         reviewForm.comment,
-        uploadResult?.claimId
-          ? { url: uploadResult.secure_url, publicId: uploadResult.public_id, claimId: uploadResult.claimId }
+        uploadResult?.asset
+          ? { asset: uploadResult.asset }
           : undefined,
         { signal: controller.signal },
       );

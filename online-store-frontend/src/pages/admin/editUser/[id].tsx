@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "../../../lib/context/AuthContext";
 import { ArrowLeft, AlertCircle, TriangleAlert } from "lucide-react";
 import { apiCall } from "../../../lib/api";
-import { useCloudinaryUpload } from "../../../hooks/useCloudinaryUpload";
+import { useR2Upload } from "../../../hooks/useR2Upload";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
@@ -33,7 +33,7 @@ function EditUserContent() {
   const { id } = router.query;
   const { t, loadNamespace, locale } = useTranslation();
   const { user: currentUser, updateUserProfileImage } = useAuth();
-  const { isUploading, uploadProgress, uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
+  const { isUploading, uploadProgress, uploadToR2, validateUploadedAsset } = useR2Upload();
 
   useEffect(() => {
     loadNamespace('users');
@@ -86,17 +86,15 @@ function EditUserContent() {
     const file = event.target.files?.[0];
     if (!file || !id) return;
 
-    const uploadResult = await uploadToCloudinary(file, 'users');
-    if (!uploadResult || !(await validateUploadedImage(uploadResult))) return;
+    const uploadResult = await uploadToR2(file, 'users');
+    if (!uploadResult || !validateUploadedAsset(uploadResult)) return;
 
     try {
       const response = await apiCall(`/users/${id}/avatar?lang=${locale}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          avatarUrl: uploadResult.secure_url,
-          avatarPublicId: uploadResult.public_id,
-          avatarClaimId: uploadResult.claimId,
+          avatarAsset: uploadResult.asset,
         }),
       });
       const nextProfileImage = response.profileImage || response.user?.profileImage || uploadResult.secure_url;

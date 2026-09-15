@@ -13,7 +13,7 @@ import { Checkbox } from "../../ui/checkbox";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
-import { useCloudinaryUpload } from "@/hooks/useCloudinaryUpload";
+import { useR2Upload } from "@/hooks/useR2Upload";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
 import { useCategories } from "../../../lib/context/CategoryContext";
 
@@ -29,7 +29,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   const { locale } = useLanguage();
   const { activeCurrencies } = useCurrencyContext();
   const { categories } = useCategories();
-  const { uploadToCloudinary, validateUploadedImage, uploadProgress } = useCloudinaryUpload();
+  const { uploadToR2, validateUploadedAsset, uploadProgress } = useR2Upload();
 
   useEffect(() => {
     loadNamespace('admin');
@@ -164,25 +164,23 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       setIsSubmitting(true);
 
       let imageUrl: string | null = null;
-      let imagePublicId: string | null = null;
-      let imageClaimId: string | null = null;
+      let imageAsset: Record<string, unknown> | null = null;
 
       if (imageFile) {
-        const uploadResult = await uploadToCloudinary(imageFile, 'admins');
+        const uploadResult = await uploadToR2(imageFile, 'admins');
         if (!uploadResult) {
           setIsSubmitting(false);
           return;
         }
 
-        const isValid = await validateUploadedImage(uploadResult);
+        const isValid = validateUploadedAsset(uploadResult);
         if (!isValid) {
           setIsSubmitting(false);
           return;
         }
 
         imageUrl = uploadResult.secure_url;
-        imagePublicId = uploadResult.public_id;
-        imageClaimId = uploadResult.claimId || null;
+        imageAsset = uploadResult.asset;
       }
 
       if (product._id) {
@@ -206,8 +204,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
 
         if (imageUrl) {
           formData.append("image", imageUrl);
-          formData.append("imagePublicId", imagePublicId || '');
-          formData.append("imageClaimId", imageClaimId || '');
+          formData.append("imageAsset", JSON.stringify(imageAsset));
         }
 
         await productAPI.updateProduct(product._id, formData);
@@ -239,8 +236,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
         formData.append("featured", product.featured ? "true" : "false");
         formData.append("image", imageUrl);
-        formData.append("imagePublicId", imagePublicId || '');
-        formData.append("imageClaimId", imageClaimId || '');
+        formData.append("imageAsset", JSON.stringify(imageAsset));
 
         await productAPI.createProduct(formData);
         toast.success(t('admin_toast_product_created', 'admin'));

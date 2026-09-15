@@ -1,5 +1,16 @@
 import type { NextConfig } from "next";
 
+const r2PublicUrl = process.env.R2_PUBLIC_BASE_URL?.trim();
+const r2PublicPattern = (() => {
+  if (!r2PublicUrl) return null;
+  try {
+    const url = new URL(r2PublicUrl);
+    return { protocol: url.protocol.replace(':', '') as 'http' | 'https', hostname: url.hostname, pathname: '/**' };
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
@@ -33,11 +44,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
       },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
+      ...(r2PublicPattern ? [r2PublicPattern] : []),
     ],
   },
 

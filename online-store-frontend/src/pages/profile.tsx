@@ -10,7 +10,7 @@ import { Mail, Phone, MapPin, Lock, Edit2, Check, X, ArrowLeft, Camera } from 'l
 import { authAPI, getAuthToken } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { useTranslation } from '../lib/i18n';
-import { useCloudinaryUpload } from '../hooks/useCloudinaryUpload';
+import { useR2Upload } from '../hooks/useR2Upload';
 import { ImageViewer } from '../components/ImageViewer';
 
 export const getServerSideProps = async () => {
@@ -25,7 +25,7 @@ export default function Profile() {
   const router = useRouter();
   const { user, isAdmin, isInitialized, updateUserProfileImage } = useAuth();
   const { t, loadNamespace, locale } = useTranslation();
-  const { uploadToCloudinary, validateUploadedImage } = useCloudinaryUpload();
+  const { uploadToR2, validateUploadedAsset } = useR2Upload();
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -121,8 +121,8 @@ export default function Profile() {
 
     setIsUploadingAvatar(true);
     try {
-      const uploadResult = await uploadToCloudinary(file, 'users');
-      if (!uploadResult || !(await validateUploadedImage(uploadResult))) {
+      const uploadResult = await uploadToR2(file, 'users');
+      if (!uploadResult || !validateUploadedAsset(uploadResult)) {
         throw new Error(t('profile_avatar_error', 'profile'));
       }
 
@@ -133,9 +133,7 @@ export default function Profile() {
           Authorization: `Bearer ${getAuthToken()}`,
         },
         body: JSON.stringify({
-          avatarUrl: uploadResult.secure_url,
-          avatarPublicId: uploadResult.public_id,
-          avatarClaimId: uploadResult.claimId,
+          avatarAsset: uploadResult.asset,
         }),
         credentials: 'include',
       });

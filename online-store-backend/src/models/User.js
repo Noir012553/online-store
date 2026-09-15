@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const assetMetadataSchema = new mongoose.Schema({
+    sourceUrl: { type: String, default: null },
+    storageProvider: { type: String, default: null },
+    storageAccount: { type: String, default: null },
+    bucket: { type: String, default: null },
+    storageKey: { type: String, default: null },
+    publicUrl: { type: String, default: null },
+    publicId: { type: String, default: null },
+    contentHash: { type: String, default: null },
+    mimeType: { type: String, default: null },
+    bytes: { type: Number, default: null },
+}, { _id: false });
 
 /**
  * Schema cho người dùng hệ thống
@@ -51,6 +63,10 @@ const UserSchema = new mongoose.Schema({
     profileImage: {
         type: String,
         default: null
+    },
+    profileImageAsset: {
+        type: assetMetadataSchema,
+        default: null,
     },
     phone: {
         type: String,

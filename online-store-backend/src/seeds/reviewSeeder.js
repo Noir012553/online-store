@@ -10,7 +10,8 @@ const translationSeederHelper = require('../services/translationSeederHelper');
 const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { ABOUT_MEDIA, getCloudinaryDeliveryUrl } = require('../config/aboutMedia');
+const { ABOUT_MEDIA } = require('../config/aboutMedia');
+const { seedAboutReviewers } = require('./aboutMediaSeeder');
 
 /**
  * Seed dữ liệu đánh giá
@@ -41,9 +42,11 @@ const seedReviews = async (products, users) => {
     'As a student, LaptopStore helped me get a great laptop at an affordable price.',
     'In-depth consultation, 24/7 support, LaptopStore is truly a trusted address for tech enthusiasts.',
   ];
+  const reviewerAssets = await seedAboutReviewers();
   const testimonialReviewers = ABOUT_MEDIA.reviewers.map((reviewer, index) => ({
     ...reviewer,
-    avatar: getCloudinaryDeliveryUrl(reviewer.publicId, 640),
+    asset: reviewerAssets[index],
+    avatar: reviewerAssets[index]?.publicUrl || null,
     comment: testimonialComments[index],
   }));
 
@@ -56,7 +59,8 @@ const seedReviews = async (products, users) => {
     reviews.push({
       name: reviewer.name,
       avatar: reviewer.avatar,
-      avatarPublicId: reviewer.publicId,
+      avatarPublicId: null,
+      avatarAsset: reviewer.asset,
       product: products[productIdx]._id,
       user: users[userIdx]._id,
       rating: ratings[i % ratings.length],

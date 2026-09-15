@@ -2,20 +2,15 @@ const asyncHandler = require('express-async-handler');
 const { Banner, BANNER_SLOTS, SUPPORTED_LANGUAGES } = require('../models/Banner');
 const { BannerTranslation } = require('../models/BannerTranslation');
 const StaticTranslation = require('../models/StaticTranslation');
-const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const { broadcastBannerCreated, broadcastBannerUpdated, broadcastBannerDeleted, broadcastBannerRestored } = require('../socket/socketHandler');
 const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  isCloudinaryUrl,
-  extractPublicIdFromUrl,
-  validateCloudinaryImage,
-  getCloudinaryAccountIdForUrl,
-} = require('../services/cloudinaryService');
+  uploadAsset,
+  validateR2AssetReference,
+  deleteR2Assets,
+} = require('../services/r2AssetService');
 const { overlayTranslationBatch, overlayTranslation } = require('../services/translationHelper');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, isSupportedLanguage, getActiveLangCodes } = require('../config/languageInventory');
-const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const cloudflareAiService = require('../services/cloudflareAiService');
 
 const parseBoolean = (value, fallback = false) => {
@@ -54,52 +49,45 @@ const parseDate = (value, fallback) => {
 
 const normalizeSlot = (value) => String(value || '').trim();
 
-const getBannerImageCleanupId = (banner) => {
-  if (!banner) return null;
-  if (banner.imagePublicId) return banner.imagePublicId;
-  if (banner.image && isCloudinaryUrl(banner.image)) {
-    return extractPublicIdFromUrl(banner.image);
+const parseAssetReference = value => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
   }
-  return null;
 };
 
-const uploadBannerImage = async (file) => {
-  const cloudinaryResult = await uploadToCloudinary(file.buffer, 'banners');
+const getBannerImageCleanupAsset = banner => (
+  banner?.imageAsset?.storageProvider === 'r2' ? banner.imageAsset : null
+);
+
+const uploadBannerImage = async file => {
+  const asset = await uploadAsset(file.buffer, {
+    role: 'banner',
+    stableKey: `${file.originalname}:${file.size}`,
+    sourceName: file.originalname,
+    mimeType: file.mimetype,
+  });
   return {
-    image: cloudinaryResult.url,
-    imagePublicId: cloudinaryResult.publicId,
-    cloudinaryAccountId: cloudinaryResult.cloudinaryAccountId,
+    image: asset.publicUrl,
+    imagePublicId: null,
+    imageAsset: asset,
   };
 };
 
-const resolveBannerImage = async (req) => {
-  if (req.file) {
-    return uploadBannerImage(req.file);
-  }
+const resolveBannerImage = async req => {
+  if (req.file) return uploadBannerImage(req.file);
 
-  if (req.body.image || req.body.imagePublicId) {
-    const resource = await validateCloudinaryImage({
-      publicId: req.body.imagePublicId,
-      url: req.body.image,
-      allowedFolders: ['banners'],
-    });
-    const claim = await CloudinaryUploadClaim.reserve({
-      claimId: req.body.imageClaimId,
-      ownerId: req.user._id,
-      publicId: resource.public_id,
-      purpose: 'banner',
-    });
-    if (!claim) throw new Error('Invalid upload claim');
-
-    return {
-      image: resource.secure_url,
-      imagePublicId: resource.public_id,
-      cloudinaryAccountId: claim.cloudinaryAccountId,
-      imageClaim: claim,
-    };
-  }
-
-  return null;
+  const asset = parseAssetReference(req.body.imageAsset);
+  if (!asset) throw new Error('A valid R2 banner asset is required');
+  const validatedAsset = await validateR2AssetReference(asset);
+  return {
+    image: validatedAsset.publicUrl,
+    imagePublicId: null,
+    imageAsset: validatedAsset,
+  };
 };
 
 const saveBannerTranslations = async (bannerId, multiLangData) => {
@@ -334,7 +322,7 @@ const createBanner = asyncHandler(async (req, res) => {
     }
   }
 
-  if (!req.file && !req.body.image) {
+  if (!req.file && !req.body.imageAsset) {
     res.status(400);
     throw new Error(getMessage(lang, 'admin-controllers-messages.banner_image_required'));
   }
@@ -359,7 +347,8 @@ const createBanner = asyncHandler(async (req, res) => {
     ctaText: nextCtaText,
     targetUrl: nextTargetUrl,
     image: imageData.image,
-    imagePublicId: imageData.imagePublicId,
+    imagePublicId: null,
+    imageAsset: imageData.imageAsset,
     slot: nextSlot,
     sortOrder: nextSortOrder,
     isActive: nextIsActive,
@@ -372,16 +361,13 @@ const createBanner = asyncHandler(async (req, res) => {
   try {
     createdBanner = await banner.save();
   } catch (error) {
-    if (imageData.imageClaim) await CloudinaryUploadClaim.release(imageData.imageClaim._id, req.user._id);
-    try {
-      await deleteFromCloudinary(imageData.imagePublicId, imageData.cloudinaryAccountId);
-    } catch (cleanupError) {
-      console.warn('[BANNER_CREATE] Failed to clean up image after save failure:', cleanupError.message);
+    if (req.file) {
+      await deleteR2Assets([imageData.imageAsset]).catch(cleanupError => {
+        console.warn('[BANNER_CREATE] Failed to clean up image after save failure:', cleanupError.message);
+      });
     }
     throw error;
   }
-
-  if (imageData.imageClaim) await CloudinaryUploadClaim.attach(imageData.imageClaim._id, req.user._id);
 
   await saveBannerTranslations(createdBanner._id, {
     title: nextTitle,
@@ -472,13 +458,10 @@ const updateBanner = asyncHandler(async (req, res) => {
   banner.startDate = nextStartDate;
   banner.endDate = nextEndDate;
 
-  const previousImagePublicId = getBannerImageCleanupId(banner);
-  const previousImageUrl = banner.image;
-  let uploadedImagePublicId = null;
-  let uploadedImageAccountId = null;
-  let imageClaim = null;
+  const previousImageAsset = getBannerImageCleanupAsset(banner);
+  let uploadedImageAsset = null;
 
-  if (req.file || req.body.image) {
+  if (req.file || req.body.imageAsset) {
     let imageData;
     try {
       imageData = await resolveBannerImage(req);
@@ -490,25 +473,21 @@ const updateBanner = asyncHandler(async (req, res) => {
       throw error;
     }
 
-    uploadedImagePublicId = imageData.imagePublicId;
-    uploadedImageAccountId = imageData.cloudinaryAccountId;
-    imageClaim = imageData.imageClaim;
+    uploadedImageAsset = imageData.imageAsset;
     banner.image = imageData.image;
-    banner.imagePublicId = imageData.imagePublicId;
+    banner.imagePublicId = null;
+    banner.imageAsset = uploadedImageAsset;
   }
 
   let updatedBanner;
   try {
     updatedBanner = await banner.save();
   } catch (error) {
-    if (uploadedImagePublicId) {
-      try {
-        await deleteFromCloudinary(uploadedImagePublicId, uploadedImageAccountId);
-      } catch (cleanupError) {
+    if (req.file && uploadedImageAsset) {
+      await deleteR2Assets([uploadedImageAsset]).catch(cleanupError => {
         console.warn('[BANNER_UPDATE] Failed to clean up replacement image:', cleanupError.message);
-      }
+      });
     }
-    if (imageClaim) await CloudinaryUploadClaim.release(imageClaim._id, req.user._id);
 
     if (error.name === 'VersionError') {
       res.status(409);
@@ -518,13 +497,12 @@ const updateBanner = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (imageClaim) await CloudinaryUploadClaim.attach(imageClaim._id, req.user._id);
-
-  if (previousImagePublicId && previousImagePublicId !== updatedBanner.imagePublicId) {
-    await enqueueCloudinaryCleanup(
-      previousImagePublicId,
-      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
-    );
+  if (previousImageAsset?.storageKey
+    && uploadedImageAsset?.storageKey
+    && previousImageAsset.storageKey !== uploadedImageAsset.storageKey) {
+    await deleteR2Assets([previousImageAsset]).catch(cleanupError => {
+      console.warn('[BANNER_UPDATE] Failed to clean up previous image:', cleanupError.message);
+    });
   }
 
   await saveBannerTranslations(updatedBanner._id, {
@@ -613,12 +591,11 @@ const hardDeleteBanner = asyncHandler(async (req, res) => {
 
   await Banner.findByIdAndDelete(req.params.id);
 
-  const cleanupId = getBannerImageCleanupId(banner);
-  if (cleanupId) {
-    await enqueueCloudinaryCleanup(
-      cleanupId,
-      getCloudinaryAccountIdForUrl(banner.image) || '1',
-    );
+  const cleanupAsset = getBannerImageCleanupAsset(banner);
+  if (cleanupAsset) {
+    await deleteR2Assets([cleanupAsset]).catch(error => {
+      console.warn('[BANNER_HARD_DELETE] Failed to delete R2 asset:', error.message);
+    });
   }
   await BannerTranslation.deleteMany({ bannerId: req.params.id });
   res.json({ message: 'Banner permanently deleted' });

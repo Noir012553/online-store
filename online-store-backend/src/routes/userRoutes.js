@@ -103,8 +103,8 @@ router.route('/profile')
   .put(protect, validateUpdateProfile, handleValidationErrors, updateUserProfile);
 
 /**
- * PUT /api/users/avatar - Attach validated Cloudinary avatar
- * @body avatarUrl, avatarPublicId, avatarClaimId
+ * PUT /api/users/avatar - Attach validated R2 avatar
+ * @body avatarAsset
  * @access Private
  */
 router.put('/avatar', protect, uploadUserAvatar);
