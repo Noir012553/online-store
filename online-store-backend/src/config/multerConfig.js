@@ -54,8 +54,8 @@ const createLocalStorage = () => {
 };
 
 /**
- * MEMORY STORAGE - Cho Product & Banner Images
- * Lưu vào RAM, sẽ được upload lên Cloudinary trong controller
+ * MEMORY STORAGE - Cho các asset upload lên R2
+ * Lưu vào RAM, backend sẽ upload lên Cloudflare R2
  */
 const memoryStorage = multer.memoryStorage();
 

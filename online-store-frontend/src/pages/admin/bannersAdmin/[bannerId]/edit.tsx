@@ -268,7 +268,7 @@ function BannerEditPageContent() {
     let imageUrl = '';
     let imageAsset: Record<string, unknown> | null = null;
 
-    // Handle image upload to Cloudinary if a new image file is provided
+    // Handle image upload to R2 if a new image file is provided
     if (imageFile) {
       try {
         setIsSubmitting(true);

@@ -56,7 +56,7 @@
     "fix:category-translations:dry-run": "node src/scripts/fix-category-translations.js --dry-run",
     "check:sync": "node src/scripts/check-sync-status.js",
     "migrate:translations": "node src/scripts/migrate-translations.js",
-    "migrate:about-media": "node src/scripts/migrate-about-media-to-cloudinary.js",
+    "migrate:about-media": "node src/scripts/migrate-about-media-to-r2.js",
     "migrate:cloudinary-to-r2:inventory": "node src/scripts/inventory-cloudinary-to-r2.js",
     "verify:translation-cache": "node src/scripts/migrate-translations.js --verify-only",
     "restore:translation-cache": "node scripts/restore-livetranslationcache.js",

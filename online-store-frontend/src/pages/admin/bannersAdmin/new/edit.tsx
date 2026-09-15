@@ -241,7 +241,7 @@ function BannerCreatePageContent() {
       let imageUrl: string | null = null;
       let imageAsset: Record<string, unknown> | null = null;
 
-      // Upload image to Cloudinary if new file provided
+      // Upload image to R2 if new file provided
       if (imageFile) {
         const uploadResult = await uploadToR2(imageFile, 'banners');
         if (!uploadResult) {
