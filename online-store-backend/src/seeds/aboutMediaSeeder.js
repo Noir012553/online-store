@@ -1,191 +1,81 @@
-const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
 const AboutMedia = require('../models/AboutMedia');
-const {
-  getCloudinaryResource,
-  uploadFileToCloudinary,
-  uploadVideoFileToCloudinary,
-} = require('../services/cloudinaryService');
-const {
-  ABOUT_MEDIA,
-  getCloudinaryDeliveryUrl,
-  getCloudinaryVideoPosterUrl,
-} = require('../config/aboutMedia');
+const { uploadAsset } = require('../services/r2AssetService');
+const { ABOUT_MEDIA } = require('../config/aboutMedia');
 
 const FRONTEND_PUBLIC_DIR = path.resolve(__dirname, '../../../online-store-frontend/public');
+const REVIEWER_SOURCES = [
+  'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+  'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&fit=crop',
+];
 
-const getLocalTeamSource = (key) => path.join(
-  FRONTEND_PUBLIC_DIR,
-  'images',
-  'team',
-  `${key}.jpg`,
-);
+const getLocalTeamSource = key => path.join(FRONTEND_PUBLIC_DIR, 'images', 'team', `${key}.jpg`);
+const getLocalHeroSource = () => path.join(FRONTEND_PUBLIC_DIR, 'assets', 'videos', 'about-hero.mp4');
+const getLocalLoadingSource = () => path.join(FRONTEND_PUBLIC_DIR, 'animations', 'loading.svg');
+const resolveMediaSource = (preferredSource, localSource) => fs.existsSync(localSource) ? localSource : preferredSource;
+const getErrorMessage = error => error?.message || String(error || 'Unknown R2 error');
 
-const getLocalHeroSource = () => path.join(
-  FRONTEND_PUBLIC_DIR,
-  'assets',
-  'videos',
-  'about-hero.mp4',
-);
-
-const getLocalLoadingSource = () => path.join(
-  FRONTEND_PUBLIC_DIR,
-  'animations',
-  'loading.svg',
-);
-
-const resolveMediaSource = (preferredSource, localSource) => (
-  fs.existsSync(localSource) ? localSource : preferredSource
-);
-
-const getErrorMessage = (error) => {
-  if (typeof error === 'string') return error;
-  return error?.message
-    || error?.error?.message
-    || (error ? JSON.stringify(error) : null)
-    || 'Unknown Cloudinary error';
-};
-
-const toAssetMetadata = (resource) => ({
-  publicId: resource.public_id,
-  secureUrl: resource.secure_url,
-  format: resource.format,
-  width: resource.width,
-  height: resource.height,
-  bytes: resource.bytes,
-  resourceType: resource.resource_type,
-  cloudinaryAccountId: resource.cloudinaryAccountId,
-  cloudName: resource.cloudName,
+const toRecordAsset = asset => ({
+  publicId: asset.storageKey,
+  url: asset.publicUrl,
+  sourceUrl: asset.sourceUrl,
+  storageProvider: asset.storageProvider,
+  storageAccount: asset.storageAccount,
+  bucket: asset.bucket,
+  storageKey: asset.storageKey,
+  publicUrl: asset.publicUrl,
+  contentHash: asset.contentHash,
+  mimeType: asset.mimeType,
+  bytes: asset.bytes,
+  asset,
 });
 
-const toServiceAssetMetadata = (resource, resourceType) => ({
-  publicId: resource.publicId,
-  secureUrl: resource.url,
-  format: resource.format,
-  width: resource.width,
-  height: resource.height,
-  bytes: resource.bytes,
-  resourceType: resource.resourceType || resourceType,
-  cloudinaryAccountId: resource.cloudinaryAccountId,
-  cloudName: resource.cloudName,
+const ensureAsset = async ({ source, role, stableKey, mimeType }) => uploadAsset(source, {
+  role,
+  stableKey,
+  sourceName: typeof source === 'string' ? source : stableKey,
+  ...(mimeType ? { mimeType } : {}),
 });
 
-const verifyAsset = (asset, publicId, { allowSvg = false } = {}) => {
-  const allowedImageFormats = allowSvg
-    ? ['jpeg', 'jpg', 'png', 'webp', 'svg']
-    : ['jpeg', 'jpg', 'png', 'webp'];
-  const isValid = asset.publicId === publicId
-    && asset.resourceType === 'image'
-    && Boolean(asset.secureUrl)
-    && Number.isFinite(asset.width)
-    && asset.width > 0
-    && Number.isFinite(asset.height)
-    && asset.height > 0
-    && Number.isFinite(asset.bytes)
-    && asset.bytes > 0
-    && allowedImageFormats.includes(String(asset.format).toLowerCase());
-
-  if (!isValid) throw new Error(`Invalid Cloudinary asset: ${publicId}`);
-  return asset;
-};
-
-const ensureCloudinaryAsset = async ({ sourceUrl, publicId, folder = 'about', allowSvg = false }) => {
-  try {
-    const resource = await getCloudinaryResource(publicId, null, 'image');
-    return verifyAsset(toAssetMetadata(resource), publicId, { allowSvg });
-  } catch (error) {
-    const httpCode = error?.http_code ?? error?.error?.http_code;
-    if (httpCode !== 404) {
-      throw new Error(`Cloudinary lookup failed for ${publicId}: ${getErrorMessage(error)}`, {
-        cause: error,
-      });
-    }
-  }
-
-  try {
-    const uploaded = await uploadFileToCloudinary(sourceUrl, folder, publicId, { allowSvg });
-    return verifyAsset(toServiceAssetMetadata(uploaded, 'image'), publicId, { allowSvg });
-  } catch (error) {
-    throw new Error(`Cloudinary upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
-      cause: error,
-    });
-  }
-};
-
-const verifyVideoAsset = (asset, publicId) => {
-  const isValid = asset.publicId === publicId
-    && asset.resourceType === 'video'
-    && Boolean(asset.secureUrl)
-    && Number.isFinite(asset.bytes)
-    && asset.bytes > 0;
-
-  if (!isValid) throw new Error(`Invalid Cloudinary video asset: ${publicId}`);
-  return asset;
-};
-
-const ensureCloudinaryVideo = async ({ sourceUrl, publicId }) => {
-  try {
-    const resource = await getCloudinaryResource(publicId, null, 'video');
-    return verifyVideoAsset(toAssetMetadata(resource), publicId);
-  } catch (error) {
-    const httpCode = error?.http_code ?? error?.error?.http_code;
-    if (httpCode !== 404) {
-      throw new Error(`Cloudinary lookup failed for ${publicId}: ${getErrorMessage(error)}`, {
-        cause: error,
-      });
-    }
-  }
-
-  if (!sourceUrl) {
-    throw new Error(`Missing ABOUT_HERO_SOURCE for Cloudinary asset: ${publicId}`);
-  }
-
-  try {
-    const uploaded = await uploadVideoFileToCloudinary(sourceUrl, publicId);
-    return verifyVideoAsset(toServiceAssetMetadata(uploaded, 'video'), publicId);
-  } catch (error) {
-    throw new Error(`Cloudinary video upload failed for ${publicId} from ${sourceUrl}: ${getErrorMessage(error)}`, {
-      cause: error,
-    });
-  }
+const seedAboutReviewers = async ({ dryRun = false } = {}) => {
+  if (dryRun) return [];
+  return Promise.all(ABOUT_MEDIA.reviewers.map((reviewer, index) => ensureAsset({
+    source: REVIEWER_SOURCES[index],
+    role: 'about-reviewer',
+    stableKey: reviewer.key,
+  })));
 };
 
 const seedLoadingMedia = async ({ dryRun = false, requireSource = false } = {}) => {
   if (dryRun) return null;
-
   const sourcePath = getLocalLoadingSource();
   if (!fs.existsSync(sourcePath)) {
-    if (requireSource) {
-      throw new Error(`Missing loading asset: ${sourcePath}`);
-    }
+    if (requireSource) throw new Error(`Missing loading asset: ${sourcePath}`);
     return null;
   }
 
-  const media = ABOUT_MEDIA.loading;
-  const asset = await ensureCloudinaryAsset({
-    sourceUrl: sourcePath,
-    publicId: media.publicId,
-    folder: 'ui',
-    allowSvg: true,
+  const asset = await ensureAsset({
+    source: sourcePath,
+    role: 'about-loading',
+    stableKey: 'global-loading',
+    mimeType: 'image/svg+xml',
   });
   const record = {
     key: 'global-loading',
     kind: 'loading',
-    publicId: asset.publicId,
-    url: asset.secureUrl,
+    ...toRecordAsset(asset),
     sourceUrl: '/animations/loading.svg',
     sortOrder: 0,
-    cloudinaryAccountId: asset.cloudinaryAccountId || '1',
-    cloudName: asset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
   };
 
-  await AboutMedia.updateOne(
-    { key: record.key },
-    { $set: record },
-    { upsert: true },
-  );
-
+  await AboutMedia.updateOne({ key: record.key }, { $set: record }, { upsert: true });
   return record;
 };
 
@@ -195,59 +85,43 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
   const teamRecords = [];
   for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {
     try {
-      const asset = await ensureCloudinaryAsset({
-        ...media,
-        sourceUrl: resolveMediaSource(media.sourceUrl, getLocalTeamSource(media.key)),
-      });
-      const widths = [640, 1200];
-      const srcSet = widths
-        .map((width) => `${getCloudinaryDeliveryUrl(media.publicId, width, asset.cloudName)} ${width}w`)
-        .join(', ');
-
+      const source = resolveMediaSource(media.sourceUrl, getLocalTeamSource(media.key));
+      const asset = await ensureAsset({ source, role: 'about-team', stableKey: media.key });
+      const recordAsset = toRecordAsset(asset);
       teamRecords.push({
         key: media.key,
         kind: 'team',
-        publicId: asset.publicId,
-        url: asset.secureUrl,
-        srcSet,
+        ...recordAsset,
+        srcSet: `${asset.publicUrl} 640w, ${asset.publicUrl} 1200w`,
         sourceUrl: media.sourceUrl,
         sortOrder,
-        cloudinaryAccountId: asset.cloudinaryAccountId || '1',
-        cloudName: asset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
       });
     } catch (error) {
-      throw new Error(`About media ${media.key} failed: ${getErrorMessage(error)}`, {
-        cause: error,
-      });
+      throw new Error(`About media ${media.key} failed: ${getErrorMessage(error)}`, { cause: error });
     }
   }
 
   let heroAsset;
   try {
-    heroAsset = await ensureCloudinaryVideo({
-      sourceUrl: resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource()),
-      publicId: ABOUT_MEDIA.hero.publicId,
-    });
+    const source = resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource());
+    if (!source) throw new Error('ABOUT_HERO_SOURCE is required when the local hero video is missing');
+    heroAsset = await ensureAsset({ source, role: 'about-hero', stableKey: 'about-hero' });
   } catch (error) {
-    throw new Error(`About hero media failed: ${getErrorMessage(error)}`, {
-      cause: error,
-    });
+    throw new Error(`About hero media failed: ${getErrorMessage(error)}`, { cause: error });
   }
+
   const heroRecord = {
     key: 'about-hero',
     kind: 'hero',
-    publicId: heroAsset.publicId,
-    url: heroAsset.secureUrl,
-    posterUrl: getCloudinaryVideoPosterUrl(heroAsset.publicId, heroAsset.cloudName),
+    ...toRecordAsset(heroAsset),
+    posterUrl: null,
     sourceUrl: process.env.ABOUT_HERO_SOURCE || null,
     sortOrder: 0,
-    cloudinaryAccountId: heroAsset.cloudinaryAccountId || '1',
-    cloudName: heroAsset.cloudName || process.env.CLOUDINARY_CLOUD_NAME,
   };
   const loadingRecord = await seedLoadingMedia({ dryRun });
   const records = [...teamRecords, heroRecord, ...(loadingRecord ? [loadingRecord] : [])];
 
-  await AboutMedia.bulkWrite(records.map((record) => ({
+  await AboutMedia.bulkWrite(records.map(record => ({
     updateOne: {
       filter: { key: record.key },
       update: { $set: record },
@@ -260,3 +134,4 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
 
 module.exports = seedAboutMedia;
 module.exports.seedLoadingMedia = seedLoadingMedia;
+module.exports.seedAboutReviewers = seedAboutReviewers;

@@ -11,8 +11,10 @@ const main = async () => {
     key: record.key,
     publicId: record.publicId,
     url: record.url,
-    cloudinaryAccountId: record.cloudinaryAccountId,
-    cloudName: record.cloudName,
+    storageProvider: record.storageProvider,
+    storageAccount: record.storageAccount,
+    bucket: record.bucket,
+    storageKey: record.storageKey,
   }]);
 };
 

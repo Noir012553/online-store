@@ -2,12 +2,18 @@ require('dotenv').config();
 
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
-const { isCloudinaryUrl } = require('../services/cloudinaryService');
+const isLegacyCloudinaryUrl = value => {
+  try {
+    return new URL(value).hostname === 'res.cloudinary.com';
+  } catch {
+    return false;
+  }
+};
 
 const collectProductAssets = product => {
   const assets = [];
   const add = (role, url, index = null, metadata = null) => {
-    if (!isCloudinaryUrl(url)) return;
+    if (!isLegacyCloudinaryUrl(url)) return;
     assets.push({
       recordType: 'Product',
       recordId: String(product._id),

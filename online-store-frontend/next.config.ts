@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 
+const r2PublicPatterns = Array.from({ length: 9 }, (_, index) => {
+  const suffix = index === 0 ? '' : `_${index + 1}`;
+  const value = process.env[`R2_PUBLIC_BASE_URL${suffix}`]?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return { protocol: url.protocol.replace(':', '') as 'http' | 'https', hostname: url.hostname, pathname: '/**' };
+  } catch {
+    return null;
+  }
+}).filter((pattern): pattern is { protocol: 'http' | 'https'; hostname: string; pathname: string } => Boolean(pattern));
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
@@ -33,11 +45,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
       },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
+      ...r2PublicPatterns,
     ],
   },
 

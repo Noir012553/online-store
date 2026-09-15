@@ -19,6 +19,7 @@ const MIME_EXTENSIONS = {
   'image/gif': 'gif',
   'image/webp': 'webp',
   'image/avif': 'avif',
+  'image/svg+xml': 'svg',
   'video/mp4': 'mp4',
   'video/webm': 'webm',
 };
@@ -28,6 +29,10 @@ const MIME_MAGIC = [
   { mimeType: 'image/gif', matches: buffer => ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii')) },
   { mimeType: 'image/webp', matches: buffer => buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP' },
   { mimeType: 'image/avif', matches: buffer => buffer.subarray(4, 8).toString('ascii') === 'ftyp' && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii')) },
+  { mimeType: 'image/svg+xml', matches: buffer => {
+    const source = buffer.subarray(0, 4096).toString('utf8');
+    return /^\\s*(?:<\\?xml[^>]*>\\s*)?<svg\\b/i.test(source) && !/<script\\b/i.test(source);
+  } },
   { mimeType: 'video/mp4', matches: buffer => buffer.subarray(4, 8).toString('ascii') === 'ftyp' },
   { mimeType: 'video/webm', matches: buffer => buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])) },
 ];
@@ -255,6 +260,42 @@ const uploadAsset = async (source, options = {}) => {
   return uploadLocalFile(normalizedSource, options);
 };
 
+const validateR2AssetReference = async reference => {
+  if (!reference || reference.storageProvider !== 'r2') {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'Asset reference must use R2');
+  }
+  if (!isSafeStorageKey(reference.storageKey)) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference has an invalid storage key');
+  }
+
+  const account = getR2Account(reference.storageAccount);
+  if (!account || account.bucket !== reference.bucket) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference does not match a configured bucket');
+  }
+  if (reference.publicUrl !== buildPublicUrl(account, reference.storageKey)) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference has an invalid public URL');
+  }
+
+  const head = await getClient(account).send(new HeadObjectCommand({
+    Bucket: account.bucket,
+    Key: reference.storageKey,
+  }));
+  if (reference.contentHash && head.Metadata?.sha256 && reference.contentHash !== head.Metadata.sha256) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset content hash does not match the stored object');
+  }
+
+  return {
+    ...reference,
+    storageProvider: 'r2',
+    storageAccount: account.id,
+    bucket: account.bucket,
+    publicUrl: buildPublicUrl(account, reference.storageKey),
+    publicId: reference.publicId || reference.storageKey,
+    mimeType: reference.mimeType || head.ContentType || null,
+    bytes: reference.bytes || Number(head.ContentLength) || null,
+  };
+};
+
 const deleteR2Asset = async reference => {
   if (!reference || reference.storageProvider !== 'r2') return { deleted: false, skipped: true };
   if (!isSafeStorageKey(reference.storageKey)) throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset reference has an invalid storage key');
@@ -291,6 +332,7 @@ module.exports = {
   uploadRemoteUrl,
   uploadLocalFile,
   uploadAsset,
+  validateR2AssetReference,
   deleteR2Asset,
   deleteR2Assets,
   getR2StorageStatus,

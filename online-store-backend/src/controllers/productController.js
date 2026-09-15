@@ -12,7 +12,6 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const Currency = require('../models/Currency');
-const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
@@ -22,15 +21,11 @@ const { normalizeProductContentFields } = require('../utils/productImportValidat
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { sanitizePlainText, sanitizeDescriptionText } = require('../utils/plainTextSanitizer');
 const { broadcastNewProduct, broadcastProductUpdated, broadcastProductDeleted, broadcastProductRestored } = require('../socket/socketHandler');
-const { deleteImageFile } = require('../utils/fileUtils');
 const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  isCloudinaryUrl,
-  extractPublicIdFromUrl,
-  getCloudinaryAccountIdForUrl,
-  validateCloudinaryImage,
-} = require('../services/cloudinaryService');
+  uploadAsset,
+  validateR2AssetReference,
+  deleteR2Assets,
+} = require('../services/r2AssetService');
 const {
   getStorefrontVisibleProductIds,
   overlayTranslationBatchWithFallback,
@@ -38,8 +33,6 @@ const {
 } = require('../services/translationHelper');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
-const { ABOUT_MEDIA, getCloudinaryDeliveryUrl } = require('../config/aboutMedia');
-const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
@@ -49,6 +42,22 @@ const SHOCK_DISCOUNT_THRESHOLD = 30;
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
 const EXCLUDED_BRAND_FILTER = { brand: { $not: EXCLUDED_BRAND_PATTERN } };
 const debugFeatured = () => {};
+
+const parseAssetReference = value => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const resolveR2Asset = async value => {
+  const reference = parseAssetReference(value);
+  if (!reference) throw new Error('A valid R2 asset reference is required');
+  return validateR2AssetReference(reference);
+};
 
 const summarizeProducts = (products) => ({
   count: Array.isArray(products) ? products.length : undefined,
@@ -727,15 +736,12 @@ const createProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId,
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, imageAsset,
     technicalDescription, descriptionImages, promotions
   } = req.body;
   const parsedDeal = parseDealInput(deal);
 
-  // Image can be from:
-  // 1. URL (from Cloudinary signed upload) - req.body.image
-  // 2. File (legacy backend upload) - req.file
-  if (!image && !req.file) {
+  if (!imageAsset && !req.file) {
     res.status(400);
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_image_required'));
   }
@@ -800,39 +806,19 @@ const createProduct = asyncHandler(async (req, res) => {
     numOriginalPrice = undefined;
   }
 
-  // ==================== HANDLE IMAGE URL ====================
-  let imageUrl = null;
-  let imagePubicId = null;
-  let imageClaim = null;
-
-  if (image) {
-    try {
-      await validateCloudinaryImage({ publicId: imagePublicId, url: image, allowedFolders: ['admins'] });
-      imageClaim = await CloudinaryUploadClaim.reserve({
-        claimId: imageClaimId,
-        ownerId: req.user._id,
-        publicId: imagePublicId,
-        purpose: 'product',
-      });
-      if (!imageClaim) throw new Error('Invalid upload claim');
-      imageUrl = image;
-      imagePubicId = imagePublicId;
-    } catch (error) {
-      res.status(400);
-      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
-    }
-  } else if (req.file) {
-    // Legacy backend upload - upload file to Cloudinary
-    try {
-      const folder = req.user.role === 'admin' || req.user.role === 'super-admin' ? 'admins' : 'users';
-      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, folder);
-      imageUrl = cloudinaryResult.url;
-      imagePubicId = cloudinaryResult.publicId;
-    } catch (error) {
-      console.error('[PRODUCT_CREATE] Cloudinary upload failed:', error.message);
-      res.status(500);
-      throw new Error(`Failed to upload image: ${error.message}`);
-    }
+  let imageData;
+  try {
+    imageData = req.file
+      ? await uploadAsset(req.file.buffer, {
+        role: 'product',
+        stableKey: `${req.user._id}:product:${req.file.originalname}`,
+        sourceName: req.file.originalname,
+        mimeType: req.file.mimetype,
+      })
+      : await resolveR2Asset(imageAsset);
+  } catch (error) {
+    res.status(400);
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
   }
 
   const product = new Product({
@@ -841,8 +827,9 @@ const createProduct = asyncHandler(async (req, res) => {
     originalPrice: numOriginalPrice,
     baseCurrencyCode: normalizedBaseCurrencyCode,
     user: req.user._id,
-    image: imageUrl,
-    imagePublicId: imagePubicId,
+    image: imageData.publicUrl,
+    imagePublicId: null,
+    imageAsset: imageData,
     images: images || [],
     brand: normalizedBrand,
     category: resolvedCategory._id,
@@ -862,11 +849,13 @@ const createProduct = asyncHandler(async (req, res) => {
   try {
     createdProduct = await product.save();
   } catch (error) {
-    if (imageClaim) await CloudinaryUploadClaim.release(imageClaim._id, req.user._id);
+    if (req.file) {
+      await deleteR2Assets([imageData]).catch(cleanupError => {
+        console.warn('[PRODUCT_CREATE] Failed to clean up replacement image:', cleanupError.message);
+      });
+    }
     throw error;
   }
-
-  if (imageClaim) await CloudinaryUploadClaim.attach(imageClaim._id, req.user._id);
 
   // Populate fields để response data consistent với getProductById
   const populatedProduct = await withTimeout(
@@ -916,7 +905,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, image, imagePublicId, imageClaimId,
+    originalPrice, baseCurrencyCode, featured, images, specs, deal, imageAsset,
     technicalDescription, descriptionImages, promotions
   } = req.body;
   const sourceFieldsChanged = [
@@ -1051,45 +1040,27 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.storefrontReadinessCheckedAt = null;
   }
 
-  const previousImagePublicId = product.imagePublicId;
-  const previousImageUrl = product.image;
-  let uploadedImagePublicId = null;
-  let uploadedImageAccountId = null;
-  let imageClaim = null;
+  const previousImageAsset = product.imageAsset?.toObject
+    ? product.imageAsset.toObject()
+    : product.imageAsset;
+  let uploadedImageAsset = null;
 
-  if (image || req.file) {
-    if (image) {
-      try {
-        await validateCloudinaryImage({ publicId: imagePublicId, url: image, allowedFolders: ['admins'] });
-        imageClaim = await CloudinaryUploadClaim.reserve({
-          claimId: imageClaimId,
-          ownerId: req.user._id,
-          publicId: imagePublicId,
-          purpose: 'product',
-        });
-        if (!imageClaim) throw new Error('Invalid upload claim');
-        product.image = image;
-        product.imagePublicId = imagePublicId;
-        console.log('[PRODUCT_UPDATE] Image updated from Cloudinary upload:', { url: image });
-      } catch (error) {
-        res.status(400);
-        throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
-      }
-    } else if (req.file) {
-      // Legacy backend upload - upload file to Cloudinary
-      try {
-        const folder = req.user.role === 'admin' || req.user.role === 'super-admin' ? 'admins' : 'users';
-        const cloudinaryResult = await uploadToCloudinary(req.file.buffer, folder);
-        uploadedImagePublicId = cloudinaryResult.publicId;
-        uploadedImageAccountId = cloudinaryResult.cloudinaryAccountId;
-        product.image = cloudinaryResult.url;
-        product.imagePublicId = cloudinaryResult.publicId;
-        console.log('[PRODUCT_UPDATE] New image uploaded to Cloudinary:', { url: cloudinaryResult.url });
-      } catch (error) {
-        console.error('[PRODUCT_UPDATE] Cloudinary upload failed:', error.message);
-        res.status(500);
-        throw new Error(`Failed to upload image: ${error.message}`);
-      }
+  if (imageAsset || req.file) {
+    try {
+      uploadedImageAsset = req.file
+        ? await uploadAsset(req.file.buffer, {
+          role: 'product',
+          stableKey: `${req.user._id}:product:${req.file.originalname}`,
+          sourceName: req.file.originalname,
+          mimeType: req.file.mimetype,
+        })
+        : await resolveR2Asset(imageAsset);
+      product.image = uploadedImageAsset.publicUrl;
+      product.imagePublicId = null;
+      product.imageAsset = uploadedImageAsset;
+    } catch (error) {
+      res.status(400);
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'common.image_validation_failed'));
     }
   }
 
@@ -1097,14 +1068,11 @@ const updateProduct = asyncHandler(async (req, res) => {
   try {
     updatedProduct = await product.save();
   } catch (error) {
-    if (uploadedImagePublicId) {
-      try {
-        await deleteFromCloudinary(uploadedImagePublicId, uploadedImageAccountId);
-      } catch (cleanupError) {
+    if (req.file && uploadedImageAsset) {
+      await deleteR2Assets([uploadedImageAsset]).catch(cleanupError => {
         console.warn('[PRODUCT_UPDATE] Failed to clean up replacement image:', cleanupError.message);
-      }
+      });
     }
-    if (imageClaim) await CloudinaryUploadClaim.release(imageClaim._id, req.user._id);
 
     if (error.name === 'VersionError') {
       res.status(409);
@@ -1114,7 +1082,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (imageClaim) await CloudinaryUploadClaim.attach(imageClaim._id, req.user._id);
+  if (previousImageAsset?.storageProvider === 'r2'
+    && uploadedImageAsset?.storageKey
+    && previousImageAsset.storageKey !== uploadedImageAsset.storageKey) {
+    await deleteR2Assets([previousImageAsset]).catch(cleanupError => {
+      console.warn('[PRODUCT_UPDATE] Failed to clean up previous image:', cleanupError.message);
+    });
+  }
 
   if (sourceFieldsChanged) {
     await ProductCatalogTranslationCache.updateMany(
@@ -1123,12 +1097,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     );
   }
 
-  if (previousImagePublicId && previousImagePublicId !== updatedProduct.imagePublicId) {
-    await enqueueCloudinaryCleanup(
-      previousImagePublicId,
-      getCloudinaryAccountIdForUrl(previousImageUrl) || '1',
-    );
-  }
   const populatedProduct = await withTimeout(
     Product.findById(updatedProduct._id)
       .populate('category'),
@@ -1331,31 +1299,18 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
     throw new Error(`Failed to delete product: ${dbError.message}`);
   }
 
-  const imagePublicIds = new Set();
-  if (product.image && isCloudinaryUrl(product.image) && product.imagePublicId) {
-    imagePublicIds.add({
-      publicId: product.imagePublicId,
-      accountId: getCloudinaryAccountIdForUrl(product.image) || '1',
-    });
-  }
-  for (const image of product.images || []) {
-    if (image && isCloudinaryUrl(image)) {
-      const publicId = extractPublicIdFromUrl(image);
-      if (publicId) {
-        imagePublicIds.add({
-          publicId,
-          accountId: getCloudinaryAccountIdForUrl(image) || '1',
-        });
-      }
-    }
-  }
-  await Promise.all([...imagePublicIds].map(({ publicId, accountId }) => (
-    enqueueCloudinaryCleanup(publicId, accountId)
-  )));
+  const r2Assets = [
+    product.imageAsset,
+    ...(product.imageAssets || []),
+    ...(product.descriptionImages || []),
+  ].filter(asset => asset?.storageProvider === 'r2' && asset.storageKey);
+  await deleteR2Assets(r2Assets).catch(error => {
+    console.warn('[PRODUCT_HARD_DELETE] Failed to delete one or more R2 assets:', error.message);
+  });
 
   res.json({
     message: 'Product permanently deleted',
-    queuedImageCleanups: imagePublicIds.size,
+    deletedR2Assets: r2Assets.length,
   });
 });
 
@@ -1554,8 +1509,8 @@ const getTestimonials = asyncHandler(async (req, res) => {
 
     const filteredReviews = allReviews.filter((review) => {
       const isCustomerReview = !review.user || review.user.role === 'user';
-      const isAboutReviewer = ABOUT_MEDIA.reviewers.some(({ publicId }) => review.avatarPublicId === publicId);
-      return isCustomerReview && isAboutReviewer && isCloudinaryUrl(review.avatar);
+      const isAboutReviewer = review.avatarAsset?.storageProvider === 'r2';
+      return isCustomerReview && isAboutReviewer && Boolean(review.avatar);
     });
 
     // Fetch translation cache for review content if needed (only for non-default languages)

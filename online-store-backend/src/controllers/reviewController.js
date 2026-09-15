@@ -8,40 +8,24 @@ const Review = require('../models/Review');
 const Product = require('../models/Product');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { getMessage } = require('../i18n/messages');
-const CloudinaryUploadClaim = require('../models/CloudinaryUploadClaim');
-const {
-  extractPublicIdFromUrl,
-  getCloudinaryAccountIdForUrl,
-} = require('../services/cloudinaryService');
-const { enqueueCloudinaryCleanup } = require('../services/cloudinaryCleanupOutbox');
-const { deleteOldFile } = require('../utils/fileCleanup');
+const { validateR2AssetReference, deleteR2Assets } = require('../services/r2AssetService');
 
 const { getActiveLangCodes, getDefaultLanguage, isSupportedLanguage } = require('../config/languageInventory');
 
-const reserveReviewAvatar = async (body, ownerId) => {
-  const { avatarUrl, avatarPublicId, avatarClaimId } = body;
-  if (!avatarUrl && !avatarPublicId && !avatarClaimId) return null;
-  if (!avatarUrl || !avatarPublicId || !avatarClaimId) {
-    const error = new Error('Review avatar claim is incomplete');
-    error.statusCode = 400;
-    error.errorCode = 'UPLOAD_CLAIM_INVALID';
-    throw error;
+const parseAssetReference = value => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
   }
+};
 
-  const claim = await CloudinaryUploadClaim.reserve({
-    claimId: avatarClaimId,
-    ownerId,
-    publicId: avatarPublicId,
-    purpose: 'review',
-  });
-  if (!claim || claim.url !== avatarUrl) {
-    const error = new Error('Review avatar claim is invalid');
-    error.statusCode = 400;
-    error.errorCode = 'UPLOAD_CLAIM_INVALID';
-    throw error;
-  }
-
-  return { claimId: avatarClaimId, publicId: avatarPublicId, url: avatarUrl };
+const reserveReviewAvatar = async body => {
+  const asset = parseAssetReference(body.avatarAsset);
+  if (!asset) return null;
+  return validateR2AssetReference(asset);
 };
 
 /**
@@ -55,10 +39,9 @@ const reserveReviewAvatar = async (body, ownerId) => {
  * - Fallback to default language if lang not supported or translation missing
  * - Frontend MUST add locale to useEffect dependency to re-fetch when lang changes
  */
-const cleanupReviewAvatar = async (avatarUrl) => {
-  const publicId = extractPublicIdFromUrl(avatarUrl);
-  if (publicId) return enqueueCloudinaryCleanup(publicId, getCloudinaryAccountIdForUrl(avatarUrl) || '1');
-  return deleteOldFile(avatarUrl);
+const cleanupReviewAvatar = async asset => {
+  if (asset?.storageProvider !== 'r2') return { deleted: false, skipped: true };
+  return deleteR2Assets([asset]);
 };
 
 const getProductReviews = asyncHandler(async (req, res) => {
@@ -108,7 +91,7 @@ const createProductReview = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || req.lang || defaultLang.code).toLowerCase();
   const { rating, comment } = req.body;
-  const cloudinaryAvatar = await reserveReviewAvatar(req.body, req.user._id);
+  const reviewAvatar = await reserveReviewAvatar(req.body);
 
   const product = await Product.findById(req.params.productId);
 
@@ -127,15 +110,14 @@ const createProductReview = asyncHandler(async (req, res) => {
       name: reviewerName,
       rating: Number(rating),
       comment,
-      avatar: cloudinaryAvatar?.url || null,
+      avatar: reviewAvatar?.publicUrl || null,
+      avatarPublicId: null,
+      avatarAsset: reviewAvatar,
       user: req.user._id,
       product: req.params.productId,
     });
 
     const createdReview = await review.save();
-    if (cloudinaryAvatar) {
-      await CloudinaryUploadClaim.attach(cloudinaryAvatar.claimId, req.user._id);
-    }
 
     const ratingStats = await Review.aggregate([
       { $match: { product: product._id, isDeleted: false } },
@@ -170,7 +152,7 @@ const updateReview = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || req.lang || defaultLang.code).toLowerCase();
   const { rating, comment } = req.body;
-  const cloudinaryAvatar = await reserveReviewAvatar(req.body, req.user._id);
+  const reviewAvatar = await reserveReviewAvatar(req.body);
 
   const review = await Review.findOne({ _id: req.params.id, user: req.user._id, isDeleted: false });
 
@@ -178,23 +160,22 @@ const updateReview = asyncHandler(async (req, res) => {
     review.rating = rating || review.rating;
     review.comment = comment || review.comment;
 
-    const previousAvatarUrl = cloudinaryAvatar ? review.avatar : null;
-    const previousAvatarPublicId = cloudinaryAvatar
-      ? extractPublicIdFromUrl(previousAvatarUrl)
-      : null;
-    if (cloudinaryAvatar) {
-      review.avatar = cloudinaryAvatar.url;
+    const previousAvatarAsset = review.avatarAsset?.toObject
+      ? review.avatarAsset.toObject()
+      : review.avatarAsset;
+    if (reviewAvatar) {
+      review.avatar = reviewAvatar.publicUrl;
+      review.avatarPublicId = null;
+      review.avatarAsset = reviewAvatar;
     }
 
     const updatedReview = await review.save();
-    if (cloudinaryAvatar) {
-      await CloudinaryUploadClaim.attach(cloudinaryAvatar.claimId, req.user._id);
-      if (previousAvatarPublicId && previousAvatarPublicId !== cloudinaryAvatar.publicId) {
-        await enqueueCloudinaryCleanup(
-          previousAvatarPublicId,
-          getCloudinaryAccountIdForUrl(previousAvatarUrl) || '1',
-        );
-      }
+    if (reviewAvatar
+      && previousAvatarAsset?.storageProvider === 'r2'
+      && previousAvatarAsset.storageKey !== reviewAvatar.storageKey) {
+      await cleanupReviewAvatar(previousAvatarAsset).catch(error => {
+        console.warn('[REVIEW_UPDATE] Failed to clean up previous avatar:', error.message);
+      });
     }
 
     const product = await Product.findById(updatedReview.product);
@@ -235,7 +216,7 @@ const deleteReview = asyncHandler(async (req, res) => {
 
   if (review) {
     if (review.avatar) {
-      await cleanupReviewAvatar(review.avatar);
+      await cleanupReviewAvatar(review.avatarAsset);
     }
 
     review.isDeleted = true;

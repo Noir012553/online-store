@@ -24,8 +24,8 @@ const {
   getAboutMedia,
   getTestimonials,
 } = require('../controllers/productController');
-const { uploadToCloudinary } = require('../services/cloudinaryService');
 const { sendApiError } = require('../middleware/errorMiddleware');
+const { uploadAsset } = require('../services/r2AssetService');
 const {
   importProductsFromFile,
   getImportGuide,
@@ -37,7 +37,7 @@ const {
 const { getProductTranslations } = require('../controllers/translationController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { uploadLimiter, importConcurrencyLimiter } = require('../middleware/rateLimitMiddleware');
-const { uploadCloudinary, uploadImport } = require('../middleware/uploadMiddleware');
+const { uploadMemory, uploadImport } = require('../middleware/uploadMiddleware');
 const { validateImageUpload, validateImportUpload } = require('../middleware/uploadValidationMiddleware');
 
 
@@ -127,7 +127,7 @@ router.get('/admin/export-jobs/:id/download', protect, admin, asyncHandler(async
  */
 router.route('/')
   .get(getProducts)
-  .post(protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, createProduct);
+  .post(protect, admin, uploadLimiter, uploadMemory.single('image'), validateImageUpload, createProduct);
 
 /**
  * GET /api/products/deleted/list - Lấy danh sách sản phẩm đã xóa (Admin only)
@@ -167,7 +167,7 @@ router.get('/:id/translations', getProductTranslations);
  */
 router.route('/:id')
   .get(getProductById)
-  .put(protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, updateProduct)
+  .put(protect, admin, uploadLimiter, uploadMemory.single('image'), validateImageUpload, updateProduct)
   .delete(protect, admin, deleteProduct);
 
 /**
@@ -177,29 +177,33 @@ router.put('/:id/restore', protect, admin, restoreProduct);
 
 /**
  * DELETE /api/products/:id/hard - Xóa cứng sản phẩm (Admin only)
- * Xóa vĩnh viễn khỏi database và Cloudinary
+ * Xóa vĩnh viễn khỏi database và R2
  * Soft delete (mark isDeleted=true) dành cho regular admin
  * Hard delete (vĩnh viễn xóa + cleanup file) dành cho admin/super-admin
  */
 router.delete('/:id/hard', protect, admin, hardDeleteProduct);
 
 /**
- * POST /api/products/upload - Tải lên ảnh sản phẩm lên Cloudinary (Admin only)
- * Returns: { image: Cloudinary URL, publicId: Cloudinary public ID }
+ * POST /api/products/upload - Tải lên ảnh sản phẩm lên R2 (Admin only)
+ * Returns: { image: R2 public URL, asset: R2 asset reference }
  */
-router.post('/upload', protect, admin, uploadLimiter, uploadCloudinary.single('image'), validateImageUpload, asyncHandler(async (req, res) => {
+router.post('/upload', protect, admin, uploadLimiter, uploadMemory.single('image'), validateImageUpload, asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
 
   try {
-    const folder = req.user.role === 'admin' || req.user.role === 'super-admin' ? 'admins' : 'users';
-    const cloudinaryResult = await uploadToCloudinary(req.file.buffer, folder);
+    const asset = await uploadAsset(req.file.buffer, {
+      role: 'product',
+      stableKey: `${req.user._id}:product:${req.file.originalname}`,
+      sourceName: req.file.originalname,
+      mimeType: req.file.mimetype,
+    });
 
     res.json({
-      image: cloudinaryResult.url,
-      publicId: cloudinaryResult.publicId,
-      url: cloudinaryResult.url,
+      image: asset.publicUrl,
+      url: asset.publicUrl,
+      asset,
       success: true,
     });
   } catch (error) {

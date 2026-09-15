@@ -101,7 +101,7 @@ const SEED_MODULES = {
     importance: 'HIGH',
   },
   aboutMedia: {
-    name: 'About Media (Cloudinary team assets)',
+    name: 'About Media (Cloudflare R2 assets)',
     layer: 2,
     depends: [],
     seeder: require('./aboutMediaSeeder'),

@@ -54,8 +54,8 @@ const createLocalStorage = () => {
 };
 
 /**
- * MEMORY STORAGE - Cho Product & Banner Images
- * Lưu vào RAM, sẽ được upload lên Cloudinary trong controller
+ * MEMORY STORAGE - Cho các asset upload lên R2
+ * Lưu vào RAM, backend sẽ upload lên Cloudflare R2
  */
 const memoryStorage = multer.memoryStorage();
 
@@ -79,14 +79,14 @@ const uploadLocal = multer({
 });
 
 /**
- * CLOUDINARY UPLOAD - Dành cho Product & Banner Images
- * Lưu vào memory buffer, sẽ được upload lên Cloudinary
+ * R2 UPLOAD - Dành cho các asset cần lưu trên Cloudflare R2
+ * Lưu vào memory buffer, backend sẽ upload lên R2.
  */
-const uploadCloudinary = multer({
+const uploadMemory = multer({
   storage: memoryStorage,
   fileFilter: imageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
@@ -113,8 +113,8 @@ const uploadImport = multer({
 });
 
 module.exports = {
-  uploadLocal,      // Cho user/review avatars
-  uploadCloudinary, // Cho product/banner images
+  uploadLocal,
+  uploadMemory,
   uploadImport,     // Cho import ZIP files
   ensureUploadDir,
   UPLOAD_DIR,

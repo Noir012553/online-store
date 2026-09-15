@@ -1,9 +1,5 @@
-const { Banner } = require('../models/Banner');
-const {
-  uploadFileToCloudinary,
-  isCloudinaryUrl,
-  extractPublicIdFromUrl,
-} = require('../services/cloudinaryService');
+const Banner = require('../models/Banner').Banner;
+const { uploadAsset } = require('../services/r2AssetService');
 const { getMessage } = require('../i18n/messages');
 const { getActiveLangCodes } = require('../config/languageInventory');
 
@@ -40,21 +36,14 @@ const BANNER_SEED_CONFIG = [
   },
 ];
 
-const buildBannerContent = (config) => {
-  const content = {
-    title: {},
-    subtitle: {},
-    description: {},
-    ctaText: {},
-  };
-
+const buildBannerContent = config => {
+  const content = { title: {}, subtitle: {}, description: {}, ctaText: {} };
   SUPPORTED_LANGS.forEach(lang => {
     content.title[lang] = getMessage(lang, `homepage-banners-seed.${config.titleKey}`);
     content.subtitle[lang] = getMessage(lang, `homepage-banners-seed.${config.subtitleKey}`);
     content.description[lang] = getMessage(lang, `homepage-banners-seed.${config.descriptionKey}`);
     content.ctaText[lang] = getMessage(lang, `homepage-banners-seed.${config.ctaKey}`);
   });
-
   return content;
 };
 
@@ -64,41 +53,19 @@ const toEndDate = () => {
   return nextYear;
 };
 
-const resolveBannerImage = async (sourceUrl) => {
-  // Nếu đã là Cloudinary URL, extract public ID
-  if (isCloudinaryUrl(sourceUrl)) {
-    return {
-      image: sourceUrl,
-      imagePublicId: extractPublicIdFromUrl(sourceUrl),
-    };
-  }
-
-  // Nếu là external URL (http/https), dùng trực tiếp mà không cần upload
-  if (sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://')) {
-    return {
-      image: sourceUrl,
-      imagePublicId: null,
-    };
-  }
-
-  // Nếu là file path/buffer, thì mới upload
-  try {
-    const result = await uploadFileToCloudinary(sourceUrl, 'banners');
-    return result;
-  } catch (error) {
-    return {
-      image: sourceUrl,
-      imagePublicId: null,
-    };
-  }
+const resolveBannerImage = async (sourceUrl, stableKey) => {
+  const asset = await uploadAsset(sourceUrl, {
+    role: 'banner',
+    stableKey,
+    sourceUrl,
+    sourceName: stableKey,
+  });
+  return { image: asset.publicUrl, imagePublicId: null, imageAsset: asset };
 };
 
 const seedHomepageHeroBanners = async () => {
   const forceReset = process.argv.includes('--reset');
-
-  const totalBannerCount = await Banner.countDocuments({
-    slot: HOMEPAGE_HERO_SLOT,
-  });
+  const totalBannerCount = await Banner.countDocuments({ slot: HOMEPAGE_HERO_SLOT });
 
   if (forceReset && totalBannerCount > 0) {
     await Banner.deleteMany({ slot: HOMEPAGE_HERO_SLOT });
@@ -107,12 +74,10 @@ const seedHomepageHeroBanners = async () => {
   }
 
   const createdBanners = [];
-
   for (const config of BANNER_SEED_CONFIG) {
     try {
-      const imageData = await resolveBannerImage(config.image);
+      const imageData = await resolveBannerImage(config.image, `seed-banner-${config.sortOrder}`);
       const bannerContent = buildBannerContent(config);
-
       const createdBanner = await Banner.create({
         title: bannerContent.title,
         subtitle: bannerContent.subtitle,
@@ -120,7 +85,8 @@ const seedHomepageHeroBanners = async () => {
         ctaText: bannerContent.ctaText,
         targetUrl: config.targetUrl,
         image: imageData.image,
-        imagePublicId: imageData.imagePublicId,
+        imagePublicId: null,
+        imageAsset: imageData.imageAsset,
         slot: HOMEPAGE_HERO_SLOT,
         sortOrder: config.sortOrder,
         isActive: true,
@@ -128,7 +94,6 @@ const seedHomepageHeroBanners = async () => {
         startDate: new Date(),
         endDate: toEndDate(),
       });
-
       createdBanners.push(createdBanner);
     } catch (error) {
       console.error(`[SEED] Error seeding banner config ${config.sortOrder}:`, error.message);

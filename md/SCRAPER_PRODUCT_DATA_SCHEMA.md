@@ -42,8 +42,8 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Test fixture/extractor Python | Đã thêm | Cần chạy trong môi trường có dependency Python |
 | Runtime test Node | Chưa hoàn tất | Cần chạy suite liên quan trong môi trường có dependency backend |
 | Staging metadata cho từng batch | Hoàn tất | `scraper_runner.py` tạo `ScrapeRunID`, `ScrapeCapturedAt`, `ScrapeParserVersion` và `ProductData` |
-| Upload ảnh chính/gallery | Hoàn tất một phần | Seed pipeline upload hai nhóm này lên Cloudinary |
-| Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL trong `descriptionImages` |
+| Upload ảnh chính/gallery | Hoàn tất một phần | Seed pipeline upload hai nhóm này lên Cloudflare R2 |
+| Upload ảnh mô tả lên Cloudflare R2 | Hoàn tất một phần | Seed/import đã hỗ trợ reference R2; cần hoàn thiện kiểm thử và manifest |
 | Lưu metadata asset | Hoàn tất một phần | Model hỗ trợ metadata; pipeline chưa áp dụng đầy đủ cho ảnh mô tả |
 | Backend CRUD trực tiếp | Hoàn tất | `createProduct`/`updateProduct` nhận, validate và lưu ba field mới |
 | API response camelCase | Hoàn tất một phần | Formatter trả field mới; cần hoàn thiện contract/integration test |
@@ -54,7 +54,7 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Frontend UI | Hoàn tất | Hiển thị technical description, description images và promotions |
 | Translation field mới | Hoàn tất một phần | Cache/seeder/API đã hỗ trợ; cần hoàn thiện quality/integration test |
 | Cloudflare AI multi-config | Hoàn tất một phần | Có hậu tố và nhận diện rate-limit/quota; cần giới hạn retry/rotation và test đầy đủ |
-| R2 multi-account adapter | Chưa triển khai | Có mẫu env nhưng runtime chưa chọn/upload theo account |
+| R2 multi-account adapter | Hoàn tất một phần | Runtime đã chọn/upload/xóa theo account; cần hoàn thiện migration và test staging |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
@@ -390,7 +390,7 @@ Validation phải chạy sau normalize và trước upload/import. Cần kiểm 
 
 ### 8.5. Asset processing
 
-**Trạng thái hiện tại: triển khai một phần.** Seed pipeline đã xử lý ảnh chính và gallery, nhưng chưa upload `descriptionImages` và chưa lưu đủ metadata storage cho nhóm ảnh này. Không coi việc có URL nguồn là đã upload thành công.
+**Trạng thái hiện tại: triển khai một phần.** Seed/import và upload API đã xử lý các role `main`, `gallery` và `description` trên Cloudflare R2; CRUD mới lưu metadata account/bucket/key. Migration dữ liệu Cloudinary cũ và manifest backup đầy đủ vẫn chưa chạy. Không coi việc có URL nguồn là đã upload thành công.
 
 Xử lý riêng ba nhóm asset:
 
@@ -415,7 +415,7 @@ Sau khi upload, reference asset cần giữ tối thiểu. Cấu trúc này ph�
 
 `storageProvider`, `storageAccount` và `storageKey` phải được lưu cùng metadata sản phẩm để tạo URL, kiểm tra và xóa đúng tài khoản. Không tự động di chuyển hoặc xóa asset cũ chỉ vì thêm provider mới.
 
-Cloudinary vẫn phải giữ nguyên quy tắc chọn account theo backend. R2 hiện mới có cấu hình môi trường, chưa được coi là provider upload cho đến khi có adapter và test riêng.
+Cloudflare R2 được chọn account theo backend bằng role hoặc stable hash. Frontend không biết credential, account secret hoặc bucket credential; chỉ nhận public asset reference sau khi backend upload và kiểm tra.
 
 ### 8.6. Import/upsert
 
@@ -814,7 +814,7 @@ Với khoảng 1.000 sản phẩm, cần dự trù khoảng 3–30 GB tùy số 
 - Export CSV đã có header cho ba field mới và serialize array/object thành JSON; export JSON giữ structured data.
 - Luồng export asset hiện chủ yếu gom `product.images`; cần bổ sung role và asset manifest riêng cho `descriptionImages`.
 - Backup hiện có script cho `LiveTranslationCache`, chưa phải backup đầy đủ cho Product, `ProductCatalogTranslationCache`, R2 metadata và object manifest.
-- Tài liệu import/export ZIP hiện còn mô tả upload lại Cloudinary ở một số phần; phải đồng bộ lại theo provider R2 đã chốt trước rollout.
+- Import/export ZIP dùng provider R2; manifest cần giữ role, provider, account, bucket và storage key trước rollout.
 
 #### Import contract
 
@@ -1048,6 +1048,6 @@ Chỉ coi kế hoạch đã triển khai khi:
 
 Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, staging envelope, output schema, adapter normalize, validator, Product model, API, translation và frontend đã được nối theo contract. Lệnh `npm run seed` hiện chạy full pipeline A–Z theo phase; crawler chỉ chạy lại khi thêm `--force-scrape` hoặc chưa có output.
 
-Luồng upload riêng cho ảnh trong mô tả chưa được bật; hiện các URL ảnh mô tả được validate và lưu reference. R2 multi-account, asset manifest/backup đầy đủ, retry Cloudflare có giới hạn và dry-run batch thật vẫn là điều kiện trước rollout diện rộng.
+Luồng upload R2 cho ảnh trong mô tả đã được nối vào seed/import và metadata asset; migration các asset Cloudinary cũ, asset manifest/backup đầy đủ và dry-run batch thật vẫn là điều kiện trước rollout diện rộng.
 
 Triển khai an toàn tiếp theo là chạy fixture/unit test, dry-run một batch nhỏ và kiểm tra dữ liệu trước khi upsert diện rộng. Tầng crawler chỉ chịu trách nhiệm lấy dữ liệu; storage, database và frontend phải dùng contract riêng và không phụ thuộc trực tiếp vào HTML của GearVN.

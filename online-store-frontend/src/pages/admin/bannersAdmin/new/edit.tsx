@@ -11,7 +11,7 @@ import { useLanguage, SUPPORTED_LOCALES, AVAILABLE_LOCALES, DEFAULT_LOCALE, type
 import { getTranslatedValue } from '../../../../lib/data';
 import { toast } from 'sonner';
 import { getImageUrl } from '../../../../lib/utils';
-import { useCloudinaryUpload } from '../../../../hooks/useCloudinaryUpload';
+import { useR2Upload } from '../../../../hooks/useR2Upload';
 
 export async function getServerSideProps() {
   return {
@@ -146,7 +146,7 @@ const createEmptyForm = (): BannerFormState => {
 function BannerCreatePageContent() {
   const router = useRouter();
   const { t, locale, loadNamespace } = useLanguage();
-  const { uploadToCloudinary, validateUploadedImage, uploadProgress } = useCloudinaryUpload();
+  const { uploadToR2, validateUploadedAsset, uploadProgress } = useR2Upload();
 
   const [banner, setBanner] = useState<BannerFormState | null>(null);
   const [slotOptions, setSlotOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -239,22 +239,22 @@ function BannerCreatePageContent() {
       setIsSubmitting(true);
 
       let imageUrl: string | null = null;
-      let imagePublicId: string | null = null;
+      let imageAsset: Record<string, unknown> | null = null;
 
-      // Upload image to Cloudinary if new file provided
+      // Upload image to R2 if new file provided
       if (imageFile) {
-        const uploadResult = await uploadToCloudinary(imageFile, 'banners');
+        const uploadResult = await uploadToR2(imageFile, 'banners');
         if (!uploadResult) {
           return;
         }
 
-        const isValid = await validateUploadedImage(uploadResult);
+        const isValid = validateUploadedAsset(uploadResult);
         if (!isValid) {
           return;
         }
 
         imageUrl = uploadResult.secure_url;
-        imagePublicId = uploadResult.public_id;
+        imageAsset = uploadResult.asset;
       }
 
       const formData = new FormData();
@@ -273,7 +273,7 @@ function BannerCreatePageContent() {
 
       if (imageUrl) {
         formData.append('image', imageUrl);
-        formData.append('imagePublicId', imagePublicId || '');
+        formData.append('imageAsset', JSON.stringify(imageAsset));
       }
 
       await bannerAPI.createBanner(formData);

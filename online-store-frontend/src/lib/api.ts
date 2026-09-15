@@ -1833,7 +1833,7 @@ export const reviewAPI = {
     productId: string,
     rating: number,
     comment: string,
-    avatar?: { url: string; publicId: string; claimId: string },
+    avatar?: { asset: Record<string, unknown> },
     requestOptions?: Pick<FetchOptions, 'signal'>,
   ) => {
     const endpoint = buildLocalizedUrl(`/reviews/products/${productId}/reviews`);
@@ -1844,9 +1844,7 @@ export const reviewAPI = {
         rating,
         comment,
         ...(avatar && {
-          avatarUrl: avatar.url,
-          avatarPublicId: avatar.publicId,
-          avatarClaimId: avatar.claimId,
+          avatarAsset: avatar.asset,
         }),
       }),
       ...requestOptions,
