@@ -8,7 +8,7 @@ Tài liệu này ghi nhận bộ key sản phẩm đã chốt sau khi bổ sung:
 - Ảnh nằm bên trong mô tả sản phẩm.
 - Khuyến mãi và quà tặng đi kèm.
 
-Tài liệu này đồng thời ghi nhận phần triển khai schema đã thực hiện ở scraper Python, adapter import, validator và Product model. Luồng upload asset mô tả lên Cloudinary/R2 riêng vẫn chưa được bật.
+Tài liệu này đồng thời ghi nhận phần triển khai schema đã thực hiện ở scraper Python, adapter import, validator, Product model, API và frontend. Luồng upload asset riêng cho ảnh trong mô tả lên Cloudinary/R2 vẫn chưa được bật đầy đủ.
 
 ## 2. Trạng thái hiện tại
 
@@ -39,28 +39,58 @@ Vì vậy, chỉ đổi tên key trong Python mà không cập nhật adapter s�
 | Validate field mới | Hoàn tất | URL, giới hạn, kiểu dữ liệu và sanitize |
 | Lưu field vào `Product` model | Hoàn tất | `technicalDescription`, `descriptionImages`, `promotions` |
 | Cập nhật import guide | Hoàn tất | Bổ sung field details |
-| Test fixture/extractor Python | Đã thêm | Chưa chạy được do policy môi trường chặn Python |
-| Runtime test Node | Chưa hoàn tất | Môi trường thiếu dependency `mongoose` |
-| Staging metadata cho từng batch | Chưa triển khai | Chưa tạo `ScrapeRunID`, thời điểm chụp và parser version riêng |
-| Upload ảnh chính/gallery | Đã có một phần | Seed pipeline xử lý hai nhóm ảnh này |
+| Test fixture/extractor Python | Đã thêm | Cần chạy trong môi trường có dependency Python |
+| Runtime test Node | Chưa hoàn tất | Cần chạy suite liên quan trong môi trường có dependency backend |
+| Staging metadata cho từng batch | Hoàn tất | `scraper_runner.py` tạo `ScrapeRunID`, `ScrapeCapturedAt`, `ScrapeParserVersion` và `ProductData` |
+| Upload ảnh chính/gallery | Hoàn tất một phần | Seed pipeline upload hai nhóm này lên Cloudinary |
 | Upload ảnh mô tả lên Cloudinary/R2 | Chưa triển khai | Hiện chỉ lưu reference URL trong `descriptionImages` |
-| Lưu metadata asset | Chưa triển khai đầy đủ | Chưa lưu đồng bộ `storageProvider`, `storageAccount`, `storageKey` cho ảnh mô tả |
-| Backend CRUD trực tiếp | Chưa hoàn tất | `createProduct`/`updateProduct` chưa nhận đủ ba field mới |
-| API response camelCase | Đã có một phần | Model/formatter có thể trả field mới; cần kiểm tra contract API đầy đủ |
-| JSON/CSV import | Đã có một phần | Adapter nhận field mới; cần test round-trip và structured data |
-| ZIP import/export | Đã có một phần | ZIP có products.json/csv và assets; description images chưa được bundle riêng đầy đủ |
-| Product/translation backup | Chưa đầy đủ | Hiện có backup LiveTranslationCache; chưa có snapshot Product/cache mới/manifest asset đầy đủ |
-| Frontend type/adapter | Chưa triển khai | `Laptop`, `BackendProduct` và adapter chưa có ba field mới |
-| Frontend UI | Chưa triển khai | Chưa hiển thị technical description, description images và promotions |
-| Translation field mới | Chưa triển khai | Cache/seeder/API chưa dịch ba field mới |
-| Cloudflare AI multi-config | Đã có một phần | Đọc nhóm hậu tố và xoay khi HTTP 429; chưa đủ 420/quota/giới hạn vòng xoay |
-| R2 multi-account adapter | Chưa triển khai | `.env.example` có mẫu account nhưng runtime chưa chọn/upload theo account |
+| Lưu metadata asset | Hoàn tất một phần | Model hỗ trợ metadata; pipeline chưa áp dụng đầy đủ cho ảnh mô tả |
+| Backend CRUD trực tiếp | Hoàn tất | `createProduct`/`updateProduct` nhận, validate và lưu ba field mới |
+| API response camelCase | Hoàn tất một phần | Formatter trả field mới; cần hoàn thiện contract/integration test |
+| JSON/CSV import | Hoàn tất một phần | Adapter và validator nhận field mới; cần hoàn tất round-trip test |
+| ZIP import/export | Hoàn tất một phần | Data entry và ảnh chính/gallery có hỗ trợ; ảnh mô tả chưa có role/manifest riêng |
+| Product/translation backup | Chưa đầy đủ | Chưa có snapshot Product/cache mới và manifest asset đầy đủ |
+| Frontend type/adapter | Hoàn tất | `Laptop`, `BackendProduct` và adapter giữ ba field mới |
+| Frontend UI | Hoàn tất | Hiển thị technical description, description images và promotions |
+| Translation field mới | Hoàn tất một phần | Cache/seeder/API đã hỗ trợ; cần hoàn thiện quality/integration test |
+| Cloudflare AI multi-config | Hoàn tất một phần | Có hậu tố và nhận diện rate-limit/quota; cần giới hạn retry/rotation và test đầy đủ |
+| R2 multi-account adapter | Chưa triển khai | Có mẫu env nhưng runtime chưa chọn/upload theo account |
 | Dry-run batch thật | Chưa chạy | Cần môi trường có dependency và dữ liệu nguồn |
 
 Các kiểm tra đã đạt:
 
 - `node --check` cho các file JavaScript đã sửa.
 - `git diff --check` cho toàn bộ thay đổi.
+
+### 2.2. Luồng seed mặc định và chia phase
+
+Lệnh seed mặc định chạy toàn bộ pipeline theo thứ tự dependency:
+
+```text
+pre-products
+  -> product pipeline: scraper tùy điều kiện -> normalize/validate -> import -> translation
+  -> post-products
+```
+
+Seed thuộc workspace backend. Chạy các lệnh sau từ thư mục `online-store-backend`:
+
+```bash
+cd online-store-backend
+npm run seed
+npm run seed:dry-run
+npm run seed:pre-products
+npm run seed:post-products
+npm run seed:list
+npm run seed:modules
+```
+
+`npm run seed` không crawl lại nếu thư mục `data/scraped-products` đã có output hợp lệ. Muốn chạy lại toàn bộ scraper trước khi import dùng:
+
+```bash
+npm run seed -- --force-scrape
+```
+
+`--dry-run` vẫn chạy phần chuẩn bị và preview import nhưng không ghi Product, không dịch thật và không chạy post-products. Các phase riêng dùng để retry hoặc cô lập lỗi; không được hiểu là thay thế cho full pipeline mặc định.
 
 ## 3. Bộ key chuẩn độc nhất
 
@@ -305,7 +335,7 @@ Extractor phải ghi cảnh báo cho dữ liệu thiếu nhưng chỉ từ chố
 
 ### 8.2. Staging
 
-**Trạng thái hiện tại: chưa triển khai đầy đủ.** Output scraper hiện trả trực tiếp record 16 key canonical; chưa bọc record trong staging envelope có `ScrapeRunID`, `ScrapeCapturedAt` và `ScrapeParserVersion`.
+**Trạng thái hiện tại: đã triển khai.** Output scraper vẫn giữ record 16 key canonical cho import tương thích, đồng thời ghi staging envelope có `ScrapeRunID`, `ScrapeCapturedAt`, `ScrapeParserVersion` và `ProductData` trong file `.staging.json`.
 
 Khi triển khai staging, mỗi batch nên có metadata riêng:
 
@@ -413,9 +443,10 @@ Trạng thái triển khai hiện tại:
 | Product model | `technicalDescription`, `descriptionImages`, `promotions` | Mở rộng asset reference nếu upload ảnh mô tả |
 | Import API | Normalize, validate và lưu được ba field mới | Bảo đảm policy upsert và báo cáo insert/update/skip/fail |
 | API đọc sản phẩm | Formatter trả dữ liệu model theo camelCase | Kiểm tra contract response và tài liệu API |
-| API CRUD trực tiếp | Luồng cũ tạo/sửa sản phẩm | Nhận, validate và lưu ba field mới trong `POST`/`PUT` |
-| Frontend types/adapter | `description`, `specs`, main/gallery | Thêm type và normalize cho `technicalDescription`, `descriptionImages`, `promotions` |
-| Frontend product detail | Tab mô tả và gallery cũ | Render mô tả kỹ thuật, ảnh trong bài viết và từng khuyến mãi |
+| API CRUD trực tiếp | Nhận, validate và lưu ba field mới trong `POST`/`PUT` | Bổ sung test contract create/update |
+| Frontend types/adapter | Giữ `technicalDescription`, `descriptionImages`, `promotions` cùng field cũ | Bổ sung test adapter cho legacy/missing fields |
+| Frontend product detail | Render mô tả kỹ thuật, ảnh trong bài viết và từng khuyến mãi | Browser smoke test source/target locale |
+| Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
 | Frontend admin import | Preview/import tổng quát | Preview rõ ba field mới và cảnh báo dữ liệu không hợp lệ |
 
 Frontend chỉ nhận URL public/reference đã được backend kiểm tra. Frontend không tự chọn Cloudinary account, không nhận API secret và không tự tạo URL theo storage account.
@@ -634,9 +665,9 @@ Phần này là kế hoạch triển khai tiếp theo cho khoảng 1.000 sản p
 
 - Cloudflare AI đã đọc được nhiều nhóm `CLOUDFLARE_ACCOUNT_ID_n`, `CLOUDFLARE_API_TOKEN_n`, `CLOUDFLARE_AI_MODEL_n` tại `online-store-backend/src/services/cloudflareAiService.js`.
 - Cloudflare AI hiện mới xoay config khi nhận HTTP 429; chưa hoàn chỉnh cho HTTP 420, lỗi quota theo message, giới hạn vòng xoay và thống kê bền vững.
-- R2 mới có mẫu biến môi trường nhiều account trong `online-store-backend/.env.example`; chưa coi là adapter upload multi-account đã hoàn tất.
-- Translation cache hiện chưa có `technicalDescription`, `descriptionImages` và `promotions`.
-- Frontend adapter/type/UI hiện chưa giữ và hiển thị ba field mới.
+- R2 mới có mẫu biến môi trường nhiều account trong `online-store-backend/.env.example`; runtime chưa có adapter upload multi-account cho product asset.
+- Translation cache, seeder và API đã có ba field mới; cần hoàn tất quality/integration test.
+- Frontend adapter/type/UI đã giữ và hiển thị ba field mới; cần browser smoke test theo locale.
 - Không chạy batch dịch hoặc upload R2 thật trước khi hoàn tất inventory/dry-run.
 
 ### 12.3. Giai đoạn 0 — Inventory và dry-run không gọi dịch
@@ -1015,6 +1046,8 @@ Chỉ coi kế hoạch đã triển khai khi:
 
 ## 13. Kết luận
 
-Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, output schema, adapter normalize, validator, Product model và import guide đã được cập nhật. Luồng upload riêng cho ảnh trong mô tả chưa được bật; hiện các URL ảnh mô tả được validate và lưu reference.
+Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, staging envelope, output schema, adapter normalize, validator, Product model, API, translation và frontend đã được nối theo contract. Lệnh `npm run seed` hiện chạy full pipeline A–Z theo phase; crawler chỉ chạy lại khi thêm `--force-scrape` hoặc chưa có output.
+
+Luồng upload riêng cho ảnh trong mô tả chưa được bật; hiện các URL ảnh mô tả được validate và lưu reference. R2 multi-account, asset manifest/backup đầy đủ, retry Cloudflare có giới hạn và dry-run batch thật vẫn là điều kiện trước rollout diện rộng.
 
 Triển khai an toàn tiếp theo là chạy fixture/unit test, dry-run một batch nhỏ và kiểm tra dữ liệu trước khi upsert diện rộng. Tầng crawler chỉ chịu trách nhiệm lấy dữ liệu; storage, database và frontend phải dùng contract riêng và không phụ thuộc trực tiếp vào HTML của GearVN.

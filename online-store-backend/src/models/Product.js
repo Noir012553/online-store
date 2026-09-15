@@ -6,6 +6,19 @@
 
 const mongoose = require('mongoose');
 
+const assetMetadataSchema = new mongoose.Schema({
+  sourceUrl: { type: String, default: null },
+  storageProvider: { type: String, default: null },
+  storageAccount: { type: String, default: null },
+  bucket: { type: String, default: null },
+  storageKey: { type: String, default: null },
+  publicUrl: { type: String, default: null },
+  publicId: { type: String, default: null },
+  contentHash: { type: String, default: null },
+  mimeType: { type: String, default: null },
+  bytes: { type: Number, default: null },
+}, { _id: false });
+
 /**
  * Schema cho sản phẩm laptop
  *
@@ -126,10 +139,18 @@ const productSchema = mongoose.Schema(
     },
     imagePublicId: {
       type: String,
-      default: null, // Cloudinary public ID để dễ xóa
+      default: null, // Legacy Cloudinary public ID; R2 references use imageAsset.
     },
     imagePublicIds: {
       type: [String],
+      default: [],
+    },
+    imageAsset: {
+      type: assetMetadataSchema,
+      default: null,
+    },
+    imageAssets: {
+      type: [assetMetadataSchema],
       default: [],
     },
     sku: {
@@ -185,6 +206,10 @@ const productSchema = mongoose.Schema(
         storageAccount: String,
         storageKey: String,
         bucket: String,
+        publicId: String,
+        contentHash: String,
+        mimeType: String,
+        bytes: Number,
       },
     ],
     promotions: [
