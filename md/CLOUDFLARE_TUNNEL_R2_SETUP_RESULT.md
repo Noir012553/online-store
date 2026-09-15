@@ -214,25 +214,36 @@ https://cdn.manln.online/<object-key>
 
 Kết quả mong đợi cho object public là `200 OK`.
 
+## Cập nhật cấu hình backend
+
+Các biến môi trường R2 đã được thêm vào backend theo nhóm tài khoản hiện tại:
+
+```text
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME
+R2_PUBLIC_BASE_URL
+```
+
+Giá trị secret không được ghi vào tài liệu. Backend cần được restart sau khi thay đổi env để nạp lại cấu hình.
+
 ## Việc cần làm tiếp theo
 
 1. Chờ custom domain R2 chuyển sang `Active` nếu giao diện vẫn hiển thị `Initializing`.
-2. Upload một object thử nghiệm vào bucket `online-store`.
-3. Gọi URL object cụ thể qua `https://cdn.manln.online/<object-key>`.
-4. Khi custom domain Active, cấu hình public base URL của ứng dụng:
+2. Restart backend, không cần chạy build.
+3. Upload một object thử nghiệm vào bucket `online-store`.
+4. Gọi URL object cụ thể qua `https://cdn.manln.online/<object-key>`.
+5. Kết quả mong đợi cho object public là `HTTP 200`.
 
-```text
-R2_PUBLIC_BASE_URL=https://cdn.manln.online
-```
-
-5. Không đưa các biến secret sau vào frontend:
+Không đưa các biến secret sau vào frontend:
 
 ```text
 R2_SECRET_ACCESS_KEY
 CLOUDINARY_API_SECRET
 ```
 
-6. Vì R2 custom domain đang `Access: Enabled`, mọi object được truy cập qua domain này cần được xem là public. Nếu cần object private, phải dùng signed URL thay vì bật public access toàn bucket.
+Vì R2 custom domain đang `Access: Enabled`, mọi object được truy cập qua domain này cần được xem là public. Nếu cần object private, phải dùng signed URL thay vì bật public access toàn bucket.
 
 ## Ghi chú triển khai
 
