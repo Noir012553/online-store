@@ -21,7 +21,6 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     extract_product_promotions,
-    extract_product_specs,
     get_output_paths,
     parse_scraper_metadata,
 )
