@@ -230,11 +230,13 @@ Giá trị secret không được ghi vào tài liệu. Backend cần được r
 
 ## Việc cần làm tiếp theo
 
-1. Chờ custom domain R2 chuyển sang `Active` nếu giao diện vẫn hiển thị `Initializing`.
-2. Restart backend, không cần chạy build.
-3. Upload một object thử nghiệm vào bucket `online-store`.
-4. Gọi URL object cụ thể qua `https://cdn.manln.online/<object-key>`.
-5. Kết quả mong đợi cho object public là `HTTP 200`.
+1. Xử lý và kiểm tra các blocker trong risk register trước.
+2. Chờ custom domain R2 chuyển sang `Active` nếu giao diện vẫn hiển thị `Initializing`.
+3. Restart backend sau khi thay đổi env, không cần chạy build.
+4. Upload một object thử nghiệm vào bucket `online-store`.
+5. Gọi URL object cụ thể qua `https://cdn.manln.online/<object-key>`.
+6. Chạy dry-run/batch staging nhỏ, kiểm tra metadata account/bucket/key và manifest trước full seed.
+7. Kết quả mong đợi cho object public là `HTTP 200`.
 
 Không đưa các biến secret sau vào frontend:
 
@@ -244,6 +246,19 @@ CLOUDINARY_API_SECRET
 ```
 
 Vì R2 custom domain đang `Access: Enabled`, mọi object được truy cập qua domain này cần được xem là public. Nếu cần object private, phải dùng signed URL thay vì bật public access toàn bucket.
+
+## Rà soát blocker seed/R2 từ source
+
+Luồng seed đã có logic tự gọi crawler khi thư mục `online-store-backend/data/scraped-products` không có CSV/JSON; có thể ép cào lại bằng `npm run seed -- --force-scrape`. Tuy nhiên chưa nên kết luận full seed sẵn sàng end-to-end vì:
+
+1. `online-store-backend/src/services/r2AssetService.js` đang gọi `crypto.createHash()` trong stable-hash account selection nhưng cần xác nhận import `crypto` trước khi upload.
+2. `aboutMedia` là module critical chạy trước crawler; cần `MONGO_URI`, một nhóm R2 đầy đủ và `ABOUT_HERO_SOURCE` nếu thiếu file hero local.
+3. R2 hiện chưa có quota tracking hoặc rotation/failover tương đương policy nhiều tài khoản Cloudinary. Không được xoay account cho lỗi xác thực, bucket sai, MIME sai hoặc dữ liệu không hợp lệ.
+4. `publicUrl` chỉ có thể kiểm tra chắc chắn sau khi custom domain ở trạng thái `Active`; phải lưu đúng `storageAccount`, `bucket`, `storageKey` để validate/delete.
+5. Upload, Product commit và manifest chưa được chứng minh atomic cho toàn bộ batch; không cleanup asset cũ trước khi reference mới được ghi và kiểm tra thành công.
+6. Chưa có bằng chứng runtime cho dry-run batch nhỏ, upload R2 thật và kiểm tra object bằng URL cụ thể.
+
+Risk register chi tiết nằm tại `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`.
 
 ## Ghi chú triển khai
 
