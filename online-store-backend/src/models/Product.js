@@ -139,7 +139,7 @@ const productSchema = mongoose.Schema(
     },
     imagePublicId: {
       type: String,
-      default: null, // Legacy Cloudinary public ID; R2 references use imageAsset.
+      default: null, // Legacy external asset ID; R2 references use imageAsset.
     },
     imagePublicIds: {
       type: [String],

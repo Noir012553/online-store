@@ -41,6 +41,7 @@ const ensureAsset = async ({ source, role, stableKey, mimeType }) => uploadAsset
   role,
   stableKey,
   sourceName: typeof source === 'string' ? source : stableKey,
+  storagePrefix: `about/${role}/${stableKey}`,
   ...(mimeType ? { mimeType } : {}),
 });
 

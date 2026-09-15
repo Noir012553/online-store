@@ -8,8 +8,6 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-const { deleteCloudinaryResourcesByPrefix } = require('../services/cloudinaryService');
-
 const clearLocalUploads = () => {
   const uploadsDir = path.resolve(__dirname, '../../uploads');
   if (!fs.existsSync(uploadsDir)) return 0;
@@ -28,12 +26,8 @@ const clearDatabase = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
 
-    const cloudinaryResult = await deleteCloudinaryResourcesByPrefix('laptop-store/');
-    console.log(`[CLEAR] Deleted ${cloudinaryResult.deleted} managed Cloudinary resources`);
-    cloudinaryResult.accounts.forEach(({ accountId, resourceTypes }) => {
-      console.log(`[CLEAR] Cloudinary account ${accountId}:`, resourceTypes);
-    });
-    console.log(`[CLEAR] Deleted ${clearLocalUploads()} local upload directories/files`);
+    console.log('[CLEAR] R2 objects are preserved; use an approved R2 manifest cleanup for asset deletion.');
+    console.log(`[CLEAR] Deleted ${clearLocalUploads()} legacy local upload directories/files`);
 
     const db = mongoose.connection.db;
 

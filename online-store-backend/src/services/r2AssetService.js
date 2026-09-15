@@ -148,9 +148,20 @@ const getExtension = (mimeType, sourceName = '') => (
   MIME_EXTENSIONS[mimeType] || path.extname(sourceName).slice(1).toLowerCase() || 'bin'
 );
 
-const buildStorageKey = ({ contentHash, mimeType, role = DEFAULT_ASSET_ROLE, sourceName = '' }) => {
+const normalizeStoragePrefix = prefix => {
+  const normalized = String(prefix || '').trim().replace(/^\/+|\/+$/g, '');
+  if (!normalized || normalized.includes('..') || normalized.includes('\\') || !/^[a-zA-Z0-9/_-]+$/.test(normalized)) {
+    throw createR2Error('R2_STORAGE_PREFIX_INVALID', 'R2 storage prefix is invalid');
+  }
+  return normalized;
+};
+
+const buildStorageKey = ({ contentHash, mimeType, role = DEFAULT_ASSET_ROLE, sourceName = '', storagePrefix = null }) => {
   if (!/^[a-f0-9]{64}$/.test(contentHash)) throw new TypeError('contentHash must be a SHA-256 hex digest');
-  return `assets/${normalizeRole(role)}/${contentHash}.${getExtension(mimeType, sourceName)}`;
+  const prefix = storagePrefix
+    ? normalizeStoragePrefix(storagePrefix)
+    : `assets/${normalizeRole(role)}`;
+  return `${prefix}/${contentHash}.${getExtension(mimeType, sourceName)}`;
 };
 
 const buildPublicUrl = (account, storageKey) => `${account.publicBaseUrl}/${storageKey}`;
@@ -173,6 +184,7 @@ const uploadBuffer = async (buffer, options = {}) => {
     mimeType: validation.mimeType,
     role,
     sourceName,
+    storagePrefix: options.storagePrefix,
   });
   if (!isSafeStorageKey(storageKey)) throw createR2Error('R2_STORAGE_KEY_INVALID', 'R2 storage key is invalid');
 
@@ -327,6 +339,7 @@ module.exports = {
   inferMimeType,
   validateAssetBuffer,
   buildStorageKey,
+  normalizeStoragePrefix,
   isSafeStorageKey,
   uploadBuffer,
   uploadRemoteUrl,

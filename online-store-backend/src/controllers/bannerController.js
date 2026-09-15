@@ -63,12 +63,13 @@ const getBannerImageCleanupAsset = banner => (
   banner?.imageAsset?.storageProvider === 'r2' ? banner.imageAsset : null
 );
 
-const uploadBannerImage = async file => {
+const uploadBannerImage = async (file, storagePrefix) => {
   const asset = await uploadAsset(file.buffer, {
     role: 'banner',
     stableKey: `${file.originalname}:${file.size}`,
     sourceName: file.originalname,
     mimeType: file.mimetype,
+    storagePrefix,
   });
   return {
     image: asset.publicUrl,
@@ -78,7 +79,7 @@ const uploadBannerImage = async file => {
 };
 
 const resolveBannerImage = async req => {
-  if (req.file) return uploadBannerImage(req.file);
+  if (req.file) return uploadBannerImage(req.file, `incoming/banners/${req.user._id}`);
 
   const asset = parseAssetReference(req.body.imageAsset);
   if (!asset) throw new Error('A valid R2 banner asset is required');

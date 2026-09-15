@@ -10,9 +10,6 @@ const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const http = require('http');
-const path = require('path');
-const fs = require('fs');
-const { ensureUploadDir } = require('./config/multerConfig');
 const { connectMongo } = require('./config/mongoConnection');
 
 // ==================== Import Routes ====================
@@ -50,6 +47,7 @@ const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
 const { startExportJobWorker } = require('./services/exportJobService');
 const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
+const { getR2StorageStatus } = require('./services/r2AssetService');
 
 // ==================== Initialize Express App ====================
 const app = express();
@@ -57,10 +55,6 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 let apiRequestSequence = 0;
 const debugApi = () => {};
-
-// Initialize upload directories for local storage
-ensureUploadDir('users');
-ensureUploadDir('reviewers');
 
 
 /**
@@ -207,12 +201,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
  * Nên ta tin tưởng loopback proxy để lấy đúng IP từ cf-connecting-ip header
  */
 app.set('trust proxy', 'loopback');
-
-/**
- * Static Files Middleware
- * - /uploads: Phục vụ file ảnh động từ API (phân loại theo user, admin, reviewer)
- */
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 /**
  * Swagger UI Middleware
@@ -437,12 +425,17 @@ app.get('/', (req, res) => {
  */
 app.get('/readyz', (req, res) => {
   const storage = getStorageStatus();
-  const ready = startupReady && mongoose.connection.readyState === 1 && storage.configured;
+  const assetStorage = getR2StorageStatus();
+  const ready = startupReady
+    && mongoose.connection.readyState === 1
+    && storage.configured
+    && assetStorage.configured;
   res.status(ready ? 200 : 503).json({
     status: ready ? 'ready' : 'not_ready',
     databaseConnected: mongoose.connection.readyState === 1,
     startupReady,
     storage,
+    assetStorage,
     timestamp: new Date().toISOString(),
   });
 });
@@ -466,44 +459,6 @@ app.get('/health/cache', (req, res) => {
     res.status(500).json({
       success: false,
       code: 'HEALTH_CHECK_FAILED',
-      message: getMessage(req.lang, 'common.error_request_title'),
-    });
-  }
-});
-
-/**
- * Health check endpoint cho static files
- * GET /health/uploads - Kiểm tra xem /uploads có được serve đúng không
- */
-app.get('/health/uploads', (req, res) => {
-  const uploadDir = path.join(__dirname, '../uploads');
-  const adminDir = path.join(uploadDir, 'admins');
-
-  try {
-    const fs = require('fs');
-    const uploadsExists = fs.existsSync(uploadDir);
-    const adminsExists = fs.existsSync(adminDir);
-    let adminFiles = [];
-
-    if (adminsExists) {
-      adminFiles = fs.readdirSync(adminDir);
-    }
-
-    res.json({
-      message: 'Static files status',
-      uploadDir,
-      adminDir,
-      uploadsExists,
-      adminsExists,
-      adminFilesCount: adminFiles.length,
-      adminFileSample: adminFiles.slice(0, 3),
-      testFile: 'admin_69bb64168097c2a29b6036f8_1773928672951.png',
-      testFileExists: adminFiles.includes('admin_69bb64168097c2a29b6036f8_1773928672951.png'),
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      code: 'UPLOAD_HEALTH_CHECK_FAILED',
       message: getMessage(req.lang, 'common.error_request_title'),
     });
   }

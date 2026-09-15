@@ -26,12 +26,12 @@ const buildImageManifest = (product, uploadedProduct) => ({
   image: {
     sourcePath: product.image,
     url: uploadedProduct.image,
-    publicId: uploadedProduct.imagePublicId,
+    asset: uploadedProduct.imageAsset,
   },
   gallery: uploadedProduct.images.map((url, index) => ({
     sourcePath: product.images[index],
     url,
-    publicId: uploadedProduct.imagePublicIds[index],
+    asset: uploadedProduct.imageAssets[index] || null,
   })),
   status: 'uploaded',
 });
@@ -90,7 +90,7 @@ const main = async () => {
     const manifestPath = path.join(
       outputDirectory,
       'manifests',
-      `${path.basename(filePath, path.extname(filePath))}.cloudinary.json`
+      `${path.basename(filePath, path.extname(filePath))}.r2.json`
     );
     fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
     fs.writeFileSync(

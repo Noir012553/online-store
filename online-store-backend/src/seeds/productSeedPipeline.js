@@ -216,14 +216,19 @@ const ensureSourceCategories = async (products, filePath, dryRun) => {
   return [];
 };
 
-const getProductImagePublicId = (product, slot, index = 0) => {
+const getProductIdentityHash = product => {
   const identity = product.sourceProductId
     || product.sku
     || product.sourceUrl
     || `${product.brand}:${product.name}`;
-  const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
-  return `${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
+  return crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
 };
+
+const getProductStoragePrefix = (product, role) => `products/${getProductIdentityHash(product)}/${role}`;
+
+const getProductImagePublicId = (product, slot, index = 0) => (
+  `${getProductIdentityHash(product)}/${slot}${slot === 'gallery' ? `-${index}` : ''}`
+);
 
 const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = {}) => {
   const normalizedSource = String(sourceUrl || '').trim();
@@ -235,6 +240,7 @@ const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = 
     role,
     stableKey: publicId,
     publicKey: product.sourceProductId || product.sku || product.sourceUrl,
+    storagePrefix: getProductStoragePrefix(product, role),
   });
   return {
     ...asset,
@@ -265,7 +271,6 @@ const uploadProductImages = async (product) => {
     product,
   );
   const galleryImages = [];
-  const galleryPublicIds = [];
   const galleryAssets = [];
 
   for (let index = 0; index < sourceGallery.length; index += 1) {
@@ -277,7 +282,6 @@ const uploadProductImages = async (product) => {
         product,
       );
       galleryImages.push(uploadedImage.url);
-      galleryPublicIds.push(uploadedImage.publicId);
       galleryAssets.push(uploadedImage);
     } catch (error) {
       console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
@@ -311,10 +315,10 @@ const uploadProductImages = async (product) => {
   return {
     ...product,
     image: mainImage.url,
-    imagePublicId: mainImage.publicId,
+    imagePublicId: null,
     imageAsset: mainImage,
     images: galleryImages,
-    imagePublicIds: galleryPublicIds,
+    imagePublicIds: [],
     imageAssets: galleryAssets,
     descriptionImages,
   };
@@ -654,6 +658,8 @@ const runProductSeedPipeline = async (options = {}) => {
 };
 
 module.exports = {
+  getProductIdentityHash,
+  getProductStoragePrefix,
   getProductImagePublicId,
   uploadProductImage,
   uploadProductImages,

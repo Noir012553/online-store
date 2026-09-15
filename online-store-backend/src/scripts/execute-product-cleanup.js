@@ -8,7 +8,7 @@ const Product = require('../models/Product');
 const Review = require('../models/Review');
 const Coupon = require('../models/Coupon');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-const { deleteMultipleFromCloudinary } = require('../services/cloudinaryService');
+const { deleteR2Assets } = require('../services/r2AssetService');
 
 const parseArg = (args, name, fallback = null) => {
   const prefix = `--${name}=`;
@@ -36,14 +36,14 @@ async function main() {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI environment variable is not set');
 
   const productInventory = await readJson(path.join(inventoryDir, 'product-cleanup-inventory.json'));
-  const cloudinaryInventory = await readJson(path.join(inventoryDir, 'cloudinary-cleanup-inventory.json'));
+  const r2Inventory = await readJson(path.join(inventoryDir, 'r2-cleanup-inventory.json'));
   const previewReport = await readJson(path.join(inventoryDir, 'cleanup-report.json'));
   const productIds = productInventory.productIds || [];
 
-  if (productInventory.environment !== environment || cloudinaryInventory.environment !== environment) {
+  if (productInventory.environment !== environment || r2Inventory.environment !== environment) {
     throw new Error('CLEANUP_MANIFEST_ENVIRONMENT_MISMATCH');
   }
-  if (productInventory.approved !== true || cloudinaryInventory.approved !== true) {
+  if (productInventory.approved !== true || r2Inventory.approved !== true) {
     throw new Error('CLEANUP_MANIFEST_APPROVAL_REQUIRED: review both manifests and set approved=true');
   }
   if (productInventory.ambiguous?.length > 0 || productInventory.missingIds?.length > 0) {
@@ -55,18 +55,19 @@ async function main() {
   if (productIds.length === 0) throw new Error('CLEANUP_EMPTY_MANIFEST');
 
   await connectMongo();
-  const cloudinaryResult = await deleteMultipleFromCloudinary(cloudinaryInventory.publicIds || []);
-  if (cloudinaryResult.failed > 0) {
+  const r2Result = await deleteR2Assets(r2Inventory.assets || []);
+  const r2Failed = r2Result.filter(result => result.deleted !== true).length;
+  if (r2Failed > 0) {
     const failedReport = {
       ...previewReport,
       dryRun: false,
-      cloudinaryDeletedCount: cloudinaryResult.deleted,
-      cloudinaryFailedCount: cloudinaryResult.failed,
-      errors: cloudinaryResult.errors,
+      r2AssetDeletedCount: r2Result.length - r2Failed,
+      r2AssetFailedCount: r2Failed,
+      errors: r2Result.filter(result => result.deleted !== true),
       verified: false,
     };
     await fs.writeFile(path.join(inventoryDir, 'cleanup-report.json'), JSON.stringify(failedReport, null, 2));
-    throw new Error('CLEANUP_CLOUDINARY_DELETE_FAILED: database was left unchanged');
+    throw new Error('CLEANUP_R2_DELETE_FAILED: database was left unchanged');
   }
 
   const objectIds = productIds.map(id => new mongoose.Types.ObjectId(id));
@@ -94,8 +95,8 @@ async function main() {
     productDeletedCount: orderPolicy === 'keep' ? 0 : productCleanup.deletedCount,
     productArchivedCount: orderPolicy === 'keep' ? productCleanup.modifiedCount : 0,
     productCleanupMode: orderPolicy === 'keep' ? 'soft_delete' : 'hard_delete',
-    cloudinaryDeletedCount: cloudinaryResult.deleted,
-    cloudinaryFailedCount: 0,
+    r2AssetDeletedCount: r2Result.length,
+    r2AssetFailedCount: 0,
     dependentReviewCount: reviews.deletedCount,
     dependentCouponCount: coupons.modifiedCount,
     translationCacheCount: translationCache.deletedCount,

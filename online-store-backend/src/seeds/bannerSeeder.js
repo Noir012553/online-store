@@ -59,6 +59,7 @@ const resolveBannerImage = async (sourceUrl, stableKey) => {
     stableKey,
     sourceUrl,
     sourceName: stableKey,
+    storagePrefix: `banners/${stableKey}`,
   });
   return { image: asset.publicUrl, imagePublicId: null, imageAsset: asset };
 };
