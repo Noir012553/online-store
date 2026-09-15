@@ -8,6 +8,15 @@ Tài liệu này tách policy storage khỏi `.builderrules`, đồng thời ghi
 - Các tài liệu cũ vẫn có nội dung Cloudinary; cần xem những phần đó là lịch sử hoặc policy migration, không mặc định là code Cloudinary đang tồn tại trong workspace hiện tại.
 - Chưa chạy `npm run seed`, chưa chạy upload thật và không chạy `npm run build` trong lần rà soát này.
 
+## 1.1. Cost guard bắt buộc
+
+- Chỉ dùng gói free/tài khoản free; không bật billing, paid overage hoặc auto-upgrade.
+- Không gọi Cloudinary, Cloudflare AI, R2 hoặc dịch vụ bên thứ ba bằng credential thật trong test tự động.
+- Không chạy batch cào, dịch hoặc upload thật nếu chưa có xác nhận rõ ràng và quota free còn đủ.
+- Ưu tiên mock provider, fixture local, dry-run không gọi provider và kiểm tra quota trước mọi thử nghiệm có network.
+- Không ghi API key, API secret, token hoặc thông tin billing vào Markdown, log, report, frontend hay manifest public.
+- Khi chưa xác định chắc chắn request có thể phát sinh phí, mặc định không thực hiện request đó.
+
 ## 2. Policy Cloudinary nhiều tài khoản
 
 Tài khoản Cloudinary hiện tại đã hết rate limit. Có thể dùng nhiều tài khoản Cloudinary và chia ảnh giữa các tài khoản bằng các nhóm biến môi trường riêng.
