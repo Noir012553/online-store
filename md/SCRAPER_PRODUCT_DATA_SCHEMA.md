@@ -764,13 +764,23 @@ Dùng R2 Standard cho ảnh truy cập thường xuyên. Mỗi asset sau upload 
   "storageProvider": "r2",
   "storageAccount": "1",
   "bucket": "product-assets",
-  "storageKey": "products/{productId}/{role}/{contentHash}.webp",
+  "storageKey": "products/{identityHash}/{role}/{contentHash}.webp",
   "publicUrl": "https://...",
   "alt": "..."
 }
 ```
 
 Quy tắc upload:
+
+Ảnh sản phẩm được tổ chức theo prefix logic để dễ quản lý:
+
+```text
+products/{identityHash}/main/{contentHash}.ext
+products/{identityHash}/gallery/{contentHash}.ext
+products/{identityHash}/description/{contentHash}.ext
+```
+
+Upload chưa gắn product dùng prefix `incoming/{role}/{ownerId}`; banner/about dùng prefix riêng theo entity. R2 không có thư mục vật lý, các prefix trên chỉ là object key.
 
 1. Backend chọn account/bucket; frontend không được chọn storage account.
 2. Tách role `main`, `gallery` và `description`.

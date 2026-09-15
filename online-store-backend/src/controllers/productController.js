@@ -814,6 +814,7 @@ const createProduct = asyncHandler(async (req, res) => {
         stableKey: `${req.user._id}:product:${req.file.originalname}`,
         sourceName: req.file.originalname,
         mimeType: req.file.mimetype,
+        storagePrefix: `incoming/products/${req.user._id}`,
       })
       : await resolveR2Asset(imageAsset);
   } catch (error) {
@@ -1053,6 +1054,7 @@ const updateProduct = asyncHandler(async (req, res) => {
           stableKey: `${req.user._id}:product:${req.file.originalname}`,
           sourceName: req.file.originalname,
           mimeType: req.file.mimetype,
+          storagePrefix: `products/${req.params.id}/main`,
         })
         : await resolveR2Asset(imageAsset);
       product.image = uploadedImageAsset.publicUrl;

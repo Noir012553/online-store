@@ -456,11 +456,18 @@ const TRANSLATABLE_PRODUCT_FIELDS = [
 const isDryRun = (value) => value === true || value === 'true';
 const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
 
-const createZipAssetKey = (product, slot, index = 0) => {
+const getImportProductIdentityHash = product => {
   const identity = product.productId || product.sku || `${product.brand}:${product.name}`;
-  const identityHash = crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
-  return `zip-import/${identityHash}/${slot}${slot === 'gallery' ? `-${index}` : ''}`;
+  return crypto.createHash('sha256').update(String(identity)).digest('hex').slice(0, 24);
 };
+
+const createZipAssetKey = (product, slot, index = 0) => (
+  `${getImportProductIdentityHash(product)}/${slot}${slot === 'gallery' ? `-${index}` : ''}`
+);
+
+const createZipAssetPrefix = (product, slot) => (
+  `products/${getImportProductIdentityHash(product)}/${slot}`
+);
 
 const restoreZipImageAssets = async (products, assets, dryRun = false) => {
   const referencedAssetPaths = new Set();
@@ -492,6 +499,7 @@ const restoreZipImageAssets = async (products, assets, dryRun = false) => {
       uploadPromise = uploadBuffer(assets.get(assetPath), {
         role: slot,
         stableKey: createZipAssetKey(product, slot, index),
+        storagePrefix: createZipAssetPrefix(product, slot),
         sourceUrl: assetPath,
         sourceName: assetPath,
       });

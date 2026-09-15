@@ -31,6 +31,7 @@ const uploadR2Asset = asyncHandler(async (req, res) => {
     stableKey: `${req.user._id}:${folder}:${req.file.originalname}`,
     sourceName: req.file.originalname,
     mimeType: req.file.mimetype,
+    storagePrefix: `incoming/${folder}/${req.user._id}`,
   });
 
   res.status(201).json({

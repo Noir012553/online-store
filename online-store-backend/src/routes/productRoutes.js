@@ -198,6 +198,7 @@ router.post('/upload', protect, admin, uploadLimiter, uploadMemory.single('image
       stableKey: `${req.user._id}:product:${req.file.originalname}`,
       sourceName: req.file.originalname,
       mimeType: req.file.mimetype,
+      storagePrefix: `incoming/products/${req.user._id}`,
     });
 
     res.json({

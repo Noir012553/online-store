@@ -72,11 +72,15 @@ describe('R2 asset service helpers', () => {
       .to.throw('R2_ASSET_CONTENT_INVALID');
   });
 
-  it('builds content-addressed keys and rejects unsafe references', () => {
+  it('builds content-addressed keys under a managed storage prefix', () => {
     const hash = 'a'.repeat(64);
+    expect(buildStorageKey({ contentHash: hash, mimeType: 'image/jpeg', role: 'main', storagePrefix: 'products/identity/main' }))
+      .to.equal(`products/identity/main/${hash}.jpg`);
     expect(buildStorageKey({ contentHash: hash, mimeType: 'image/jpeg', role: 'main' }))
       .to.equal(`assets/main/${hash}.jpg`);
     expect(isSafeStorageKey('assets/main/file.jpg')).to.equal(true);
     expect(isSafeStorageKey('../outside.jpg')).to.equal(false);
+    expect(() => buildStorageKey({ contentHash: hash, mimeType: 'image/jpeg', storagePrefix: '../outside' }))
+      .to.throw('R2_STORAGE_PREFIX_INVALID');
   });
 });
