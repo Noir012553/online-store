@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '../lib/context/LanguageContext';
 import { getAuthToken } from '../lib/api';
 
-export interface R2AssetReference {
+export type R2AssetReference = Record<string, unknown> & {
   sourceUrl: string | null;
   storageProvider: 'r2';
   storageAccount: string;
@@ -14,7 +14,7 @@ export interface R2AssetReference {
   contentHash: string;
   mimeType: string;
   bytes: number;
-}
+};
 
 export interface R2UploadResult {
   storageKey: string;
