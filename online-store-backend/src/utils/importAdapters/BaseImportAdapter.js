@@ -152,13 +152,17 @@ class BaseImportAdapter {
       : undefined;
     normalized.image = getCrawlerValue('ProductMainImage', 'MainImage');
     normalized.images = parseCrawlerArray(getCrawlerValue('ProductGalleryImages', 'GalleryImages'));
-    const stockStatus = getCrawlerValue('ProductStockStatus', 'InStock');
-    const isInStock = /^(in stock|còn hàng|true|1)$/i.test(String(stockStatus).trim());
     const configuredInitialStock = this.config.initialStock;
     const initialStock = Number.isInteger(configuredInitialStock) && configuredInitialStock >= 0
       ? configuredInitialStock
       : 1;
-    normalized.countInStock = isInStock ? initialStock : 0;
+    if (isNewCrawlerProduct) {
+      normalized.countInStock = initialStock;
+    } else {
+      const stockStatus = getCrawlerValue('ProductStockStatus', 'InStock');
+      const isInStock = /^(in stock|còn hàng|true|1)$/i.test(String(stockStatus).trim());
+      normalized.countInStock = isInStock ? initialStock : 0;
+    }
     normalized.baseCurrencyCode = 'VND';
 
     return normalized;

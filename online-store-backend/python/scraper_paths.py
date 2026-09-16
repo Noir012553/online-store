@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 PRODUCT_OUTPUT_FIELDS = (
     "ProductBrand", "ProductID", "ProductName", "ProductSKU", "ProductPriceVND",
-    "ProductRegularPriceVND", "ProductStockStatus", "ProductCategory",
+    "ProductRegularPriceVND", "ProductCategory",
     "ProductSpecifications", "ProductTechnicalDescription", "ProductDescription",
     "ProductDescriptionImages", "ProductPromotions", "ProductMainImage",
     "ProductGalleryImages", "ProductURL",

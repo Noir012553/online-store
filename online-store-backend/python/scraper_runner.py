@@ -164,8 +164,6 @@ def _product_record(soup, url, brand, categories):
     if not name:
         return None
     sku = str(json_ld.get("sku") or "").strip()
-    availability = str(offer.get("availability") or "").lower()
-    instock = "In Stock" if availability.endswith("instock") else "Out of Stock"
     specs = extract_product_specs(soup)
     return {
         "ProductBrand": brand,
@@ -174,7 +172,6 @@ def _product_record(soup, url, brand, categories):
         "ProductSKU": sku,
         "ProductPriceVND": price,
         "ProductRegularPriceVND": regular_price,
-        "ProductStockStatus": instock,
         "ProductCategory": categories,
         "ProductSpecifications": specs,
         "ProductTechnicalDescription": "Thông số: " + json.dumps(specs, ensure_ascii=False),
