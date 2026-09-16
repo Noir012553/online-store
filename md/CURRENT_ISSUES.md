@@ -310,7 +310,7 @@ Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổ
 
 Chi tiết mức độ, file nguồn và tiêu chí nghiệm thu nằm trong `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`. Chưa chạy seed/upload thật hoặc build trong lần rà soát này.
 
-## 11. Crawler dừng khi collection không có sản phẩm
+## 11. Crawler dừng khi bất kỳ collection nào không có sản phẩm
 
 ### Triệu chứng
 
@@ -320,14 +320,14 @@ Khi chạy full seed với crawler:
 npm run seed:refresh:shutdown
 ```
 
-pipeline dừng tại scraper HP Laptop Gaming với lỗi:
+pipeline có thể dừng tại bất kỳ scraper brand/danh mục nào nếu collection tương ứng rỗng. Log đã quan sát ở scraper HP Laptop Gaming với lỗi:
 
 ```text
 RuntimeError: Collection không có sản phẩm; output cũ được giữ nguyên
 C:\Windows\system32\cmd.exe kết thúc với mã 1
 ```
 
-Các scraper trước đó như Acer, Asus và Dell vẫn thu thập được dữ liệu. Collection GearVN `laptop-gaming-hp` hiện trả về không có product URL.
+Các scraper trước đó như Acer, Asus và Dell vẫn thu thập được dữ liệu. Trong lần chạy này, collection GearVN `laptop-gaming-hp` trả về không có product URL; các collection khác nếu rỗng cũng phải được xử lý cùng quy tắc này.
 
 ### Nguyên nhân
 
@@ -372,4 +372,4 @@ Hành vi sau khi sửa:
 npm run seed:refresh:shutdown
 ```
 
-Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows vẫn được thực hiện theo script hiện tại. Collection HP Gaming cần được theo dõi riêng để cập nhật slug hoặc nguồn dữ liệu nếu GearVN khôi phục/thay đổi danh mục.
+Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows vẫn được thực hiện theo script hiện tại. Mọi collection rỗng cần được theo dõi riêng để cập nhật slug hoặc nguồn dữ liệu nếu GearVN khôi phục/thay đổi danh mục; không được coi đây là ngoại lệ riêng của HP Gaming.
