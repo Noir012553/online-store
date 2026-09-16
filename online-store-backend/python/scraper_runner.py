@@ -288,7 +288,11 @@ def run_scraper(script_path, collection_slug):
     if not collection_complete:
         raise RuntimeError("Không thể hoàn tất việc đọc collection; output cũ được giữ nguyên")
     if not product_urls:
-        raise RuntimeError("Collection không có sản phẩm; output cũ được giữ nguyên")
+        print(
+            f"⚠️ Collection {collection_slug} không có sản phẩm; "
+            "giữ nguyên output cũ và bỏ qua scraper này."
+        )
+        return
 
     records, failed_urls = scrape_products(
         product_urls,
