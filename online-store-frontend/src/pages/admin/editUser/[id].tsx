@@ -97,7 +97,7 @@ function EditUserContent() {
           avatarAsset: uploadResult.asset,
         }),
       });
-      const nextProfileImage = response.profileImage || response.user?.profileImage || uploadResult.secure_url;
+      const nextProfileImage = response.profileImage || response.user?.profileImage || uploadResult.publicUrl;
       setProfileImage(nextProfileImage);
       if (currentUser?.id === String(id)) {
         updateUserProfileImage(nextProfileImage);

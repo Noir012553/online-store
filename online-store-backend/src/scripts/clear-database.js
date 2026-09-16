@@ -8,6 +8,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+const { deleteR2ProjectAssets } = require('../services/r2AssetService');
 const clearLocalUploads = () => {
   const uploadsDir = path.resolve(__dirname, '../../uploads');
   if (!fs.existsSync(uploadsDir)) return 0;
@@ -26,7 +27,9 @@ const clearDatabase = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
 
-    console.log('[CLEAR] R2 objects are preserved; use an approved R2 manifest cleanup for asset deletion.');
+    const r2Cleanup = await deleteR2ProjectAssets();
+    console.log(`[CLEAR] Deleted ${r2Cleanup.deletedCount} R2 project assets from ${r2Cleanup.accounts} account(s)`);
+    console.log(`[CLEAR] R2 prefixes: ${r2Cleanup.prefixes.join(', ')}`);
     console.log(`[CLEAR] Deleted ${clearLocalUploads()} legacy local upload directories/files`);
 
     const db = mongoose.connection.db;

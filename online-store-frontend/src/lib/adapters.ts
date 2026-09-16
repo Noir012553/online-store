@@ -175,7 +175,7 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
             alt: typeof image.alt === 'string' ? image.alt : undefined,
           } : null;
         })
-        .filter((image): image is ProductDescriptionImage => Boolean(image))
+        .filter((image: ProductDescriptionImage | null): image is ProductDescriptionImage => Boolean(image))
       : [];
 
     normalized.promotions = Array.isArray(normalized.promotions)

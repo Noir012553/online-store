@@ -26,6 +26,7 @@
     "test:flow": "node src/test/with-order.test.js",
     "seed": "node --expose-gc src/seeds/index.js",
     "seed:shutdown": "powershell -NoProfile -Command \"npm run seed; if ($?) { shutdown /s /t 60 }\"",
+    "seed:refresh:shutdown": "powershell -NoProfile -Command \"npm run seed -- --force-scrape; if ($?) { shutdown /s /t 60 }\"",
     "seed:list": "node --expose-gc src/seeds/index.js -- --list",
     "seed:modules": "node --expose-gc src/seeds/index.js -- --modules",
     "seed:only": "node --expose-gc src/seeds/index.js -- --only-module",

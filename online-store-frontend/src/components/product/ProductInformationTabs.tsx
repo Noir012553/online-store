@@ -1,5 +1,4 @@
 import { useLanguage } from '../../lib/i18n';
-import { useLanguage } from '../../lib/i18n';
 import { Laptop } from '../../lib/data';
 import { getImageUrl } from '../../lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';

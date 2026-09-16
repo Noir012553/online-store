@@ -21,7 +21,6 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     extract_product_promotions,
-    extract_product_specs,
     get_output_paths,
     parse_scraper_metadata,
 )
@@ -165,8 +164,6 @@ def _product_record(soup, url, brand, categories):
     if not name:
         return None
     sku = str(json_ld.get("sku") or "").strip()
-    availability = str(offer.get("availability") or "").lower()
-    instock = "In Stock" if availability.endswith("instock") else "Out of Stock"
     specs = extract_product_specs(soup)
     return {
         "ProductBrand": brand,
@@ -175,7 +172,6 @@ def _product_record(soup, url, brand, categories):
         "ProductSKU": sku,
         "ProductPriceVND": price,
         "ProductRegularPriceVND": regular_price,
-        "ProductStockStatus": instock,
         "ProductCategory": categories,
         "ProductSpecifications": specs,
         "ProductTechnicalDescription": "Thông số: " + json.dumps(specs, ensure_ascii=False),
@@ -292,7 +288,11 @@ def run_scraper(script_path, collection_slug):
     if not collection_complete:
         raise RuntimeError("Không thể hoàn tất việc đọc collection; output cũ được giữ nguyên")
     if not product_urls:
-        raise RuntimeError("Collection không có sản phẩm; output cũ được giữ nguyên")
+        print(
+            f"⚠️ Collection {collection_slug} không có sản phẩm; "
+            "giữ nguyên output cũ và bỏ qua scraper này."
+        )
+        return
 
     records, failed_urls = scrape_products(
         product_urls,
