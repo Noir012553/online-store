@@ -89,7 +89,11 @@ const chooseProductFiles = (directory) => {
   if (!fs.existsSync(directory)) return [];
 
   const candidates = fs.readdirSync(directory, { withFileTypes: true })
-    .filter(entry => entry.isFile() && ['.json', '.csv'].includes(path.extname(entry.name).toLowerCase()))
+    .filter(entry => (
+      entry.isFile()
+      && ['.json', '.csv'].includes(path.extname(entry.name).toLowerCase())
+      && !entry.name.toLowerCase().endsWith('.staging.json')
+    ))
     .map(entry => entry.name);
 
   const grouped = new Map();
