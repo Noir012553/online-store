@@ -309,3 +309,67 @@ Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổ
 - Migration asset Cloudinary cũ có thể thiếu account/public ID; không được tự động xóa hoặc di chuyển.
 
 Chi tiết mức độ, file nguồn và tiêu chí nghiệm thu nằm trong `md/ASSET_STORAGE_CLOUDINARY_R2_RISK_REGISTER.md`. Chưa chạy seed/upload thật hoặc build trong lần rà soát này.
+
+## 11. Crawler dừng khi collection không có sản phẩm
+
+### Triệu chứng
+
+Khi chạy full seed với crawler:
+
+```powershell
+npm run seed:refresh:shutdown
+```
+
+pipeline dừng tại scraper HP Laptop Gaming với lỗi:
+
+```text
+RuntimeError: Collection không có sản phẩm; output cũ được giữ nguyên
+C:\Windows\system32\cmd.exe kết thúc với mã 1
+```
+
+Các scraper trước đó như Acer, Asus và Dell vẫn thu thập được dữ liệu. Collection GearVN `laptop-gaming-hp` hiện trả về không có product URL.
+
+### Nguyên nhân
+
+`online-store-backend/python/scraper_runner.py` trước đây coi collection rỗng là lỗi fatal:
+
+```python
+if not product_urls:
+    raise RuntimeError("Collection không có sản phẩm; output cũ được giữ nguyên")
+```
+
+Các script trong `online-store-backend/python/package.json` được nối bằng `&&`, vì vậy mã thoát `1` của HP Gaming làm dừng toàn bộ nhóm laptop và không cho các scraper tiếp theo chạy.
+
+Collection rỗng không đồng nghĩa với lỗi parser. Có thể nguồn GearVN đã thay đổi taxonomy, slug, nội dung collection hoặc tạm thời không có sản phẩm. Vì vậy không được tạo output rỗng để ghi đè dữ liệu cũ.
+
+### Cách xử lý đã áp dụng
+
+Tại `online-store-backend/python/scraper_runner.py`, collection rỗng hiện chỉ phát cảnh báo rồi kết thúc scraper thành công:
+
+```python
+if not product_urls:
+    print(
+        f"⚠️ Collection {collection_slug} không có sản phẩm; "
+        "giữ nguyên output cũ và bỏ qua scraper này."
+    )
+    return
+```
+
+Hành vi sau khi sửa:
+
+- Không ghi CSV/JSON/staging rỗng.
+- Giữ nguyên output cũ của collection nếu có.
+- Cho phép các scraper tiếp theo tiếp tục chạy.
+- Không làm thay đổi schema hoặc field dữ liệu sản phẩm.
+- Vẫn dừng nếu không thể đọc hoàn tất collection do lỗi request.
+- Vẫn dừng nếu đã tìm thấy URL nhưng không đọc được sản phẩm, để tránh import batch thiếu dữ liệu.
+
+### Kiểm tra và vận hành
+
+Đã kiểm tra diff không có lỗi whitespace và xác nhận nhánh xử lý mới nằm trong `run_scraper()` dùng chung cho toàn bộ scraper. Có thể chạy lại full pipeline bằng:
+
+```powershell
+npm run seed:refresh:shutdown
+```
+
+Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows vẫn được thực hiện theo script hiện tại. Collection HP Gaming cần được theo dõi riêng để cập nhật slug hoặc nguồn dữ liệu nếu GearVN khôi phục/thay đổi danh mục.
