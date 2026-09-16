@@ -6,6 +6,8 @@ const {
   PutObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
 } = require('@aws-sdk/client-s3');
 const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
@@ -42,6 +44,7 @@ const MIME_MAGIC = [
 ];
 
 const clients = new Map();
+const PROJECT_R2_PREFIXES = Object.freeze(['products/', 'banners/', 'about/', 'incoming/', 'legacy/', 'assets/']);
 
 const createR2Error = (code, message, details = {}) => {
   const error = new Error(message || code);
@@ -465,6 +468,59 @@ const deleteR2Assets = async references => {
   return results;
 };
 
+const deleteR2ProjectAssets = async () => {
+  const accounts = getR2Accounts();
+  if (accounts.length === 0) {
+    throw createR2Error('R2_NOT_CONFIGURED', 'R2 account configuration is required before clearing project assets');
+  }
+  const maxRetries = getR2UploadPolicy().maxRetries;
+  let deletedCount = 0;
+
+  for (const account of accounts) {
+    for (const prefix of PROJECT_R2_PREFIXES) {
+      let continuationToken;
+      do {
+        const listed = await sendR2Command(
+          account,
+          () => new ListObjectsV2Command({
+            Bucket: account.bucket,
+            Prefix: prefix,
+            ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+          }),
+          maxRetries,
+        );
+        const keys = (listed.Contents || [])
+          .map(object => object.Key)
+          .filter(Boolean);
+
+        if (keys.length > 0) {
+          const deleted = await sendR2Command(
+            account,
+            () => new DeleteObjectsCommand({
+              Bucket: account.bucket,
+              Delete: { Objects: keys.map(Key => ({ Key })), Quiet: true },
+            }),
+            maxRetries,
+          );
+          if (deleted.Errors?.length) {
+            throw createR2Error('R2_DELETE_FAILED', `Failed to delete ${deleted.Errors.length} R2 objects`, {
+              accountId: account.id,
+              bucket: account.bucket,
+              prefix,
+              errors: deleted.Errors,
+            });
+          }
+          deletedCount += keys.length;
+        }
+
+        continuationToken = listed.IsTruncated ? listed.NextContinuationToken : null;
+      } while (continuationToken);
+    }
+  }
+
+  return { deletedCount, accounts: accounts.length, prefixes: PROJECT_R2_PREFIXES };
+};
+
 const getR2StorageStatus = () => {
   const accounts = getR2Accounts();
   const policy = getR2UploadPolicy();
@@ -496,5 +552,6 @@ module.exports = {
   validateR2AssetReference,
   deleteR2Asset,
   deleteR2Assets,
+  deleteR2ProjectAssets,
   getR2StorageStatus,
 };
