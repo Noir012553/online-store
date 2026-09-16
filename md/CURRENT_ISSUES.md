@@ -338,7 +338,7 @@ if not product_urls:
     raise RuntimeError("Collection không có sản phẩm; output cũ được giữ nguyên")
 ```
 
-Các script trong `online-store-backend/python/package.json` được nối bằng `&&`, vì vậy mã thoát `1` của HP Gaming làm dừng toàn bộ nhóm laptop và không cho các scraper tiếp theo chạy.
+Các script trong `online-store-backend/python/package.json` được nối bằng `&&`, vì vậy mã thoát `1` của bất kỳ scraper nào cũng làm dừng nhóm hiện tại và không cho các scraper tiếp theo chạy. HP Gaming chỉ là collection đầu tiên được quan sát trong lần chạy này.
 
 Collection rỗng không đồng nghĩa với lỗi parser. Có thể nguồn GearVN đã thay đổi taxonomy, slug, nội dung collection hoặc tạm thời không có sản phẩm. Vì vậy không được tạo output rỗng để ghi đè dữ liệu cũ.
 
