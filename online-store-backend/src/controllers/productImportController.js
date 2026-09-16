@@ -733,6 +733,19 @@ const getProductImageCleanupItems = (product) => [
   ...(Array.isArray(product.descriptionImages) ? product.descriptionImages : []),
 ].filter(asset => asset?.storageProvider === 'r2' && asset.storageKey);
 
+const getProductImagePublicIds = (product) => [
+  product.imagePublicId,
+  product.imageAsset?.publicId,
+  ...(Array.isArray(product.imagePublicIds) ? product.imagePublicIds : []),
+  ...(Array.isArray(product.imageAssets) ? product.imageAssets.map(asset => asset?.publicId) : []),
+  ...(Array.isArray(product.images)
+    ? product.images.map(image => (typeof image === 'object' ? image?.publicId : null))
+    : []),
+  ...(Array.isArray(product.descriptionImages)
+    ? product.descriptionImages.map(image => image?.publicId)
+    : []),
+].filter(Boolean);
+
 const getProductR2AssetKeys = (product) => getProductImageCleanupItems(product)
   .map(asset => asset.storageKey)
   .filter(Boolean);
