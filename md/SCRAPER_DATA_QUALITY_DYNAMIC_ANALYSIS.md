@@ -640,3 +640,183 @@ Thứ tự triển khai khuyến nghị:
 6. Frontend dynamic state và accessibility
 7. Performance optimization cho carousel/search/sticky UI
 ```
+
+## 13. Tiến độ triển khai
+
+### Đã hoàn thành trong frontend TypeScript/TSX
+
+- Bổ sung huỷ request và request guard cho trang kết quả tìm kiếm và danh sách sản phẩm theo danh mục, tránh response cũ ghi đè state mới.
+- Tách trạng thái lỗi khỏi trạng thái không có kết quả ở search page và autocomplete.
+- Giữ các field dữ liệu động qua adapter và `ProductCard`: `discountPercentage`, `specDisplay`, `technicalDescription`, `descriptionImages` và `promotions`.
+- Hero carousel hỗ trợ pause khi hover/focus, điều khiển bằng phím mũi tên, `prefers-reduced-motion` và ARIA cho slide hiện tại.
+- Sticky banner theo dõi thay đổi kích thước của banner/container bằng `ResizeObserver`, gom cập nhật bằng `requestAnimationFrame` và giới hạn vị trí trong container.
+- Chuẩn hóa visibility ratio của hero/footer để tránh giá trị âm hoặc `NaN` khi phần tử có chiều cao bằng 0.
+
+### Chưa triển khai
+
+- Extractor fallback trong scraper Python cho specs, description, promotions và images.
+- Field-level completeness report, quarantine và quality gate theo batch.
+- Non-destructive upsert ở backend để ngăn ghi đè dữ liệu tốt bằng empty value.
+- Đồng bộ `ProductStockStatus`, parser version và schema contract ở pipeline backend.
+
+### Kiểm chứng
+
+- `git diff --check`: đạt.
+- `npm run build` frontend: chưa chạy được vì môi trường hiện thiếu dependency `next` (`next: not found`).
+- Chưa thực hiện kiểm thử UI runtime do dev server/frontend dependency chưa sẵn sàng.
+
+## 14. Kết quả kiểm thử dynamic mẫu
+
+### URL đã kiểm tra
+
+```text
+https://gearvn.com/products/ban-phim-co-dareu-ek75-pro-sakura-pink-dream-switch
+```
+
+### So sánh HTTP tĩnh và Playwright
+
+Request bằng `requests` trả về HTTP 200 và có `h1`, nhưng không có nội dung mô tả đã render:
+
+```json
+{
+  "status": 200,
+  "htmlLength": 513228,
+  "descriptionFound": false,
+  "descriptionLength": 0,
+  "descriptionImages": 0,
+  "hasProductTitle": true
+}
+```
+
+Playwright sau khi chạy JavaScript và chờ DOM ổn định tìm thấy:
+
+```json
+{
+  "httpStatus": 200,
+  "descriptionFound": true,
+  "descriptionLength": 1875,
+  "descriptionImages": 3
+}
+```
+
+Kết luận: `ProductDescription` và `ProductDescriptionImages` bị rỗng trong scraper hiện tại vì pipeline dùng HTML tĩnh từ `requests`, trong khi nội dung được render động ở trình duyệt.
+
+### Lỗi parser thông số
+
+DOM sau render có section `Thông số nổi bật` và các item dạng:
+
+```html
+<div class="min-w-0">
+  <p>Kích thước/Layout</p>
+  <div>
+    <span>75%</span>
+  </div>
+</div>
+```
+
+Extractor hiện tại chỉ đọc các item có ít nhất hai thẻ `<p>`:
+
+```python
+paragraphs = grid_item.find_all("p")
+if len(paragraphs) < 2:
+    continue
+```
+
+Vì giá trị nằm trong `div/span`, `ProductSpecifications` trở thành `{}` và kéo theo:
+
+```text
+ProductTechnicalDescription = "Thông số: {}"
+```
+
+Cần hỗ trợ tối thiểu các cấu trúc `p + p`, `p + div`, `p + span`, ngoài ra có fallback cho `table` và `dl/dt/dd`.
+
+### Promotions
+
+Mẫu sản phẩm không có section riêng `Ưu đãi đi kèm`; giá giảm `-12%` thuộc product summary và không nên tự chuyển thành `ProductPromotions`.
+
+## 15. Kế hoạch triển khai backend scraper
+
+Trạng thái: **đã triển khai fallback dynamic và parser specs trong scraper backend**.
+
+1. Fetch trang sản phẩm bằng Playwright khi HTML tĩnh thiếu các field bắt buộc/tùy chọn quan trọng.
+2. Chờ `domcontentloaded`, `networkidle` và selector nội dung; mở các accordion/tab `Xem thêm` hoặc `Xem tất cả thông số` nếu có.
+3. Truyền `page.content()` vào cùng pipeline BeautifulSoup để tránh tách đôi logic extractor.
+4. Mở rộng extractor specs theo semantic structure và không phụ thuộc duy nhất vào `div.min-w-0`.
+5. Chỉ sinh `ProductTechnicalDescription` sau khi có specs hợp lệ; `ProductSpecifications` là source of truth.
+6. Ghi trạng thái field-level `present`, `source_empty` hoặc `extract_failed` vào staging.
+7. Quarantine record khi có tên/giá/ảnh nhưng description hoặc specs bị rỗng bất thường.
+8. Chạy lại test mẫu và xác minh JSON staging trước khi cho phép batch seed.
+
+### Triển khai hiện tại
+
+- Renderer dùng `online-store-backend/scripts/render-scraper-page.js` và nạp Playwright global theo `NODE_PATH`/các global module path trên Windows và Linux.
+- Các script `scrape:*` đã được quy hoạch về `online-store-backend/package.json`; không còn `package.json` riêng trong thư mục `python`.
+- Seed pipeline chạy scraper với backend root làm working directory.
+- Dynamic fallback chỉ được gọi khi HTML tĩnh thiếu description/specs/images, tránh mở browser cho các record đã đủ dữ liệu.
+
+## 16. Kết quả batch thực tế và điều chỉnh
+
+### Lần chạy trước
+
+Lệnh đã chạy trên Windows:
+
+```powershell
+npm run scrape:dareu-keyboard
+```
+
+Kết quả batch đọc được 34 sản phẩm và ghi output, nhưng dynamic renderer trả exit code 1 cho tất cả URL. Vì log cũ chỉ hiển thị `non-zero exit status 1`, chưa thể kết luận nguyên nhân Node/Playwright cụ thể; các record khi đó vẫn quay về HTML tĩnh và có nguy cơ rỗng các field dynamic.
+
+Đã điều chỉnh:
+
+- Renderer dùng `node.exe` trên Windows và giữ encoding UTF-8 cho stdout/stderr.
+- Khi Node renderer lỗi, log giữ nguyên stderr chi tiết thay vì chỉ báo exit code.
+- Dynamic browser được khóa tuần tự bằng `threading.Lock` để tránh nhiều worker cùng khởi tạo Chromium đồng thời.
+- Batch vẫn giữ HTML tĩnh làm fallback, không làm mất toàn bộ record khi Playwright không khả dụng.
+
+### Lỗi xác định sau khi chạy lại
+
+Đã chạy riêng renderer cho URL mẫu, không ghi file:
+
+```powershell
+$env:NODE_PATH = npm root -g
+node .\\scripts\\render-scraper-page.js `
+  "https://gearvn.com/products/ban-phim-co-dareu-ek75-pro-sakura-pink-dream-switch" `
+  > $null
+```
+
+Node `v24.14.1` trả lỗi:
+
+```text
+page.content: Target page, context or browser has been closed
+    at renderPage (...\\online-store-backend\\scripts\\render-scraper-page.js:48:17)
+```
+
+Lỗi xảy ra tại `page.content()` sau khi đã gọi `goto`, chờ trạng thái tải, chờ selector và click các nút mở rộng. Điều này cho thấy target Playwright bị đóng trước bước lấy HTML; chưa có bằng chứng cho thấy nguyên nhân là selector không tồn tại. Vì `browser.close()` chỉ chạy trong `finally` sau `page.content()`, cần tiếp tục xác định tác nhân đóng target (browser crash, process bị kết thúc hoặc trang bị đóng trong quá trình render).
+
+Khi chạy lại:
+
+```powershell
+$env:SCRAPER_DYNAMIC_RENDER = "true"
+npm run scrape:dareu-keyboard
+```
+
+cùng lỗi lặp lại trên cả 34 URL, mỗi lỗi có dạng:
+
+```text
+Node renderer exit 1: node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.content: Target page, context or browser has been closed
+    at renderPage (...\\scripts\\render-scraper-page.js:48:17)
+```
+
+Batch vẫn hoàn thành và ghi:
+
+- `data/scraped-products/DareU_Keyboard_20260917.csv`
+- `data/scraped-products/DareU_Keyboard_20260917.json`
+- `data/scraped-products/DareU_Keyboard_20260917.staging.json`
+
+Tuy nhiên, do dynamic render thất bại trên toàn bộ collection, các output lần chạy này chỉ có thể xem là fallback từ HTML tĩnh. Không được dùng để seed/import cho đến khi renderer đơn lẻ trả về `page.content()` thành công và kiểm tra lại các field `ProductDescription`, `ProductDescriptionImages`, `ProductSpecifications` và `ProductTechnicalDescription`.
+
+Trạng thái hiện tại: **đã xác định lỗi target Playwright bị đóng, nhưng chưa xác định được nguyên nhân gốc**. Bước kiểm tra tiếp theo là instrument lifecycle/error của browser/page và kiểm tra khả năng launch Chromium trong cùng môi trường `node.exe`/`NODE_PATH`.

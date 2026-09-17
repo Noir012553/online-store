@@ -40,6 +40,7 @@ export interface Laptop {
   countInStock?: number;
   specs: Record<string, string | number>;
   specLabels?: Record<string, string>;
+  specDisplay?: Array<{ field: string; label: string; value: string }>;
   description?: string;
   technicalDescription?: string;
   descriptionImages?: ProductDescriptionImage[];

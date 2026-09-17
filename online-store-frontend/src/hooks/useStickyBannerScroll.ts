@@ -18,13 +18,15 @@ export function useStickyBannerScroll({
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handlePositionChange = () => {
-      if (!bannerRef.current) return;
+    let frameId: number | null = null;
 
+    const updatePosition = () => {
+      frameId = null;
+      const bannerElement = bannerRef.current;
       const container = document.querySelector(containerSelector);
-      if (!container) return;
+      if (!bannerElement || !container) return;
 
-      const bannerHeight = bannerRef.current.offsetHeight;
+      const bannerHeight = bannerElement.offsetHeight;
       const containerRect = container.getBoundingClientRect();
       const scrollY = window.scrollY;
       const initialStickyPos = headerHeight + 16;
@@ -32,30 +34,38 @@ export function useStickyBannerScroll({
       const containerBottomDoc = containerRect.bottom + scrollY;
 
       let bannerTopDoc = scrollY + initialStickyPos;
-
       if (minBannerTopDocument !== undefined) {
         bannerTopDoc = Math.max(bannerTopDoc, minBannerTopDocument);
       }
 
       bannerTopDoc = Math.max(bannerTopDoc, containerTopDoc);
-
-      const maxBannerTopDoc = containerBottomDoc - bannerHeight - maxBottomOffset;
+      const maxBannerTopDoc = Math.max(
+        containerTopDoc,
+        containerBottomDoc - bannerHeight - maxBottomOffset,
+      );
       bannerTopDoc = Math.min(bannerTopDoc, maxBannerTopDoc);
+      bannerElement.style.setProperty('--banner-top', `${bannerTopDoc - scrollY}px`);
+    };
 
-      bannerRef.current.style.setProperty('--banner-top', `${bannerTopDoc - scrollY}px`);
+    const handlePositionChange = () => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(updatePosition);
     };
 
     const bannerElement = bannerRef.current;
+    const container = document.querySelector(containerSelector);
     const resizeObserver = typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(handlePositionChange)
       : null;
 
     if (bannerElement) resizeObserver?.observe(bannerElement);
+    if (container) resizeObserver?.observe(container);
     window.addEventListener('scroll', handlePositionChange, { passive: true });
     window.addEventListener('resize', handlePositionChange, { passive: true });
     handlePositionChange();
 
     return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
       resizeObserver?.disconnect();
       window.removeEventListener('scroll', handlePositionChange);
       window.removeEventListener('resize', handlePositionChange);

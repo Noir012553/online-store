@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../../lib/i18n";
 import { PackageSearch, Grid3x3, FolderOpen, TrendingUp } from "lucide-react";
 import { useRouter } from "next/router";
@@ -25,47 +25,100 @@ export default function AllProductsPage() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [isSearchLoading, setIsSearchLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [hasSearchError, setHasSearchError] = useState(false);
+  const searchRequestIdRef = useRef(0);
 
   useEffect(() => {
     loadNamespace('products');
   }, [loadNamespace]);
 
   useEffect(() => {
+    const requestId = ++searchRequestIdRef.current;
+    const controller = new AbortController();
+    const query = typeof search === 'string' ? search.trim() : '';
+    const isSearchRequest = Boolean(query);
+
     const fetchData = async () => {
-      try {
-        setIsSearchLoading(true);
+      setIsSearchLoading(true);
+      setHasSearchError(false);
 
-        // If search query exists, fetch search results
-        if (search && typeof search === 'string' && search.trim()) {
-          try {
-            const response = await productAPI.getProducts(1, search, undefined, undefined, 100, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale);
-            setSearchResults(response.products || []);
-            setIsSearchLoading(false);
-            return;
-          } catch (err) {
-            setSearchResults([]);
-          }
-        } else {
-          setSearchResults([]);
-        }
-
-        // Categories are now fetched from context, not here
-        setIsSearchLoading(false);
-
-        // Fetch total products in background (non-blocking)
+      if (isSearchRequest) {
         try {
-          const productsResponse = await productAPI.getProducts(1, undefined, undefined, undefined, 1, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale);
-          const total = productsResponse?.pages || productsResponse?.total || 0;
-          setTotalProducts(total);
-        } catch (err) {
+          const response = await productAPI.getProducts(
+            1,
+            query,
+            undefined,
+            undefined,
+            100,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            locale,
+            locale,
+            undefined,
+            { signal: controller.signal },
+          );
+
+          if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
+          setSearchResults(response.products || []);
+        } catch (error) {
+          if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
+          setSearchResults([]);
+          setHasSearchError(true);
+        } finally {
+          if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
+            setIsSearchLoading(false);
+          }
+        }
+        return;
+      }
+
+      setSearchResults([]);
+      setIsSearchLoading(false);
+
+      try {
+        const productsResponse = await productAPI.getProducts(
+          1,
+          undefined,
+          undefined,
+          undefined,
+          1,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          locale,
+          locale,
+          undefined,
+          { signal: controller.signal },
+        );
+        if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
+          setTotalProducts(productsResponse?.pages || productsResponse?.total || 0);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
           setTotalProducts(0);
         }
-      } catch (err) {
-        setIsSearchLoading(false);
       }
     };
 
-    fetchData();
+    void fetchData();
+
+    return () => {
+      searchRequestIdRef.current += 1;
+      controller.abort();
+    };
   }, [search, locale]);
 
 
@@ -112,7 +165,13 @@ export default function AllProductsPage() {
               </p>
             </div>
 
-            {searchResults.length > 0 ? (
+            {hasSearchError ? (
+              <EmptyState
+                icon={PackageSearch}
+                title={t('errorMessage')}
+                description={t('products_unavailable_description')}
+              />
+            ) : searchResults.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {searchResults.map((product) => (
                   <ProductCard key={product._id} laptop={product} />

@@ -25,8 +25,10 @@ export function useBannerVisibility({
       // Check if hero is visible
       if (hero) {
         const heroRect = hero.getBoundingClientRect();
-        const heroVisibleHeight = Math.min(heroRect.bottom, window.innerHeight) - Math.max(heroRect.top, 0);
-        const heroVisibilityRatio = heroVisibleHeight / heroRect.height;
+        const heroVisibleHeight = Math.max(0, Math.min(heroRect.bottom, window.innerHeight) - Math.max(heroRect.top, 0));
+        const heroVisibilityRatio = heroRect.height > 0
+          ? Math.min(1, heroVisibleHeight / heroRect.height)
+          : 0;
 
         // Hide banners if hero is more visible than threshold
         if (heroVisibilityRatio > triggerThreshold) {
@@ -37,8 +39,10 @@ export function useBannerVisibility({
       // Check if footer is visible
       if (footer && !shouldHideBanners) {
         const footerRect = footer.getBoundingClientRect();
-        const footerVisibleHeight = Math.min(footerRect.bottom, window.innerHeight) - Math.max(footerRect.top, 0);
-        const footerVisibilityRatio = footerVisibleHeight / footerRect.height;
+        const footerVisibleHeight = Math.max(0, Math.min(footerRect.bottom, window.innerHeight) - Math.max(footerRect.top, 0));
+        const footerVisibilityRatio = footerRect.height > 0
+          ? Math.min(1, footerVisibleHeight / footerRect.height)
+          : 0;
 
         // Hide banners if footer is more visible than threshold
         if (footerVisibilityRatio > triggerThreshold) {

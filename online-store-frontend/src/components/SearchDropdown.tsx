@@ -101,6 +101,7 @@ export function SearchDropdown({
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<BackendProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -116,6 +117,7 @@ export function SearchDropdown({
 
     if (!query.trim()) {
       setSuggestions([]);
+      setHasError(false);
       setIsOpen(false);
       setIsLoading(false);
       return;
@@ -124,6 +126,7 @@ export function SearchDropdown({
     let controller: AbortController | null = null;
     try {
       setIsLoading(true);
+      setHasError(false);
       controller = new AbortController();
       searchControllerRef.current = controller;
       const response = await productAPI.getProducts(
@@ -156,6 +159,7 @@ export function SearchDropdown({
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
       setSuggestions([]);
+      setHasError(true);
       setIsOpen(true);
     } finally {
       if (searchControllerRef.current?.signal === controller?.signal) {
@@ -272,6 +276,7 @@ export function SearchDropdown({
   const handleClear = () => {
     setSearchQuery("");
     setSuggestions([]);
+    setHasError(false);
     setIsOpen(false);
     searchInputRef.current?.focus();
   };
@@ -318,6 +323,10 @@ export function SearchDropdown({
             <div className="p-4 text-center text-gray-500 text-sm">
               <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mb-2"></div>
               <p>{t('loading')}</p>
+            </div>
+          ) : hasError ? (
+            <div className="p-4 text-center text-red-600 text-sm">
+              {t('errorMessage')}
             </div>
           ) : suggestions.length === 0 ? (
             <div className="p-4 text-center text-gray-500 text-sm">

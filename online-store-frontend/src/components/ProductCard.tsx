@@ -65,7 +65,11 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
       inStock: (laptop.countInStock || 0) > 0,
       specs: laptop.specs || {},
       specLabels: laptop.specLabels || {},
+      specDisplay: laptop.specDisplay || [],
       description: laptop.description || '',
+      technicalDescription: laptop.technicalDescription,
+      descriptionImages: laptop.descriptionImages || [],
+      promotions: laptop.promotions || [],
       featured: laptop.featured || false,
       deal: laptop.deal,
     };

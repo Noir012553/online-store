@@ -191,23 +191,49 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
 
   // Initial fetch to get all products for stats
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchInitialProducts = async () => {
       try {
         setIsLoading(true);
-        // Use categoryId (Database ID) instead of name
-        const response = await productAPI.getProducts(1, undefined, categoryId, undefined, 100, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale, locale, currencyCode);
-        const fetchedProducts = response.products || [];
-        setAllProducts(fetchedProducts);
-      } catch (err) {
-        // Silently continue on fetch error
+        const response = await productAPI.getProducts(
+          1,
+          undefined,
+          categoryId,
+          undefined,
+          100,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          locale,
+          locale,
+          currencyCode,
+          { signal: controller.signal },
+        );
+        if (controller.signal.aborted) return;
+        setAllProducts(response.products || []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAllProducts([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (categoryId && categoryId.length > 10 && hasRestoredFilters) { // Ensure it's a valid ID, not a name
-      fetchInitialProducts();
+    if (categoryId && categoryId.length > 10 && hasRestoredFilters) {
+      void fetchInitialProducts();
     }
+
+    return () => controller.abort();
   }, [categoryId, currencyCode, hasRestoredFilters, locale]);
 
   // Extract stats and brands from products

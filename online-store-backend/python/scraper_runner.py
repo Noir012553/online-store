@@ -3,6 +3,8 @@ import csv
 import datetime
 import json
 import os
+import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -33,8 +35,11 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 MAX_ATTEMPTS = 3
 DEFAULT_MAX_WORKERS = 4
 MAX_MAX_WORKERS = 8
+DYNAMIC_RENDER_TIMEOUT_SECONDS = 90
 SCRAPE_SOURCE = "gearvn"
 DEFAULT_PARSER_VERSION = "product-v2"
+RENDERER_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render-scraper-page.js"
+_dynamic_render_lock = threading.Lock()
 _thread_local = threading.local()
 
 
@@ -109,20 +114,64 @@ def _first_offer(item):
     return offers if isinstance(offers, dict) else {}
 
 
-def extract_product_specs(soup):
-    specs = {}
-    for section in soup.find_all("section"):
-        if "Thông số nổi bật" not in section.get_text(" ", strip=True):
+def _normalized_text(value):
+    return " ".join(str(value or "").split()).strip()
+
+
+def _is_specs_section(section):
+    heading = section.find(["h2", "h3", "h4", "h5"])
+    heading_text = _normalized_text(heading.get_text(" ", strip=True) if heading else "").casefold()
+    return "thông số" in heading_text or "kỹ thuật" in heading_text
+
+
+def _extract_spec_value(grid_item, label_node):
+    candidates = grid_item.find_all(["p", "span", "dd", "div"])
+    for candidate in candidates:
+        if candidate is label_node:
             continue
-        for grid_item in section.select("div.min-w-0"):
-            paragraphs = grid_item.find_all("p")
-            if len(paragraphs) < 2:
-                continue
-            key = paragraphs[0].get_text(" ", strip=True).replace(":", "")
-            value = paragraphs[1].get_text(" ", strip=True)
+        value = _normalized_text(candidate.get_text(" ", strip=True))
+        if value:
+            return value
+    return ""
+
+
+def _extract_spec_items(container):
+    specs = {}
+    for grid_item in container.select("div.min-w-0, tr, dt, li"):
+        label_node = grid_item.find(["dt", "p", "th"])
+        if label_node is None:
+            continue
+        key = _normalized_text(label_node.get_text(" ", strip=True)).rstrip(":")
+        value = _extract_spec_value(grid_item, label_node)
+        if key and value and key.casefold() != value.casefold():
+            specs[key] = value
+
+    for row in container.select("table tr"):
+        cells = row.find_all(["th", "td"])
+        if len(cells) >= 2:
+            key = _normalized_text(cells[0].get_text(" ", strip=True)).rstrip(":")
+            value = _normalized_text(cells[1].get_text(" ", strip=True))
+            if key and value:
+                specs[key] = value
+
+    for definition in container.select("dl"):
+        terms = definition.find_all("dt")
+        values = definition.find_all("dd")
+        for key_node, value_node in zip(terms, values):
+            key = _normalized_text(key_node.get_text(" ", strip=True)).rstrip(":")
+            value = _normalized_text(value_node.get_text(" ", strip=True))
             if key and value:
                 specs[key] = value
     return specs
+
+
+def extract_product_specs(soup):
+    for section in soup.find_all("section"):
+        if _is_specs_section(section):
+            specs = _extract_spec_items(section)
+            if specs:
+                return specs
+    return _extract_spec_items(soup)
 
 
 def _canonical_product_url(url):
@@ -248,12 +297,60 @@ def write_output_atomically(records, staging_records, file_prefix):
     return csv_path, json_path, staging_path
 
 
+def _dynamic_render_enabled():
+    return str(os.getenv("SCRAPER_DYNAMIC_RENDER", "true")).strip().casefold() not in {
+        "0", "false", "no", "off"
+    }
+
+
+def _node_command():
+    return os.getenv("SCRAPER_NODE_COMMAND") or ("node.exe" if sys.platform == "win32" else "node")
+
+
+def render_product_html(url, timeout=DYNAMIC_RENDER_TIMEOUT_SECONDS):
+    completed = subprocess.run(
+        [_node_command(), str(RENDERER_SCRIPT), url],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or "không có stderr"
+        raise RuntimeError(f"Node renderer exit {completed.returncode}: {detail[-2000:]}")
+    return completed.stdout
+
+
+def _load_product_soup(url, response_text):
+    soup = BeautifulSoup(response_text, "html.parser")
+    if not _dynamic_render_enabled():
+        return soup
+    if extract_product_description(soup) and extract_product_specs(soup):
+        return soup
+
+    try:
+        with _dynamic_render_lock:
+            rendered_html = render_product_html(url)
+        rendered_soup = BeautifulSoup(rendered_html, "html.parser")
+        if (
+            extract_product_description(rendered_soup)
+            or extract_product_specs(rendered_soup)
+            or extract_product_description_images(rendered_soup)
+        ):
+            return rendered_soup
+    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+        print(f"Cảnh báo dynamic render {url}: {error}")
+    return soup
+
+
 def _scrape_product(url, brand, categories):
     try:
         response = fetch_html(url)
         if response is None:
             return url, None
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = _load_product_soup(url, response.text)
         return url, _product_record(soup, url, brand, categories)
     except Exception as error:
         print(f"Lỗi xử lý {url}: {error}")
