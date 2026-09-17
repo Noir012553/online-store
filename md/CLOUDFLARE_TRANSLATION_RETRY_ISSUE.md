@@ -157,3 +157,22 @@ npm run translate:retry -- --lang=pt
 - Chạy lại toàn bộ seed: không cần.
 - 91 bản dịch `pt`: cần retry targeted sau khi Cloudflare cấp lại quota.
 - `translate:retry`: chưa được thêm vào `package.json`.
+
+## Vấn đề seed dữ liệu test `outOfStock`
+
+Các sản phẩm có tên dạng:
+
+```text
+[HẾT HÀNG] Sản phẩm mẫu - <Tên danh mục>
+```
+
+không phải dữ liệu crawler. Chúng được tạo bởi `src/seeds/outOfStockSeeder.js` để kiểm thử trạng thái hết hàng. Module này hiện được đăng ký trong `SEED_PHASES.postProducts` tại `src/seeds/seedRegistry.js`, nên mỗi lần chạy post-products có thể tạo dữ liệu test cùng với dữ liệu production.
+
+### Hướng xử lý đề xuất
+
+- Không chạy `outOfStock` trong seed production mặc định.
+- Tạo lệnh riêng, ví dụ `npm run seed:test-fixtures`, để tạo fixture khi cần kiểm thử.
+- Đánh dấu fixture bằng trường rõ ràng như `isTestData: true` hoặc `seedSource: 'outOfStock-fixture'`.
+- Dùng `try/finally` để xóa fixture ngay sau khi test kết thúc.
+- Tạo thêm `npm run cleanup:test-fixtures` để dọn các fixture nếu tiến trình test bị dừng đột ngột.
+- Dọn các sản phẩm test đã được tạo từ những lần seed trước bằng tiêu chí định danh an toàn; không xóa chỉ dựa trên tên nếu chưa xác minh phạm vi dữ liệu.
