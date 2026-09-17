@@ -7,9 +7,11 @@ from bs4 import BeautifulSoup
 from scraper_paths import PRODUCT_OUTPUT_FIELDS
 from scraper_runner import (
     _product_record,
+    _scrape_product,
     build_staging_records,
     deduplicate_records,
     extract_product_json_ld,
+    extract_product_specs,
     fetch_html,
     get_max_workers,
     scrape_products,
@@ -71,6 +73,51 @@ class ScraperRunnerTest(unittest.TestCase):
 
         self.assertEqual(product["name"], "Example")
         self.assertEqual(product["offers"][0]["price"], "1000")
+
+    def test_extracts_specs_from_rendered_grid_values(self):
+        soup = BeautifulSoup(
+            """
+            <section>
+              <h3>Thông số nổi bật</h3>
+              <div class="grid grid-cols-2">
+                <div class="min-w-0"><p>Kích thước/Layout</p><div><span>75%</span></div></div>
+                <div class="min-w-0"><p>Số lượng phím</p><p>81 phím</p></div>
+                <div class="min-w-0"><p>Phương thức kết nối</p><div><span>Có dây;Bluetooth</span></div></div>
+              </div>
+            </section>
+            """,
+            "html.parser",
+        )
+
+        self.assertEqual(extract_product_specs(soup), {
+            "Kích thước/Layout": "75%",
+            "Số lượng phím": "81 phím",
+            "Phương thức kết nối": "Có dây;Bluetooth",
+        })
+
+    def test_renders_dynamic_html_when_static_product_fields_are_missing(self):
+        static_html = "<h1>Example Product</h1>"
+        rendered_html = """
+            <h1>Example Product</h1>
+            <section>
+              <h3>Thông số nổi bật</h3>
+              <div class="min-w-0"><p>Đèn LED</p><div><span>RGB</span></div></div>
+            </section>
+            <div class="news-html-content"><p>Mô tả sau render</p></div>
+        """
+        response = Mock(status_code=200, text=static_html)
+
+        with patch("scraper_runner.fetch_html", return_value=response), \
+             patch("scraper_runner.render_product_html", return_value=rendered_html):
+            url, record = _scrape_product(
+                "https://gearvn.com/products/example",
+                "Brand",
+                "Category",
+            )
+
+        self.assertEqual(url, "https://gearvn.com/products/example")
+        self.assertEqual(record["ProductSpecifications"], {"Đèn LED": "RGB"})
+        self.assertEqual(record["ProductDescription"], "Mô tả sau render")
 
     def test_builds_product_record_with_the_canonical_schema(self):
         soup = BeautifulSoup(
