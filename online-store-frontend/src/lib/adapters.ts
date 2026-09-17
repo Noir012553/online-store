@@ -69,6 +69,7 @@ export const LaptopSchema = z.object({
   baseCurrencyCode: z.string(),
   originalPrice: z.number().optional(),
   formattedOriginalPrice: z.string().optional(),
+  discountPercentage: z.number().optional(),
   image: z.string().trim().min(1),
   images: z.array(z.string()).default([]),
   rating: z.number().default(0),

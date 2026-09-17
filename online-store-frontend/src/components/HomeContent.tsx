@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type TouchEvent } from "react";
+import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
@@ -221,6 +221,8 @@ export default function Home() {
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Detect if hero carousel or footer is visible - hide banners when they are
@@ -567,15 +569,25 @@ export default function Home() {
     };
   }, [locale, isHydrated]);
 
-  // Auto-rotate hero slides
   useEffect(() => {
-    if (heroSlidesToRender.length <= 1) return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionPreferenceChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+
+    setPrefersReducedMotion(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleMotionPreferenceChange);
+    return () => mediaQuery.removeEventListener('change', handleMotionPreferenceChange);
+  }, []);
+
+  useEffect(() => {
+    if (heroSlidesToRender.length <= 1 || isHeroPaused || prefersReducedMotion) return;
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [heroSlidesToRender.length]);
+  }, [heroSlidesToRender.length, isHeroPaused, prefersReducedMotion]);
 
   useEffect(() => {
     const updateDealCardsPerView = () => setDealCardsPerView(getDealCardsPerView());
@@ -627,6 +639,22 @@ export default function Home() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + heroSlidesToRender.length) % heroSlidesToRender.length);
+  };
+
+  const handleHeroKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      prevSlide();
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      nextSlide();
+    }
+  };
+
+  const handleHeroBlur = (event: FocusEvent<HTMLElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsHeroPaused(false);
+    }
   };
 
   const handleHeroTouchStart = (event: TouchEvent<HTMLElement>) => {
@@ -710,6 +738,15 @@ export default function Home() {
     <div className="animate-in fade-in duration-500 bg-white">
       <section
         className="relative h-[420px] overflow-hidden bg-gray-900 sm:h-[calc(100vh-80px)]"
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={t('banner_homepage_hero', 'banner')}
+        tabIndex={0}
+        onKeyDown={handleHeroKeyDown}
+        onMouseEnter={() => setIsHeroPaused(true)}
+        onMouseLeave={() => setIsHeroPaused(false)}
+        onFocusCapture={() => setIsHeroPaused(true)}
+        onBlurCapture={handleHeroBlur}
         onTouchStart={handleHeroTouchStart}
         onTouchEnd={handleHeroTouchEnd}
       >
@@ -720,8 +757,8 @@ export default function Home() {
           return (
             <div
               key={`${slide.title}-${index}`}
-              className={`absolute inset-0 transition-all duration-1000 ${index === currentSlide ? "opacity-100 scale-100" : "opacity-0 scale-105"
-                }`}
+              aria-hidden={index !== currentSlide}
+              className={`absolute inset-0 ${index === currentSlide ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-105"} ${prefersReducedMotion ? '' : 'transition-all duration-1000'}`}
             >
               <ImageWithFallback
                 src={slide.image}
@@ -785,6 +822,7 @@ export default function Home() {
                   onClick={() => setCurrentSlide(index)}
                   aria-label={`${t('banner_indicator', 'banner')} ${index + 1}`}
                   aria-current={index === currentSlide ? 'true' : undefined}
+                  onFocus={() => setIsHeroPaused(true)}
                   className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors ${index === currentSlide ? "bg-red-600" : "bg-white/50"
                     }`}
                 />
