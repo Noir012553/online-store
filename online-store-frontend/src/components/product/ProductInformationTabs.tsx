@@ -48,6 +48,9 @@ export function ProductInformationTabs({
   onOpenImage,
 }: ProductInformationTabsProps) {
   const { t } = useLanguage();
+  const descriptionText = [product.technicalDescription, product.description]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join('\n\n');
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-8 sm:mb-12">
@@ -61,20 +64,11 @@ export function ProductInformationTabs({
       </TabsContent>
       <TabsContent value="description" id="product-description-container" className="bg-white p-4 sm:p-6 border rounded-lg">
         <div className="space-y-8">
-          {product.technicalDescription && (
-            <div>
-              <h3 className="text-lg font-bold mb-4 text-gray-900">
-                {t('technical_description', 'products', 'Mô tả kỹ thuật')}
-              </h3>
-              <ProductDescriptionFormatter text={product.technicalDescription} />
-            </div>
-          )}
-
-          {product.description && (
+          {descriptionText && (
             <div>
               <h3 className="text-lg font-bold mb-4 text-gray-900">{t('section_description', 'products')}</h3>
               <ProductDescriptionFormatter
-                text={product.description}
+                text={descriptionText}
                 specs={product.specs}
                 specLabels={product.specLabels}
               />
@@ -147,7 +141,7 @@ export function ProductInformationTabs({
             </div>
           )}
 
-          {!product.description && !product.technicalDescription && !product.descriptionImages?.length && !product.promotions?.length && (
+          {!descriptionText && !product.descriptionImages?.length && !product.promotions?.length && (
             <p className="text-gray-500 text-center py-8">{t('empty_no_description', 'products')}</p>
           )}
         </div>
