@@ -20,7 +20,7 @@ const SeedStatus = require('../models/SeedStatus');
 const { uploadAsset } = require('../services/r2AssetService');
 
 const backendRoot = path.resolve(__dirname, '../..');
-const scraperRoot = path.join(backendRoot, 'python');
+const scraperRoot = backendRoot;
 const defaultProductDirectory = path.join(backendRoot, 'data', 'scraped-products');
 
 const getProductDataDirectory = () => {

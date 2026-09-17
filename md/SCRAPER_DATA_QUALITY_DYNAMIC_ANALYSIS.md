@@ -736,7 +736,7 @@ Mẫu sản phẩm không có section riêng `Ưu đãi đi kèm`; giá giảm `
 
 ## 15. Kế hoạch triển khai backend scraper
 
-Trạng thái: **đã xác định nguyên nhân, chưa triển khai thay đổi code backend**.
+Trạng thái: **đã triển khai fallback dynamic và parser specs trong scraper backend**.
 
 1. Fetch trang sản phẩm bằng Playwright khi HTML tĩnh thiếu các field bắt buộc/tùy chọn quan trọng.
 2. Chờ `domcontentloaded`, `networkidle` và selector nội dung; mở các accordion/tab `Xem thêm` hoặc `Xem tất cả thông số` nếu có.
@@ -746,3 +746,10 @@ Trạng thái: **đã xác định nguyên nhân, chưa triển khai thay đổi
 6. Ghi trạng thái field-level `present`, `source_empty` hoặc `extract_failed` vào staging.
 7. Quarantine record khi có tên/giá/ảnh nhưng description hoặc specs bị rỗng bất thường.
 8. Chạy lại test mẫu và xác minh JSON staging trước khi cho phép batch seed.
+
+### Triển khai hiện tại
+
+- Renderer dùng `online-store-backend/scripts/render-scraper-page.js` và nạp Playwright global theo `NODE_PATH`/các global module path trên Windows và Linux.
+- Các script `scrape:*` đã được quy hoạch về `online-store-backend/package.json`; không còn `package.json` riêng trong thư mục `python`.
+- Seed pipeline chạy scraper với backend root làm working directory.
+- Dynamic fallback chỉ được gọi khi HTML tĩnh thiếu description/specs/images, tránh mở browser cho các record đã đủ dữ liệu.

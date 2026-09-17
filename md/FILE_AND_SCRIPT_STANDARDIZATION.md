@@ -83,7 +83,7 @@ npm run tunnel
 online-store-backend/python/iKBC_Durgod_Keyboard_Scraper.py
 ```
 
-Đồng thời xoá script `scrape:ikbc-keyboard` khỏi `online-store-backend/python/package.json`.
+Đồng thời xoá script `scrape:ikbc-keyboard` khỏi manifest scraper cũ; các script `scrape:*` hiện được quản lý tập trung trong `online-store-backend/package.json`.
 
 ## Kiểm tra đã thực hiện
 
