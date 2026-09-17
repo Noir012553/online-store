@@ -664,3 +664,85 @@ Thứ tự triển khai khuyến nghị:
 - `git diff --check`: đạt.
 - `npm run build` frontend: chưa chạy được vì môi trường hiện thiếu dependency `next` (`next: not found`).
 - Chưa thực hiện kiểm thử UI runtime do dev server/frontend dependency chưa sẵn sàng.
+
+## 14. Kết quả kiểm thử dynamic mẫu
+
+### URL đã kiểm tra
+
+```text
+https://gearvn.com/products/ban-phim-co-dareu-ek75-pro-sakura-pink-dream-switch
+```
+
+### So sánh HTTP tĩnh và Playwright
+
+Request bằng `requests` trả về HTTP 200 và có `h1`, nhưng không có nội dung mô tả đã render:
+
+```json
+{
+  "status": 200,
+  "htmlLength": 513228,
+  "descriptionFound": false,
+  "descriptionLength": 0,
+  "descriptionImages": 0,
+  "hasProductTitle": true
+}
+```
+
+Playwright sau khi chạy JavaScript và chờ DOM ổn định tìm thấy:
+
+```json
+{
+  "httpStatus": 200,
+  "descriptionFound": true,
+  "descriptionLength": 1875,
+  "descriptionImages": 3
+}
+```
+
+Kết luận: `ProductDescription` và `ProductDescriptionImages` bị rỗng trong scraper hiện tại vì pipeline dùng HTML tĩnh từ `requests`, trong khi nội dung được render động ở trình duyệt.
+
+### Lỗi parser thông số
+
+DOM sau render có section `Thông số nổi bật` và các item dạng:
+
+```html
+<div class="min-w-0">
+  <p>Kích thước/Layout</p>
+  <div>
+    <span>75%</span>
+  </div>
+</div>
+```
+
+Extractor hiện tại chỉ đọc các item có ít nhất hai thẻ `<p>`:
+
+```python
+paragraphs = grid_item.find_all("p")
+if len(paragraphs) < 2:
+    continue
+```
+
+Vì giá trị nằm trong `div/span`, `ProductSpecifications` trở thành `{}` và kéo theo:
+
+```text
+ProductTechnicalDescription = "Thông số: {}"
+```
+
+Cần hỗ trợ tối thiểu các cấu trúc `p + p`, `p + div`, `p + span`, ngoài ra có fallback cho `table` và `dl/dt/dd`.
+
+### Promotions
+
+Mẫu sản phẩm không có section riêng `Ưu đãi đi kèm`; giá giảm `-12%` thuộc product summary và không nên tự chuyển thành `ProductPromotions`.
+
+## 15. Kế hoạch triển khai backend scraper
+
+Trạng thái: **đã xác định nguyên nhân, chưa triển khai thay đổi code backend**.
+
+1. Fetch trang sản phẩm bằng Playwright khi HTML tĩnh thiếu các field bắt buộc/tùy chọn quan trọng.
+2. Chờ `domcontentloaded`, `networkidle` và selector nội dung; mở các accordion/tab `Xem thêm` hoặc `Xem tất cả thông số` nếu có.
+3. Truyền `page.content()` vào cùng pipeline BeautifulSoup để tránh tách đôi logic extractor.
+4. Mở rộng extractor specs theo semantic structure và không phụ thuộc duy nhất vào `div.min-w-0`.
+5. Chỉ sinh `ProductTechnicalDescription` sau khi có specs hợp lệ; `ProductSpecifications` là source of truth.
+6. Ghi trạng thái field-level `present`, `source_empty` hoặc `extract_failed` vào staging.
+7. Quarantine record khi có tên/giá/ảnh nhưng description hoặc specs bị rỗng bất thường.
+8. Chạy lại test mẫu và xác minh JSON staging trước khi cho phép batch seed.
