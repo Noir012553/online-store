@@ -268,3 +268,34 @@ npm start
 ```
 
 Nếu `/api/orders/summary` vẫn trả `ORDER_PRODUCT_NOT_FOUND`, cần xử lý các order item tham chiếu product không hợp lệ trước khi coi dữ liệu order đã sẵn sàng.
+
+## Nghi vấn quà tặng hiển thị thành mô tả sau `backfill:storefront`
+
+Đã kiểm tra `npm run backfill:storefront`, `refreshStorefrontReadiness` và component hiển thị thông tin sản phẩm. `backfill:storefront` chỉ đọc các trường cần kiểm tra storefront và cập nhật hai trường:
+
+```text
+storefrontReady
+storefrontReadinessCheckedAt
+```
+
+Đoạn cập nhật tương ứng dùng `Product.bulkWrite` với `$set` cho đúng hai trường trên; không ghi đè các trường:
+
+```text
+description
+promotions
+giftProductName
+giftProductUrl
+giftQuantity
+giftValueVND
+```
+
+Frontend cũng hiển thị riêng phần mô tả và phần khuyến mãi/quà tặng. Vì vậy, `backfill:storefront` không thể tự chuyển dữ liệu quà tặng từ `promotions` sang `description` và không có xung đột trực tiếp với dữ liệu promotion.
+
+Nếu giao diện thực tế hiển thị quà tặng trong phần mô tả, cần kiểm tra theo thứ tự:
+
+1. Dữ liệu `Product` trong MongoDB: `description` có thực sự chứa nội dung quà tặng hay không.
+2. Dữ liệu `promotions` của cùng sản phẩm, đặc biệt các trường `giftProductName`, `giftProductUrl`, `giftQuantity` và `discountText`.
+3. Mapping/import sản phẩm hoặc translation overlay có thể đã ghép nội dung promotion vào `description` trước khi chạy backfill.
+4. Shape response của API sản phẩm và cách frontend map dữ liệu trước khi truyền vào `ProductInformationTabs`.
+
+Không nên xóa hoặc sửa promotion chỉ vì hiện tượng này nếu chưa đối chiếu trực tiếp một product cụ thể ở cả database và API response.
