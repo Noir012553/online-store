@@ -176,3 +176,95 @@ không phải dữ liệu crawler. Chúng được tạo bởi `src/seeds/outOfS
 - Dùng `try/finally` để xóa fixture ngay sau khi test kết thúc.
 - Tạo thêm `npm run cleanup:test-fixtures` để dọn các fixture nếu tiến trình test bị dừng đột ngột.
 - Dọn các sản phẩm test đã được tạo từ những lần seed trước bằng tiêu chí định danh an toàn; không xóa chỉ dựa trên tên nếu chưa xác minh phạm vi dữ liệu.
+
+## Lỗi `ORDER_PRODUCT_NOT_FOUND` khi khởi động backend
+
+### Log ghi nhận
+
+Backend khởi động thành công và hệ thống translation không có lỗi:
+
+```text
+[STARTUP] backend ready
+✅ Loaded 76 translation files for VI
+✅ Loaded 76 translation files for EN
+✅ Loaded 76 translation files for PT
+✅ Loaded 76 translation files for FR
+✅ Loaded 76 translation files for DE
+✅ Loaded 76 translation files for IT
+✅ Loaded 76 translation files for ES
+✅ Loaded 76 translation files for NL
+✅ Loaded 76 translation files for SV
+⚠️ Failed files: 0
+```
+
+Lỗi xảy ra khi frontend gọi:
+
+```text
+/api/orders/summary?lang=vi&locale=vi-VN&currencyCode=VND
+```
+
+Log backend:
+
+```text
+Error: Không tìm thấy sản phẩm
+errorCode: ORDER_PRODUCT_NOT_FOUND
+src/controllers/orderController.js:202
+```
+
+HTTP response:
+
+```text
+404
+```
+
+### Nhận định
+
+Đây không phải lỗi khởi động backend hay lỗi load translation. Đây là lỗi dữ liệu/order: một order hoặc order item đang tham chiếu đến sản phẩm không tồn tại, đã bị xóa hoặc không còn thỏa điều kiện truy vấn sản phẩm.
+
+Cần kiểm tra các product reference trong orders và xác minh các sản phẩm đó tồn tại trong collection `Product` với trạng thái phù hợp. Không nên sửa bằng cách nuốt lỗi hoặc trả dữ liệu giả cho order summary.
+
+## Thứ tự seed sau khi chỉ chạy dịch sản phẩm
+
+Nếu report chỉ có:
+
+```text
+Modules executed: __product-pipeline__
+```
+
+thì product pipeline đã hoàn tất các bước:
+
+1. Import sản phẩm.
+2. Dịch sản phẩm.
+3. Cập nhật `storefrontReadiness`.
+
+Các module seed phụ thuộc sau sản phẩm chưa chắc đã chạy. Do module `outOfStock` hiện đang tạo dữ liệu test, không nên chạy nguyên phase `post-products` trong production.
+
+Lệnh production an toàn hơn là chạy các module cần thiết nhưng bỏ qua fixture `outOfStock`:
+
+```powershell
+npm run seed -- --modules=inventory,reviews,orders,coupons,specTranslations --shutdown-machine
+```
+
+Lệnh này không crawl lại và không dịch lại toàn bộ product pipeline. Nó chạy inventory, reviews, orders, coupons và spec translations, sau đó hẹn shutdown Windows nếu thành công.
+
+Nếu report đã ghi:
+
+```text
+storefrontReadiness:
+matchedCount: 614
+modifiedCount: 614
+```
+
+thì không cần chạy thêm lệnh storefront. Nếu dữ liệu cũ chưa được cập nhật, có thể chạy:
+
+```powershell
+npm run backfill:storefront
+```
+
+Trong câu hỏi trước, `stonefone` được hiểu là `storefront`. Sau khi seed xong, khởi động backend bằng:
+
+```powershell
+npm start
+```
+
+Nếu `/api/orders/summary` vẫn trả `ORDER_PRODUCT_NOT_FOUND`, cần xử lý các order item tham chiếu product không hợp lệ trước khi coi dữ liệu order đã sẵn sàng.
