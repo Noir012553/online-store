@@ -756,6 +756,8 @@ Trạng thái: **đã triển khai fallback dynamic và parser specs trong scrap
 
 ## 16. Kết quả batch thực tế và điều chỉnh
 
+### Lần chạy trước
+
 Lệnh đã chạy trên Windows:
 
 ```powershell
@@ -770,4 +772,51 @@ Kết quả batch đọc được 34 sản phẩm và ghi output, nhưng dynamic
 - Khi Node renderer lỗi, log giữ nguyên stderr chi tiết thay vì chỉ báo exit code.
 - Dynamic browser được khóa tuần tự bằng `threading.Lock` để tránh nhiều worker cùng khởi tạo Chromium đồng thời.
 - Batch vẫn giữ HTML tĩnh làm fallback, không làm mất toàn bộ record khi Playwright không khả dụng.
-- Cần chạy lại một URL mẫu sau điều chỉnh trước khi chạy lại toàn bộ collection.
+
+### Lỗi xác định sau khi chạy lại
+
+Đã chạy riêng renderer cho URL mẫu, không ghi file:
+
+```powershell
+$env:NODE_PATH = npm root -g
+node .\\scripts\\render-scraper-page.js `
+  "https://gearvn.com/products/ban-phim-co-dareu-ek75-pro-sakura-pink-dream-switch" `
+  > $null
+```
+
+Node `v24.14.1` trả lỗi:
+
+```text
+page.content: Target page, context or browser has been closed
+    at renderPage (...\\online-store-backend\\scripts\\render-scraper-page.js:48:17)
+```
+
+Lỗi xảy ra tại `page.content()` sau khi đã gọi `goto`, chờ trạng thái tải, chờ selector và click các nút mở rộng. Điều này cho thấy target Playwright bị đóng trước bước lấy HTML; chưa có bằng chứng cho thấy nguyên nhân là selector không tồn tại. Vì `browser.close()` chỉ chạy trong `finally` sau `page.content()`, cần tiếp tục xác định tác nhân đóng target (browser crash, process bị kết thúc hoặc trang bị đóng trong quá trình render).
+
+Khi chạy lại:
+
+```powershell
+$env:SCRAPER_DYNAMIC_RENDER = "true"
+npm run scrape:dareu-keyboard
+```
+
+cùng lỗi lặp lại trên cả 34 URL, mỗi lỗi có dạng:
+
+```text
+Node renderer exit 1: node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.content: Target page, context or browser has been closed
+    at renderPage (...\\scripts\\render-scraper-page.js:48:17)
+```
+
+Batch vẫn hoàn thành và ghi:
+
+- `data/scraped-products/DareU_Keyboard_20260917.csv`
+- `data/scraped-products/DareU_Keyboard_20260917.json`
+- `data/scraped-products/DareU_Keyboard_20260917.staging.json`
+
+Tuy nhiên, do dynamic render thất bại trên toàn bộ collection, các output lần chạy này chỉ có thể xem là fallback từ HTML tĩnh. Không được dùng để seed/import cho đến khi renderer đơn lẻ trả về `page.content()` thành công và kiểm tra lại các field `ProductDescription`, `ProductDescriptionImages`, `ProductSpecifications` và `ProductTechnicalDescription`.
+
+Trạng thái hiện tại: **đã xác định lỗi target Playwright bị đóng, nhưng chưa xác định được nguyên nhân gốc**. Bước kiểm tra tiếp theo là instrument lifecycle/error của browser/page và kiểm tra khả năng launch Chromium trong cùng môi trường `node.exe`/`NODE_PATH`.
