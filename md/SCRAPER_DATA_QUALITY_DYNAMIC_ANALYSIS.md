@@ -640,3 +640,27 @@ Thứ tự triển khai khuyến nghị:
 6. Frontend dynamic state và accessibility
 7. Performance optimization cho carousel/search/sticky UI
 ```
+
+## 13. Tiến độ triển khai
+
+### Đã hoàn thành trong frontend TypeScript/TSX
+
+- Bổ sung huỷ request và request guard cho trang kết quả tìm kiếm và danh sách sản phẩm theo danh mục, tránh response cũ ghi đè state mới.
+- Tách trạng thái lỗi khỏi trạng thái không có kết quả ở search page và autocomplete.
+- Giữ các field dữ liệu động qua adapter và `ProductCard`: `discountPercentage`, `specDisplay`, `technicalDescription`, `descriptionImages` và `promotions`.
+- Hero carousel hỗ trợ pause khi hover/focus, điều khiển bằng phím mũi tên, `prefers-reduced-motion` và ARIA cho slide hiện tại.
+- Sticky banner theo dõi thay đổi kích thước của banner/container bằng `ResizeObserver`, gom cập nhật bằng `requestAnimationFrame` và giới hạn vị trí trong container.
+- Chuẩn hóa visibility ratio của hero/footer để tránh giá trị âm hoặc `NaN` khi phần tử có chiều cao bằng 0.
+
+### Chưa triển khai
+
+- Extractor fallback trong scraper Python cho specs, description, promotions và images.
+- Field-level completeness report, quarantine và quality gate theo batch.
+- Non-destructive upsert ở backend để ngăn ghi đè dữ liệu tốt bằng empty value.
+- Đồng bộ `ProductStockStatus`, parser version và schema contract ở pipeline backend.
+
+### Kiểm chứng
+
+- `git diff --check`: đạt.
+- `npm run build` frontend: chưa chạy được vì môi trường hiện thiếu dependency `next` (`next: not found`).
+- Chưa thực hiện kiểm thử UI runtime do dev server/frontend dependency chưa sẵn sàng.
