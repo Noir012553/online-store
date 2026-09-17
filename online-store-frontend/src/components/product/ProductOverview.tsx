@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { interpolateTranslation } from '../../lib/translationInterpolate';
 import { formatNumber } from '../../lib/utils';
+import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
 
 interface ProductOverviewProps {
   product: Laptop;
@@ -28,6 +29,7 @@ export function ProductOverview({
   onBuyNow,
 }: ProductOverviewProps) {
   const { t, locale } = useLanguage();
+  const descriptionText = product.description?.trim() || '';
 
   return (
     <div>
@@ -73,23 +75,10 @@ export function ProductOverview({
         )}
       </div>
 
-      {Object.keys(product.specs).length > 0 && (
+      {descriptionText && (
         <div className="bg-white p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
-          <h3 className="mb-2 sm:mb-3 text-sm sm:text-base font-semibold">{t('section_specifications', 'products')}</h3>
-          <div className="space-y-1 sm:space-y-2 text-gray-700">
-            {Object.entries(product.specs).slice(0, 5).map(([key, value]) => (
-              <div key={key} className="flex items-start justify-between gap-4 text-xs sm:text-sm">
-                <span className="flex items-center gap-2 font-medium"><span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />{product.specLabels?.[key] || key}:</span>
-                <span className="space-y-0.5 text-right leading-5">
-                  {String(value).split(';').map((item, index) => (
-                    <span key={`${item}-${index}`} className="block">
-                      {item.trim()}
-                    </span>
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
+          <h3 className="mb-2 sm:mb-3 text-sm sm:text-base font-semibold">{t('section_description', 'products')}</h3>
+          <ProductDescriptionFormatter text={descriptionText} maxLines={5} />
         </div>
       )}
 
