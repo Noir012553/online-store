@@ -4,6 +4,7 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -38,6 +39,7 @@ DYNAMIC_RENDER_TIMEOUT_SECONDS = 90
 SCRAPE_SOURCE = "gearvn"
 DEFAULT_PARSER_VERSION = "product-v2"
 RENDERER_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render-scraper-page.js"
+_dynamic_render_lock = threading.Lock()
 _thread_local = threading.local()
 
 
@@ -301,14 +303,23 @@ def _dynamic_render_enabled():
     }
 
 
+def _node_command():
+    return os.getenv("SCRAPER_NODE_COMMAND") or ("node.exe" if sys.platform == "win32" else "node")
+
+
 def render_product_html(url, timeout=DYNAMIC_RENDER_TIMEOUT_SECONDS):
     completed = subprocess.run(
-        ["node", str(RENDERER_SCRIPT), url],
-        check=True,
+        [_node_command(), str(RENDERER_SCRIPT), url],
+        check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
     )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or "không có stderr"
+        raise RuntimeError(f"Node renderer exit {completed.returncode}: {detail[-2000:]}")
     return completed.stdout
 
 
@@ -320,7 +331,8 @@ def _load_product_soup(url, response_text):
         return soup
 
     try:
-        rendered_html = render_product_html(url)
+        with _dynamic_render_lock:
+            rendered_html = render_product_html(url)
         rendered_soup = BeautifulSoup(rendered_html, "html.parser")
         if (
             extract_product_description(rendered_soup)
@@ -328,7 +340,7 @@ def _load_product_soup(url, response_text):
             or extract_product_description_images(rendered_soup)
         ):
             return rendered_soup
-    except (OSError, subprocess.SubprocessError) as error:
+    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         print(f"Cảnh báo dynamic render {url}: {error}")
     return soup
 

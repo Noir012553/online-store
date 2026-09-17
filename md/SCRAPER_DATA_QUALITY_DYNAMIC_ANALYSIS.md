@@ -753,3 +753,21 @@ Trạng thái: **đã triển khai fallback dynamic và parser specs trong scrap
 - Các script `scrape:*` đã được quy hoạch về `online-store-backend/package.json`; không còn `package.json` riêng trong thư mục `python`.
 - Seed pipeline chạy scraper với backend root làm working directory.
 - Dynamic fallback chỉ được gọi khi HTML tĩnh thiếu description/specs/images, tránh mở browser cho các record đã đủ dữ liệu.
+
+## 16. Kết quả batch thực tế và điều chỉnh
+
+Lệnh đã chạy trên Windows:
+
+```powershell
+npm run scrape:dareu-keyboard
+```
+
+Kết quả batch đọc được 34 sản phẩm và ghi output, nhưng dynamic renderer trả exit code 1 cho tất cả URL. Vì log cũ chỉ hiển thị `non-zero exit status 1`, chưa thể kết luận nguyên nhân Node/Playwright cụ thể; các record khi đó vẫn quay về HTML tĩnh và có nguy cơ rỗng các field dynamic.
+
+Đã điều chỉnh:
+
+- Renderer dùng `node.exe` trên Windows và giữ encoding UTF-8 cho stdout/stderr.
+- Khi Node renderer lỗi, log giữ nguyên stderr chi tiết thay vì chỉ báo exit code.
+- Dynamic browser được khóa tuần tự bằng `threading.Lock` để tránh nhiều worker cùng khởi tạo Chromium đồng thời.
+- Batch vẫn giữ HTML tĩnh làm fallback, không làm mất toàn bộ record khi Playwright không khả dụng.
+- Cần chạy lại một URL mẫu sau điều chỉnh trước khi chạy lại toàn bộ collection.
