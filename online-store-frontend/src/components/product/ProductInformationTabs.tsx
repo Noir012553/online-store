@@ -48,9 +48,7 @@ export function ProductInformationTabs({
   onOpenImage,
 }: ProductInformationTabsProps) {
   const { t } = useLanguage();
-  const descriptionText = [product.technicalDescription, product.description]
-    .filter((value): value is string => Boolean(value?.trim()))
-    .join('\n\n');
+  const descriptionText = product.description?.trim() || '';
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-8 sm:mb-12">
