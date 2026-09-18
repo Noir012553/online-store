@@ -21,13 +21,16 @@ const { localizeProductSpecFields, refreshStorefrontReadiness } = require('../se
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { normalizeProductContentFields } = require('../utils/productImportValidator');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
+const TranslationCacheService = require('../services/translationCacheService');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 const pendingTranslations = new Map();
 
-const getTranslationHashKey = (text, sourceLang, targetLang) => crypto
+const getTranslationHashKey = (text, sourceLang, targetLang, context = null) => crypto
   .createHash('md5')
-  .update(JSON.stringify([text, sourceLang, targetLang]))
+  .update(JSON.stringify(context == null
+    ? [text, sourceLang, targetLang]
+    : [text, sourceLang, targetLang, context]))
   .digest('hex');
 
 const saveTranslationCache = async (record) => {
@@ -37,6 +40,11 @@ const saveTranslationCache = async (record) => {
     { $set: cacheData, $setOnInsert: { hashKey } },
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   ).lean();
+};
+
+const invalidateStaticTranslationCache = (language, namespace) => {
+  TranslationCacheService.invalidate('fallback', language, namespace);
+  TranslationCacheService.invalidate('health', language);
 };
 
 const translateAndCache = async ({ text, sourceLang, targetLang, hashKey, useCache }) => {
@@ -456,7 +464,7 @@ exports.translateText = async (req, res) => {
  */
 exports.translateProductAll9Languages = async (req, res) => {
   try {
-    const { text, entityId, entityType, sourceLang, useCache = true } = req.body;
+    const { text, entityId, entityType, fieldKey = null, sourceLang, useCache = true } = req.body;
 
     // Validate required parameter
     if (!sourceLang) {
@@ -477,6 +485,16 @@ exports.translateProductAll9Languages = async (req, res) => {
       );
     }
 
+    if (!PRODUCT_TRANSLATION_ENTITY_TYPES.includes(entityType)) {
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_ENTITY_TYPE_INVALID',
+        'invalid_translation_data'
+      );
+    }
+
     // Check source language dynamically
     const isSourceSupported = await LanguageService.isSupportedLanguage(sourceLang);
     if (!isSourceSupported) {
@@ -493,14 +511,22 @@ exports.translateProductAll9Languages = async (req, res) => {
     const targetLangs = SUPPORTED_LANG_CODES.filter(lang => lang !== sourceLang);
 
     const translations = {};
+    let allFromCache = targetLangs.length > 0;
     for (const lang of targetLangs) {
-      const hashKey = getTranslationHashKey(text, sourceLang, lang);
+      const hashKey = getTranslationHashKey(text, sourceLang, lang, {
+        entityId: String(entityId),
+        entityType,
+        fieldKey,
+      });
 
       // Check cache if enabled
       let translatedText;
       if (useCache) {
         const cached = await LiveTranslationCache.findOne({
           hashKey,
+          entityId: String(entityId),
+          entityType,
+          fieldKey,
           status: 'success',
           qualityStatus: 'approved',
         }).lean();
@@ -513,7 +539,9 @@ exports.translateProductAll9Languages = async (req, res) => {
 
       // Cloudflare AI remains the final provider; LibreTranslate is product-only and optional.
       translatedText = await libretranslateProductService.translateWithCloudflare(text, sourceLang, lang);
+      const validation = await translationValidator.validateTranslation(text, translatedText, lang, entityType);
       translations[lang] = translatedText;
+      allFromCache = false;
 
       await saveTranslationCache({
         hashKey,
@@ -521,10 +549,13 @@ exports.translateProductAll9Languages = async (req, res) => {
         sourceLang,
         targetLang: lang,
         translatedText,
-        entityId,
+        entityId: String(entityId),
         entityType,
+        fieldKey,
         status: 'success',
-        qualityStatus: 'approved',
+        qualityStatus: validation.qualityStatus,
+        qualityScore: validation.qualityScore,
+        validationErrors: validation.validationErrors,
       });
 
       // Shadow write to NEW schema (Phase 1)
@@ -551,7 +582,7 @@ exports.translateProductAll9Languages = async (req, res) => {
         entityType,
         translations,
         allLangs: true,
-        fromCache: false,
+        fromCache: allFromCache,
       },
     });
   } catch (error) {
@@ -844,6 +875,7 @@ exports.syncTranslationsFromJSON = async (req, res) => {
       { translations, updatedAt: new Date() },
       { upsert: true, returnDocument: 'after' }
     );
+    invalidateStaticTranslationCache(language, namespace);
 
     res.json({
       success: true,
@@ -1945,6 +1977,7 @@ exports.updateTranslationKey = async (req, res) => {
 
     translation.translations[key] = value;
     await translation.save();
+    invalidateStaticTranslationCache(translation.code, translation.namespace);
 
     res.json({
       success: true,
@@ -2001,6 +2034,7 @@ exports.deleteTranslationKey = async (req, res) => {
 
     delete translation.translations[key];
     await translation.save();
+    invalidateStaticTranslationCache(translation.code, translation.namespace);
 
     res.json({
       success: true,
@@ -2047,6 +2081,7 @@ exports.softDeleteTranslation = async (req, res) => {
         'admin-controllers-messages.translation_not_found'
       );
     }
+    invalidateStaticTranslationCache(translation.code, translation.namespace);
 
     res.json({
       success: true,
@@ -2089,6 +2124,7 @@ exports.hardDeleteTranslation = async (req, res) => {
         'admin-controllers-messages.translation_not_found'
       );
     }
+    invalidateStaticTranslationCache(translation.code, translation.namespace);
 
     res.json({
       success: true,
@@ -2135,6 +2171,7 @@ exports.restoreTranslation = async (req, res) => {
         'admin-controllers-messages.translation_not_found'
       );
     }
+    invalidateStaticTranslationCache(translation.code, translation.namespace);
 
     res.json({
       success: true,
@@ -2289,6 +2326,7 @@ exports.bulkTranslateStaticUI = async (req, res) => {
       { $set: { translations } },
       { upsert: true, returnDocument: 'after' }
     );
+    invalidateStaticTranslationCache(targetLang, namespace);
 
     res.json({
       success: true,
@@ -2842,6 +2880,7 @@ exports.importNestedJSON = async (req, res) => {
       },
       { upsert: true, returnDocument: 'after' }
     );
+    invalidateStaticTranslationCache(code, namespace);
 
     res.json({
       success: true,

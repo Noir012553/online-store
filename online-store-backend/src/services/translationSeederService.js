@@ -3,6 +3,7 @@ const path = require('path');
 const StaticTranslation = require('../models/StaticTranslation');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const TranslationCacheService = require('./translationCacheService');
 
 class TranslationSeederService {
   /**
@@ -73,6 +74,7 @@ class TranslationSeederService {
         ordered: false,
       });
 
+      TranslationCacheService.invalidateLanguage(targetCode);
       console.log(
         `[TranslationSeeder] Successfully cloned ${result.length} translation records for ${targetCode}`
       );
@@ -278,6 +280,7 @@ class TranslationSeederService {
         }
       }
 
+      TranslationCacheService.invalidateLanguage(targetLang);
       console.log(
         `[TranslationSeeder] PHASE 1 hoàn tất: ${totalTranslated} keys dịch, ${totalErrors} lỗi`
       );
