@@ -24,6 +24,7 @@ const crypto = require('crypto');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const Product = require('../models/Product');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const MONGO_URI = process.env.MONGO_URI;
@@ -33,12 +34,23 @@ const buildProductTranslationSnapshot = (translation) => ({
   name: translation.name || null,
   description: translation.description || null,
   brand: translation.brand || null,
+  technicalDescription: translation.technicalDescription || null,
   specs: Object.fromEntries(Object.entries(translation.specs || {}).sort(([left], [right]) => left.localeCompare(right))),
+  descriptionImages: (translation.descriptionImages || []).map(({ url, alt }) => ({ url: url || '', alt: alt || '' })),
+  promotions: (translation.promotions || []).map(({ type, title, giftProductName, scope, discountText }) => ({
+    type: type || '',
+    title: title || '',
+    giftProductName: giftProductName || '',
+    scope: scope || '',
+    discountText: discountText || '',
+  })),
 });
 
 const getSnapshotFieldCounts = (snapshot) => ({
-  text: ['name', 'description', 'brand'].filter((field) => snapshot[field]).length,
+  text: ['name', 'description', 'brand', 'technicalDescription'].filter((field) => snapshot[field]).length,
   specs: Object.keys(snapshot.specs).length,
+  descriptionImages: snapshot.descriptionImages.length,
+  promotions: snapshot.promotions.length,
 });
 
 const getSnapshotHash = (snapshot) => crypto
@@ -117,10 +129,26 @@ class MigrationService {
 
   async getProductTranslationEntries() {
     const allDocs = await LiveTranslationCache.find({
-      entityType: { $in: ['product_name', 'product_description', 'product_brand', 'product_spec'] },
+      entityType: {
+        $in: [
+          'product_name',
+          'product_description',
+          'product_brand',
+          'product_spec',
+          'product_technical_description',
+          'product_description_image_alt',
+          'product_promotion',
+        ],
+      },
     }).lean();
     console.log(`  Found ${allDocs.length} product translation records`);
 
+    const sourceProductIds = [...new Set(allDocs.map(doc => doc.entityId).filter(Boolean))]
+      .filter((entityId) => mongoose.Types.ObjectId.isValid(entityId));
+    const sourceProducts = await Product.find({
+      _id: { $in: sourceProductIds },
+    }).select('descriptionImages promotions').lean();
+    const sourceById = new Map(sourceProducts.map(product => [product._id.toString(), product]));
     const grouped = {};
     for (const doc of allDocs) {
       const key = `${doc.entityId}:${doc.targetLang}`;
@@ -132,6 +160,9 @@ class MigrationService {
           name: null,
           description: null,
           brand: null,
+          technicalDescription: null,
+          descriptionImageAlts: {},
+          promotionTexts: {},
           status: 'success',
           retryCount: doc.retryCount,
           lastErrorMessage: doc.lastErrorMessage,
@@ -146,10 +177,42 @@ class MigrationService {
       else if (doc.entityType === 'product_spec' && doc.specKey) {
         const translatedKey = specKeyTranslations[doc.specKey]?.[doc.targetLang] || doc.specKey;
         group.specs[translatedKey] = doc.translatedText;
+      } else if (doc.entityType === 'product_technical_description') {
+        group.technicalDescription = doc.translatedText;
+      } else if (doc.entityType === 'product_description_image_alt' && doc.fieldKey) {
+        const match = doc.fieldKey.match(/^descriptionImages\.(\d+)\.alt$/);
+        if (match) group.descriptionImageAlts[Number(match[1])] = doc.translatedText;
+      } else if (doc.entityType === 'product_promotion' && doc.fieldKey) {
+        const match = doc.fieldKey.match(/^promotions\.(\d+)\.(title|giftProductName|scope|discountText)$/);
+        if (match) {
+          const index = Number(match[1]);
+          group.promotionTexts[index] ||= {};
+          group.promotionTexts[index][match[2]] = doc.translatedText;
+        }
       }
     }
 
-    return Object.values(grouped);
+    return Object.values(grouped).map((group) => {
+      const source = sourceById.get(String(group.entityId));
+      const descriptionImages = Array.isArray(source?.descriptionImages)
+        ? source.descriptionImages.map((image, index) => ({
+          ...image,
+          alt: group.descriptionImageAlts[index] || image.alt || '',
+        }))
+        : [];
+      const promotions = Array.isArray(source?.promotions)
+        ? source.promotions.map((promotion, index) => ({
+          ...promotion,
+          ...(group.promotionTexts[index] || {}),
+        }))
+        : [];
+
+      return {
+        ...group,
+        descriptionImages,
+        promotions,
+      };
+    });
   }
 
   /**
