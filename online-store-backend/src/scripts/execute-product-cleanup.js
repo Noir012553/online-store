@@ -20,10 +20,28 @@ async function readJson(filePath) {
   return JSON.parse(await fs.readFile(filePath, 'utf8'));
 }
 
+const resolveCleanupRun = async (inventoryDir, requestedRunId) => {
+  const entries = await fs.readdir(inventoryDir);
+  const runIds = entries
+    .filter(name => name.startsWith('product-cleanup-inventory-') && name.endsWith('.json'))
+    .map(name => name.slice('product-cleanup-inventory-'.length, -'.json'.length))
+    .filter(runId => entries.includes(`r2-cleanup-inventory-${runId}.json`)
+      && entries.includes(`cleanup-report-${runId}.json`));
+  const runId = requestedRunId || runIds.sort().pop();
+  if (!runId || !runIds.includes(runId)) throw new Error('CLEANUP_REPORT_RUN_NOT_FOUND');
+  return {
+    runId,
+    productInventoryPath: path.join(inventoryDir, `product-cleanup-inventory-${runId}.json`),
+    r2InventoryPath: path.join(inventoryDir, `r2-cleanup-inventory-${runId}.json`),
+    reportPath: path.join(inventoryDir, `cleanup-report-${runId}.json`),
+  };
+};
+
 async function main() {
   const args = process.argv.slice(2);
   const environment = parseArg(args, 'environment');
   const inventoryDir = path.resolve(parseArg(args, 'inventory-dir', path.join(__dirname, '../../reports/cleanup')));
+  const requestedRunId = parseArg(args, 'run-id');
   const confirmation = parseArg(args, 'confirm');
   const orderPolicy = parseArg(args, 'orders');
 
@@ -35,11 +53,17 @@ async function main() {
   }
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI environment variable is not set');
 
-  const productInventory = await readJson(path.join(inventoryDir, 'product-cleanup-inventory.json'));
-  const r2Inventory = await readJson(path.join(inventoryDir, 'r2-cleanup-inventory.json'));
-  const previewReport = await readJson(path.join(inventoryDir, 'cleanup-report.json'));
+  const cleanupRun = await resolveCleanupRun(inventoryDir, requestedRunId);
+  const productInventory = await readJson(cleanupRun.productInventoryPath);
+  const r2Inventory = await readJson(cleanupRun.r2InventoryPath);
+  const previewReport = await readJson(cleanupRun.reportPath);
   const productIds = productInventory.productIds || [];
 
+  if (productInventory.runId !== cleanupRun.runId
+    || r2Inventory.runId !== cleanupRun.runId
+    || previewReport.runId !== cleanupRun.runId) {
+    throw new Error('CLEANUP_MANIFEST_RUN_MISMATCH');
+  }
   if (productInventory.environment !== environment || r2Inventory.environment !== environment) {
     throw new Error('CLEANUP_MANIFEST_ENVIRONMENT_MISMATCH');
   }
@@ -66,7 +90,7 @@ async function main() {
       errors: r2Result.filter(result => result.deleted !== true),
       verified: false,
     };
-    await fs.writeFile(path.join(inventoryDir, 'cleanup-report.json'), JSON.stringify(failedReport, null, 2));
+    await fs.writeFile(cleanupRun.reportPath, JSON.stringify(failedReport, null, 2));
     throw new Error('CLEANUP_R2_DELETE_FAILED: database was left unchanged');
   }
 
@@ -90,6 +114,7 @@ async function main() {
   const remainingCoupons = await Coupon.countDocuments({ applicableProducts: { $in: objectIds } });
   const report = {
     ...previewReport,
+    runId: cleanupRun.runId,
     dryRun: false,
     confirmationRequired: true,
     productDeletedCount: orderPolicy === 'keep' ? 0 : productCleanup.deletedCount,
@@ -111,7 +136,7 @@ async function main() {
     errors: [],
   };
 
-  await fs.writeFile(path.join(inventoryDir, 'cleanup-report.json'), JSON.stringify(report, null, 2));
+  await fs.writeFile(cleanupRun.reportPath, JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ success: report.verified, report }, null, 2));
   await mongoose.disconnect();
   if (!report.verified) process.exitCode = 1;

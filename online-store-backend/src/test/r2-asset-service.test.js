@@ -12,6 +12,15 @@ const {
   isSafeStorageKey,
 } = require('../services/r2AssetService');
 
+const expectErrorCode = (callback, code) => {
+  try {
+    callback();
+    expect.fail(`Expected error code ${code}`);
+  } catch (error) {
+    expect(error.code).to.equal(code);
+  }
+};
+
 describe('R2 asset service helpers', () => {
   it('loads only complete numbered account groups', () => {
     const accounts = getR2Accounts({
@@ -32,14 +41,14 @@ describe('R2 asset service helpers', () => {
   });
 
   it('rejects partial account groups instead of silently using incomplete credentials', () => {
-    expect(() => getR2Accounts({
+    expectErrorCode(() => getR2Accounts({
       R2_ACCOUNT_ID: 'account-one',
       R2_ACCESS_KEY_ID: 'access-one',
-    })).to.throw('R2_ACCOUNT_GROUP_INCOMPLETE');
+    }), 'R2_ACCOUNT_GROUP_INCOMPLETE');
   });
 
   it('rejects gaps in numbered account groups', () => {
-    expect(() => getR2Accounts({
+    expectErrorCode(() => getR2Accounts({
       R2_ACCOUNT_ID: 'account-one',
       R2_ACCESS_KEY_ID: 'access-one',
       R2_SECRET_ACCESS_KEY: 'secret-one',
@@ -50,7 +59,7 @@ describe('R2 asset service helpers', () => {
       R2_SECRET_ACCESS_KEY_3: 'secret-three',
       R2_BUCKET_NAME_3: 'bucket-three',
       R2_PUBLIC_BASE_URL_3: 'https://cdn.three.example',
-    })).to.throw('R2_ACCOUNT_GROUP_GAP');
+    }), 'R2_ACCOUNT_GROUP_GAP');
   });
 
   it('selects an account deterministically from a stable key', () => {
@@ -118,8 +127,7 @@ describe('R2 asset service helpers', () => {
       mimeType: 'image/jpeg',
       bytes: 4,
     });
-    expect(() => validateAssetBuffer(jpeg, { mimeType: 'image/png' }))
-      .to.throw('R2_ASSET_CONTENT_INVALID');
+    expectErrorCode(() => validateAssetBuffer(jpeg, { mimeType: 'image/png' }), 'R2_ASSET_CONTENT_INVALID');
   });
 
   it('builds content-addressed keys under a managed storage prefix', () => {
@@ -130,7 +138,6 @@ describe('R2 asset service helpers', () => {
       .to.equal(`assets/main/${hash}.jpg`);
     expect(isSafeStorageKey('assets/main/file.jpg')).to.equal(true);
     expect(isSafeStorageKey('../outside.jpg')).to.equal(false);
-    expect(() => buildStorageKey({ contentHash: hash, mimeType: 'image/jpeg', storagePrefix: '../outside' }))
-      .to.throw('R2_STORAGE_PREFIX_INVALID');
+    expectErrorCode(() => buildStorageKey({ contentHash: hash, mimeType: 'image/jpeg', storagePrefix: '../outside' }), 'R2_STORAGE_PREFIX_INVALID');
   });
 });

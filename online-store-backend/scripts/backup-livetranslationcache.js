@@ -11,6 +11,7 @@ require('dotenv').config();
 
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
 const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
+const { timestampedFilename } = require('../src/utils/reportFilename');
 
 async function backupCache() {
   try {
@@ -34,7 +35,7 @@ async function backupCache() {
       fs.mkdirSync(backupDir, { recursive: true });
     }
 
-    const filename = `livetranslationcache_${Date.now()}.json`;
+    const filename = timestampedFilename('livetranslationcache');
     const filepath = path.join(backupDir, filename);
 
     fs.writeFileSync(filepath, JSON.stringify(backupData, null, 2));
@@ -43,7 +44,7 @@ async function backupCache() {
     console.log(`[Backup] Size: ${fs.statSync(filepath).size} bytes`);
 
     // Also save metadata
-    const metadataPath = path.join(backupDir, 'backup.manifest.json');
+    const metadataPath = path.join(backupDir, timestampedFilename('backup.manifest'));
     const manifest = {
       lastBackup: new Date().toISOString(),
       files: fs.readdirSync(backupDir).filter(f => f.endsWith('.json')),

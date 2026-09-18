@@ -409,7 +409,7 @@ def run_scraper(script_path, collection_slug):
         captured_at.isoformat().replace("+00:00", "Z"),
         parser_version,
     )
-    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{captured_at.strftime('%Y%m%d')}"
+    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{run_id}"
     csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
     print(f">>> Hoàn thành: {len(records)} sản phẩm")
     print(f"- {csv_path}")

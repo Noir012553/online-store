@@ -17,6 +17,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { timestampedPath } = require('../utils/reportFilename');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
@@ -362,10 +363,10 @@ class PerformanceBenchmark {
 
       // Save results to file
       const fs = require('fs');
-      const resultsFile = `benchmarks/performance_${new Date().toISOString().split('T')[0]}.json`;
       const dir = 'benchmarks';
+      const resultsFile = timestampedPath(dir, 'performance');
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+        fs.mkdirSync(dir, { recursive: true });
       }
 
       fs.writeFileSync(resultsFile, JSON.stringify(this.results, null, 2));

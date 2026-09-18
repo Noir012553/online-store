@@ -4,6 +4,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const mongoose = require('mongoose');
 const { connectMongo } = require('../config/mongoConnection');
+const { getReportTimestamp } = require('../utils/reportFilename');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const Order = require('../models/Order');
@@ -22,6 +23,7 @@ async function main() {
   const productIds = (parseArg(args, 'product-ids', '') || '').split(',').map(id => id.trim()).filter(Boolean);
   const sourceProfile = parseArg(args, 'source-profile', 'legacy-source');
   const outputDir = parseArg(args, 'output-dir', path.resolve(__dirname, '../../reports/cleanup'));
+  const runId = getReportTimestamp();
 
   if (!['development', 'staging'].includes(environment)) {
     throw new Error('CLEANUP_ENVIRONMENT_INVALID: use --environment=development or --environment=staging');
@@ -46,6 +48,7 @@ async function main() {
   const productInventory = {
     environment,
     generatedAt: new Date().toISOString(),
+    runId,
     sourceProfile,
     productIds: foundIds,
     productCount: products.length,
@@ -74,6 +77,7 @@ async function main() {
   const r2Inventory = {
     environment,
     generatedAt: productInventory.generatedAt,
+    runId,
     sourceProfile,
     assets: [...new Map(r2Assets.map(asset => [
       `${asset.storageAccount}:${asset.bucket}:${asset.storageKey}`,
@@ -85,6 +89,7 @@ async function main() {
   };
   const report = {
     environment,
+    runId,
     profile: `${sourceProfile}-reset`,
     dryRun: true,
     confirmationRequired: true,
@@ -105,9 +110,9 @@ async function main() {
 
   await fs.mkdir(outputDir, { recursive: true });
   await Promise.all([
-    fs.writeFile(path.join(outputDir, 'product-cleanup-inventory.json'), JSON.stringify(productInventory, null, 2)),
-    fs.writeFile(path.join(outputDir, 'r2-cleanup-inventory.json'), JSON.stringify(r2Inventory, null, 2)),
-    fs.writeFile(path.join(outputDir, 'cleanup-report.json'), JSON.stringify(report, null, 2)),
+    fs.writeFile(path.join(outputDir, `product-cleanup-inventory-${runId}.json`), JSON.stringify(productInventory, null, 2)),
+    fs.writeFile(path.join(outputDir, `r2-cleanup-inventory-${runId}.json`), JSON.stringify(r2Inventory, null, 2)),
+    fs.writeFile(path.join(outputDir, `cleanup-report-${runId}.json`), JSON.stringify(report, null, 2)),
   ]);
   console.log(JSON.stringify({ success: true, outputDir, report }, null, 2));
   await mongoose.disconnect();

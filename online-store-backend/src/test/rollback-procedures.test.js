@@ -132,7 +132,7 @@ describe('ROLLBACK PROCEDURES', function() {
         .filter(f => f.endsWith('.json'));
       if (files.length === 0) this.skip();
 
-      const backupFile = path.join(backupDir, files[0]);
+      const backupFile = path.join(backupDir, files.sort().pop());
       const content = fs.readFileSync(backupFile, 'utf-8');
       const data = JSON.parse(content);
 
@@ -149,11 +149,12 @@ describe('ROLLBACK PROCEDURES', function() {
         .filter(f => f.endsWith('.json'));
       if (files.length === 0) this.skip();
 
-      const backupFile = path.join(backupDir, files[0]);
+      const backupFile = path.join(backupDir, files.sort().pop());
       const content = fs.readFileSync(backupFile, 'utf-8');
       const data = JSON.parse(content);
-      assert.ok(Array.isArray(data) && data.length > 0, 'Backup contains no records');
-      const sample = data[0];
+      const documents = Array.isArray(data) ? data : data.documents;
+      assert.ok(Array.isArray(documents) && documents.length > 0, 'Backup contains no records');
+      const sample = documents[0];
       assert.ok(sample._id || sample.hashKey, 'Backup record has no identity field');
     });
 
@@ -174,10 +175,13 @@ describe('ROLLBACK PROCEDURES', function() {
       const backupDir = path.join(__dirname, '../backups');
       if (!fs.existsSync(backupDir)) this.skip();
 
-      const manifestFile = path.join(backupDir, 'manifest.json');
-      if (!fs.existsSync(manifestFile)) this.skip();
+      const manifestName = fs.readdirSync(backupDir)
+        .filter(file => /^backup\.manifest-.*\.json$/.test(file))
+        .sort()
+        .pop();
+      if (!manifestName) this.skip();
 
-      const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf-8'));
+      const manifest = JSON.parse(fs.readFileSync(path.join(backupDir, manifestName), 'utf-8'));
       assert.ok(manifest.backups || manifest.backup);
     });
   });

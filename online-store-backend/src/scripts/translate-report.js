@@ -5,6 +5,7 @@ const { connectMongo } = require('../config/mongoConnection');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { timestampedFilename } = require('../utils/reportFilename');
 
 const args = process.argv.slice(2);
 
@@ -107,7 +108,7 @@ async function main() {
     const report = await translationReporter.generateDetailedReport(filter, options);
 
     if (options.export === 'json') {
-      const filename = `${Date.now()}-translations.json`;
+      const filename = timestampedFilename('translations');
       translationReporter.saveReport(report, filename);
       console.log(`${CLI_SYMBOLS.success} Report exported to: ${translationReporter.reportDir}/${filename}\n`);
     } else if (options.export === 'csv') {

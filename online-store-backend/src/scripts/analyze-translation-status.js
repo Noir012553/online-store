@@ -140,6 +140,7 @@ console.log(`Not Started: ${notStarted.length}/${defaultFiles.length} (${(notSta
 
 // Export detailed results for reference
 const reportDir = path.join(__dirname, '../../reports/i18n');
+const { timestampedPath } = require('../utils/reportFilename');
 fs.mkdirSync(reportDir, { recursive: true });
 const exportData = {
   summary: {
@@ -153,5 +154,6 @@ const exportData = {
   not_started: notStarted.map(s => ({ file: s.file, keys: s[`${defaultLang}_keys`] }))
 };
 
-fs.writeFileSync(path.join(reportDir, 'translation-analysis.json'), JSON.stringify(exportData, null, 2));
-console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to reports/i18n/translation-analysis.json`);
+const reportPath = timestampedPath(reportDir, 'translation-analysis');
+fs.writeFileSync(reportPath, JSON.stringify(exportData, null, 2));
+console.log(`\n${CLI_SYMBOLS.check} Detailed analysis saved to ${reportPath}`);

@@ -7,6 +7,7 @@ const zlib = require('zlib');
 const { execFileSync } = require('child_process');
 const Module = require('module');
 const { URL } = require('url');
+const { timestampedPath } = require('../src/utils/reportFilename');
 
 const backendRoot = path.resolve(__dirname, '..');
 const workspaceRoot = path.resolve(backendRoot, '..');
@@ -439,10 +440,13 @@ const downloadZip = async (targetUrl, headers, outputPath, timeoutMs, baseUrl) =
 };
 
 const writeReport = (reportPath, report) => {
-  if (!reportPath) return;
-  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.log(`[report] ${reportPath}`);
+  const resolvedPath = reportPath
+    ? path.resolve(reportPath)
+    : timestampedPath(path.join(backendRoot, 'reports', 'import-export'), 'import-export');
+  fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
+  fs.writeFileSync(resolvedPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(`[report] ${resolvedPath}`);
+  return resolvedPath;
 };
 
 const run = async args => {
@@ -636,16 +640,16 @@ const run = async args => {
 (async () => {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/test-export-dynamic.js --environment local --target backend --limit 10 --report report.json');
+    console.log('Usage: node scripts/test-export-dynamic.js --environment local --target backend --limit 10 [--report report.json]');
     console.log('Options: --base-url --frontend-base-url --backend-base-url --credential-path --import --import-file --format json|csv --mode insert|update|upsert --commit-import --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
     return;
   }
   try {
     const report = await run(args);
-    writeReport(args.report ? path.resolve(args.report) : null, report);
+    writeReport(args.report || null, report);
     console.log('[FINAL RESULT] PASS');
   } catch (error) {
-    writeReport(args.report ? path.resolve(args.report) : null, error.report || { ok: false, error: safeError(error) });
+    writeReport(args.report || null, error.report || { ok: false, error: safeError(error) });
     console.error(`[FINAL RESULT] FAIL\n[ERROR] ${safeError(error)}`);
     process.exitCode = 1;
   }
