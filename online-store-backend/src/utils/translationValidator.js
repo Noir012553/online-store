@@ -11,7 +11,7 @@ class TranslationValidator {
   }
 
   checkMissingBrand(original, translated) {
-    if (!config.ENABLE_BRAND_CHECK) return null;
+    if (!config.ENABLE_BRAND_CHECK || typeof original !== 'string' || typeof translated !== 'string') return null;
     for (const brand of config.PRESERVED_BRANDS) {
       if (original.includes(brand) && !translated.includes(brand)) {
         return { error: 'missing_brand', brand };
@@ -91,6 +91,9 @@ class TranslationValidator {
     // Run all checks
     const emptyCheck = this.checkEmpty(translated);
     if (emptyCheck) errors.push(emptyCheck.error);
+
+    const brandCheck = this.checkMissingBrand(original, translated);
+    if (brandCheck) errors.push(brandCheck.error);
 
     const lengthCheck = this.checkLength(original, translated);
     if (lengthCheck) errors.push(lengthCheck.error);

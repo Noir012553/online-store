@@ -16,7 +16,7 @@ import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types"
 import type { ProductDescriptionImage, ProductPromotion } from "../../lib/data";
 
 const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
-const RETRANSLATE_TIMEOUT_MS = 30_000;
+const RETRANSLATE_TIMEOUT_MS = 5 * 60_000;
 
 const getLanguages = (t: (key: string, ns?: string) => string) =>
   SUPPORTED_LOCALES.filter((code) => code !== DEFAULT_LOCALE).map((code: Locale) => {

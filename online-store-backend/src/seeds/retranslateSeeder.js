@@ -1,10 +1,20 @@
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const libretranslateProductService = require('../services/libretranslateProductService');
 const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const PRODUCT_ENTITY_TYPES = new Set([
+  'product_name',
+  'product_description',
+  'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
+]);
 
 class RetranslateSeeder {
   constructor() {
@@ -83,13 +93,19 @@ class RetranslateSeeder {
           continue;
         }
 
-        // Translate again
+        // Product content may use LibreTranslate only as a draft; Cloudflare remains final.
         const defaultLang = getDefaultLanguage().code;
-        const newTranslation = await cloudflareAiService.translate(
-          translation.originalText,
-          defaultLang,
-          translation.targetLang
-        );
+        const newTranslation = PRODUCT_ENTITY_TYPES.has(translation.entityType)
+          ? await libretranslateProductService.translateWithCloudflare(
+            translation.originalText,
+            defaultLang,
+            translation.targetLang,
+          )
+          : await cloudflareAiService.translate(
+            translation.originalText,
+            defaultLang,
+            translation.targetLang,
+          );
 
         // Validate new translation
         let validationResult = null;

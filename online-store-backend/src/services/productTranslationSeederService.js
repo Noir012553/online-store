@@ -24,52 +24,15 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 
 class ProductTranslationSeederService {
-  static _splitDescription(text, maxLength = 6000) {
-    if (text.length <= maxLength) return [text];
-
-    const chunks = [];
-    let start = 0;
-
-    while (start < text.length) {
-      let end = Math.min(start + maxLength, text.length);
-      if (end < text.length) {
-        const boundary = Math.max(
-          text.lastIndexOf('\n', end),
-          text.lastIndexOf('. ', end),
-          text.lastIndexOf('! ', end),
-          text.lastIndexOf('? ', end),
-          text.lastIndexOf(' ', end)
-        );
-        if (boundary > start) end = boundary + 1;
-      }
-      chunks.push(text.slice(start, end));
-      start = end;
-    }
-
-    return chunks;
-  }
-
   static async _translateDescription(text, sourceLang, targetLang) {
-    const chunks = this._splitDescription(text);
-    const translations = [];
-
-    for (const chunk of chunks) {
-      const translatedChunk = await libretranslateProductService.translateWithCloudflare(
-        chunk,
-        sourceLang,
-        targetLang,
-      );
-      if (typeof translatedChunk !== 'string' || translatedChunk.trim() === '') {
-        throw new Error('Description translation returned an empty chunk');
-      }
-      translations.push(translatedChunk);
-    }
-
-    const translatedText = translations.join('');
-    if (translatedText.trim() === '') {
+    const translatedText = await libretranslateProductService.translateWithCloudflare(
+      text,
+      sourceLang,
+      targetLang,
+    );
+    if (typeof translatedText !== 'string' || translatedText.trim() === '') {
       throw new Error('Description translation returned empty content');
     }
-
     return translatedText;
   }
 
@@ -211,6 +174,7 @@ class ProductTranslationSeederService {
         .select('_id name description brand specs technicalDescription descriptionImages promotions')
         .lean(),
       LiveTranslationCache.find({
+        entityId: { $in: productIds },
         targetLang,
         status: 'success',
         qualityStatus: 'approved',
@@ -224,12 +188,34 @@ class ProductTranslationSeederService {
             'product_promotion',
           ],
         },
-      }).select('entityId entityType specKey fieldKey translatedText').lean(),
+      }).select('entityId entityType specKey fieldKey originalText translatedText').lean(),
     ]);
+
+    const productsById = new Map(products.map((product) => [String(product._id), product]));
+    const isCurrentTranslation = (translation, product) => {
+      if (!product || typeof translation.originalText !== 'string') return false;
+      if (translation.entityType === 'product_name') return translation.originalText === product.name;
+      if (translation.entityType === 'product_description') return translation.originalText === product.description;
+      if (translation.entityType === 'product_technical_description') {
+        return translation.originalText === product.technicalDescription;
+      }
+      if (translation.entityType === 'product_spec') {
+        return Object.entries(product.specs || {}).some(([key, value]) => (
+          getCanonicalSpecKey(key) === getCanonicalSpecKey(translation.specKey)
+          && value === translation.originalText
+        ));
+      }
+      const match = translation.fieldKey?.match(/^(descriptionImages|promotions)\.(\d+)\.(.+)$/);
+      if (!match) return false;
+      const collection = product[match[1]];
+      const item = Array.isArray(collection) ? collection[Number(match[2])] : null;
+      return item && item[match[3]] === translation.originalText;
+    };
 
     const translationsByProduct = new Map();
     for (const translation of translations) {
       const productId = String(translation.entityId);
+      if (!isCurrentTranslation(translation, productsById.get(productId))) continue;
       const entry = translationsByProduct.get(productId) || {
         name: null,
         description: null,
@@ -291,8 +277,27 @@ class ProductTranslationSeederService {
       if (product.description?.trim() && !String(translated.description || '').trim()) {
         validationErrors.push('missing_description');
       }
+      if (product.technicalDescription?.trim() && !String(translated.technicalDescription || '').trim()) {
+        validationErrors.push('missing_technical_description');
+      }
       if (sourceSpecKeys.some((key) => !key || !translated.specs[key])) {
         validationErrors.push('incomplete_specs');
+      }
+      if (Array.isArray(product.descriptionImages)) {
+        product.descriptionImages.forEach((image, index) => {
+          if (image?.alt?.trim() && !translated.descriptionImageAlts.get(`descriptionImages.${index}.alt`)) {
+            validationErrors.push('incomplete_description_images');
+          }
+        });
+      }
+      if (Array.isArray(product.promotions)) {
+        product.promotions.forEach((promotion, index) => {
+          ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+            if (promotion?.[field]?.trim() && !translated.promotionTexts.get(`promotions.${index}.${field}`)) {
+              validationErrors.push('incomplete_promotions');
+            }
+          });
+        });
       }
 
       return {

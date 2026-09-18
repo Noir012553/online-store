@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { useCallback } from 'react';
+import { API_BASE_PATH } from '../config';
 import { useLanguage } from '../lib/i18n';
 
 interface TranslateResult {
@@ -10,7 +12,7 @@ interface TranslateResult {
 
 export function useTranslateText() {
   const { locale } = useLanguage();
-  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const apiBase = API_BASE_PATH;
 
   const translateText = useCallback(
     async (text: string, targetLang?: string, sourceLang?: string): Promise<string> => {
@@ -21,8 +23,11 @@ export function useTranslateText() {
         return text;
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20_000);
+
       try {
-        const response = await fetch(`${apiBase}/api/translations/translate?lang=${lang}`, {
+        const response = await fetch(`${apiBase}/translations/translate?lang=${lang}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -33,6 +38,7 @@ export function useTranslateText() {
             sourceLang: source,
             useCache: true,
           }),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -43,6 +49,8 @@ export function useTranslateText() {
         return json.data?.translatedText || text;
       } catch (error) {
         return text;
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     [locale, apiBase]

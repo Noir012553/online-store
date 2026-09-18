@@ -51,15 +51,27 @@ async function seedSpecTranslations(repairAttempt = 0) {
     // Step 1: Load the complete product and language matrix.
     console.log(`${CLI_SYMBOLS.books} Step 1: Querying products and approved translations...`);
 
-    const [products, allRecords] = await Promise.all([
-      Product.find({ isDeleted: false }).select('_id name description brand specs').lean(),
-      LiveTranslationCache.find({
-        entityType: { $in: ['product_spec', 'product_name', 'product_description'] },
+    const products = await Product.find({ isDeleted: false })
+      .select('_id name description brand specs technicalDescription descriptionImages promotions')
+      .lean();
+    const allRecords = products.length === 0
+      ? []
+      : await LiveTranslationCache.find({
+        entityId: { $in: products.map((product) => product._id) },
+        entityType: {
+          $in: [
+            'product_spec',
+            'product_name',
+            'product_description',
+            'product_technical_description',
+            'product_description_image_alt',
+            'product_promotion',
+          ],
+        },
         status: 'success',
         qualityStatus: 'approved',
         targetLang: { $in: TRANSLATED_LANG_CODES },
-      }).lean(),
-    ]);
+      }).lean();
 
     console.log(`  Found ${products.length} products and ${allRecords.length} approved translation records\n`);
 
@@ -81,6 +93,19 @@ async function seedSpecTranslations(repairAttempt = 0) {
           specs: {},
           name: null,
           description: null,
+          technicalDescription: null,
+          descriptionImages: Array.isArray(product.descriptionImages)
+            ? product.descriptionImages.map((image) => ({ ...image, alt: null }))
+            : [],
+          promotions: Array.isArray(product.promotions)
+            ? product.promotions.map((promotion) => ({
+              ...promotion,
+              title: null,
+              giftProductName: null,
+              scope: null,
+              discountText: null,
+            }))
+            : [],
           brand: product.brand || null,
           status: 'success',
           qualityStatus: 'pending',
@@ -104,6 +129,18 @@ async function seedSpecTranslations(repairAttempt = 0) {
       } else if (doc.entityType === 'product_spec' && doc.specKey) {
         const canonicalKey = getCanonicalSpecKey(doc.specKey);
         if (canonicalKey) group.specs[canonicalKey] = doc.translatedText;
+      } else if (doc.entityType === 'product_technical_description') {
+        group.technicalDescription = doc.translatedText;
+      } else if (doc.entityType === 'product_description_image_alt' && doc.fieldKey) {
+        const match = doc.fieldKey.match(/^descriptionImages\.(\d+)\.alt$/);
+        if (match && group.descriptionImages[Number(match[1])]) {
+          group.descriptionImages[Number(match[1])].alt = doc.translatedText;
+        }
+      } else if (doc.entityType === 'product_promotion' && doc.fieldKey) {
+        const match = doc.fieldKey.match(/^promotions\.(\d+)\.(title|giftProductName|scope|discountText)$/);
+        if (match && group.promotions[Number(match[1])]) {
+          group.promotions[Number(match[1])][match[2]] = doc.translatedText;
+        }
       }
     }
 
@@ -118,6 +155,20 @@ async function seedSpecTranslations(repairAttempt = 0) {
 
         group.name ||= translatedByText.get(`${product.name}:${targetLang}`) || null;
         group.description ||= translatedByText.get(`${product.description}:${targetLang}`) || null;
+        group.technicalDescription ||= translatedByText.get(`${product.technicalDescription}:${targetLang}`) || null;
+
+        for (const [index, image] of (product.descriptionImages || []).entries()) {
+          if (image?.alt) {
+            group.descriptionImages[index].alt ||= translatedByText.get(`${image.alt}:${targetLang}`) || null;
+          }
+        }
+        for (const [index, promotion] of (product.promotions || []).entries()) {
+          for (const field of ['title', 'giftProductName', 'scope', 'discountText']) {
+            if (promotion?.[field]) {
+              group.promotions[index][field] ||= translatedByText.get(`${promotion[field]}:${targetLang}`) || null;
+            }
+          }
+        }
 
         for (const [specKey, value] of Object.entries(product.specs || {})) {
           if (typeof value !== 'string' || !value.trim()) continue;
@@ -157,13 +208,34 @@ async function seedSpecTranslations(repairAttempt = 0) {
       const validationErrors = [];
       const hasSourceDescription = typeof sourceProduct?.description === 'string'
         && sourceProduct.description.trim();
+      const hasTechnicalDescription = typeof sourceProduct?.technicalDescription === 'string'
+        && sourceProduct.technicalDescription.trim();
 
       entry.brand = sourceProduct?.brand || null;
       if (!String(entry.name || '').trim()) validationErrors.push('missing_name');
       if (hasSourceDescription && !String(entry.description || '').trim()) {
         validationErrors.push('missing_description');
       }
+      if (hasTechnicalDescription && !String(entry.technicalDescription || '').trim()) {
+        validationErrors.push('missing_technical_description');
+      }
       if (missingSpec) validationErrors.push('incomplete_specs');
+      if (Array.isArray(sourceProduct?.descriptionImages)) {
+        sourceProduct.descriptionImages.forEach((image, index) => {
+          if (image?.alt?.trim() && !entry.descriptionImages[index]?.alt?.trim()) {
+            validationErrors.push('incomplete_description_images');
+          }
+        });
+      }
+      if (Array.isArray(sourceProduct?.promotions)) {
+        sourceProduct.promotions.forEach((promotion, index) => {
+          ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+            if (promotion?.[field]?.trim() && !entry.promotions[index]?.[field]?.trim()) {
+              validationErrors.push('incomplete_promotions');
+            }
+          });
+        });
+      }
 
       entry.validationErrors = validationErrors;
       entry.qualityStatus = validationErrors.length > 0 ? 'pending' : 'approved';
