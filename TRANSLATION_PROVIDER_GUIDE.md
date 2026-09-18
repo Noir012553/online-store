@@ -119,6 +119,33 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+## Lỗi ảnh mô tả nguồn trả HTTP 404
+
+Một số `descriptionImages[].url` có thể tồn tại trong JSON nhưng CDN nguồn vẫn trả `404 Not Found` khi pipeline tải thật. Chuỗi JSON có dạng `https:\/\/...` là hợp lệ; sau khi parse sẽ trở thành URL `https://...`.
+
+Pipeline chỉ bỏ qua ảnh mô tả bị lỗi và tiếp tục lưu sản phẩm nếu ảnh chính tải được. Ảnh bị 404 không thể upload lên R2 cho đến khi URL nguồn được thay bằng URL còn hoạt động.
+
+Kiểm tra đúng URL từ máy Windows bằng PowerShell, không tạo file:
+
+```powershell
+$url = "https://cdn.hstatic.net/files/200000722513/file/laptop_gaming_acer_aspire_7_a715-59-g-59rd_37.png"
+
+$response = Invoke-WebRequest `
+  -Uri $url `
+  -Method Get `
+  -Headers @{
+    Accept = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
+    "User-Agent" = "LaptopStoreR2AssetService/1.0"
+  } `
+  -MaximumRedirection 5
+
+$response.StatusCode
+$response.Headers["Content-Type"]
+$response.RawContentLength
+```
+
+Nếu nhận `404`, cần cập nhật URL trong file dữ liệu hoặc cào lại nguồn trước khi chạy lại seed. Sau khi sửa dữ liệu, chạy lại `npm run seed -- --skip-scrape`; không cần xóa R2 vì asset hợp lệ đã có sẽ được nhận diện và dùng lại.
+
 ## Vận hành pipeline sản phẩm
 
 1. Bảo đảm Cloudflare AI đã có credential và quota hợp lệ.
