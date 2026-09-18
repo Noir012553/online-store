@@ -1,0 +1,12 @@
+.env*
+!.env.example
+!.env.local.example
+
+node_modules/
+.next/
+out/
+build/
+coverage/
+reports/
+
+libretranslate-tool/output/
