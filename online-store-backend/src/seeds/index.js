@@ -426,8 +426,8 @@ const seed = async () => {
           };
         });
         translationReporter.printSeedReport(report);
-        translationReporter.saveReport(report);
-        seedLogger.log(`${CLI_SYMBOLS.report} Translation Quality Report saved to ./translation-reports/\n`);
+        const reportPath = translationReporter.saveReport(report);
+        seedLogger.log(`${CLI_SYMBOLS.report} Translation Quality Report saved to ${reportPath}\n`);
       }
     } catch (reportError) {
       seedLogger.warn(`Failed to generate translation report: ${reportError.message}`);

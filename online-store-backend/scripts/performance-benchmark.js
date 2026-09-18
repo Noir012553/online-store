@@ -21,6 +21,7 @@ const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTran
 const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
 const { CLI_SYMBOLS } = require('../src/utils/cliSymbols');
+const { timestampedPath } = require('../src/utils/reportFilename');
 
 class PerformanceBenchmark {
   constructor() {
@@ -363,7 +364,7 @@ class PerformanceBenchmark {
       // Save results to file
       const fs = require('fs');
       const dir = path.join(__dirname, '../reports/benchmark');
-      const resultsFile = path.join(dir, `performance_${new Date().toISOString().split('T')[0]}.json`);
+      const resultsFile = timestampedPath(dir, 'performance');
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }

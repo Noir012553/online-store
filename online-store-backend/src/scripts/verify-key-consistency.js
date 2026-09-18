@@ -135,6 +135,7 @@ console.log(`\n${CLI_SYMBOLS.check} Consistency verification complete!`);
 
 // Export results
 const reportDir = path.join(__dirname, '../../reports/i18n');
+const { timestampedPath } = require('../utils/reportFilename');
 fs.mkdirSync(reportDir, { recursive: true });
 const results = {
   timestamp: new Date().toISOString(),
@@ -146,9 +147,8 @@ const results = {
   issues_by_file: issuesByFile
 };
 
-fs.writeFileSync(
-  path.join(reportDir, 'key-consistency-report.json'),
-  JSON.stringify(results, null, 2)
-);
+const reportPath = timestampedPath(reportDir, 'key-consistency-report');
+fs.writeFileSync(reportPath, JSON.stringify(results, null, 2));
+console.log(`Report saved to ${reportPath}`);
 
 process.exit(totalIssues > 0 ? 1 : 0);

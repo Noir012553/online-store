@@ -4,6 +4,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const config = require('../config/translationValidation');
 const { CLI_SYMBOLS } = require('./cliSymbols');
+const { timestampedFilename } = require('./reportFilename');
 
 class TranslationReporter {
   constructor() {
@@ -194,9 +195,8 @@ class TranslationReporter {
   saveReport(report, filename = null) {
     if (!config.SAVE_REPORTS) return null;
 
-    const timestamp = new Date().toISOString().slice(0, 10);
     const reportType = report.type || 'report';
-    const name = filename || `${timestamp}-${reportType}.json`;
+    const name = filename || timestampedFilename(reportType);
     const filePath = path.join(this.reportDir, name);
 
     fs.writeFileSync(filePath, JSON.stringify(report, null, 2));
@@ -233,7 +233,7 @@ class TranslationReporter {
     report.recommendations.forEach(rec => console.log(`   ${CLI_SYMBOLS.bullet} ${rec}`));
 
     if (config.SAVE_REPORTS) {
-      console.log(`\n${CLI_SYMBOLS.report} Full report saved to: ./translation-reports`);
+      console.log(`\n${CLI_SYMBOLS.report} Full report saved to: ${this.reportDir}`);
     }
     console.log('\n');
   }

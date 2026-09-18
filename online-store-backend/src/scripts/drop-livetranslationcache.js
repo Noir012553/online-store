@@ -24,6 +24,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const LiveTranslationCache = require('../src/models/LiveTranslationCache');
+const { timestampedFilename } = require('../utils/reportFilename');
 const ProductCatalogTranslationCache = require('../src/models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../src/models/UserContentTranslationCache');
 
@@ -232,7 +233,9 @@ class DropProcedure {
   }
 
   documentCompletion() {
-    const completionFile = path.join(__dirname, '../PHASE_4_COMPLETION.txt');
+    const completionDir = path.join(__dirname, '../../reports/migration');
+    const completionFile = path.join(completionDir, timestampedFilename('phase-4-completion', 'txt'));
+    fs.mkdirSync(completionDir, { recursive: true });
 
     const completionLog = `
 ╔════════════════════════════════════════════════════════════════╗

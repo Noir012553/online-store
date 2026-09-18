@@ -234,7 +234,7 @@ class RetranslateSeeder {
 
     // Save report
     if (!dryRun) {
-      const report = translationReporter.generateRetranslateReport(
+      const report = await translationReporter.generateRetranslateReport(
         { totalToRetranslate: this.stats.totalToRetranslate, filters: filter },
         this.stats
       );
