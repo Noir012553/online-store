@@ -245,15 +245,68 @@ def process_file(json_path, output_root, batch_id=None):
                     changed = True
                 except Exception as error:
                     gallery_failures.append(f'{json_path.name} row {index + 1} gallery {gallery_index + 1}: {gallery_source} ({error})')
-                    # Keep the failed remote URL in both manifest and source data.
                     gallery_paths.append(gallery_source)
                     entry['gallery'].append({'sourceUrl': gallery_source, 'status': 'failed', 'error': str(error)})
             elif gallery_source:
-                gallery_paths.append(gallery_source.replace('\\', '/'))
-                entry['gallery'].append({'localPath': gallery_source, 'status': 'local'})
+                gallery_path = gallery_source.replace('\\', '/')
+                gallery_paths.append(gallery_path)
+                entry['gallery'].append({'localPath': gallery_path, 'status': 'local'})
 
         if gallery_paths:
             product[gallery_key] = gallery_paths if gallery_key == 'ProductGalleryImages' else ' || '.join(gallery_paths)
+
+        description_key = 'ProductDescriptionImages' if 'ProductDescriptionImages' in product else 'DescriptionImages'
+        description_entries = product.get(description_key) or []
+        description_paths = []
+        entry['description'] = []
+        for description_index, description_entry in enumerate(description_entries):
+            if isinstance(description_entry, dict):
+                description_source = (
+                    description_entry.get('ProductDescriptionImageURL')
+                    or description_entry.get('url')
+                    or description_entry.get('sourceUrl')
+                )
+                updated_entry = dict(description_entry)
+            else:
+                description_source = description_entry
+                updated_entry = {}
+
+            description_source = str(description_source or '').strip()
+            if not description_source:
+                continue
+
+            slot = f'description-{description_index + 1:02d}'
+            if is_remote_image(description_source):
+                try:
+                    description_path, source_url = process_image(description_source, product_dir, slot)
+                    description_path = to_relative_path(output_root, description_path)
+                    entry['description'].append({
+                        'sourceUrl': source_url,
+                        'localPath': description_path,
+                        'status': 'downloaded',
+                    })
+                    changed = True
+                except Exception as error:
+                    entry['description'].append({
+                        'sourceUrl': description_source,
+                        'status': 'failed',
+                        'error': str(error),
+                    })
+                    continue
+            else:
+                description_path = description_source.replace('\\', '/')
+                entry['description'].append({
+                    'localPath': description_path,
+                    'status': 'local',
+                })
+
+            updated_entry['ProductDescriptionImageURL'] = description_path
+            if 'ProductDescriptionImageAlt' not in updated_entry and 'alt' in updated_entry:
+                updated_entry['ProductDescriptionImageAlt'] = updated_entry['alt']
+            description_paths.append(updated_entry)
+
+        if description_key in product:
+            product[description_key] = description_paths
 
         manifest[product_key] = entry
 
