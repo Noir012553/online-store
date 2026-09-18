@@ -331,7 +331,9 @@ const uploadBuffer = async (buffer, options = {}) => {
       () => new HeadObjectCommand({ Bucket: account.bucket, Key: storageKey }),
       policy.maxRetries,
     );
-    exists = Number(head.ContentLength) === buffer.length;
+    exists = Number(head.ContentLength) === buffer.length
+      && String(head.Metadata?.sha256 || '').toLowerCase() === contentHash
+      && String(head.ContentType || '').toLowerCase() === validation.mimeType;
   } catch (error) {
     if (getErrorStatus(error) !== 404 && error?.name !== 'NotFound' && error?.name !== 'NoSuchKey') throw error;
   }
@@ -431,8 +433,20 @@ const validateR2AssetReference = async reference => {
     }),
     getR2UploadPolicy().maxRetries,
   );
-  if (reference.contentHash && head.Metadata?.sha256 && reference.contentHash !== head.Metadata.sha256) {
+  const storedHash = String(head.Metadata?.sha256 || '').toLowerCase();
+  if (!reference.contentHash || storedHash !== String(reference.contentHash).toLowerCase()) {
     throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset content hash does not match the stored object');
+  }
+
+  const storedBytes = Number(head.ContentLength);
+  if (reference.bytes !== undefined && Number(reference.bytes) !== storedBytes) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset byte length does not match the stored object');
+  }
+
+  const storedMimeType = String(head.ContentType || '').split(';')[0].trim().toLowerCase();
+  const referenceMimeType = String(reference.mimeType || '').split(';')[0].trim().toLowerCase();
+  if (!storedMimeType || !referenceMimeType || storedMimeType !== referenceMimeType) {
+    throw createR2Error('R2_ASSET_REFERENCE_INVALID', 'R2 asset MIME type does not match the stored object');
   }
 
   return {
@@ -442,8 +456,8 @@ const validateR2AssetReference = async reference => {
     bucket: account.bucket,
     publicUrl: buildPublicUrl(account, reference.storageKey),
     publicId: reference.publicId || reference.storageKey,
-    mimeType: reference.mimeType || head.ContentType || null,
-    bytes: reference.bytes || Number(head.ContentLength) || null,
+    mimeType: referenceMimeType,
+    bytes: storedBytes,
   };
 };
 

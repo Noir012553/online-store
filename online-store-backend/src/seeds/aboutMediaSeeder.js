@@ -1,7 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const AboutMedia = require('../models/AboutMedia');
-const { uploadAsset } = require('../services/r2AssetService');
+const {
+  uploadAsset,
+  getR2Accounts,
+  getR2UploadPolicy,
+} = require('../services/r2AssetService');
 const { ABOUT_MEDIA } = require('../config/aboutMedia');
 
 const FRONTEND_PUBLIC_DIR = path.resolve(__dirname, '../../../online-store-frontend/public');
@@ -21,6 +25,20 @@ const getLocalHeroSource = () => path.join(FRONTEND_PUBLIC_DIR, 'assets', 'video
 const getLocalLoadingSource = () => path.join(FRONTEND_PUBLIC_DIR, 'animations', 'loading.svg');
 const resolveMediaSource = (preferredSource, localSource) => fs.existsSync(localSource) ? localSource : preferredSource;
 const getErrorMessage = error => error?.message || String(error || 'Unknown R2 error');
+
+const assertAboutMediaPreflight = () => {
+  const heroSource = resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource());
+  if (!heroSource) throw new Error('ABOUT_HERO_SOURCE is required when the local hero video is missing');
+
+  getR2Accounts();
+  const policy = getR2UploadPolicy();
+  if (!policy.enabled) throw new Error('R2 uploads are disabled by policy');
+  if (policy.maxAssets <= 0 || policy.maxBytes <= 0) {
+    throw new Error('R2 upload budget is not configured');
+  }
+
+  return { heroSource };
+};
 
 const toRecordAsset = asset => ({
   publicId: asset.storageKey,
@@ -83,6 +101,7 @@ const seedLoadingMedia = async ({ dryRun = false, requireSource = false } = {}) 
 const seedAboutMedia = async ({ dryRun = false } = {}) => {
   if (dryRun) return [];
 
+  const { heroSource } = assertAboutMediaPreflight();
   const teamRecords = [];
   for (const [sortOrder, media] of ABOUT_MEDIA.team.entries()) {
     try {
@@ -104,9 +123,7 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
 
   let heroAsset;
   try {
-    const source = resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource());
-    if (!source) throw new Error('ABOUT_HERO_SOURCE is required when the local hero video is missing');
-    heroAsset = await ensureAsset({ source, role: 'about-hero', stableKey: 'about-hero' });
+    heroAsset = await ensureAsset({ source: heroSource, role: 'about-hero', stableKey: 'about-hero' });
   } catch (error) {
     throw new Error(`About hero media failed: ${getErrorMessage(error)}`, { cause: error });
   }
@@ -136,3 +153,4 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
 module.exports = seedAboutMedia;
 module.exports.seedLoadingMedia = seedLoadingMedia;
 module.exports.seedAboutReviewers = seedAboutReviewers;
+module.exports.assertAboutMediaPreflight = assertAboutMediaPreflight;
