@@ -105,13 +105,34 @@ class ProductTranslationSeederService {
       let rateLimitCount = 0;
       let errorCount = 0;
       let totalProcessed = 0;
+      const processedProductIds = [];
 
       // Layer 2 Configuration: Thoải mái hơn Layer 1
-      const CHUNK_SIZE = 10;
-      const CONCURRENT_PRODUCTS = Math.max(1, Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1));
-      const THROTTLE_BETWEEN_CHUNKS = Math.max(0, Number(process.env.PRODUCT_TRANSLATION_DELAY_MS || 1000));
+      const chunkSize = Number(process.env.PRODUCT_TRANSLATION_CHUNK_SIZE || 10);
+      const concurrentProducts = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
+      const throttleBetweenChunks = Number(process.env.PRODUCT_TRANSLATION_DELAY_MS || 1000);
+      const configuredLimit = Number(process.env.PRODUCT_TRANSLATION_LIMIT || 0);
+      if (!Number.isInteger(chunkSize) || chunkSize < 1) {
+        throw new Error('PRODUCT_TRANSLATION_CHUNK_SIZE must be a positive integer');
+      }
+      if (!Number.isInteger(concurrentProducts) || concurrentProducts < 1) {
+        throw new Error('PRODUCT_TRANSLATION_CONCURRENCY must be a positive integer');
+      }
+      if (!Number.isInteger(throttleBetweenChunks) || throttleBetweenChunks < 0) {
+        throw new Error('PRODUCT_TRANSLATION_DELAY_MS must be a non-negative integer');
+      }
+      if (!Number.isInteger(configuredLimit) || configuredLimit < 0) {
+        throw new Error('PRODUCT_TRANSLATION_LIMIT must be a non-negative integer');
+      }
+      const CHUNK_SIZE = chunkSize;
+      const CONCURRENT_PRODUCTS = concurrentProducts;
+      const THROTTLE_BETWEEN_CHUNKS = throttleBetweenChunks;
+      const selectedProductCount = configuredLimit > 0
+        ? Math.min(totalProducts, configuredLimit)
+        : totalProducts;
 
-      const totalChunks = Math.ceil(totalProducts / CHUNK_SIZE);
+      console.log(`[ProductSeeder] Phạm vi dịch: ${selectedProductCount}/${totalProducts} sản phẩm`);
+      const totalChunks = Math.ceil(selectedProductCount / CHUNK_SIZE);
 
       // Process sản phẩm theo từng chunk
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
@@ -121,12 +142,14 @@ class ProductTranslationSeederService {
 
         // Lấy chunk sản phẩm hiện tại
         const products = await Product.find({ isDeleted: false })
+          .sort({ featured: -1, createdAt: -1, _id: 1 })
           .skip(skip)
           .limit(CHUNK_SIZE)
           .lean()
           .select('_id name description brand specs technicalDescription descriptionImages promotions');
 
         if (products.length === 0) break;
+        processedProductIds.push(...products.map(product => product._id.toString()));
 
         // Process với concurrency limit
         for (let i = 0; i < products.length; i += CONCURRENT_PRODUCTS) {
@@ -155,7 +178,7 @@ class ProductTranslationSeederService {
         }
       }
 
-      await this._syncProductCatalogTranslations(targetLang);
+      await this._syncProductCatalogTranslations(targetLang, processedProductIds);
 
       console.log(`\n[ProductSeeder] ${CLI_SYMBOLS.target} PHASE 2 hoàn tất:`);
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
@@ -175,9 +198,11 @@ class ProductTranslationSeederService {
     }
   }
 
-  static async _syncProductCatalogTranslations(targetLang) {
+  static async _syncProductCatalogTranslations(targetLang, productIds = []) {
+    if (productIds.length === 0) return;
+
     const [products, translations] = await Promise.all([
-      Product.find({ isDeleted: false })
+      Product.find({ isDeleted: false, _id: { $in: productIds } })
         .select('_id name description brand specs technicalDescription descriptionImages promotions')
         .lean(),
       LiveTranslationCache.find({
@@ -503,9 +528,15 @@ class ProductTranslationSeederService {
         try {
           const hashKey = crypto
             .createHash('md5')
-            .update(JSON.stringify(field.fieldKey
-              ? [productId, field.entityType, field.fieldKey, field.originalText, sourceLang, targetLang]
-              : [field.originalText, sourceLang, targetLang]))
+            .update(JSON.stringify([
+              productId,
+              field.entityType,
+              field.fieldKey || null,
+              field.specKey || null,
+              field.originalText,
+              sourceLang,
+              targetLang,
+            ]))
             .digest('hex');
 
           // Check cache trước

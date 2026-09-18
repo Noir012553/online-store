@@ -1080,6 +1080,39 @@ Quy tắc vận hành trước khi sửa code:
 - Không xóa hoặc di chuyển asset cũ nếu asset mới chưa upload, verify và ghi reference thành công.
 - Chỉ chạy test cần thiết; không tự chạy `npm run build`.
 
+## 12.13. Triển khai batch dịch nội dung dài
+
+Đã triển khai tối ưu cho `ProductTranslationSeederService`:
+
+- `ProductDescription` được chia theo chunk tối đa 6.000 ký tự và dịch tuần tự để tránh vượt giới hạn input.
+- `ProductTechnicalDescription` được xử lý như plain text.
+- `descriptionImages[].alt` được dịch độc lập theo từng ảnh; `descriptionImages[].url` và metadata asset không thay đổi.
+- Các field text của promotion được dịch: `title`, `giftProductName`, `scope`, `discountText`; enum, URL, số lượng và giá trị tiền giữ nguyên.
+- Cache key luôn bao gồm `productId`, field path, source text, source locale và target locale; sản phẩm trùng nội dung không làm mất liên kết bản dịch của sản phẩm khác.
+- Có thể dịch theo batch ưu tiên bằng biến môi trường:
+
+```text
+PRODUCT_TRANSLATION_LIMIT=150
+PRODUCT_TRANSLATION_CHUNK_SIZE=10
+PRODUCT_TRANSLATION_CONCURRENCY=1
+PRODUCT_TRANSLATION_DELAY_MS=1000
+```
+
+`PRODUCT_TRANSLATION_LIMIT=0` nghĩa là không giới hạn. Khi đặt giới hạn lớn hơn 0, seeder ưu tiên sản phẩm `featured`, sau đó `createdAt` mới nhất và `_id`; các sản phẩm còn lại giữ fallback source language để dịch ở batch sau. Chỉ các sản phẩm thực sự được xử lý mới được đồng bộ vào `ProductCatalogTranslationCache`.
+
+Migrate cache cũ đã bổ sung các field `technicalDescription`, `descriptionImages[].alt` và text promotion. Không chạy migrate hoặc batch dịch production nếu chưa có backup, target language rõ ràng và quota baseline.
+
+Quy trình khuyến nghị cho batch đầu tiên:
+
+```text
+1. Inventory/dry-run, không gọi provider.
+2. Chọn 100–150 sản phẩm bằng PRODUCT_TRANSLATION_LIMIT.
+3. Chạy một target language.
+4. Kiểm tra mô tả dài, alt ảnh, specs và promotion trên API/frontend.
+5. Theo dõi cache hit, failed, quota và qualityStatus.
+6. Tăng limit theo từng batch; không chạy full seed để dịch toàn bộ ngay lần đầu.
+```
+
 ## 13. Kết luận
 
 Bộ tên `Product...` là nhất quán và tránh được các key chung như `ID`, `Name`, `Description`, `URL` và `Images`. Phần extractor, staging envelope, output schema, adapter normalize, validator, Product model, API, translation và frontend đã được nối theo contract. Lệnh `npm run seed` hiện chạy full pipeline A–Z theo phase; crawler chỉ chạy lại khi thêm `--force-scrape` hoặc chưa có output.

@@ -373,16 +373,16 @@ describe('Product translation cache controller', () => {
 
     const records = saveTranslation.getCalls().map((call) => call.args[1].$set);
     expect(result).to.deep.equal({ success: 9, rateLimitErr: 0, otherErr: 0 });
-    expect(records).to.deep.include({
-      entityType: 'product_technical_description',
-      fieldKey: 'technicalDescription',
-      originalText: 'Thông số kỹ thuật',
-    });
-    expect(records).to.deep.include({
-      entityType: 'product_description_image_alt',
-      fieldKey: 'descriptionImages.0.alt',
-      originalText: 'Ảnh thông số',
-    });
+    expect(records.some(({ entityType, fieldKey, originalText }) => (
+      entityType === 'product_technical_description'
+      && fieldKey === 'technicalDescription'
+      && originalText === 'Thông số kỹ thuật'
+    ))).to.equal(true);
+    expect(records.some(({ entityType, fieldKey, originalText }) => (
+      entityType === 'product_description_image_alt'
+      && fieldKey === 'descriptionImages.0.alt'
+      && originalText === 'Ảnh thông số'
+    ))).to.equal(true);
     const promotionRecords = records.filter(({ entityType }) => entityType === 'product_promotion');
     expect(promotionRecords).to.have.lengthOf(4);
     expect(promotionRecords.some(({ fieldKey, originalText }) => (
@@ -397,6 +397,36 @@ describe('Product translation cache controller', () => {
     expect(promotionRecords.some(({ fieldKey, originalText }) => (
       fieldKey === 'promotions.0.discountText' && originalText === 'Giảm 10%'
     ))).to.equal(true);
+  });
+
+  it('does not share product translation cache records for identical source text', async () => {
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'isLocked').resolves(false);
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves();
+    sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    const saveTranslation = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({});
+    sandbox.stub(cloudflareAiService, 'translate').callsFake(async (text) => `en:${text}`);
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      validationErrors: [],
+      qualityScore: 100,
+      qualityStatus: 'approved',
+    });
+
+    const sourceProduct = { name: 'Same product name' };
+    await ProductTranslationSeederService._translateProduct({
+      ...sourceProduct,
+      _id: new mongoose.Types.ObjectId(),
+    }, 'en', 'vi', 0);
+    await ProductTranslationSeederService._translateProduct({
+      ...sourceProduct,
+      _id: new mongoose.Types.ObjectId(),
+    }, 'en', 'vi', 1);
+
+    const records = saveTranslation.getCalls().map((call) => call.args[1].$set);
+    expect(records).to.have.lengthOf(2);
+    expect(records[0].hashKey).to.not.equal(records[1].hashKey);
+    expect(records[0].entityId).to.not.equal(records[1].entityId);
   });
 
   it('exports only the requested fields for valid product and language filters', async () => {

@@ -25,17 +25,25 @@ const clickExpandableButtons = async page => {
   ];
 
   for (const pattern of patterns) {
+    if (page.isClosed()) return false;
     const buttons = page.getByRole('button', { name: pattern });
     const count = Math.min(await buttons.count(), 5);
     for (let index = 0; index < count; index += 1) {
-      await buttons.nth(index).click({ timeout: 3000 }).catch(() => {});
+      if (page.isClosed()) return false;
+      try {
+        await buttons.nth(index).click({ timeout: 3000 });
+      } catch (error) {
+        if (page.isClosed()) return false;
+      }
     }
   }
+  return !page.isClosed();
 };
 
 const renderPage = async url => {
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch({ headless: true });
+  let baselineHtml = '';
   try {
     const page = await browser.newPage({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
@@ -43,11 +51,15 @@ const renderPage = async url => {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
     await page.waitForSelector('.news-html-content, h1, h3', { timeout: 15000 }).catch(() => {});
-    await clickExpandableButtons(page);
+    baselineHtml = await page.content();
+    if (!await clickExpandableButtons(page)) return baselineHtml;
     await page.waitForTimeout(500);
-    return page.content();
+    return page.isClosed() ? baselineHtml : await page.content();
+  } catch (error) {
+    if (baselineHtml) return baselineHtml;
+    throw error;
   } finally {
-    await browser.close();
+    await browser.close().catch(() => {});
   }
 };
 
