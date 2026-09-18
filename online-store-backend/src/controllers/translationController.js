@@ -5,6 +5,7 @@ const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTransl
 const Product = require('../models/Product');
 const translationValidator = require('../utils/translationValidator');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const libretranslateProductService = require('../services/libretranslateProductService');
 const LanguageService = require('../services/languageService');
 const TranslationShadowWriteService = require('../services/translationShadowWriteService');
 const TranslationBatchRequest = require('../models/TranslationBatchRequest');
@@ -510,8 +511,8 @@ exports.translateProductAll9Languages = async (req, res) => {
         }
       }
 
-      // Translate using Cloudflare AI
-      translatedText = await cloudflareAiService.translate(text, sourceLang, lang);
+      // Cloudflare AI remains the final provider; LibreTranslate is product-only and optional.
+      translatedText = await libretranslateProductService.translateWithCloudflare(text, sourceLang, lang);
       translations[lang] = translatedText;
 
       await saveTranslationCache({
@@ -1534,7 +1535,11 @@ exports.retranslateProduct = async (req, res) => {
     const manualFields = catalogTranslation?.manualFields || [];
     const translateSourceText = async (source, entityType) => {
       if (!source) return { value: source, validation: null };
-      const value = await cloudflareAiService.translate(source, getDefaultLanguage().code, targetLang);
+      const value = await libretranslateProductService.translateWithCloudflare(
+        source,
+        getDefaultLanguage().code,
+        targetLang,
+      );
       const validation = await translationValidator.validateTranslation(source, value, targetLang, entityType);
       return { value, validation };
     };

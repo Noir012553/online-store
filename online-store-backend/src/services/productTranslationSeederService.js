@@ -14,6 +14,7 @@ const Product = require('../models/Product');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
+const libretranslateProductService = require('./libretranslateProductService');
 const RateLimitHandler = require('./rateLimitHandler');
 const distributedLockService = require('./distributedLockService');
 const translationValidator = require('../utils/translationValidator');
@@ -53,7 +54,11 @@ class ProductTranslationSeederService {
     const translations = [];
 
     for (const chunk of chunks) {
-      const translatedChunk = await cloudflareAiService.translate(chunk, sourceLang, targetLang);
+      const translatedChunk = await libretranslateProductService.translateWithCloudflare(
+        chunk,
+        sourceLang,
+        targetLang,
+      );
       if (typeof translatedChunk !== 'string' || translatedChunk.trim() === '') {
         throw new Error('Description translation returned an empty chunk');
       }
@@ -430,6 +435,10 @@ class ProductTranslationSeederService {
     }
   }
 
+  static async _translateWithDraft(text, sourceLang, targetLang) {
+    return libretranslateProductService.translateWithCloudflare(text, sourceLang, targetLang);
+  }
+
   /**
    * Dịch một sản phẩm cụ thể
    * @private
@@ -552,7 +561,7 @@ class ProductTranslationSeederService {
           // Dịch text
           const translatedText = ['product_description', 'product_technical_description'].includes(field.entityType)
             ? await this._translateDescription(field.originalText, sourceLang, targetLang)
-            : await cloudflareAiService.translate(field.originalText, sourceLang, targetLang);
+            : await this._translateWithDraft(field.originalText, sourceLang, targetLang);
 
           const validationResult = await translationValidator.validateTranslation(
             field.originalText,

@@ -13,6 +13,9 @@ services:
       - "5000"
       - --load-only
       - vi,en,pt,fr,de,it,es,nl,sv
+      - --update-models
+      - --threads
+      - "1"
     volumes:
       - libretranslate_models:/home/libretranslate/.local/share/argos-translate
     healthcheck:
