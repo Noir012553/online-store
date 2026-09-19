@@ -111,6 +111,7 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
 };
 
 const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
+const CATEGORY_CARDS_PER_VIEW = 4;
 
 const normalizeCategorySlug = (value: unknown): string => (
   typeof value === 'string' ? value.trim().toLowerCase() : ''
@@ -208,6 +209,7 @@ export default function Home() {
   const fallbackHeroSlides = buildHeroSlides();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
+  const [currentCategoryCardSlide, setCurrentCategoryCardSlide] = useState(0);
   const [currentCategorySlides, setCurrentCategorySlides] = useState<Record<string, number>>({});
   const [dealCardsPerView, setDealCardsPerView] = useState(getDealCardsPerView);
   const [timeLeft, setTimeLeft] = useState({
@@ -224,6 +226,7 @@ export default function Home() {
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const heroTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const categoryCount = Array.isArray(categories) ? categories.length : 0;
 
   // Detect if hero carousel or footer is visible - hide banners when they are
   const { isBannerVisible } = useBannerVisibility({
@@ -600,6 +603,10 @@ export default function Home() {
     setCurrentDealSlide((prev) => Math.min(prev, Math.max(dealProducts.length - dealCardsPerView, 0)));
   }, [dealProducts.length, dealCardsPerView]);
 
+  useEffect(() => {
+    setCurrentCategoryCardSlide((prev) => Math.min(prev, Math.max(categoryCount - CATEGORY_CARDS_PER_VIEW, 0)));
+  }, [categoryCount]);
+
   // Auto-rotate deal carousel slides (paused when quick view is open)
   useEffect(() => {
     if (dealProducts.length > dealCardsPerView && !isDealQuickViewOpen) {
@@ -692,6 +699,14 @@ export default function Home() {
 
   const prevDealSlide = () => {
     setCurrentDealSlide((prev) => Math.max(prev - 1, 0));
+  };
+
+  const nextCategoryCardSlide = () => {
+    setCurrentCategoryCardSlide((prev) => Math.min(prev + 1, Math.max(categoryCount - CATEGORY_CARDS_PER_VIEW, 0)));
+  };
+
+  const prevCategoryCardSlide = () => {
+    setCurrentCategoryCardSlide((prev) => Math.max(prev - 1, 0));
   };
 
   const nextCategorySlide = (categoryId: string, productCount: number) => {
@@ -851,9 +866,14 @@ export default function Home() {
           >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
           </div>
-          {Array.isArray(categories) && categories.length > 0 && (
-            <section className="bg-white container mx-auto section-container-px py-4 sm:py-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {categoryCount > 0 && (
+            <section
+              className="bg-white container mx-auto section-container-px py-4 sm:py-6"
+              role={categoryCount > CATEGORY_CARDS_PER_VIEW ? 'region' : undefined}
+              aria-roledescription={categoryCount > CATEGORY_CARDS_PER_VIEW ? 'carousel' : undefined}
+              aria-label={categoryCount > CATEGORY_CARDS_PER_VIEW ? t('category_carousel', 'categories', 'Danh mục sản phẩm') : undefined}
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:hidden gap-3 sm:gap-4">
                 {categories.map((category) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
@@ -864,7 +884,7 @@ export default function Home() {
                     <Link
                       key={category._id}
                       href={`/products/${slug}`}
-                      className="category-card flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 lg:p-6 border rounded-lg hover:border-red-600 hover:shadow-lg transition-all"
+                      className="category-card flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-4 border rounded-lg hover:border-red-600 hover:shadow-lg transition-all"
                     >
                       <div className="category-icon-container w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center overflow-hidden">
                         <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
@@ -874,6 +894,73 @@ export default function Home() {
                   );
                 })}
               </div>
+
+              <div className="hidden lg:flex lg:items-center lg:gap-3">
+                {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+                  <button
+                    onClick={prevCategoryCardSlide}
+                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={currentCategoryCardSlide === 0}
+                    aria-label={t('carousel_previous', 'components')}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                )}
+
+                <div className="flex-1 overflow-hidden">
+                  <div
+                    key={currentCategoryCardSlide}
+                    className="grid grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700"
+                  >
+                    {categories
+                      .slice(currentCategoryCardSlide, currentCategoryCardSlide + CATEGORY_CARDS_PER_VIEW)
+                      .map((category) => {
+                        const iconKey = getCategoryIconKey(category);
+                        const Icon = iconMap[iconKey] || LaptopIcon;
+                        const displayName = getCategoryName(category, locale);
+                        const slug = category.slug || category._id;
+
+                        return (
+                          <Link
+                            key={category._id}
+                            href={`/products/${slug}`}
+                            className="category-card flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
+                          >
+                            <div className="category-icon-container flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-red-50">
+                              <Icon className="h-8 w-8 text-red-600" />
+                            </div>
+                            <span className="category-name text-center text-sm">{displayName}</span>
+                          </Link>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+                  <button
+                    onClick={nextCategoryCardSlide}
+                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={currentCategoryCardSlide >= categoryCount - CATEGORY_CARDS_PER_VIEW}
+                    aria-label={t('carousel_next', 'components')}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+
+              {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+                <div className="hidden lg:flex justify-center gap-2 mt-4" aria-label={t('category_carousel', 'categories', 'Danh mục sản phẩm')}>
+                  {Array.from({ length: categoryCount - CATEGORY_CARDS_PER_VIEW + 1 }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentCategoryCardSlide(index)}
+                      className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentCategoryCardSlide ? 'bg-red-600' : 'bg-gray-300'}`}
+                      aria-label={`${t('go_to_category_slide', 'categories', 'Đi tới nhóm danh mục')} ${index + 1}`}
+                      aria-current={index === currentCategoryCardSlide ? 'true' : undefined}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
