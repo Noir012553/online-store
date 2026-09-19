@@ -263,6 +263,17 @@ html body .layout-gutter-xwide {
   }
 }
 
+@media (max-width: 1023px) {
+  :root {
+    --layout-gutter: 0.5rem;
+    --container-padding-x: 0.25rem;
+  }
+
+  html body .container {
+    width: 100%;
+  }
+}
+
 /* ===== Form Input Styles ===== */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

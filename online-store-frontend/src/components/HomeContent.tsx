@@ -780,7 +780,7 @@ export default function Home() {
                 fetchPriority={index === currentSlide ? 'high' : 'low'}
               />
               <div className="absolute inset-0 bg-black/50" />
-              <div className="absolute inset-0 mx-auto flex w-full items-center px-4 sm:px-6 lg:px-8">
+              <div className="absolute inset-0 mx-auto flex w-full items-center px-2 sm:px-3 lg:px-8">
                 <div className="max-w-xl text-white">
                   <h1 className="mb-4 text-2xl font-bold sm:text-3xl lg:text-5xl">{slide.title}</h1>
                   {slide.subtitle && <p className="mb-2 text-base font-medium sm:text-lg lg:text-2xl">{slide.subtitle}</p>}
