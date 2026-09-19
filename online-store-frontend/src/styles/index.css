@@ -216,6 +216,15 @@ html body .layout-gutter-xwide {
   top: var(--banner-top, 96px);
 }
 
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .header-container-px {
   padding-left: var(--container-padding-x);
   padding-right: var(--container-padding-x);
