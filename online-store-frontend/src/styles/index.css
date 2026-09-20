@@ -216,6 +216,15 @@ html body .layout-gutter-xwide {
   top: var(--banner-top, 96px);
 }
 
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .header-container-px {
   padding-left: var(--container-padding-x);
   padding-right: var(--container-padding-x);
@@ -251,6 +260,17 @@ html body .layout-gutter-xwide {
 @media (min-width: 1280px) {
   html body .container {
     width: 68%;
+  }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --layout-gutter: 0.75rem;
+    --container-padding-x: 0.5rem;
+  }
+
+  html body .container {
+    width: 100%;
   }
 }
 

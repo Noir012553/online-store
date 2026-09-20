@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { useCallback } from 'react';
 import { API_BASE_PATH } from '../config';
 import { useLanguage } from '../lib/i18n';
 
