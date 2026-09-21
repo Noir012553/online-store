@@ -159,12 +159,12 @@ export function ProductReviews({
       )}
 
       {isLoadingReviews ? (
-        <p className="text-gray-500">{t('loading_reviews', 'products', 'Loading reviews...')}</p>
+        <p className="text-gray-500">{t('loading_reviews', 'products')}</p>
       ) : reviewsError ? (
         <div className="flex items-center gap-3">
           <p className="text-red-600">{reviewsError}</p>
           <Button type="button" variant="outline" onClick={onRetryReviews}>
-            {t('retry', 'common', 'Retry')}
+            {t('retry', 'common')}
           </Button>
         </div>
       ) : reviews.length > 0 ? (

@@ -192,9 +192,13 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                     return <p className="text-xs text-gray-400">{t('no_specs', 'products')}</p>;
                   }
 
+                  const specDisplayByField = new Map(
+                    (convertedLaptop.specDisplay || []).map((spec) => [spec.field, spec.label]),
+                  );
+
                   return specEntries.map(([key, value]) => (
                     <div key={key} className="space-y-0.5">
-                      <span className="block font-medium text-gray-500">{convertedLaptop.specLabels?.[key] || key}:</span>
+                      <span className="block font-medium text-gray-500">{convertedLaptop.specLabels?.[key] || specDisplayByField.get(key) || key}:</span>
                       <span className="block space-y-0.5 pl-2 text-gray-700">
                         {String(value).split(';').map((item, index) => (
                           <span key={`${item}-${index}`} className="block">{item.trim()}</span>

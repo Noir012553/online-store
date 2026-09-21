@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 import { useAuth } from '../../lib/context/AuthContext';
+import { useLanguage } from '../../lib/i18n';
 
 type Permission =
   | 'manage:products'
@@ -49,6 +50,7 @@ export const PermissionRequiredButton: React.FC<PermissionRequiredButtonProps> =
   ...props
 }) => {
   const { can } = useAuth();
+  const { t } = useLanguage();
 
   // If no permission specified, render normal button
   if (!permission) {
@@ -93,7 +95,7 @@ export const PermissionRequiredButton: React.FC<PermissionRequiredButtonProps> =
   }
 
   // If user lacks permission, show tooltip
-  const defaultText = permissionDeniedText || `You don't have permission for this action`;
+  const defaultText = permissionDeniedText || t('permission_denied_action', 'admin');
 
   return (
     <TooltipProvider>

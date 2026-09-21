@@ -81,7 +81,7 @@ export function Step2ShippingOptions() {
         const response = await shippingAPI.getProvinces();
         setProvinces(response.provinces || []);
       } catch (err) {
-        toast.error(t('error_load_provinces', 'checkout', 'Lỗi tải danh sách tỉnh/thành phố'));
+        toast.error(t('error_load_provinces', 'checkout'));
       } finally {
         setIsLoadingLocation(false);
       }
@@ -103,7 +103,7 @@ export function Step2ShippingOptions() {
         const response = await shippingAPI.getDistricts(selectedProvinceId);
         setDistricts(response.districts || []);
       } catch (err) {
-        toast.error(t('error_load_districts', 'checkout', 'Lỗi tải danh sách quận/huyện'));
+        toast.error(t('error_load_districts', 'checkout'));
       } finally {
         setIsLoadingLocation(false);
       }
@@ -125,7 +125,7 @@ export function Step2ShippingOptions() {
         const response = await shippingAPI.getWards(selectedDistrictId);
         setWards(response.wards || []);
       } catch (err) {
-        toast.error(t('error_load_wards', 'checkout', 'Lỗi tải danh sách phường/xã'));
+        toast.error(t('error_load_wards', 'checkout'));
       } finally {
         setIsLoadingLocation(false);
       }
@@ -175,18 +175,18 @@ export function Step2ShippingOptions() {
 
     // Validate address
     if (!localShippingAddress.address) {
-      setError(t('error_validate_address', 'checkout', 'Vui lòng nhập địa chỉ chi tiết'));
+      setError(t('error_validate_address', 'checkout'));
       return;
     }
 
     if (!localShippingAddress.districtId || !localShippingAddress.wardCode) {
-      setError(t('error_validate_location', 'checkout', 'Vui lòng chọn quận/huyện và phường/xã'));
+      setError(t('error_validate_location', 'checkout'));
       return;
     }
 
     // Validate shipping service selection
     if (!selectedService) {
-      setError(t('error_validate_shipping', 'checkout', 'Vui lòng chọn dịch vụ vận chuyển'));
+      setError(t('error_validate_shipping', 'checkout'));
       return;
     }
 
@@ -199,14 +199,14 @@ export function Step2ShippingOptions() {
     setError(null);
     // Move to next step directly since we've already validated locally
     setCurrentStepDirect(3);
-    toast.success(t('shipping_info_saved', 'checkout', 'Thông tin vận chuyển đã lưu'));
+    toast.success(t('shipping_info_saved', 'checkout'));
   };
 
   return (
     <div className="space-y-6 py-8">
       {/* Step 1: Địa chỉ giao hàng */}
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('shipping_address_title', 'checkout', 'Địa chỉ giao hàng')}</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('shipping_address_title', 'checkout')}</h2>
 
         <form className="space-y-6">
           {/* Họ tên, SĐT, Địa chỉ chi tiết */}
@@ -351,7 +351,7 @@ export function Step2ShippingOptions() {
       {selectedDistrictId && localShippingAddress.wardCode && (
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {t('shipping_provider_step', 'checkout', 'Chọn nhà cung cấp vận chuyển')}
+            {t('shipping_provider_step', 'checkout')}
           </h2>
 
           <ShippingProviderSelector

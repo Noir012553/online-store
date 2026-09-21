@@ -170,7 +170,7 @@ export default function Cart() {
                         <button
                           onClick={() => handleUpdateQuantity(item.laptop.id, item.quantity - 1)}
                           className="p-0.5 hover:bg-white rounded transition-all disabled:opacity-50"
-                          aria-label={t('decrease_quantity', 'cart', 'Decrease quantity')}
+                          aria-label={t('quantity_decrease', 'products')}
                           disabled={item.quantity <= 1}
                         >
                           <Minus className="w-2.5 h-2.5" />
@@ -179,7 +179,7 @@ export default function Cart() {
                         <button
                           onClick={() => handleUpdateQuantity(item.laptop.id, item.quantity + 1)}
                           className="p-0.5 hover:bg-white rounded transition-all"
-                          aria-label={t('increase_quantity', 'cart', 'Increase quantity')}
+                          aria-label={t('quantity_increase', 'products')}
                         >
                           <Plus className="w-2.5 h-2.5" />
                         </button>
@@ -199,8 +199,8 @@ export default function Cart() {
                       <button
                         onClick={() => removeFromCart(item.laptop.id)}
                         className="text-gray-400 hover:text-red-600"
-                        aria-label={t('label_remove_item', 'cart', 'Remove item')}
-                        title={t('label_remove_item', 'cart', 'Remove item')}
+                        aria-label={t('label_remove_item', 'cart')}
+                        title={t('label_remove_item', 'cart')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

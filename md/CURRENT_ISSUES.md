@@ -243,7 +243,7 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 
 ### Lỗi cần xử lý trước khi kết luận test translation đã pass
 
-- `online-store-backend/src/controllers/translationController.js` gọi `StaticTranslation.findOne()` ở các luồng static translation, fallback và health, nhưng source hiện tại vẫn chưa import `../models/StaticTranslation` ở đầu file. Chưa kết luận các endpoint này hoạt động cho tới khi sửa và kiểm tra runtime.
+- `online-store-backend/src/controllers/translationController.js` đã import `../models/StaticTranslation`; các endpoint static translation, fallback và health vẫn cần runtime test với MongoDB để xác nhận đầy đủ.
 - `online-store-backend/src/test/test-config.js` hiện cho phép default discovery chạy cả test phụ thuộc MongoDB/backend/network; có thể tắt bằng `RUN_INTEGRATION_TESTS=false`. `export-production.test.js` vẫn là opt-in qua `RUN_PRODUCTION_TESTS=true`.
 - `online-store-backend/src/test/translation-integration.test.js` vẫn còn assertion kiểu `status < 500` và `status < 400`; cần kiểm tra status mong đợi, body và thay đổi dữ liệu cụ thể.
 - Regression test ZIP tại `online-store-backend/src/test/import-file-validator.test.js` kiểm tra metadata kích thước sai, trong khi `online-store-backend/src/utils/zipImport.js` vẫn dùng metadata cho compression ratio trước khi đọc buffer thật. Cần đồng bộ code và test.
@@ -265,9 +265,9 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 
 ### Frontend và môi trường kiểm thử
 
-- Frontend hiện chưa có test runner, test script hoặc script `typecheck` chính thức; việc kiểm tra type phải chạy riêng từ `online-store-frontend` bằng `npx --no-install tsc --noEmit`.
+- Frontend chưa có test runner riêng, nhưng đã có script `typecheck`; chạy từ `online-store-frontend` bằng `npm run typecheck` hoặc `npx --no-install tsc --noEmit`.
 - `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; runtime vẫn chưa xác minh vì thiếu dependency `typescript`.
-- Root `package.json` hiện có script `npm test` chuyển tiếp tới backend runner; runner bao gồm integration test, tạo summary/full/log JSON và trả exit code theo test file lỗi. Không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies, MongoDB, backend readiness hoặc credential.
+- Root `package.json` có `npm test` chuyển tiếp tới product suite backend và `npm run test:all` cho unified runner. Không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies, MongoDB, backend readiness hoặc credential.
 
 ### Contract `specs`
 
@@ -277,13 +277,13 @@ Validator hiện tại cho phép sản phẩm thiếu `specs` và normalize thà
 
 Đã đối chiếu source trong phiên cập nhật này:
 
-- Đã xác định cần sửa import `StaticTranslation` trong `online-store-backend/src/controllers/translationController.js`; source hiện tại chưa chứng minh lỗi này đã được xử lý.
+- Đã xác minh import `StaticTranslation` đã có trong `online-store-backend/src/controllers/translationController.js`; runtime endpoint vẫn chờ môi trường MongoDB/credential phù hợp.
 - `safeRemoteUrl.js` đã có `dns`, nhưng cần sửa import `net` trước khi kết luận DNS validation runtime an toàn.
 - CSV export đã neutralize cell bắt đầu bằng khoảng trắng/control character rồi `=`, `+`, `-` hoặc `@` tại `productImportController.js`; mục CSV formula injection trong phần cảnh báo cũ không còn là lỗi mã nguồn hiện tại, nhưng vẫn cần regression test riêng.
 - `CSVAdapter` hiện từ chối row lệch số cột và quote không đóng thay vì bỏ qua âm thầm. Parser vẫn là implementation tự viết, vì vậy việc thay bằng parser RFC 4180 streaming là hạng mục hardening sau này, không phải hotfix.
 - Export ảnh hiện từ chối `image/svg+xml`; không còn đường export SVG chưa sanitize trong flow này.
 - Export ảnh và Cloudinary remote-download đã dùng `fetchSafeRemoteImage()` với redirect thủ công. Import URL hiện chỉ validation, chưa fetch; policy chung vẫn là hạng mục cần hoàn thiện nếu sau này import tải URL.
-- Root `package.json` hiện có trong repository và `npm test` đã chuyển tiếp tới backend test runner. Runtime root vẫn phụ thuộc `online-store-backend/node_modules` và môi trường test.
+- Root `package.json` hiện có trong repository; `npm test` và `npm run test:all` đã chuyển tiếp tới backend runner. Runtime root vẫn phụ thuộc `online-store-backend/node_modules` và môi trường test.
 
 Chưa có runtime test toàn bộ mới trong môi trường agent sau khi đổi default discovery vì thiếu dependency `dotenv`; người dùng đã cung cấp log backend đạt `[STARTUP] backend ready`. Những thao tác integration cần MongoDB/credential hợp lệ và chạy lại `npm test`; không chạy `npm run build`.
 
@@ -373,3 +373,43 @@ npm run seed:refresh:shutdown
 ```
 
 Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows vẫn được thực hiện theo script hiện tại. Mọi collection rỗng cần được theo dõi riêng để cập nhật slug hoặc nguồn dữ liệu nếu GearVN khôi phục/thay đổi danh mục; không được coi đây là ngoại lệ riêng của HP Gaming.
+
+## 12. Tiến độ hoàn thiện homepage và kiểm thử
+
+### Đã xử lý trong phiên này
+
+- Homepage có trạng thái lỗi sản phẩm và nút thử lại khi một hoặc nhiều request danh mục/flash deal thất bại.
+- Hero homepage có selector ổn định `#homepage-hero`, không còn phụ thuộc vào tổ hợp class Tailwind để điều khiển side banner.
+- Flash deal tự ẩn khi countdown về 0, tránh tiếp tục hiển thị sản phẩm sau khi hết hạn.
+- Nhãn thông số trên `ProductCard` ưu tiên `specLabels` và `specDisplay` đã bản địa hóa thay vì luôn hiển thị raw key.
+- Xác minh import `StaticTranslation` của controller dịch tĩnh không bị thiếu.
+- Root scripts đã đồng bộ với backend runner; frontend có script `typecheck` riêng.
+
+### Kiểm tra cần chạy sau khi môi trường sẵn sàng
+
+- `cd online-store-frontend && npm run typecheck`.
+- `cd online-store-frontend && npm run check:emoji`.
+- `cd online-store-backend && node --check src/controllers/translationController.js`.
+- `npm test` hoặc `npm run test:all` khi có dependency backend, MongoDB và credential hợp lệ.
+
+Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiện retranslate Logitech G515 hoặc audit dữ liệu cache production vì đây là thao tác dữ liệu ngoài source code và cần quyền truy cập backend/MongoDB.
+
+## 13. Audit text hard-code ngoài i18n
+
+### Đã xác nhận và xử lý
+
+- Header/navigation chính, search, footer và các label cart chính đã dùng `t()`/namespace i18n; không còn chuỗi giao diện chính kiểu `Trang chủ`, `Sản phẩm`, `Giỏ hàng` viết trực tiếp trong Header.
+- Loại bỏ các map dịch riêng cho tab khuyến mãi trong `ProductInformationTabs.tsx` và fallback locale riêng trong `SpecsTable.tsx`.
+- Loại bỏ fallback literal khỏi các luồng checkout, review, cart, order-success, homepage category carousel và một số admin action.
+- Chuẩn hóa `aria-roledescription` của homepage và component carousel qua i18n.
+- Bổ sung fallback dùng chung cho `retry`, `permission_denied_action`, `user_unnamed`, role carousel, loading reviews và case material tại `src/locales/uiFallbacks.json`.
+
+### Vẫn còn hard-code cần xử lý tiếp
+
+- `online-store-frontend/src/pages/admin/importProducts.tsx` còn nhiều text JSX tiếng Việt trực tiếp trong luồng hướng dẫn/import, nổi bật ở các dòng 272-554: các bước nhập, drag-and-drop, trạng thái kiểm tra, thống kê kết quả, cảnh báo và khu vực import bản dịch.
+- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; cần đổi sang translation key/label trước khi hiển thị PermissionDenied.
+- Một số call `t(key, namespace, fallback)` còn fallback literal rải rác trong admin và export widget. Fallback này không phải hard-code hiển thị trong điều kiện bình thường nếu backend có key, nhưng vẫn nên chuyển về namespace/backend hoặc `uiFallbacks`.
+- Giá trị động từ backend như tên sản phẩm, thương hiệu, category, promotion và shipping provider không được xem là hard-code frontend; cần backend trả theo locale.
+- Tên thương hiệu/provider, URL, enum, CSS class, `aria-hidden`, `aria-current` và mã kỹ thuật không cần đưa vào i18n.
+
+Audit này cho thấy UI chưa đạt trạng thái “zero hard-code” tuyệt đối, nhưng phần storefront chính đã được chuẩn hóa; khu vực còn lại có phạm vi tập trung ở admin import và các fallback cũ. Không chạy `npm run build`.

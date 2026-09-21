@@ -5,30 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
 import { ProductReviews, type ProductReview, type ProductReviewForm } from './ProductReviews';
 
-const PROMOTIONS_TAB_LABELS: Record<string, string> = {
-  vi: 'Khuyến mãi',
-  en: 'Promotions',
-  de: 'Sonderangebote',
-  es: 'Promociones',
-  fr: 'Promotions',
-  it: 'Promozioni',
-  nl: 'Promoties',
-  pt: 'Promoções',
-  sv: 'Kampanjer',
-};
-
-const EMPTY_PROMOTIONS_LABELS: Record<string, string> = {
-  vi: 'Sản phẩm này chưa có khuyến mãi',
-  en: 'This product has no promotions',
-  de: 'Dieses Produkt hat derzeit keine Sonderangebote',
-  es: 'Este producto no tiene promociones',
-  fr: 'Ce produit n’a aucune promotion',
-  it: 'Questo prodotto non ha promozioni',
-  nl: 'Dit product heeft momenteel geen promoties',
-  pt: 'Este produto não tem promoções',
-  sv: 'Den här produkten har inga kampanjer',
-};
-
 interface ProductInformationTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
@@ -70,9 +46,7 @@ export function ProductInformationTabs({
   onReviewCancel,
   onOpenImage,
 }: ProductInformationTabsProps) {
-  const { t, locale } = useLanguage();
-  const promotionsTabLabel = PROMOTIONS_TAB_LABELS[locale] || PROMOTIONS_TAB_LABELS.en;
-  const emptyPromotionsLabel = EMPTY_PROMOTIONS_LABELS[locale] || EMPTY_PROMOTIONS_LABELS.en;
+  const { t } = useLanguage();
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-10 sm:mb-14">
@@ -83,7 +57,7 @@ export function ProductInformationTabs({
         </TabsTrigger>
         <TabsTrigger value="promotions" className="group min-w-0 rounded-xl px-2 text-xs font-semibold text-slate-500 transition-all hover:bg-white/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-red-500/30 data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/70 sm:gap-2 sm:px-3 sm:text-sm">
           <Gift className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=active]:-rotate-3 sm:h-4 sm:w-4" aria-hidden="true" />
-          <span className="truncate">{t('tab_promotions', 'products', promotionsTabLabel)}</span>
+          <span className="truncate">{t('tab_promotions', 'products')}</span>
         </TabsTrigger>
         <TabsTrigger value="reviews" className="group min-w-0 rounded-xl px-2 text-xs font-semibold text-slate-500 transition-all hover:bg-white/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-red-500/30 data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/70 sm:gap-2 sm:px-3 sm:text-sm">
           <MessageCircle className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=active]:-rotate-3 sm:h-4 sm:w-4" aria-hidden="true" />
@@ -101,12 +75,12 @@ export function ProductInformationTabs({
                 <p className="font-semibold text-gray-900">{promotion.title}</p>
                 {promotion.type && (
                   <p className="mt-1 text-sm text-gray-700">
-                    {t('promotion_type', 'products', 'Loại ưu đãi')}: {promotion.type}
+                    {t('promotion_type', 'products')}: {promotion.type}
                   </p>
                 )}
                 {promotion.scope && (
                   <p className="mt-1 text-sm text-gray-700">
-                    {t('promotion_scope', 'products', 'Phạm vi áp dụng')}: {promotion.scope}
+                    {t('promotion_scope', 'products')}: {promotion.scope}
                   </p>
                 )}
                 {promotion.giftProductName && (
@@ -122,7 +96,7 @@ export function ProductInformationTabs({
                     rel="noreferrer"
                     className="mt-2 inline-block text-sm text-red-600 underline"
                   >
-                    {t('view_promotion_product', 'products', 'Xem sản phẩm tặng')}
+                    {t('view_promotion_product', 'products')}
                   </a>
                 )}
                 {promotion.discountText && <p className="mt-1 text-sm text-gray-700">{promotion.discountText}</p>}
@@ -130,7 +104,7 @@ export function ProductInformationTabs({
             ))}
           </div>
         ) : (
-          <p className="py-8 text-center text-gray-500">{t('empty_no_promotions', 'products', emptyPromotionsLabel)}</p>
+          <p className="py-8 text-center text-gray-500">{t('empty_no_promotions', 'products')}</p>
         )}
       </TabsContent>
       <TabsContent value="reviews" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">

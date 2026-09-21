@@ -403,7 +403,7 @@ export function OrdersList() {
               </div>
             </div>
             <Button type="button" variant="outline" onClick={retryOrders} className="shrink-0 border-amber-300 bg-white text-amber-900 hover:bg-amber-100">
-              {t('retry', 'common', 'Thử lại')}
+              {t('retry', 'common')}
             </Button>
           </div>
         )}
