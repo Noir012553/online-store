@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type 
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2, PackageSearch } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
@@ -16,6 +16,7 @@ import { BannerSlot } from "../components/BannerSlot";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { ProductSkeleton } from "../components/ProductSkeleton";
+import { EmptyState } from "../components/EmptyState";
 
 
 const iconMap = {
@@ -236,6 +237,8 @@ export default function Home() {
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [productLoadError, setProductLoadError] = useState(false);
+  const [productRetryKey, setProductRetryKey] = useState(0);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -247,7 +250,7 @@ export default function Home() {
 
   // Detect if hero carousel or footer is visible - hide banners when they are
   const { isBannerVisible } = useBannerVisibility({
-    heroSelector: 'section.relative.bg-gray-900.overflow-hidden',
+    heroSelector: '#homepage-hero',
     footerSelector: 'footer',
     triggerThreshold: 0.3, // Hide banners when 30% of hero/footer is visible
   });
@@ -441,6 +444,7 @@ export default function Home() {
         categories: contentCategories,
       });
       setIsLoading(true);
+      setProductLoadError(false);
 
       try {
         const [categoryResults, flashResults] = await Promise.all([
@@ -455,6 +459,8 @@ export default function Home() {
             .filter((result): result is PromiseFulfilledResult<readonly [string, BackendProduct[]]> => result.status === 'fulfilled')
             .map((result) => result.value),
         );
+        const hasRequestFailure = [...categoryResults, ...flashResults]
+          .some((result) => result.status === 'rejected');
         const dealCandidates = flashResults
           .filter((result): result is PromiseFulfilledResult<BackendProduct[]> => result.status === 'fulfilled')
           .flatMap((result) => result.value)
@@ -493,6 +499,7 @@ export default function Home() {
 
         setCategoryProducts(categoryProductMap);
         setDealProducts(deals);
+        setProductLoadError(hasRequestFailure);
         const dealEndTimes = deals
           .map((product) => getDealEndTimestamp(product.deal))
           .filter((endTime): endTime is number => endTime !== null);
@@ -503,9 +510,10 @@ export default function Home() {
           errorName: error instanceof Error ? error.name : typeof error,
           message: error instanceof Error ? error.message : String(error),
         });
-        if (isMounted) {
+        if (isMounted && !requestController.signal.aborted) {
           setCategoryProducts({});
           setDealProducts([]);
+          setProductLoadError(true);
         }
       } finally {
         debugHomepage('products:fetch-finish', {
@@ -528,7 +536,7 @@ export default function Home() {
       isMounted = false;
       requestController.abort();
     };
-  }, [categories, currencyCode, isHydrated, isLoadingCategories, locale]);
+  }, [categories, currencyCode, isHydrated, isLoadingCategories, locale, productRetryKey]);
 
   useEffect(() => {
     const handleRuntimeError = (event: ErrorEvent) => {
@@ -674,6 +682,12 @@ export default function Home() {
 
     const updateTimeLeft = () => {
       const remainingSeconds = Math.max(0, Math.floor((dealEndTime - Date.now()) / 1000));
+      if (remainingSeconds === 0) {
+        setDealProducts([]);
+        setDealEndTime(null);
+        return;
+      }
+
       setTimeLeft({
         hours: Math.floor(remainingSeconds / 3600),
         minutes: Math.floor((remainingSeconds % 3600) / 60),
@@ -810,6 +824,7 @@ export default function Home() {
     <div className="animate-in fade-in duration-500 bg-white">
       <section
         ref={heroCarouselRef}
+        id="homepage-hero"
         className="relative flex h-[420px] snap-x snap-mandatory overflow-x-auto hide-scrollbar bg-gray-900 sm:h-[calc(100vh-80px)] lg:block lg:overflow-hidden"
         role="region"
         aria-roledescription="carousel"
@@ -1025,6 +1040,20 @@ export default function Home() {
             </section>
           )}
 
+          {!isLoading && productLoadError && (
+            <section className="bg-white py-6 sm:py-8">
+              <div className="container mx-auto section-container-px">
+                <EmptyState
+                  icon={PackageSearch}
+                  title={t('products_unavailable_title')}
+                  description={t('products_unavailable_description')}
+                  actionLabel={t('retry', 'common', 'Thử lại')}
+                  onAction={() => setProductRetryKey((value) => value + 1)}
+                />
+              </div>
+            </section>
+          )}
+
           {(isLoading || sectionsToRender.length > 0) && (
             <section className="mt-4 bg-white pt-6 pb-6 sm:mt-0 sm:pt-8 sm:pb-8">
               <div className="container mx-auto section-container-px">
@@ -1114,17 +1143,17 @@ export default function Home() {
                   <div className="flex justify-center gap-1 sm:gap-2 md:gap-4">
                     <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
                       <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.hours).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('hours_label')}</div>
+                      <div className="text-xs text-gray-600">{t('hours_label', 'components')}</div>
                     </div>
                     <div className="text-lg sm:text-2xl md:text-3xl text-black">:</div>
                     <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
                       <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.minutes).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('minutes_label')}</div>
+                      <div className="text-xs text-gray-600">{t('minutes_label', 'components')}</div>
                     </div>
                     <div className="text-lg sm:text-2xl md:text-3xl text-black">:</div>
                     <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
                       <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.seconds).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('seconds_label')}</div>
+                      <div className="text-xs text-gray-600">{t('seconds_label', 'components')}</div>
                     </div>
                   </div>
                 </div>
@@ -1217,7 +1246,7 @@ export default function Home() {
 
           <section className="bg-white container mx-auto section-container-px py-8 sm:py-12">
             <div className="mb-5 flex items-end justify-between gap-4 sm:mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title')}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title', 'products')}</h2>
             </div>
             {brands.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-6">
@@ -1243,7 +1272,7 @@ export default function Home() {
               </div>
             ) : (
               <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-                {t('brands_empty')}
+                {t('brands_empty', 'products')}
               </p>
             )}
           </section>
