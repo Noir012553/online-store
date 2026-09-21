@@ -22,8 +22,12 @@ if (!token && !fs.existsSync(config)) {
   throw new Error(`Cloudflare tunnel config not found: ${config}`);
 }
 
+const childEnv = { ...process.env };
+delete childEnv.CLOUDFLARED_TUNNEL_TOKEN;
+
 const child = spawn(executable, args, {
   cwd: backendRoot,
+  env: childEnv,
   stdio: 'inherit',
 });
 
