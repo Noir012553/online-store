@@ -12,11 +12,17 @@ const config = path.join(backendRoot, '.cloudflared', isWindows ? 'config.window
 if (isWindows && !fs.existsSync(executable)) {
   throw new Error(`cloudflared binary not found: ${executable}`);
 }
-if (!fs.existsSync(config)) {
+
+const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim();
+const args = token
+  ? ['tunnel', 'run', '--token', token]
+  : ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'];
+
+if (!token && !fs.existsSync(config)) {
   throw new Error(`Cloudflare tunnel config not found: ${config}`);
 }
 
-const child = spawn(executable, ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'], {
+const child = spawn(executable, args, {
   cwd: backendRoot,
   stdio: 'inherit',
 });
