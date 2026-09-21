@@ -162,6 +162,19 @@ const getDealCardsPerView = (): number => {
   return 3;
 };
 
+function getCircularItems<T>(items: T[], startIndex: number, count: number): T[] {
+  if (items.length === 0 || count <= 0) return [];
+
+  const normalizedStart = ((startIndex % items.length) + items.length) % items.length;
+  return Array.from({ length: Math.min(count, items.length) }, (_, index) => (
+    items[(normalizedStart + index) % items.length]
+  ));
+}
+
+function getRepeatedItems<T>(items: T[]): T[] {
+  return items.length > 1 ? [...items, ...items, ...items] : items;
+}
+
 export default function Home() {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories, isLoading: isLoadingCategories } = useCategories();
@@ -227,6 +240,9 @@ export default function Home() {
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const heroCarouselRef = useRef<HTMLElement>(null);
+  const categoryNavigationMobileCarouselRef = useRef<HTMLDivElement>(null);
+  const categoryMobileCarouselRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const dealMobileCarouselRef = useRef<HTMLDivElement>(null);
   const categoryCount = Array.isArray(categories) ? categories.length : 0;
 
   // Detect if hero carousel or footer is visible - hide banners when they are
@@ -296,6 +312,12 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentSlide(0);
+    const carousel = heroCarouselRef.current;
+    if (!carousel || window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
+
+    requestAnimationFrame(() => {
+      carousel.scrollTo({ left: carousel.clientWidth, behavior: 'auto' });
+    });
   }, [heroSlidesToRender.length]);
 
   // Fetch products from backend
@@ -595,13 +617,13 @@ export default function Home() {
 
   useEffect(() => {
     const carousel = heroCarouselRef.current;
-    if (!carousel || window.innerWidth >= 1024) return;
+    if (!carousel || window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
 
     carousel.scrollTo({
-      left: currentSlide * carousel.clientWidth,
+      left: (currentSlide + heroSlidesToRender.length) * carousel.clientWidth,
       behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
-  }, [currentSlide, prefersReducedMotion]);
+  }, [currentSlide, heroSlidesToRender.length, prefersReducedMotion]);
 
   useEffect(() => {
     const updateDealCardsPerView = () => setDealCardsPerView(getDealCardsPerView());
@@ -611,25 +633,38 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setCurrentDealSlide((prev) => Math.min(prev, Math.max(dealProducts.length - dealCardsPerView, 0)));
-  }, [dealProducts.length, dealCardsPerView]);
+    setCurrentDealSlide((prev) => (dealProducts.length > 0 ? prev % dealProducts.length : 0));
+    const mobileCarousel = dealMobileCarouselRef.current;
+    if (mobileCarousel && dealProducts.length > 1) {
+      requestAnimationFrame(() => {
+        mobileCarousel.scrollLeft = mobileCarousel.scrollWidth / 3;
+      });
+    }
+  }, [dealProducts.length]);
 
   useEffect(() => {
-    setCurrentCategoryCardSlide((prev) => Math.min(prev, Math.max(categoryCount - CATEGORY_CARDS_PER_VIEW, 0)));
+    setCurrentCategoryCardSlide((prev) => (categoryCount > 0 ? prev % categoryCount : 0));
+    if (categoryCount <= 1) return;
+
+    requestAnimationFrame(() => {
+      const navigationCarousel = categoryNavigationMobileCarouselRef.current;
+      if (navigationCarousel) navigationCarousel.scrollLeft = navigationCarousel.scrollWidth / 3;
+
+      Object.values(categoryMobileCarouselRefs.current).forEach((carousel) => {
+        if (carousel) carousel.scrollLeft = carousel.scrollWidth / 3;
+      });
+    });
   }, [categoryCount]);
 
   // Auto-rotate deal carousel slides (paused when quick view is open)
   useEffect(() => {
-    if (dealProducts.length > dealCardsPerView && !isDealQuickViewOpen) {
+    if (dealProducts.length > 1 && !isDealQuickViewOpen) {
       const timer = setInterval(() => {
-        setCurrentDealSlide((prev) => {
-          const next = prev + 1;
-          return next >= dealProducts.length - dealCardsPerView + 1 ? 0 : next;
-        });
+        setCurrentDealSlide((prev) => (prev + 1) % dealProducts.length);
       }, 6500);
       return () => clearInterval(timer);
     }
-  }, [dealCardsPerView, dealProducts.length, isDealQuickViewOpen]);
+  }, [dealProducts.length, isDealQuickViewOpen]);
 
   useEffect(() => {
     if (!dealEndTime) {
@@ -676,46 +711,73 @@ export default function Home() {
   };
 
   const handleHeroScroll = (event: UIEvent<HTMLElement>) => {
-    if (window.innerWidth >= 1024) return;
+    if (window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
 
     const slideWidth = event.currentTarget.clientWidth;
+    const slideCount = heroSlidesToRender.length;
     if (!slideWidth) return;
 
-    const nextIndex = Math.min(
-      heroSlidesToRender.length - 1,
-      Math.max(0, Math.round(event.currentTarget.scrollLeft / slideWidth)),
-    );
+    let rawIndex = Math.round(event.currentTarget.scrollLeft / slideWidth);
+    if (rawIndex < slideCount) {
+      event.currentTarget.scrollLeft += slideCount * slideWidth;
+      rawIndex += slideCount;
+    } else if (rawIndex >= slideCount * 2) {
+      event.currentTarget.scrollLeft -= slideCount * slideWidth;
+      rawIndex -= slideCount;
+    }
+
+    const nextIndex = (rawIndex - slideCount + slideCount) % slideCount;
     setCurrentSlide((prev) => (prev === nextIndex ? prev : nextIndex));
   };
 
   const nextDealSlide = () => {
-    setCurrentDealSlide((prev) => Math.min(prev + 1, Math.max(dealProducts.length - dealCardsPerView, 0)));
+    if (dealProducts.length <= 1) return;
+    setCurrentDealSlide((prev) => (prev + 1) % dealProducts.length);
   };
 
   const prevDealSlide = () => {
-    setCurrentDealSlide((prev) => Math.max(prev - 1, 0));
+    if (dealProducts.length <= 1) return;
+    setCurrentDealSlide((prev) => (prev - 1 + dealProducts.length) % dealProducts.length);
   };
 
   const nextCategoryCardSlide = () => {
-    setCurrentCategoryCardSlide((prev) => Math.min(prev + 1, Math.max(categoryCount - CATEGORY_CARDS_PER_VIEW, 0)));
+    if (categoryCount <= 1) return;
+    setCurrentCategoryCardSlide((prev) => (prev + 1) % categoryCount);
   };
 
   const prevCategoryCardSlide = () => {
-    setCurrentCategoryCardSlide((prev) => Math.max(prev - 1, 0));
+    if (categoryCount <= 1) return;
+    setCurrentCategoryCardSlide((prev) => (prev - 1 + categoryCount) % categoryCount);
   };
 
-  const nextCategorySlide = (categoryId: string, maxIndex: number) => {
+  const nextCategorySlide = (categoryId: string, productCount: number) => {
+    if (productCount <= 1) return;
     setCurrentCategorySlides((prev) => ({
       ...prev,
-      [categoryId]: Math.min((prev[categoryId] ?? 0) + 1, Math.max(maxIndex, 0)),
+      [categoryId]: ((prev[categoryId] ?? 0) + 1) % productCount,
     }));
   };
 
-  const prevCategorySlide = (categoryId: string) => {
+  const prevCategorySlide = (categoryId: string, productCount: number) => {
+    if (productCount <= 1) return;
     setCurrentCategorySlides((prev) => ({
       ...prev,
-      [categoryId]: Math.max((prev[categoryId] ?? 0) - 1, 0),
+      [categoryId]: ((prev[categoryId] ?? 0) - 1 + productCount) % productCount,
     }));
+  };
+
+  const handleInfiniteCarouselScroll = (event: UIEvent<HTMLDivElement>, itemCount: number) => {
+    if (itemCount <= 1) return;
+
+    const carousel = event.currentTarget;
+    const blockWidth = carousel.scrollWidth / 3;
+    if (!blockWidth) return;
+
+    if (carousel.scrollLeft <= 0) {
+      carousel.scrollLeft += blockWidth;
+    } else if (carousel.scrollLeft >= blockWidth * 2) {
+      carousel.scrollLeft -= blockWidth;
+    }
   };
 
   const categorySections = (Array.isArray(categories) ? categories as HomeCategory[] : [])
@@ -760,15 +822,18 @@ export default function Home() {
         onBlurCapture={handleHeroBlur}
         onScroll={handleHeroScroll}
       >
-        {heroSlidesToRender.map((slide, index) => {
+        {getRepeatedItems(heroSlidesToRender).map((slide, index) => {
+          const slideCount = heroSlidesToRender.length;
+          const logicalIndex = slideCount > 0 ? index % slideCount : 0;
+          const isDesktopSlide = index < slideCount;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
           return (
             <div
               key={`${slide.title}-${index}`}
-              aria-hidden={index !== currentSlide}
-              className={`relative h-full min-w-full snap-start lg:absolute lg:inset-0 ${index === currentSlide ? "lg:opacity-100 lg:scale-100" : "lg:pointer-events-none lg:opacity-0 lg:scale-105"} ${prefersReducedMotion ? '' : 'lg:transition-all lg:duration-1000'}`}
+              aria-hidden={logicalIndex !== currentSlide}
+              className={`relative h-full min-w-full snap-start ${isDesktopSlide ? `lg:absolute lg:inset-0 ${logicalIndex === currentSlide ? "lg:opacity-100 lg:scale-100" : "lg:pointer-events-none lg:opacity-0 lg:scale-105"}` : 'lg:hidden'} ${prefersReducedMotion ? '' : 'lg:transition-all lg:duration-1000'}`}
             >
               <ImageWithFallback
                 src={slide.image}
@@ -864,12 +929,16 @@ export default function Home() {
           {categoryCount > 0 && (
             <section
               className="bg-white container mx-auto section-container-px py-4 sm:py-6"
-              role={categoryCount > CATEGORY_CARDS_PER_VIEW ? 'region' : undefined}
-              aria-roledescription={categoryCount > CATEGORY_CARDS_PER_VIEW ? 'carousel' : undefined}
-              aria-label={categoryCount > CATEGORY_CARDS_PER_VIEW ? t('category_carousel', 'categories', 'Danh mục sản phẩm') : undefined}
+              role={categoryCount > 1 ? 'region' : undefined}
+              aria-roledescription={categoryCount > 1 ? 'carousel' : undefined}
+              aria-label={categoryCount > 1 ? t('category_carousel', 'categories', 'Danh mục sản phẩm') : undefined}
             >
-              <div className="hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden">
-                {categories.map((category) => {
+              <div
+                ref={categoryNavigationMobileCarouselRef}
+                className="hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden"
+                onScroll={(event) => handleInfiniteCarouselScroll(event, categoryCount)}
+              >
+                {getRepeatedItems(categories).map((category, index) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
                   const displayName = getCategoryName(category, locale);
@@ -877,7 +946,7 @@ export default function Home() {
 
                   return (
                     <Link
-                      key={category._id}
+                      key={`${category._id}-${index}`}
                       href={`/products/${slug}`}
                       className="category-card flex min-w-[calc((100vw-3rem)/2)] snap-start flex-col items-center gap-2 rounded-lg border p-3 transition-all hover:border-red-600 hover:shadow-lg sm:min-w-[calc((100vw-5rem)/3)] sm:gap-3 sm:p-4"
                     >
@@ -891,11 +960,10 @@ export default function Home() {
               </div>
 
               <div className="hidden lg:flex lg:items-center lg:gap-3">
-                {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+                {categoryCount > 1 && (
                   <button
                     onClick={prevCategoryCardSlide}
-                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={currentCategoryCardSlide === 0}
+                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800"
                     aria-label={t('carousel_previous', 'components')}
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -907,9 +975,8 @@ export default function Home() {
                     key={currentCategoryCardSlide}
                     className="grid grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700"
                   >
-                    {categories
-                      .slice(currentCategoryCardSlide, currentCategoryCardSlide + CATEGORY_CARDS_PER_VIEW)
-                      .map((category) => {
+                    {getCircularItems(categories, currentCategoryCardSlide, CATEGORY_CARDS_PER_VIEW)
+                      .map((category, index) => {
                         const iconKey = getCategoryIconKey(category);
                         const Icon = iconMap[iconKey] || LaptopIcon;
                         const displayName = getCategoryName(category, locale);
@@ -917,7 +984,7 @@ export default function Home() {
 
                         return (
                           <Link
-                            key={category._id}
+                            key={`${category._id}-${index}`}
                             href={`/products/${slug}`}
                             className="category-card flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
                           >
@@ -931,11 +998,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+                {categoryCount > 1 && (
                   <button
                     onClick={nextCategoryCardSlide}
-                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={currentCategoryCardSlide >= categoryCount - CATEGORY_CARDS_PER_VIEW}
+                    className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-black text-white transition-colors hover:bg-gray-800"
                     aria-label={t('carousel_next', 'components')}
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -943,9 +1009,9 @@ export default function Home() {
                 )}
               </div>
 
-              {categoryCount > CATEGORY_CARDS_PER_VIEW && (
+              {categoryCount > 1 && (
                 <div className="hidden lg:flex justify-center gap-2 mt-4" aria-label={t('category_carousel', 'categories', 'Danh mục sản phẩm')}>
-                  {Array.from({ length: categoryCount - CATEGORY_CARDS_PER_VIEW + 1 }).map((_, index) => (
+                  {categories.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentCategoryCardSlide(index)}
@@ -984,42 +1050,41 @@ export default function Home() {
                         </Link>
                       </div>
                       <div className="relative hidden lg:flex lg:items-center lg:gap-3">
-                        {products.length > PRODUCT_CARDS_PER_VIEW && (
-                          <button
-                            onClick={() => prevCategorySlide(category._id)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={(currentCategorySlides[category._id] ?? 0) === 0}
-                            aria-label={t('carousel_previous', 'components')}
-                          >
-                            <ChevronLeft className="h-5 w-5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => prevCategorySlide(category._id, products.length)}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
+                          aria-label={t('carousel_previous', 'components')}
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
 
                         <div className="flex-1 overflow-hidden">
                           <div className="grid grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
-                            {products
-                              .slice(currentCategorySlides[category._id] ?? 0, (currentCategorySlides[category._id] ?? 0) + PRODUCT_CARDS_PER_VIEW)
-                              .map((product) => (
-                                <ProductCard key={product._id} laptop={product} />
+                            {getCircularItems(products, currentCategorySlides[category._id] ?? 0, PRODUCT_CARDS_PER_VIEW)
+                              .map((product, index) => (
+                                <ProductCard key={`${product._id}-${index}`} laptop={product} />
                               ))}
                           </div>
                         </div>
 
-                        {products.length > PRODUCT_CARDS_PER_VIEW && (
-                          <button
-                            onClick={() => nextCategorySlide(category._id, products.length - PRODUCT_CARDS_PER_VIEW)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={(currentCategorySlides[category._id] ?? 0) >= products.length - PRODUCT_CARDS_PER_VIEW}
-                            aria-label={t('carousel_next', 'components')}
-                          >
-                            <ChevronRight className="h-5 w-5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => nextCategorySlide(category._id, products.length)}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
+                          aria-label={t('carousel_next', 'components')}
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
                       </div>
 
-                      <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6">
-                        {products.map((product) => (
-                          <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                      <div
+                        ref={(element) => {
+                          categoryMobileCarouselRefs.current[category._id] = element;
+                        }}
+                        className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                        onScroll={(event) => handleInfiniteCarouselScroll(event, products.length)}
+                      >
+                        {getRepeatedItems(products).map((product, index) => (
+                          <div key={`${product._id}-${index}`} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
                             <ProductCard laptop={product} />
                           </div>
                         ))}
@@ -1065,11 +1130,10 @@ export default function Home() {
                 </div>
 
                 <div className="relative hidden items-center gap-3 overflow-visible lg:flex">
-                  {dealProducts.length > dealCardsPerView && (
+                  {dealProducts.length > 1 && (
                     <button
                       onClick={prevDealSlide}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={currentDealSlide === 0}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
                       aria-label={t('carousel_previous', 'components')}
                     >
                       <ChevronLeft className="h-5 w-5" />
@@ -1078,11 +1142,10 @@ export default function Home() {
 
                   <div className="flex-1 overflow-hidden">
                     <div className="grid grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
-                      {dealProducts
-                        .slice(currentDealSlide, currentDealSlide + dealCardsPerView)
-                        .map((product) => (
+                      {getCircularItems(dealProducts, currentDealSlide, dealCardsPerView)
+                        .map((product, index) => (
                           <ProductCard
-                            key={product._id}
+                            key={`${product._id}-${index}`}
                             laptop={product}
                             onQuickViewToggle={setIsDealQuickViewOpen}
                           />
@@ -1090,11 +1153,10 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {dealProducts.length > dealCardsPerView && (
+                  {dealProducts.length > 1 && (
                     <button
                       onClick={nextDealSlide}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={currentDealSlide >= dealProducts.length - dealCardsPerView}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
                       aria-label={t('carousel_next', 'components')}
                     >
                       <ChevronRight className="h-5 w-5" />
@@ -1102,17 +1164,21 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6">
-                  {dealProducts.map((product) => (
-                    <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                <div
+                  ref={dealMobileCarouselRef}
+                  className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                  onScroll={(event) => handleInfiniteCarouselScroll(event, dealProducts.length)}
+                >
+                  {getRepeatedItems(dealProducts).map((product, index) => (
+                    <div key={`${product._id}-${index}`} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
                       <ProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
                     </div>
                   ))}
                 </div>
 
-                {dealProducts.length > dealCardsPerView && (
+                {dealProducts.length > 1 && (
                   <div className="mt-4 hidden justify-center gap-2 lg:flex" aria-label={t('go_to_deal_slide', 'components')}>
-                    {Array.from({ length: dealProducts.length - dealCardsPerView + 1 }).map((_, index) => (
+                    {dealProducts.map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setCurrentDealSlide(index)}
