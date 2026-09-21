@@ -23,6 +23,7 @@ export function ImageViewer({
   const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const mobileGalleryRef = useRef<HTMLDivElement>(null);
+  const mobileDragRef = useRef<{ pointerId: number; startX: number; startScrollLeft: number } | null>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const imageSources = (images.length > 0 ? images : [src]).filter(Boolean);
   const normalizedInitialIndex = Math.min(Math.max(initialIndex, 0), Math.max(imageSources.length - 1, 0));
@@ -32,11 +33,22 @@ export function ImageViewer({
   const currentImage = imageSources[activeIndex] || src;
   const hasGalleryNavigation = imageSources.length > 1;
 
+  const scrollMobileTo = (index: number, behavior: ScrollBehavior = 'smooth') => {
+    const mobileGallery = mobileGalleryRef.current;
+    if (!mobileGallery) return;
+
+    mobileGallery.scrollTo({
+      left: index * mobileGallery.clientWidth,
+      behavior,
+    });
+  };
+
   const goToImage = (index: number) => {
     const nextIndex = (index + imageSources.length) % imageSources.length;
     activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
     onIndexChange?.(nextIndex);
+    scrollMobileTo(nextIndex);
   };
 
   useEffect(() => {
@@ -72,10 +84,39 @@ export function ImageViewer({
       imageSources.length - 1,
       Math.max(0, Math.round(event.currentTarget.scrollLeft / slideWidth)),
     );
-    if (nextIndex !== activeIndex) {
+    if (nextIndex !== activeIndexRef.current) {
       activeIndexRef.current = nextIndex;
       setActiveIndex(nextIndex);
       onIndexChange?.(nextIndex);
+    }
+  };
+
+  const handleMobilePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+
+    mobileDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: event.currentTarget.scrollLeft,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleMobilePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = mobileDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+    event.currentTarget.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+  };
+
+  const handleMobilePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = mobileDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    mobileDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
@@ -84,16 +125,8 @@ export function ImageViewer({
   }, [isMounted]);
 
   useEffect(() => {
-    if (!isMounted) return;
-
-    const mobileGallery = mobileGalleryRef.current;
-    if (mobileGallery) {
-      mobileGallery.scrollTo({
-        left: activeIndex * mobileGallery.clientWidth,
-        behavior: 'auto',
-      });
-    }
-  }, [activeIndex, isMounted]);
+    if (isMounted) scrollMobileTo(normalizedInitialIndex, 'auto');
+  }, [isMounted, normalizedInitialIndex]);
 
   if (!isMounted) return null;
 
@@ -115,13 +148,23 @@ export function ImageViewer({
       >
         <div
           ref={mobileGalleryRef}
-          className="hide-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain lg:hidden"
+          className="hide-scrollbar flex h-full w-full select-none snap-x snap-mandatory touch-pan-x overflow-x-auto overscroll-x-contain lg:hidden"
           onScroll={handleMobileScroll}
+          onPointerDown={handleMobilePointerDown}
+          onPointerMove={handleMobilePointerMove}
+          onPointerUp={handleMobilePointerEnd}
+          onPointerCancel={handleMobilePointerEnd}
           aria-label={alt}
         >
           {imageSources.map((image, index) => (
             <div key={`${image}-${index}`} className="flex h-full w-full shrink-0 snap-center items-center justify-center">
-              <img src={image} alt={alt} className="max-h-full max-w-full object-contain" />
+              <img
+                src={image}
+                alt={alt}
+                draggable={false}
+                onDragStart={(event) => event.preventDefault()}
+                className="max-h-full max-w-full object-contain"
+              />
             </div>
           ))}
         </div>
