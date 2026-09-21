@@ -22,16 +22,19 @@ export function ImageViewer({
 }: ImageViewerProps) {
   const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileGalleryRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const imageSources = (images.length > 0 ? images : [src]).filter(Boolean);
   const normalizedInitialIndex = Math.min(Math.max(initialIndex, 0), Math.max(imageSources.length - 1, 0));
   const [activeIndex, setActiveIndex] = useState(normalizedInitialIndex);
+  const activeIndexRef = useRef(normalizedInitialIndex);
   const [isMounted, setIsMounted] = useState(false);
   const currentImage = imageSources[activeIndex] || src;
   const hasGalleryNavigation = imageSources.length > 1;
 
   const goToImage = (index: number) => {
     const nextIndex = (index + imageSources.length) % imageSources.length;
+    activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
     onIndexChange?.(nextIndex);
   };
@@ -45,10 +48,10 @@ export function ImageViewer({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'ArrowLeft' && hasGalleryNavigation) {
-        goToImage(activeIndex - 1);
+        goToImage(activeIndexRef.current - 1);
       }
       if (event.key === 'ArrowRight' && hasGalleryNavigation) {
-        goToImage(activeIndex + 1);
+        goToImage(activeIndexRef.current + 1);
       }
     };
 
@@ -59,11 +62,38 @@ export function ImageViewer({
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocusedElementRef.current?.focus();
     };
-  }, [activeIndex, hasGalleryNavigation, imageSources.length, onClose]);
+  }, [hasGalleryNavigation, imageSources.length, onClose]);
+
+  const handleMobileScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const slideWidth = event.currentTarget.clientWidth;
+    if (!slideWidth) return;
+
+    const nextIndex = Math.min(
+      imageSources.length - 1,
+      Math.max(0, Math.round(event.currentTarget.scrollLeft / slideWidth)),
+    );
+    if (nextIndex !== activeIndex) {
+      activeIndexRef.current = nextIndex;
+      setActiveIndex(nextIndex);
+      onIndexChange?.(nextIndex);
+    }
+  };
 
   useEffect(() => {
     if (isMounted) closeButtonRef.current?.focus();
   }, [isMounted]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const mobileGallery = mobileGalleryRef.current;
+    if (mobileGallery) {
+      mobileGallery.scrollTo({
+        left: activeIndex * mobileGallery.clientWidth,
+        behavior: 'auto',
+      });
+    }
+  }, [activeIndex, isMounted]);
 
   if (!isMounted) return null;
 
@@ -83,41 +113,59 @@ export function ImageViewer({
           if (event.target === event.currentTarget) onClose();
         }}
       >
-        <img
-          src={currentImage}
-          alt={alt}
-          className="max-h-full max-w-full object-contain"
-        />
+        <div
+          ref={mobileGalleryRef}
+          className="hide-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain lg:hidden"
+          onScroll={handleMobileScroll}
+          aria-label={alt}
+        >
+          {imageSources.map((image, index) => (
+            <div key={`${image}-${index}`} className="flex h-full w-full shrink-0 snap-center items-center justify-center">
+              <img src={image} alt={alt} className="max-h-full max-w-full object-contain" />
+            </div>
+          ))}
+        </div>
+
+        <div className="relative hidden h-full w-full items-center justify-center lg:flex">
+          <img
+            src={currentImage}
+            alt={alt}
+            className="max-h-full max-w-full object-contain"
+          />
+          {hasGalleryNavigation && (
+            <>
+              <button
+                type="button"
+                onClick={() => goToImage(activeIndex - 1)}
+                aria-label={t('previous', 'pagination')}
+                className="absolute left-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goToImage(activeIndex + 1)}
+                aria-label={t('next', 'pagination')}
+                className="absolute right-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
+        </div>
+
         <button
           ref={closeButtonRef}
           type="button"
           onClick={onClose}
-          className="absolute right-0 top-0 rounded-md bg-white px-4 py-2 text-sm font-medium text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="absolute right-0 top-0 z-10 rounded-md bg-white px-4 py-2 text-sm font-medium text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           {t('close', 'components')}
         </button>
         {hasGalleryNavigation && (
-          <>
-            <button
-              type="button"
-              onClick={() => goToImage(activeIndex - 1)}
-              aria-label={t('previous', 'pagination')}
-              className="absolute left-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              type="button"
-              onClick={() => goToImage(activeIndex + 1)}
-              aria-label={t('next', 'pagination')}
-              className="absolute right-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-            <p className="absolute bottom-0 rounded-full bg-black/70 px-3 py-1 text-sm text-white" aria-live="polite">
-              {activeIndex + 1} / {imageSources.length}
-            </p>
-          </>
+          <p className="pointer-events-none absolute bottom-0 z-10 rounded-full bg-black/70 px-3 py-1 text-sm text-white" aria-live="polite">
+            {activeIndex + 1} / {imageSources.length}
+          </p>
         )}
       </div>
     </div>,
