@@ -266,7 +266,7 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 ### Frontend và môi trường kiểm thử
 
 - Frontend chưa có test runner riêng, nhưng đã có script `typecheck`; chạy từ `online-store-frontend` bằng `npm run typecheck` hoặc `npx --no-install tsc --noEmit`.
-- `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; runtime vẫn chưa xác minh vì thiếu dependency `typescript`.
+- `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; `npm --prefix online-store-frontend run check:emoji` đã chạy đạt.
 - Root `package.json` có `npm test` chuyển tiếp tới product suite backend và `npm run test:all` cho unified runner. Không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies, MongoDB, backend readiness hoặc credential.
 
 ### Contract `specs`
@@ -385,12 +385,26 @@ Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows v
 - Xác minh import `StaticTranslation` của controller dịch tĩnh không bị thiếu.
 - Root scripts đã đồng bộ với backend runner; frontend có script `typecheck` riêng.
 
-### Kiểm tra cần chạy sau khi môi trường sẵn sàng
+### Kết quả kiểm tra cập nhật
 
-- `cd online-store-frontend && npm run typecheck`.
-- `cd online-store-frontend && npm run check:emoji`.
-- `cd online-store-backend && node --check src/controllers/translationController.js`.
-- `npm test` hoặc `npm run test:all` khi có dependency backend, MongoDB và credential hợp lệ.
+Đã chạy:
+
+- `npm --prefix online-store-frontend run typecheck` — **PASS**.
+- `npm --prefix online-store-frontend run check:emoji` — **PASS**; không có emoji hard-code ngoài registry cho phép.
+- `node --check online-store-backend/src/controllers/translationController.js` — **PASS**.
+- `node --check online-store-backend/src/utils/safeRemoteUrl.js` — **PASS**.
+- `node --check online-store-backend/src/utils/zipImport.js` — **PASS**.
+- Parse 18 file locale `admin-import`/`admin-export` cho 9 locale — **PASS**.
+- `git diff --check` — **PASS**.
+- Smoke test SSRF allowlist — **PASS**: chặn `127.0.0.1`, từ chối URL HTTP private và chấp nhận HTTPS public.
+
+Chưa chạy được:
+
+- `cd online-store-backend && npx --no-install mocha src/test/import-file-validator.test.js` — **BLOCKED** vì backend không có package `mocha` cục bộ và `npx --no-install` không được tải package từ registry.
+- `npm --prefix online-store-backend test` — **BLOCKED** ngay khi khởi động vì thiếu module `dotenv` tại `src/test/test-runner.js:16`.
+- Translation integration và các test cần MongoDB/backend/credential — **NOT RUN**; chưa có môi trường runtime hợp lệ để kết luận.
+
+Ghi chú: `safeRemoteUrl.js` vẫn dùng `net.isIP()` nhưng chưa có `require('net')` cục bộ; smoke test không tái hiện `ReferenceError` trong Node runtime hiện tại vì môi trường đang cung cấp `net` global. Đây vẫn là việc cần chuẩn hóa để tránh phụ thuộc runtime không rõ ràng, nhưng chưa được đánh dấu là lỗi runtime đã tái hiện.
 
 Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiện retranslate Logitech G515 hoặc audit dữ liệu cache production vì đây là thao tác dữ liệu ngoài source code và cần quyền truy cập backend/MongoDB.
 
@@ -424,6 +438,6 @@ Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiệ
 Chưa xử lý trong phiên này:
 
 - Bulk migrate `featureName` của toàn bộ admin page vì metadata hiện chưa hiển thị ra giao diện; sẽ cần gắn với key i18n khi luồng `PermissionDenied` dùng tên tính năng.
-- Chưa chạy integration test cần MongoDB/credential. Có thể chạy typecheck frontend và kiểm tra JSON locale khi dependency sẵn sàng. Không chạy `npm run build` theo quy ước môi trường.
+- Integration test vẫn chưa chạy được vì backend thiếu `dotenv`/`mocha` và cần MongoDB/credential; frontend typecheck, check:emoji, syntax check và locale JSON đã chạy đạt. Không chạy `npm run build` theo quy ước môi trường.
 
 Audit hiện không còn ghi nhận `importProducts.tsx` là vùng hard-code JSX chính; các fallback literal còn lại nằm rải rác ở admin page khác và cần xử lý theo từng namespace để tránh thay đổi ngoài phạm vi.
