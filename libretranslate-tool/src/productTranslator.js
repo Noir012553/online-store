@@ -16,7 +16,10 @@ const splitText = (text, maxLength = DEFAULT_DESCRIPTION_CHUNK_SIZE) => {
         text.lastIndexOf('? ', end),
         text.lastIndexOf(' ', end),
       );
-      if (boundary > start) end = boundary + 1;
+      if (boundary > start) {
+        const boundaryText = text.slice(boundary, boundary + 2);
+        end = boundaryText.match(/^[.!?] /) ? boundary + 2 : boundary + 1;
+      }
     }
     chunks.push(text.slice(start, end));
     start = end;

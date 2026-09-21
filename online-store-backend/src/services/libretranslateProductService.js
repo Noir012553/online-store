@@ -39,17 +39,29 @@ const translateDraft = async (text, sourceLang, targetLang) => {
   }
 };
 
+const stripTranslationPrefix = (text) => (
+  text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
+);
+
 const translateWithCloudflare = async (text, sourceLang, targetLang) => {
-  const draftText = await translateDraft(text, sourceLang, targetLang);
-  return cloudflareAiService.translate(
-    text,
-    sourceLang,
-    targetLang,
-    null,
-    3,
-    2000,
-    { draftText },
-  );
+  const chunks = splitText(text, getChunkSize());
+  const translatedChunks = [];
+
+  for (const chunk of chunks) {
+    const draftText = await translateDraft(chunk, sourceLang, targetLang);
+    const translatedChunk = await cloudflareAiService.translate(
+      chunk,
+      sourceLang,
+      targetLang,
+      null,
+      3,
+      2000,
+      { draftText },
+    );
+    translatedChunks.push(stripTranslationPrefix(translatedChunk));
+  }
+
+  return translatedChunks.join('');
 };
 
 module.exports = {

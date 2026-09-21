@@ -26,7 +26,7 @@ import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 
-const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
+const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 const PRODUCT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -37,8 +37,8 @@ const normalizeProductId = (value: string | string[] | undefined): string | null
 };
 
 const getSafeProductTab = (value: unknown): ProductTab => {
-  if (typeof value !== 'string') return 'specs';
-  return (TAB_VALUES as readonly string[]).includes(value) ? (value as ProductTab) : 'specs';
+  if (typeof value !== 'string') return 'description';
+  return (TAB_VALUES as readonly string[]).includes(value) ? (value as ProductTab) : 'description';
 };
 
 const formatProductAmount = (
@@ -98,7 +98,7 @@ export default function ProductDetail() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ProductTab>('specs');
+  const [activeTab, setActiveTab] = useState<ProductTab>('description');
   const productId = normalizeProductId(id);
   const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
 
@@ -122,7 +122,7 @@ export default function ProductDetail() {
     if (currentTab === nextTab) return;
 
     const nextQuery = { ...router.query };
-    if (nextTab === 'specs') {
+    if (nextTab === 'description') {
       delete nextQuery.tab;
     } else {
       nextQuery.tab = nextTab;
@@ -525,7 +525,7 @@ export default function ProductDetail() {
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-in fade-in duration-300">
+    <div className="container relative mx-auto max-w-[1440px] px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs
         links={[
           { label: t('breadcrumb_products', 'products'), href: "/products" },
@@ -534,11 +534,11 @@ export default function ProductDetail() {
       />
 
       {/* Product Top Banner */}
-      <div className="mb-8">
+      <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <BannerSlot slot="product_top" variant="strip" limit={1} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
+      <div className="mb-10 grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start sm:mb-14">
         <ProductGallery
           productName={convertedLaptop.name || ''}
           images={images}

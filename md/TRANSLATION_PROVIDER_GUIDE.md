@@ -62,6 +62,7 @@ Cloudflare AI vẫn xử lý bản dịch cuối cho sản phẩm và tiếp t�
 CLOUDFLARE_AI_ENABLED=true
 CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY=...
 CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY=...
+CLOUDFLARE_AI_MAX_TOKENS=2048
 
 LIBRETRANSLATE_ENABLED=false
 LIBRETRANSLATE_URL=http://127.0.0.1:5001
@@ -72,6 +73,7 @@ LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
 LIBRETRANSLATE_API_KEY=
 ```
 
+- `CLOUDFLARE_AI_MAX_TOKENS`: số token tối đa cho mỗi phản hồi dịch; mặc định `2048` để tránh model cắt ngắn nội dung.
 - `LIBRETRANSLATE_ENABLED=false`: Cloudflare dịch trực tiếp sản phẩm.
 - `LIBRETRANSLATE_ENABLED=true`: LibreTranslate tạo draft cho sản phẩm, Cloudflare vẫn bắt buộc tạo bản cuối.
 - `LIBRETRANSLATE_URL`: URL API local hoặc remote đã được bảo vệ.

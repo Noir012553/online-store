@@ -1,5 +1,32 @@
 import React from 'react';
 import { useLanguage } from '../lib/i18n';
+import type { Locale } from '../lib/i18n/types';
+
+const SPEC_LABEL_KEYS: Record<string, string> = {
+  chatlieuvo: 'spec_case_material',
+  casematerial: 'spec_case_material',
+};
+
+const SPEC_LABEL_FALLBACKS: Record<Locale, string> = {
+  vi: 'Chất liệu vỏ',
+  en: 'Case material',
+  pt: 'Material da carcaça',
+  fr: 'Matériau du boîtier',
+  de: 'Gehäusematerial',
+  it: 'Materiale della scocca',
+  es: 'Material de la carcasa',
+  nl: 'Materiaal van de behuizing',
+  sv: 'Material på höljet',
+};
+
+const normalizeSpecLabel = (value: string): string => (
+  value
+    .trim()
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s_-]+/g, '')
+);
 
 interface SpecsTableProps {
   specs: Record<string, any>;
@@ -7,23 +34,30 @@ interface SpecsTableProps {
 }
 
 export const SpecsTable: React.FC<SpecsTableProps> = ({ specs, specLabels = {} }) => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const specEntries = specs ? Object.entries(specs) : [];
+  const getSpecLabel = (key: string): string => {
+    const sourceLabel = specLabels[key] || key;
+    const translationKey = SPEC_LABEL_KEYS[normalizeSpecLabel(sourceLabel)];
+    return translationKey
+      ? t(translationKey, 'products', SPEC_LABEL_FALLBACKS[locale])
+      : sourceLabel;
+  };
 
   if (specEntries.length === 0) {
     return <p className="py-8 text-center text-gray-500">{t('no_specs', 'products')}</p>;
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden border-gray-100 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full text-sm">
         <tbody>
           {specEntries.map(([key, value], idx) => (
-            <tr key={key} className={idx % 2 === 0 ? "bg-white" : "bg-white/30"}>
-              <td className="px-4 py-3 font-medium text-gray-600 w-1/3 border-b border-gray-50">
-                {specLabels[key] || key}
+            <tr key={key} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
+              <td className="w-1/3 border-b border-slate-100 px-3 py-3 font-semibold text-slate-500 sm:px-4">
+                {getSpecLabel(key)}
               </td>
-              <td className="space-y-0.5 px-4 py-3 text-gray-900 leading-5 border-b border-gray-50">
+              <td className="space-y-0.5 border-b border-slate-100 px-3 py-3 leading-5 text-slate-900 sm:px-4">
                 {String(value).split(';').map((item, index) => (
                   <span key={`${item}-${index}`} className="block">
                     {item.trim()}

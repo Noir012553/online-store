@@ -639,14 +639,28 @@ exports.getProductCatalogTranslations = async (req, res) => {
 
     // Phase 3: Try to read from NEW schema first
     const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
-    const newSchemaData = await ProductCatalogTranslationCache.findOne({
-      entityId: productId,
-      targetLang: resolvedLang,
-      status: 'success',
-      qualityStatus: 'approved',
-    }).lean();
+    const [newSchemaData, sourceProduct] = await Promise.all([
+      ProductCatalogTranslationCache.findOne({
+        entityId: productId,
+        targetLang: resolvedLang,
+        status: 'success',
+        qualityStatus: 'approved',
+      }).lean(),
+      Product.findById(productId).select('description').lean(),
+    ]);
 
     if (newSchemaData) {
+      const hasMixedDescription = translationValidator.hasSourceLanguageLeak(
+        sourceProduct?.description,
+        newSchemaData.description,
+        resolvedLang,
+        'product_description',
+      );
+
+      if (hasMixedDescription) {
+        newSchemaData.description = null;
+      }
+
       const localizedSpecData = await localizeProductSpecFields({
         specs: newSchemaData.specs || {},
       }, resolvedLang);
@@ -687,7 +701,13 @@ exports.getProductCatalogTranslations = async (req, res) => {
       if (trans.entityType === 'product_name') {
         result.name = trans.translatedText;
       } else if (trans.entityType === 'product_description') {
-        result.description = trans.translatedText;
+        const hasMixedDescription = translationValidator.hasSourceLanguageLeak(
+          trans.originalText,
+          trans.translatedText,
+          resolvedLang,
+          'product_description',
+        );
+        if (!hasMixedDescription) result.description = trans.translatedText;
       } else if (trans.entityType === 'product_brand') {
         result.brand = trans.translatedText;
       } else if (trans.entityType === 'product_spec' && trans.specKey) {

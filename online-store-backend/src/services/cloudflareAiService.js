@@ -11,6 +11,7 @@ KEY RULES:
 3. Keep brand names unchanged
 4. Return ONLY translated text, NO explanations
 5. Preserve formatting and line breaks
+6. Do NOT leave Vietnamese words or sentences in the translation, except brand names, model names, and technical identifiers
 
 IMPORTANT:
 - Chính hãng → Official/Genuine
@@ -18,12 +19,24 @@ IMPORTANT:
 - Professional, formal tone for products`;
 
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
+const stripTranslationPrefix = (text) => text
+  .replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '')
+  .trim();
 const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
 const parseNonNegativeInteger = (name, fallback = 0) => {
   const raw = process.env[name];
   if (raw === undefined || raw === '') return fallback;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 0) throw new Error(`${name} must be a non-negative integer`);
+  return value;
+};
+const getMaxOutputTokens = () => {
+  const raw = process.env.CLOUDFLARE_AI_MAX_TOKENS;
+  if (raw === undefined || raw === '') return 2048;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error('CLOUDFLARE_AI_MAX_TOKENS must be a positive integer');
+  }
   return value;
 };
 
@@ -343,6 +356,7 @@ class CloudflareAiService {
                 : `Translate this text to ${targetLang}:\n\n${text}`,
             },
           ],
+          max_tokens: getMaxOutputTokens(),
         },
         {
           headers: {
@@ -367,7 +381,7 @@ class CloudflareAiService {
         translatedText = String(translatedText || '');
       }
 
-      const normalizedTranslation = translatedText.trim();
+      const normalizedTranslation = stripTranslationPrefix(translatedText);
 
       if (!normalizedTranslation || EMPTY_TRANSLATION_RESPONSE.test(normalizedTranslation)) {
         throw new Error('No usable translation returned from Cloudflare API');

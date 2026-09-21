@@ -37,6 +37,7 @@ module.exports = {
     too_long: -15,
     empty: -100,
     wrong_language: -50,
+    mixed_language: -50,
     inconsistent: -20,
   },
 
@@ -48,7 +49,7 @@ module.exports = {
   // ========== AUTO-APPROVAL RULES ==========
   AUTO_APPROVE_IF_NO_ERRORS: true,
   AUTO_RETRANSLATE_IF_CRITICAL: true,
-  CRITICAL_ERRORS: ['empty', 'wrong_language'],
+  CRITICAL_ERRORS: ['empty', 'wrong_language', 'mixed_language'],
   NON_BLOCKING_ERRORS: ['too_long'],
 
   // ========== LOGGING ==========
