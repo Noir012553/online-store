@@ -984,16 +984,14 @@ export default function Home() {
                         </Link>
                       </div>
                       <div className="relative hidden lg:flex lg:items-center lg:gap-3">
-                        {products.length > PRODUCT_CARDS_PER_VIEW && (
-                          <button
-                            onClick={() => prevCategorySlide(category._id)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={(currentCategorySlides[category._id] ?? 0) === 0}
-                            aria-label={t('carousel_previous', 'components')}
-                          >
-                            <ChevronLeft className="h-5 w-5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => prevCategorySlide(category._id)}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={(currentCategorySlides[category._id] ?? 0) === 0}
+                          aria-label={t('carousel_previous', 'components')}
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
 
                         <div className="flex-1 overflow-hidden">
                           <div className="grid grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
@@ -1005,16 +1003,14 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {products.length > PRODUCT_CARDS_PER_VIEW && (
-                          <button
-                            onClick={() => nextCategorySlide(category._id, products.length - PRODUCT_CARDS_PER_VIEW)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={(currentCategorySlides[category._id] ?? 0) >= products.length - PRODUCT_CARDS_PER_VIEW}
-                            aria-label={t('carousel_next', 'components')}
-                          >
-                            <ChevronRight className="h-5 w-5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => nextCategorySlide(category._id, products.length - PRODUCT_CARDS_PER_VIEW)}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={(currentCategorySlides[category._id] ?? 0) >= products.length - PRODUCT_CARDS_PER_VIEW}
+                          aria-label={t('carousel_next', 'components')}
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
                       </div>
 
                       <div className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6">
