@@ -14,6 +14,11 @@ if (isWindows && !fs.existsSync(executable)) {
 }
 
 const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim();
+
+if (isWindows && !token) {
+  throw new Error('CLOUDFLARED_TUNNEL_TOKEN is required on Windows');
+}
+
 const args = token
   ? ['tunnel', 'run', '--token', token]
   : ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'];
