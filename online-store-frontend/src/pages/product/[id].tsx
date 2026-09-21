@@ -525,7 +525,7 @@ export default function ProductDetail() {
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
   return (
-    <div className="container mx-auto px-4 py-8 animate-in fade-in duration-300">
+    <div className="container relative mx-auto max-w-[1440px] px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs
         links={[
           { label: t('breadcrumb_products', 'products'), href: "/products" },
@@ -534,11 +534,11 @@ export default function ProductDetail() {
       />
 
       {/* Product Top Banner */}
-      <div className="mb-8">
+      <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <BannerSlot slot="product_top" variant="strip" limit={1} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
+      <div className="mb-10 grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start sm:mb-14">
         <ProductGallery
           productName={convertedLaptop.name || ''}
           images={images}

@@ -15,15 +15,15 @@ export const SpecsTable: React.FC<SpecsTableProps> = ({ specs, specLabels = {} }
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden border-gray-100 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full text-sm">
         <tbody>
           {specEntries.map(([key, value], idx) => (
-            <tr key={key} className={idx % 2 === 0 ? "bg-white" : "bg-white/30"}>
-              <td className="px-4 py-3 font-medium text-gray-600 w-1/3 border-b border-gray-50">
+            <tr key={key} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
+              <td className="w-1/3 border-b border-slate-100 px-3 py-3 font-semibold text-slate-500 sm:px-4">
                 {specLabels[key] || key}
               </td>
-              <td className="space-y-0.5 px-4 py-3 text-gray-900 leading-5 border-b border-gray-50">
+              <td className="space-y-0.5 border-b border-slate-100 px-3 py-3 leading-5 text-slate-900 sm:px-4">
                 {String(value).split(';').map((item, index) => (
                   <span key={`${item}-${index}`} className="block">
                     {item.trim()}

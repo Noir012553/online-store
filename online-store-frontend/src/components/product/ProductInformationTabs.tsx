@@ -74,16 +74,16 @@ export function ProductInformationTabs({
   const emptyPromotionsLabel = EMPTY_PROMOTIONS_LABELS[locale] || EMPTY_PROMOTIONS_LABELS.en;
 
   return (
-    <Tabs value={activeTab} onValueChange={onTabChange} className="mb-8 sm:mb-12">
-      <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
-        <TabsTrigger value="description" className="text-xs sm:text-sm">{t('section_description', 'products')}</TabsTrigger>
-        <TabsTrigger value="promotions" className="text-xs sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
-        <TabsTrigger value="reviews" className="text-xs sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
+    <Tabs value={activeTab} onValueChange={onTabChange} className="mb-10 sm:mb-14">
+      <TabsList className="grid h-12 w-full grid-cols-3 rounded-2xl border border-slate-200 bg-slate-100/80 p-1 text-xs shadow-sm sm:text-sm">
+        <TabsTrigger value="description" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('section_description', 'products')}</TabsTrigger>
+        <TabsTrigger value="promotions" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
+        <TabsTrigger value="reviews" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
       </TabsList>
-      <TabsContent value="description" id="product-description-container" className="bg-white p-4 sm:p-6 border rounded-lg">
+      <TabsContent value="description" id="product-description-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         <ProductDescriptionFormatter text={product.description} />
       </TabsContent>
-      <TabsContent value="promotions" id="product-promotions-container" className="bg-white p-4 sm:p-6 border rounded-lg">
+      <TabsContent value="promotions" id="product-promotions-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         {product.promotions && product.promotions.length > 0 ? (
           <div className="space-y-3">
             {product.promotions.map((promotion, index) => (
@@ -123,7 +123,7 @@ export function ProductInformationTabs({
           <p className="py-8 text-center text-gray-500">{t('empty_no_promotions', 'products', emptyPromotionsLabel)}</p>
         )}
       </TabsContent>
-      <TabsContent value="reviews" className="bg-white p-6 border rounded-lg">
+      <TabsContent value="reviews" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         <ProductReviews
           reviews={reviews}
           isLoadingReviews={isLoadingReviews}
