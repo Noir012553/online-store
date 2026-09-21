@@ -41,7 +41,11 @@ export default function Cart() {
   const { locale } = useLanguage();
   const { summary } = useCartSummary();
   const router = useRouter();
-  const [viewerImage, setViewerImage] = useState<{ src: string; alt: string } | null>(null);
+  const [viewerImage, setViewerImage] = useState<{
+    src: string;
+    alt: string;
+    images?: string[];
+  } | null>(null);
   const throttleTimers = useRef(new Map<string, NodeJS.Timeout>());
 
   useEffect(() => {
@@ -127,6 +131,7 @@ export default function Cart() {
                         onClick={() => setViewerImage({
                           src: item.laptop.image,
                           alt: typeof item.laptop.name === 'object' && item.laptop.name !== null && DEFAULT_LOCALE in item.laptop.name ? (item.laptop.name as any)[DEFAULT_LOCALE] || '' : (item.laptop.name as any) || '',
+                          images: item.laptop.images,
                         })}
                         className="cursor-zoom-in"
                       >
@@ -258,6 +263,7 @@ export default function Cart() {
         <ImageViewer
           src={viewerImage.src}
           alt={viewerImage.alt}
+          images={viewerImage.images}
           onClose={() => setViewerImage(null)}
         />
       )}

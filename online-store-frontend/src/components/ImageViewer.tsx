@@ -8,18 +8,33 @@ interface ImageViewerProps {
   alt: string;
   images?: string[];
   initialIndex?: number;
+  onIndexChange?: (index: number) => void;
   onClose: () => void;
 }
 
-export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClose }: ImageViewerProps) {
+export function ImageViewer({
+  src,
+  alt,
+  images = [src],
+  initialIndex = 0,
+  onIndexChange,
+  onClose,
+}: ImageViewerProps) {
   const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const imageSources = (images.length > 0 ? images : [src]).filter(Boolean);
+  const normalizedInitialIndex = Math.min(Math.max(initialIndex, 0), Math.max(imageSources.length - 1, 0));
+  const [activeIndex, setActiveIndex] = useState(normalizedInitialIndex);
   const [isMounted, setIsMounted] = useState(false);
-  const imageSources = images.filter(Boolean);
   const currentImage = imageSources[activeIndex] || src;
   const hasGalleryNavigation = imageSources.length > 1;
+
+  const goToImage = (index: number) => {
+    const nextIndex = (index + imageSources.length) % imageSources.length;
+    setActiveIndex(nextIndex);
+    onIndexChange?.(nextIndex);
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -30,10 +45,10 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'ArrowLeft' && hasGalleryNavigation) {
-        setActiveIndex((index) => (index - 1 + imageSources.length) % imageSources.length);
+        goToImage(activeIndex - 1);
       }
       if (event.key === 'ArrowRight' && hasGalleryNavigation) {
-        setActiveIndex((index) => (index + 1) % imageSources.length);
+        goToImage(activeIndex + 1);
       }
     };
 
@@ -44,7 +59,7 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocusedElementRef.current?.focus();
     };
-  }, [hasGalleryNavigation, imageSources.length, onClose]);
+  }, [activeIndex, hasGalleryNavigation, imageSources.length, onClose]);
 
   useEffect(() => {
     if (isMounted) closeButtonRef.current?.focus();
@@ -85,7 +100,7 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
           <>
             <button
               type="button"
-              onClick={() => setActiveIndex((index) => (index - 1 + imageSources.length) % imageSources.length)}
+              onClick={() => goToImage(activeIndex - 1)}
               aria-label={t('previous', 'pagination')}
               className="absolute left-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
@@ -93,7 +108,7 @@ export function ImageViewer({ src, alt, images = [src], initialIndex = 0, onClos
             </button>
             <button
               type="button"
-              onClick={() => setActiveIndex((index) => (index + 1) % imageSources.length)}
+              onClick={() => goToImage(activeIndex + 1)}
               aria-label={t('next', 'pagination')}
               className="absolute right-0 rounded-full bg-white p-2 text-black shadow-lg transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >

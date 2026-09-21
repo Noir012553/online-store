@@ -600,6 +600,7 @@ export default function ProductDetail() {
           alt={viewerImage.alt}
           images={viewerImage.images}
           initialIndex={viewerImage.initialIndex}
+          onIndexChange={setSelectedImage}
           onClose={() => setIsImageViewerOpen(false)}
         />
       )}
