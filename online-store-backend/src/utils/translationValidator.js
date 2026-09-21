@@ -33,6 +33,32 @@ class TranslationValidator {
     return null;
   }
 
+  checkSourceLanguageLeak(original, translated, targetLang, entityType) {
+    if (targetLang === 'vi' || !['product_description', 'product_technical_description'].includes(entityType)) {
+      return null;
+    }
+    if (typeof original !== 'string' || typeof translated !== 'string') return null;
+
+    const sourceWords = original
+      .toLocaleLowerCase('vi')
+      .split(/[^\p{L}]+/u)
+      .filter((word) => /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u.test(word));
+    const translatedText = translated.toLocaleLowerCase('vi');
+
+    for (let index = 0; index < sourceWords.length - 1; index += 1) {
+      const phrase = `${sourceWords[index]} ${sourceWords[index + 1]}`;
+      if (phrase.length >= 6 && translatedText.includes(phrase)) {
+        return { error: 'mixed_language', phrase };
+      }
+    }
+
+    return null;
+  }
+
+  hasSourceLanguageLeak(original, translated, targetLang, entityType) {
+    return Boolean(this.checkSourceLanguageLeak(original, translated, targetLang, entityType));
+  }
+
   async checkWrongLanguage(translated, expectedLang) {
     if (!config.ENABLE_LANGUAGE_CHECK) return null;
     try {
@@ -97,6 +123,14 @@ class TranslationValidator {
 
     const lengthCheck = this.checkLength(original, translated);
     if (lengthCheck) errors.push(lengthCheck.error);
+
+    const sourceLanguageLeakCheck = this.checkSourceLanguageLeak(
+      original,
+      translated,
+      targetLang,
+      entityType,
+    );
+    if (sourceLanguageLeakCheck) errors.push(sourceLanguageLeakCheck.error);
 
     const langCheck = await this.checkWrongLanguage(translated, targetLang);
     if (langCheck) errors.push(langCheck.error);

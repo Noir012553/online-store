@@ -11,6 +11,7 @@ KEY RULES:
 3. Keep brand names unchanged
 4. Return ONLY translated text, NO explanations
 5. Preserve formatting and line breaks
+6. Do NOT leave Vietnamese words or sentences in the translation, except brand names, model names, and technical identifiers
 
 IMPORTANT:
 - Chính hãng → Official/Genuine
