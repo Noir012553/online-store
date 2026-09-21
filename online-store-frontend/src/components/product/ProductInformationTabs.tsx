@@ -4,6 +4,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { SpecsTable } from '../SpecsTable';
 import { ProductReviews, type ProductReview, type ProductReviewForm } from './ProductReviews';
 
+const PROMOTIONS_TAB_LABELS: Record<string, string> = {
+  vi: 'Khuyến mãi',
+  en: 'Promotions',
+  de: 'Sonderangebote',
+  es: 'Promociones',
+  fr: 'Promotions',
+  it: 'Promozioni',
+  nl: 'Promoties',
+  pt: 'Promoções',
+  sv: 'Kampanjer',
+};
+
+const EMPTY_PROMOTIONS_LABELS: Record<string, string> = {
+  vi: 'Sản phẩm này chưa có khuyến mãi',
+  en: 'This product has no promotions',
+  de: 'Dieses Produkt hat derzeit keine Sonderangebote',
+  es: 'Este producto no tiene promociones',
+  fr: 'Ce produit n’a aucune promotion',
+  it: 'Questo prodotto non ha promozioni',
+  nl: 'Dit product heeft momenteel geen promoties',
+  pt: 'Este produto não tem promoções',
+  sv: 'Den här produkten har inga kampanjer',
+};
+
 interface ProductInformationTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
@@ -45,13 +69,15 @@ export function ProductInformationTabs({
   onReviewCancel,
   onOpenImage,
 }: ProductInformationTabsProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const promotionsTabLabel = PROMOTIONS_TAB_LABELS[locale] || PROMOTIONS_TAB_LABELS.en;
+  const emptyPromotionsLabel = EMPTY_PROMOTIONS_LABELS[locale] || EMPTY_PROMOTIONS_LABELS.en;
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-8 sm:mb-12">
       <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
         <TabsTrigger value="specs" className="text-xs sm:text-sm">{t('tab_specs', 'products')}</TabsTrigger>
-        <TabsTrigger value="description" className="text-xs sm:text-sm">Khuyến mãi</TabsTrigger>
+        <TabsTrigger value="description" className="text-xs sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
         <TabsTrigger value="reviews" className="text-xs sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
       </TabsList>
       <TabsContent value="specs" id="product-specs-container" className="bg-white p-4 sm:p-6 border rounded-lg">
@@ -94,7 +120,7 @@ export function ProductInformationTabs({
             ))}
           </div>
         ) : (
-          <p className="py-8 text-center text-gray-500">Sản phẩm này chưa có khuyến mãi</p>
+          <p className="py-8 text-center text-gray-500">{t('empty_no_promotions', 'products', emptyPromotionsLabel)}</p>
         )}
       </TabsContent>
       <TabsContent value="reviews" className="bg-white p-6 border rounded-lg">
