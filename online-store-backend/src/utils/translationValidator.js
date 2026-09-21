@@ -1,6 +1,31 @@
 const config = require('../config/translationValidation');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 
+const PRODUCT_ENTITY_TYPES = new Set([
+  'product_name',
+  'product_description',
+  'product_spec',
+  'product_brand',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
+]);
+const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
+const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|mm|cm|Hz|W|V|%|inch|in)|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
+const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
+const removeVietnameseDiacritics = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/gi, 'd');
+
+const getWords = (value) => value
+  .toLocaleLowerCase('vi')
+  .split(/[^\p{L}]+/u)
+  .filter(Boolean);
+
+const getTechnicalTokens = (value) => String(value || '').match(TECHNICAL_TOKEN_PATTERN) || [];
+const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTERN) || [];
+
 class TranslationValidator {
   checkEmpty(translated) {
     if (!config.ENABLE_EMPTY_CHECK) return null;
@@ -21,7 +46,7 @@ class TranslationValidator {
   }
 
   checkLength(original, translated) {
-    if (!config.ENABLE_LENGTH_CHECK) return null;
+    if (!config.ENABLE_LENGTH_CHECK || !original.length) return null;
     const ratio = translated.length / original.length;
 
     if (ratio < config.MIN_LENGTH_RATIO) {
@@ -33,22 +58,51 @@ class TranslationValidator {
     return null;
   }
 
+  checkTechnicalTokens(original, translated) {
+    if (typeof original !== 'string' || typeof translated !== 'string') return null;
+    const sourceTokens = getTechnicalTokens(original);
+    const translatedText = translated.toLocaleLowerCase();
+    const missingToken = sourceTokens.find((token) => !translatedText.includes(token.toLocaleLowerCase()));
+    return missingToken ? { error: 'missing_technical_token', token: missingToken } : null;
+  }
+
+  checkMarkup(original, translated) {
+    if (typeof original !== 'string' || typeof translated !== 'string') return null;
+    const sourceTokens = getMarkupTokens(original);
+    if (sourceTokens.length === 0) return null;
+    const translatedTokens = getMarkupTokens(translated);
+    return sourceTokens.length !== translatedTokens.length
+      || sourceTokens.some((token, index) => token !== translatedTokens[index])
+      ? { error: 'markup_mismatch' }
+      : null;
+  }
+
+  checkTruncated(original, translated) {
+    if (typeof original !== 'string' || typeof translated !== 'string') return null;
+    const source = original.trim();
+    const result = translated.trim();
+    if (source.length < 40 || !/[.!?:]$/.test(source) || /[.!?:]$/.test(result)) return null;
+    return { error: 'truncated' };
+  }
+
   checkSourceLanguageLeak(original, translated, targetLang, entityType) {
-    if (targetLang === 'vi' || !['product_description', 'product_technical_description'].includes(entityType)) {
-      return null;
-    }
+    if (targetLang === 'vi' || !PRODUCT_ENTITY_TYPES.has(entityType)) return null;
     if (typeof original !== 'string' || typeof translated !== 'string') return null;
 
-    const sourceWords = original
-      .toLocaleLowerCase('vi')
-      .split(/[^\p{L}]+/u)
-      .filter((word) => /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u.test(word));
+    const sourceWords = getWords(original);
     const translatedText = translated.toLocaleLowerCase('vi');
+    const normalizedTranslatedText = removeVietnameseDiacritics(translatedText);
 
     for (let index = 0; index < sourceWords.length - 1; index += 1) {
-      const phrase = `${sourceWords[index]} ${sourceWords[index + 1]}`;
-      if (phrase.length >= 6 && translatedText.includes(phrase)) {
-        return { error: 'mixed_language', phrase };
+      for (let length = Math.min(4, sourceWords.length - index); length >= 2; length -= 1) {
+        const phrase = sourceWords.slice(index, index + length).join(' ');
+        const normalizedPhrase = removeVietnameseDiacritics(phrase);
+        const hasDiacritics = sourceWords.slice(index, index + length).some((word) => VIETNAMESE_DIACRITICS.test(word));
+        const isKnownPhrase = config.VIETNAMESE_DOMAIN_PHRASES.includes(normalizedPhrase);
+        if (phrase.length >= 6 && (hasDiacritics || isKnownPhrase)
+          && (translatedText.includes(phrase) || normalizedTranslatedText.includes(normalizedPhrase))) {
+          return { error: 'mixed_language', phrase };
+        }
       }
     }
 
@@ -124,6 +178,15 @@ class TranslationValidator {
     const lengthCheck = this.checkLength(original, translated);
     if (lengthCheck) errors.push(lengthCheck.error);
 
+    const technicalTokenCheck = this.checkTechnicalTokens(original, translated);
+    if (technicalTokenCheck) errors.push(technicalTokenCheck.error);
+
+    const markupCheck = this.checkMarkup(original, translated);
+    if (markupCheck) errors.push(markupCheck.error);
+
+    const truncatedCheck = this.checkTruncated(original, translated);
+    if (truncatedCheck) errors.push(truncatedCheck.error);
+
     const sourceLanguageLeakCheck = this.checkSourceLanguageLeak(
       original,
       translated,
@@ -163,19 +226,8 @@ class TranslationValidator {
   }
 
   normalizeLanguageCode(language) {
-    const codes = {
-      vietnamese: 'vi', vie: 'vi',
-      english: 'en', eng: 'en',
-      portuguese: 'pt', por: 'pt',
-      french: 'fr', fra: 'fr', fre: 'fr',
-      german: 'de', deu: 'de', ger: 'de',
-      italian: 'it', ita: 'it',
-      spanish: 'es', spa: 'es',
-      dutch: 'nl', nld: 'nl', dut: 'nl',
-      swedish: 'sv', swe: 'sv',
-    };
     const normalized = String(language || '').trim().toLowerCase();
-    return codes[normalized] || normalized.split(/[-_]/)[0];
+    return config.LANGUAGE_ALIASES[normalized] || normalized.split(/[-_]/)[0];
   }
 
   async detectLanguage(text) {

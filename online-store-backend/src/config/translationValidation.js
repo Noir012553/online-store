@@ -1,18 +1,10 @@
 const path = require('path');
 
+const validationData = require('../data/translationValidation.json');
+
 module.exports = {
   // ========== BRAND PRESERVATION ==========
-  PRESERVED_BRANDS: [
-    'Rapoo', 'Logitech', 'Corsair', 'Razer', 'SteelSeries',
-    'ASUS', 'MSI', 'Lenovo', 'Dell', 'Apple', 'Samsung',
-    'Intel', 'AMD', 'NVIDIA', 'Kingston', 'Crucial',
-    'HyperX', 'Plantronics', 'JBL', 'Akko', 'Varmilo',
-    'Keychron', 'Leopold', 'Ducky', 'Filco',
-    'Realforce', 'CHERRY', 'Topre', 'Matias', 'Das Keyboard',
-    'Cooler Master', 'ROG', 'Alienware', 'Omen', 'ThinkPad',
-    'MacBook', 'iPad', 'iPhone', 'AirPods', 'Sony', 'Anker',
-    'Belkin', 'OtterBox', 'Spigen', 'tech21', 'OtterBox'
-  ],
+  PRESERVED_BRANDS: validationData.preservedBrands,
   ENABLE_BRAND_CHECK: true,
 
   // ========== LENGTH VALIDATION ==========
@@ -39,6 +31,9 @@ module.exports = {
     wrong_language: -50,
     mixed_language: -50,
     inconsistent: -20,
+    missing_technical_token: -50,
+    markup_mismatch: -50,
+    truncated: -50,
   },
 
   // ========== THRESHOLDS ==========
@@ -49,7 +44,14 @@ module.exports = {
   // ========== AUTO-APPROVAL RULES ==========
   AUTO_APPROVE_IF_NO_ERRORS: true,
   AUTO_RETRANSLATE_IF_CRITICAL: true,
-  CRITICAL_ERRORS: ['empty', 'wrong_language', 'mixed_language'],
+  CRITICAL_ERRORS: [
+    'empty',
+    'wrong_language',
+    'mixed_language',
+    'missing_technical_token',
+    'markup_mismatch',
+    'truncated',
+  ],
   NON_BLOCKING_ERRORS: ['too_long'],
 
   // ========== LOGGING ==========
@@ -57,4 +59,6 @@ module.exports = {
   SAVE_REPORTS: true,
   REPORT_DIR: process.env.TRANSLATION_REPORT_DIR || path.resolve(__dirname, '../../reports/translation/quality'),
   MAX_REPORT_SIZE: 10000,
+  VIETNAMESE_DOMAIN_PHRASES: validationData.vietnameseDomainPhrases,
+  LANGUAGE_ALIASES: validationData.languageAliases,
 };

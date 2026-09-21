@@ -14,6 +14,12 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       index: true,
       description: 'Target language code (e.g., "en", "fr")',
     },
+    sourceHash: {
+      type: String,
+      index: true,
+      default: null,
+      description: 'Hash of the source product fields used for translation',
+    },
     name: {
       type: String,
       required: true,

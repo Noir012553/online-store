@@ -22,6 +22,7 @@ const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageI
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -212,6 +213,7 @@ async function seedSpecTranslations(repairAttempt = 0) {
         && sourceProduct.technicalDescription.trim();
 
       entry.brand = sourceProduct?.brand || null;
+      entry.sourceHash = getProductTranslationSourceHash(sourceProduct);
       if (!String(entry.name || '').trim()) validationErrors.push('missing_name');
       if (hasSourceDescription && !String(entry.description || '').trim()) {
         validationErrors.push('missing_description');

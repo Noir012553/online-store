@@ -599,7 +599,9 @@ const hardDeleteBanner = asyncHandler(async (req, res) => {
     });
   }
   await BannerTranslation.deleteMany({ bannerId: req.params.id });
-  res.json({ message: 'Banner permanently deleted' });
+  res.json({
+    message: getMessage(lang, 'banner.success_hard_delete'),
+  });
 });
 
 const getBannerSlots = asyncHandler(async (req, res) => {

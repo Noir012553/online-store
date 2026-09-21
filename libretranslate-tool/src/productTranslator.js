@@ -27,12 +27,24 @@ const splitText = (text, maxLength = DEFAULT_DESCRIPTION_CHUNK_SIZE) => {
   return chunks;
 };
 
+const joinTranslatedChunks = (sourceChunks, translatedChunks) => translatedChunks
+  .map((chunk, index) => {
+    if (index === 0) return chunk;
+    const sourceBoundary = sourceChunks[index - 1].match(/\s+$/)?.[0] || '';
+    const previousChunk = translatedChunks[index - 1];
+    const hasBoundaryWhitespace = /\s$/.test(previousChunk) || /^\s/.test(chunk);
+    return sourceBoundary && !hasBoundaryWhitespace
+      ? `${sourceBoundary}${chunk}`
+      : chunk;
+  })
+  .join('');
+
 const translateText = async (client, value, sourceLang, targetLang, chunkSize) => {
   if (typeof value !== 'string' || value.trim() === '') return value;
   const chunks = splitText(value, chunkSize);
   const translated = [];
   for (const chunk of chunks) translated.push(await client.translate(chunk, sourceLang, targetLang));
-  return translated.join('');
+  return joinTranslatedChunks(chunks, translated);
 };
 
 const mapWithConcurrency = async (items, concurrency, worker) => {
@@ -108,6 +120,7 @@ module.exports = {
   DEFAULT_DESCRIPTION_CHUNK_SIZE,
   TRANSLATABLE_PROMOTION_FIELDS,
   splitText,
+  joinTranslatedChunks,
   translateProduct,
   translateProducts,
 };

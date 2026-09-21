@@ -178,5 +178,7 @@
   "order_status_delivered": "Delivered",
   "only_admins_reset_stats": "Only admins can reset stats",
   "cloudflare_stats_reset_success": "Cloudflare stats reset successfully",
-  "product_id_required_for_update": "Every product in update mode must include a valid productId. Use an exported file to preserve product and translation associations."
+  "product_id_required_for_update": "Every product in update mode must include a valid productId. Use an exported file to preserve product and translation associations.",
+  "provider_currency_must_be_active": "Shipping provider currency must be active",
+  "brand_not_allowed": "This brand is not allowed"
 }

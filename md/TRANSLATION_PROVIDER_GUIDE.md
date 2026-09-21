@@ -155,11 +155,32 @@ Nếu nhận `404`, cần cập nhật URL trong file dữ liệu hoặc cào l�
 3. Đặt `LIBRETRANSLATE_ENABLED=true` nếu muốn dùng draft.
 4. Chạy luồng dịch sản phẩm hiện có.
 5. Kiểm tra chất lượng bản dịch Cloudflare trong cache và validator.
-6. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare.
+6. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
+7. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare.
 
 Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache. Nếu muốn áp dụng draft cho sản phẩm đã có cache, cần dùng luồng retranslate sản phẩm hoặc xử lý lại cache theo quy trình quản trị.
 
 Không chạy LibreTranslate cho banner, static namespace, admin hoặc nội dung checkout. Không ghi bản dịch LibreTranslate trực tiếp vào cache chính thức.
+
+## Các cải thiện đã triển khai
+
+- LibreTranslate local hỗ trợ cả URL `http://` và `https://`.
+- Ghép chunk giữ lại khoảng trắng tại boundary, tránh lỗi `keyboard.The` hoặc double-space.
+- Validator kiểm tra mixed-language có dấu và một số cụm tiếng Việt không dấu.
+- Validator kiểm tra token kỹ thuật, số liệu, markup và dấu hiệu output bị cắt.
+- Lỗi `mixed_language`, `missing_technical_token`, `markup_mismatch` và `truncated` được xem là lỗi nghiêm trọng, không tự động approve.
+- `ProductCatalogTranslationCache` lưu `sourceHash`; cache không khớp source hiện tại không được dùng cho storefront.
+- Khi source product thay đổi, cả cache catalog và cache legacy đều được đánh dấu `needs_retranslate`.
+- Manual save, import, retranslate và các luồng lưu cache động đều chạy validator trước khi đặt quality status.
+- Cloudflare tiếp tục là provider tạo bản dịch cuối; LibreTranslate chỉ cung cấp draft tùy chọn.
+
+Các kiểm tra code gần nhất:
+
+```text
+node --check: pass
+LibreTranslate/chunk tests: 4/4 pass
+git diff --check: pass
+```
 
 ## Lưu ý chi phí và chất lượng
 

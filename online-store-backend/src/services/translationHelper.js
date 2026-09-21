@@ -24,6 +24,7 @@ const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageI
 const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -168,6 +169,7 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
 const hasValidProductTranslation = (translation, sourceProduct) => (
   translation?.status === 'success'
   && translation?.qualityStatus === 'approved'
+  && translation?.sourceHash === getProductTranslationSourceHash(sourceProduct)
   && hasCompleteProductTranslation(sourceProduct, translation)
 );
 
@@ -190,7 +192,7 @@ async function getStorefrontVisibleProductIds(products, options = {}) {
       status: 'success',
       qualityStatus: 'approved',
     })
-      .select('entityId targetLang status qualityStatus name brand description specs -_id')
+      .select('entityId targetLang status qualityStatus sourceHash name brand description specs -_id')
       .maxTimeMS(maxTimeMS)
       .lean(),
     timeoutMs
@@ -225,7 +227,7 @@ const refreshStorefrontReadiness = async (productIds, options = {}) => {
   if (ids.length === 0) return { matchedCount: 0, modifiedCount: 0 };
 
   const products = await Product.find({ _id: { $in: ids } })
-    .select('_id name description brand specs')
+    .select('_id name description brand specs technicalDescription descriptionImages promotions')
     .lean();
   const visibleIds = await getStorefrontVisibleProductIds(products, options);
   const visibleIdSet = new Set([...visibleIds].map(String));

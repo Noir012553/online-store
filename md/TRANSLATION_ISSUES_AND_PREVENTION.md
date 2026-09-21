@@ -650,16 +650,35 @@ GET /api/products/6aad5417f008195af2ef6092/translations?lang=pt
 - Loại prefix do AI sinh.
 - Sửa xuống dòng sai số thập phân.
 - Chia chunk nội dung dài.
+- Bảo toàn khoảng trắng khi ghép các chunk dịch.
 - Cấu hình `max_tokens` cho Cloudflare AI.
-- Phát hiện bản dịch bị trộn ngôn ngữ.
+- Retry Cloudflare thống nhất hơn cho timeout, rate limit và lỗi server.
+- Phát hiện bản dịch bị trộn ngôn ngữ, bao gồm một số cụm tiếng Việt không dấu theo domain.
+- Kiểm tra token kỹ thuật và số liệu như `G515`, `2.5mm`, `16GB`.
+- Kiểm tra bảo toàn HTML/XML/entity/Markdown token.
+- Phát hiện bản dịch có dấu hiệu bị cắt giữa câu.
+- Không approve bản dịch có lỗi nghiêm trọng.
 - Không trả mô tả cache bị trộn ra storefront.
+- Thêm `sourceHash` cho `ProductCatalogTranslationCache` để phát hiện cache stale.
+- Invalidate cả cache mới và cache legacy khi source product thay đổi.
+- Validator được áp dụng trước khi lưu bản dịch từ API, manual save, import và retranslate.
+- LibreTranslate local hỗ trợ endpoint HTTP và có test hồi quy.
 - Tối ưu layout product detail và tabs.
 
-Còn cần thực hiện trên dữ liệu:
+Đã kiểm thử code:
+
+- `node --check` cho toàn bộ file backend và LibreTranslate đã thay đổi.
+- Test LibreTranslate và chunk: `4/4` test pass.
+- Test validator cho mixed-language, technical token và markup mismatch: pass.
+- `git diff --check`: pass.
+
+Còn cần thực hiện trên dữ liệu/vận hành:
 
 - Dịch lại sản phẩm Logitech G515 cho `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`.
-- Kiểm tra lại độ dài và ký tự cuối của từng bản dịch.
-- Kiểm tra các sản phẩm khác có cache được tạo trước khi có validator `mixed_language`.
+- Kiểm tra lại độ dài và ký tự cuối của từng bản dịch sau khi retranslate.
+- Kiểm tra các sản phẩm khác có cache được tạo trước khi có validator `mixed_language`, technical token và source fingerprint.
+- Chạy audit để tìm cache `approved` cũ nhưng không có `sourceHash`.
 - Cân nhắc tạo job audit/retranslate tự động cho cache đã `approved` nhưng có dấu hiệu bất thường.
+- Backend integration test cần chạy trong môi trường có đầy đủ dependency và MongoDB.
 
 Không chạy `npm run build` theo quy ước của môi trường hiện tại.

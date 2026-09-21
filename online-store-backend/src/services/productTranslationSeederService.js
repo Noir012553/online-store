@@ -22,6 +22,7 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
@@ -303,6 +304,7 @@ class ProductTranslationSeederService {
       return {
         entityId: product._id.toString(),
         targetLang,
+        sourceHash: getProductTranslationSourceHash(product),
         name: translated.name || product.name,
         description: translated.description || null,
         brand: product.brand || null,

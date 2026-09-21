@@ -178,5 +178,7 @@
   "address_deleted_success": "Dirección eliminada correctamente",
   "address_hard_deleted_success": "Dirección eliminada permanentemente",
   "address_not_deleted": "La dirección no se ha eliminado",
-  "address_restored_success": "Dirección restaurada correctamente"
+  "address_restored_success": "Dirección restaurada correctamente",
+  "provider_currency_must_be_active": "La moneda del transportista debe estar activa",
+  "brand_not_allowed": "Esta marca no está permitida"
 }

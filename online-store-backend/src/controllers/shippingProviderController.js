@@ -114,7 +114,9 @@ const createShippingProvider = asyncHandler(async (req, res) => {
   });
 
   if (!providerCurrency) {
-    return res.status(400).json({ message: 'Shipping provider currency must be active' });
+    return res.status(400).json({
+      message: getMessage(req.lang, 'admin-controllers-messages.provider_currency_must_be_active'),
+    });
   }
 
   const existingProvider = await ShippingProvider.findOne({
@@ -174,7 +176,9 @@ const updateShippingProvider = asyncHandler(async (req, res) => {
       isActive: true,
     });
     if (!providerCurrency) {
-      return res.status(400).json({ message: 'Shipping provider currency must be active' });
+      return res.status(400).json({
+      message: getMessage(req.lang, 'admin-controllers-messages.provider_currency_must_be_active'),
+    });
     }
     provider.currencyCode = currencyCode.toUpperCase();
   }

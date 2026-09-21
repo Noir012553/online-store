@@ -50,6 +50,7 @@ try {
 }
 const Language = require('../models/Language');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -855,6 +856,24 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
   if (operations.length > 0) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
+
+  await LiveTranslationCache.updateMany(
+    {
+      entityId: { $in: productIds },
+      entityType: {
+        $in: [
+          'product_name',
+          'product_description',
+          'product_brand',
+          'product_spec',
+          'product_technical_description',
+          'product_description_image_alt',
+          'product_promotion',
+        ],
+      },
+    },
+    { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+  );
 
   await Product.updateMany(
     { _id: { $in: productIds } },

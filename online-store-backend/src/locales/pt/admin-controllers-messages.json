@@ -178,5 +178,7 @@
   "address_deleted_success": "Endereço excluído com sucesso",
   "address_hard_deleted_success": "Endereço excluído permanentemente",
   "address_not_deleted": "O endereço não foi excluído",
-  "address_restored_success": "Endereço restaurado com sucesso"
+  "address_restored_success": "Endereço restaurado com sucesso",
+  "provider_currency_must_be_active": "A moeda do transportador deve estar ativa",
+  "brand_not_allowed": "Esta marca não é permitida"
 }

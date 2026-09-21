@@ -51,7 +51,7 @@ export function handleApiError(error: ApiError, t?: TranslationFn) {
   }
 
   if (status >= 500) {
-    const statusMessage = translate?.('error_request_status', 'common', `Error ${status}`) || `Error ${status}`;
+    const statusMessage = translate?.('error_request_status', 'common') || String(status);
     toast.error(translate?.('error_server_title', 'common') || '', {
       description: `${translate?.('error_server_desc', 'common') || ''} (${statusMessage.replace('{status}', String(status))})`,
       duration: 5000,
@@ -60,7 +60,7 @@ export function handleApiError(error: ApiError, t?: TranslationFn) {
   }
 
   if (status >= 400 && status < 500) {
-    const statusMessage = translate?.('error_request_status', 'common', `Error ${status}`) || `Error ${status}`;
+    const statusMessage = translate?.('error_request_status', 'common') || String(status);
     const codeMessage = code ? translate?.(code, 'common') : '';
     const errorReference = code || statusMessage.replace('{status}', String(status));
     toast.error(translate?.('error_request_title', 'common') || '', {
@@ -167,9 +167,5 @@ export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): stri
     }
   }
 
-  return translate?.(
-    'error_generic_fallback',
-    'common',
-    'An unexpected error occurred. Please try again.'
-  ) || 'An unexpected error occurred. Please try again.';
+  return translate?.('error_generic_fallback', 'common') || 'error_generic_fallback';
 }
