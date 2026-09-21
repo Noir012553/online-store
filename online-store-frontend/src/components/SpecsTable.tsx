@@ -1,22 +1,8 @@
 import React from 'react';
 import { useLanguage } from '../lib/i18n';
-import type { Locale } from '../lib/i18n/types';
-
 const SPEC_LABEL_KEYS: Record<string, string> = {
   chatlieuvo: 'spec_case_material',
   casematerial: 'spec_case_material',
-};
-
-const SPEC_LABEL_FALLBACKS: Record<Locale, string> = {
-  vi: 'Chất liệu vỏ',
-  en: 'Case material',
-  pt: 'Material da carcaça',
-  fr: 'Matériau du boîtier',
-  de: 'Gehäusematerial',
-  it: 'Materiale della scocca',
-  es: 'Material de la carcasa',
-  nl: 'Materiaal van de behuizing',
-  sv: 'Material på höljet',
 };
 
 const normalizeSpecLabel = (value: string): string => (
@@ -34,13 +20,13 @@ interface SpecsTableProps {
 }
 
 export const SpecsTable: React.FC<SpecsTableProps> = ({ specs, specLabels = {} }) => {
-  const { t, locale } = useLanguage();
+  const { t } = useLanguage();
   const specEntries = specs ? Object.entries(specs) : [];
   const getSpecLabel = (key: string): string => {
     const sourceLabel = specLabels[key] || key;
     const translationKey = SPEC_LABEL_KEYS[normalizeSpecLabel(sourceLabel)];
     return translationKey
-      ? t(translationKey, 'products', SPEC_LABEL_FALLBACKS[locale])
+      ? t(translationKey, 'products')
       : sourceLabel;
   };
 

@@ -61,6 +61,7 @@ function Carousel({
   );
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
+  const { t } = useLanguage();
 
   const onSelect = React.useCallback((api: CarouselApi) => {
     if (!api) return;
@@ -123,7 +124,7 @@ function Carousel({
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={t('carousel_role', 'common')}
         data-slot="carousel"
         {...props}
       >
@@ -156,11 +157,12 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
 
 function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
   const { orientation } = useCarousel();
+  const { t } = useLanguage();
 
   return (
     <div
       role="group"
-      aria-roledescription="slide"
+      aria-roledescription={t('carousel_slide_role', 'common')}
       data-slot="carousel-item"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",

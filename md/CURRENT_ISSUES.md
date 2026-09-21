@@ -393,3 +393,23 @@ Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows v
 - `npm test` hoặc `npm run test:all` khi có dependency backend, MongoDB và credential hợp lệ.
 
 Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiện retranslate Logitech G515 hoặc audit dữ liệu cache production vì đây là thao tác dữ liệu ngoài source code và cần quyền truy cập backend/MongoDB.
+
+## 13. Audit text hard-code ngoài i18n
+
+### Đã xác nhận và xử lý
+
+- Header/navigation chính, search, footer và các label cart chính đã dùng `t()`/namespace i18n; không còn chuỗi giao diện chính kiểu `Trang chủ`, `Sản phẩm`, `Giỏ hàng` viết trực tiếp trong Header.
+- Loại bỏ các map dịch riêng cho tab khuyến mãi trong `ProductInformationTabs.tsx` và fallback locale riêng trong `SpecsTable.tsx`.
+- Loại bỏ fallback literal khỏi các luồng checkout, review, cart, order-success, homepage category carousel và một số admin action.
+- Chuẩn hóa `aria-roledescription` của homepage và component carousel qua i18n.
+- Bổ sung fallback dùng chung cho `retry`, `permission_denied_action`, `user_unnamed`, role carousel, loading reviews và case material tại `src/locales/uiFallbacks.json`.
+
+### Vẫn còn hard-code cần xử lý tiếp
+
+- `online-store-frontend/src/pages/admin/importProducts.tsx` còn nhiều text JSX tiếng Việt trực tiếp trong luồng hướng dẫn/import, nổi bật ở các dòng 272-554: các bước nhập, drag-and-drop, trạng thái kiểm tra, thống kê kết quả, cảnh báo và khu vực import bản dịch.
+- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; cần đổi sang translation key/label trước khi hiển thị PermissionDenied.
+- Một số call `t(key, namespace, fallback)` còn fallback literal rải rác trong admin và export widget. Fallback này không phải hard-code hiển thị trong điều kiện bình thường nếu backend có key, nhưng vẫn nên chuyển về namespace/backend hoặc `uiFallbacks`.
+- Giá trị động từ backend như tên sản phẩm, thương hiệu, category, promotion và shipping provider không được xem là hard-code frontend; cần backend trả theo locale.
+- Tên thương hiệu/provider, URL, enum, CSS class, `aria-hidden`, `aria-current` và mã kỹ thuật không cần đưa vào i18n.
+
+Audit này cho thấy UI chưa đạt trạng thái “zero hard-code” tuyệt đối, nhưng phần storefront chính đã được chuẩn hóa; khu vực còn lại có phạm vi tập trung ở admin import và các fallback cũ. Không chạy `npm run build`.

@@ -101,7 +101,16 @@
     "invalidEmail": "Vui lòng nhập email hợp lệ.",
     "invalidPhone": "Vui lòng nhập số điện thoại hợp lệ.",
     "successMessage": "Đăng ký thành công.",
-    "errorMessage": "Không thể đăng ký lúc này. Vui lòng thử lại."
+    "errorMessage": "Không thể đăng ký lúc này. Vui lòng thử lại.",
+    "retry": "Thử lại",
+    "permission_denied_action": "Bạn không có quyền thực hiện thao tác này.",
+    "carousel_role": "băng chuyền",
+    "carousel_slide_role": "mục",
+    "user_unnamed": "Người dùng chưa đặt tên",
+    "category_carousel": "Danh mục sản phẩm",
+    "go_to_category_slide": "Đi tới nhóm danh mục",
+    "loading_reviews": "Đang tải đánh giá...",
+    "spec_case_material": "Chất liệu vỏ"
   },
   "en": {
     "brand_initials": "LS",
@@ -205,6 +214,15 @@
     "invalidEmail": "Please enter a valid email.",
     "invalidPhone": "Please enter a valid phone number.",
     "successMessage": "Subscription successful.",
-    "errorMessage": "Unable to subscribe right now. Please try again."
+    "errorMessage": "Unable to subscribe right now. Please try again.",
+    "retry": "Retry",
+    "permission_denied_action": "You don't have permission to perform this action.",
+    "carousel_role": "carousel",
+    "carousel_slide_role": "slide",
+    "user_unnamed": "Unnamed user",
+    "category_carousel": "Product categories",
+    "go_to_category_slide": "Go to category group",
+    "loading_reviews": "Loading reviews...",
+    "spec_case_material": "Case material"
   }
 }

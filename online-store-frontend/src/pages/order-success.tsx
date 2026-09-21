@@ -92,7 +92,7 @@ export default function OrderSuccess() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         ));
       } catch (err) {
-        const errorMessage = getUserFriendlyErrorMessage(err, t) || t('error_load_orders', 'orders', 'Unable to load orders.');
+        const errorMessage = getUserFriendlyErrorMessage(err, t) || t('error_load_orders', 'orders');
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {

@@ -827,7 +827,7 @@ export default function Home() {
         id="homepage-hero"
         className="relative flex h-[420px] snap-x snap-mandatory overflow-x-auto hide-scrollbar bg-gray-900 sm:h-[calc(100vh-80px)] lg:block lg:overflow-hidden"
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={t('carousel_role', 'common')}
         aria-label={t('banner_homepage_hero', 'banner')}
         tabIndex={0}
         onKeyDown={handleHeroKeyDown}
@@ -945,8 +945,8 @@ export default function Home() {
             <section
               className="bg-white container mx-auto section-container-px py-4 sm:py-6"
               role={categoryCount > 1 ? 'region' : undefined}
-              aria-roledescription={categoryCount > 1 ? 'carousel' : undefined}
-              aria-label={categoryCount > 1 ? t('category_carousel', 'categories', 'Danh mục sản phẩm') : undefined}
+              aria-roledescription={categoryCount > 1 ? t('carousel_role', 'common') : undefined}
+              aria-label={categoryCount > 1 ? t('category_carousel', 'categories') : undefined}
             >
               <div
                 ref={categoryNavigationMobileCarouselRef}
@@ -1025,13 +1025,13 @@ export default function Home() {
               </div>
 
               {categoryCount > 1 && (
-                <div className="hidden lg:flex justify-center gap-2 mt-4" aria-label={t('category_carousel', 'categories', 'Danh mục sản phẩm')}>
+                <div className="hidden lg:flex justify-center gap-2 mt-4" aria-label={t('category_carousel', 'categories')}>
                   {categories.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentCategoryCardSlide(index)}
                       className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentCategoryCardSlide ? 'bg-red-600' : 'bg-gray-300'}`}
-                      aria-label={`${t('go_to_category_slide', 'categories', 'Đi tới nhóm danh mục')} ${index + 1}`}
+                      aria-label={`${t('go_to_category_slide', 'categories')} ${index + 1}`}
                       aria-current={index === currentCategoryCardSlide ? 'true' : undefined}
                     />
                   ))}
@@ -1047,7 +1047,7 @@ export default function Home() {
                   icon={PackageSearch}
                   title={t('products_unavailable_title')}
                   description={t('products_unavailable_description')}
-                  actionLabel={t('retry', 'common', 'Thử lại')}
+                  actionLabel={t('retry', 'common')}
                   onAction={() => setProductRetryKey((value) => value + 1)}
                 />
               </div>
