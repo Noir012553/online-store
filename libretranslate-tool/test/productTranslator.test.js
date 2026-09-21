@@ -1,12 +1,57 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('node:http');
 const { splitText, translateProduct } = require('../src/productTranslator');
+const { LibreTranslateClient } = require('../src/libretranslateClient');
 
 test('splitText keeps all content and prefers word boundaries', () => {
   const source = 'one two three four five six seven eight';
   const chunks = splitText(source, 12);
   assert.equal(chunks.join(''), source);
   assert.ok(chunks.every((chunk) => chunk.length <= 12 || chunk === chunks.at(-1)));
+});
+
+test('translateProduct preserves whitespace between translated chunks', async () => {
+  const client = {
+    async translate(text) {
+      return text.trim();
+    },
+  };
+  const translated = await translateProduct({
+    name: 'Tên',
+    description: 'one two three four five six',
+  }, {
+    client,
+    sourceLang: 'vi',
+    targetLang: 'en',
+    descriptionChunkSize: 12,
+  });
+
+  assert.equal(translated.description, 'one two three four five six');
+});
+
+test('LibreTranslateClient supports local HTTP endpoints', async () => {
+  const server = http.createServer((request, response) => {
+    let body = '';
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ translatedText: JSON.parse(body).q.toUpperCase() }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const { port } = server.address();
+    const client = new LibreTranslateClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      timeoutMs: 1000,
+      retries: 0,
+    });
+    assert.equal(await client.translate('hello', 'en', 'vi'), 'HELLO');
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
 });
 
 test('translateProduct translates all configured product fields', async () => {

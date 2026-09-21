@@ -1,6 +1,7 @@
 const {
   DEFAULT_DESCRIPTION_CHUNK_SIZE,
   splitText,
+  joinTranslatedChunks,
 } = require('../../../libretranslate-tool/src/productTranslator');
 const { LibreTranslateClient } = require('../../../libretranslate-tool/src/libretranslateClient');
 const cloudflareAiService = require('./cloudflareAiService');
@@ -32,7 +33,7 @@ const translateDraft = async (text, sourceLang, targetLang) => {
     for (const chunk of chunks) {
       translatedChunks.push(await getClient().translate(chunk, sourceLang, targetLang));
     }
-    return translatedChunks.join('');
+    return joinTranslatedChunks(chunks, translatedChunks);
   } catch (error) {
     console.warn('[LibreTranslate] Product draft unavailable; continuing with Cloudflare AI:', error.message);
     return '';
@@ -61,7 +62,7 @@ const translateWithCloudflare = async (text, sourceLang, targetLang) => {
     translatedChunks.push(stripTranslationPrefix(translatedChunk));
   }
 
-  return translatedChunks.join('');
+  return joinTranslatedChunks(chunks, translatedChunks);
 };
 
 module.exports = {

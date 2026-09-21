@@ -23,6 +23,7 @@ const stripTranslationPrefix = (text) => text
   .replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '')
   .trim();
 const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
+const RETRYABLE_STATUS_CODES = new Set([408, 420, 429, 500, 502, 503, 504]);
 const parseNonNegativeInteger = (name, fallback = 0) => {
   const raw = process.env[name];
   if (raw === undefined || raw === '') return fallback;
@@ -436,17 +437,18 @@ class CloudflareAiService {
         }
 
         if (this.configs.length > 1) {
-          console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} All Cloudflare configurations are rate limited or out of quota`);
-          throw error;
+          console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} All Cloudflare configurations are rate limited or out of quota; retrying after backoff`);
         }
       }
 
       // Retry transient network, rate limit, timeout, and server errors
-      const isServerError = error.response?.status >= 500 && error.response?.status < 600;
+      const statusCode = error.response?.status;
+      const isServerError = statusCode >= 500 && statusCode < 600;
       const isRetryable = (
         isDnsError ||
         isNetworkUnreachable ||
         isRateLimited ||
+        RETRYABLE_STATUS_CODES.has(statusCode) ||
         isServerError ||
         error.code === 'ECONNRESET' ||
         error.code === 'ECONNREFUSED' ||
@@ -468,7 +470,12 @@ class CloudflareAiService {
           nextDelay: `${exponentialDelay}ms`,
         });
         await new Promise(resolve => setTimeout(resolve, exponentialDelay));
-        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, attemptedConfigIndexes, enforceBudget, draftText);
+        const retryAttemptedConfigs = isRateLimited
+          && this.configs.length > 1
+          && attemptedConfigIndexes.size >= this.configs.length
+          ? new Set()
+          : attemptedConfigIndexes;
+        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, retryAttemptedConfigs, enforceBudget, draftText);
       }
 
       console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Translation failed (exhausted retries):`, {

@@ -15,6 +15,7 @@ const Currency = require('../models/Currency');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { normalizeProductContentFields } = require('../utils/productImportValidator');
@@ -1093,10 +1094,25 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   if (sourceFieldsChanged) {
-    await ProductCatalogTranslationCache.updateMany(
-      { entityId: String(updatedProduct._id) },
-      { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
-    );
+    const productEntityTypes = [
+      'product_name',
+      'product_description',
+      'product_brand',
+      'product_spec',
+      'product_technical_description',
+      'product_description_image_alt',
+      'product_promotion',
+    ];
+    await Promise.all([
+      ProductCatalogTranslationCache.updateMany(
+        { entityId: String(updatedProduct._id) },
+        { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+      ),
+      LiveTranslationCache.updateMany(
+        { entityId: String(updatedProduct._id), entityType: { $in: productEntityTypes } },
+        { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+      ),
+    ]);
   }
 
   const populatedProduct = await withTimeout(
