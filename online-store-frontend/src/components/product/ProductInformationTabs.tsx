@@ -1,4 +1,5 @@
 import { useLanguage } from '../../lib/i18n';
+import { FileText, Gift, MessageCircle } from 'lucide-react';
 import { Laptop } from '../../lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
@@ -75,10 +76,19 @@ export function ProductInformationTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-10 sm:mb-14">
-      <TabsList className="grid h-12 w-full grid-cols-3 rounded-2xl border border-slate-200 bg-slate-100/80 p-1 text-xs shadow-sm sm:text-sm">
-        <TabsTrigger value="description" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('section_description', 'products')}</TabsTrigger>
-        <TabsTrigger value="promotions" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
-        <TabsTrigger value="reviews" className="rounded-xl text-xs font-semibold text-slate-500 transition-all data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-sm sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
+      <TabsList className="grid h-14 w-full grid-cols-3 rounded-2xl border border-slate-200/90 bg-slate-100/90 p-1.5 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.55)] sm:h-12 sm:p-1">
+        <TabsTrigger value="description" className="group min-w-0 rounded-xl px-2 text-xs font-semibold text-slate-500 transition-all hover:bg-white/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-red-500/30 data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/70 sm:gap-2 sm:px-3 sm:text-sm">
+          <FileText className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=active]:-rotate-3 sm:h-4 sm:w-4" aria-hidden="true" />
+          <span className="truncate">{t('section_description', 'products')}</span>
+        </TabsTrigger>
+        <TabsTrigger value="promotions" className="group min-w-0 rounded-xl px-2 text-xs font-semibold text-slate-500 transition-all hover:bg-white/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-red-500/30 data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/70 sm:gap-2 sm:px-3 sm:text-sm">
+          <Gift className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=active]:-rotate-3 sm:h-4 sm:w-4" aria-hidden="true" />
+          <span className="truncate">{t('tab_promotions', 'products', promotionsTabLabel)}</span>
+        </TabsTrigger>
+        <TabsTrigger value="reviews" className="group min-w-0 rounded-xl px-2 text-xs font-semibold text-slate-500 transition-all hover:bg-white/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-red-500/30 data-[state=active]:bg-white data-[state=active]:text-red-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/70 sm:gap-2 sm:px-3 sm:text-sm">
+          <MessageCircle className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=active]:-rotate-3 sm:h-4 sm:w-4" aria-hidden="true" />
+          <span className="truncate">{t('tab_reviews', 'products')} ({reviewCount})</span>
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="description" id="product-description-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         <ProductDescriptionFormatter text={product.description} />
@@ -87,7 +97,7 @@ export function ProductInformationTabs({
         {product.promotions && product.promotions.length > 0 ? (
           <div className="space-y-3">
             {product.promotions.map((promotion, index) => (
-              <article key={`${promotion.type}-${promotion.title}-${index}`} className="rounded-lg border border-red-100 bg-red-50/50 p-4">
+              <article key={`${promotion.type}-${promotion.title}-${index}`} className="rounded-xl border border-red-100 bg-gradient-to-br from-red-50/80 to-white p-4 shadow-sm">
                 <p className="font-semibold text-gray-900">{promotion.title}</p>
                 {promotion.type && (
                   <p className="mt-1 text-sm text-gray-700">
