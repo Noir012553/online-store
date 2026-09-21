@@ -32,13 +32,17 @@ export function ImageViewer({
   const [isMounted, setIsMounted] = useState(false);
   const currentImage = imageSources[activeIndex] || src;
   const hasGalleryNavigation = imageSources.length > 1;
+  const mobileImageSources = hasGalleryNavigation
+    ? [...imageSources, ...imageSources, ...imageSources]
+    : imageSources;
 
   const scrollMobileTo = (index: number, behavior: ScrollBehavior = 'smooth') => {
     const mobileGallery = mobileGalleryRef.current;
     if (!mobileGallery) return;
 
+    const mobileIndex = hasGalleryNavigation ? index + imageSources.length : index;
     mobileGallery.scrollTo({
-      left: index * mobileGallery.clientWidth,
+      left: mobileIndex * mobileGallery.clientWidth,
       behavior,
     });
   };
@@ -80,10 +84,21 @@ export function ImageViewer({
     const slideWidth = event.currentTarget.clientWidth;
     if (!slideWidth) return;
 
-    const nextIndex = Math.min(
-      imageSources.length - 1,
-      Math.max(0, Math.round(event.currentTarget.scrollLeft / slideWidth)),
-    );
+    const slideCount = imageSources.length;
+    let rawIndex = Math.round(event.currentTarget.scrollLeft / slideWidth);
+    if (hasGalleryNavigation) {
+      if (rawIndex < slideCount) {
+        event.currentTarget.scrollLeft += slideCount * slideWidth;
+        rawIndex += slideCount;
+      } else if (rawIndex >= slideCount * 2) {
+        event.currentTarget.scrollLeft -= slideCount * slideWidth;
+        rawIndex -= slideCount;
+      }
+    }
+
+    const nextIndex = hasGalleryNavigation
+      ? (rawIndex - slideCount + slideCount) % slideCount
+      : 0;
     if (nextIndex !== activeIndexRef.current) {
       activeIndexRef.current = nextIndex;
       setActiveIndex(nextIndex);
@@ -156,7 +171,7 @@ export function ImageViewer({
           onPointerCancel={handleMobilePointerEnd}
           aria-label={alt}
         >
-          {imageSources.map((image, index) => (
+          {mobileImageSources.map((image, index) => (
             <div key={`${image}-${index}`} className="flex h-full w-full shrink-0 snap-center items-center justify-center">
               <img
                 src={image}
