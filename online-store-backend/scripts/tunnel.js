@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -12,12 +13,32 @@ const config = path.join(backendRoot, '.cloudflared', isWindows ? 'config.window
 if (isWindows && !fs.existsSync(executable)) {
   throw new Error(`cloudflared binary not found: ${executable}`);
 }
-if (!fs.existsSync(config)) {
+
+const tokenFile = process.env.CLOUDFLARED_TUNNEL_TOKEN_FILE?.trim()
+  || (isWindows ? path.join(os.homedir(), '.cloudflared', 'online-store.token') : null);
+const tokenFromFile = tokenFile && fs.existsSync(tokenFile)
+  ? fs.readFileSync(tokenFile, 'utf8').trim()
+  : '';
+const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim() || tokenFromFile;
+
+if (isWindows && !token) {
+  throw new Error(`Cloudflare tunnel token not found. Create ${tokenFile} or set CLOUDFLARED_TUNNEL_TOKEN`);
+}
+
+const args = token
+  ? ['tunnel', 'run', '--token', token]
+  : ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'];
+
+if (!token && !fs.existsSync(config)) {
   throw new Error(`Cloudflare tunnel config not found: ${config}`);
 }
 
-const child = spawn(executable, ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'], {
+const childEnv = { ...process.env };
+delete childEnv.CLOUDFLARED_TUNNEL_TOKEN;
+
+const child = spawn(executable, args, {
   cwd: backendRoot,
+  env: childEnv,
   stdio: 'inherit',
 });
 
