@@ -178,5 +178,7 @@
   "address_deleted_success": "Adres succesvol verwijderd",
   "address_hard_deleted_success": "Adres permanent verwijderd",
   "address_not_deleted": "Het adres is niet verwijderd",
-  "address_restored_success": "Adres succesvol hersteld"
+  "address_restored_success": "Adres succesvol hersteld",
+  "provider_currency_must_be_active": "De valuta van de vervoerder moet actief zijn",
+  "brand_not_allowed": "Dit merk is niet toegestaan"
 }

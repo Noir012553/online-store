@@ -1,18 +1,10 @@
 const path = require('path');
 
+const validationData = require('../data/translationValidation.json');
+
 module.exports = {
   // ========== BRAND PRESERVATION ==========
-  PRESERVED_BRANDS: [
-    'Rapoo', 'Logitech', 'Corsair', 'Razer', 'SteelSeries',
-    'ASUS', 'MSI', 'Lenovo', 'Dell', 'Apple', 'Samsung',
-    'Intel', 'AMD', 'NVIDIA', 'Kingston', 'Crucial',
-    'HyperX', 'Plantronics', 'JBL', 'Akko', 'Varmilo',
-    'Keychron', 'Leopold', 'Ducky', 'Filco',
-    'Realforce', 'CHERRY', 'Topre', 'Matias', 'Das Keyboard',
-    'Cooler Master', 'ROG', 'Alienware', 'Omen', 'ThinkPad',
-    'MacBook', 'iPad', 'iPhone', 'AirPods', 'Sony', 'Anker',
-    'Belkin', 'OtterBox', 'Spigen', 'tech21'
-  ],
+  PRESERVED_BRANDS: validationData.preservedBrands,
   ENABLE_BRAND_CHECK: true,
 
   // ========== LENGTH VALIDATION ==========
@@ -67,4 +59,6 @@ module.exports = {
   SAVE_REPORTS: true,
   REPORT_DIR: process.env.TRANSLATION_REPORT_DIR || path.resolve(__dirname, '../../reports/translation/quality'),
   MAX_REPORT_SIZE: 10000,
+  VIETNAMESE_DOMAIN_PHRASES: validationData.vietnameseDomainPhrases,
+  LANGUAGE_ALIASES: validationData.languageAliases,
 };

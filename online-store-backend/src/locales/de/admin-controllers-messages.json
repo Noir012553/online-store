@@ -178,5 +178,7 @@
   "address_deleted_success": "Adresse erfolgreich gelöscht",
   "address_hard_deleted_success": "Adresse dauerhaft gelöscht",
   "address_not_deleted": "Die Adresse wurde nicht gelöscht",
-  "address_restored_success": "Adresse erfolgreich wiederhergestellt"
+  "address_restored_success": "Adresse erfolgreich wiederhergestellt",
+  "provider_currency_must_be_active": "Die Währung des Versanddienstleisters muss aktiv sein",
+  "brand_not_allowed": "Diese Marke ist nicht zulässig"
 }

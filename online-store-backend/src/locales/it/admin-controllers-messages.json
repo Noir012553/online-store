@@ -178,5 +178,7 @@
   "address_deleted_success": "Indirizzo eliminato con successo",
   "address_hard_deleted_success": "Indirizzo eliminato definitivamente",
   "address_not_deleted": "L’indirizzo non è stato eliminato",
-  "address_restored_success": "Indirizzo ripristinato con successo"
+  "address_restored_success": "Indirizzo ripristinato con successo",
+  "provider_currency_must_be_active": "La valuta del corriere deve essere attiva",
+  "brand_not_allowed": "Questo marchio non è consentito"
 }

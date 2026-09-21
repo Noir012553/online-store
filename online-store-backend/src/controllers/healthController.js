@@ -1,5 +1,7 @@
 const cloudflareAiService = require('../services/cloudflareAiService');
 
+const { getMessage } = require('../i18n/messages');
+
 class HealthController {
   static async checkCloudflareHealth(req, res) {
     try {
@@ -39,14 +41,14 @@ class HealthController {
     try {
       if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({
-          message: 'Only admins can reset stats',
+          message: getMessage(req.lang, 'admin-controllers-messages.only_admins_reset_stats'),
         });
       }
 
       cloudflareAiService.resetStats();
 
       res.json({
-        message: 'Cloudflare stats reset successfully',
+        message: getMessage(req.lang, 'admin-controllers-messages.cloudflare_stats_reset_success'),
         stats: cloudflareAiService.getStats(),
       });
     } catch (error) {

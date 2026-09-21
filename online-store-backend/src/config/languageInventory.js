@@ -152,20 +152,9 @@ const getIntlLocale = (langCode) => {
  * Get language names in English for scripts/tools (e.g. 'Vietnamese', 'English')
  * Used by translation scripts to identify language names
  */
-const getLanguageNames = () => {
-  const LANG_NAME_MAP = {
-    'vi': 'Vietnamese',
-    'en': 'English',
-    'pt': 'Portuguese',
-    'fr': 'French',
-    'de': 'German',
-    'it': 'Italian',
-    'es': 'Spanish',
-    'nl': 'Dutch',
-    'sv': 'Swedish',
-  };
-  return LANG_NAME_MAP;
-};
+const getLanguageNames = () => Object.fromEntries(
+  SUPPORTED_LANGUAGES.map(({ code, name }) => [code, name])
+);
 
 module.exports = {
   SUPPORTED_LANGUAGES,

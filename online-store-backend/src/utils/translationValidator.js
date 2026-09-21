@@ -13,16 +13,6 @@ const PRODUCT_ENTITY_TYPES = new Set([
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
 const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|mm|cm|Hz|W|V|%|inch|in)|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
-const VIETNAMESE_DOMAIN_PHRASES = new Set([
-  'chat lieu vo',
-  'ban phim co day',
-  'ban phim khong day',
-  'chuot co day',
-  'chuot khong day',
-  'san pham moi',
-  'thong so ky thuat',
-]);
-
 const removeVietnameseDiacritics = (value) => value
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -108,7 +98,7 @@ class TranslationValidator {
         const phrase = sourceWords.slice(index, index + length).join(' ');
         const normalizedPhrase = removeVietnameseDiacritics(phrase);
         const hasDiacritics = sourceWords.slice(index, index + length).some((word) => VIETNAMESE_DIACRITICS.test(word));
-        const isKnownPhrase = VIETNAMESE_DOMAIN_PHRASES.has(normalizedPhrase);
+        const isKnownPhrase = config.VIETNAMESE_DOMAIN_PHRASES.includes(normalizedPhrase);
         if (phrase.length >= 6 && (hasDiacritics || isKnownPhrase)
           && (translatedText.includes(phrase) || normalizedTranslatedText.includes(normalizedPhrase))) {
           return { error: 'mixed_language', phrase };
@@ -236,19 +226,8 @@ class TranslationValidator {
   }
 
   normalizeLanguageCode(language) {
-    const codes = {
-      vietnamese: 'vi', vie: 'vi',
-      english: 'en', eng: 'en',
-      portuguese: 'pt', por: 'pt',
-      french: 'fr', fra: 'fr', fre: 'fr',
-      german: 'de', deu: 'de', ger: 'de',
-      italian: 'it', ita: 'it',
-      spanish: 'es', spa: 'es',
-      dutch: 'nl', nld: 'nl', dut: 'nl',
-      swedish: 'sv', swe: 'sv',
-    };
     const normalized = String(language || '').trim().toLowerCase();
-    return codes[normalized] || normalized.split(/[-_]/)[0];
+    return config.LANGUAGE_ALIASES[normalized] || normalized.split(/[-_]/)[0];
   }
 
   async detectLanguage(text) {

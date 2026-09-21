@@ -66,7 +66,7 @@ const createBrand = asyncHandler(async (req, res) => {
 
   if (EXCLUDED_BRAND_PATTERN.test(String(name || '').trim())) {
     res.status(400);
-    throw new Error('This brand is not allowed');
+    throw new Error(getMessage(lang, 'admin-controllers-messages.brand_not_allowed'));
   }
 
   const brandExists = await Brand.findOne({ name: { $regex: name, $options: 'i' }, isDeleted: false });
@@ -97,7 +97,7 @@ const updateBrand = asyncHandler(async (req, res) => {
   if (brand) {
     if (name && EXCLUDED_BRAND_PATTERN.test(String(name).trim())) {
       res.status(400);
-      throw new Error('This brand is not allowed');
+      throw new Error(getMessage(lang, 'admin-controllers-messages.brand_not_allowed'));
     }
     if (name) brand.name = name;
     if (logo !== undefined) brand.logo = logo;

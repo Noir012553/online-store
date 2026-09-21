@@ -178,5 +178,7 @@
   "order_status_delivered": "Đã giao",
   "only_admins_reset_stats": "Chỉ admin mới có thể đặt lại thống kê",
   "cloudflare_stats_reset_success": "Đặt lại thống kê Cloudflare thành công",
-  "product_id_required_for_update": "Mỗi sản phẩm ở chế độ cập nhật phải có productId hợp lệ. Hãy dùng tệp đã export để giữ liên kết dữ liệu và bản dịch."
+  "product_id_required_for_update": "Mỗi sản phẩm ở chế độ cập nhật phải có productId hợp lệ. Hãy dùng tệp đã export để giữ liên kết dữ liệu và bản dịch.",
+  "provider_currency_must_be_active": "Đơn vị tiền tệ của nhà vận chuyển phải đang hoạt động",
+  "brand_not_allowed": "Thương hiệu này không được phép"
 }

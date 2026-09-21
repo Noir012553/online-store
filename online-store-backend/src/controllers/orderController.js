@@ -889,7 +889,9 @@ const deleteOrder = asyncHandler(async (req, res) => {
     // Socket broadcast error không nên làm request fail
   }
 
-  res.json({ message: 'Order deleted' });
+  res.json({
+    message: getMessage(lang, 'admin-controllers-messages.order_deleted'),
+  });
 });
 
 /**
@@ -1048,7 +1050,9 @@ const hardDeleteOrder = asyncHandler(async (req, res) => {
 
   await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);
 
-  res.json({ message: 'Order permanently deleted' });
+  res.json({
+    message: getMessage(lang, 'admin-controllers-messages.order_permanently_deleted'),
+  });
 });
 
 const getOrderSummary = (req, res, next) => {

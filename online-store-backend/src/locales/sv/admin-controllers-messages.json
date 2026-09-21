@@ -178,5 +178,7 @@
   "address_hard_deleted_success": "Adress raderades permanent",
   "address_not_deleted": "Adressen är inte raderad",
   "address_restored_success": "Adress återställd",
-  "product_id_required_for_update": "Varje produkt i uppdateringsläge måste ha ett giltigt productId. Använd en exporterad fil för att behålla kopplingarna mellan produkt och översättning."
+  "product_id_required_for_update": "Varje produkt i uppdateringsläge måste ha ett giltigt productId. Använd en exporterad fil för att behålla kopplingarna mellan produkt och översättning.",
+  "provider_currency_must_be_active": "Fraktleverantörens valuta måste vara aktiv",
+  "brand_not_allowed": "Detta varumärke är inte tillåtet"
 }

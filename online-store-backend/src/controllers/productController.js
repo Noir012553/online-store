@@ -778,7 +778,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const normalizedBrand = sanitizePlainText(brand);
   if (EXCLUDED_BRAND_PATTERN.test(normalizedBrand)) {
     res.status(400);
-    throw new Error('This brand is not allowed');
+    throw new Error(getMessage(lang, 'admin-controllers-messages.brand_not_allowed'));
   }
   const normalizedDescription = sanitizeDescriptionText(description);
   const contentFields = normalizeProductContentFields({ technicalDescription, descriptionImages, promotions });
@@ -997,7 +997,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     const normalizedBrand = sanitizePlainText(brand);
     if (EXCLUDED_BRAND_PATTERN.test(normalizedBrand)) {
       res.status(400);
-      throw new Error('This brand is not allowed');
+      throw new Error(getMessage(lang, 'admin-controllers-messages.brand_not_allowed'));
     }
     product.brand = normalizedBrand;
   }
@@ -1327,7 +1327,7 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
   });
 
   res.json({
-    message: 'Product permanently deleted',
+    message: getMessage(String(lang || DEFAULT_LANG), 'admin-controllers-messages.product_deleted'),
     deletedR2Assets: r2Assets.length,
   });
 });
