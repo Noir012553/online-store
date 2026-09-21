@@ -1,7 +1,7 @@
 import { useLanguage } from '../../lib/i18n';
 import { Laptop } from '../../lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { SpecsTable } from '../SpecsTable';
+import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
 import { ProductReviews, type ProductReview, type ProductReviewForm } from './ProductReviews';
 
 const PROMOTIONS_TAB_LABELS: Record<string, string> = {
@@ -76,14 +76,14 @@ export function ProductInformationTabs({
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-8 sm:mb-12">
       <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
-        <TabsTrigger value="specs" className="text-xs sm:text-sm">{t('tab_specs', 'products')}</TabsTrigger>
-        <TabsTrigger value="description" className="text-xs sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
+        <TabsTrigger value="description" className="text-xs sm:text-sm">{t('section_description', 'products')}</TabsTrigger>
+        <TabsTrigger value="promotions" className="text-xs sm:text-sm">{t('tab_promotions', 'products', promotionsTabLabel)}</TabsTrigger>
         <TabsTrigger value="reviews" className="text-xs sm:text-sm">{t('tab_reviews', 'products')} ({reviewCount})</TabsTrigger>
       </TabsList>
-      <TabsContent value="specs" id="product-specs-container" className="bg-white p-4 sm:p-6 border rounded-lg">
-        <SpecsTable specs={product.specs} specLabels={product.specLabels} />
+      <TabsContent value="description" id="product-description-container" className="bg-white p-4 sm:p-6 border rounded-lg">
+        <ProductDescriptionFormatter text={product.description} />
       </TabsContent>
-      <TabsContent value="description" id="product-promotions-container" className="bg-white p-4 sm:p-6 border rounded-lg">
+      <TabsContent value="promotions" id="product-promotions-container" className="bg-white p-4 sm:p-6 border rounded-lg">
         {product.promotions && product.promotions.length > 0 ? (
           <div className="space-y-3">
             {product.promotions.map((promotion, index) => (

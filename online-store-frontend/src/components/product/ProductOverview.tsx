@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { interpolateTranslation } from '../../lib/translationInterpolate';
 import { formatNumber } from '../../lib/utils';
-import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
+import { SpecsTable } from '../SpecsTable';
 
 interface ProductOverviewProps {
   product: Laptop;
@@ -29,7 +29,7 @@ export function ProductOverview({
   onBuyNow,
 }: ProductOverviewProps) {
   const { t, locale } = useLanguage();
-  const descriptionText = product.description?.trim() || '';
+  const hasSpecs = Object.keys(product.specs || {}).length > 0;
 
   return (
     <div>
@@ -75,10 +75,10 @@ export function ProductOverview({
         )}
       </div>
 
-      {descriptionText && (
+      {hasSpecs && (
         <div className="bg-white p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
-          <h3 className="mb-2 sm:mb-3 text-sm sm:text-base font-semibold">{t('section_description', 'products')}</h3>
-          <ProductDescriptionFormatter text={descriptionText} maxLines={5} />
+          <h3 className="mb-2 sm:mb-3 text-sm sm:text-base font-semibold">{t('tab_specs', 'products')}</h3>
+          <SpecsTable specs={product.specs} specLabels={product.specLabels} />
         </div>
       )}
 

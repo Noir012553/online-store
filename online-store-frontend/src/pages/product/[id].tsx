@@ -26,7 +26,7 @@ import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 
-const TAB_VALUES = ['specs', 'description', 'reviews'] as const;
+const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 const PRODUCT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -37,8 +37,8 @@ const normalizeProductId = (value: string | string[] | undefined): string | null
 };
 
 const getSafeProductTab = (value: unknown): ProductTab => {
-  if (typeof value !== 'string') return 'specs';
-  return (TAB_VALUES as readonly string[]).includes(value) ? (value as ProductTab) : 'specs';
+  if (typeof value !== 'string') return 'description';
+  return (TAB_VALUES as readonly string[]).includes(value) ? (value as ProductTab) : 'description';
 };
 
 const formatProductAmount = (
@@ -98,7 +98,7 @@ export default function ProductDetail() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ProductTab>('specs');
+  const [activeTab, setActiveTab] = useState<ProductTab>('description');
   const productId = normalizeProductId(id);
   const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
 
@@ -122,7 +122,7 @@ export default function ProductDetail() {
     if (currentTab === nextTab) return;
 
     const nextQuery = { ...router.query };
-    if (nextTab === 'specs') {
+    if (nextTab === 'description') {
       delete nextQuery.tab;
     } else {
       nextQuery.tab = nextTab;
