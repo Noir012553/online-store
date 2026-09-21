@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -13,10 +14,15 @@ if (isWindows && !fs.existsSync(executable)) {
   throw new Error(`cloudflared binary not found: ${executable}`);
 }
 
-const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim();
+const tokenFile = process.env.CLOUDFLARED_TUNNEL_TOKEN_FILE?.trim()
+  || (isWindows ? path.join(os.homedir(), '.cloudflared', 'online-store.token') : null);
+const tokenFromFile = tokenFile && fs.existsSync(tokenFile)
+  ? fs.readFileSync(tokenFile, 'utf8').trim()
+  : '';
+const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim() || tokenFromFile;
 
 if (isWindows && !token) {
-  throw new Error('CLOUDFLARED_TUNNEL_TOKEN is required on Windows');
+  throw new Error(`Cloudflare tunnel token not found. Create ${tokenFile} or set CLOUDFLARED_TUNNEL_TOKEN`);
 }
 
 const args = token
