@@ -18,6 +18,9 @@ IMPORTANT:
 - Professional, formal tone for products`;
 
 const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
+const stripTranslationPrefix = (text) => text
+  .replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '')
+  .trim();
 const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
 const parseNonNegativeInteger = (name, fallback = 0) => {
   const raw = process.env[name];
@@ -367,7 +370,7 @@ class CloudflareAiService {
         translatedText = String(translatedText || '');
       }
 
-      const normalizedTranslation = translatedText.trim();
+      const normalizedTranslation = stripTranslationPrefix(translatedText);
 
       if (!normalizedTranslation || EMPTY_TRANSLATION_RESPONSE.test(normalizedTranslation)) {
         throw new Error('No usable translation returned from Cloudflare API');

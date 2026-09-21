@@ -40,6 +40,8 @@ const sanitizeDescription = (text: string): string => {
     cleaned = cleaned.replace(regex, '');
   });
 
+  cleaned = cleaned.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '');
+
   // 3. Decode entities before removing encoded tags
   cleaned = cleaned
     .replace(/&lt;/gi, '<')
@@ -59,6 +61,7 @@ const sanitizeDescription = (text: string): string => {
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n[ \t]+/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
+    .replace(/(\d)\.\s*\n\s*(\d)/g, '$1.$2')
     .trim();
 
   return cleaned;
@@ -66,7 +69,7 @@ const sanitizeDescription = (text: string): string => {
 
 /**
  * Component để hiển thị mô tả sản phẩm với xuống dòng tự động
- * - Xuống dòng SAU dấu "."
+ * - Xuống dòng sau dấu kết thúc câu, không tách số thập phân
  * - Thay thế "##" bằng xuống dòng
  * - Chức năng "Xem chi tiết" / "Thu lại"
  */
@@ -131,12 +134,15 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   for (let i = 0; i < processedText.length;) {
     const char = String.fromCodePoint(processedText.codePointAt(i)!);
 
-    // Break sau dấu "."
-    if (char === '.' && i < processedText.length - 1) {
-      if (processedText[i + 1] === ' ') {
-        breakPositions.push(i + 2);
-      } else {
-        breakPositions.push(i + 1);
+    // Break sau dấu chấm kết thúc câu, không tách số thập phân.
+    if (char === '.') {
+      const previousChar = i > 0 ? processedText[i - 1] : '';
+      const nextChar = processedText[i + 1] || '';
+      const isDecimalPoint = /\d/.test(previousChar) && /\d/.test(nextChar);
+      const isSentenceEnd = !nextChar || /\s/.test(nextChar);
+
+      if (!isDecimalPoint && isSentenceEnd) {
+        breakPositions.push(nextChar === ' ' ? i + 2 : i + 1);
       }
     }
 
