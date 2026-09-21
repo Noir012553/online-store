@@ -123,7 +123,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
                 loading="lazy"
-                className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 transform-gpu pointer-events-none"
+                className="object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
                 <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none">
@@ -157,14 +157,14 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
               )}
             </ProductDetailsContainer>
 
-            <div className="absolute inset-0 z-20 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-end justify-center bg-gradient-to-t from-black/75 via-black/25 to-transparent px-3 pb-3 pt-12 opacity-100 transition-opacity duration-300 sm:pointer-events-none sm:inset-0 sm:items-center sm:bg-black/40 sm:px-4 sm:pb-0 sm:pt-0 sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100">
               <Button
                 type="button"
                 onClick={handleQuickView}
                 size="sm"
-                className="bg-white text-black hover:bg-gray-100 transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-auto cursor-pointer"
+                className="min-h-11 w-full max-w-[13rem] justify-center rounded-full bg-white/95 text-black shadow-lg shadow-black/20 transition-all duration-300 hover:bg-white sm:min-h-10 sm:w-auto sm:translate-y-2 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"
               >
-                <Eye className="w-4 h-4 mr-2" />
+                <Eye className="mr-2 h-4 w-4" />
                 {t('quick_view', 'products')}
               </Button>
             </div>
