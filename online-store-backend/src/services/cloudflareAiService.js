@@ -29,6 +29,15 @@ const parseNonNegativeInteger = (name, fallback = 0) => {
   if (!Number.isInteger(value) || value < 0) throw new Error(`${name} must be a non-negative integer`);
   return value;
 };
+const getMaxOutputTokens = () => {
+  const raw = process.env.CLOUDFLARE_AI_MAX_TOKENS;
+  if (raw === undefined || raw === '') return 2048;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error('CLOUDFLARE_AI_MAX_TOKENS must be a positive integer');
+  }
+  return value;
+};
 
 const isRateLimitOrQuotaError = (error) => {
   if (RATE_LIMIT_STATUS_CODES.has(error.response?.status)) return true;
@@ -346,6 +355,7 @@ class CloudflareAiService {
                 : `Translate this text to ${targetLang}:\n\n${text}`,
             },
           ],
+          max_tokens: getMaxOutputTokens(),
         },
         {
           headers: {

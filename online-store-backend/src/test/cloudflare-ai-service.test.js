@@ -65,6 +65,32 @@ describe('Cloudflare AI rotation', () => {
     }
   });
 
+  it('sends an explicit output token limit to prevent truncated translations', async () => {
+    const original = {
+      CLOUDFLARE_AI_ENABLED: process.env.CLOUDFLARE_AI_ENABLED,
+      CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: process.env.CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY,
+      CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: process.env.CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY,
+      CLOUDFLARE_AI_MAX_TOKENS: process.env.CLOUDFLARE_AI_MAX_TOKENS,
+    };
+    process.env.CLOUDFLARE_AI_ENABLED = 'true';
+    process.env.CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY = '1';
+    process.env.CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY = '10000';
+    process.env.CLOUDFLARE_AI_MAX_TOKENS = '1536';
+    sandbox.stub(axios, 'post').resolves({
+      data: { success: true, result: { response: 'Bản dịch đầy đủ.' } },
+    });
+
+    try {
+      await cloudflareAiService._doTranslate('Nội dung', 'vi', 'en', null, 0, 0, new Set(), true);
+      expect(axios.post.firstCall.args[1].max_tokens).to.equal(1536);
+    } finally {
+      Object.entries(original).forEach(([key, value]) => {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      });
+    }
+  });
+
   it('tries each configuration once then stops on HTTP 420', async () => {
     const error = providerError({ status: 420, message: 'Rate limit exceeded' });
     sandbox.stub(axios, 'post').rejects(error);
