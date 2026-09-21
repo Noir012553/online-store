@@ -406,10 +406,24 @@ Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiệ
 
 ### Vẫn còn hard-code cần xử lý tiếp
 
-- `online-store-frontend/src/pages/admin/importProducts.tsx` còn nhiều text JSX tiếng Việt trực tiếp trong luồng hướng dẫn/import, nổi bật ở các dòng 272-554: các bước nhập, drag-and-drop, trạng thái kiểm tra, thống kê kết quả, cảnh báo và khu vực import bản dịch.
-- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; cần đổi sang translation key/label trước khi hiển thị PermissionDenied.
-- Một số call `t(key, namespace, fallback)` còn fallback literal rải rác trong admin và export widget. Fallback này không phải hard-code hiển thị trong điều kiện bình thường nếu backend có key, nhưng vẫn nên chuyển về namespace/backend hoặc `uiFallbacks`.
+- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; hiện metadata này chưa được `PermissionDenied` render, nên cần đổi sang translation key khi bổ sung hiển thị tên tính năng.
+- Một số call `t(key, namespace, fallback)` vẫn còn trong các page admin khác; riêng trang import sản phẩm và export sản phẩm đã chuyển các nhãn chính sang namespace backend.
 - Giá trị động từ backend như tên sản phẩm, thương hiệu, category, promotion và shipping provider không được xem là hard-code frontend; cần backend trả theo locale.
 - Tên thương hiệu/provider, URL, enum, CSS class, `aria-hidden`, `aria-current` và mã kỹ thuật không cần đưa vào i18n.
 
-Audit này cho thấy UI chưa đạt trạng thái “zero hard-code” tuyệt đối, nhưng phần storefront chính đã được chuẩn hóa; khu vực còn lại có phạm vi tập trung ở admin import và các fallback cũ. Không chạy `npm run build`.
+### 14. Tiếp tục audit sau commit 6fae881
+
+Đã xử lý trong phiên này:
+
+- Chuẩn hóa toàn bộ nhãn hiển thị chính của `src/pages/admin/importProducts.tsx` qua namespace `admin-import`, gồm upload ZIP, dry-run, kết quả, cảnh báo, quy trình an toàn và import bản dịch.
+- Bổ sung các key tương ứng cho 9 locale backend được frontend hỗ trợ (`vi`, `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`), thay vì đưa thêm fallback tiếng Việt trực tiếp vào component.
+- Chuẩn hóa `src/pages/admin/exportProducts.tsx` về namespace `admin-export` và bổ sung thông báo export ZIP theo locale.
+- Sửa lời gọi trạng thái trong `src/pages/admin/i18nMonitoring.tsx`: đối số namespace không còn bị dùng nhầm làm fallback.
+- Loại bỏ hai nhãn tiếng Anh còn sót (`rows`, `selected`) trong preview batch; số lượng vẫn hiển thị nhưng lấy nhãn từ bản dịch xung quanh.
+
+Chưa xử lý trong phiên này:
+
+- Bulk migrate `featureName` của toàn bộ admin page vì metadata hiện chưa hiển thị ra giao diện; sẽ cần gắn với key i18n khi luồng `PermissionDenied` dùng tên tính năng.
+- Chưa chạy integration test cần MongoDB/credential. Có thể chạy typecheck frontend và kiểm tra JSON locale khi dependency sẵn sàng. Không chạy `npm run build` theo quy ước môi trường.
+
+Audit hiện không còn ghi nhận `importProducts.tsx` là vùng hard-code JSX chính; các fallback literal còn lại nằm rải rác ở admin page khác và cần xử lý theo từng namespace để tránh thay đổi ngoài phạm vi.

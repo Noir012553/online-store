@@ -212,7 +212,7 @@ const I18nMonitoringContent = () => {
             <div>
               <h2>{t('admin_monitoring_system_status')}</h2>
               <p className="monitoring-status-text" style={{ color: statusColor[health.status] }}>
-                {t(`admin_monitoring_status_${health.status}`, health.status.toUpperCase())}
+                {t(`admin_monitoring_status_${health.status}`, 'admin-i18n-monitoring')}
               </p>
             </div>
           </div>

@@ -22,5 +22,6 @@
   "exporting": "Exporterar...",
   "error_loading_export_data": "Kan inte läsa in exportdata",
   "error_exporting_file": "Fel vid export av fil",
-  "success_export": "{{format}}-export lyckades"
+  "success_export": "{{format}}-export lyckades",
+  "export_zip_success": "ZIP med products.json exporterades för återimport"
 }

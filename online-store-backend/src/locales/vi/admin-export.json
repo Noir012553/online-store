@@ -22,5 +22,6 @@
   "exporting": "Đang xuất...",
   "error_loading_export_data": "Không thể tải dữ liệu xuất",
   "error_exporting_file": "Lỗi khi xuất file",
-  "success_export": "Xuất {{format}} thành công"
+  "success_export": "Xuất {{format}} thành công",
+  "export_zip_success": "Đã xuất ZIP chứa products.json có thể nhập lại"
 }
