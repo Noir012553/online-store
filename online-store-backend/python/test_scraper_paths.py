@@ -74,6 +74,15 @@ class ScraperPathsTest(unittest.TestCase):
                 "categories_key": "keyboard",
             },
         )
+        self.assertEqual(
+            parse_scraper_metadata("Gigabyte_Laptop_Gaming_Scraper.py"),
+            {
+                "brand": "Gigabyte",
+                "categories": "Laptop Gaming",
+                "brand_key": "gigabyte",
+                "categories_key": "laptop_gaming",
+            },
+        )
 
     def test_extracts_product_description_images_and_promotions(self):
         soup = BeautifulSoup(
