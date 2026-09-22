@@ -57,24 +57,24 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-3 animate-in fade-in duration-200 sm:p-5">
-      <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[2147483647] flex items-end justify-center bg-black/50 p-2 animate-in fade-in duration-200 sm:items-center sm:p-5">
+      <div className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-200 sm:max-h-[90vh] sm:rounded-2xl sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
           <h2 id="quick-view-title" className="text-lg font-semibold text-black sm:text-xl">{t('quick_view_title', 'products')}</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full text-black hover:bg-gray-200"
+            className="min-h-10 min-w-10 rounded-full text-black hover:bg-gray-200"
             aria-label={t('close', 'components')}
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
 
-        <div className="p-5 sm:p-6">
+        <div className="p-4 sm:p-6">
           <div className="grid gap-7 md:grid-cols-2 md:gap-8">
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-50">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50 sm:aspect-square">
               <ImageWithFallback
                 src={laptop.image}
                 alt={String(laptop.name || '')}
@@ -136,6 +136,20 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                 <span className="text-2xl font-bold text-green-600">{laptop.formattedPrice}</span>
               </div>
 
+              {(laptop.promotions || []).length > 0 && (
+                <div className="space-y-3 rounded-xl border border-red-100 bg-red-50/70 p-4">
+                  <h4 className="font-semibold text-red-900">{t('tab_promotions', 'products')}</h4>
+                  <div className="space-y-2 text-sm text-red-900">
+                    {(laptop.promotions || []).map((promotion, index) => (
+                      <div key={`${promotion.type}-${promotion.title}-${index}`}>
+                        <p className="font-semibold">{promotion.title}</p>
+                        {promotion.discountText && <p className="mt-0.5 text-red-700">{promotion.discountText}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {Object.keys(laptop.specs || {}).length > 0 && (
                 <div className="space-y-3 rounded-xl border bg-gray-50 p-4">
                   <h4 className="font-semibold text-black">{t('specifications', 'products')}</h4>
@@ -163,7 +177,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   {isAddingToCart ? t('adding_to_cart', 'products') : t('add_to_cart_btn', 'products')}
                 </Button>
-                <Link href={`/product/${laptop.id}`} onClick={onClose}>
+                <Link href={`/product/${laptop.id}`} onClick={onClose} className="block">
                   <Button variant="ghost" className="pointer-events-auto w-full border-2 border-red-600 bg-white font-semibold text-red-600 hover:border-red-700 hover:bg-red-50">
                     {t('view_details', 'products')}
                   </Button>

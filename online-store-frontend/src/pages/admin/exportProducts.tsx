@@ -24,7 +24,7 @@ function ExportProductsContent() {
   const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('json');
 
   useEffect(() => {
-    loadNamespace('admin');
+    loadNamespace('admin-export');
   }, [loadNamespace]);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ function ExportProductsContent() {
       if (statsResult.status === 'fulfilled') {
         setExportStats(statsResult.value);
       } else if (!controller.signal.aborted) {
-        toast.error(t('error_load_data', 'admin'));
+        toast.error(t('error_loading_export_data', 'admin-export'));
       }
 
       if (categoriesResult.status === 'fulfilled') {
@@ -105,9 +105,9 @@ function ExportProductsContent() {
       link.click();
       document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(t('export_zip_success', 'admin', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
+      toast.success(t('export_zip_success', 'admin-export'));
     } catch (error) {
-      toast.error(t('error_exporting_file'));
+      toast.error(t('error_exporting_file', 'admin-export'));
     } finally {
       exportInFlightRef.current = false;
       setIsExporting(false);
@@ -121,8 +121,8 @@ function ExportProductsContent() {
           <Download className="w-6 h-6 text-green-600" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">{t('export_products')}</h1>
-          <p className="text-gray-600 mt-1">{t('export_products_desc')}</p>
+          <h1 className="text-3xl font-bold">{t('export_products', 'admin-export')}</h1>
+          <p className="text-gray-600 mt-1">{t('export_products_desc', 'admin-export')}</p>
         </div>
       </div>
 
@@ -141,23 +141,23 @@ function ExportProductsContent() {
           <div className="space-y-4">
             {exportStats && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label')}</p>
+                <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label', 'admin-export')}</p>
                 <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
-                  <div>{t('total_label')} <span className="font-bold">{exportStats.totalProducts}</span></div>
-                  <div>{t('categories_label')} <span className="font-bold">{exportStats.categories.length}</span></div>
+                  <div>{t('total_label', 'admin-export')} <span className="font-bold">{exportStats.totalProducts}</span></div>
+                  <div>{t('categories_label', 'admin-export')} <span className="font-bold">{exportStats.categories.length}</span></div>
                 </div>
               </div>
             )}
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('category_optional')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('category_optional', 'admin-export')}</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
                 >
-                  <option value="all">{t('all_categories')}</option>
+                  <option value="all">{t('all_categories', 'admin-export')}</option>
                   {categories?.map((cat: any) => {
                     const categoryId = cat._id || cat.id || cat.categoryId;
                   const categoryStats = exportStats?.categories?.find(
@@ -173,14 +173,14 @@ function ExportProductsContent() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'export')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'admin-export')}</label>
                 <select
                   value={selectedFormat}
                   onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
                 >
-                  <option value="json">{t('format_json_extension', 'export')}</option>
-                  <option value="csv">{t('format_csv_extension', 'export')}</option>
+                  <option value="json">{t('format_json_extension', 'admin-export')}</option>
+                  <option value="csv">{t('format_csv_extension', 'admin-export')}</option>
                 </select>
               </div>
             </div>
@@ -191,8 +191,8 @@ function ExportProductsContent() {
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
             >
               {isExporting
-                ? t('exporting')
-                : t('export_products')}
+                ? t('exporting', 'admin-export')
+                : t('export_products', 'admin-export')}
             </button>
           </div>
         </div>

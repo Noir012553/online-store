@@ -420,7 +420,7 @@ const TranslationBatchOverride = () => {
           <div className="batch-data-section">
             <div className="batch-card">
               <div className="batch-data-header">
-                <h2>{t('admin_batch_preview_title', 'admin-translation-batch')} ({rows.length} rows)</h2>
+                <h2>{t('admin_batch_preview_title', 'admin-translation-batch')} ({rows.length})</h2>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
                   className="batch-preview-toggle"
@@ -607,7 +607,7 @@ const TranslationBatchOverride = () => {
             ) : (
               <>
                 <Play size={16} />
-                {t('admin_batch_process', 'admin-translation-batch')} ({selectedRows.size} selected)
+                {t('admin_batch_process', 'admin-translation-batch')} ({selectedRows.size})
               </>
             )}
           </button>

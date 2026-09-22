@@ -243,6 +243,7 @@ export default function Home() {
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const heroCarouselRef = useRef<HTMLElement>(null);
+  const brandCarouselRef = useRef<HTMLDivElement>(null);
   const categoryNavigationMobileCarouselRef = useRef<HTMLDivElement>(null);
   const categoryMobileCarouselRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dealMobileCarouselRef = useRef<HTMLDivElement>(null);
@@ -322,6 +323,15 @@ export default function Home() {
       carousel.scrollTo({ left: carousel.clientWidth, behavior: 'auto' });
     });
   }, [heroSlidesToRender.length]);
+
+  useEffect(() => {
+    const carousel = brandCarouselRef.current;
+    if (!carousel || brands.length <= 1) return;
+
+    requestAnimationFrame(() => {
+      carousel.scrollLeft = carousel.scrollWidth / 3;
+    });
+  }, [brands.length]);
 
   // Fetch products from backend
   useEffect(() => {
@@ -706,6 +716,13 @@ export default function Home() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + heroSlidesToRender.length) % heroSlidesToRender.length);
+  };
+
+  const scrollBrands = (direction: -1 | 1) => {
+    brandCarouselRef.current?.scrollBy({
+      left: direction * (brandCarouselRef.current.clientWidth * 0.8),
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    });
   };
 
   const handleHeroKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -1249,26 +1266,52 @@ export default function Home() {
               <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title', 'products')}</h2>
             </div>
             {brands.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-6">
-                {brands.map((brand) => (
-                  <div
-                    key={brand._id}
-                    className="group flex items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl"
-                  >
-                    <div className="relative flex h-20 w-full items-center justify-center">
-                      {brand.logo ? (
-                        <ImageWithFallback
-                          src={brand.logo}
-                          alt={brand.name || t('brand', 'common')}
-                          loading="lazy"
-                          className="max-h-full max-w-full object-contain grayscale transition-all duration-300 group-hover:scale-110 group-hover:grayscale-0"
-                        />
-                      ) : (
-                        <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => scrollBrands(-1)}
+                  className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 lg:flex"
+                  aria-label={t('carousel_previous', 'components')}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <div
+                  ref={brandCarouselRef}
+                  role="region"
+                  aria-label={t('brands_title', 'products')}
+                  tabIndex={0}
+                  className="hide-scrollbar flex min-w-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 touch-pan-x sm:gap-6"
+                  onScroll={(event) => handleInfiniteCarouselScroll(event, brands.length)}
+                >
+                  {getRepeatedItems(brands).map((brand, index) => (
+                    <Link
+                      key={`${brand._id}-${index}`}
+                      href={`/products?brand=${encodeURIComponent(brand.name)}`}
+                      className="group flex min-w-[11rem] flex-[0_0_11rem] snap-start items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl sm:min-w-[13rem] sm:flex-[0_0_13rem] lg:min-w-[15rem] lg:flex-[0_0_15rem]"
+                    >
+                      <div className="relative flex h-20 w-full items-center justify-center">
+                        {brand.logo ? (
+                          <ImageWithFallback
+                            src={brand.logo}
+                            alt={brand.name || t('brand', 'common')}
+                            loading="lazy"
+                            className="max-h-full max-w-full object-contain grayscale transition-all duration-300 group-hover:scale-110 group-hover:grayscale-0"
+                          />
+                        ) : (
+                          <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => scrollBrands(1)}
+                  className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800 lg:flex"
+                  aria-label={t('carousel_next', 'components')}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
             ) : (
               <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">

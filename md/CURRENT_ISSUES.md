@@ -266,7 +266,7 @@ Phần này phản ánh trạng thái được đối chiếu từ source/test h
 ### Frontend và môi trường kiểm thử
 
 - Frontend chưa có test runner riêng, nhưng đã có script `typecheck`; chạy từ `online-store-frontend` bằng `npm run typecheck` hoặc `npx --no-install tsc --noEmit`.
-- `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; runtime vẫn chưa xác minh vì thiếu dependency `typescript`.
+- `online-store-frontend/scripts/check-ui-emoji.js` đã được sửa để import `fs` và chỉ quét các thư mục frontend hiện có; `npm --prefix online-store-frontend run check:emoji` đã chạy đạt.
 - Root `package.json` có `npm test` chuyển tiếp tới product suite backend và `npm run test:all` cho unified runner. Không nên coi đây là bằng chứng toàn bộ test pass nếu thiếu dependencies, MongoDB, backend readiness hoặc credential.
 
 ### Contract `specs`
@@ -385,12 +385,26 @@ Nếu các module còn lại hoàn tất thành công, lệnh shutdown Windows v
 - Xác minh import `StaticTranslation` của controller dịch tĩnh không bị thiếu.
 - Root scripts đã đồng bộ với backend runner; frontend có script `typecheck` riêng.
 
-### Kiểm tra cần chạy sau khi môi trường sẵn sàng
+### Kết quả kiểm tra cập nhật
 
-- `cd online-store-frontend && npm run typecheck`.
-- `cd online-store-frontend && npm run check:emoji`.
-- `cd online-store-backend && node --check src/controllers/translationController.js`.
-- `npm test` hoặc `npm run test:all` khi có dependency backend, MongoDB và credential hợp lệ.
+Đã chạy:
+
+- `npm --prefix online-store-frontend run typecheck` — **PASS**.
+- `npm --prefix online-store-frontend run check:emoji` — **PASS**; không có emoji hard-code ngoài registry cho phép.
+- `node --check online-store-backend/src/controllers/translationController.js` — **PASS**.
+- `node --check online-store-backend/src/utils/safeRemoteUrl.js` — **PASS**.
+- `node --check online-store-backend/src/utils/zipImport.js` — **PASS**.
+- Parse 18 file locale `admin-import`/`admin-export` cho 9 locale — **PASS**.
+- `git diff --check` — **PASS**.
+- Smoke test SSRF allowlist — **PASS**: chặn `127.0.0.1`, từ chối URL HTTP private và chấp nhận HTTPS public.
+
+Chưa chạy được:
+
+- `cd online-store-backend && npx --no-install mocha src/test/import-file-validator.test.js` — **BLOCKED** vì backend không có package `mocha` cục bộ và `npx --no-install` không được tải package từ registry.
+- `npm --prefix online-store-backend test` — **BLOCKED** ngay khi khởi động vì thiếu module `dotenv` tại `src/test/test-runner.js:16`.
+- Translation integration và các test cần MongoDB/backend/credential — **NOT RUN**; chưa có môi trường runtime hợp lệ để kết luận.
+
+Ghi chú: `safeRemoteUrl.js` vẫn dùng `net.isIP()` nhưng chưa có `require('net')` cục bộ; smoke test không tái hiện `ReferenceError` trong Node runtime hiện tại vì môi trường đang cung cấp `net` global. Đây vẫn là việc cần chuẩn hóa để tránh phụ thuộc runtime không rõ ràng, nhưng chưa được đánh dấu là lỗi runtime đã tái hiện.
 
 Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiện retranslate Logitech G515 hoặc audit dữ liệu cache production vì đây là thao tác dữ liệu ngoài source code và cần quyền truy cập backend/MongoDB.
 
@@ -406,10 +420,24 @@ Không chạy `npm run build` theo quy ước môi trường. Chưa thực hiệ
 
 ### Vẫn còn hard-code cần xử lý tiếp
 
-- `online-store-frontend/src/pages/admin/importProducts.tsx` còn nhiều text JSX tiếng Việt trực tiếp trong luồng hướng dẫn/import, nổi bật ở các dòng 272-554: các bước nhập, drag-and-drop, trạng thái kiểm tra, thống kê kết quả, cảnh báo và khu vực import bản dịch.
-- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; cần đổi sang translation key/label trước khi hiển thị PermissionDenied.
-- Một số call `t(key, namespace, fallback)` còn fallback literal rải rác trong admin và export widget. Fallback này không phải hard-code hiển thị trong điều kiện bình thường nếu backend có key, nhưng vẫn nên chuyển về namespace/backend hoặc `uiFallbacks`.
+- Một số page admin vẫn truyền `featureName` tiếng Anh trực tiếp cho layout quyền hạn; hiện metadata này chưa được `PermissionDenied` render, nên cần đổi sang translation key khi bổ sung hiển thị tên tính năng.
+- Một số call `t(key, namespace, fallback)` vẫn còn trong các page admin khác; riêng trang import sản phẩm và export sản phẩm đã chuyển các nhãn chính sang namespace backend.
 - Giá trị động từ backend như tên sản phẩm, thương hiệu, category, promotion và shipping provider không được xem là hard-code frontend; cần backend trả theo locale.
 - Tên thương hiệu/provider, URL, enum, CSS class, `aria-hidden`, `aria-current` và mã kỹ thuật không cần đưa vào i18n.
 
-Audit này cho thấy UI chưa đạt trạng thái “zero hard-code” tuyệt đối, nhưng phần storefront chính đã được chuẩn hóa; khu vực còn lại có phạm vi tập trung ở admin import và các fallback cũ. Không chạy `npm run build`.
+### 14. Tiếp tục audit sau commit 6fae881
+
+Đã xử lý trong phiên này:
+
+- Chuẩn hóa toàn bộ nhãn hiển thị chính của `src/pages/admin/importProducts.tsx` qua namespace `admin-import`, gồm upload ZIP, dry-run, kết quả, cảnh báo, quy trình an toàn và import bản dịch.
+- Bổ sung các key tương ứng cho 9 locale backend được frontend hỗ trợ (`vi`, `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`), thay vì đưa thêm fallback tiếng Việt trực tiếp vào component.
+- Chuẩn hóa `src/pages/admin/exportProducts.tsx` về namespace `admin-export` và bổ sung thông báo export ZIP theo locale.
+- Sửa lời gọi trạng thái trong `src/pages/admin/i18nMonitoring.tsx`: đối số namespace không còn bị dùng nhầm làm fallback.
+- Loại bỏ hai nhãn tiếng Anh còn sót (`rows`, `selected`) trong preview batch; số lượng vẫn hiển thị nhưng lấy nhãn từ bản dịch xung quanh.
+
+Chưa xử lý trong phiên này:
+
+- Bulk migrate `featureName` của toàn bộ admin page vì metadata hiện chưa hiển thị ra giao diện; sẽ cần gắn với key i18n khi luồng `PermissionDenied` dùng tên tính năng.
+- Integration test vẫn chưa chạy được vì backend thiếu `dotenv`/`mocha` và cần MongoDB/credential; frontend typecheck, check:emoji, syntax check và locale JSON đã chạy đạt. Không chạy `npm run build` theo quy ước môi trường.
+
+Audit hiện không còn ghi nhận `importProducts.tsx` là vùng hard-code JSX chính; các fallback literal còn lại nằm rải rác ở admin page khác và cần xử lý theo từng namespace để tránh thay đổi ngoài phạm vi.

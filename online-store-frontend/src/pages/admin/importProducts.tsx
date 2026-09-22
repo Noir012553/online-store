@@ -69,6 +69,7 @@ function ImportProductsContent() {
 
   useEffect(() => {
     loadNamespace('admin');
+    loadNamespace('admin-import');
   }, [loadNamespace]);
 
   useEffect(() => {
@@ -88,15 +89,15 @@ function ImportProductsContent() {
 
   const validateFile = (file: File) => {
     if (!file.name.toLowerCase().endsWith('.zip')) {
-      toast.error(t('import.zip_only_error', 'admin', 'Chỉ được nhập file ZIP chứa đầy đủ dữ liệu sản phẩm.'));
+      toast.error(t('zip_only_error', 'admin-import'));
       return false;
     }
     if (file.size === 0) {
-      toast.error(t('import.empty_file_error', 'admin', 'File ZIP không được rỗng.'));
+      toast.error(t('empty_file_error', 'admin-import'));
       return false;
     }
     if (file.size > MAX_IMPORT_ZIP_FILE_SIZE_BYTES) {
-      toast.error(t('zip_max_size_label', 'admin', 'ZIP tối đa 100 MB'));
+      toast.error(t('zip_max_size_label', 'admin-import'));
       return false;
     }
     return true;
@@ -122,7 +123,7 @@ function ImportProductsContent() {
   const handleImport = async (shouldDryRun: boolean) => {
     if (importInFlightRef.current) return;
     if (!selectedFile) {
-      toast.error(t('import.choose_file_first', 'admin', 'Hãy chọn file ZIP trước.'));
+      toast.error(t('choose_file_first', 'admin-import'));
       return;
     }
 
@@ -149,7 +150,7 @@ function ImportProductsContent() {
       try {
         data = await response.json();
       } catch {
-        throw new Error(t('import.upload_failed', 'admin', 'Không thể đọc kết quả từ máy chủ.'));
+        throw new Error(t('upload_failed', 'admin-import'));
       }
 
       if (!response.ok || !data.success) {
@@ -160,7 +161,7 @@ function ImportProductsContent() {
       }
 
       setResult(data);
-      toast.success(data.message || t('import.upload_success', 'admin', 'Đã xử lý file ZIP thành công.'));
+      toast.success(data.message || t('upload_success', 'admin-import'));
       if (!shouldDryRun) setSelectedFile(null);
     } catch (error) {
       const message = getUserFriendlyErrorMessage(error, t);
@@ -179,7 +180,7 @@ function ImportProductsContent() {
     if (translationInFlightRef.current) return;
 
     if (!file.name.toLowerCase().endsWith('.json')) {
-      toast.error(t('import.translation_json_only', 'admin', 'File bản dịch phải có định dạng JSON.'));
+      toast.error(t('translation_json_only', 'admin-import'));
       return;
     }
 
@@ -199,7 +200,7 @@ function ImportProductsContent() {
       });
       setTranslationImport({ records, idempotencyKey });
       setTranslationResult(data);
-      toast.success(t('import.translation_preview_success', 'admin', 'Đã kiểm tra bản dịch; chưa có dữ liệu nào được ghi.'));
+      toast.success(t('translation_preview_success', 'admin-import'));
     } catch (error) {
       const message = getUserFriendlyErrorMessage(error, t);
       setTranslationResult({ success: false, message });
@@ -223,7 +224,7 @@ function ImportProductsContent() {
       });
       setTranslationResult(data);
       setTranslationImport(null);
-      toast.success(t('import.translation_success', 'admin', 'Đã import bản dịch sản phẩm.'));
+      toast.success(t('translation_success', 'admin-import'));
     } catch (error) {
       const message = getUserFriendlyErrorMessage(error, t);
       setTranslationResult({ success: false, message });
@@ -237,7 +238,7 @@ function ImportProductsContent() {
   const formatIssue = (issue: string | Record<string, any>) => {
     if (typeof issue === 'string') return getUserFriendlyErrorMessage({ message: issue }, t);
     const details = [issue.name, issue.brand, issue.reason || issue.message].filter(Boolean);
-    return details.length > 0 ? details.join(' · ') : t('review_error');
+    return details.length > 0 ? details.join(' · ') : t('review_error', 'admin-import');
   };
 
   const hasImportErrors = Boolean(result?.errors?.length);
@@ -250,28 +251,28 @@ function ImportProductsContent() {
           <div>
             <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700">
               <Archive className="h-4 w-4" />
-              {t('import_export_title', 'admin', 'Nhập / xuất dữ liệu')}
+              {t('import_export_title', 'admin')}
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-              {t('products_title', 'admin', 'Nhập sản phẩm')}
+              {t('products_title', 'admin-import')}
             </h1>
             <p className="mt-2 max-w-2xl text-slate-600">
-              {t('zip_import_description', 'admin', 'Tải lên file ZIP đã xuất từ hệ thống, kiểm tra dữ liệu trước rồi xác nhận nhập vào cửa hàng.')}
+              {t('zip_import_description', 'admin-import')}
             </p>
           </div>
           <Link href="/admin/importExport">
             <Button variant="outline" className="bg-white">
               <ArrowLeft className="h-4 w-4" />
-              {t('back', 'admin', 'Quay lại')}
+              {t('back', 'admin')}
             </Button>
           </Link>
         </div>
 
         <div className="mb-8 grid gap-3 sm:grid-cols-3">
           {[
-            { number: '01', title: 'Chọn file', description: 'ZIP tối đa 100 MB', active: Boolean(selectedFile) },
-            { number: '02', title: 'Kiểm tra', description: 'Xem trước dữ liệu', active: isPreviewResult },
-            { number: '03', title: 'Xác nhận', description: 'Ghi vào cửa hàng', active: Boolean(result?.success && !result?.dryRun) },
+            { number: '01', title: t('choose_file', 'admin-import'), description: t('zip_max_size_label', 'admin-import'), active: Boolean(selectedFile) },
+            { number: '02', title: t('preview', 'admin-import'), description: t('preview_desc', 'admin-import'), active: isPreviewResult },
+            { number: '03', title: t('start_import', 'admin-import'), description: t('confirm_import', 'admin-import'), active: Boolean(result?.success && !result?.dryRun) },
           ].map((step) => (
             <div
               key={step.number}
@@ -300,9 +301,9 @@ function ImportProductsContent() {
                     <UploadCloud className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Bước 1</p>
-                    <h2 className="mt-1 text-xl font-bold text-slate-950">Chọn file sản phẩm</h2>
-                    <p className="mt-1 text-sm text-slate-500">Chỉ nhận ZIP có đầy đủ dữ liệu sản phẩm.</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">{t('step_upload', 'admin-import')}</p>
+                    <h2 className="mt-1 text-xl font-bold text-slate-950">{t('choose_file', 'admin-import')}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{t('zip_import_description', 'admin-import')}</p>
                   </div>
                 </div>
               </div>
@@ -329,10 +330,10 @@ function ImportProductsContent() {
                     <Archive className="h-7 w-7" />
                   </div>
                   <h3 className="mt-4 font-semibold text-slate-900">
-                    {selectedFile ? 'Đổi file ZIP' : 'Kéo thả file ZIP vào đây'}
+                    {selectedFile ? t('replace_zip_file', 'admin-import') : t('drop_zip_here', 'admin-import')}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-500">hoặc bấm để chọn từ máy tính</p>
-                  <p className="mt-4 text-xs font-medium text-slate-500">Định dạng .zip · Tối đa 100 MB</p>
+                  <p className="mt-1 text-sm text-slate-500">{t('choose_from_computer', 'admin-import')}</p>
+                  <p className="mt-4 text-xs font-medium text-slate-500">{t('zip_format_limit', 'admin-import')}</p>
                 </div>
 
                 {selectedFile && (
@@ -342,7 +343,7 @@ function ImportProductsContent() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-900">{selectedFile.name}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{formatBytes(selectedFile.size)} · Sẵn sàng kiểm tra</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{formatBytes(selectedFile.size)} · {t('file_ready', 'admin-import')}</p>
                     </div>
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                   </div>
@@ -356,29 +357,29 @@ function ImportProductsContent() {
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">Bước 2</p>
-                  <h2 className="mt-1 text-xl font-bold text-slate-950">Cấu hình lượt nhập</h2>
-                  <p className="mt-1 text-sm text-slate-500">Nên giữ chế độ xem trước để tránh ghi nhầm dữ liệu.</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-700">{t('step_settings', 'admin-import')}</p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-950">{t('modes_label', 'admin-import')}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{t('preview_desc', 'admin-import')}</p>
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">Cách xử lý sản phẩm</span>
+                  <span className="mb-2 block text-sm font-medium text-slate-700">{t('mode_label', 'admin-import')}</span>
                   <select
                     value={mode}
                     onChange={(event) => setMode(event.target.value as ImportMode)}
                     className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     disabled={isImporting}
                   >
-                    <option value="upsert">Cập nhật hoặc thêm mới</option>
-                    <option value="insert">Chỉ thêm sản phẩm mới</option>
-                    <option value="update">Chỉ cập nhật sản phẩm có sẵn</option>
+                    <option value="upsert">{t('mode_upsert_desc', 'admin-import')}</option>
+                    <option value="insert">{t('mode_insert_desc', 'admin-import')}</option>
+                    <option value="update">{t('mode_update_desc', 'admin-import')}</option>
                   </select>
                 </label>
                 <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-                  <p className="text-sm font-semibold text-emerald-900">Kiểm tra an toàn</p>
-                  <p className="mt-1 text-xs leading-5 text-emerald-800">File sẽ được kiểm tra toàn bộ trước khi có dữ liệu được ghi.</p>
+                  <p className="text-sm font-semibold text-emerald-900">{t('safe_check_title', 'admin-import')}</p>
+                  <p className="mt-1 text-xs leading-5 text-emerald-800">{t('safe_check_description', 'admin-import')}</p>
                 </div>
               </div>
 
@@ -391,8 +392,8 @@ function ImportProductsContent() {
                   disabled={isImporting}
                 />
                 <span>
-                  <span className="block text-sm font-semibold text-slate-900">Kiểm tra trước khi nhập</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">Khuyến nghị bật. Hệ thống sẽ hiển thị số lượng thêm mới, cập nhật và lỗi trước khi ghi dữ liệu.</span>
+                  <span className="block text-sm font-semibold text-slate-900">{t('dry_run_label', 'admin-import')}</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">{t('dry_run_description', 'admin-import')}</span>
                 </span>
               </label>
 
@@ -404,9 +405,9 @@ function ImportProductsContent() {
                   className="h-11 bg-blue-600 px-6 text-white hover:bg-blue-700"
                 >
                   {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : dryRun ? <ShieldCheck className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
-                  {isImporting ? 'Đang kiểm tra...' : dryRun ? 'Kiểm tra file ZIP' : 'Nhập sản phẩm'}
+                  {isImporting ? t('processing', 'admin-import') : dryRun ? t('preview', 'admin-import') : t('start_import', 'admin-import')}
                 </Button>
-                {!selectedFile && <span className="text-xs text-slate-500">Chọn file ZIP để tiếp tục.</span>}
+                {!selectedFile && <span className="text-xs text-slate-500">{t('choose_file_first', 'admin-import')}</span>}
               </div>
             </section>
 
@@ -415,8 +416,8 @@ function ImportProductsContent() {
                 <div className="flex items-start gap-3">
                   <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
                   <div className="flex-1">
-                    <h2 className="font-bold text-amber-950">Đã kiểm tra, chưa ghi dữ liệu</h2>
-                    <p className="mt-1 text-sm text-amber-800">Nếu kết quả bên dưới chính xác, hãy xác nhận để nhập sản phẩm vào cửa hàng.</p>
+                    <h2 className="font-bold text-amber-950">{t('dry_run_complete_title', 'admin-import')}</h2>
+                    <p className="mt-1 text-sm text-amber-800">{t('dry_run_complete_description', 'admin-import')}</p>
                     <Button
                       type="button"
                       onClick={() => handleImport(false)}
@@ -424,7 +425,7 @@ function ImportProductsContent() {
                       className="mt-4 h-10 bg-amber-600 text-white hover:bg-amber-700"
                     >
                       {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      Xác nhận nhập chính thức
+                      {t('confirm_import', 'admin-import')}
                     </Button>
                   </div>
                 </div>
@@ -436,7 +437,7 @@ function ImportProductsContent() {
                 <div className="flex items-start gap-3">
                   {hasImportErrors || result.success === false ? <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /> : <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />}
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-bold text-slate-950">{hasImportErrors || result.success === false ? 'Nhập sản phẩm chưa thành công' : result.dryRun ? 'Kết quả kiểm tra' : 'Nhập sản phẩm thành công'}</h2>
+                    <h2 className="font-bold text-slate-950">{hasImportErrors || result.success === false ? t('import_failed', 'admin-import') : result.dryRun ? t('results_title', 'admin-import') : t('import_success', 'admin-import')}</h2>
                     {result.message && <p className="mt-1 text-sm text-slate-700">{result.message}</p>}
                   </div>
                 </div>
@@ -444,10 +445,10 @@ function ImportProductsContent() {
                 {(result.totalProducts !== undefined || result.results) && (
                   <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
-                      ['Tổng sản phẩm', result.totalProducts ?? 0, 'text-slate-900'],
-                      ['Thêm mới', result.results?.inserted ?? 0, 'text-emerald-700'],
-                      ['Cập nhật', result.results?.updated ?? 0, 'text-blue-700'],
-                      ['Bỏ qua / lỗi', (result.results?.skipped ?? 0) + (result.errors?.length ?? 0), 'text-red-700'],
+                      [t('total_products_label', 'admin-import'), result.totalProducts ?? 0, 'text-slate-900'],
+                      [t('inserted_label', 'admin-import'), result.results?.inserted ?? 0, 'text-emerald-700'],
+                      [t('updated_label', 'admin-import'), result.results?.updated ?? 0, 'text-blue-700'],
+                      [t('skipped_or_error', 'admin-import'), (result.results?.skipped ?? 0) + (result.errors?.length ?? 0), 'text-red-700'],
                     ].map(([label, value, color]) => (
                       <div key={String(label)} className="rounded-xl border border-white/80 bg-white p-3">
                         <p className="text-xs text-slate-500">{label}</p>
@@ -461,7 +462,7 @@ function ImportProductsContent() {
                   <div className="mt-5 rounded-xl border border-red-200 bg-white p-4">
                     <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-800">
                       <FileWarning className="h-4 w-4" />
-                      Chi tiết lỗi ({result.errors.length})
+                      {t('error_details_label', 'admin-import')} ({result.errors.length})
                     </div>
                     <ul className="max-h-56 space-y-2 overflow-auto text-sm text-red-700">
                       {result.errors.slice(0, 20).map((error, index) => <li key={index}>• {formatIssue(error)}</li>)}
@@ -471,7 +472,7 @@ function ImportProductsContent() {
 
                 {result.warnings && result.warnings.length > 0 && (
                   <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4 text-sm text-amber-800">
-                    <p className="font-semibold">Cảnh báo ({result.warnings.length})</p>
+                    <p className="font-semibold">{t('warnings_title', 'admin-import')} ({result.warnings.length})</p>
                     <ul className="mt-2 space-y-1">
                       {result.warnings.slice(0, 10).map((warning, index) => <li key={index}>• {formatIssue(warning)}</li>)}
                     </ul>
@@ -480,7 +481,7 @@ function ImportProductsContent() {
 
                 {result.preview && (
                   <details className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">Xem 3 sản phẩm đầu tiên</summary>
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">{t('preview_first_3', 'admin-import')}</summary>
                     <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(result.preview, null, 2)}</pre>
                   </details>
                 )}
@@ -492,37 +493,37 @@ function ImportProductsContent() {
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2 text-slate-950">
                 <Info className="h-5 w-5 text-blue-600" />
-                <h2 className="font-bold">File hợp lệ cần có</h2>
+                <h2 className="font-bold">{t('valid_file_title', 'admin-import')}</h2>
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">ZIP phải chứa đúng một file dữ liệu ở thư mục gốc:</p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{t('zip_root_description', 'admin-import')}</p>
               <div className="mt-3 space-y-2">
-                {['products.json hoặc products.csv', 'name, brand, price, category', 'baseCurrencyCode và image', 'description và countInStock', 'specs nếu có phải là object hợp lệ'].map((item) => (
+                {[t('required_products_file', 'admin-import'), t('required_product_fields', 'admin-import'), t('required_currency_image', 'admin-import'), t('required_description_stock', 'admin-import'), t('required_specs', 'admin-import')].map((item) => (
                   <div key={item} className="flex items-start gap-2 text-sm text-slate-700">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                     <span>{item}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-500">File ZIP được xuất trực tiếp từ chức năng Xuất sản phẩm sẽ tương thích tốt nhất.</div>
+              <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-500">{t('zip_compatibility_note', 'admin-import')}</div>
             </section>
 
             <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
               <div className="flex items-center gap-2 text-blue-950">
                 <ShieldCheck className="h-5 w-5 text-blue-700" />
-                <h2 className="font-bold">Quy trình an toàn</h2>
+                <h2 className="font-bold">{t('safe_process_title', 'admin-import')}</h2>
               </div>
               <ul className="mt-3 space-y-2 text-sm leading-6 text-blue-900">
-                <li>1. Kiểm tra cấu trúc ZIP</li>
-                <li>2. Kiểm tra toàn bộ sản phẩm</li>
-                <li>3. Xem trước kết quả</li>
-                <li>4. Xác nhận mới ghi dữ liệu</li>
+                <li>1. {t('safe_process_step_1', 'admin-import')}</li>
+                <li>2. {t('safe_process_step_2', 'admin-import')}</li>
+                <li>3. {t('safe_process_step_3', 'admin-import')}</li>
+                <li>4. {t('safe_process_step_4', 'admin-import')}</li>
               </ul>
             </section>
 
             {guide?.requiredFields?.length > 0 && (
               <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="font-bold text-slate-950">Trường bắt buộc từ máy chủ</h2>
-                <p className="mt-2 text-xs leading-5 text-slate-500">Danh sách này được lấy trực tiếp từ API hướng dẫn nhập.</p>
+                <h2 className="font-bold text-slate-950">{t('required_fields_server_title', 'admin-import')}</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{t('required_fields_server_description', 'admin-import')}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {guide.requiredFields.map((field: string) => <span key={field} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{field}</span>)}
                 </div>
@@ -534,24 +535,24 @@ function ImportProductsContent() {
         <section className="mt-8 rounded-2xl border border-purple-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
-              <div className="flex items-center gap-2 text-purple-700"><FileCheck2 className="h-5 w-5" /><h2 className="font-bold text-slate-950">Import bản dịch sản phẩm</h2></div>
-              <p className="mt-1 text-sm text-slate-500">Luồng riêng dành cho file JSON bản dịch, không thay đổi dữ liệu sản phẩm chính.</p>
+              <div className="flex items-center gap-2 text-purple-700"><FileCheck2 className="h-5 w-5" /><h2 className="font-bold text-slate-950">{t('translation_import_title', 'admin-import')}</h2></div>
+              <p className="mt-1 text-sm text-slate-500">{t('translation_import_description', 'admin-import')}</p>
             </div>
             <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 has-[:disabled]:opacity-60">
               <input type="file" accept=".json,application/json" onChange={handleTranslationFileUpload} className="hidden" disabled={isTranslationLoading} />
               {isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-              Chọn file JSON
+              {t('choose_json_file', 'admin-import')}
             </label>
           </div>
           <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={replaceManualTranslations} onChange={(event) => setReplaceManualTranslations(event.target.checked)} disabled={isTranslationLoading} className="h-4 w-4 accent-purple-600" />
-            Cho phép ghi đè bản dịch thủ công
+            {t('replace_manual_translations', 'admin-import')}
           </label>
           {translationResult && (
             <div className={`mt-4 rounded-xl border p-4 ${translationResult.success ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
               <p className="text-sm font-medium text-slate-800">{translationResult.message}</p>
-              {translationResult.success && <p className="mt-1 text-xs text-slate-600">{translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0} bản ghi đã kiểm tra</p>}
-              {translationResult.dryRun && translationImport && <Button type="button" onClick={confirmTranslationImport} disabled={isTranslationLoading} className="mt-3 bg-purple-600 text-white hover:bg-purple-700">{isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Xác nhận import bản dịch</Button>}
+              {translationResult.success && <p className="mt-1 text-xs text-slate-600">{translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0} {t('records_checked', 'admin-import')}</p>}
+              {translationResult.dryRun && translationImport && <Button type="button" onClick={confirmTranslationImport} disabled={isTranslationLoading} className="mt-3 bg-purple-600 text-white hover:bg-purple-700">{isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} {t('confirm_translation_import', 'admin-import')}</Button>}
             </div>
           )}
         </section>

@@ -22,5 +22,6 @@
   "exporting": "Exportation en cours...",
   "error_loading_export_data": "Impossible de charger les données d'exportation",
   "error_exporting_file": "Erreur lors de l'exportation du fichier",
-  "success_export": "Exportation {{format}} réussie"
+  "success_export": "Exportation {{format}} réussie",
+  "export_zip_success": "ZIP contenant products.json exporté pour une réimportation"
 }
