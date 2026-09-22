@@ -17,6 +17,7 @@ import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { ProductSkeleton } from "../components/ProductSkeleton";
 import { EmptyState } from "../components/EmptyState";
+import { getImageUrl } from "../lib/utils";
 
 
 const iconMap = {
@@ -1290,9 +1291,9 @@ export default function Home() {
                       className="group flex min-w-[11rem] flex-[0_0_11rem] snap-start items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl sm:min-w-[13rem] sm:flex-[0_0_13rem] lg:min-w-[15rem] lg:flex-[0_0_15rem]"
                     >
                       <div className="relative flex h-20 w-full items-center justify-center">
-                        {brand.logo ? (
+                        {brand.logoAsset?.publicUrl || brand.logo ? (
                           <ImageWithFallback
-                            src={brand.logo}
+                            src={getImageUrl(brand.logoAsset || brand.logo)}
                             alt={brand.name || t('brand', 'common')}
                             loading="lazy"
                             className="max-h-full max-w-full object-contain grayscale transition-all duration-300 group-hover:scale-110 group-hover:grayscale-0"

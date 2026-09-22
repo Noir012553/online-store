@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
-import { brandAPI } from '../lib/api';
+import { brandAPI, type BrandRecord } from '../lib/api';
 import { useLanguage } from '../lib/context/LanguageContext';
 
-export interface Brand {
-  _id: string;
-  name: string;
-  logo?: string;
-  description?: string;
-}
+export type Brand = BrandRecord;
 
 export function useBrands() {
   const { locale, isHydrated } = useLanguage();

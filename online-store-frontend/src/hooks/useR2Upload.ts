@@ -1,20 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '../lib/context/LanguageContext';
-import { getAuthToken } from '../lib/api';
-
-export type R2AssetReference = Record<string, unknown> & {
-  sourceUrl: string | null;
-  storageProvider: 'r2';
-  storageAccount: string;
-  bucket: string;
-  storageKey: string;
-  publicUrl: string;
-  publicId: string;
-  contentHash: string;
-  mimeType: string;
-  bytes: number;
-};
+import { getAuthToken, type R2AssetReference } from '../lib/api';
 
 export interface R2UploadResult {
   storageKey: string;
@@ -24,7 +11,7 @@ export interface R2UploadResult {
   asset: R2AssetReference;
 }
 
-type R2Folder = 'admins' | 'users' | 'reviewers' | 'banners';
+type R2Folder = 'admins' | 'users' | 'reviewers' | 'banners' | 'brands';
 
 export const useR2Upload = () => {
   const { t } = useLanguage();

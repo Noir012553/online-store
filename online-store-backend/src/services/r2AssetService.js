@@ -44,7 +44,7 @@ const MIME_MAGIC = [
 ];
 
 const clients = new Map();
-const PROJECT_R2_PREFIXES = Object.freeze(['products/', 'banners/', 'about/', 'incoming/', 'legacy/', 'assets/']);
+const PROJECT_R2_PREFIXES = Object.freeze(['products/', 'banners/', 'brands/', 'about/', 'incoming/', 'legacy/', 'assets/']);
 
 const createR2Error = (code, message, details = {}) => {
   const error = new Error(message || code);

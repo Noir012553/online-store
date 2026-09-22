@@ -2,9 +2,24 @@ import { DEFAULT_LOCALE } from './i18n/types';
 
 // Data types for the laptop store
 
+export interface AssetReference {
+  [key: string]: unknown;
+  sourceUrl?: string | null;
+  storageProvider: 'r2';
+  storageAccount: string;
+  bucket: string;
+  storageKey: string;
+  publicUrl: string;
+  publicId: string;
+  contentHash: string;
+  mimeType: string;
+  bytes: number;
+}
+
 export interface ProductDescriptionImage {
   url: string;
   alt?: string;
+  asset?: AssetReference | null;
 }
 
 export interface ProductPromotion {
@@ -33,7 +48,9 @@ export interface Laptop {
   formattedOriginalPrice?: string;
   discountPercentage?: number;
   image: string;
+  imageAsset?: AssetReference | null;
   images: string[];
+  imageAssets?: AssetReference[];
   rating: number;
   reviews: number;
   inStock?: boolean;
