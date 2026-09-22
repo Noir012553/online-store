@@ -39,8 +39,8 @@ def _read_positive_int(name, fallback):
 
 
 IMAGE_CONFIG = {
-    'connect_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_CONNECT_TIMEOUT_SECONDS', 15),
-    'read_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_READ_TIMEOUT_SECONDS', 30),
+    'connect_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_CONNECT_TIMEOUT_SECONDS', 8),
+    'read_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_READ_TIMEOUT_SECONDS', 20),
     'retry_attempts': _read_positive_int('SCRAPER_IMAGE_RETRY_ATTEMPTS', 3),
     'retry_backoff_seconds': _read_positive_int('SCRAPER_IMAGE_RETRY_BACKOFF_SECONDS', 1),
 }

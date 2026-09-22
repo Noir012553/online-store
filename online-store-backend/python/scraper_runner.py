@@ -48,7 +48,7 @@ def _read_positive_int(name, fallback):
 
 
 SCRAPER_CONFIG = {
-    "request_timeout_seconds": _read_positive_int("SCRAPER_REQUEST_TIMEOUT_SECONDS", 10),
+    "request_timeout_seconds": _read_positive_int("SCRAPER_REQUEST_TIMEOUT_SECONDS", 8),
     "retry_attempts": _read_positive_int("SCRAPER_RETRY_ATTEMPTS", 3),
     "retry_backoff_seconds": _read_positive_int("SCRAPER_RETRY_BACKOFF_SECONDS", 1),
     "dynamic_render_timeout_seconds": _read_positive_int("SCRAPER_DYNAMIC_RENDER_TIMEOUT_SECONDS", 45),

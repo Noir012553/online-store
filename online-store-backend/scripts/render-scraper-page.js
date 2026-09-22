@@ -22,11 +22,11 @@ const readPositiveInt = (name, fallback) => {
 };
 
 const SCRAPER_CONFIG = Object.freeze({
-  navigationTimeoutMs: readPositiveInt('SCRAPER_NAVIGATION_TIMEOUT_MS', 20000),
-  domContentLoadedTimeoutMs: readPositiveInt('SCRAPER_DOMCONTENTLOADED_TIMEOUT_MS', 5000),
-  selectorTimeoutMs: readPositiveInt('SCRAPER_SELECTOR_TIMEOUT_MS', 10000),
-  expandableClickTimeoutMs: readPositiveInt('SCRAPER_EXPANDABLE_CLICK_TIMEOUT_MS', 3000),
-  expandableSettleMs: readPositiveInt('SCRAPER_EXPANDABLE_SETTLE_MS', 500),
+  navigationTimeoutMs: readPositiveInt('SCRAPER_NAVIGATION_TIMEOUT_MS', 15000),
+  domContentLoadedTimeoutMs: readPositiveInt('SCRAPER_DOMCONTENTLOADED_TIMEOUT_MS', 3000),
+  selectorTimeoutMs: readPositiveInt('SCRAPER_SELECTOR_TIMEOUT_MS', 7000),
+  expandableClickTimeoutMs: readPositiveInt('SCRAPER_EXPANDABLE_CLICK_TIMEOUT_MS', 2000),
+  expandableSettleMs: readPositiveInt('SCRAPER_EXPANDABLE_SETTLE_MS', 300),
 });
 
 const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_OUT)/i.test(
