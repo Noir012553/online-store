@@ -22,6 +22,11 @@ const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_
   String(error?.message || error),
 );
 
+const getPageContent = async page => {
+  if (!page || page.isClosed()) return '';
+  return page.content().catch(() => '');
+};
+
 const clickExpandableButtons = async page => {
   const patterns = [
     /xem thêm/i,
@@ -55,22 +60,26 @@ const renderPage = async url => {
     page = await browser.newPage({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
     });
+    await page.route('**/*', route => {
+      if (['image', 'media', 'font'].includes(route.request().resourceType())) {
+        return route.abort();
+      }
+      return route.continue();
+    });
     try {
       await page.goto(url, { waitUntil: 'commit', timeout: NAVIGATION_TIMEOUT_MS });
     } catch (error) {
       if (!isNavigationTimeout(error)) throw error;
-      return await page.content().catch(() => '');
+      return getPageContent(page);
     }
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
     await page.waitForSelector('.news-html-content, h1, h3', { timeout: 10000 }).catch(() => {});
-    baselineHtml = await page.content();
+    baselineHtml = await getPageContent(page);
     if (!await clickExpandableButtons(page)) return baselineHtml;
     await page.waitForTimeout(500);
-    return page.isClosed() ? baselineHtml : await page.content();
+    return getPageContent(page) || baselineHtml;
   } catch (error) {
-    if (!baselineHtml && page && !page.isClosed()) {
-      baselineHtml = await page.content().catch(() => '');
-    }
+    if (!baselineHtml) baselineHtml = await getPageContent(page);
     if (baselineHtml) return baselineHtml;
     throw error;
   } finally {

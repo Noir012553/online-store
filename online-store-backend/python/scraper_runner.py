@@ -35,7 +35,7 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 MAX_ATTEMPTS = 3
 DEFAULT_MAX_WORKERS = 4
 MAX_MAX_WORKERS = 8
-DYNAMIC_RENDER_TIMEOUT_SECONDS = 90
+DYNAMIC_RENDER_TIMEOUT_SECONDS = 45
 SCRAPE_SOURCE = "gearvn"
 DEFAULT_PARSER_VERSION = "product-v2"
 RENDERER_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render-scraper-page.js"
@@ -307,6 +307,15 @@ def _node_command():
     return os.getenv("SCRAPER_NODE_COMMAND") or ("node.exe" if sys.platform == "win32" else "node")
 
 
+def _is_recoverable_dynamic_render_error(error):
+    detail = str(error).casefold()
+    return any(marker in detail for marker in (
+        "timeout",
+        "err_timed_out",
+        "err_connection_timed_out",
+    ))
+
+
 def render_product_html(url, timeout=DYNAMIC_RENDER_TIMEOUT_SECONDS):
     completed = subprocess.run(
         [_node_command(), str(RENDERER_SCRIPT), url],
@@ -341,7 +350,8 @@ def _load_product_soup(url, response_text):
         ):
             return rendered_soup
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-        print(f"Cảnh báo dynamic render {url}: {error}")
+        if not _is_recoverable_dynamic_render_error(error):
+            print(f"Cảnh báo dynamic render {url}: {error}")
     return soup
 
 
