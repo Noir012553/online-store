@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { Laptop, ProductDescriptionImage, ProductPromotion } from './data';
 
+const PROMOTION_SPEC_PATTERN = /(?:giảm|giam|khuyến mãi|khuyen mai|ưu đãi|uu dai|offer|discount|promotion|hssv|sinh viên|sinh vien|student)/i;
+
 /**
  * Base Adapter class to handle data transformation and validation
  */
@@ -242,11 +244,31 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
   }
 
   protected afterParse(data: Laptop): Laptop {
-    // Example: Format image URLs if they are relative
-    if (data.image && !data.image.startsWith('http') && !data.image.startsWith('/')) {
-      // You could prepend a base URL here
+    const specDisplayByField = new Map(
+      (data.specDisplay || []).map((spec) => [spec.field, spec]),
+    );
+    const promotionSpecEntries = Object.entries(data.specs).filter(([key, value]) => {
+      const label = data.specLabels?.[key] || specDisplayByField.get(key)?.label || key;
+      return PROMOTION_SPEC_PATTERN.test(`${label} ${value}`);
+    });
+
+    if (promotionSpecEntries.length > 0) {
+      const promotionKeys = new Set(promotionSpecEntries.map(([key]) => key));
+      const migratedPromotions: ProductPromotion[] = promotionSpecEntries.map(([key, value]) => ({
+        type: 'Discount',
+        title: data.specLabels?.[key] || specDisplayByField.get(key)?.label || key,
+        discountText: String(value),
+      }));
+
+      data = {
+        ...data,
+        specs: Object.fromEntries(Object.entries(data.specs).filter(([key]) => !promotionKeys.has(key))),
+        specLabels: Object.fromEntries(Object.entries(data.specLabels || {}).filter(([key]) => !promotionKeys.has(key))),
+        specDisplay: (data.specDisplay || []).filter((spec) => !promotionKeys.has(spec.field)),
+        promotions: [...(data.promotions || []), ...migratedPromotions],
+      };
     }
-    
+
     return data;
   }
 }

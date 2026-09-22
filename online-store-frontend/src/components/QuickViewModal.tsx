@@ -136,6 +136,20 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                 <span className="text-2xl font-bold text-green-600">{laptop.formattedPrice}</span>
               </div>
 
+              {(laptop.promotions || []).length > 0 && (
+                <div className="space-y-3 rounded-xl border border-red-100 bg-red-50/70 p-4">
+                  <h4 className="font-semibold text-red-900">{t('tab_promotions', 'products')}</h4>
+                  <div className="space-y-2 text-sm text-red-900">
+                    {(laptop.promotions || []).map((promotion, index) => (
+                      <div key={`${promotion.type}-${promotion.title}-${index}`}>
+                        <p className="font-semibold">{promotion.title}</p>
+                        {promotion.discountText && <p className="mt-0.5 text-red-700">{promotion.discountText}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {Object.keys(laptop.specs || {}).length > 0 && (
                 <div className="space-y-3 rounded-xl border bg-gray-50 p-4">
                   <h4 className="font-semibold text-black">{t('specifications', 'products')}</h4>
