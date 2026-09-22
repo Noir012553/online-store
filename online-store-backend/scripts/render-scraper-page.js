@@ -16,7 +16,7 @@ const loadPlaywright = () => {
   return require('playwright');
 };
 
-const NAVIGATION_TIMEOUT_MS = Number(process.env.SCRAPER_NAVIGATION_TIMEOUT_MS || 45000);
+const NAVIGATION_TIMEOUT_MS = Number(process.env.SCRAPER_NAVIGATION_TIMEOUT_MS || 20000);
 
 const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_OUT)/i.test(
   String(error?.message || error),
@@ -59,6 +59,7 @@ const renderPage = async url => {
       await page.goto(url, { waitUntil: 'commit', timeout: NAVIGATION_TIMEOUT_MS });
     } catch (error) {
       if (!isNavigationTimeout(error)) throw error;
+      return await page.content().catch(() => '');
     }
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
     await page.waitForSelector('.news-html-content, h1, h3', { timeout: 10000 }).catch(() => {});
