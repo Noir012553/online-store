@@ -18,7 +18,9 @@ const loadPlaywright = () => {
 
 const NAVIGATION_TIMEOUT_MS = Number(process.env.SCRAPER_NAVIGATION_TIMEOUT_MS || 45000);
 
-const isNavigationTimeout = error => /timeout/i.test(String(error?.message || error));
+const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_OUT)/i.test(
+  String(error?.message || error),
+);
 
 const clickExpandableButtons = async page => {
   const patterns = [
