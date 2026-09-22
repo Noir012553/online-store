@@ -1284,8 +1284,9 @@ export default function Home() {
                   onScroll={(event) => handleInfiniteCarouselScroll(event, brands.length)}
                 >
                   {getRepeatedItems(brands).map((brand, index) => (
-                    <div
+                    <Link
                       key={`${brand._id}-${index}`}
+                      href={`/products?brand=${encodeURIComponent(brand.name)}`}
                       className="group flex min-w-[11rem] flex-[0_0_11rem] snap-start items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl sm:min-w-[13rem] sm:flex-[0_0_13rem] lg:min-w-[15rem] lg:flex-[0_0_15rem]"
                     >
                       <div className="relative flex h-20 w-full items-center justify-center">
@@ -1300,7 +1301,7 @@ export default function Home() {
                           <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
                 <button

@@ -19,7 +19,7 @@ export const getServerSideProps = async () => {
 
 export default function AllProductsPage() {
   const router = useRouter();
-  const { search } = router.query;
+  const { search, brand } = router.query;
   const { categories, isLoading: categoriesLoading } = useCategories();
   const { loadNamespace, t, locale } = useLanguage();
   const [totalProducts, setTotalProducts] = useState(0);
@@ -36,7 +36,8 @@ export default function AllProductsPage() {
     const requestId = ++searchRequestIdRef.current;
     const controller = new AbortController();
     const query = typeof search === 'string' ? search.trim() : '';
-    const isSearchRequest = Boolean(query);
+    const brandFilter = typeof brand === 'string' ? brand.trim() : '';
+    const isSearchRequest = Boolean(query || brandFilter);
 
     const fetchData = async () => {
       setIsSearchLoading(true);
@@ -46,10 +47,10 @@ export default function AllProductsPage() {
         try {
           const response = await productAPI.getProducts(
             1,
-            query,
+            query || undefined,
             undefined,
-            undefined,
-            100,
+            brandFilter || undefined,
+            brandFilter ? 500 : 100,
             undefined,
             undefined,
             undefined,
@@ -66,7 +67,13 @@ export default function AllProductsPage() {
           );
 
           if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
-          setSearchResults(response.products || []);
+          const products = response.products || [];
+          const normalizedBrand = brandFilter.toLocaleLowerCase();
+          setSearchResults(
+            brandFilter
+              ? products.filter((product: { brand?: unknown }) => String(product.brand || '').trim().toLocaleLowerCase() === normalizedBrand)
+              : products,
+          );
         } catch (error) {
           if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
           setSearchResults([]);
@@ -87,7 +94,7 @@ export default function AllProductsPage() {
           1,
           undefined,
           undefined,
-          undefined,
+          brandFilter || undefined,
           1,
           undefined,
           undefined,
@@ -119,10 +126,12 @@ export default function AllProductsPage() {
       searchRequestIdRef.current += 1;
       controller.abort();
     };
-  }, [search, locale]);
+  }, [search, brand, locale]);
 
 
   const isSearching = search && typeof search === 'string' && search.trim();
+  const brandFilter = brand && typeof brand === 'string' ? brand.trim() : '';
+  const isFilteringByBrand = Boolean(brandFilter);
 
   return (
     <div className="min-h-screen bg-white">
@@ -152,15 +161,17 @@ export default function AllProductsPage() {
               ))}
             </div>
           </div>
-        ) : isSearching ? (
+        ) : isSearching || isFilteringByBrand ? (
           <>
-            {/* Search Results */}
+            {/* Filtered Results */}
             <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t('search_results_title')}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">
+                {isFilteringByBrand ? brandFilter : t('search_results_title')}
+              </h1>
               <p className="text-xs sm:text-sm text-gray-600">
                 {interpolateTranslation(t('search_results_count'), {
                   count: searchResults.length,
-                  query: search,
+                  query: isFilteringByBrand ? brandFilter : typeof search === 'string' ? search : '',
                 })}
               </p>
             </div>
