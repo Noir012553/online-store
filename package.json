@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npm --prefix online-store-backend test",
-    "test:all": "npm --prefix online-store-backend run test:all"
+    "test:all": "npm --prefix online-store-backend run test:all",
+    "seed": "npm --prefix online-store-backend run seed --"
   },
   "keywords": [],
   "author": "",
