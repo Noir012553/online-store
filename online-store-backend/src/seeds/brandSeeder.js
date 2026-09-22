@@ -1,57 +1,52 @@
 const Brand = require('../models/Brand');
+const Product = require('../models/Product');
 const { getMessage } = require('../i18n/messages');
 
-const brandsData = [
-  {
-    name: "Dell",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/4/48/Dell_Logo.svg",
-    key: "dell",
-  },
-  {
-    name: "HP",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/a/ad/HP_logo_2012.svg",
-    key: "hp",
-  },
-  {
-    name: "Lenovo",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/Lenovo_logo_2015.svg",
-    key: "lenovo",
-  },
-  {
-    name: "Asus",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b0/ASUS_Corporate_Logo.svg",
-    key: "asus",
-  },
-  {
-    name: "Acer",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/0/00/Acer_2011.svg",
-    key: "acer",
-  },
-  {
-    name: "MSI",
-    logo: "https://upload.wikimedia.org/wikipedia/vi/6/6c/Msi_logo.png",
-    key: "msi",
-  },
-];
+const normalizeBrandName = value => String(value || '').trim().replace(/\s+/g, ' ');
+
+const createBrandKey = name => name
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
+const getImportedBrands = async () => {
+  const names = await Product.distinct('brand', { isDeleted: false });
+  const brands = new Map();
+
+  names.forEach(value => {
+    const name = normalizeBrandName(value);
+    const key = createBrandKey(name);
+    if (name && key && !brands.has(key)) {
+      brands.set(key, { name, key });
+    }
+  });
+
+  return [...brands.values()];
+};
 
 const seedBrands = async () => {
   try {
-    await Brand.bulkWrite(brandsData.map(brand => ({
-      updateOne: {
-        filter: { key: brand.key },
-        update: {
-          $set: {
-            name: brand.name,
-            logo: brand.logo,
-            isDeleted: false,
+    const brandsData = await getImportedBrands();
+
+    if (brandsData.length > 0) {
+      await Brand.bulkWrite(brandsData.map(brand => ({
+        updateOne: {
+          filter: { key: brand.key },
+          update: {
+            $set: {
+              name: brand.name,
+              isDeleted: false,
+            },
+            $setOnInsert: {
+              key: brand.key,
+            },
           },
-          $setOnInsert: {
-            key: brand.key,
-          },
+          upsert: true,
         },
-        upsert: true,
-      },
-    })));
+      })));
+    }
 
     return Brand.find({ isDeleted: false });
   } catch (error) {

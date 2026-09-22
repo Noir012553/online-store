@@ -199,7 +199,6 @@ const SEED_PHASES = {
     'testimonialLabels',
     'users',
     'categories',
-    'brands',
     'banners',
     'customers',
     'shippingProviders',
@@ -207,7 +206,7 @@ const SEED_PHASES = {
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['brands', 'inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
