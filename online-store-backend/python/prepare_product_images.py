@@ -16,8 +16,6 @@ from scraper_paths import get_output_directory
 
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
-DOWNLOAD_ATTEMPTS = 3
-RETRY_BACKOFF_SECONDS = 1
 IMAGE_EXTENSIONS = {
     'image/jpeg': '.jpg',
     'image/png': '.png',
@@ -29,6 +27,22 @@ HEADERS = {
     'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
     'User-Agent': 'Mozilla/5.0 (compatible; LaptopStoreCrawler/1.0)',
     'Referer': 'https://gearvn.com/',
+}
+
+
+def _read_positive_int(name, fallback):
+    try:
+        value = int(os.getenv(name, fallback))
+    except (TypeError, ValueError):
+        return fallback
+    return value if value > 0 else fallback
+
+
+IMAGE_CONFIG = {
+    'connect_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_CONNECT_TIMEOUT_SECONDS', 15),
+    'read_timeout_seconds': _read_positive_int('SCRAPER_IMAGE_READ_TIMEOUT_SECONDS', 30),
+    'retry_attempts': _read_positive_int('SCRAPER_IMAGE_RETRY_ATTEMPTS', 3),
+    'retry_backoff_seconds': _read_positive_int('SCRAPER_IMAGE_RETRY_BACKOFF_SECONDS', 1),
 }
 
 
@@ -97,7 +111,10 @@ def download_image(source_url, destination_base, slot):
         with requests.get(
             source_url,
             headers=HEADERS,
-            timeout=(15, 30),
+            timeout=(
+                IMAGE_CONFIG['connect_timeout_seconds'],
+                IMAGE_CONFIG['read_timeout_seconds'],
+            ),
             stream=True,
             allow_redirects=True,
         ) as response:
@@ -141,14 +158,14 @@ def download_image(source_url, destination_base, slot):
 
 def download_image_with_retry(source_url, destination_base, slot):
     last_error = None
-    for attempt in range(DOWNLOAD_ATTEMPTS):
+    for attempt in range(IMAGE_CONFIG['retry_attempts']):
         try:
             return download_image(source_url, destination_base, slot)
         except Exception as error:
             last_error = error
-            if not _is_retryable_download_error(error) or attempt == DOWNLOAD_ATTEMPTS - 1:
+            if not _is_retryable_download_error(error) or attempt == IMAGE_CONFIG['retry_attempts'] - 1:
                 raise
-            time.sleep(RETRY_BACKOFF_SECONDS * (2 ** attempt))
+            time.sleep(IMAGE_CONFIG['retry_backoff_seconds'] * (2 ** attempt))
     raise last_error
 
 

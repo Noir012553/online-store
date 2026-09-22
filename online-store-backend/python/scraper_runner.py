@@ -32,13 +32,28 @@ HEADERS = {
     "Referer": "https://gearvn.com/",
 }
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
-MAX_ATTEMPTS = 3
 DEFAULT_MAX_WORKERS = 4
 MAX_MAX_WORKERS = 8
-DYNAMIC_RENDER_TIMEOUT_SECONDS = 45
 SCRAPE_SOURCE = "gearvn"
 DEFAULT_PARSER_VERSION = "product-v2"
 RENDERER_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render-scraper-page.js"
+
+
+def _read_positive_int(name, fallback):
+    try:
+        value = int(os.getenv(name, fallback))
+    except (TypeError, ValueError):
+        return fallback
+    return value if value > 0 else fallback
+
+
+SCRAPER_CONFIG = {
+    "request_timeout_seconds": _read_positive_int("SCRAPER_REQUEST_TIMEOUT_SECONDS", 10),
+    "retry_attempts": _read_positive_int("SCRAPER_RETRY_ATTEMPTS", 3),
+    "retry_backoff_seconds": _read_positive_int("SCRAPER_RETRY_BACKOFF_SECONDS", 1),
+    "dynamic_render_timeout_seconds": _read_positive_int("SCRAPER_DYNAMIC_RENDER_TIMEOUT_SECONDS", 45),
+}
+
 _dynamic_render_lock = threading.Lock()
 _thread_local = threading.local()
 
@@ -59,7 +74,9 @@ def get_max_workers():
     return min(max(configured, 1), MAX_MAX_WORKERS)
 
 
-def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep=None):
+def fetch_html(url, *, headers=HEADERS, timeout=None, attempts=None, sleep=None):
+    timeout = timeout or SCRAPER_CONFIG["request_timeout_seconds"]
+    attempts = attempts or SCRAPER_CONFIG["retry_attempts"]
     sleep = sleep or time.sleep
     for attempt in range(attempts):
         try:
@@ -68,7 +85,7 @@ def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep
             if attempt == attempts - 1:
                 print(f"Lỗi request {url}: {error}")
                 return None
-            sleep(2 ** attempt)
+            sleep(SCRAPER_CONFIG["retry_backoff_seconds"] * (2 ** attempt))
             continue
 
         if response.status_code == 200:
@@ -77,7 +94,7 @@ def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep
             print(f"HTTP {response.status_code} khi đọc {url}")
             return None
         if attempt < attempts - 1:
-            sleep(2 ** attempt)
+            sleep(SCRAPER_CONFIG["retry_backoff_seconds"] * (2 ** attempt))
 
     return None
 
@@ -316,7 +333,8 @@ def _is_recoverable_dynamic_render_error(error):
     ))
 
 
-def render_product_html(url, timeout=DYNAMIC_RENDER_TIMEOUT_SECONDS):
+def render_product_html(url, timeout=None):
+    timeout = timeout or SCRAPER_CONFIG["dynamic_render_timeout_seconds"]
     completed = subprocess.run(
         [_node_command(), str(RENDERER_SCRIPT), url],
         check=False,
