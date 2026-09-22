@@ -16,6 +16,10 @@ const loadPlaywright = () => {
   return require('playwright');
 };
 
+const NAVIGATION_TIMEOUT_MS = Number(process.env.SCRAPER_NAVIGATION_TIMEOUT_MS || 45000);
+
+const isNavigationTimeout = error => /timeout/i.test(String(error?.message || error));
+
 const clickExpandableButtons = async page => {
   const patterns = [
     /xem thêm/i,
@@ -49,10 +53,13 @@ const renderPage = async url => {
     page = await browser.newPage({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
     });
-    await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
-    await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForSelector('.news-html-content, h1, h3', { timeout: 15000 }).catch(() => {});
+    try {
+      await page.goto(url, { waitUntil: 'commit', timeout: NAVIGATION_TIMEOUT_MS });
+    } catch (error) {
+      if (!isNavigationTimeout(error)) throw error;
+    }
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    await page.waitForSelector('.news-html-content, h1, h3', { timeout: 10000 }).catch(() => {});
     baselineHtml = await page.content();
     if (!await clickExpandableButtons(page)) return baselineHtml;
     await page.waitForTimeout(500);
