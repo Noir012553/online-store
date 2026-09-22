@@ -324,6 +324,15 @@ export default function Home() {
     });
   }, [heroSlidesToRender.length]);
 
+  useEffect(() => {
+    const carousel = brandCarouselRef.current;
+    if (!carousel || brands.length <= 1) return;
+
+    requestAnimationFrame(() => {
+      carousel.scrollLeft = carousel.scrollWidth / 3;
+    });
+  }, [brands.length]);
+
   // Fetch products from backend
   useEffect(() => {
     if (!isHydrated || isLoadingCategories) {
@@ -1272,10 +1281,11 @@ export default function Home() {
                   aria-label={t('brands_title', 'products')}
                   tabIndex={0}
                   className="hide-scrollbar flex min-w-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 touch-pan-x sm:gap-6"
+                  onScroll={(event) => handleInfiniteCarouselScroll(event, brands.length)}
                 >
-                  {brands.map((brand) => (
+                  {getRepeatedItems(brands).map((brand, index) => (
                     <div
-                      key={brand._id}
+                      key={`${brand._id}-${index}`}
                       className="group flex min-w-[11rem] flex-[0_0_11rem] snap-start items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl sm:min-w-[13rem] sm:flex-[0_0_13rem] lg:min-w-[15rem] lg:flex-[0_0_15rem]"
                     >
                       <div className="relative flex h-20 w-full items-center justify-center">
