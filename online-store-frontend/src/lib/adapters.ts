@@ -206,7 +206,12 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
 
     // Preserve the category returned by the backend without inventing a value.
     if (normalized.category && typeof normalized.category === 'object') {
-      const categoryName = normalized.category.name || normalized.categoryName;
+      const categoryName = normalized.category.name
+        || normalized.categoryName
+        || normalized.category.key
+        || normalized.category.slug
+        || normalized.category._id
+        || normalized.category.id;
       normalized.categoryId = normalized.category._id || normalized.category.id;
       if (typeof categoryName === 'string' && categoryName.trim()) {
         normalized.categoryName = categoryName.trim();
@@ -254,18 +259,12 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
 
     if (promotionSpecEntries.length > 0) {
       const promotionKeys = new Set(promotionSpecEntries.map(([key]) => key));
-      const migratedPromotions: ProductPromotion[] = promotionSpecEntries.map(([key, value]) => ({
-        type: 'Discount',
-        title: data.specLabels?.[key] || specDisplayByField.get(key)?.label || key,
-        discountText: String(value),
-      }));
 
       data = {
         ...data,
         specs: Object.fromEntries(Object.entries(data.specs).filter(([key]) => !promotionKeys.has(key))),
         specLabels: Object.fromEntries(Object.entries(data.specLabels || {}).filter(([key]) => !promotionKeys.has(key))),
         specDisplay: (data.specDisplay || []).filter((spec) => !promotionKeys.has(spec.field)),
-        promotions: [...(data.promotions || []), ...migratedPromotions],
       };
     }
 
