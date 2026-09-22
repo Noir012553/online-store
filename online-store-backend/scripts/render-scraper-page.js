@@ -44,11 +44,13 @@ const renderPage = async url => {
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch({ headless: true });
   let baselineHtml = '';
+  let page;
   try {
-    const page = await browser.newPage({
+    page = await browser.newPage({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
     });
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
+    await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
     await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
     await page.waitForSelector('.news-html-content, h1, h3', { timeout: 15000 }).catch(() => {});
     baselineHtml = await page.content();
@@ -56,6 +58,9 @@ const renderPage = async url => {
     await page.waitForTimeout(500);
     return page.isClosed() ? baselineHtml : await page.content();
   } catch (error) {
+    if (!baselineHtml && page && !page.isClosed()) {
+      baselineHtml = await page.content().catch(() => '');
+    }
     if (baselineHtml) return baselineHtml;
     throw error;
   } finally {

@@ -36,16 +36,24 @@ const brandsData = [
 
 const seedBrands = async () => {
   try {
-    // Check if brands already exist
-    const existingBrands = await Brand.find({ isDeleted: false });
+    await Brand.bulkWrite(brandsData.map(brand => ({
+      updateOne: {
+        filter: { key: brand.key },
+        update: {
+          $set: {
+            name: brand.name,
+            logo: brand.logo,
+            isDeleted: false,
+          },
+          $setOnInsert: {
+            key: brand.key,
+          },
+        },
+        upsert: true,
+      },
+    })));
 
-    if (existingBrands.length > 0) {
-      return existingBrands;
-    }
-
-    // Insert all brands
-    const createdBrands = await Brand.insertMany(brandsData);
-    return createdBrands;
+    return Brand.find({ isDeleted: false });
   } catch (error) {
     const { getDefaultLanguage } = require('../config/languageInventory');
     const seedLang = getDefaultLanguage().code.toUpperCase();
