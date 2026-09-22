@@ -86,27 +86,31 @@ export function getSafeReturnPath(value: unknown): string {
   }
 }
 
-export function getImageUrl(imagePath?: string | null): string | undefined {
-  if (!imagePath) {
+export interface ImageAssetReference {
+  publicUrl?: string | null;
+  url?: string | null;
+}
+
+export function getImageUrl(
+  imagePath?: string | ImageAssetReference | null,
+): string | undefined {
+  const rawPath = typeof imagePath === 'string'
+    ? imagePath
+    : imagePath?.publicUrl || imagePath?.url;
+
+  if (!rawPath) {
     return undefined;
   }
 
-  // If already absolute URL (http/https), return as-is (external image)
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
+  const trimmedPath = rawPath.trim();
+  if (!trimmedPath) {
+    return undefined;
   }
 
-  // Normalize backslashes to forward slashes (Windows path compatibility)
-  let normalizedPath = imagePath.replace(/\\/g, '/');
-
-  // For relative paths (e.g., "/uploads/..."), return normalized
-  // Next.js will rewrite /uploads/* → backend's /uploads/*
-  if (normalizedPath.startsWith('/')) {
-    return normalizedPath;
+  if (trimmedPath.startsWith('http://') || trimmedPath.startsWith('https://')) {
+    return trimmedPath;
   }
 
-  // For paths without leading slash, add it
-  // (e.g., "uploads/..." → "/uploads/...")
-  const result = `/${normalizedPath}`;
-  return result;
+  const normalizedPath = trimmedPath.replaceAll(String.fromCharCode(92), '/');
+  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
 }

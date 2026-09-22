@@ -65,6 +65,20 @@ function buildLocalizedUrl(endpoint: string): string {
   return `${endpoint}${separator}lang=${currentLang}`;
 }
 
+export interface R2AssetReference {
+  [key: string]: unknown;
+  sourceUrl?: string | null;
+  storageProvider: 'r2';
+  storageAccount: string;
+  bucket: string;
+  storageKey: string;
+  publicUrl: string;
+  publicId: string;
+  contentHash: string;
+  mimeType: string;
+  bytes: number;
+}
+
 export interface BackendProduct {
   _id: string;
   id?: string;
@@ -79,7 +93,9 @@ export interface BackendProduct {
   formattedOriginalPrice?: string;
   discountPercentage?: number;
   image?: string;
+  imageAsset?: R2AssetReference | null;
   images?: string[];
+  imageAssets?: R2AssetReference[];
   rating?: number;
   numReviews?: number;
   reviews?: number | unknown[];
@@ -1575,6 +1591,15 @@ export interface CouponData {
   isActive?: boolean;
 }
 
+export interface BrandRecord {
+  _id: string;
+  name: string;
+  logo?: string | null;
+  logoAsset?: R2AssetReference | null;
+  description?: string | null;
+  key?: string | null;
+}
+
 export interface BannerRecord {
   _id: string;
   title: string;
@@ -1584,6 +1609,7 @@ export interface BannerRecord {
   targetUrl?: string;
   image: string;
   imagePublicId?: string | null;
+  imageAsset?: R2AssetReference | null;
   slot: string;
   sortOrder?: number;
   isActive?: boolean;

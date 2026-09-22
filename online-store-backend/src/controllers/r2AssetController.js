@@ -3,8 +3,8 @@ const { uploadAsset } = require('../services/r2AssetService');
 
 const FOLDERS_BY_ROLE = {
   user: ['users', 'reviewers'],
-  admin: ['admins', 'users', 'reviewers', 'banners'],
-  'super-admin': ['admins', 'users', 'reviewers', 'banners'],
+  admin: ['admins', 'users', 'reviewers', 'banners', 'brands'],
+  'super-admin': ['admins', 'users', 'reviewers', 'banners', 'brands'],
 };
 
 const ROLE_BY_FOLDER = {
@@ -12,6 +12,7 @@ const ROLE_BY_FOLDER = {
   users: 'avatar',
   reviewers: 'review',
   banners: 'banner',
+  brands: 'brand',
 };
 
 const uploadR2Asset = asyncHandler(async (req, res) => {

@@ -2,6 +2,18 @@ import { z } from 'zod';
 import { Laptop, ProductDescriptionImage, ProductPromotion } from './data';
 
 const PROMOTION_SPEC_PATTERN = /(?:giảm|giam|khuyến mãi|khuyen mai|ưu đãi|uu dai|offer|discount|promotion|hssv|sinh viên|sinh vien|student)/i;
+const ASSET_REFERENCE_SCHEMA = z.object({
+  sourceUrl: z.string().nullable().optional(),
+  storageProvider: z.literal('r2'),
+  storageAccount: z.string(),
+  bucket: z.string(),
+  storageKey: z.string(),
+  publicUrl: z.string(),
+  publicId: z.string(),
+  contentHash: z.string(),
+  mimeType: z.string(),
+  bytes: z.number(),
+}).passthrough();
 
 /**
  * Base Adapter class to handle data transformation and validation
@@ -73,7 +85,9 @@ export const LaptopSchema = z.object({
   formattedOriginalPrice: z.string().optional(),
   discountPercentage: z.number().optional(),
   image: z.string().trim().min(1),
+  imageAsset: ASSET_REFERENCE_SCHEMA.nullable().optional(),
   images: z.array(z.string()).default([]),
+  imageAssets: z.array(ASSET_REFERENCE_SCHEMA).default([]),
   rating: z.number().default(0),
   reviews: z.number().default(0),
   inStock: z.boolean().optional(),
@@ -97,6 +111,7 @@ export const LaptopSchema = z.object({
   descriptionImages: z.array(z.object({
     url: z.string().trim().min(1),
     alt: z.string().optional(),
+    asset: ASSET_REFERENCE_SCHEMA.nullable().optional(),
   })).default([]),
   promotions: z.array(z.object({
     type: z.string().trim().min(1),
@@ -176,6 +191,7 @@ export class ProductAdapter extends BaseAdapter<any, Laptop> {
           return url ? {
             url,
             alt: typeof image.alt === 'string' ? image.alt : undefined,
+            asset: image.asset && typeof image.asset === 'object' ? image.asset : undefined,
           } : null;
         })
         .filter((image: ProductDescriptionImage | null): image is ProductDescriptionImage => Boolean(image))
