@@ -1,4 +1,4 @@
-import { ShoppingCart, Star, Eye, Flame, Gift } from "lucide-react";
+import { ShoppingCart, Star, Eye, Flame } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal, isShockDiscount } from "../lib/data";
@@ -186,18 +186,6 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
               </div>
 
               <div className="mb-3 min-h-20 space-y-1.5 text-xs leading-4 text-gray-600 sm:min-h-32">
-                {(convertedLaptop.promotions || []).slice(0, 2).map((promotion, index) => (
-                  <div key={`${promotion.type}-${promotion.title}-${index}`} className="rounded-md border border-red-100 bg-red-50/70 px-2 py-1.5 text-red-900">
-                    <span className="flex items-center gap-1 font-semibold">
-                      <Gift className="h-3.5 w-3.5 shrink-0" />
-                      {t('tab_promotions', 'products')}:
-                    </span>
-                    <span className="block line-clamp-2 pl-[1.125rem]">{promotion.title}</span>
-                    {promotion.discountText && (
-                      <span className="block pl-[1.125rem] text-red-700">{promotion.discountText}</span>
-                    )}
-                  </div>
-                ))}
                 {(() => {
                   const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
                   if (specEntries.length === 0) {
