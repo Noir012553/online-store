@@ -14,7 +14,8 @@ PRODUCT_OUTPUT_FIELDS = (
     "ProductRegularPriceVND", "ProductCategory",
     "ProductSpecifications", "ProductTechnicalDescription", "ProductDescription",
     "ProductDescriptionImages", "ProductPromotions", "ProductMainImage",
-    "ProductGalleryImages", "ProductURL",
+    "ProductMainImageLocalPath", "ProductGalleryImages", "ProductGalleryImageLocalPaths",
+    "ProductURL",
 )
 
 _PRODUCT_CARD_MARKERS = (

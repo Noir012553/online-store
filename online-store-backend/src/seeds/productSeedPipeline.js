@@ -296,7 +296,7 @@ const uploadProductImages = async (product) => {
   for (let index = 0; index < (Array.isArray(product.descriptionImages) ? product.descriptionImages.length : 0); index += 1) {
     const descriptionImage = product.descriptionImages[index];
     const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
-    const source = descriptionEntry.url || descriptionEntry.sourceUrl;
+    const source = descriptionEntry.url ?? descriptionEntry.sourceUrl;
     if (!source) continue;
     try {
       const uploadedImage = await uploadProductImage(

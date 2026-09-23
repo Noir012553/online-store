@@ -15,6 +15,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+from prepare_product_images import process_file as process_product_images
 from scraper_paths import (
     PRODUCT_OUTPUT_FIELDS,
     collect_product_links,
@@ -272,7 +273,9 @@ def _product_record(soup, url, brand, categories):
         "ProductDescriptionImages": extract_product_description_images(soup),
         "ProductPromotions": extract_product_promotions(soup),
         "ProductMainImage": image_urls[0] if image_urls else "",
+        "ProductMainImageLocalPath": "",
         "ProductGalleryImages": image_urls[1:],
+        "ProductGalleryImageLocalPaths": [],
         "ProductURL": url,
     }
 
@@ -466,6 +469,23 @@ def run_scraper(script_path, collection_slug):
     )
     file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{run_id}"
     csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
+    main_image_failures, gallery_image_failures = process_product_images(
+        json_path,
+        json_path.parent,
+        batch_id=run_id,
+    )
+    records = json.loads(json_path.read_text(encoding="utf-8"))
+    staging_records = build_staging_records(
+        records,
+        run_id,
+        captured_at.isoformat().replace("+00:00", "Z"),
+        parser_version,
+    )
+    csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
+    for failure in main_image_failures:
+        print(f"⚠️ Không tải được ảnh chính: {failure}")
+    for failure in gallery_image_failures:
+        print(f"⚠️ Không tải được ảnh gallery: {failure}")
     print(f">>> Hoàn thành: {len(records)} sản phẩm")
     print(f"- {csv_path}")
     print(f"- {json_path}")
