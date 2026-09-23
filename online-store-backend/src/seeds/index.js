@@ -12,7 +12,7 @@ const translationReporter = require('../utils/translationReporter');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { connectMongo } = require('../config/mongoConnection');
 const validationConfig = require('../config/translationValidation');
-const { runProductSeedPipeline } = require('./productSeedPipeline');
+const { runProductSeedPipeline, runScraper } = require('./productSeedPipeline');
 
 /**
  * ==================== SEEDS - Database Initialization ====================
@@ -21,7 +21,7 @@ const { runProductSeedPipeline } = require('./productSeedPipeline');
  * ⚡ LAYER 1 (i18n) được ưu tiên chạy trước tất cả entities khác
  *
  * Cách dùng:
- * npm run seed                                  - Chạy toàn bộ crawler, seed, import, dịch và post-products
+ * npm run seed                                  - Cào dữ liệu trước, sau đó seed, import, dịch và post-products
  * npm run seed -- --dry-run                     - Seed nền và preview import, không ghi Product hoặc gọi crawler
  * npm run seed -- --incremental                 - Only translate missing items
  * npm run seed:post-products                    - Seed dữ liệu phụ thuộc sau khi import Product
@@ -183,6 +183,17 @@ const seed = async () => {
       seedLogger.log(`${CLI_SYMBOLS.globe} i18n ONLY (LAYER 1): Seeding languages, translations and spec labels\n`);
     }
 
+    const isFullProductSeed = cliArgs.all
+      || (!cliArgs.phase && !cliArgs.onlyModule && !cliArgs.modules && !cliArgs.i18nOnly);
+    const hasExplicitProductInput = Boolean(cliArgs.file || cliArgs.directory);
+    let scrapedBeforeSeed = false;
+
+    if (isFullProductSeed && !cliArgs.dryRun && !cliArgs.skipScrape && !hasExplicitProductInput) {
+      seedLogger.log(`${CLI_SYMBOLS.progress} Crawler chạy trước các module seed để tạo dữ liệu sản phẩm mới\n`);
+      await runScraper(cliArgs.scrapeTarget || 'all');
+      scrapedBeforeSeed = true;
+    }
+
     // ==================== Resolve modules to run ====================
     let modulesToRun = [];
 
@@ -212,7 +223,7 @@ const seed = async () => {
       if (runFullPipeline) {
         modulesToRun.push('__product-pipeline__');
         if (!cliArgs.dryRun) modulesToRun.push(...SEED_PHASES.postProducts);
-        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: About Media -> baseline -> crawler/import -> translation -> post-products\n`);
+        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: crawler -> baseline -> import -> translation -> post-products\n`);
       } else {
         seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
       }
@@ -254,7 +265,7 @@ const seed = async () => {
           forceScrape: cliArgs.forceScrape,
           languages: cliArgs.languages,
           batchSize: cliArgs.batchSize,
-          skipScrape: cliArgs.skipScrape,
+          skipScrape: cliArgs.skipScrape || scrapedBeforeSeed,
           skipTranslate: cliArgs.skipTranslate,
         });
         seedLogger.log(`${CLI_SYMBOLS.success} Product pipeline completed: ${JSON.stringify(pipelineSummary)}\n`);
