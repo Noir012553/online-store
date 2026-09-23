@@ -1,22 +1,4 @@
 #!/bin/bash
+set -euo pipefail
 
-echo ""
-echo "🚀 RUNNING TRANSLATION SEEDER..."
-echo "================================"
-echo ""
-
-# Run seeder
-node src/seeds/translationSeeder.js
-
-echo ""
-echo "✅ SEEDER COMPLETED!"
-echo ""
-echo "🔍 Now running diagnostic..."
-echo "=============================="
-echo ""
-
-# Run diagnostic
-node src/scripts/diagnose-i18n.js
-
-echo ""
-echo "✨ All done! Check footer in browser now."
+node scripts/seed-and-verify.js
