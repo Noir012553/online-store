@@ -293,8 +293,26 @@ def get_output_paths(file_prefix):
     )
 
 
+_DESCRIPTION_SELECTORS = (
+    '.news-html-content',
+    '[data-product-description]',
+    '[data-description]',
+    '.product-description',
+    '.product__description',
+    '[class*="product-description"]',
+)
+
+
+def _description_container(soup):
+    for selector in _DESCRIPTION_SELECTORS:
+        for content in soup.select(selector):
+            if content.get_text(" ", strip=True) or content.select_one("img"):
+                return content
+    return None
+
+
 def extract_product_description(soup):
-    content = soup.select_one('.news-html-content')
+    content = _description_container(soup)
     if not content:
         return ""
 
@@ -309,7 +327,7 @@ def extract_product_description(soup):
 
 
 def extract_product_description_images(soup):
-    content = soup.select_one('.news-html-content')
+    content = _description_container(soup)
     if not content:
         return []
 
@@ -332,13 +350,24 @@ def _parse_vnd_value(value):
     return int(digits) if digits else None
 
 
+_PROMOTION_TITLES = {
+    "ưu đãi đi kèm",
+    "khuyến mãi",
+    "khuyến mại",
+    "quà tặng",
+    "promotion",
+    "promotions",
+    "offers",
+}
+
+
 def _promotion_section(soup):
-    for section in soup.find_all("section"):
-        title_node = section.find(
-            string=lambda value: str(value or "").strip().casefold() == "ưu đãi đi kèm"
-        )
-        if title_node:
-            return section
+    for title_node in soup.find_all(string=lambda value: str(value or "").strip().casefold() in _PROMOTION_TITLES):
+        for parent in title_node.parents:
+            if parent.name not in {"div", "section", "aside"}:
+                continue
+            if parent.find("p") or parent.find("a"):
+                return parent
     return None
 
 
@@ -417,6 +446,40 @@ def _absolute_image_url(value, base_url="https://gearvn.com"):
     return urljoin(base_url, value)
 
 
+def _iter_json_ld_values(value):
+    if isinstance(value, list):
+        for item in value:
+            yield from _iter_json_ld_values(item)
+    elif isinstance(value, dict):
+        yield value
+        for nested in value.values():
+            if isinstance(nested, (dict, list)):
+                yield from _iter_json_ld_values(nested)
+
+
+def _json_ld_product_images(soup):
+    images = []
+    for script in soup.select('script[type="application/ld+json"]'):
+        try:
+            payload = json.loads(script.string or script.get_text())
+        except (TypeError, ValueError):
+            continue
+        for value in _iter_json_ld_values(payload):
+            types = value.get("@type", [])
+            types = types if isinstance(types, list) else [types]
+            if not any(str(item).casefold() == "product" for item in types):
+                continue
+            image_values = value.get("image", [])
+            image_values = image_values if isinstance(image_values, list) else [image_values]
+            for image in image_values:
+                if isinstance(image, dict):
+                    image = image.get("url") or image.get("contentUrl")
+                url = _absolute_image_url(image)
+                if url and url not in images:
+                    images.append(url)
+    return images
+
+
 def _parse_price_value(value):
     digits = "".join(character for character in str(value or "") if character.isdigit())
     return int(digits) if digits else None
@@ -490,8 +553,6 @@ def extract_product_image_urls(soup):
     # Keep the explicit GearVN main image first, followed by thumbnails in DOM order.
     add_images(soup.select('button[aria-label^="Xem ảnh sản phẩm"] img'))
     add_images(soup.select('img[alt^="Thumbnail "]'))
-    if urls:
-        return urls
 
     gallery_selectors = (
         '[data-product-gallery] img',
@@ -504,8 +565,13 @@ def extract_product_image_urls(soup):
     for selector in gallery_selectors:
         add_images(soup.select(selector))
 
+    for url in _json_ld_product_images(soup):
+        if url not in seen:
+            seen.add(url)
+            urls.append(url)
+
     if not urls:
-        og_image = soup.select_one('meta[property="og:image"]')
+        og_image = soup.select_one('meta[property="og:image"], meta[property="og:image:secure_url"]')
         if og_image:
             url = _absolute_image_url(og_image.get("content"))
             if url:

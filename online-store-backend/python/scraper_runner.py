@@ -141,13 +141,29 @@ def _is_specs_section(section):
     return "thông số" in heading_text or "kỹ thuật" in heading_text
 
 
+_SPEC_EXCLUDED_MARKERS = (
+    "ưu đãi",
+    "khuyến mãi",
+    "khuyến mại",
+    "tặng ngay",
+    "mua ngay",
+    "thêm vào giỏ",
+    "giao tận nơi",
+)
+
+
+def _is_valid_spec_value(value):
+    normalized = value.casefold()
+    return bool(value) and not any(marker in normalized for marker in _SPEC_EXCLUDED_MARKERS)
+
+
 def _extract_spec_value(grid_item, label_node):
-    candidates = grid_item.find_all(["p", "span", "dd", "div"])
+    candidates = grid_item.find_all(["p", "span", "dd", "div"], recursive=False)
     for candidate in candidates:
         if candidate is label_node:
             continue
         value = _normalized_text(candidate.get_text(" ", strip=True))
-        if value:
+        if _is_valid_spec_value(value):
             return value
     return ""
 
@@ -183,12 +199,22 @@ def _extract_spec_items(container):
 
 
 def extract_product_specs(soup):
-    for section in soup.find_all("section"):
-        if _is_specs_section(section):
-            specs = _extract_spec_items(section)
-            if specs:
-                return specs
-    return _extract_spec_items(soup)
+    containers = [
+        section
+        for section in soup.find_all("section")
+        if _is_specs_section(section)
+    ]
+    if not containers:
+        containers = soup.select(
+            '[data-product-specifications], [data-specifications], [data-specs], '
+            '.product-specifications, .product__specifications, [class*="specification"]'
+        )
+
+    for container in containers:
+        specs = _extract_spec_items(container)
+        if specs:
+            return specs
+    return {}
 
 
 def _canonical_product_url(url):
@@ -231,6 +257,7 @@ def _product_record(soup, url, brand, categories):
         return None
     sku = str(json_ld.get("sku") or "").strip()
     specs = extract_product_specs(soup)
+    description = extract_product_description(soup) or _normalized_text(json_ld.get("description"))
     return {
         "ProductBrand": brand,
         "ProductID": url.rstrip("/").split("/")[-1],
@@ -241,7 +268,7 @@ def _product_record(soup, url, brand, categories):
         "ProductCategory": categories,
         "ProductSpecifications": specs,
         "ProductTechnicalDescription": "Thông số: " + json.dumps(specs, ensure_ascii=False),
-        "ProductDescription": extract_product_description(soup),
+        "ProductDescription": description,
         "ProductDescriptionImages": extract_product_description_images(soup),
         "ProductPromotions": extract_product_promotions(soup),
         "ProductMainImage": image_urls[0] if image_urls else "",

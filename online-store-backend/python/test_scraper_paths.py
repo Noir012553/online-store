@@ -6,6 +6,7 @@ from scraper_paths import (
     collect_product_links,
     extract_product_description,
     extract_product_description_images,
+    extract_product_image_urls,
     extract_product_promotions,
     parse_scraper_metadata,
     product_matches_collection,
@@ -132,6 +133,33 @@ class ScraperPathsTest(unittest.TestCase):
                 },
             ],
         )
+
+    def test_supports_alternative_description_and_json_ld_gallery(self):
+        soup = BeautifulSoup(
+            """
+            <div class="product-description">
+              <h2>Thiết kế bàn phím</h2>
+              <p>Keycap PBT và kết nối không dây.</p>
+              <img src="https://cdn.example.com/description.jpg" alt="Chi tiết sản phẩm">
+            </div>
+            <script type="application/ld+json">
+              {"@type":"Product","image":["https://cdn.example.com/main.jpg", "https://cdn.example.com/gallery.jpg"]}
+            </script>
+            <div class="promotion-box">
+              <h3>Khuyến mãi</h3>
+              <p>Tặng ngay 1 x Kê tay</p>
+            </div>
+            """,
+            "html.parser",
+        )
+
+        self.assertIn("Thiết kế bàn phím", extract_product_description(soup))
+        self.assertEqual(len(extract_product_description_images(soup)), 1)
+        self.assertEqual(
+            extract_product_image_urls(soup),
+            ["https://cdn.example.com/main.jpg", "https://cdn.example.com/gallery.jpg"],
+        )
+        self.assertEqual(extract_product_promotions(soup)[0]["ProductPromotionType"], "Gift")
 
     def test_rejects_product_url_as_collection_context(self):
         self.assertFalse(
