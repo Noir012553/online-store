@@ -130,10 +130,15 @@ class BaseImportAdapter {
       : product.Description;
     normalized.descriptionImages = isNewCrawlerProduct
       ? (Array.isArray(product.ProductDescriptionImages)
-        ? product.ProductDescriptionImages.map(image => ({
-          url: image?.ProductDescriptionImageURL || image?.url,
-          alt: image?.ProductDescriptionImageAlt || image?.alt || '',
-        }))
+        ? product.ProductDescriptionImages.map(image => {
+          const sourceUrl = image?.ProductDescriptionImageURL || image?.url || image?.sourceUrl;
+          const hasLocalPath = Object.hasOwn(image || {}, 'ProductDescriptionImageLocalPath');
+          return {
+            url: image?.ProductDescriptionImageLocalPath || (hasLocalPath ? '' : sourceUrl),
+            sourceUrl,
+            alt: image?.ProductDescriptionImageAlt || image?.alt || '',
+          };
+        })
         : product.ProductDescriptionImages)
       : undefined;
     normalized.promotions = isNewCrawlerProduct
@@ -150,8 +155,19 @@ class BaseImportAdapter {
         }))
         : product.ProductPromotions)
       : undefined;
-    normalized.image = getCrawlerValue('ProductMainImage', 'MainImage');
-    normalized.images = parseCrawlerArray(getCrawlerValue('ProductGalleryImages', 'GalleryImages'));
+    const sourceMainImage = getCrawlerValue('ProductMainImage', 'MainImage');
+    const localMainImage = isNewCrawlerProduct ? product.ProductMainImageLocalPath : product.MainImageLocalPath;
+    const sourceGalleryImages = parseCrawlerArray(getCrawlerValue('ProductGalleryImages', 'GalleryImages'));
+    const localGalleryImages = parseCrawlerArray(
+      isNewCrawlerProduct ? product.ProductGalleryImageLocalPaths : product.GalleryImageLocalPaths,
+    );
+    normalized.image = localMainImage || sourceMainImage;
+    const hasLocalGallery = Array.isArray(localGalleryImages);
+    normalized.images = Array.isArray(sourceGalleryImages)
+      ? sourceGalleryImages.map((image, index) => (
+        hasLocalGallery ? localGalleryImages[index] || '' : image
+      ))
+      : sourceGalleryImages;
     const configuredInitialStock = this.config.initialStock;
     const initialStock = Number.isInteger(configuredInitialStock) && configuredInitialStock >= 0
       ? configuredInitialStock

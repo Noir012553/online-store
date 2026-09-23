@@ -21,7 +21,7 @@ const { uploadAsset } = require('../services/r2AssetService');
 
 const backendRoot = path.resolve(__dirname, '../..');
 const scraperRoot = backendRoot;
-const defaultProductDirectory = path.join(backendRoot, 'data', 'scraped-products');
+const defaultProductDirectory = path.join(backendRoot, 'data', 'scraped-products', 'current');
 
 const getProductDataDirectory = () => {
   const configuredDirectory = process.env.SCRAPER_OUTPUT_DIR;
@@ -88,27 +88,39 @@ const runScraper = async (scrapeTarget = 'all') => {
 const chooseProductFiles = (directory) => {
   if (!fs.existsSync(directory)) return [];
 
-  const candidates = fs.readdirSync(directory, { withFileTypes: true })
-    .filter(entry => (
-      entry.isFile()
-      && ['.json', '.csv'].includes(path.extname(entry.name).toLowerCase())
-      && !entry.name.toLowerCase().endsWith('.staging.json')
-    ))
-    .map(entry => entry.name);
+  const ignoredDirectories = new Set(['images', 'manifests', 'staging', 'archive']);
+  const candidates = [];
+  const visit = currentDirectory => {
+    fs.readdirSync(currentDirectory, { withFileTypes: true }).forEach((entry) => {
+      const entryPath = path.join(currentDirectory, entry.name);
+      if (entry.isDirectory()) {
+        if (!ignoredDirectories.has(entry.name.toLowerCase())) visit(entryPath);
+        return;
+      }
+      const extension = path.extname(entry.name).toLowerCase();
+      if (
+        ['.json', '.csv'].includes(extension)
+        && !entry.name.toLowerCase().endsWith('.staging.json')
+      ) {
+        candidates.push(entryPath);
+      }
+    });
+  };
+  visit(directory);
 
   const grouped = new Map();
-  candidates.forEach((filename) => {
-    const basename = filename.slice(0, -path.extname(filename).length);
-    const current = grouped.get(basename) || {};
-    current[path.extname(filename).toLowerCase().slice(1)] = filename;
-    grouped.set(basename, current);
+  candidates.forEach((filePath) => {
+    const basename = path.basename(filePath, path.extname(filePath));
+    const groupKey = path.join(path.dirname(filePath), basename);
+    const current = grouped.get(groupKey) || {};
+    current[path.extname(filePath).toLowerCase().slice(1)] = filePath;
+    grouped.set(groupKey, current);
   });
 
   return [...grouped.values()]
     .map(({ json, csv }) => json || csv)
     .filter(Boolean)
-    .sort()
-    .map(filename => path.join(directory, filename));
+    .sort();
 };
 
 const normalizeName = value => String(value || '')
@@ -296,7 +308,7 @@ const uploadProductImages = async (product) => {
   for (let index = 0; index < (Array.isArray(product.descriptionImages) ? product.descriptionImages.length : 0); index += 1) {
     const descriptionImage = product.descriptionImages[index];
     const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
-    const source = descriptionEntry.url || descriptionEntry.sourceUrl;
+    const source = descriptionEntry.url ?? descriptionEntry.sourceUrl;
     if (!source) continue;
     try {
       const uploadedImage = await uploadProductImage(

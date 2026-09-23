@@ -6,13 +6,16 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
+from bs4 import BeautifulSoup
+
 
 PRODUCT_OUTPUT_FIELDS = (
     "ProductBrand", "ProductID", "ProductName", "ProductSKU", "ProductPriceVND",
     "ProductRegularPriceVND", "ProductCategory",
     "ProductSpecifications", "ProductTechnicalDescription", "ProductDescription",
     "ProductDescriptionImages", "ProductPromotions", "ProductMainImage",
-    "ProductGalleryImages", "ProductURL",
+    "ProductMainImageLocalPath", "ProductGalleryImages", "ProductGalleryImageLocalPaths",
+    "ProductURL",
 )
 
 _PRODUCT_CARD_MARKERS = (
@@ -279,17 +282,18 @@ def get_output_directory():
         if not output_dir.is_absolute():
             output_dir = project_root / output_dir
     else:
-        output_dir = project_root / "data" / "scraped-products"
+        output_dir = project_root / "data" / "scraped-products" / "current"
 
     return output_dir.resolve()
 
 
-def get_output_paths(file_prefix):
-    output_dir = get_output_directory()
+def get_output_paths(file_prefix, output_dir=None):
+    output_dir = Path(output_dir or get_output_directory()).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     return (
         output_dir / f"{file_prefix}.csv",
         output_dir / f"{file_prefix}.json",
+        output_dir / f"{file_prefix}.xlsx",
     )
 
 
@@ -303,12 +307,61 @@ _DESCRIPTION_SELECTORS = (
 )
 
 
+def _decode_embedded_html(value):
+    decoded = str(value or "")
+    for escaped, character in (
+        ("\\u003c", "<"),
+        ("\\u003e", ">"),
+        ("\\u0026", "&"),
+        ('\\"', '"'),
+    ):
+        decoded = decoded.replace(escaped, character)
+    return decoded
+
+
+def _embedded_description_container(soup):
+    chunks = []
+    for script in soup.find_all("script"):
+        script_text = script.string or script.get_text()
+        match = re.search(r"self\.__next_f\.push\(\[\s*1\s*,\s*(\".*?\")\s*\]\)", script_text)
+        if not match:
+            continue
+        try:
+            chunks.append(json.loads(match.group(1)))
+        except (TypeError, ValueError):
+            continue
+
+    if not chunks:
+        return None
+
+    embedded = BeautifulSoup(_decode_embedded_html("".join(chunks)), "html.parser")
+    sections = embedded.select('[id^="section-"]')
+    if not sections:
+        return None
+
+    first_section = sections[0]
+    first_section_id = first_section.get("id")
+    last_section = next(
+        (section for section in sections[1:] if section.get("id") == first_section_id),
+        sections[-1],
+    )
+    container = embedded.new_tag("div")
+    current = first_section
+    while current:
+        next_node = current.next_sibling
+        container.append(current.extract())
+        if current is last_section:
+            break
+        current = next_node
+    return container if container.get_text(" ", strip=True) or container.select_one("img") else None
+
+
 def _description_container(soup):
     for selector in _DESCRIPTION_SELECTORS:
         for content in soup.select(selector):
             if content.get_text(" ", strip=True) or content.select_one("img"):
                 return content
-    return None
+    return _embedded_description_container(soup)
 
 
 def extract_product_description(soup):

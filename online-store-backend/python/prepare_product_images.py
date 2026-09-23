@@ -237,18 +237,24 @@ def process_file(json_path, output_root, batch_id=None):
         main_key = 'ProductMainImage' if 'ProductMainImage' in product else 'MainImage'
         gallery_key = 'ProductGalleryImages' if 'ProductGalleryImages' in product else 'GalleryImages'
         main_source = product.get(main_key)
+        main_local_key = 'ProductMainImageLocalPath' if main_key == 'ProductMainImage' else 'MainImageLocalPath'
         if is_remote_image(main_source):
             try:
                 main_path, source_url = process_image(main_source, product_dir, 'main')
-                product[main_key] = to_relative_path(output_root, main_path)
-                entry['main'] = {'sourceUrl': source_url, 'localPath': product[main_key], 'status': 'downloaded'}
+                local_path = to_relative_path(output_root, main_path)
+                product[main_local_key] = local_path
+                entry['main'] = {'sourceUrl': source_url, 'localPath': local_path, 'status': 'downloaded'}
                 changed = True
             except Exception as error:
+                product[main_local_key] = ''
                 main_failures.append(f'{json_path.name} row {index + 1}: {main_source} ({error})')
                 entry['main'] = {'sourceUrl': main_source, 'status': 'failed', 'error': str(error)}
+                changed = True
         else:
-            entry['main'] = {'localPath': main_source, 'status': 'local'}
+            product[main_local_key] = str(main_source or '').replace('\\', '/')
+            entry['main'] = {'localPath': product[main_local_key], 'status': 'local'}
 
+        gallery_local_key = 'ProductGalleryImageLocalPaths' if gallery_key == 'ProductGalleryImages' else 'GalleryImageLocalPaths'
         gallery_sources = split_gallery(product.get(gallery_key))
         gallery_paths = []
         for gallery_index, gallery_source in enumerate(gallery_sources):
@@ -262,15 +268,15 @@ def process_file(json_path, output_root, batch_id=None):
                     changed = True
                 except Exception as error:
                     gallery_failures.append(f'{json_path.name} row {index + 1} gallery {gallery_index + 1}: {gallery_source} ({error})')
-                    gallery_paths.append(gallery_source)
+                    gallery_paths.append('')
                     entry['gallery'].append({'sourceUrl': gallery_source, 'status': 'failed', 'error': str(error)})
+                    changed = True
             elif gallery_source:
                 gallery_path = gallery_source.replace('\\', '/')
                 gallery_paths.append(gallery_path)
                 entry['gallery'].append({'localPath': gallery_path, 'status': 'local'})
 
-        if gallery_paths:
-            product[gallery_key] = gallery_paths if gallery_key == 'ProductGalleryImages' else ' || '.join(gallery_paths)
+        product[gallery_local_key] = gallery_paths
 
         description_key = 'ProductDescriptionImages' if 'ProductDescriptionImages' in product else 'DescriptionImages'
         description_entries = product.get(description_key) or []
@@ -304,11 +310,14 @@ def process_file(json_path, output_root, batch_id=None):
                     })
                     changed = True
                 except Exception as error:
+                    updated_entry['ProductDescriptionImageLocalPath'] = ''
                     entry['description'].append({
                         'sourceUrl': description_source,
                         'status': 'failed',
                         'error': str(error),
                     })
+                    description_paths.append(updated_entry)
+                    changed = True
                     continue
             else:
                 description_path = description_source.replace('\\', '/')
@@ -317,7 +326,7 @@ def process_file(json_path, output_root, batch_id=None):
                     'status': 'local',
                 })
 
-            updated_entry['ProductDescriptionImageURL'] = description_path
+            updated_entry['ProductDescriptionImageLocalPath'] = description_path
             if 'ProductDescriptionImageAlt' not in updated_entry and 'alt' in updated_entry:
                 updated_entry['ProductDescriptionImageAlt'] = updated_entry['alt']
             description_paths.append(updated_entry)

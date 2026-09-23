@@ -1,1 +1,5 @@
-# Export test uses the global Node Playwright runtime via scripts/test-export-dynamic.js
+# Dynamic rendering uses the global Node Playwright runtime via scripts/render-scraper-page.js.
+beautifulsoup4>=4.12,<5
+openpyxl>=3.1,<4
+pandas>=2.0,<3
+requests>=2.31,<3
