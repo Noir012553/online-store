@@ -118,7 +118,15 @@ class ScraperRunnerTest(unittest.TestCase):
               <h3>Thông số nổi bật</h3>
               <div class="min-w-0"><p>Đèn LED</p><div><span>RGB</span></div></div>
             </section>
-            <div class="news-html-content"><p>Mô tả sau render</p></div>
+            <section>
+              <h2>Thông tin sản phẩm</h2>
+              <div class="news-html-content editorial-html">
+                <h2 id="section-1">Mô tả sau render</h2>
+                <p>Laptop Acer Aspire 7 cho hiệu năng ổn định.</p>
+                <p><img src="//cdn.hstatic.net/files/200000722513/file/acer-description-1.png" alt="Chi tiết Acer"></p>
+                <p><img src="//cdn.hstatic.net/files/200000722513/file/acer-description-2.png"></p>
+              </div>
+            </section>
         """
         response = Mock(status_code=200, text=static_html)
 
@@ -132,7 +140,20 @@ class ScraperRunnerTest(unittest.TestCase):
 
         self.assertEqual(url, "https://gearvn.com/products/example")
         self.assertEqual(record["ProductSpecifications"], {"Đèn LED": "RGB"})
-        self.assertEqual(record["ProductDescription"], "Mô tả sau render")
+        self.assertIn("Mô tả sau render", record["ProductDescription"])
+        self.assertEqual(
+            record["ProductDescriptionImages"],
+            [
+                {
+                    "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/acer-description-1.png",
+                    "ProductDescriptionImageAlt": "Chi tiết Acer",
+                },
+                {
+                    "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/acer-description-2.png",
+                    "ProductDescriptionImageAlt": "",
+                },
+            ],
+        )
 
     def test_builds_product_record_with_the_canonical_schema(self):
         soup = BeautifulSoup(

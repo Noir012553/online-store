@@ -6,6 +6,8 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
+from bs4 import BeautifulSoup
+
 
 PRODUCT_OUTPUT_FIELDS = (
     "ProductBrand", "ProductID", "ProductName", "ProductSKU", "ProductPriceVND",
@@ -303,12 +305,44 @@ _DESCRIPTION_SELECTORS = (
 )
 
 
+def _decode_embedded_html(value):
+    decoded = str(value or "")
+    for escaped, character in (
+        ("\\u003c", "<"),
+        ("\\u003e", ">"),
+        ("\\u0026", "&"),
+        ('\\"', '"'),
+    ):
+        decoded = decoded.replace(escaped, character)
+    return decoded
+
+
+def _embedded_description_container(soup):
+    for script in soup.find_all("script"):
+        decoded = _decode_embedded_html(script.string or script.get_text())
+        if 'id="section-' not in decoded:
+            continue
+        embedded = BeautifulSoup(decoded, "html.parser")
+        sections = embedded.select('[id^="section-"]')
+        if not sections:
+            continue
+        container = embedded.new_tag("div")
+        current = sections[0]
+        while current:
+            next_node = current.next_sibling
+            container.append(current.extract())
+            current = next_node
+        if container.get_text(" ", strip=True) or container.select_one("img"):
+            return container
+    return None
+
+
 def _description_container(soup):
     for selector in _DESCRIPTION_SELECTORS:
         for content in soup.select(selector):
             if content.get_text(" ", strip=True) or content.select_one("img"):
                 return content
-    return None
+    return _embedded_description_container(soup)
 
 
 def extract_product_description(soup):
