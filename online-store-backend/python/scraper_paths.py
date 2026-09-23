@@ -282,17 +282,18 @@ def get_output_directory():
         if not output_dir.is_absolute():
             output_dir = project_root / output_dir
     else:
-        output_dir = project_root / "data" / "scraped-products"
+        output_dir = project_root / "data" / "scraped-products" / "current"
 
     return output_dir.resolve()
 
 
-def get_output_paths(file_prefix):
-    output_dir = get_output_directory()
+def get_output_paths(file_prefix, output_dir=None):
+    output_dir = Path(output_dir or get_output_directory()).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     return (
         output_dir / f"{file_prefix}.csv",
         output_dir / f"{file_prefix}.json",
+        output_dir / f"{file_prefix}.xlsx",
     )
 
 

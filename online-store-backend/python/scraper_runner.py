@@ -24,6 +24,7 @@ from scraper_paths import (
     extract_product_image_urls,
     extract_product_prices,
     extract_product_promotions,
+    get_output_directory,
     get_output_paths,
     parse_scraper_metadata,
 )
@@ -311,15 +312,18 @@ def build_staging_records(records, run_id, captured_at, parser_version):
     ]
 
 
-def write_output_atomically(records, staging_records, file_prefix):
+def write_output_atomically(records, staging_records, file_prefix, output_dir=None):
     if not records:
         raise RuntimeError("Không ghi output rỗng")
-    output_dir = Path(get_output_paths(file_prefix)[0]).parent
-    csv_path, json_path = get_output_paths(file_prefix)
-    staging_path = output_dir / f"{file_prefix}.staging.json"
+    output_dir = Path(output_dir or get_output_directory()).resolve()
+    csv_path, json_path, xlsx_path = get_output_paths(file_prefix, output_dir)
+    staging_dir = output_dir / "staging"
+    staging_path = staging_dir / f"{file_prefix}.staging.json"
     csv_tmp = output_dir / f".{csv_path.name}.part"
     json_tmp = output_dir / f".{json_path.name}.part"
-    staging_tmp = output_dir / f".{staging_path.name}.part"
+    xlsx_tmp = output_dir / f".{xlsx_path.name}.part.xlsx"
+    staging_tmp = staging_dir / f".{staging_path.name}.part"
+    staging_dir.mkdir(parents=True, exist_ok=True)
     try:
         frame = pd.DataFrame(records, columns=PRODUCT_OUTPUT_FIELDS)
         csv_frame = frame.apply(
@@ -330,18 +334,21 @@ def write_output_atomically(records, staging_records, file_prefix):
             )
         )
         csv_frame.to_csv(csv_tmp, index=False, encoding="utf-8-sig", quoting=csv.QUOTE_ALL)
+        csv_frame.to_excel(xlsx_tmp, index=False, engine="openpyxl")
         frame.to_json(json_tmp, orient="records", indent=4, force_ascii=False)
         with staging_tmp.open("w", encoding="utf-8") as staging_file:
             json.dump(staging_records, staging_file, ensure_ascii=False, indent=2)
             staging_file.write("\n")
         os.replace(csv_tmp, csv_path)
         os.replace(json_tmp, json_path)
+        os.replace(xlsx_tmp, xlsx_path)
         os.replace(staging_tmp, staging_path)
     finally:
         csv_tmp.unlink(missing_ok=True)
         json_tmp.unlink(missing_ok=True)
+        xlsx_tmp.unlink(missing_ok=True)
         staging_tmp.unlink(missing_ok=True)
-    return csv_path, json_path, staging_path
+    return csv_path, json_path, xlsx_path, staging_path
 
 
 def _dynamic_render_enabled():
@@ -467,11 +474,17 @@ def run_scraper(script_path, collection_slug):
         captured_at.isoformat().replace("+00:00", "Z"),
         parser_version,
     )
-    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}_{run_id}"
-    csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
+    file_prefix = f"{metadata['brand']}_{metadata['categories'].replace(' ', '_')}"
+    batch_directory = get_output_directory() / file_prefix
+    csv_path, json_path, xlsx_path, staging_path = write_output_atomically(
+        records,
+        staging_records,
+        file_prefix,
+        batch_directory,
+    )
     main_image_failures, gallery_image_failures = process_product_images(
         json_path,
-        json_path.parent,
+        get_output_directory(),
         batch_id=run_id,
     )
     records = json.loads(json_path.read_text(encoding="utf-8"))
@@ -481,7 +494,12 @@ def run_scraper(script_path, collection_slug):
         captured_at.isoformat().replace("+00:00", "Z"),
         parser_version,
     )
-    csv_path, json_path, staging_path = write_output_atomically(records, staging_records, file_prefix)
+    csv_path, json_path, xlsx_path, staging_path = write_output_atomically(
+        records,
+        staging_records,
+        file_prefix,
+        batch_directory,
+    )
     for failure in main_image_failures:
         print(f"⚠️ Không tải được ảnh chính: {failure}")
     for failure in gallery_image_failures:
@@ -489,6 +507,7 @@ def run_scraper(script_path, collection_slug):
     print(f">>> Hoàn thành: {len(records)} sản phẩm")
     print(f"- {csv_path}")
     print(f"- {json_path}")
+    print(f"- {xlsx_path}")
     print(f"- {staging_path}")
 
 
