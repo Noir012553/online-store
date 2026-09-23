@@ -165,19 +165,30 @@ class ScraperPathsTest(unittest.TestCase):
         soup = BeautifulSoup(
             r'''
             <script>
-              self.__next_f.push([1,"\u003ch2 id=\"section-1\"\u003e\u003cstrong\u003eAcer Aspire 7\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eMô tả Acer\u003c/p\u003e\u003cp\u003e\u003cimg src=\"//cdn.example.com/acer.png\"\u003e\u003c/p\u003e"])
+              self.__next_f.push([1,"\u003ch2 id=\"section-1\"\u003e\u003cstrong\u003eAcer Aspire 7\u003c/strong\u003e\u003c/h2\u003e\u003cp\u003eMô tả Acer\u003c/p\u003e"])
+            </script>
+            <script>
+              self.__next_f.push([1,"\u003cp\u003e\u003cimg src=\"//cdn.example.com/acer-1.png\"\u003e\u003c/p\u003e\u003ch2 id=\"section-2\"\u003eChi tiết\u003c/h2\u003e\u003cp\u003eNội dung đầy đủ\u003c/p\u003e\u003cp\u003e\u003cimg src=\"//cdn.example.com/acer-2.png\"\u003e\u003c/p\u003e"])
             </script>
             ''',
             "html.parser",
         )
 
-        self.assertIn("Acer Aspire 7", extract_product_description(soup))
+        description = extract_product_description(soup)
+        self.assertIn("Acer Aspire 7", description)
+        self.assertIn("Nội dung đầy đủ", description)
         self.assertEqual(
             extract_product_description_images(soup),
-            [{
-                "ProductDescriptionImageURL": "https://cdn.example.com/acer.png",
-                "ProductDescriptionImageAlt": "",
-            }],
+            [
+                {
+                    "ProductDescriptionImageURL": "https://cdn.example.com/acer-1.png",
+                    "ProductDescriptionImageAlt": "",
+                },
+                {
+                    "ProductDescriptionImageURL": "https://cdn.example.com/acer-2.png",
+                    "ProductDescriptionImageAlt": "",
+                },
+            ],
         )
 
     def test_rejects_product_url_as_collection_context(self):

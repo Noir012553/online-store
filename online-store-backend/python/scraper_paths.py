@@ -318,23 +318,40 @@ def _decode_embedded_html(value):
 
 
 def _embedded_description_container(soup):
+    chunks = []
     for script in soup.find_all("script"):
-        decoded = _decode_embedded_html(script.string or script.get_text())
-        if 'id="section-' not in decoded:
+        script_text = script.string or script.get_text()
+        match = re.search(r"self\.__next_f\.push\(\[\s*1\s*,\s*(\".*?\")\s*\]\)", script_text)
+        if not match:
             continue
-        embedded = BeautifulSoup(decoded, "html.parser")
-        sections = embedded.select('[id^="section-"]')
-        if not sections:
+        try:
+            chunks.append(json.loads(match.group(1)))
+        except (TypeError, ValueError):
             continue
-        container = embedded.new_tag("div")
-        current = sections[0]
-        while current:
-            next_node = current.next_sibling
-            container.append(current.extract())
-            current = next_node
-        if container.get_text(" ", strip=True) or container.select_one("img"):
-            return container
-    return None
+
+    if not chunks:
+        return None
+
+    embedded = BeautifulSoup(_decode_embedded_html("".join(chunks)), "html.parser")
+    sections = embedded.select('[id^="section-"]')
+    if not sections:
+        return None
+
+    first_section = sections[0]
+    first_section_id = first_section.get("id")
+    last_section = next(
+        (section for section in sections[1:] if section.get("id") == first_section_id),
+        sections[-1],
+    )
+    container = embedded.new_tag("div")
+    current = first_section
+    while current:
+        next_node = current.next_sibling
+        container.append(current.extract())
+        if current is last_section:
+            break
+        current = next_node
+    return container if container.get_text(" ", strip=True) or container.select_one("img") else None
 
 
 def _description_container(soup):
