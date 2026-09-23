@@ -32,13 +32,28 @@ HEADERS = {
     "Referer": "https://gearvn.com/",
 }
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
-MAX_ATTEMPTS = 3
 DEFAULT_MAX_WORKERS = 4
 MAX_MAX_WORKERS = 8
-DYNAMIC_RENDER_TIMEOUT_SECONDS = 90
 SCRAPE_SOURCE = "gearvn"
 DEFAULT_PARSER_VERSION = "product-v2"
 RENDERER_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "render-scraper-page.js"
+
+
+def _read_positive_int(name, fallback):
+    try:
+        value = int(os.getenv(name, fallback))
+    except (TypeError, ValueError):
+        return fallback
+    return value if value > 0 else fallback
+
+
+SCRAPER_CONFIG = {
+    "request_timeout_seconds": _read_positive_int("SCRAPER_REQUEST_TIMEOUT_SECONDS", 8),
+    "retry_attempts": _read_positive_int("SCRAPER_RETRY_ATTEMPTS", 3),
+    "retry_backoff_seconds": _read_positive_int("SCRAPER_RETRY_BACKOFF_SECONDS", 1),
+    "dynamic_render_timeout_seconds": _read_positive_int("SCRAPER_DYNAMIC_RENDER_TIMEOUT_SECONDS", 45),
+}
+
 _dynamic_render_lock = threading.Lock()
 _thread_local = threading.local()
 
@@ -59,7 +74,9 @@ def get_max_workers():
     return min(max(configured, 1), MAX_MAX_WORKERS)
 
 
-def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep=None):
+def fetch_html(url, *, headers=HEADERS, timeout=None, attempts=None, sleep=None):
+    timeout = timeout or SCRAPER_CONFIG["request_timeout_seconds"]
+    attempts = attempts or SCRAPER_CONFIG["retry_attempts"]
     sleep = sleep or time.sleep
     for attempt in range(attempts):
         try:
@@ -68,7 +85,7 @@ def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep
             if attempt == attempts - 1:
                 print(f"Lỗi request {url}: {error}")
                 return None
-            sleep(2 ** attempt)
+            sleep(SCRAPER_CONFIG["retry_backoff_seconds"] * (2 ** attempt))
             continue
 
         if response.status_code == 200:
@@ -77,7 +94,7 @@ def fetch_html(url, *, headers=HEADERS, timeout=10, attempts=MAX_ATTEMPTS, sleep
             print(f"HTTP {response.status_code} khi đọc {url}")
             return None
         if attempt < attempts - 1:
-            sleep(2 ** attempt)
+            sleep(SCRAPER_CONFIG["retry_backoff_seconds"] * (2 ** attempt))
 
     return None
 
@@ -124,13 +141,29 @@ def _is_specs_section(section):
     return "thông số" in heading_text or "kỹ thuật" in heading_text
 
 
+_SPEC_EXCLUDED_MARKERS = (
+    "ưu đãi",
+    "khuyến mãi",
+    "khuyến mại",
+    "tặng ngay",
+    "mua ngay",
+    "thêm vào giỏ",
+    "giao tận nơi",
+)
+
+
+def _is_valid_spec_value(value):
+    normalized = value.casefold()
+    return bool(value) and not any(marker in normalized for marker in _SPEC_EXCLUDED_MARKERS)
+
+
 def _extract_spec_value(grid_item, label_node):
-    candidates = grid_item.find_all(["p", "span", "dd", "div"])
+    candidates = grid_item.find_all(["p", "span", "dd", "div"], recursive=False)
     for candidate in candidates:
         if candidate is label_node:
             continue
         value = _normalized_text(candidate.get_text(" ", strip=True))
-        if value:
+        if _is_valid_spec_value(value):
             return value
     return ""
 
@@ -166,12 +199,22 @@ def _extract_spec_items(container):
 
 
 def extract_product_specs(soup):
-    for section in soup.find_all("section"):
-        if _is_specs_section(section):
-            specs = _extract_spec_items(section)
-            if specs:
-                return specs
-    return _extract_spec_items(soup)
+    containers = [
+        section
+        for section in soup.find_all("section")
+        if _is_specs_section(section)
+    ]
+    if not containers:
+        containers = soup.select(
+            '[data-product-specifications], [data-specifications], [data-specs], '
+            '.product-specifications, .product__specifications, [class*="specification"]'
+        )
+
+    for container in containers:
+        specs = _extract_spec_items(container)
+        if specs:
+            return specs
+    return {}
 
 
 def _canonical_product_url(url):
@@ -214,6 +257,7 @@ def _product_record(soup, url, brand, categories):
         return None
     sku = str(json_ld.get("sku") or "").strip()
     specs = extract_product_specs(soup)
+    description = extract_product_description(soup) or _normalized_text(json_ld.get("description"))
     return {
         "ProductBrand": brand,
         "ProductID": url.rstrip("/").split("/")[-1],
@@ -224,7 +268,7 @@ def _product_record(soup, url, brand, categories):
         "ProductCategory": categories,
         "ProductSpecifications": specs,
         "ProductTechnicalDescription": "Thông số: " + json.dumps(specs, ensure_ascii=False),
-        "ProductDescription": extract_product_description(soup),
+        "ProductDescription": description,
         "ProductDescriptionImages": extract_product_description_images(soup),
         "ProductPromotions": extract_product_promotions(soup),
         "ProductMainImage": image_urls[0] if image_urls else "",
@@ -307,7 +351,17 @@ def _node_command():
     return os.getenv("SCRAPER_NODE_COMMAND") or ("node.exe" if sys.platform == "win32" else "node")
 
 
-def render_product_html(url, timeout=DYNAMIC_RENDER_TIMEOUT_SECONDS):
+def _is_recoverable_dynamic_render_error(error):
+    detail = str(error).casefold()
+    return any(marker in detail for marker in (
+        "timeout",
+        "err_timed_out",
+        "err_connection_timed_out",
+    ))
+
+
+def render_product_html(url, timeout=None):
+    timeout = timeout or SCRAPER_CONFIG["dynamic_render_timeout_seconds"]
     completed = subprocess.run(
         [_node_command(), str(RENDERER_SCRIPT), url],
         check=False,
@@ -341,7 +395,8 @@ def _load_product_soup(url, response_text):
         ):
             return rendered_soup
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-        print(f"Cảnh báo dynamic render {url}: {error}")
+        if not _is_recoverable_dynamic_render_error(error):
+            print(f"Cảnh báo dynamic render {url}: {error}")
     return soup
 
 

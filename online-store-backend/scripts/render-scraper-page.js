@@ -16,6 +16,28 @@ const loadPlaywright = () => {
   return require('playwright');
 };
 
+const readPositiveInt = (name, fallback) => {
+  const value = Number.parseInt(process.env[name], 10);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+};
+
+const SCRAPER_CONFIG = Object.freeze({
+  navigationTimeoutMs: readPositiveInt('SCRAPER_NAVIGATION_TIMEOUT_MS', 15000),
+  domContentLoadedTimeoutMs: readPositiveInt('SCRAPER_DOMCONTENTLOADED_TIMEOUT_MS', 3000),
+  selectorTimeoutMs: readPositiveInt('SCRAPER_SELECTOR_TIMEOUT_MS', 7000),
+  expandableClickTimeoutMs: readPositiveInt('SCRAPER_EXPANDABLE_CLICK_TIMEOUT_MS', 2000),
+  expandableSettleMs: readPositiveInt('SCRAPER_EXPANDABLE_SETTLE_MS', 300),
+});
+
+const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_OUT)/i.test(
+  String(error?.message || error),
+);
+
+const getPageContent = async page => {
+  if (!page || page.isClosed()) return '';
+  return page.content().catch(() => '');
+};
+
 const clickExpandableButtons = async page => {
   const patterns = [
     /xem thêm/i,
@@ -31,7 +53,7 @@ const clickExpandableButtons = async page => {
     for (let index = 0; index < count; index += 1) {
       if (page.isClosed()) return false;
       try {
-        await buttons.nth(index).click({ timeout: 3000 });
+        await buttons.nth(index).click({ timeout: SCRAPER_CONFIG.expandableClickTimeoutMs });
       } catch (error) {
         if (page.isClosed()) return false;
       }
@@ -49,18 +71,30 @@ const renderPage = async url => {
     page = await browser.newPage({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
     });
-    await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
-    await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForSelector('.news-html-content, h1, h3', { timeout: 15000 }).catch(() => {});
-    baselineHtml = await page.content();
-    if (!await clickExpandableButtons(page)) return baselineHtml;
-    await page.waitForTimeout(500);
-    return page.isClosed() ? baselineHtml : await page.content();
-  } catch (error) {
-    if (!baselineHtml && page && !page.isClosed()) {
-      baselineHtml = await page.content().catch(() => '');
+    await page.route('**/*', route => {
+      if (['image', 'media', 'font'].includes(route.request().resourceType())) {
+        return route.abort();
+      }
+      return route.continue();
+    });
+    try {
+      await page.goto(url, { waitUntil: 'commit', timeout: SCRAPER_CONFIG.navigationTimeoutMs });
+    } catch (error) {
+      if (!isNavigationTimeout(error)) throw error;
+      return getPageContent(page);
     }
+    await page.waitForLoadState('domcontentloaded', {
+      timeout: SCRAPER_CONFIG.domContentLoadedTimeoutMs,
+    }).catch(() => {});
+    await page.waitForSelector('.news-html-content, h1, h3', {
+      timeout: SCRAPER_CONFIG.selectorTimeoutMs,
+    }).catch(() => {});
+    baselineHtml = await getPageContent(page);
+    if (!await clickExpandableButtons(page)) return baselineHtml;
+    await page.waitForTimeout(SCRAPER_CONFIG.expandableSettleMs);
+    return getPageContent(page) || baselineHtml;
+  } catch (error) {
+    if (!baselineHtml) baselineHtml = await getPageContent(page);
     if (baselineHtml) return baselineHtml;
     throw error;
   } finally {

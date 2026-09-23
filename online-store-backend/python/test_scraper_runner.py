@@ -95,6 +95,21 @@ class ScraperRunnerTest(unittest.TestCase):
             "Phương thức kết nối": "Có dây;Bluetooth",
         })
 
+    def test_does_not_treat_promotion_copy_as_product_spec(self):
+        soup = BeautifulSoup(
+            """
+            <section>
+              <h3>Thông số kỹ thuật</h3>
+              <div class="min-w-0"><p>Dòng CPU</p><div>Core 5-210H</div></div>
+              <div class="min-w-0"><p>Khuyến mãi</p><div> Tặng ngay 1 x Balo Acer Predator SUV Mua ngay </div></div>
+            </section>
+            <div class="promotion-box">Tặng ngay 1 x Balo Acer Predator SUV</div>
+            """,
+            "html.parser",
+        )
+
+        self.assertEqual(extract_product_specs(soup), {"Dòng CPU": "Core 5-210H"})
+
     def test_renders_dynamic_html_when_static_product_fields_are_missing(self):
         static_html = "<h1>Example Product</h1>"
         rendered_html = """

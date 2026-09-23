@@ -5,7 +5,7 @@
  * Cách dùng:
  * npm run seed -- --list                     # Liệt kê tất cả modules
  * npm run seed -- --modules=languages,users  # Seed languages + users
- * npm run seed                               # Seed dữ liệu nền trước khi import Product
+ * npm run seed                               # Cào dữ liệu trước, rồi seed nền và import Product
  * npm run seed:post-products                 # Seed dữ liệu phụ thuộc sau khi import Product
  */
 
