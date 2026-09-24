@@ -69,7 +69,7 @@ async function seedSpecTranslations(repairAttempt = 0) {
             'product_promotion',
           ],
         },
-        status: 'success',
+        status: { $in: ['success', 'translated_via_libre'] },
         qualityStatus: 'approved',
         targetLang: { $in: TRANSLATED_LANG_CODES },
       }).lean();

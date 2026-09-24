@@ -47,7 +47,7 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['success', 'fallback_libretranslate', 'failed_rate_limit', 'failed_error', 'pending_retry'],
+      enum: ['success', 'translated_via_libre', 'fallback_libretranslate', 'failed_rate_limit', 'failed_error', 'pending_retry'],
       default: 'success',
       index: true,
     },
@@ -56,6 +56,16 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
       enum: ['cloudflare', 'libretranslate'],
       default: 'cloudflare',
       index: true,
+    },
+    providerSource: {
+      type: String,
+      enum: ['primary', 'secondary_failover'],
+      default: 'primary',
+      index: true,
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     retryCount: {
       type: Number,
@@ -108,6 +118,10 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
     previousVersion: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'LiveTranslationCache',
+      default: null,
+    },
+    failoverReason: {
+      type: String,
       default: null,
     },
     retranslateReason: {
@@ -169,7 +183,7 @@ LiveTranslationCacheSchema.statics.getFailedTranslations = async function(target
 LiveTranslationCacheSchema.statics.getErrorStats = async function(targetLang) {
   return this.aggregate([
     {
-      $match: { targetLang, status: { $ne: 'success' } }
+      $match: { targetLang, status: { $nin: ['success', 'translated_via_libre'] } }
     },
     {
       $group: {

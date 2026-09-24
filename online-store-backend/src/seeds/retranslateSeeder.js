@@ -50,9 +50,11 @@ class RetranslateSeeder {
 
     const query = {
       ...filter,
+      provider: 'libretranslate',
+      status: { $in: ['translated_via_libre', 'fallback_libretranslate'] },
       $or: [
-        { qualityStatus: 'needs_retranslate' },
-        { status: 'fallback_libretranslate' },
+        { qualityScore: { $lt: 70 } },
+        { validationErrors: { $exists: true, $ne: [] } },
       ],
     };
 
@@ -142,7 +144,7 @@ class RetranslateSeeder {
           retryCount: 0,
           version: (translation.version || 1) + 1,
           previousVersion: translation._id,
-          retranslateReason: translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
+          retranslateReason: translation.failoverReason || translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
           qualityStatus: newQualityStatus,
           qualityScore: newQualityScore,
           validationErrors: newValidationErrors,
@@ -172,6 +174,8 @@ class RetranslateSeeder {
           actor,
           reason: `auto_retranslation: ${translation.validationErrors?.[0] || 'needs_retranslate'}`,
           metadata: {
+            provider: newVersion.provider,
+            providerSource: newVersion.providerSource,
             version: newVersion.version,
             qualityScore: newQualityScore,
             validationErrors: newValidationErrors,
@@ -197,6 +201,8 @@ class RetranslateSeeder {
           actor,
           reason: `old_version_marked_as_retranslated`,
           metadata: {
+            provider: translation.provider,
+            providerSource: translation.providerSource,
             oldVersion: translation.version,
             newVersionId: savedNewVersion._id,
             oldQualityScore: translation.qualityScore,
@@ -206,7 +212,7 @@ class RetranslateSeeder {
 
         // Update stats
         const wasFixed = (
-          translation.status === 'fallback_libretranslate'
+          translation.qualityScore < 70
           || translation.validationErrors?.length > 0
         ) && newValidationErrors.length === 0;
         if (wasFixed) {

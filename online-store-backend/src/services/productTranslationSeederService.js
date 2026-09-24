@@ -7,7 +7,7 @@
  * - Concurrency: Có thể cấu hình, mặc định 1 sản phẩm đồng thời
  * - Throttling: Có thể cấu hình, mặc định 1000ms giữa các chunk
  * - 429 Error Handling: Ghi nhận status='failed_rate_limit' thay vì crash
- * - Fallback: Dùng LibreTranslate khi Cloudflare hết quota và fallback được bật
+ * - Failover: Dùng LibreTranslate khi Cloudflare quá tải và failover được bật
  */
 
 const Product = require('../models/Product');
@@ -75,13 +75,14 @@ const getPercentile = (values, percentile) => {
 const getTranslationLockTtlSeconds = () => {
   const configured = Number(process.env.PRODUCT_TRANSLATION_LOCK_TTL_SECONDS);
   if (Number.isInteger(configured) && configured > 0) return configured;
-  const concurrency = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
-  return concurrency > 2 ? 300 : 120;
+  const productConcurrency = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
+  const languageConcurrency = Number(process.env.PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY || 1);
+  return Math.max(120, (productConcurrency * 60) + (languageConcurrency * 45));
 };
 
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
-    const translation = await libretranslateProductService.translateWithFallback(
+    const translation = await libretranslateProductService.translateWithFailover(
       text,
       sourceLang,
       targetLang,
@@ -98,7 +99,7 @@ class ProductTranslationSeederService {
    *
    * @param {string} targetLang - Ngôn ngữ đích (e.g., 'pt')
    * @param {string} sourceLang - Ngôn ngữ nguồn (mặc định từ config)
-   * @returns {Promise<{successCount, rateLimitCount, fallbackCount, memoryCacheHits, translationMetrics, errorCount, totalProcessed}>}
+   * @returns {Promise<{successCount, rateLimitCount, failoverCount, memoryCacheHits, translationMetrics, errorCount, totalProcessed}>}
    */
   static async translateAllProducts(targetLang, sourceLang) {
     // Validate that sourceLang is provided
@@ -125,7 +126,7 @@ class ProductTranslationSeederService {
         return {
           successCount: 0,
           rateLimitCount: 0,
-          fallbackCount: 0,
+          failoverCount: 0,
           memoryCacheHits: 0,
           errorCount: 0,
           totalProcessed: 0,
@@ -135,7 +136,7 @@ class ProductTranslationSeederService {
       let successCount = 0;
       let rateLimitCount = 0;
       let errorCount = 0;
-      let fallbackCount = 0;
+      let failoverCount = 0;
       let memoryCacheHits = 0;
       const translationMetrics = createTranslationMetrics();
       let totalProcessed = 0;
@@ -197,11 +198,11 @@ class ProductTranslationSeederService {
           for (const result of results) {
             totalProcessed++;
             if (result.status === 'fulfilled') {
-              const { success, rateLimitErr, fallbackErr, otherErr } = result.value;
+              const { success, rateLimitErr, failoverErr, otherErr } = result.value;
               successCount += success;
               rateLimitCount += rateLimitErr;
-              chunkRateLimitCount += rateLimitErr + fallbackErr;
-              fallbackCount += fallbackErr;
+              chunkRateLimitCount += rateLimitErr + failoverErr;
+              failoverCount += failoverErr;
               memoryCacheHits += result.value.memoryCacheHits;
               mergeTranslationMetrics(translationMetrics, result.value.translationMetrics);
               errorCount += otherErr;
@@ -223,7 +224,7 @@ class ProductTranslationSeederService {
       console.log(`\n[ProductSeeder] ${CLI_SYMBOLS.target} PHASE 2 hoàn tất:`);
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
-      console.log(`  ${CLI_SYMBOLS.progress} LibreTranslate fallback: ${fallbackCount}`);
+      console.log(`  ${CLI_SYMBOLS.progress} LibreTranslate failover: ${failoverCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Memory cache hit: ${memoryCacheHits}`);
       console.log(`  ${CLI_SYMBOLS.chart} Provider: ${JSON.stringify(translationMetrics.providerCounts)}`);
       console.log(`  ${CLI_SYMBOLS.chart} Translation p95: ${getPercentile(translationMetrics.durations, 95) ?? 'n/a'}ms`);
@@ -238,7 +239,7 @@ class ProductTranslationSeederService {
       return {
         successCount,
         rateLimitCount,
-        fallbackCount,
+        failoverCount,
         memoryCacheHits,
         translationMetrics: {
           providerCounts: translationMetrics.providerCounts,
@@ -264,7 +265,7 @@ class ProductTranslationSeederService {
       LiveTranslationCache.find({
         entityId: { $in: productIds },
         targetLang,
-        status: 'success',
+        status: { $in: ['success', 'translated_via_libre'] },
         qualityStatus: 'approved',
         entityType: {
           $in: [
@@ -530,7 +531,7 @@ class ProductTranslationSeederService {
   }
 
   static async _translateWithDraft(text, sourceLang, targetLang) {
-    return libretranslateProductService.translateWithFallback(text, sourceLang, targetLang);
+    return libretranslateProductService.translateWithFailover(text, sourceLang, targetLang);
   }
 
   /**
@@ -551,7 +552,7 @@ class ProductTranslationSeederService {
         return {
           success: 0,
           rateLimitErr: 0,
-          fallbackErr: 0,
+          failoverErr: 0,
           memoryCacheHits: 0,
           otherErr: 0,
         };
@@ -563,7 +564,7 @@ class ProductTranslationSeederService {
         return {
           success: 0,
           rateLimitErr: 0,
-          fallbackErr: 0,
+          failoverErr: 0,
           memoryCacheHits: 0,
           otherErr: 0,
         };
@@ -571,7 +572,7 @@ class ProductTranslationSeederService {
 
       let successCount = 0;
       let rateLimitCount = 0;
-      let fallbackCount = 0;
+      let failoverCount = 0;
       let memoryCacheHitCount = 0;
       const translationMetrics = createTranslationMetrics();
       let otherErrorCount = 0;
@@ -664,7 +665,7 @@ class ProductTranslationSeederService {
           if (!memoryTranslation) {
             cached = await LiveTranslationCache.findOne({ hashKey }).lean();
           }
-          const hasApprovedCache = cached?.status === 'success'
+          const hasApprovedCache = ['success', 'translated_via_libre'].includes(cached?.status)
             && cached.qualityStatus === 'approved'
             && !cached.validationErrors?.includes('missing_brand');
           if (hasApprovedCache) {
@@ -686,7 +687,7 @@ class ProductTranslationSeederService {
           if (memoryTranslation) memoryCacheHitCount++;
           if (!memoryTranslation) setTranslationMemoryValue(memoryKey, translation);
           const translatedText = translation.translatedText;
-          if (translation.provider === 'libretranslate') fallbackCount++;
+          if (translation.provider === 'libretranslate') failoverCount++;
 
           const validationResult = await translationValidator.validateTranslation(
             field.originalText,
@@ -694,14 +695,7 @@ class ProductTranslationSeederService {
             targetLang,
             field.entityType
           );
-          const isLibreTranslateFallback = translation.provider === 'libretranslate';
-          const allowLibreTranslateApproval = process.env.LIBRETRANSLATE_AS_PRIMARY_APPROVED === 'true';
-          const qualityStatus = isLibreTranslateFallback && !allowLibreTranslateApproval
-            ? (validationResult.qualityStatus === 'needs_retranslate' ? 'needs_retranslate' : 'pending')
-            : validationResult.qualityStatus;
-          const qualityScore = isLibreTranslateFallback && !allowLibreTranslateApproval
-            ? Math.min(validationResult.qualityScore, 69)
-            : validationResult.qualityScore;
+          const isLibreTranslateFailover = translation.provider === 'libretranslate';
 
           // Lưu cache
           const translationRecord = {
@@ -714,15 +708,15 @@ class ProductTranslationSeederService {
             entityType: field.entityType,
             specKey: field.specKey || null,
             fieldKey: field.fieldKey || null,
-            status: isLibreTranslateFallback && !allowLibreTranslateApproval
-              ? 'fallback_libretranslate'
-              : 'success',
+            status: isLibreTranslateFailover ? 'translated_via_libre' : 'success',
             provider: translation.provider,
-            qualityStatus,
-            qualityScore,
+            providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
+            metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
+            qualityStatus: validationResult.qualityStatus,
+            qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,
             retryCount: 0,
-            retranslateReason: translation.fallbackReason || null,
+            failoverReason: translation.failoverReason || null,
           };
           await LiveTranslationCache.findOneAndUpdate(
             { hashKey },
@@ -746,7 +740,7 @@ class ProductTranslationSeederService {
                 productId,
                 field.entityType,
                 err.cloudflareRateLimited === true
-                  ? 'Cloudflare rate limit exhausted; LibreTranslate fallback unavailable'
+                  ? 'Cloudflare overload exhausted; LibreTranslate failover unavailable'
                   : '429 Too Many Requests from Cloudflare AI',
                 sourceLang,
                 field.fieldKey || null,
@@ -780,7 +774,7 @@ class ProductTranslationSeederService {
       return {
         success: successCount,
         rateLimitErr: rateLimitCount,
-        fallbackErr: fallbackCount,
+        failoverErr: failoverCount,
         memoryCacheHits: memoryCacheHitCount,
         translationMetrics,
         otherErr: otherErrorCount,
@@ -790,7 +784,7 @@ class ProductTranslationSeederService {
       return {
         success: 0,
         rateLimitErr: 0,
-        fallbackErr: 0,
+        failoverErr: 0,
         memoryCacheHits: 0,
         otherErr: 1,
       };

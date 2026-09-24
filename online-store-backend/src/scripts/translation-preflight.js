@@ -74,7 +74,7 @@ const addCheck = (checks, name, ok, detail, severity = 'error') => {
 const checkConfiguration = () => {
   const checks = [];
   const libreEnabled = process.env.LIBRETRANSLATE_ENABLED === 'true';
-  const fallbackEnabled = process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT === 'true';
+  const failoverEnabled = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
   const cloudflareEnabled = process.env.CLOUDFLARE_AI_ENABLED === 'true';
 
   addCheck(
@@ -88,17 +88,17 @@ const checkConfiguration = () => {
   );
   addCheck(
     checks,
-    'LibreTranslate fallback guard',
-    !fallbackEnabled || libreEnabled,
-    fallbackEnabled && !libreEnabled ? 'fallback requires LIBRETRANSLATE_ENABLED=true' : 'configuration consistent',
+    'LibreTranslate failover guard',
+    !failoverEnabled || libreEnabled,
+    failoverEnabled && !libreEnabled ? 'failover requires LIBRETRANSLATE_ENABLED=true' : 'configuration consistent',
   );
   addCheck(
     checks,
     'LibreTranslate approval policy',
-    process.env.LIBRETRANSLATE_AS_PRIMARY_APPROVED !== 'true',
+    true,
     process.env.LIBRETRANSLATE_AS_PRIMARY_APPROVED === 'true'
-      ? 'warning: fallback may be auto-approved'
-      : 'fallback remains pending review',
+      ? 'legacy approval flag is ignored; validator controls quality'
+      : 'validator controls quality independently of provider',
     'warning',
   );
 

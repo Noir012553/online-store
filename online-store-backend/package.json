@@ -60,6 +60,7 @@
     "fix:category-translations:dry-run": "node src/scripts/fix-category-translations.js --dry-run",
     "check:sync": "node src/scripts/check-sync-status.js",
     "migrate:translations": "node src/scripts/migrate-translations.js",
+    "migrate:translation-failover": "node src/scripts/migrate-fallback-to-failover.js",
     "migrate:about-media": "node src/scripts/migrate-about-media-to-r2.js",
     "inventory:legacy-assets": "node src/scripts/inventory-legacy-assets.js",
     "verify:translation-cache": "node src/scripts/migrate-translations.js --verify-only",

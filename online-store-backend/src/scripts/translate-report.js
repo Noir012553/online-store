@@ -27,12 +27,13 @@ async function main() {
 
     const filter = {};
     const failedStatuses = ['failed_rate_limit', 'failed_error', 'pending_retry'];
+    const secondaryProviderStatuses = ['translated_via_libre', 'fallback_libretranslate'];
 
     // Parse status
     const statusArg = args.find(arg => arg.startsWith('--status='));
     if (statusArg) {
       options.status = statusArg.split('=')[1];
-      if (failedStatuses.includes(options.status)) {
+      if (failedStatuses.includes(options.status) || secondaryProviderStatuses.includes(options.status)) {
         filter.status = options.status;
       } else {
         filter.qualityStatus = options.status;
@@ -41,6 +42,14 @@ async function main() {
       filter.$or = [
         { status: { $in: failedStatuses } },
         { qualityStatus: 'needs_retranslate' },
+        {
+          provider: 'libretranslate',
+          status: { $in: secondaryProviderStatuses },
+          $or: [
+            { qualityScore: { $lt: 70 } },
+            { validationErrors: { $exists: true, $ne: [] } },
+          ],
+        },
       ];
     }
 
@@ -146,6 +155,7 @@ function printReport(report) {
     console.log(`${CLI_SYMBOLS.branch} Translated: "${t.translated}"`);
     console.log(`${CLI_SYMBOLS.branch} Language:   ${t.language}`);
     console.log(`${CLI_SYMBOLS.branch} Status:     ${t.status}`);
+    console.log(`${CLI_SYMBOLS.branch} Provider:   ${t.provider || 'unknown'}`);
     console.log(`${CLI_SYMBOLS.branch} Quality:    ${t.qualityStatus} (${t.qualityScore ?? 'N/A'}/100)`);
     console.log(`${CLI_SYMBOLS.branch} Errors:     ${t.validationErrors?.length > 0 ? t.validationErrors.join(', ') : 'None'}`);
     console.log(`${CLI_SYMBOLS.branch} Last error: ${t.lastErrorMessage || 'None'}`);
