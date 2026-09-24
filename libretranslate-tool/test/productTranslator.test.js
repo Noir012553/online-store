@@ -54,6 +54,46 @@ test('LibreTranslateClient supports local HTTP endpoints', async () => {
   }
 });
 
+test('LibreTranslateClient limits parallel requests', async () => {
+  let activeRequests = 0;
+  let maxActiveRequests = 0;
+  const server = http.createServer((request, response) => {
+    let body = '';
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      activeRequests++;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+      setTimeout(() => {
+        activeRequests--;
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ translatedText: JSON.parse(body).q.toUpperCase() }));
+      }, 15);
+    });
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const { port } = server.address();
+    const client = new LibreTranslateClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      timeoutMs: 1000,
+      retries: 0,
+      maxParallelRequests: 2,
+    });
+    const results = await Promise.all([
+      client.translate('one', 'en', 'vi'),
+      client.translate('two', 'en', 'vi'),
+      client.translate('three', 'en', 'vi'),
+      client.translate('four', 'en', 'vi'),
+    ]);
+
+    assert.deepEqual(results, ['ONE', 'TWO', 'THREE', 'FOUR']);
+    assert.equal(maxActiveRequests, 2);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
 test('translateProduct translates all configured product fields', async () => {
   const calls = [];
   const client = {

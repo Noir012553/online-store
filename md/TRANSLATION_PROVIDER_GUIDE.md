@@ -85,6 +85,7 @@ LIBRETRANSLATE_URL=http://127.0.0.1:5001
 LIBRETRANSLATE_TIMEOUT_MS=30000
 LIBRETRANSLATE_RETRIES=2
 LIBRETRANSLATE_RETRY_DELAY_MS=1000
+LIBRETRANSLATE_MAX_PARALLEL_REQUESTS=4
 LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
 LIBRETRANSLATE_API_KEY=
 ```
@@ -96,6 +97,7 @@ LIBRETRANSLATE_API_KEY=
 - `LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT=true`: cho phép fallback sau khi Cloudflare retry và rotate config thất bại vì rate limit/quota.
 - `LIBRETRANSLATE_AS_PRIMARY_APPROVED=false`: fallback vẫn ở trạng thái chờ review; không auto-approve.
 - `LIBRETRANSLATE_URL`: URL API local hoặc remote đã được bảo vệ.
+- `LIBRETRANSLATE_MAX_PARALLEL_REQUESTS`: giới hạn request đồng thời tới LibreTranslate trong mỗi backend process; mặc định `4`.
 - `LIBRETRANSLATE_API_KEY`: chỉ cần khi instance yêu cầu API key.
 
 Không đặt secret thật trong `.env.example` hoặc Git.
@@ -107,11 +109,12 @@ Seeder sản phẩm đọc các biến `PRODUCT_TRANSLATION_CHUNK_SIZE`, `PRODUC
 ```env
 PRODUCT_TRANSLATION_CHUNK_SIZE=20
 PRODUCT_TRANSLATION_CONCURRENCY=2
+PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY=2
 PRODUCT_TRANSLATION_DELAY_MS=300
 PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE=5000
 ```
 
-`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. `PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE` giới hạn số bản dịch giữ trong memory của process; key bao gồm nội dung, loại field và cặp ngôn ngữ. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
+`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. `PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY` giới hạn số ngôn ngữ chạy cùng lúc; bắt đầu ở `1`, chỉ tăng lên `2` sau khi đã đo quota Cloudflare tổng. `PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE` giới hạn số bản dịch giữ trong memory của process; key bao gồm nội dung, loại field và cặp ngôn ngữ. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
 
 ## Khởi động LibreTranslate local
 
