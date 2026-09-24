@@ -11,6 +11,16 @@ try {
 const REQUIRED_LANGUAGES = ['vi', 'en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'];
 const DEFAULT_TIMEOUT_MS = 5000;
 
+const parseNonNegativeInteger = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return value;
+};
+
 const parsePositiveInteger = (name, fallback) => {
   const raw = process.env[name];
   if (raw === undefined || raw === '') return fallback;
@@ -76,15 +86,24 @@ const checkConfiguration = () => {
   const libreEnabled = process.env.LIBRETRANSLATE_ENABLED === 'true';
   const failoverEnabled = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
   const cloudflareEnabled = process.env.CLOUDFLARE_AI_ENABLED === 'true';
+  const lockMode = process.env.PRODUCT_SEED_LOCK_MODE || 'redis';
+
+  addCheck(
+    checks,
+    'Distributed lock mode',
+    lockMode !== 'memory',
+    lockMode === 'memory' ? 'memory lock is not safe for production rollout' : lockMode,
+    lockMode === 'memory' ? 'error' : 'warning',
+  );
 
   addCheck(
     checks,
     'Cloudflare credentials',
-    !cloudflareEnabled || Boolean(
+    cloudflareEnabled && Boolean(
       (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN)
       || (process.env.CLOUDFLARE_ACCOUNT_ID_1 && process.env.CLOUDFLARE_API_TOKEN_1)
     ),
-    cloudflareEnabled ? 'credentials configured' : 'Cloudflare disabled',
+    cloudflareEnabled ? 'credentials configured' : 'Cloudflare must be enabled for product translation',
   );
   addCheck(
     checks,
@@ -107,10 +126,16 @@ const checkConfiguration = () => {
     const languageConcurrency = parsePositiveInteger('PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY', 1);
     const chunkSize = parsePositiveInteger('PRODUCT_TRANSLATION_CHUNK_SIZE', 10);
     const libreConcurrency = parsePositiveInteger('LIBRETRANSLATE_MAX_PARALLEL_REQUESTS', 4);
+    const delayMs = parseNonNegativeInteger('PRODUCT_TRANSLATION_DELAY_MS', 1000);
+    const productLimit = parseNonNegativeInteger('PRODUCT_TRANSLATION_LIMIT', 0);
+    const lockTtl = parsePositiveInteger('PRODUCT_TRANSLATION_LOCK_TTL_SECONDS', 120);
     addCheck(checks, 'Product concurrency', true, String(concurrency));
     addCheck(checks, 'Language concurrency', true, String(languageConcurrency));
     addCheck(checks, 'Translation chunk size', true, String(chunkSize));
     addCheck(checks, 'LibreTranslate max parallel requests', true, String(libreConcurrency));
+    addCheck(checks, 'Translation delay', true, `${delayMs}ms`);
+    addCheck(checks, 'Product translation limit', true, productLimit === 0 ? 'all products' : String(productLimit));
+    addCheck(checks, 'Translation lock TTL', true, `${lockTtl}s`);
     addCheck(
       checks,
       'Concurrency rollout guard',
@@ -153,7 +178,13 @@ const checkLibreTranslate = async (checks, smokeTest, enabled) => {
       const result = await requestJson(
         `${baseUrl.replace(/\/$/, '')}/translate`,
         { method: 'POST' },
-        { q: '16GB RAM laptop', source: 'vi', target: 'en', format: 'text' },
+        {
+          q: 'Laptop Gaming Acer Nitro 5 RAM 16GB SSD 512GB RTX 4060',
+          source: 'vi',
+          target: 'en',
+          format: 'text',
+          ...(process.env.LIBRETRANSLATE_API_KEY ? { api_key: process.env.LIBRETRANSLATE_API_KEY } : {}),
+        },
       );
       addCheck(
         checks,

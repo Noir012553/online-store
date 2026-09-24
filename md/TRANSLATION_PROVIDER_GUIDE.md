@@ -61,7 +61,7 @@ LibreTranslate không ghi MongoDB và không thay thế cache chính thức.
 
 ### Cloudflare AI
 
-Cloudflare AI vẫn là provider chính cho sản phẩm và tiếp tục xử lý các nội dung khác. LibreTranslate chỉ thay thế tạm thời trong fallback rate-limit khi được bật rõ ràng:
+Cloudflare AI vẫn là provider chính cho sản phẩm và tiếp tục xử lý các nội dung khác. LibreTranslate chỉ thay thế tạm thời trong failover rate-limit khi được bật rõ ràng:
 
 - Banner: title, subtitle, description, CTA.
 - Nội dung giao diện động và static translation cache.

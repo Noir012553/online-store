@@ -78,6 +78,7 @@
     "test:blueprint": "node src/test/language-setup-blueprint.test.js",
     "test:translation-quality": "node src/scripts/test-translation-quality.js",
     "translation:preflight": "node src/scripts/translation-preflight.js",
+    "translation:benchmark": "node scripts/performance-benchmark.js",
     "check:translation-keys": "node src/scripts/verify-frontend-translation-keys.js",
     "check:translation-consistency": "node src/scripts/verify-key-consistency.js",
     "check:translation-fallback": "node src/scripts/verify-no-english-fallback.js",

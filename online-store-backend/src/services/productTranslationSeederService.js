@@ -542,23 +542,13 @@ class ProductTranslationSeederService {
     const productId = product._id.toString();
     const lockKey = `translate:${productId}:${targetLang}`;
     let lockId = null;
+    let lockRenewalTimer = null;
 
     try {
       await distributedLockService.initialize();
 
-      const isLocked = await distributedLockService.isLocked(lockKey);
-      if (isLocked) {
-        console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Product ${productId} đang được dịch bởi process khác, skip`);
-        return {
-          success: 0,
-          rateLimitErr: 0,
-          failoverErr: 0,
-          memoryCacheHits: 0,
-          otherErr: 0,
-        };
-      }
-
-      lockId = await distributedLockService.acquireLock(lockKey, getTranslationLockTtlSeconds());
+      const lockTtlSeconds = getTranslationLockTtlSeconds();
+      lockId = await distributedLockService.acquireLock(lockKey, lockTtlSeconds);
       if (!lockId) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Không thể acquire lock cho ${productId}, skip`);
         return {
@@ -570,6 +560,11 @@ class ProductTranslationSeederService {
         };
       }
 
+      lockRenewalTimer = setInterval(() => {
+        distributedLockService.extendLock(lockKey, lockId, lockTtlSeconds).catch(() => {});
+      }, Math.max(1000, Math.floor(lockTtlSeconds * 1000 / 3)));
+      lockRenewalTimer.unref?.();
+
       let successCount = 0;
       let rateLimitCount = 0;
       let failoverCount = 0;
@@ -579,6 +574,7 @@ class ProductTranslationSeederService {
 
       // Array chứa tất cả field cần dịch
       const fieldsToTranslate = [];
+      const cacheWrites = [];
 
       // 1. Dịch tên sản phẩm
       if (product.name?.trim()) {
@@ -718,11 +714,13 @@ class ProductTranslationSeederService {
             retryCount: 0,
             failoverReason: translation.failoverReason || null,
           };
-          await LiveTranslationCache.findOneAndUpdate(
-            { hashKey },
-            { $set: translationRecord },
-            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
-          );
+          cacheWrites.push({
+            updateOne: {
+              filter: { hashKey },
+              update: { $set: translationRecord },
+              upsert: true,
+            },
+          });
 
           successCount++;
         } catch (err) {
@@ -771,6 +769,10 @@ class ProductTranslationSeederService {
         }
       }
 
+      if (cacheWrites.length > 0) {
+        await LiveTranslationCache.bulkWrite(cacheWrites, { ordered: false });
+      }
+
       return {
         success: successCount,
         rateLimitErr: rateLimitCount,
@@ -789,6 +791,7 @@ class ProductTranslationSeederService {
         otherErr: 1,
       };
     } finally {
+      if (lockRenewalTimer) clearInterval(lockRenewalTimer);
       if (lockId) await distributedLockService.releaseLock(lockKey, lockId);
     }
   }
