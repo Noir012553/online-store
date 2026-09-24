@@ -22,5 +22,12 @@
   "api_error_load_namespace": "Misslyckades att ladda namnrymd",
   "api_error_fetch_overrides": "Fel vid hämtning av nyligen åsidosatta",
   "email_required": "E-post krävs",
-  "invalid_email": "Ogiltig e-post"
+  "invalid_email": "Ogiltig e-post",
+  "image_file_invalid": "The uploaded image content does not match its declared file type.",
+  "import_file_required": "A ZIP import file is required.",
+  "import_zip_only": "Only ZIP import files are allowed.",
+  "import_file_invalid": "The uploaded import file is invalid.",
+  "no_image_file": "No image file provided",
+  "analytics_cache_cleared": "Analytics cache cleared",
+  "health_check_failed": "Unable to retrieve health information"
 }

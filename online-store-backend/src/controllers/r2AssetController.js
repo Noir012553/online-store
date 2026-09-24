@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const { uploadAsset } = require('../services/r2AssetService');
+const { getMessage } = require('../i18n/messages');
 
 const FOLDERS_BY_ROLE = {
   user: ['users', 'reviewers'],
@@ -20,11 +21,11 @@ const uploadR2Asset = asyncHandler(async (req, res) => {
   const allowedFolders = FOLDERS_BY_ROLE[req.user.role] || [];
   if (!allowedFolders.includes(folder)) {
     res.status(400);
-    throw new Error('Upload folder is not allowed for this account');
+    throw new Error(getMessage(req.lang, 'admin-controllers-messages.missing_invalid_fields'));
   }
   if (!req.file) {
     res.status(400);
-    throw new Error('An image file is required');
+    throw new Error(getMessage(req.lang, 'admin-controllers-messages.product_image_required'));
   }
 
   const asset = await uploadAsset(req.file.buffer, {

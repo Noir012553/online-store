@@ -793,7 +793,7 @@ const getActiveImportCategoryMap = async () => {
   return categoryMap;
 };
 
-const validateImportCategories = async (products, allowCreateReferences = false) => {
+const validateImportCategories = async (products, allowCreateReferences = false, lang) => {
   const categoryMap = await getActiveImportCategoryMap();
   for (const product of products) {
     const categoryKey = String(product.category);
@@ -806,7 +806,7 @@ const validateImportCategories = async (products, allowCreateReferences = false)
       });
     }
 
-    const validation = validateCategoryName(product.category);
+    const validation = validateCategoryName(product.category, lang);
     if (!validation.isValid) {
       throw createImportError('IMPORT_CATEGORY_NAME_INVALID', { name: product.category });
     }
@@ -1003,7 +1003,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       });
     }
 
-    await validateImportCategories(validProducts, allowCreateReferences);
+    await validateImportCategories(validProducts, allowCreateReferences, req.lang);
 
     const restoredAssets = await restoreZipImageAssets(
       validProducts,
@@ -1075,7 +1075,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
       if (!categoryId) {
         const sanitizedName = sanitizeCategoryName(product.category);
         if (!categoryLookup.has(sanitizedName)) {
-          const validation = validateCategoryName(product.category);
+          const validation = validateCategoryName(product.category, req.lang);
           if (!validation.isValid) {
             throw createImportError('IMPORT_CATEGORY_NAME_INVALID', { name: product.category });
           }

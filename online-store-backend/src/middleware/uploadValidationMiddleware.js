@@ -1,5 +1,6 @@
 const path = require('path');
 const { readImportZip } = require('../utils/zipImport');
+const { getMessage } = require('../i18n/messages');
 
 const IMAGE_TYPES = {
   jpeg: {
@@ -36,7 +37,7 @@ const validateImageUpload = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: 'IMAGE_FILE_INVALID',
-      message: 'The uploaded image content does not match its declared file type.',
+      message: getMessage(req.lang, 'api-errors.image_file_invalid'),
     });
   }
 
@@ -49,7 +50,7 @@ const validateImportUpload = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         code: 'IMPORT_FILE_REQUIRED',
-        message: 'A ZIP import file is required.',
+        message: getMessage(req.lang, 'api-errors.import_file_required'),
       });
     }
 
@@ -58,7 +59,7 @@ const validateImportUpload = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         code: 'IMPORT_ZIP_ONLY',
-        message: 'Only ZIP import files are allowed.',
+        message: getMessage(req.lang, 'api-errors.import_zip_only'),
       });
     }
 
@@ -68,7 +69,7 @@ const validateImportUpload = async (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: error.code || 'IMPORT_FILE_INVALID',
-      message: 'The uploaded import file is invalid.',
+      message: getMessage(req.lang, 'api-errors.import_file_invalid'),
     });
   }
 };

@@ -22,5 +22,12 @@
   "api_error_load_namespace": "Lỗi tải namespace",
   "api_error_fetch_overrides": "Lỗi tải ghi đè gần đây",
   "email_required": "Email là bắt buộc",
-  "invalid_email": "Email không hợp lệ"
+  "invalid_email": "Email không hợp lệ",
+  "image_file_invalid": "Nội dung ảnh tải lên không khớp với loại tệp đã khai báo.",
+  "import_file_required": "Vui lòng tải lên tệp ZIP để nhập dữ liệu.",
+  "import_zip_only": "Chỉ cho phép tệp ZIP để nhập dữ liệu.",
+  "import_file_invalid": "Tệp nhập dữ liệu đã tải lên không hợp lệ.",
+  "no_image_file": "Chưa cung cấp tệp ảnh",
+  "analytics_cache_cleared": "Đã xóa bộ nhớ đệm analytics",
+  "health_check_failed": "Không thể lấy thông tin tình trạng hệ thống"
 }

@@ -101,5 +101,10 @@
   "required_product_fields": "Name, Marke, Preis, Kategorie",
   "required_currency_image": "baseCurrencyCode und Bild",
   "required_description_stock": "Beschreibung und countInStock",
-  "required_specs": "specs müssen, falls vorhanden, ein gültiges Objekt sein"
+  "required_specs": "specs müssen, falls vorhanden, ein gültiges Objekt sein",
+  "category_name_required": "Category name is required",
+  "category_name_too_long": "Category name is too long (maximum 100 characters)",
+  "category_name_multiple_spaces": "Category name cannot contain consecutive spaces",
+  "category_name_invalid_characters": "Category name may contain only letters, numbers, spaces, dashes (-) and underscores (_)",
+  "category_name_forbidden_keyword": "Category name contains a forbidden character or keyword: {{keyword}}"
 }

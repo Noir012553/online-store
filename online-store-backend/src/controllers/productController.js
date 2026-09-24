@@ -765,13 +765,13 @@ const createProduct = asyncHandler(async (req, res) => {
 
   if (!category || !mongoose.Types.ObjectId.isValid(category)) {
     res.status(400);
-    throw new Error('A valid category is required');
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.missing_invalid_fields'));
   }
 
   const resolvedCategory = await Category.findOne({ _id: category, isDeleted: false }).select('_id').lean();
   if (!resolvedCategory) {
     res.status(400);
-    throw new Error('The selected category does not exist');
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.category_not_found'));
   }
 
   const normalizedName = sanitizePlainText(name);
@@ -1005,13 +1005,13 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (category !== undefined) {
     if (!mongoose.Types.ObjectId.isValid(category)) {
       res.status(400);
-      throw new Error('A valid category is required');
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.missing_invalid_fields'));
     }
 
     const resolvedCategory = await Category.findOne({ _id: category, isDeleted: false }).select('_id').lean();
     if (!resolvedCategory) {
       res.status(400);
-      throw new Error('The selected category does not exist');
+      throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.category_not_found'));
     }
 
     product.category = resolvedCategory._id;

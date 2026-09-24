@@ -48,10 +48,11 @@ async function getActiveProviders() {
 }
 
 async function calculateShippingFromAllCarriers({ from, to, weight, value, lang }) {
+  const { getMessage } = require('../i18n/messages');
+  const defaultLang = getDefaultLanguage().code;
+  const langUpper = (lang || defaultLang).toUpperCase();
+
   try {
-    const { getMessage } = require('../i18n/messages');
-    const defaultLang = getDefaultLanguage().code;
-    const langUpper = (lang || defaultLang).toUpperCase();
 
     if (!from?.districtId || !to?.districtId || !weight) {
       return {
@@ -93,16 +94,17 @@ async function calculateShippingFromAllCarriers({ from, to, weight, value, lang 
     console.error('calculateShippingFromAllCarriers error:', error.message);
     return {
       success: false,
-      error: error.message,
+      error: getMessage(langUpper, 'shipping.requestFailed'),
     };
   }
 }
 
 async function calculateShippingForCarrier(provider, { from, to, weight, value, lang }) {
+  const { getMessage } = require('../i18n/messages');
+  const defaultLang = getDefaultLanguage().code;
+  const langUpper = (lang || defaultLang).toUpperCase();
+
   try {
-    const { getMessage } = require('../i18n/messages');
-    const defaultLang = getDefaultLanguage().code;
-    const langUpper = (lang || defaultLang).toUpperCase();
 
     if (provider.code === 'ghn') {
       const adapter = new GHNAdapter(provider);
@@ -124,12 +126,16 @@ async function calculateShippingForCarrier(provider, { from, to, weight, value, 
     console.error(`calculateShippingForCarrier (${provider.code}) error:`, error.message);
     return {
       success: false,
-      error: error.message,
+      error: getMessage(langUpper, 'shipping.requestFailed'),
     };
   }
 }
 
-async function getProvinces() {
+async function getProvinces(lang) {
+  const { getMessage } = require('../i18n/messages');
+  const defaultLang = getDefaultLanguage().code;
+  const langUpper = (lang || defaultLang).toUpperCase();
+
   try {
     const provinces = await Province.find({
       provider: 'ghn',
@@ -139,7 +145,7 @@ async function getProvinces() {
     if (provinces.length === 0) {
       return {
         success: false,
-        error: 'Không có dữ liệu tỉnh/thành. Vui lòng chạy location seeder trước.',
+        error: getMessage(langUpper, 'shipping.noProvinces'),
       };
     }
 
@@ -159,16 +165,17 @@ async function getProvinces() {
     }
     return {
       success: false,
-      error: error.message,
+      error: getMessage(langUpper, 'shipping.requestFailed'),
     };
   }
 }
 
 async function getDistricts(provinceId, lang) {
+  const { getMessage } = require('../i18n/messages');
+  const defaultLang = getDefaultLanguage().code;
+  const langUpper = (lang || defaultLang).toUpperCase();
+
   try {
-    const { getMessage } = require('../i18n/messages');
-    const defaultLang = getDefaultLanguage().code;
-    const langUpper = (lang || defaultLang).toUpperCase();
     const districts = await District.find({
       provider: 'ghn',
       provinceId,
@@ -198,16 +205,17 @@ async function getDistricts(provinceId, lang) {
     }
     return {
       success: false,
-      error: error.message,
+      error: getMessage(langUpper, 'shipping.requestFailed'),
     };
   }
 }
 
 async function getWards(districtId, lang) {
+  const { getMessage } = require('../i18n/messages');
+  const defaultLang = getDefaultLanguage().code;
+  const langUpper = (lang || defaultLang).toUpperCase();
+
   try {
-    const { getMessage } = require('../i18n/messages');
-    const defaultLang = getDefaultLanguage().code;
-    const langUpper = (lang || defaultLang).toUpperCase();
     const wards = await Ward.find({
       provider: 'ghn',
       districtId,
@@ -241,7 +249,7 @@ async function getWards(districtId, lang) {
     }
     return {
       success: false,
-      error: error.message,
+      error: getMessage(langUpper, 'shipping.requestFailed'),
     };
   }
 }

@@ -13,6 +13,7 @@
 const mongoose = require('mongoose');
 const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { getMessage } = require('../i18n/messages');
 
 const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
@@ -740,21 +741,27 @@ function validateProductArray(products, options = {}) {
  * @param {String} name - Name to validate
  * @returns {Object} { isValid, error }
  */
-function validateCategoryName(name) {
+function validateCategoryName(name, lang) {
+  const getCategoryMessage = (key, values = {}) => getMessage(
+    lang || getDefaultLanguage().code,
+    `admin-import.${key}`,
+    values
+  );
+
   // Trim whitespace
   const trimmed = String(name || '').trim();
 
   // Check length
   if (trimmed.length === 0) {
-    return { isValid: false, error: 'Tên không được để trống' };
+    return { isValid: false, error: getCategoryMessage('category_name_required') };
   }
   if (trimmed.length > 100) {
-    return { isValid: false, error: 'Tên quá dài (tối đa 100 ký tự)' };
+    return { isValid: false, error: getCategoryMessage('category_name_too_long') };
   }
 
   // Check for multiple consecutive spaces
   if (/\s{2,}/.test(trimmed)) {
-    return { isValid: false, error: 'Không được có nhiều khoảng trắng liên tiếp' };
+    return { isValid: false, error: getCategoryMessage('category_name_multiple_spaces') };
   }
 
   // Allow only: alphanumeric, space, dash, underscore, tiếng Việt (Unicode)
@@ -763,7 +770,7 @@ function validateCategoryName(name) {
   if (!allowedPattern.test(trimmed)) {
     return {
       isValid: false,
-      error: 'Tên chỉ được chứa chữ, số, khoảng trắng, dash (-) và underscore (_)'
+      error: getCategoryMessage('category_name_invalid_characters')
     };
   }
 
@@ -778,7 +785,7 @@ function validateCategoryName(name) {
     if (lowerTrimmed.includes(keyword)) {
       return {
         isValid: false,
-        error: `Tên chứa ký tự hoặc từ khóa không được phép: ${keyword}`
+        error: getCategoryMessage('category_name_forbidden_keyword', { keyword })
       };
     }
   }

@@ -679,7 +679,7 @@ const createBannerTranslation = asyncHandler(async (req, res) => {
   // Only title is required; others are optional
   if (!title || !title.trim()) {
     res.status(400);
-    throw new Error(getMessage(lang, 'admin-controllers-messages.title_required') || 'Title is required');
+    throw new Error(getMessage(lang, 'admin-banners.error_title_required'));
   }
 
   const banner = await Banner.findById(id);
@@ -691,7 +691,7 @@ const createBannerTranslation = asyncHandler(async (req, res) => {
   const existing = await BannerTranslation.findOne({ bannerId: id, language });
   if (existing) {
     res.status(409);
-    throw new Error('Translation already exists for this language');
+    throw new Error(getMessage(lang, 'api-errors.banner_translation_exists'));
   }
 
   const translation = new BannerTranslation({
@@ -718,7 +718,7 @@ const updateBannerTranslation = asyncHandler(async (req, res) => {
   // Only title is required; others are optional
   if (!title || !title.trim()) {
     res.status(400);
-    throw new Error(getMessage(lang, 'admin-controllers-messages.title_required') || 'Title is required');
+    throw new Error(getMessage(lang, 'admin-banners.error_title_required'));
   }
 
   const banner = await Banner.findById(id);
@@ -779,7 +779,7 @@ const autoTranslateBanner = asyncHandler(async (req, res) => {
     const lang = isSupportedLanguage(requestedLang) ? requestedLang : defaultLang;
     return res.status(404).json({
       success: false,
-      message: getMessage(lang, 'common.notFound'),
+      message: getMessage(lang, 'common.not_found_title'),
     });
   }
 

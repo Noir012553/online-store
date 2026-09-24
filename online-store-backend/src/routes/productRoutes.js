@@ -189,7 +189,7 @@ router.delete('/:id/hard', protect, admin, hardDeleteProduct);
  */
 router.post('/upload', protect, admin, uploadLimiter, uploadMemory.single('image'), validateImageUpload, asyncHandler(async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'No image file provided' });
+    return sendApiError(res, req, 400, 'PRODUCT_IMAGE_REQUIRED', 'api-errors.no_image_file');
   }
 
   try {

@@ -21,6 +21,7 @@ const {
 } = require('../controllers/analyticsController');
 const { clearCache } = require('../utils/cacheUtils');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { getMessage } = require('../i18n/messages');
 
 /**
  * GET /api/analytics/dashboard-stats
@@ -128,7 +129,10 @@ router.get('/clear-cache', protect, admin, (req, res) => {
   clearCache('orderStatus');
   clearCache('topProducts');
   clearCache('dashboardData');
-  res.json({ success: true, message: 'Analytics cache cleared' });
+  res.json({
+    success: true,
+    message: getMessage(req.lang, 'api-errors.analytics_cache_cleared'),
+  });
 });
 
 module.exports = router;
