@@ -553,12 +553,14 @@ const calculateDiscount = asyncHandler(async (req, res) => {
 
   if (normalizedOrderAmount < minimumOrderAmount) {
     res.status(400);
-    throw new Error(`Order amount must be at least ${minimumOrderAmount} ${normalizedOrderCurrencyCode}`);
+    throw new Error(getMessage(lang, 'admin-controllers-messages.min_order_amount_required', {
+      amount: `${minimumOrderAmount} ${normalizedOrderCurrencyCode}`,
+    }));
   }
 
   if (coupon.discountType === 'percentage' && coupon.discountValue > 100) {
     res.status(400);
-    throw new Error('Percentage discount cannot exceed 100');
+    throw new Error(getMessage(lang, 'admin-controllers-messages.percentage_discount_exceeds_100'));
   }
 
   if (coupon.applicableProducts.length > 0) {

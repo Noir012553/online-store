@@ -101,5 +101,10 @@
   "required_product_fields": "namn, varumärke, pris, kategori",
   "required_currency_image": "baseCurrencyCode och bild",
   "required_description_stock": "beskrivning och countInStock",
-  "required_specs": "specs måste vara ett giltigt objekt om det anges"
+  "required_specs": "specs måste vara ett giltigt objekt om det anges",
+  "category_name_required": "Category name is required",
+  "category_name_too_long": "Category name is too long (maximum 100 characters)",
+  "category_name_multiple_spaces": "Category name cannot contain consecutive spaces",
+  "category_name_invalid_characters": "Category name may contain only letters, numbers, spaces, dashes (-) and underscores (_)",
+  "category_name_forbidden_keyword": "Category name contains a forbidden character or keyword: {{keyword}}"
 }

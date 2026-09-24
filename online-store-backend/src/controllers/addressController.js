@@ -22,7 +22,7 @@ const getAddressLanguage = (req) => {
   if (acceptLang) {
     const primaryLang = acceptLang.split(',')[0].split('-')[0].toUpperCase();
     const activeLangs = getActiveLangCodes();
-    if (activeLangs.includes(primaryLang)) {
+    if (activeLangs.includes(primaryLang.toLowerCase())) {
       return primaryLang;
     }
   }
@@ -105,6 +105,7 @@ const createAddress = asyncHandler(async (req, res) => {
     provinceId,
     districtId,
     wardId,
+    lang: addressLang,
   });
 
   if (!ghnValidation.valid) {

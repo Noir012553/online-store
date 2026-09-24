@@ -101,5 +101,10 @@
   "required_product_fields": "name, brand, price, category",
   "required_currency_image": "baseCurrencyCode và image",
   "required_description_stock": "description và countInStock",
-  "required_specs": "specs nếu có phải là object hợp lệ"
+  "required_specs": "specs nếu có phải là object hợp lệ",
+  "category_name_required": "Tên danh mục không được để trống",
+  "category_name_too_long": "Tên danh mục quá dài (tối đa 100 ký tự)",
+  "category_name_multiple_spaces": "Tên danh mục không được có nhiều khoảng trắng liên tiếp",
+  "category_name_invalid_characters": "Tên danh mục chỉ được chứa chữ, số, khoảng trắng, dash (-) và underscore (_)",
+  "category_name_forbidden_keyword": "Tên danh mục chứa ký tự hoặc từ khóa không được phép: {{keyword}}"
 }

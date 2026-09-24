@@ -16,7 +16,7 @@ class HealthController {
       res.status(500).json({
         service: 'cloudflare-ai',
         status: 'error',
-        error: error.message,
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
       });
     }
   }
@@ -32,7 +32,7 @@ class HealthController {
       });
     } catch (error) {
       res.status(500).json({
-        error: error.message,
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
       });
     }
   }
@@ -53,7 +53,7 @@ class HealthController {
       });
     } catch (error) {
       res.status(500).json({
-        error: error.message,
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
       });
     }
   }
@@ -85,7 +85,7 @@ class HealthController {
     } catch (error) {
       res.status(500).json({
         status: 'error',
-        error: error.message,
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
       });
     }
   }
@@ -96,7 +96,7 @@ class HealthController {
       res.json(configInfo);
     } catch (error) {
       res.status(500).json({
-        error: error.message,
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
       });
     }
   }

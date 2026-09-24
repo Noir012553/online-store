@@ -83,7 +83,7 @@ exports.getActiveConfig = async (req, res) => {
     res.json({ success: true, data: { defaultLocale, locales } });
   } catch (error) {
     console.error('[LanguageController] Error getting active locale config:', error);
-    res.status(500).json({ success: false, message: error.message });
+    sendApiError(res, req, 500, 'LANGUAGE_REQUEST_FAILED');
   }
 };
 

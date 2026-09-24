@@ -11,5 +11,21 @@
   "standardServiceDesc": "Levering binnen 3–5 dagen",
   "expressServiceName": "Expressservice",
   "expressServiceDesc": "Levering binnen 1–2 dagen",
-  "calculateFeeFailed": "De verzendkosten kunnen niet worden berekend: {{error}}"
+  "calculateFeeFailed": "De verzendkosten kunnen niet worden berekend: {{error}}",
+  "noDistricts": "No districts found for province {{provinceId}}",
+  "noWards": "No wards found for district {{districtId}}",
+  "noProvinces": "No province or city data is available. Please run the location seeder first.",
+  "addressParametersRequired": "Province, district and ward are required",
+  "provinceNotFound": "Province with ID {{provinceId}} does not exist",
+  "districtNotFound": "District with ID {{districtId}} does not exist in province {{provinceName}}",
+  "wardNotFound": "Ward with ID {{wardId}} does not exist in district {{districtName}}",
+  "shippingParametersRequired": "From district, to district and destination ward are required",
+  "serviceRequired": "service_id is required. Call getAvailableServices first to get an available service.",
+  "shipmentFieldsRequired": "Please provide: to_name, to_phone, to_address, to_district_id, to_ward_code, weight and items",
+  "orderCodesRequired": "orderCodes is required",
+  "orderCodeRequired": "orderCode is required",
+  "unknownGhnError": "Unknown error from GHN",
+  "requestFailed": "Unable to retrieve shipping data",
+  "ghnProviderNotConfigured": "GHN shipping provider is not configured",
+  "ghnProvinceError": "Error fetching province data from GHN: {{error}}"
 }

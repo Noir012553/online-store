@@ -21,7 +21,7 @@ const normalizeInsuranceValue = (value) => Math.min(
   getMaxInsuranceValue()
 );
 
-async function getGhnClient() {
+async function getGhnClient(lang) {
   const provider = await ShippingProvider.getByCode('ghn');
 
   if (!provider) {
@@ -29,7 +29,7 @@ async function getGhnClient() {
     console.error('[GHN_HELP] To configure GHN:');
     console.error('  1. Add GHN_API_TOKEN to .env file');
     console.error('  2. Run: npm run seed (or node src/seeds/ghnSeeder.js)');
-    throw new Error('GHN provider không được cấu hình. Vui lòng thêm GHN_API_TOKEN vào .env và chạy seed.');
+    throw new Error(getMessage(lang || getDefaultLanguage().code, 'shipping.ghnProviderNotConfigured'));
   }
 
   const headers = {
@@ -96,9 +96,11 @@ async function validateDistrictIds({ from_district_id, to_district_id }) {
   }
 }
 
-async function getProvinces(client = null) {
+async function getProvinces(client = null, lang) {
+  const ghnLang = lang || getDefaultLanguage().code.toUpperCase();
+
   try {
-    const ghnClient = client || await getGhnClient();
+    const ghnClient = client || await getGhnClient(ghnLang);
     const response = await ghnClient.get('/master-data/province');
 
     if (response.data && response.data.code === 200) {
@@ -108,7 +110,8 @@ async function getProvinces(client = null) {
     throw new Error(`GHN API error: ${response.data.message}`);
   } catch (error) {
     console.error('GHN getProvinces error:', error.message);
-    throw new Error(`Error fetching provinces from GHN: ${error.message}`);
+    const msg = getMessage(ghnLang, 'shipping.ghnProvinceError');
+    throw new Error(msg.replace('{{error}}', error.message));
   }
 }
 
@@ -121,7 +124,7 @@ async function getDistricts(provinceId, lang, client = null) {
   }
 
   try {
-    const ghnClient = client || await getGhnClient();
+    const ghnClient = client || await getGhnClient(ghnLang);
     const response = await ghnClient.post('/master-data/district', {
       province_id: provinceId,
     });
@@ -147,7 +150,7 @@ async function getWards(districtId, lang, client = null) {
   }
 
   try {
-    const ghnClient = client || await getGhnClient();
+    const ghnClient = client || await getGhnClient(ghnLang);
     const normalizedDistrictId = Number(districtId);
     const getWardList = (payload) => {
       const data = payload?.data;
@@ -179,42 +182,49 @@ async function getWards(districtId, lang, client = null) {
   }
 }
 
-async function validateProvincDistrictWard({ provinceId, districtId, wardId }) {
+async function validateProvincDistrictWard({ provinceId, districtId, wardId, lang }) {
+  const ghnLang = (lang || getDefaultLanguage().code).toUpperCase();
   try {
     if (!provinceId || !districtId || !wardId) {
       return {
         valid: false,
-        error: 'provinceId, districtId and wardId are required',
+        error: getMessage(ghnLang, 'shipping.addressParametersRequired'),
       };
     }
 
-    const provinces = await getProvinces();
+    const provinces = await getProvinces(null, ghnLang);
     const province = provinces.find((p) => p.ProvinceID === provinceId);
 
     if (!province) {
       return {
         valid: false,
-        error: `Province with ID ${provinceId} does not exist`,
+        error: getMessage(ghnLang, 'shipping.provinceNotFound', { provinceId }),
       };
     }
 
-    const districts = await getDistricts(provinceId);
+    const districts = await getDistricts(provinceId, ghnLang);
     const district = districts.find((d) => d.DistrictID === districtId);
 
     if (!district) {
       return {
         valid: false,
-        error: `District with ID ${districtId} does not exist in province ${province.ProvinceName}`,
+        error: getMessage(ghnLang, 'shipping.districtNotFound', {
+          districtId,
+          provinceName: province.ProvinceName,
+        }),
       };
     }
 
-    const wards = await getWards(districtId);
+    const wards = await getWards(districtId, ghnLang);
     const ward = wards.find((w) => w.WardID === wardId);
 
     if (!ward) {
       return {
         valid: false,
-        error: `Ward with ID ${wardId} does not exist in district ${district.DistrictName}`,
+        error: getMessage(ghnLang, 'shipping.wardNotFound', {
+          wardId,
+          districtName: district.DistrictName,
+        }),
       };
     }
 
@@ -254,7 +264,7 @@ async function calculateShippingFee({
     if (!from_district_id || !to_district_id || !to_ward_code) {
       return {
         success: false,
-        error: 'from_district_id, to_district_id and to_ward_code are required',
+        error: getMessage((lang || getDefaultLanguage().code).toUpperCase(), 'shipping.shippingParametersRequired'),
       };
     }
 
@@ -282,11 +292,11 @@ async function calculateShippingFee({
     if (!service_id) {
       return {
         success: false,
-        error: 'service_id là bắt buộc. Hãy gọi getAvailableServices trước để lấy danh sách dịch vụ khả dụng.',
+        error: getMessage((lang || getDefaultLanguage().code).toUpperCase(), 'shipping.serviceRequired'),
       };
     }
 
-    const client = await getGhnClient();
+    const client = await getGhnClient((lang || getDefaultLanguage().code).toUpperCase());
 
     // ✅ Payload chuẩn xác từ script PowerShell đã chứng minh
     // Bắt buộc: shop_id, service_id, from_district_id, to_district_id, to_ward_code, weight, length, width, height, insurance_value
@@ -315,7 +325,7 @@ async function calculateShippingFee({
       };
     }
 
-    throw new Error(response.data.message || 'Unknown error from GHN');
+    throw new Error(response.data.message || getMessage((lang || getDefaultLanguage().code).toUpperCase(), 'shipping.unknownGhnError'));
   } catch (error) {
     const detailedError = error.response?.data?.message || error.message;
 
@@ -379,18 +389,19 @@ function getServiceTypes() {
  * @returns {Promise<Array>} Danh sách các service khả dụng với service_id, service_type_id, service_code...
  */
 async function getAvailableServices({ from_district_id, to_district_id, lang }) {
+  const ghnLang = (lang || getDefaultLanguage().code).toUpperCase();
   let from_id = null;
   let to_id = null;
 
   try {
     if (!from_district_id || !to_district_id) {
-      throw new Error('from_district_id and to_district_id are required');
+      throw new Error(getMessage(ghnLang, 'shipping.shippingParametersRequired'));
     }
 
     from_id = Number(from_district_id);
     to_id = Number(to_district_id);
 
-    const client = await getGhnClient();
+    const client = await getGhnClient(ghnLang);
 
     // ⚠️ GHN Sandbox API /available-services yêu cầu format chính xác
     // ✅ ĐÚNG: shop_id, from_district, to_district (snake_case, bỏ chữ _id, tất cả Number)
@@ -434,7 +445,6 @@ async function getAvailableServices({ from_district_id, to_district_id, lang }) 
       'Content-Type': 'application/json',
     });
 
-    const ghnLang = (lang || getDefaultLanguage().code).toUpperCase();
     throw new Error(getMessage(ghnLang, 'shipping.calculateFeeFailed').replace('{{error}}', error.message));
   }
 }
@@ -469,11 +479,11 @@ async function createShipment(params) {
     if (!to_name || !to_phone || !to_address || !to_district_id || !to_ward_code || !weight || !items) {
       return {
         success: false,
-        error: 'Vui lòng cung cấp: to_name, to_phone, to_address, to_district_id, to_ward_code, weight, items',
+        error: getMessage((lang || getDefaultLanguage().code).toUpperCase(), 'shipping.shipmentFieldsRequired'),
       };
     }
 
-    const client = await getGhnClient();
+    const client = await getGhnClient((lang || getDefaultLanguage().code).toUpperCase());
 
     // 1. Tính phí vận chuyển trước
     const feeResult = await calculateShippingFee({
@@ -577,7 +587,7 @@ async function createShipment(params) {
       };
     }
 
-    throw new Error(response.data.message || 'Unknown error from GHN');
+    throw new Error(response.data.message || getMessage((lang || getDefaultLanguage().code).toUpperCase(), 'shipping.unknownGhnError'));
   } catch (error) {
     const detailedError = error.response?.data?.message || error.message;
     console.error(`${CLI_SYMBOLS.error} [createShipment] Error creating order:`, detailedError);
@@ -594,7 +604,7 @@ async function getPrintToken(orderCodes) {
     if (!orderCodes || orderCodes.length === 0) {
       return {
         success: false,
-        error: 'orderCodes is required',
+        error: getMessage(getDefaultLanguage().code, 'shipping.orderCodesRequired'),
       };
     }
 
@@ -626,7 +636,7 @@ async function getShipmentInfo(orderCode) {
     if (!orderCode) {
       return {
         success: false,
-        error: 'orderCode is required',
+        error: getMessage(getDefaultLanguage().code, 'shipping.orderCodeRequired'),
       };
     }
 

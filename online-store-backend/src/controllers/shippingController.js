@@ -177,7 +177,7 @@ const calculateShipping = asyncHandler(async (req, res) => {
  */
 const getProvinces = asyncHandler(async (req, res) => {
   try {
-    const result = await shippingService.getProvinces();
+    const result = await shippingService.getProvinces(req.lang);
 
     if (!result.success) {
       return sendApiError(
@@ -221,7 +221,7 @@ const getDistricts = asyncHandler(async (req, res) => {
   }
 
   try {
-    const result = await shippingService.getDistricts(parseInt(provinceId));
+    const result = await shippingService.getDistricts(parseInt(provinceId), lang);
 
     if (!result.success) {
       return sendApiError(
