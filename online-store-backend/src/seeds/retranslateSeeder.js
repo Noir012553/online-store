@@ -49,7 +49,10 @@ class RetranslateSeeder {
 
     const query = {
       ...filter,
-      qualityStatus: 'needs_retranslate',
+      $or: [
+        { qualityStatus: 'needs_retranslate' },
+        { status: 'fallback_libretranslate' },
+      ],
     };
 
     if (entityType) {

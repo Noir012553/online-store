@@ -9,6 +9,12 @@ const cloudflareAiService = require('./cloudflareAiService');
 let client;
 
 const isEnabled = () => process.env.LIBRETRANSLATE_ENABLED === 'true';
+const isFallbackEnabled = () => process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT === 'true';
+const isRateLimitError = (error) => {
+  const status = error?.response?.status ?? error?.statusCode;
+  if (status === 420 || status === 429) return true;
+  return /rate[\s-]?limit|quota|too many requests/i.test(error?.message || '');
+};
 
 const getClient = () => {
   if (!client) client = new LibreTranslateClient();
@@ -22,18 +28,21 @@ const getChunkSize = () => {
     : DEFAULT_DESCRIPTION_CHUNK_SIZE;
 };
 
-const translateDraft = async (text, sourceLang, targetLang) => {
-  if (!isEnabled() || typeof text !== 'string' || text.trim() === '' || sourceLang === targetLang) {
-    return '';
-  }
+const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
+  if (!isEnabled()) throw new Error('LIBRETRANSLATE_DISABLED');
+  if (typeof text !== 'string' || text.trim() === '' || sourceLang === targetLang) return text;
 
+  const chunks = splitText(text, getChunkSize());
+  const translatedChunks = [];
+  for (const chunk of chunks) {
+    translatedChunks.push(await getClient().translate(chunk, sourceLang, targetLang));
+  }
+  return joinTranslatedChunks(chunks, translatedChunks);
+};
+
+const translateDraft = async (text, sourceLang, targetLang) => {
   try {
-    const chunks = splitText(text, getChunkSize());
-    const translatedChunks = [];
-    for (const chunk of chunks) {
-      translatedChunks.push(await getClient().translate(chunk, sourceLang, targetLang));
-    }
-    return joinTranslatedChunks(chunks, translatedChunks);
+    return await translateWithLibreTranslate(text, sourceLang, targetLang);
   } catch (error) {
     console.warn('[LibreTranslate] Product draft unavailable; continuing with Cloudflare AI:', error.message);
     return '';
@@ -43,6 +52,29 @@ const translateDraft = async (text, sourceLang, targetLang) => {
 const stripTranslationPrefix = (text) => (
   text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
 );
+
+const translateWithFallback = async (text, sourceLang, targetLang) => {
+  try {
+    return {
+      translatedText: await translateWithCloudflare(text, sourceLang, targetLang),
+      provider: 'cloudflare',
+    };
+  } catch (error) {
+    if (!isFallbackEnabled() || !isRateLimitError(error)) throw error;
+
+    try {
+      const translatedText = await translateWithLibreTranslate(text, sourceLang, targetLang);
+      return {
+        translatedText,
+        provider: 'libretranslate',
+        fallbackReason: 'cloudflare_rate_limit',
+      };
+    } catch (fallbackError) {
+      fallbackError.cloudflareRateLimited = true;
+      throw fallbackError;
+    }
+  }
+};
 
 const translateWithCloudflare = async (text, sourceLang, targetLang) => {
   const chunks = splitText(text, getChunkSize());
@@ -67,6 +99,8 @@ const translateWithCloudflare = async (text, sourceLang, targetLang) => {
 
 module.exports = {
   isEnabled,
+  isFallbackEnabled,
   translateDraft,
   translateWithCloudflare,
+  translateWithFallback,
 };
