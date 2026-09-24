@@ -188,10 +188,12 @@ Nếu nhận `404`, cần cập nhật URL trong file dữ liệu hoặc cào l�
 4. Chỉ đặt `LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT=true` sau khi đã test batch nhỏ.
 5. Chạy luồng dịch sản phẩm hiện có.
 6. Kiểm tra provider, status fallback và chất lượng trong cache/validator.
-6. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
-7. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare.
+7. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
+8. Khi quota hồi phục, chạy luồng retranslate có giới hạn cho các bản ghi `fallback_libretranslate`.
+9. Sau khi bản dịch Cloudflare đạt `approved`, backend đồng bộ lại `ProductCatalogTranslationCache`.
+10. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare hoặc ghi nhận retry.
 
-Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache. Nếu muốn áp dụng draft cho sản phẩm đã có cache, cần dùng luồng retranslate sản phẩm hoặc xử lý lại cache theo quy trình quản trị.
+Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache. Bản fallback được chọn lại bởi retranslate seeder; bản dịch mới chỉ cập nhật catalog khi đã đạt `approved` và còn khớp source product.
 
 Không chạy LibreTranslate cho banner, static namespace, admin hoặc nội dung checkout. Không ghi bản dịch LibreTranslate trực tiếp vào cache chính thức.
 

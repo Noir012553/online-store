@@ -6,6 +6,7 @@ const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 
 const PRODUCT_ENTITY_TYPES = new Set([
   'product_name',
@@ -122,21 +123,26 @@ class RetranslateSeeder {
         }
 
         const newQualityStatus = validationResult?.qualityStatus || 'pending';
-        const newQualityScore = validationResult?.qualityScore || null;
+        const newQualityScore = validationResult?.qualityScore ?? null;
         const newValidationErrors = validationResult?.validationErrors || [];
 
         // Create new version
         const newVersion = {
           hashKey: `${translation.hashKey}:v${(translation.version || 1) + 1}`,
           originalText: translation.originalText,
+          sourceLang: translation.sourceLang || defaultLang,
           targetLang: translation.targetLang,
           translatedText: newTranslation,
           entityId: translation.entityId,
           entityType: translation.entityType,
-          specKey: translation.specKey,
+          specKey: translation.specKey || null,
+          fieldKey: translation.fieldKey || null,
+          status: 'success',
+          provider: 'cloudflare',
+          retryCount: 0,
           version: (translation.version || 1) + 1,
           previousVersion: translation._id,
-          retranslateReason: translation.validationErrors?.[0] || 'manual_retranslate',
+          retranslateReason: translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
           qualityStatus: newQualityStatus,
           qualityScore: newQualityScore,
           validationErrors: newValidationErrors,
@@ -175,6 +181,13 @@ class RetranslateSeeder {
           },
         });
 
+        if (PRODUCT_ENTITY_TYPES.has(translation.entityType) && newQualityStatus === 'approved') {
+          await ProductTranslationSeederService._syncProductCatalogTranslations(
+            translation.targetLang,
+            [translation.entityId],
+          );
+        }
+
         // Create log for OLD version (status changed to retranslated)
         await TranslationQualityLog.create({
           translationId: translation._id,
@@ -192,7 +205,10 @@ class RetranslateSeeder {
         });
 
         // Update stats
-        const wasFixed = translation.validationErrors?.length > 0 && newValidationErrors.length === 0;
+        const wasFixed = (
+          translation.status === 'fallback_libretranslate'
+          || translation.validationErrors?.length > 0
+        ) && newValidationErrors.length === 0;
         if (wasFixed) {
           this.stats.fixedCount++;
         } else if (newValidationErrors.length > 0) {
