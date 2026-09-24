@@ -50,6 +50,28 @@ const setTranslationMemoryValue = (key, value) => {
     translationMemory.delete(translationMemory.keys().next().value);
   }
 };
+const createTranslationMetrics = () => ({
+  durations: [],
+  providerCounts: {},
+});
+const recordTranslationMetric = (metrics, provider, durationMs) => {
+  metrics.providerCounts[provider] = (metrics.providerCounts[provider] || 0) + 1;
+  if (metrics.durations.length < 10000) metrics.durations.push(durationMs);
+};
+const mergeTranslationMetrics = (target, source) => {
+  if (!source) return;
+  Object.entries(source.providerCounts).forEach(([provider, count]) => {
+    target.providerCounts[provider] = (target.providerCounts[provider] || 0) + count;
+  });
+  const remaining = 10000 - target.durations.length;
+  if (remaining > 0) target.durations.push(...source.durations.slice(0, remaining));
+};
+const getPercentile = (values, percentile) => {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.ceil((percentile / 100) * sorted.length) - 1);
+  return sorted[index];
+};
 
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
@@ -70,7 +92,7 @@ class ProductTranslationSeederService {
    *
    * @param {string} targetLang - Ngôn ngữ đích (e.g., 'pt')
    * @param {string} sourceLang - Ngôn ngữ nguồn (mặc định từ config)
-   * @returns {Promise<{successCount, rateLimitCount, fallbackCount, memoryCacheHits, errorCount, totalProcessed}>}
+   * @returns {Promise<{successCount, rateLimitCount, fallbackCount, memoryCacheHits, translationMetrics, errorCount, totalProcessed}>}
    */
   static async translateAllProducts(targetLang, sourceLang) {
     // Validate that sourceLang is provided
@@ -109,6 +131,7 @@ class ProductTranslationSeederService {
       let errorCount = 0;
       let fallbackCount = 0;
       let memoryCacheHits = 0;
+      const translationMetrics = createTranslationMetrics();
       let totalProcessed = 0;
       const processedProductIds = [];
 
@@ -174,6 +197,7 @@ class ProductTranslationSeederService {
               chunkRateLimitCount += rateLimitErr + fallbackErr;
               fallbackCount += fallbackErr;
               memoryCacheHits += result.value.memoryCacheHits;
+              mergeTranslationMetrics(translationMetrics, result.value.translationMetrics);
               errorCount += otherErr;
             } else {
               errorCount++;
@@ -195,6 +219,8 @@ class ProductTranslationSeederService {
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
       console.log(`  ${CLI_SYMBOLS.progress} LibreTranslate fallback: ${fallbackCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Memory cache hit: ${memoryCacheHits}`);
+      console.log(`  ${CLI_SYMBOLS.chart} Provider: ${JSON.stringify(translationMetrics.providerCounts)}`);
+      console.log(`  ${CLI_SYMBOLS.chart} Translation p95: ${getPercentile(translationMetrics.durations, 95) ?? 'n/a'}ms`);
       console.log(`  ${CLI_SYMBOLS.error} Lỗi khác: ${errorCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Tổng xử lý: ${totalProcessed}`);
 
@@ -208,6 +234,11 @@ class ProductTranslationSeederService {
         rateLimitCount,
         fallbackCount,
         memoryCacheHits,
+        translationMetrics: {
+          providerCounts: translationMetrics.providerCounts,
+          sampleCount: translationMetrics.durations.length,
+          p95Ms: getPercentile(translationMetrics.durations, 95),
+        },
         errorCount,
         totalProcessed,
       };
@@ -536,6 +567,7 @@ class ProductTranslationSeederService {
       let rateLimitCount = 0;
       let fallbackCount = 0;
       let memoryCacheHitCount = 0;
+      const translationMetrics = createTranslationMetrics();
       let otherErrorCount = 0;
 
       // Array chứa tất cả field cần dịch
@@ -638,9 +670,13 @@ class ProductTranslationSeederService {
             continue;
           }
 
+          const translationStartedAt = Date.now();
           const translation = memoryTranslation || (['product_description', 'product_technical_description'].includes(field.entityType)
             ? await this._translateDescription(field.originalText, sourceLang, targetLang)
             : await this._translateWithDraft(field.originalText, sourceLang, targetLang));
+          if (!memoryTranslation) {
+            recordTranslationMetric(translationMetrics, translation.provider, Date.now() - translationStartedAt);
+          }
           if (memoryTranslation) memoryCacheHitCount++;
           if (!memoryTranslation) setTranslationMemoryValue(memoryKey, translation);
           const translatedText = translation.translatedText;
@@ -740,6 +776,7 @@ class ProductTranslationSeederService {
         rateLimitErr: rateLimitCount,
         fallbackErr: fallbackCount,
         memoryCacheHits: memoryCacheHitCount,
+        translationMetrics,
         otherErr: otherErrorCount,
       };
     } catch (err) {
