@@ -53,19 +53,30 @@ const stripTranslationPrefix = (text) => (
   text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
 );
 
-const translateWithFallback = async (text, sourceLang, targetLang) => {
+const translateChunkWithFallback = async (chunk, sourceLang, targetLang) => {
+  const draftText = await translateDraft(chunk, sourceLang, targetLang);
+
   try {
+    const translatedChunk = await cloudflareAiService.translate(
+      chunk,
+      sourceLang,
+      targetLang,
+      null,
+      3,
+      2000,
+      { draftText },
+    );
     return {
-      translatedText: await translateWithCloudflare(text, sourceLang, targetLang),
+      translatedText: stripTranslationPrefix(translatedChunk),
       provider: 'cloudflare',
     };
   } catch (error) {
     if (!isFallbackEnabled() || !isRateLimitError(error)) throw error;
 
     try {
-      const translatedText = await translateWithLibreTranslate(text, sourceLang, targetLang);
+      const translatedText = draftText || await translateWithLibreTranslate(chunk, sourceLang, targetLang);
       return {
-        translatedText,
+        translatedText: stripTranslationPrefix(translatedText),
         provider: 'libretranslate',
         fallbackReason: 'cloudflare_rate_limit',
       };
@@ -74,6 +85,28 @@ const translateWithFallback = async (text, sourceLang, targetLang) => {
       throw fallbackError;
     }
   }
+};
+
+const translateWithFallback = async (text, sourceLang, targetLang) => {
+  const chunks = splitText(text, getChunkSize());
+  const translatedChunks = [];
+  let provider = 'cloudflare';
+  let fallbackReason = null;
+
+  for (const chunk of chunks) {
+    const translation = await translateChunkWithFallback(chunk, sourceLang, targetLang);
+    translatedChunks.push(translation.translatedText);
+    if (translation.provider === 'libretranslate') {
+      provider = 'libretranslate';
+      fallbackReason = translation.fallbackReason;
+    }
+  }
+
+  return {
+    translatedText: joinTranslatedChunks(chunks, translatedChunks),
+    provider,
+    ...(fallbackReason ? { fallbackReason } : {}),
+  };
 };
 
 const translateWithCloudflare = async (text, sourceLang, targetLang) => {
