@@ -4,6 +4,10 @@ const https = require('node:https');
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 const sleep = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs));
+const getPositiveInteger = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
 
 const requestJson = (url, body, timeoutMs) => new Promise((resolve, reject) => {
   const parsedUrl = new URL(url);
@@ -59,12 +63,32 @@ class LibreTranslateClient {
     retries = Number(process.env.LIBRETRANSLATE_RETRIES || 2),
     retryDelayMs = Number(process.env.LIBRETRANSLATE_RETRY_DELAY_MS || 1000),
     apiKey = process.env.LIBRETRANSLATE_API_KEY || '',
+    maxParallelRequests = getPositiveInteger(process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS, 4),
   } = {}) {
     this.url = `${baseUrl.replace(/\/$/, '')}/translate`;
     this.timeoutMs = timeoutMs;
     this.retries = retries;
     this.retryDelayMs = retryDelayMs;
     this.apiKey = apiKey;
+    this.maxParallelRequests = maxParallelRequests;
+    this.runningRequests = 0;
+    this.waitingRequests = [];
+  }
+
+  async acquireSlot() {
+    if (this.runningRequests < this.maxParallelRequests) {
+      this.runningRequests++;
+      return;
+    }
+
+    await new Promise((resolve) => this.waitingRequests.push(resolve));
+    this.runningRequests++;
+  }
+
+  releaseSlot() {
+    this.runningRequests--;
+    const next = this.waitingRequests.shift();
+    if (next) next();
   }
 
   async translate(text, source, target) {
@@ -73,18 +97,23 @@ class LibreTranslateClient {
     const body = { q: text, source, target, format: 'text' };
     if (this.apiKey) body.api_key = this.apiKey;
 
-    for (let attempt = 0; ; attempt += 1) {
-      try {
-        const response = await requestJson(this.url, body, this.timeoutMs);
-        if (typeof response.translatedText !== 'string') {
-          throw new Error('LibreTranslate response is missing translatedText');
+    await this.acquireSlot();
+    try {
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          const response = await requestJson(this.url, body, this.timeoutMs);
+          if (typeof response.translatedText !== 'string') {
+            throw new Error('LibreTranslate response is missing translatedText');
+          }
+          return response.translatedText;
+        } catch (error) {
+          const retryable = error.statusCode === undefined || RETRYABLE_STATUSES.has(error.statusCode);
+          if (attempt >= this.retries || !retryable) throw error;
+          await sleep(this.retryDelayMs * (2 ** attempt));
         }
-        return response.translatedText;
-      } catch (error) {
-        const retryable = error.statusCode === undefined || RETRYABLE_STATUSES.has(error.statusCode);
-        if (attempt >= this.retries || !retryable) throw error;
-        await sleep(this.retryDelayMs * (2 ** attempt));
       }
+    } finally {
+      this.releaseSlot();
     }
   }
 }
