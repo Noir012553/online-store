@@ -24,6 +24,33 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
+const translationMemory = new Map();
+const getTranslationMemoryLimit = () => {
+  const configured = Number(process.env.PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE || 5000);
+  return Number.isInteger(configured) && configured > 0 ? configured : 5000;
+};
+const getTranslationMemoryKey = (field, sourceLang, targetLang) => JSON.stringify([
+  field.entityType,
+  field.specKey || null,
+  field.originalText,
+  sourceLang,
+  targetLang,
+]);
+const getTranslationMemoryValue = (key) => {
+  const value = translationMemory.get(key);
+  if (value === undefined) return null;
+  translationMemory.delete(key);
+  translationMemory.set(key, value);
+  return value;
+};
+const setTranslationMemoryValue = (key, value) => {
+  translationMemory.delete(key);
+  translationMemory.set(key, value);
+  while (translationMemory.size > getTranslationMemoryLimit()) {
+    translationMemory.delete(translationMemory.keys().next().value);
+  }
+};
+
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
     const translation = await libretranslateProductService.translateWithFallback(
@@ -43,7 +70,7 @@ class ProductTranslationSeederService {
    *
    * @param {string} targetLang - Ngôn ngữ đích (e.g., 'pt')
    * @param {string} sourceLang - Ngôn ngữ nguồn (mặc định từ config)
-   * @returns {Promise<{successCount, rateLimitCount, errorCount, totalProcessed}>}
+   * @returns {Promise<{successCount, rateLimitCount, fallbackCount, memoryCacheHits, errorCount, totalProcessed}>}
    */
   static async translateAllProducts(targetLang, sourceLang) {
     // Validate that sourceLang is provided
@@ -67,13 +94,21 @@ class ProductTranslationSeederService {
 
       if (totalProducts === 0) {
         console.log(`[ProductSeeder] Không có sản phẩm để dịch`);
-        return { successCount: 0, rateLimitCount: 0, fallbackCount: 0, errorCount: 0, totalProcessed: 0 };
+        return {
+          successCount: 0,
+          rateLimitCount: 0,
+          fallbackCount: 0,
+          memoryCacheHits: 0,
+          errorCount: 0,
+          totalProcessed: 0,
+        };
       }
 
       let successCount = 0;
       let rateLimitCount = 0;
       let errorCount = 0;
       let fallbackCount = 0;
+      let memoryCacheHits = 0;
       let totalProcessed = 0;
       const processedProductIds = [];
 
@@ -138,6 +173,7 @@ class ProductTranslationSeederService {
               rateLimitCount += rateLimitErr;
               chunkRateLimitCount += rateLimitErr + fallbackErr;
               fallbackCount += fallbackErr;
+              memoryCacheHits += result.value.memoryCacheHits;
               errorCount += otherErr;
             } else {
               errorCount++;
@@ -158,6 +194,7 @@ class ProductTranslationSeederService {
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
       console.log(`  ${CLI_SYMBOLS.progress} LibreTranslate fallback: ${fallbackCount}`);
+      console.log(`  ${CLI_SYMBOLS.chart} Memory cache hit: ${memoryCacheHits}`);
       console.log(`  ${CLI_SYMBOLS.error} Lỗi khác: ${errorCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Tổng xử lý: ${totalProcessed}`);
 
@@ -166,7 +203,14 @@ class ProductTranslationSeederService {
         console.log(`[ProductSeeder]    để retry các translations bị Rate Limit\n`);
       }
 
-      return { successCount, rateLimitCount, fallbackCount, errorCount, totalProcessed };
+      return {
+        successCount,
+        rateLimitCount,
+        fallbackCount,
+        memoryCacheHits,
+        errorCount,
+        totalProcessed,
+      };
     } catch (error) {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi dịch sản phẩm: ${error.message}`);
       throw error;
@@ -467,18 +511,31 @@ class ProductTranslationSeederService {
       const isLocked = await distributedLockService.isLocked(lockKey);
       if (isLocked) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Product ${productId} đang được dịch bởi process khác, skip`);
-        return { success: 0, rateLimitErr: 0, fallbackErr: 0, otherErr: 0 };
+        return {
+          success: 0,
+          rateLimitErr: 0,
+          fallbackErr: 0,
+          memoryCacheHits: 0,
+          otherErr: 0,
+        };
       }
 
       lockId = await distributedLockService.acquireLock(lockKey, 120);
       if (!lockId) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Không thể acquire lock cho ${productId}, skip`);
-        return { success: 0, rateLimitErr: 0, fallbackErr: 0, otherErr: 0 };
+        return {
+          success: 0,
+          rateLimitErr: 0,
+          fallbackErr: 0,
+          memoryCacheHits: 0,
+          otherErr: 0,
+        };
       }
 
       let successCount = 0;
       let rateLimitCount = 0;
       let fallbackCount = 0;
+      let memoryCacheHitCount = 0;
       let otherErrorCount = 0;
 
       // Array chứa tất cả field cần dịch
@@ -563,19 +620,29 @@ class ProductTranslationSeederService {
             .digest('hex');
 
           // Check cache trước
-          const cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          const memoryKey = getTranslationMemoryKey(field, sourceLang, targetLang);
+          const memoryTranslation = getTranslationMemoryValue(memoryKey);
+          let cached = null;
+          if (!memoryTranslation) {
+            cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+          }
           const hasApprovedCache = cached?.status === 'success'
             && cached.qualityStatus === 'approved'
             && !cached.validationErrors?.includes('missing_brand');
           if (hasApprovedCache) {
+            setTranslationMemoryValue(memoryKey, {
+              translatedText: cached.translatedText,
+              provider: cached.provider || 'cloudflare',
+            });
             successCount++;
             continue;
           }
 
-          // Dịch text
-          const translation = ['product_description', 'product_technical_description'].includes(field.entityType)
+          const translation = memoryTranslation || (['product_description', 'product_technical_description'].includes(field.entityType)
             ? await this._translateDescription(field.originalText, sourceLang, targetLang)
-            : await this._translateWithDraft(field.originalText, sourceLang, targetLang);
+            : await this._translateWithDraft(field.originalText, sourceLang, targetLang));
+          if (memoryTranslation) memoryCacheHitCount++;
+          if (!memoryTranslation) setTranslationMemoryValue(memoryKey, translation);
           const translatedText = translation.translatedText;
           if (translation.provider === 'libretranslate') fallbackCount++;
 
@@ -672,11 +739,18 @@ class ProductTranslationSeederService {
         success: successCount,
         rateLimitErr: rateLimitCount,
         fallbackErr: fallbackCount,
+        memoryCacheHits: memoryCacheHitCount,
         otherErr: otherErrorCount,
       };
     } catch (err) {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi xử lý sản phẩm: ${err.message}`);
-      return { success: 0, rateLimitErr: 0, fallbackErr: 0, otherErr: 1 };
+      return {
+        success: 0,
+        rateLimitErr: 0,
+        fallbackErr: 0,
+        memoryCacheHits: 0,
+        otherErr: 1,
+      };
     } finally {
       if (lockId) await distributedLockService.releaseLock(lockKey, lockId);
     }

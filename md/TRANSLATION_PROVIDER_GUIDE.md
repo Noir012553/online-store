@@ -108,9 +108,10 @@ Seeder sản phẩm đọc các biến `PRODUCT_TRANSLATION_CHUNK_SIZE`, `PRODUC
 PRODUCT_TRANSLATION_CHUNK_SIZE=20
 PRODUCT_TRANSLATION_CONCURRENCY=2
 PRODUCT_TRANSLATION_DELAY_MS=300
+PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE=5000
 ```
 
-`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
+`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. `PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE` giới hạn số bản dịch giữ trong memory của process; key bao gồm nội dung, loại field và cặp ngôn ngữ. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
 
 ## Khởi động LibreTranslate local
 
