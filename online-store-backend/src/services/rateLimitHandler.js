@@ -159,7 +159,7 @@ class RateLimitHandler {
         {
           $match: {
             targetLang,
-            status: { $ne: 'success' }
+            status: { $nin: ['success', 'translated_via_libre'] }
           }
         },
         {

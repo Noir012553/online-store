@@ -67,6 +67,7 @@ async function main() {
       console.log(`${CLI_SYMBOLS.branch} ID:          ${v._id}`);
       console.log(`${CLI_SYMBOLS.branch} Text:        "${v.translatedText}"`);
       console.log(`${CLI_SYMBOLS.branch} Status:      ${v.qualityStatus}`);
+      console.log(`${CLI_SYMBOLS.branch} Provider:    ${v.provider || 'unknown'}`);
       console.log(`${CLI_SYMBOLS.branch} Score:       ${v.qualityScore || 'N/A'}/100`);
       console.log(`${CLI_SYMBOLS.branch} Errors:      ${v.validationErrors?.length > 0 ? v.validationErrors.join(', ') : 'None'}`);
       console.log(`${CLI_SYMBOLS.branch} Version:     ${v.version}`);
@@ -76,8 +77,8 @@ async function main() {
         console.log(`${CLI_SYMBOLS.branch} Reviewed:    ${new Date(v.reviewedAt).toLocaleString()} by ${v.reviewedBy}`);
       }
 
-      if (v.retranslateReason) {
-        console.log(`${CLI_SYMBOLS.branch} Reason:      ${v.retranslateReason}`);
+      if (v.failoverReason || v.retranslateReason) {
+        console.log(`${CLI_SYMBOLS.branch} Reason:      ${v.failoverReason || v.retranslateReason}`);
       }
 
       if (v.reviewNotes) {

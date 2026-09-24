@@ -9,7 +9,7 @@ const cloudflareAiService = require('./cloudflareAiService');
 let client;
 
 const isEnabled = () => process.env.LIBRETRANSLATE_ENABLED === 'true';
-const isFallbackEnabled = () => process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT === 'true';
+const isFailoverEnabled = () => process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
 const isRateLimitError = (error) => {
   const status = error?.response?.status ?? error?.statusCode;
   if (status === 420 || status === 429) return true;
@@ -53,7 +53,7 @@ const stripTranslationPrefix = (text) => (
   text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
 );
 
-const translateChunkWithFallback = async (chunk, sourceLang, targetLang) => {
+const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
   const draftText = await translateDraft(chunk, sourceLang, targetLang);
 
   try {
@@ -71,41 +71,41 @@ const translateChunkWithFallback = async (chunk, sourceLang, targetLang) => {
       provider: 'cloudflare',
     };
   } catch (error) {
-    if (!isFallbackEnabled() || !isRateLimitError(error)) throw error;
+    if (!isFailoverEnabled() || !isRateLimitError(error)) throw error;
 
     try {
       const translatedText = draftText || await translateWithLibreTranslate(chunk, sourceLang, targetLang);
       return {
         translatedText: stripTranslationPrefix(translatedText),
         provider: 'libretranslate',
-        fallbackReason: 'cloudflare_rate_limit',
+        failoverReason: 'cloudflare_overload',
       };
-    } catch (fallbackError) {
-      fallbackError.cloudflareRateLimited = true;
-      throw fallbackError;
+    } catch (failoverError) {
+      failoverError.cloudflareRateLimited = true;
+      throw failoverError;
     }
   }
 };
 
-const translateWithFallback = async (text, sourceLang, targetLang) => {
+const translateWithFailover = async (text, sourceLang, targetLang) => {
   const chunks = splitText(text, getChunkSize());
   const translatedChunks = [];
   let provider = 'cloudflare';
-  let fallbackReason = null;
+  let failoverReason = null;
 
   for (const chunk of chunks) {
-    const translation = await translateChunkWithFallback(chunk, sourceLang, targetLang);
+    const translation = await translateChunkWithFailover(chunk, sourceLang, targetLang);
     translatedChunks.push(translation.translatedText);
     if (translation.provider === 'libretranslate') {
       provider = 'libretranslate';
-      fallbackReason = translation.fallbackReason;
+      failoverReason = translation.failoverReason;
     }
   }
 
   return {
     translatedText: joinTranslatedChunks(chunks, translatedChunks),
     provider,
-    ...(fallbackReason ? { fallbackReason } : {}),
+    ...(failoverReason ? { failoverReason } : {}),
   };
 };
 
@@ -132,8 +132,8 @@ const translateWithCloudflare = async (text, sourceLang, targetLang) => {
 
 module.exports = {
   isEnabled,
-  isFallbackEnabled,
+  isFailoverEnabled,
   translateDraft,
   translateWithCloudflare,
-  translateWithFallback,
+  translateWithFailover,
 };

@@ -721,7 +721,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
     const translations = (await LiveTranslationCache.find({
       entityId: productId,
       targetLang: resolvedLang,
-      status: 'success',
+      status: { $in: ['success', 'translated_via_libre'] },
       qualityStatus: 'approved',
     }).lean()).filter((translation) => isCurrentLegacyProductTranslation(translation, sourceProduct));
 
@@ -1114,7 +1114,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   if (!includeNonSuccess) {
     catalogQuery.status = 'success';
     catalogQuery.qualityStatus = 'approved';
-    legacyQuery.status = 'success';
+    legacyQuery.status = { $in: ['success', 'translated_via_libre'] };
     legacyQuery.qualityStatus = 'approved';
   }
 
@@ -1232,7 +1232,10 @@ exports.getProductTranslationStatuses = async (req, res) => {
         && expectedSpecKeys.every((key) => translatedSpecKeys.has(key));
       const legacyStatus = currentLegacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
         ? 'needs_retranslate'
-        : currentLegacyRecords.some((record) => record.qualityStatus === 'rejected' || record.status !== 'success')
+        : currentLegacyRecords.some((record) => (
+          record.qualityStatus === 'rejected'
+          || !['success', 'translated_via_libre'].includes(record.status)
+        ))
           ? 'rejected'
           : currentLegacyRecords.some((record) => record.qualityStatus === 'pending')
             ? 'pending'
@@ -2564,7 +2567,7 @@ exports.getTranslationStatus = async (req, res) => {
     const expectedProductTranslations = totalProducts * 5;
     const actualProductTranslations = await LiveTranslationCache.countDocuments({
       targetLang: lang,
-      status: 'success',
+      status: { $in: ['success', 'translated_via_libre'] },
       entityType: { $regex: '^product_' }
     });
 
@@ -2577,7 +2580,7 @@ exports.getTranslationStatus = async (req, res) => {
       {
         $match: {
           targetLang: lang,
-          status: { $ne: 'success' }
+          status: { $nin: ['success', 'translated_via_libre'] }
         }
       },
       {
