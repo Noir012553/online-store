@@ -34,7 +34,9 @@ const migrate = async () => {
       },
     );
 
+    const remaining = await LiveTranslationCache.countDocuments(query);
     console.log(`Migrated ${result.modifiedCount} record(s) to ${CURRENT_STATUS}.`);
+    console.log(`Legacy records remaining: ${remaining}.`);
   } finally {
     await mongoose.connection.close();
   }

@@ -344,7 +344,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
     sandbox.stub(distributedLockService, 'releaseLock').resolves();
     sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
-    const saveTranslation = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({});
+    const saveTranslation = sandbox.stub(LiveTranslationCache, 'bulkWrite').resolves({});
     sandbox.stub(cloudflareAiService, 'translate').callsFake(async (text) => `en:${text}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
@@ -371,8 +371,11 @@ describe('Product translation cache controller', () => {
       }],
     }, 'en', 'vi', 0);
 
-    const records = saveTranslation.getCalls().map((call) => call.args[1].$set);
-    expect(result).to.deep.equal({ success: 9, rateLimitErr: 0, otherErr: 0 });
+    const records = saveTranslation.firstCall.args[0].map((operation) => operation.updateOne.update.$set);
+    expect(result.success).to.equal(9);
+    expect(result.rateLimitErr).to.equal(0);
+    expect(result.failoverErr).to.equal(0);
+    expect(result.otherErr).to.equal(0);
     expect(records.some(({ entityType, fieldKey, originalText }) => (
       entityType === 'product_technical_description'
       && fieldKey === 'technicalDescription'
@@ -405,7 +408,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
     sandbox.stub(distributedLockService, 'releaseLock').resolves();
     sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
-    const saveTranslation = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({});
+    const saveTranslation = sandbox.stub(LiveTranslationCache, 'bulkWrite').resolves({});
     sandbox.stub(cloudflareAiService, 'translate').callsFake(async (text) => `en:${text}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
@@ -423,7 +426,8 @@ describe('Product translation cache controller', () => {
       _id: new mongoose.Types.ObjectId(),
     }, 'en', 'vi', 1);
 
-    const records = saveTranslation.getCalls().map((call) => call.args[1].$set);
+    const records = saveTranslation.getCalls()
+      .flatMap((call) => call.args[0].map((operation) => operation.updateOne.update.$set));
     expect(records).to.have.lengthOf(2);
     expect(records[0].hashKey).to.not.equal(records[1].hashKey);
     expect(records[0].entityId).to.not.equal(records[1].entityId);

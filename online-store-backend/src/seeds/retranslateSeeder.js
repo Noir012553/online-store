@@ -23,6 +23,7 @@ class RetranslateSeeder {
       totalToRetranslate: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
+      errorCount: 0,
       breakdown: {},
       stillBroken: [],
     };
@@ -33,7 +34,7 @@ class RetranslateSeeder {
       filter = {},
       lang = null,
       entityType = null,
-      limit = 100,
+      limit = 0,
       dryRun = false,
       validate = true,
       verbose = true,
@@ -44,32 +45,48 @@ class RetranslateSeeder {
       totalToRetranslate: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
+      errorCount: 0,
       breakdown: {},
       stillBroken: [],
     };
 
+    if (!Number.isInteger(limit) || limit < 0) {
+      throw new Error('Retranslate limit must be a non-negative integer; 0 means all matching records');
+    }
+
+    const {
+      provider: ignoredProvider,
+      status: ignoredStatus,
+      qualityStatus: ignoredQualityStatus,
+      $or: ignoredConditions,
+      entityType: filterEntityType,
+      ...safeFilter
+    } = filter;
+    const requestedEntityType = entityType || filterEntityType;
+    if (requestedEntityType && !PRODUCT_ENTITY_TYPES.has(requestedEntityType)) {
+      throw new Error(`Unsupported product entity type: ${requestedEntityType}`);
+    }
+
     const query = {
-      ...filter,
+      ...safeFilter,
       provider: 'libretranslate',
-      status: { $in: ['translated_via_libre', 'fallback_libretranslate'] },
+      status: 'translated_via_libre',
+      qualityStatus: { $ne: 'retranslated' },
+      entityType: requestedEntityType || { $in: [...PRODUCT_ENTITY_TYPES] },
       $or: [
         { qualityScore: { $lt: 70 } },
         { validationErrors: { $exists: true, $ne: [] } },
       ],
     };
 
-    if (entityType) {
-      query.entityType = entityType;
-    }
-
     if (lang) {
       query.targetLang = lang;
     }
 
-    // Get translations needing retranslation
-    const toRetranslate = await LiveTranslationCache.find(query)
-      .limit(limit)
-      .lean();
+    let translationsQuery = LiveTranslationCache.find(query)
+      .sort({ createdAt: 1, _id: 1 });
+    if (limit > 0) translationsQuery = translationsQuery.limit(limit);
+    const toRetranslate = await translationsQuery.lean();
 
     this.stats.totalToRetranslate = toRetranslate.length;
 
@@ -101,15 +118,16 @@ class RetranslateSeeder {
 
         // Product content may use LibreTranslate only as a draft; Cloudflare remains final.
         const defaultLang = getDefaultLanguage().code;
+        const sourceLang = translation.sourceLang || defaultLang;
         const newTranslation = PRODUCT_ENTITY_TYPES.has(translation.entityType)
           ? await libretranslateProductService.translateWithCloudflare(
             translation.originalText,
-            defaultLang,
+            sourceLang,
             translation.targetLang,
           )
           : await cloudflareAiService.translate(
             translation.originalText,
-            defaultLang,
+            sourceLang,
             translation.targetLang,
           );
 
@@ -144,15 +162,19 @@ class RetranslateSeeder {
           retryCount: 0,
           version: (translation.version || 1) + 1,
           previousVersion: translation._id,
-          retranslateReason: translation.failoverReason || translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
+          failoverReason: translation.failoverReason || translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
+          providerSource: 'primary',
           qualityStatus: newQualityStatus,
           qualityScore: newQualityScore,
           validationErrors: newValidationErrors,
           createdAt: new Date(),
         };
 
-        // Save new version
-        const savedNewVersion = await LiveTranslationCache.create(newVersion);
+        const savedNewVersion = await LiveTranslationCache.findOneAndUpdate(
+          { hashKey: newVersion.hashKey },
+          { $setOnInsert: newVersion },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        );
 
         // Update old version status → "retranslated"
         await LiveTranslationCache.updateOne(
@@ -252,6 +274,7 @@ class RetranslateSeeder {
         });
       } catch (error) {
         console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${translation.originalText}": ${error.message}`);
+        this.stats.errorCount++;
         results.push({
           status: 'error',
           originalId: translation._id,
@@ -267,6 +290,7 @@ class RetranslateSeeder {
         results: {
           fixedSuccessfully: this.stats.fixedCount,
           stillHasIssues: this.stats.stillBrokenCount,
+          errors: this.stats.errorCount,
         },
         detailedBreakdown: this.stats.breakdown,
         stillNeedsAttention: this.stats.stillBroken,
@@ -276,7 +300,7 @@ class RetranslateSeeder {
     // Save report
     if (!dryRun) {
       const report = await translationReporter.generateRetranslateReport(
-        { totalToRetranslate: this.stats.totalToRetranslate, filters: filter },
+        { totalToRetranslate: this.stats.totalToRetranslate, filters: { ...filter, lang, entityType, limit } },
         this.stats
       );
       translationReporter.saveReport(report);

@@ -5,18 +5,21 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const args = process.argv.slice(2);
 
+const parseLimit = (value) => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error('--limit must be a non-negative integer; 0 means all matching records');
+  }
+  return parsed;
+};
+
 async function main() {
   try {
-    // Connect to MongoDB
-    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
-
     // Parse options
     const options = {
       filter: {},
       lang: null,
-      limit: 100,
+      limit: 0,
       dryRun: args.includes('--dry-run'),
       validate: !args.includes('--no-validate'),
       verbose: true,
@@ -38,8 +41,13 @@ async function main() {
     // Parse limit
     const limitArg = args.find(arg => arg.startsWith('--limit='));
     if (limitArg) {
-      options.limit = parseInt(limitArg.split('=')[1]);
+      options.limit = parseLimit(limitArg.split('=').slice(1).join('='));
     }
+
+    // Connect to MongoDB
+    console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Run retranslation
     const result = await retranslateSeeder.retranslate(options);

@@ -115,23 +115,13 @@ class PerformanceBenchmark {
     let misses = 0;
 
     if (name === 'OLD Schema') {
-      // Count successful queries
-      const data = await LiveTranslationCache.find({
-        status: 'success'
-      });
-      hits = data.length;
-
-      const all = await LiveTranslationCache.find({});
-      misses = all.length - hits;
+      hits = await LiveTranslationCache.countDocuments({ status: 'success' });
+      const total = await LiveTranslationCache.countDocuments();
+      misses = total - hits;
     } else {
-      // Count successful queries
-      const data = await ProductCatalogTranslationCache.find({
-        status: 'success'
-      });
-      hits = data.length;
-
-      const all = await ProductCatalogTranslationCache.find({});
-      misses = all.length - hits;
+      hits = await ProductCatalogTranslationCache.countDocuments({ status: 'success' });
+      const total = await ProductCatalogTranslationCache.countDocuments();
+      misses = total - hits;
     }
 
     const total = hits + misses;
@@ -149,15 +139,15 @@ class PerformanceBenchmark {
     this.log(`Testing error rate for ${name}...`);
 
     if (name === 'OLD Schema') {
-      const failed = await LiveTranslationCache.find({
+      const failed = await LiveTranslationCache.countDocuments({
         status: { $in: ['failed_rate_limit', 'failed_translation', 'pending_retry'] }
       });
 
       const total = await LiveTranslationCache.countDocuments();
-      const rate = total > 0 ? ((failed.length / total) * 100).toFixed(2) : 0;
+      const rate = total > 0 ? ((failed / total) * 100).toFixed(2) : 0;
 
       return {
-        failedCount: failed.length,
+        failedCount: failed,
         total,
         errorRate: `${rate}%`,
         errorTypes: {
@@ -167,15 +157,15 @@ class PerformanceBenchmark {
         }
       };
     } else {
-      const failed = await ProductCatalogTranslationCache.find({
+      const failed = await ProductCatalogTranslationCache.countDocuments({
         status: { $in: ['failed_rate_limit', 'failed_translation', 'pending_retry'] }
       });
 
       const total = await ProductCatalogTranslationCache.countDocuments();
-      const rate = total > 0 ? ((failed.length / total) * 100).toFixed(2) : 0;
+      const rate = total > 0 ? ((failed / total) * 100).toFixed(2) : 0;
 
       return {
-        failedCount: failed.length,
+        failedCount: failed,
         total,
         errorRate: `${rate}%`,
         errorTypes: {
@@ -201,7 +191,7 @@ class PerformanceBenchmark {
           sampleDocSize: size,
           estimatedTotalSize: totalSize.toFixed(2),
           documentCount: count,
-          avgSize: (size / documentCount).toFixed(2)
+          avgSize: size.toFixed(2)
         };
       }
     } else {
@@ -375,13 +365,14 @@ class PerformanceBenchmark {
     } catch (error) {
       this.log(`Error: ${error.message}`, 'error');
       console.error(error);
+      process.exitCode = 1;
     } finally {
       await mongoose.connection.close();
     }
   }
 
   printComparison(metric, oldValue, newValue, unit) {
-    const improvement = ((oldValue - newValue) / oldValue * 100).toFixed(2);
+    const improvement = oldValue === 0 ? 0 : ((oldValue - newValue) / oldValue * 100).toFixed(2);
     const direction = improvement > 0 ? CLI_SYMBOLS.arrowDown : CLI_SYMBOLS.arrowUp;
     const emoji = improvement > 0 ? CLI_SYMBOLS.celebration : CLI_SYMBOLS.warning;
 

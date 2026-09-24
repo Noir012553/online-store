@@ -14,6 +14,9 @@ class DistributedLockService {
     if (this.initialized || this.useMemoryFallback) return;
 
     if (process.env.PRODUCT_SEED_LOCK_MODE === 'memory') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('PRODUCT_SEED_LOCK_MODE=memory is not allowed in production');
+      }
       this.useMemoryFallback = true;
       this.initialized = true;
       console.log('[DistributedLock] Product seed đang dùng lock trong bộ nhớ');
@@ -38,9 +41,13 @@ class DistributedLockService {
       this.initialized = true;
       console.log(`[DistributedLock] ${CLI_SYMBOLS.success} Redis connected`);
     } catch (error) {
+      this.client = null;
+      if (process.env.NODE_ENV === 'production') {
+        this.initialized = false;
+        throw new Error(`Redis is required for distributed product locks: ${error.message}`);
+      }
       this.useMemoryFallback = true;
       this.initialized = true;
-      this.client = null;
       console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available, using in-memory fallback`);
     }
   }
@@ -87,6 +94,37 @@ class DistributedLockService {
     } catch (error) {
       console.error(`[DistributedLock] Error acquiring lock ${key}:`, error.message);
       return null;
+    }
+  }
+
+  async extendLock(key, lockId, ttlSeconds = 60) {
+    if (!this.initialized) return false;
+
+    try {
+      if (this.useMemoryFallback) {
+        const lock = this.locks.get(key);
+        if (!lock || lock.lockId !== lockId || lock.expiresAt <= Date.now()) return false;
+        lock.expiresAt = Date.now() + ttlSeconds * 1000;
+        return true;
+      }
+
+      const script = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("EXPIRE", KEYS[1], ARGV[2])
+        else
+          return 0
+        end
+      `;
+      const result = await this.client.eval(script, {
+        keys: [`lock:${key}`],
+        arguments: [lockId, String(ttlSeconds)],
+      });
+      return result === 1;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[DistributedLock] Error extending lock ${key}:`, error.message);
+      }
+      return false;
     }
   }
 
