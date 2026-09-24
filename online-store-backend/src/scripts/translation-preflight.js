@@ -1,5 +1,12 @@
+const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
+
+try {
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND') throw error;
+}
 
 const REQUIRED_LANGUAGES = ['vi', 'en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'];
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -120,7 +127,13 @@ const checkConfiguration = () => {
 
 const checkLibreTranslate = async (checks, smokeTest, enabled) => {
   if (!enabled) {
-    addCheck(checks, 'LibreTranslate endpoint', true, 'skipped because disabled', 'warning');
+    addCheck(
+      checks,
+      'LibreTranslate endpoint',
+      !smokeTest,
+      smokeTest ? 'smoke test requires LIBRETRANSLATE_ENABLED=true' : 'skipped because disabled',
+      smokeTest ? 'error' : 'warning',
+    );
     return;
   }
 
