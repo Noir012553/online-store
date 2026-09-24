@@ -70,7 +70,7 @@ class RetranslateSeeder {
     const query = {
       ...safeFilter,
       provider: 'libretranslate',
-      status: 'translated_via_libre',
+      status: { $in: ['translated_via_libre', 'fallback_libretranslate'] },
       qualityStatus: { $ne: 'retranslated' },
       entityType: requestedEntityType || { $in: [...PRODUCT_ENTITY_TYPES] },
       $or: [

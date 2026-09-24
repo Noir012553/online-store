@@ -47,7 +47,7 @@ const LiveTranslationCacheSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['success', 'translated_via_libre', 'fallback_libretranslate', 'failed_rate_limit', 'failed_error', 'pending_retry'],
+      enum: ['success', 'translated_via_libre', 'failed_rate_limit', 'failed_error', 'pending_retry'],
       default: 'success',
       index: true,
     },
