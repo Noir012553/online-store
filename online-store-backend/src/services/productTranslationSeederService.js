@@ -72,6 +72,12 @@ const getPercentile = (values, percentile) => {
   const index = Math.min(sorted.length - 1, Math.ceil((percentile / 100) * sorted.length) - 1);
   return sorted[index];
 };
+const getTranslationLockTtlSeconds = () => {
+  const configured = Number(process.env.PRODUCT_TRANSLATION_LOCK_TTL_SECONDS);
+  if (Number.isInteger(configured) && configured > 0) return configured;
+  const concurrency = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
+  return concurrency > 2 ? 300 : 120;
+};
 
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
@@ -551,7 +557,7 @@ class ProductTranslationSeederService {
         };
       }
 
-      lockId = await distributedLockService.acquireLock(lockKey, 120);
+      lockId = await distributedLockService.acquireLock(lockKey, getTranslationLockTtlSeconds());
       if (!lockId) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Không thể acquire lock cho ${productId}, skip`);
         return {

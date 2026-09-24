@@ -112,9 +112,10 @@ PRODUCT_TRANSLATION_CONCURRENCY=2
 PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY=2
 PRODUCT_TRANSLATION_DELAY_MS=300
 PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE=5000
+PRODUCT_TRANSLATION_LOCK_TTL_SECONDS=120
 ```
 
-`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. `PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY` giới hạn số ngôn ngữ chạy cùng lúc; bắt đầu ở `1`, chỉ tăng lên `2` sau khi đã đo quota Cloudflare tổng. `PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE` giới hạn số bản dịch giữ trong memory của process; key bao gồm nội dung, loại field và cặp ngôn ngữ. Seeder trả về và log provider counts, memory cache hits và translation p95 để benchmark. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
+`PRODUCT_TRANSLATION_DELAY_MS` chỉ được dùng sau chunk có rate-limit; chunk thành công không sleep cố định. `PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY` giới hạn số ngôn ngữ chạy cùng lúc; bắt đầu ở `1`, chỉ tăng lên `2` sau khi đã đo quota Cloudflare tổng. `PRODUCT_TRANSLATION_MEMORY_CACHE_SIZE` giới hạn số bản dịch giữ trong memory của process; key bao gồm nội dung, loại field và cặp ngôn ngữ. `PRODUCT_TRANSLATION_LOCK_TTL_SECONDS` mặc định 120 giây, hoặc tự nâng lên 300 giây khi product concurrency lớn hơn 2. Seeder trả về và log provider counts, memory cache hits và translation p95 để benchmark. Tăng concurrency từng nấc `1 → 2 → 3 → 4`, đo 429, p95, CPU/RAM và fallback rate sau mỗi nấc. Chưa chạy 9 ngôn ngữ song song khi chưa xác định quota Cloudflare tổng.
 
 ## Khởi động LibreTranslate local
 
