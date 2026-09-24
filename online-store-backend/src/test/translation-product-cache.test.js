@@ -8,6 +8,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const libretranslateProductService = require('../services/libretranslateProductService');
 const translationValidator = require('../utils/translationValidator');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const distributedLockService = require('../services/distributedLockService');
@@ -397,6 +398,52 @@ describe('Product translation cache controller', () => {
     expect(promotionRecords.some(({ fieldKey, originalText }) => (
       fieldKey === 'promotions.0.discountText' && originalText === 'Giảm 10%'
     ))).to.equal(true);
+  });
+
+  it('uses LibreTranslate as a pending fallback after Cloudflare rate limit', async () => {
+    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
+    const originalFallback = process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT;
+    process.env.LIBRETRANSLATE_ENABLED = 'true';
+    process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT = 'true';
+
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'isLocked').resolves(false);
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves();
+    sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    const saveTranslation = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({});
+    const rateLimitError = Object.assign(new Error('Too many requests'), {
+      response: { status: 429 },
+    });
+    sandbox.stub(cloudflareAiService, 'translate').rejects(rateLimitError);
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').rejects(rateLimitError);
+    sandbox.stub(libretranslateProductService, 'translateFallback').resolves('Laptop fallback');
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      validationErrors: [],
+      qualityScore: 100,
+      qualityStatus: 'approved',
+    });
+
+    try {
+      const result = await ProductTranslationSeederService._translateProduct({
+        _id: new mongoose.Types.ObjectId(),
+        name: 'Laptop',
+      }, 'en', 'vi', 0);
+
+      expect(result).to.deep.include({ success: 1, rateLimitErr: 1, fallbackCount: 1, otherErr: 0 });
+      expect(saveTranslation.firstCall.args[1].$set).to.include({
+        translatedText: 'Laptop fallback',
+        status: 'fallback_libretranslate',
+        provider: 'libretranslate',
+        qualityStatus: 'pending',
+        qualityScore: 70,
+      });
+    } finally {
+      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
+      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
+      if (originalFallback === undefined) delete process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT;
+      else process.env.LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT = originalFallback;
+    }
   });
 
   it('does not share product translation cache records for identical source text', async () => {

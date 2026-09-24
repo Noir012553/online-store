@@ -19,6 +19,7 @@ async function main() {
       limit: 100,
       dryRun: args.includes('--dry-run'),
       validate: !args.includes('--no-validate'),
+      includeLibreTranslateFallback: args.includes('--include-libretranslate-fallback'),
       verbose: true,
     };
 

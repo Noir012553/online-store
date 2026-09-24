@@ -2,7 +2,7 @@
 
 ## Mục tiêu
 
-Cloudflare AI là provider bắt buộc và tạo bản dịch cuối cùng. LibreTranslate chỉ là provider tùy chọn cho nội dung sản phẩm, dùng để tạo bản dịch nháp trước khi Cloudflare AI hiệu chỉnh.
+Cloudflare AI là provider chính tạo bản dịch đã duyệt. LibreTranslate là provider tùy chọn cho nội dung sản phẩm: tạo draft khi Cloudflare hoạt động bình thường và có thể làm fallback tạm thời khi toàn bộ cấu hình Cloudflare bị rate limit.
 
 Các nội dung không phải sản phẩm không đi qua LibreTranslate.
 
@@ -18,13 +18,20 @@ LibreTranslate tạo bản nháp tùy chọn
         v
 Cloudflare AI dịch văn bản gốc và tham khảo bản nháp
         |
+        | Cloudflare retry + rotate config đều hết quota/rate limit
         v
-Validator + LiveTranslationCache/ProductCatalogTranslationCache
+LibreTranslate fallback tạm thời (qualityStatus=pending)
+        |
+        v
+Validator + LiveTranslationCache
+        |
+        v
+Chỉ bản dịch approved mới vào ProductCatalogTranslationCache
 ```
 
-Khi LibreTranslate tắt, bị timeout, không kết nối được hoặc trả lỗi, backend bỏ qua bản nháp và Cloudflare AI dịch trực tiếp từ văn bản gốc.
+Khi LibreTranslate tắt, bị timeout, không kết nối được hoặc trả lỗi trong draft mode, backend bỏ qua bản nháp và Cloudflare AI dịch trực tiếp từ văn bản gốc. Fallback mode chỉ chạy khi được bật riêng và Cloudflare đã hết khả năng xử lý do rate limit/quota.
 
-Cloudflare AI không được tắt trong pipeline. Các guard `CLOUDFLARE_AI_ENABLED`, quota và credential vẫn áp dụng như trước.
+Cloudflare AI vẫn là provider chính. Các guard `CLOUDFLARE_AI_ENABLED`, quota và credential vẫn áp dụng như trước.
 
 ## Phạm vi provider
 
@@ -42,7 +49,7 @@ Chỉ được gọi từ luồng dịch sản phẩm và chỉ tạo bản nhá
 - `promotions[].scope`
 - `promotions[].discountText`
 
-LibreTranslate không ghi MongoDB và không thay thế cache chính thức.
+LibreTranslate draft không ghi MongoDB. Khi fallback được bật, kết quả được lưu vào `LiveTranslationCache` với `provider=libretranslate`, `status=fallback_libretranslate`, `qualityStatus=pending` và không được dùng cho storefront.
 
 ### Cloudflare AI
 
@@ -69,13 +76,29 @@ LIBRETRANSLATE_URL=http://127.0.0.1:5001
 LIBRETRANSLATE_TIMEOUT_MS=30000
 LIBRETRANSLATE_RETRIES=2
 LIBRETRANSLATE_RETRY_DELAY_MS=1000
+LIBRETRANSLATE_CONCURRENCY=1
+LIBRETRANSLATE_MAX_PARALLEL_REQUESTS=1
 LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
+LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT=false
+LIBRETRANSLATE_AS_PRIMARY_APPROVED=false
 LIBRETRANSLATE_API_KEY=
+
+PRODUCT_TRANSLATION_CHUNK_SIZE=10
+PRODUCT_TRANSLATION_CONCURRENCY=1
+PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY=1
+PRODUCT_TRANSLATION_DELAY_MS=1000
+PRODUCT_TRANSLATION_LOCK_TTL_SECONDS=300
 ```
 
 - `CLOUDFLARE_AI_MAX_TOKENS`: số token tối đa cho mỗi phản hồi dịch; mặc định `2048` để tránh model cắt ngắn nội dung.
 - `LIBRETRANSLATE_ENABLED=false`: Cloudflare dịch trực tiếp sản phẩm.
-- `LIBRETRANSLATE_ENABLED=true`: LibreTranslate tạo draft cho sản phẩm, Cloudflare vẫn bắt buộc tạo bản cuối.
+- `LIBRETRANSLATE_ENABLED=true`: LibreTranslate tạo draft cho sản phẩm.
+- `LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT=true`: cho phép LibreTranslate dịch tạm sau khi Cloudflare retry và rotate toàn bộ config thất bại do rate limit/quota.
+- `LIBRETRANSLATE_AS_PRIMARY_APPROVED=false`: mặc định fallback luôn pending; biến này chưa bật cơ chế approve toàn bộ vì chất lượng technical translation cần review.
+- `LIBRETRANSLATE_MAX_PARALLEL_REQUESTS`: giới hạn request đồng thời vào service local.
+- `PRODUCT_TRANSLATION_CONCURRENCY`: số sản phẩm xử lý đồng thời.
+- `PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY`: số ngôn ngữ xử lý đồng thời; nên bắt đầu từ `1` rồi benchmark.
+- `PRODUCT_TRANSLATION_DELAY_MS`: backoff giữa chunk khi vừa gặp rate limit; chunk thành công không sleep.
 - `LIBRETRANSLATE_URL`: URL API local hoặc remote đã được bảo vệ.
 - `LIBRETRANSLATE_API_KEY`: chỉ cần khi instance yêu cầu API key.
 
@@ -153,10 +176,12 @@ Nếu nhận `404`, cần cập nhật URL trong file dữ liệu hoặc cào l�
 1. Bảo đảm Cloudflare AI đã có credential và quota hợp lệ.
 2. Bảo đảm LibreTranslate có đủ model nếu muốn bật draft.
 3. Đặt `LIBRETRANSLATE_ENABLED=true` nếu muốn dùng draft.
-4. Chạy luồng dịch sản phẩm hiện có.
-5. Kiểm tra chất lượng bản dịch Cloudflare trong cache và validator.
-6. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
-7. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare.
+4. Chỉ bật `LIBRETRANSLATE_FALLBACK_ON_CLOUDFLARE_RATE_LIMIT=true` sau khi đã benchmark local service.
+5. Bắt đầu với `PRODUCT_TRANSLATION_CONCURRENCY=2` và `PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY=1`.
+6. Chạy dry-run một batch nhỏ, theo dõi số `429`, fallback, thời gian và CPU/RAM.
+7. Kiểm tra quality status; chỉ bản dịch Cloudflare đã `approved` mới vào catalog cache.
+8. Khi Cloudflare có quota lại, chạy `node src/scripts/retranslate.js --include-libretranslate-fallback --lang=<lang>` theo từng batch.
+9. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
 
 Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache. Nếu muốn áp dụng draft cho sản phẩm đã có cache, cần dùng luồng retranslate sản phẩm hoặc xử lý lại cache theo quy trình quản trị.
 
@@ -172,7 +197,9 @@ Không chạy LibreTranslate cho banner, static namespace, admin hoặc nội du
 - `ProductCatalogTranslationCache` lưu `sourceHash`; cache không khớp source hiện tại không được dùng cho storefront.
 - Khi source product thay đổi, cả cache catalog và cache legacy đều được đánh dấu `needs_retranslate`.
 - Manual save, import, retranslate và các luồng lưu cache động đều chạy validator trước khi đặt quality status.
-- Cloudflare tiếp tục là provider tạo bản dịch cuối; LibreTranslate chỉ cung cấp draft tùy chọn.
+- Cloudflare là provider tạo bản dịch approved; LibreTranslate có draft mode và fallback mode riêng.
+- Fallback được lưu với provider/status riêng để có thể retranslate sau khi quota Cloudflare hồi phục.
+- Seeder chỉ throttle giữa chunk khi chunk trước có rate limit; concurrency giữa sản phẩm/ngôn ngữ vẫn có giới hạn cấu hình.
 
 Các kiểm tra code gần nhất:
 
@@ -184,4 +211,4 @@ git diff --check: pass
 
 ## Lưu ý chi phí và chất lượng
 
-Khi bật LibreTranslate, sản phẩm có thể tạo thêm request local và tăng thời gian xử lý. Cloudflare vẫn nhận văn bản gốc cùng draft để hiệu chỉnh, nên quota Cloudflare vẫn được sử dụng. Cách này giữ Cloudflare là nguồn bản dịch cuối và tránh biến bản dịch nháp thành dữ liệu chính thức.
+Khi bật LibreTranslate, sản phẩm có thể tạo thêm request local. Ở draft mode, Cloudflare vẫn nhận văn bản gốc cùng draft để hiệu chỉnh. Ở fallback mode, LibreTranslate giúp pipeline không đứng yên khi Cloudflare bị rate limit nhưng chất lượng thấp hơn nên kết quả luôn pending và phải retranslate/review trước khi approved.

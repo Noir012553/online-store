@@ -26,7 +26,7 @@ async function main() {
     };
 
     const filter = {};
-    const failedStatuses = ['failed_rate_limit', 'failed_error', 'pending_retry'];
+    const failedStatuses = ['failed_rate_limit', 'failed_error', 'pending_retry', 'fallback_libretranslate'];
 
     // Parse status
     const statusArg = args.find(arg => arg.startsWith('--status='));

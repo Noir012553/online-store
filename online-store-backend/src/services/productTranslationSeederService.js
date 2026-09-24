@@ -6,8 +6,8 @@
  * - Chunking: Xử lý 10 sản phẩm mỗi lần
  * - Concurrency: Có thể cấu hình, mặc định 1 sản phẩm đồng thời
  * - Throttling: Có thể cấu hình, mặc định 1000ms giữa các chunk
- * - 429 Error Handling: Ghi nhận status='failed_rate_limit' thay vì crash
- * - Fallback: Giữ text gốc (originalText) khi dính Rate Limit
+ * - Rate limit handling: dùng fallback local nếu được bật, nếu không thì ghi nhận failed_rate_limit
+ * - Fallback: Lưu provider/status riêng và giữ qualityStatus='pending'
  */
 
 const Product = require('../models/Product');
@@ -23,6 +23,20 @@ const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+
+const isRateLimitError = (error) => {
+  const status = error.response?.status;
+  if (status === 420 || status === 429) return true;
+  const providerErrors = Array.isArray(error.response?.data?.errors)
+    ? error.response.data.errors
+    : [];
+  const message = [
+    error.message,
+    error.response?.data?.message,
+    ...providerErrors.map((entry) => entry?.message),
+  ].filter(Boolean).join(' ');
+  return /rate[\s-]?limit|quota|too many requests/i.test(message);
+};
 
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
@@ -67,11 +81,12 @@ class ProductTranslationSeederService {
 
       if (totalProducts === 0) {
         console.log(`[ProductSeeder] Không có sản phẩm để dịch`);
-        return { successCount: 0, rateLimitCount: 0, errorCount: 0, totalProcessed: 0 };
+        return { successCount: 0, rateLimitCount: 0, fallbackCount: 0, errorCount: 0, totalProcessed: 0 };
       }
 
       let successCount = 0;
       let rateLimitCount = 0;
+      let fallbackCount = 0;
       let errorCount = 0;
       let totalProcessed = 0;
       const processedProductIds = [];
@@ -121,6 +136,7 @@ class ProductTranslationSeederService {
         processedProductIds.push(...products.map(product => product._id.toString()));
 
         // Process với concurrency limit
+        let chunkRateLimitCount = 0;
         for (let i = 0; i < products.length; i += CONCURRENT_PRODUCTS) {
           const concurrent = products.slice(i, i + CONCURRENT_PRODUCTS).map((product, index) =>
             this._translateProduct(product, targetLang, sourceLang, i + index)
@@ -130,9 +146,11 @@ class ProductTranslationSeederService {
           for (const result of results) {
             totalProcessed++;
             if (result.status === 'fulfilled') {
-              const { success, rateLimitErr, otherErr } = result.value;
+              const { success, rateLimitErr, fallbackCount: productFallbackCount = 0, otherErr } = result.value;
               successCount += success;
               rateLimitCount += rateLimitErr;
+              fallbackCount += productFallbackCount;
+              chunkRateLimitCount += rateLimitErr;
               errorCount += otherErr;
             } else {
               errorCount++;
@@ -140,9 +158,9 @@ class ProductTranslationSeederService {
           }
         }
 
-        // Throttle giữa các chunk (mềm mại hơn Layer 1)
-        if (chunkIndex < totalChunks - 1) {
-          console.log(`[ProductSeeder] ${CLI_SYMBOLS.pause}  Nghỉ ${THROTTLE_BETWEEN_CHUNKS}ms trước chunk tiếp theo...`);
+        // Chỉ throttle khi chunk vừa rồi thật sự gặp rate limit.
+        if (chunkIndex < totalChunks - 1 && chunkRateLimitCount > 0) {
+          console.log(`[ProductSeeder] ${CLI_SYMBOLS.pause}  Nghỉ ${THROTTLE_BETWEEN_CHUNKS}ms sau rate limit...`);
           await this._sleep(THROTTLE_BETWEEN_CHUNKS);
         }
       }
@@ -152,6 +170,7 @@ class ProductTranslationSeederService {
       console.log(`\n[ProductSeeder] ${CLI_SYMBOLS.target} PHASE 2 hoàn tất:`);
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
+      console.log(`  ${CLI_SYMBOLS.progress} Fallback LibreTranslate: ${fallbackCount}`);
       console.log(`  ${CLI_SYMBOLS.error} Lỗi khác: ${errorCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Tổng xử lý: ${totalProcessed}`);
 
@@ -160,7 +179,7 @@ class ProductTranslationSeederService {
         console.log(`[ProductSeeder]    để retry các translations bị Rate Limit\n`);
       }
 
-      return { successCount, rateLimitCount, errorCount, totalProcessed };
+      return { successCount, rateLimitCount, fallbackCount, errorCount, totalProcessed };
     } catch (error) {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi dịch sản phẩm: ${error.message}`);
       throw error;
@@ -453,6 +472,10 @@ class ProductTranslationSeederService {
   static async _translateProduct(product, targetLang, sourceLang, index) {
     const productId = product._id.toString();
     const lockKey = `translate:${productId}:${targetLang}`;
+    const lockTtlSeconds = Number(process.env.PRODUCT_TRANSLATION_LOCK_TTL_SECONDS || 300);
+    if (!Number.isInteger(lockTtlSeconds) || lockTtlSeconds < 1) {
+      throw new Error('PRODUCT_TRANSLATION_LOCK_TTL_SECONDS must be a positive integer');
+    }
     let lockId = null;
 
     try {
@@ -461,17 +484,18 @@ class ProductTranslationSeederService {
       const isLocked = await distributedLockService.isLocked(lockKey);
       if (isLocked) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Product ${productId} đang được dịch bởi process khác, skip`);
-        return { success: 0, rateLimitErr: 0, otherErr: 0 };
+        return { success: 0, rateLimitErr: 0, fallbackCount: 0, otherErr: 0 };
       }
 
-      lockId = await distributedLockService.acquireLock(lockKey, 120);
+      lockId = await distributedLockService.acquireLock(lockKey, lockTtlSeconds);
       if (!lockId) {
         console.log(`[ProductSeeder] ${CLI_SYMBOLS.skip}  Không thể acquire lock cho ${productId}, skip`);
-        return { success: 0, rateLimitErr: 0, otherErr: 0 };
+        return { success: 0, rateLimitErr: 0, fallbackCount: 0, otherErr: 0 };
       }
 
       let successCount = 0;
       let rateLimitCount = 0;
+      let fallbackCount = 0;
       let otherErrorCount = 0;
 
       // Array chứa tất cả field cần dịch
@@ -589,6 +613,7 @@ class ProductTranslationSeederService {
             specKey: field.specKey || null,
             fieldKey: field.fieldKey || null,
             status: 'success',
+            provider: 'cloudflare',
             qualityStatus: validationResult.qualityStatus,
             qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,
@@ -602,28 +627,75 @@ class ProductTranslationSeederService {
 
           successCount++;
         } catch (err) {
-          // ========== Xử lý 429 Rate Limit ==========
-          if (err.response?.status === 429) {
+          // ========== Fallback khi Cloudflare rate limit/quota ==========
+          if (isRateLimitError(err)) {
             console.warn(
-              `[ProductSeeder] ${CLI_SYMBOLS.warning}  429 Rate Limit: ${field.entityType} (${productId})`
+              `[ProductSeeder] ${CLI_SYMBOLS.warning}  Cloudflare rate limit: ${field.entityType} (${productId})`
             );
+            rateLimitCount++;
 
-            // Ghi nhận vào DB thay vì crash
             try {
-              await RateLimitHandler.recordRateLimitError(
+              const fallbackText = await libretranslateProductService.translateFallback(
                 field.originalText,
-                targetLang,
-                productId,
-                field.entityType,
-                `429 Too Many Requests from Cloudflare AI`,
                 sourceLang,
-                field.fieldKey || null,
+                targetLang,
               );
 
-              rateLimitCount++;
-            } catch (recordErr) {
-              console.error(`[ProductSeeder] Lỗi ghi nhận 429: ${recordErr.message}`);
-              otherErrorCount++;
+              if (!fallbackText) {
+                throw new Error('LibreTranslate fallback returned empty content');
+              }
+
+              const fallbackValidation = await translationValidator.validateTranslation(
+                field.originalText,
+                fallbackText,
+                targetLang,
+                field.entityType,
+              );
+              const fallbackRecord = {
+                hashKey,
+                originalText: field.originalText,
+                translatedText: fallbackText,
+                sourceLang,
+                targetLang,
+                entityId: productId,
+                entityType: field.entityType,
+                specKey: field.specKey || null,
+                fieldKey: field.fieldKey || null,
+                status: 'fallback_libretranslate',
+                provider: 'libretranslate',
+                qualityStatus: 'pending',
+                qualityScore: fallbackValidation.qualityScore == null
+                  ? null
+                  : Math.min(fallbackValidation.qualityScore, 70),
+                validationErrors: fallbackValidation.validationErrors,
+                retryCount: 0,
+                lastErrorMessage: err.message,
+                lastRetryAt: new Date(),
+              };
+
+              await LiveTranslationCache.findOneAndUpdate(
+                { hashKey },
+                { $set: fallbackRecord },
+                { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+              );
+              fallbackCount++;
+              successCount++;
+            } catch (fallbackError) {
+              console.warn(`[ProductSeeder] LibreTranslate fallback unavailable: ${fallbackError.message}`);
+              try {
+                await RateLimitHandler.recordRateLimitError(
+                  field.originalText,
+                  targetLang,
+                  productId,
+                  field.entityType,
+                  `Cloudflare rate limit; LibreTranslate fallback failed: ${fallbackError.message}`,
+                  sourceLang,
+                  field.fieldKey || null,
+                );
+              } catch (recordErr) {
+                console.error(`[ProductSeeder] Lỗi ghi nhận rate limit: ${recordErr.message}`);
+                otherErrorCount++;
+              }
             }
           } else {
             // ========== Xử lý lỗi khác ==========
@@ -645,10 +717,15 @@ class ProductTranslationSeederService {
         }
       }
 
-      return { success: successCount, rateLimitErr: rateLimitCount, otherErr: otherErrorCount };
+      return {
+        success: successCount,
+        rateLimitErr: rateLimitCount,
+        fallbackCount,
+        otherErr: otherErrorCount,
+      };
     } catch (err) {
       console.error(`[ProductSeeder] ${CLI_SYMBOLS.error} Lỗi xử lý sản phẩm: ${err.message}`);
-      return { success: 0, rateLimitErr: 0, otherErr: 1 };
+      return { success: 0, rateLimitErr: 0, fallbackCount: 0, otherErr: 1 };
     } finally {
       if (lockId) await distributedLockService.releaseLock(lockKey, lockId);
     }

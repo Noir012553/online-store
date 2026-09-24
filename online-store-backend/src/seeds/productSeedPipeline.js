@@ -567,11 +567,21 @@ const translateProducts = async (languages) => {
     throw new Error(`Ngôn ngữ dịch không được hỗ trợ: ${unsupportedLanguage}`);
   }
 
-  const summaries = {};
+  const languageConcurrency = Number(process.env.PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY || 1);
+  if (!Number.isInteger(languageConcurrency) || languageConcurrency < 1) {
+    throw new Error('PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY must be a positive integer');
+  }
 
-  for (const targetLang of targetLanguages) {
-    console.log(`[ProductPipeline] Dịch sản phẩm: ${sourceLang} -> ${targetLang}`);
-    summaries[targetLang] = await ProductTranslationSeederService.translateAllProducts(targetLang, sourceLang);
+  const summaries = {};
+  for (let offset = 0; offset < targetLanguages.length; offset += languageConcurrency) {
+    const languageBatch = targetLanguages.slice(offset, offset + languageConcurrency);
+    const results = await Promise.all(languageBatch.map(async (targetLang) => {
+      console.log(`[ProductPipeline] Dịch sản phẩm: ${sourceLang} -> ${targetLang}`);
+      return [targetLang, await ProductTranslationSeederService.translateAllProducts(targetLang, sourceLang)];
+    }));
+    results.forEach(([targetLang, summary]) => {
+      summaries[targetLang] = summary;
+    });
   }
 
     return summaries;

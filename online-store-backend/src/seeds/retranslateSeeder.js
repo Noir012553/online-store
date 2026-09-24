@@ -37,6 +37,7 @@ class RetranslateSeeder {
       validate = true,
       verbose = true,
       actor = 'system',
+      includeLibreTranslateFallback = false,
     } = options;
 
     this.stats = {
@@ -49,7 +50,14 @@ class RetranslateSeeder {
 
     const query = {
       ...filter,
-      qualityStatus: 'needs_retranslate',
+      ...(includeLibreTranslateFallback
+        ? {
+          $or: [
+            { qualityStatus: 'needs_retranslate' },
+            { provider: 'libretranslate', status: 'fallback_libretranslate' },
+          ],
+        }
+        : { qualityStatus: 'needs_retranslate' }),
     };
 
     if (entityType) {
@@ -126,8 +134,11 @@ class RetranslateSeeder {
         const newVersion = {
           hashKey: `${translation.hashKey}:v${(translation.version || 1) + 1}`,
           originalText: translation.originalText,
+          sourceLang: translation.sourceLang || defaultLang,
           targetLang: translation.targetLang,
           translatedText: newTranslation,
+          provider: 'cloudflare',
+          status: 'success',
           entityId: translation.entityId,
           entityType: translation.entityType,
           specKey: translation.specKey,
