@@ -193,6 +193,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         // Create new AbortController for this language's requests
         const controller = new AbortController();
         abortControllerRef.current = controller;
+        fallbackKeysByNamespaceRef.current[cacheKey] = new Set();
 
         const translations = await translationService.getStaticTranslations(
           locale,
@@ -315,6 +316,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         abortControllerRef.current = controller;
 
         const cacheKey = `${newLocale}_common`;
+        fallbackKeysByNamespaceRef.current[cacheKey] = new Set();
         const translations = await translationService.getStaticTranslations(
           newLocale,
           'common',
@@ -336,6 +338,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           const productsController = new AbortController();
           abortControllerRef.current = productsController;
           const productsCacheKey = `${newLocale}_products`;
+          fallbackKeysByNamespaceRef.current[productsCacheKey] = new Set();
           const productsTranslations = await translationService.getStaticTranslations(
             newLocale,
             'products',

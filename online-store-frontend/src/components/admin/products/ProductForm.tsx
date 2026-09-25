@@ -121,7 +121,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       // Validate price
       const numPrice = parseFloat(String(product.price));
       if (isNaN(numPrice) || numPrice <= 0) {
-        toast.error(t('admin_price_invalid', 'admin') || 'Giá sản phẩm phải > 0');
+        toast.error(t('admin_price_invalid', 'admin'));
         return;
       }
 
