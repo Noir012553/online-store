@@ -398,8 +398,8 @@ export function OrdersList() {
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div>
-                <p className="font-medium">{t('admin_orders_load_error', 'admin', 'Không thể tải danh sách đơn hàng lúc này.')}</p>
-                <p className="mt-1 text-sm text-amber-800">{t('admin_orders_load_error_hint', 'admin', 'Dữ liệu hiện có vẫn được giữ lại. Bạn có thể thử lại sau.')}</p>
+                <p className="font-medium">{t('admin_orders_load_error', 'admin')}</p>
+                <p className="mt-1 text-sm text-amber-800">{t('admin_orders_load_error_hint', 'admin')}</p>
               </div>
             </div>
             <Button type="button" variant="outline" onClick={retryOrders} className="shrink-0 border-amber-300 bg-white text-amber-900 hover:bg-amber-100">
@@ -410,7 +410,7 @@ export function OrdersList() {
 
         {((viewDeletedTab && deletedOrders.length === 0) || (!viewDeletedTab && orders.length === 0)) ? (
           <div className="p-12 text-center text-gray-500">
-            <p>{loadError ? t('admin_orders_temporarily_unavailable', 'admin', 'Danh sách đơn hàng tạm thời chưa khả dụng.') : t('no_orders_yet', 'admin')}</p>
+            <p>{loadError ? t('admin_orders_temporarily_unavailable', 'admin') : t('no_orders_yet', 'admin')}</p>
           </div>
         ) : (
           <>

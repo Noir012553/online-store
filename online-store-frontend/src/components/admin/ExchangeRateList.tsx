@@ -140,7 +140,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => onEdit(rate)}
-                        aria-label={t('admin_edit_exchange_rate', 'admin', 'Edit exchange rate')}
+                        aria-label={t('admin_edit_exchange_rate', 'admin-common')}
                         className="p-2"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -148,7 +148,7 @@ export function ExchangeRateList({ onEdit, onRefresh }: ExchangeRateListProps) {
                       <Button
                         size="sm"
                         variant="destructive"
-                        aria-label={t('admin_delete_exchange_rate', 'admin', 'Delete exchange rate')}
+                        aria-label={t('admin_delete_exchange_rate', 'admin-common')}
                         onClick={() =>
                           handleDelete(
                             rate._id,

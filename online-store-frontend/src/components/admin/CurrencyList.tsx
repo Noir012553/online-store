@@ -131,7 +131,7 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => onEdit(currency)}
-                        aria-label={t('admin_edit_currency', 'admin', 'Edit currency')}
+                        aria-label={t('admin_edit_currency', 'admin-common')}
                         className="p-2"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -140,7 +140,7 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
                         size="sm"
                         variant="destructive"
                         onClick={() => handleDelete(currency._id, currency.code)}
-                        aria-label={t('admin_delete_currency', 'admin', 'Delete currency')}
+                        aria-label={t('admin_delete_currency', 'admin-common')}
                         className="p-2"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -164,10 +164,10 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500">{currentPage} / {totalPages}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setCurrentPage(page => Math.max(1, page - 1))} aria-label={t('previous', 'pagination', 'Previous page')} disabled={currentPage === 1}>
+            <Button size="sm" variant="outline" onClick={() => setCurrentPage(page => Math.max(1, page - 1))} aria-label={t('previous', 'pagination')} disabled={currentPage === 1}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} aria-label={t('next', 'pagination', 'Next page')} disabled={currentPage === totalPages}>
+            <Button size="sm" variant="outline" onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))} aria-label={t('next', 'pagination')} disabled={currentPage === totalPages}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>

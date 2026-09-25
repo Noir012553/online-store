@@ -1,5 +1,4 @@
 import path from "node:path";
-import path from "node:path";
 import type { NextConfig } from "next";
 
 const r2PublicPatterns = Array.from({ length: 9 }, (_, index) => {
