@@ -13,6 +13,7 @@ const translationValidationConfig = require('../config/translationValidation');
 const translationReporter = require('../utils/translationReporter');
 const libretranslateProductService = require('../services/libretranslateProductService');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
+const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
@@ -43,23 +44,75 @@ describe('Product translation cache controller', () => {
     sandbox.restore();
   });
 
-  it('selects low-quality translations from every provider', async () => {
-    const translations = [];
-    const query = {
+  it('selects retryable translations from both product cache layers', async () => {
+    const liveQuery = {
       sort: sandbox.stub().returnsThis(),
-      lean: sandbox.stub().resolves(translations),
+      lean: sandbox.stub().resolves([]),
     };
-    const find = sandbox.stub(LiveTranslationCache, 'find').returns(query);
+    const catalogQuery = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    const liveFind = sandbox.stub(LiveTranslationCache, 'find').returns(liveQuery);
+    const catalogFind = sandbox.stub(ProductCatalogTranslationCache, 'find').returns(catalogQuery);
 
     await retranslateSeeder.retranslate({ dryRun: true, verbose: false });
 
-    expect(find.firstCall.args[0].provider.$in).to.include.members(
+    const liveFilter = liveFind.firstCall.args[0];
+    const catalogFilter = catalogFind.firstCall.args[0];
+    expect(liveFilter.provider.$in).to.include.members(
       LiveTranslationCache.schema.path('provider').enumValues,
     );
-    expect(find.firstCall.args[0].$or).to.deep.equal([
-      { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-      { validationErrors: { $exists: true, $ne: [] } },
-    ]);
+    expect(liveFilter.$or).to.deep.include({
+      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    });
+    expect(liveFilter.$or).to.deep.include({ validationErrors: { $exists: true, $ne: [] } });
+    expect(liveFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
+      LiveTranslationCache.schema.path('status').enumValues
+        .filter(status => status.startsWith('failed_') || status.endsWith('_retry')),
+    );
+    expect(catalogFilter.$or).to.deep.include({
+      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    });
+    expect(catalogFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
+      ProductCatalogTranslationCache.schema.path('status').enumValues
+        .filter(status => status.startsWith('failed_') || status.endsWith('_retry')),
+    );
+  });
+
+  it('retranslates matching catalog records through the product retranslation service', async () => {
+    const qualityStatuses = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues;
+    const needsRetranslate = qualityStatuses.find(status => /retranslat|reject/i.test(status));
+    const approved = qualityStatuses.find(status => status === 'approved');
+    const candidate = {
+      _id: new mongoose.Types.ObjectId(),
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: targetLanguage.code,
+      name: `product-${new mongoose.Types.ObjectId()}`,
+      qualityStatus: needsRetranslate,
+      validationErrors: [],
+    };
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([candidate]),
+    });
+    const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation: { ...candidate, qualityStatus: approved, validationErrors: [] },
+      skippedManualFields: [],
+    });
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ verbose: false });
+
+    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, { sequential: true })).to.be.true;
+    expect(result.stats.totalToRetranslate).to.equal(1);
+    expect(result.stats.fixedCount).to.equal(1);
   });
 
   it('stops when Cloudflare quota is exhausted and reports unfinished translations', async () => {
@@ -80,6 +133,10 @@ describe('Product translation cache controller', () => {
     sandbox.stub(LiveTranslationCache, 'find').returns({
       sort: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves(translations),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
     });
     const quotaError = Object.assign(new Error('Provider rate limit exceeded'), {
       response: { status: 429 },
@@ -356,7 +413,7 @@ describe('Product translation cache controller', () => {
         manualFields: [],
       }),
     });
-    sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => `en:${source}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
       qualityScore: 100,
@@ -404,7 +461,7 @@ describe('Product translation cache controller', () => {
         manualFields: ['name'],
       }),
     });
-    const translate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
+    const translate = sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => `en:${source}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
       qualityScore: 100,
