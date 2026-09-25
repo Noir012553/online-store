@@ -7,6 +7,26 @@ const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const translationValidationConfig = require('../config/translationValidation');
+
+const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
+const TRANSLATION_STATUSES = [
+  ...LiveTranslationCache.schema.path('status').enumValues,
+  'fallback_libretranslate',
+];
+const isCloudflareQuotaError = (error) => {
+  const status = error?.response?.status ?? error?.statusCode;
+  if (status === 420 || status === 429) return true;
+  const providerErrors = Array.isArray(error?.response?.data?.errors)
+    ? error.response.data.errors
+    : [];
+  const providerMessages = [
+    error?.message,
+    error?.response?.data?.message,
+    ...providerErrors.map(({ message }) => message),
+  ].filter(Boolean).join(' ');
+  return /CLOUDFLARE_AI_(?:REQUEST|INPUT)_BUDGET_EXCEEDED|CLOUDFLARE_AI_BUDGET_NOT_CONFIGURED|rate[\s-]?limit|quota|too many requests/i.test(providerMessages);
+};
 
 const PRODUCT_ENTITY_TYPES = new Set([
   'product_name',
@@ -24,6 +44,8 @@ class RetranslateSeeder {
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
+      quotaExceededCount: 0,
+      remainingCount: 0,
       breakdown: {},
       stillBroken: [],
     };
@@ -46,6 +68,8 @@ class RetranslateSeeder {
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
+      quotaExceededCount: 0,
+      remainingCount: 0,
       breakdown: {},
       stillBroken: [],
     };
@@ -69,12 +93,12 @@ class RetranslateSeeder {
 
     const query = {
       ...safeFilter,
-      provider: 'libretranslate',
-      status: { $in: ['translated_via_libre', 'fallback_libretranslate'] },
+      provider: { $in: TRANSLATION_PROVIDERS },
+      status: { $in: TRANSLATION_STATUSES },
       qualityStatus: { $ne: 'retranslated' },
       entityType: requestedEntityType || { $in: [...PRODUCT_ENTITY_TYPES] },
       $or: [
-        { qualityScore: { $lt: 70 } },
+        { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
         { validationErrors: { $exists: true, $ne: [] } },
       ],
     };
@@ -234,7 +258,7 @@ class RetranslateSeeder {
 
         // Update stats
         const wasFixed = (
-          translation.qualityScore < 70
+          translation.qualityScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
           || translation.validationErrors?.length > 0
         ) && newValidationErrors.length === 0;
         if (wasFixed) {
@@ -275,13 +299,20 @@ class RetranslateSeeder {
       } catch (error) {
         console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${translation.originalText}": ${error.message}`);
         this.stats.errorCount++;
+        const quotaExhausted = isCloudflareQuotaError(error);
+        if (quotaExhausted) {
+          this.stats.quotaExceededCount++;
+          console.error(`${CLI_SYMBOLS.error} Cloudflare quota exhausted; stopping retranslation.`);
+        }
         results.push({
           status: 'error',
           originalId: translation._id,
           error: error.message,
         });
+        if (quotaExhausted) break;
       }
     }
+    this.stats.remainingCount = Math.max(0, toRetranslate.length - results.length);
 
     if (verbose) {
       console.log('\n');
@@ -307,7 +338,7 @@ class RetranslateSeeder {
     }
 
     return {
-      success: !dryRun,
+      success: !dryRun && this.stats.errorCount === 0,
       dryRun,
       stats: this.stats,
       results,

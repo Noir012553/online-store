@@ -10,6 +10,9 @@ const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
+const translationReporter = require('../utils/translationReporter');
+const libretranslateProductService = require('../services/libretranslateProductService');
+const retranslateSeeder = require('../seeds/retranslateSeeder');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
@@ -38,6 +41,61 @@ describe('Product translation cache controller', () => {
 
   afterEach(() => {
     sandbox.restore();
+  });
+
+  it('selects low-quality translations from every provider', async () => {
+    const translations = [];
+    const query = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(translations),
+    };
+    const find = sandbox.stub(LiveTranslationCache, 'find').returns(query);
+
+    await retranslateSeeder.retranslate({ dryRun: true, verbose: false });
+
+    expect(find.firstCall.args[0].provider.$in).to.include.members(
+      LiveTranslationCache.schema.path('provider').enumValues,
+    );
+    expect(find.firstCall.args[0].$or).to.deep.equal([
+      { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
+      { validationErrors: { $exists: true, $ne: [] } },
+    ]);
+  });
+
+  it('stops when Cloudflare quota is exhausted and reports unfinished translations', async () => {
+    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+    const productEntityType = LiveTranslationCache.schema.path('entityType').enumValues
+      .find((entityType) => entityType.startsWith('product_'));
+    const translations = LiveTranslationCache.schema.path('provider').enumValues.map((provider, index) => ({
+      _id: `translation-${index}`,
+      hashKey: `hash-${index}`,
+      originalText: `product ${index}`,
+      sourceLang: getDefaultLanguage().code,
+      targetLang: targetLanguage.code,
+      entityType: productEntityType,
+      provider,
+      qualityScore: Math.max(0, translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL - 1),
+      validationErrors: [],
+    }));
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(translations),
+    });
+    const quotaError = Object.assign(new Error('Provider rate limit exceeded'), {
+      response: { status: 429 },
+    });
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').rejects(quotaError);
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ verbose: false });
+
+    expect(result.success).to.equal(false);
+    expect(result.stats.quotaExceededCount).to.equal(1);
+    expect(result.stats.errorCount).to.equal(1);
+    expect(result.stats.remainingCount).to.equal(translations.length - 1);
+    expect(libretranslateProductService.translateWithCloudflare.calledOnce).to.equal(true);
   });
 
   const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
