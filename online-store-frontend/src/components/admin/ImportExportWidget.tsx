@@ -247,7 +247,7 @@ export default function ImportExportWidget() {
                 onClick={handleCancelExport}
                 className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
               >
-                {t('cancel', 'common', 'Hủy')}
+                {t('cancel', 'common')}
               </button>
             )}
           </div>

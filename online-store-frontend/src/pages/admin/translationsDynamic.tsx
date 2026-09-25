@@ -782,7 +782,7 @@ function EditView({
       />
 
       <TranslationField
-        label={t('technical_description', 'products', 'Mô tả kỹ thuật')}
+        label={t('technical_description', 'products')}
         sourceValue={product?.technicalDescription || ''}
         targetValue={translations?.technicalDescription || ''}
         sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
@@ -793,7 +793,7 @@ function EditView({
 
       {Array.isArray(product?.descriptionImages) && product.descriptionImages.length > 0 && (
         <div className="space-y-4 p-5">
-          <h4 className="font-semibold text-gray-900">{t('description_images', 'products', 'Ảnh trong mô tả')}</h4>
+          <h4 className="font-semibold text-gray-900">{t('description_images', 'products')}</h4>
           {product.descriptionImages.map((image: ProductDescriptionImage, index: number) => (
             <div key={`${image.url}-${index}`} className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -806,7 +806,7 @@ function EditView({
                   className="mt-1 text-sm"
                   value={translations.descriptionImages?.[index]?.alt || ''}
                   onChange={(event) => onDescriptionImageAltChange(index, event.target.value)}
-                  placeholder={t('description_image_alt', 'products', 'Mô tả ảnh')}
+                  placeholder={t('description_image_alt', 'products')}
                 />
               </div>
             </div>
@@ -816,11 +816,11 @@ function EditView({
 
       {Array.isArray(product?.promotions) && product.promotions.length > 0 && (
         <div className="space-y-5 p-5">
-          <h4 className="font-semibold text-gray-900">{t('promotions', 'products', 'Ưu đãi đi kèm')}</h4>
+          <h4 className="font-semibold text-gray-900">{t('promotions', 'products')}</h4>
           {product.promotions.map((promotion: ProductPromotion, index: number) => (
             <div key={`${promotion.type}-${promotion.title}-${index}`} className="space-y-3 rounded-lg border border-gray-200 p-4">
               <TranslationField
-                label={t('promotion_title', 'products', 'Nội dung ưu đãi')}
+                label={t('promotion_title', 'products')}
                 sourceValue={promotion.title || ''}
                 targetValue={translations.promotions?.[index]?.title || ''}
                 sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
@@ -830,7 +830,7 @@ function EditView({
               />
               {promotion.giftProductName && (
                 <TranslationField
-                  label={t('promotion_gift_name', 'products', 'Tên quà tặng')}
+                  label={t('promotion_gift_name', 'products')}
                   sourceValue={promotion.giftProductName}
                   targetValue={translations.promotions?.[index]?.giftProductName || ''}
                   sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
@@ -840,7 +840,7 @@ function EditView({
               )}
               {promotion.scope && (
                 <TranslationField
-                  label={t('promotion_scope', 'products', 'Phạm vi áp dụng')}
+                  label={t('promotion_scope', 'products')}
                   sourceValue={promotion.scope}
                   targetValue={translations.promotions?.[index]?.scope || ''}
                   sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
@@ -850,7 +850,7 @@ function EditView({
               )}
               {promotion.discountText && (
                 <TranslationField
-                  label={t('promotion_discount', 'products', 'Nội dung giảm giá')}
+                  label={t('promotion_discount', 'products')}
                   sourceValue={promotion.discountText}
                   targetValue={translations.promotions?.[index]?.discountText || ''}
                   sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}

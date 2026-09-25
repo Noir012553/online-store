@@ -526,7 +526,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
 
           <div className="space-y-2">
             <Label htmlFor="product-technical-description" className="text-sm font-medium">
-              {t('technical_description', 'products', 'Mô tả kỹ thuật')}
+              {t('technical_description', 'products')}
             </Label>
             <Textarea
               id="product-technical-description"
@@ -534,14 +534,14 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               value={product.technicalDescription || ""}
               onChange={(e) => setProduct({ ...product, technicalDescription: e.target.value })}
               rows={3}
-              placeholder={t('technical_description', 'products', 'Mô tả kỹ thuật')}
+              placeholder={t('technical_description', 'products')}
               className="transition-colors focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-3 border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between gap-3">
-              <Label className="text-sm font-medium">{t('description_images', 'products', 'Ảnh trong mô tả')}</Label>
+              <Label className="text-sm font-medium">{t('description_images', 'products')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -552,7 +552,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                 })}
               >
                 <Plus className="mr-1 h-4 w-4" />
-                {t('add', 'admin', 'Thêm')}
+                {t('add', 'admin')}
               </Button>
             </div>
             {(product.descriptionImages || []).map((descriptionImage: any, index: number) => (
@@ -567,7 +567,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                       : image),
                   })}
                   placeholder="https://..."
-                  aria-label={t('description_image_url', 'products', 'URL ảnh mô tả')}
+                  aria-label={t('description_image_url', 'products')}
                 />
                 <Input
                   value={descriptionImage.alt || ''}
@@ -577,8 +577,8 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                       ? { ...image, alt: e.target.value }
                       : image),
                   })}
-                  placeholder={t('description_image_alt', 'products', 'Mô tả ảnh')}
-                  aria-label={t('description_image_alt', 'products', 'Mô tả ảnh')}
+                  placeholder={t('description_image_alt', 'products')}
+                  aria-label={t('description_image_alt', 'products')}
                 />
                 <Button
                   type="button"
@@ -588,7 +588,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                     ...product,
                     descriptionImages: product.descriptionImages.filter((_: unknown, imageIndex: number) => imageIndex !== index),
                   })}
-                  aria-label={t('remove', 'admin', 'Xóa')}
+                  aria-label={t('remove', 'admin')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -598,7 +598,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
 
           <div className="space-y-3 border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between gap-3">
-              <Label className="text-sm font-medium">{t('promotions', 'products', 'Ưu đãi đi kèm')}</Label>
+              <Label className="text-sm font-medium">{t('promotions', 'products')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -609,7 +609,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                 })}
               >
                 <Plus className="mr-1 h-4 w-4" />
-                {t('add', 'admin', 'Thêm')}
+                {t('add', 'admin')}
               </Button>
             </div>
             {(product.promotions || []).map((promotion: any, index: number) => (
@@ -623,11 +623,11 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, type: e.target.value }
                         : item),
                     })}
-                    aria-label={t('promotion_type', 'products', 'Loại ưu đãi')}
+                    aria-label={t('promotion_type', 'products')}
                     className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                   >
-                    <option value="Gift">Gift</option>
-                    <option value="Discount">Discount</option>
+                    <option value="Gift">{t('promotion_type_gift', 'products')}</option>
+                    <option value="Discount">{t('promotion_type_discount', 'products')}</option>
                   </select>
                   <Input
                     value={promotion.title || ''}
@@ -637,8 +637,8 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, title: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_title', 'products', 'Nội dung ưu đãi')}
-                    aria-label={t('promotion_title', 'products', 'Nội dung ưu đãi')}
+                    placeholder={t('promotion_title', 'products')}
+                    aria-label={t('promotion_title', 'products')}
                   />
                   <Button
                     type="button"
@@ -648,7 +648,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                       ...product,
                       promotions: product.promotions.filter((_: unknown, itemIndex: number) => itemIndex !== index),
                     })}
-                    aria-label={t('remove', 'admin', 'Xóa')}
+                    aria-label={t('remove', 'admin')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -662,7 +662,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, giftProductName: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_gift_name', 'products', 'Tên quà tặng')}
+                    placeholder={t('promotion_gift_name', 'products')}
                   />
                   <Input
                     type="url"
@@ -673,7 +673,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, giftProductUrl: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_gift_url', 'products', 'URL quà tặng')}
+                    placeholder={t('promotion_gift_url', 'products')}
                   />
                   <Input
                     type="number"
@@ -685,7 +685,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, giftQuantity: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_gift_quantity', 'products', 'Số lượng quà')}
+                    placeholder={t('promotion_gift_quantity', 'products')}
                   />
                   <Input
                     type="number"
@@ -697,7 +697,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, giftValueVND: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_gift_value', 'products', 'Giá trị quà (VND)')}
+                    placeholder={t('promotion_gift_value', 'products')}
                   />
                   <Input
                     value={promotion.scope || ''}
@@ -707,7 +707,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, scope: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_scope', 'products', 'Phạm vi áp dụng')}
+                    placeholder={t('promotion_scope', 'products')}
                   />
                   <Input
                     value={promotion.discountText || ''}
@@ -717,7 +717,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
                         ? { ...item, discountText: e.target.value }
                         : item),
                     })}
-                    placeholder={t('promotion_discount', 'products', 'Nội dung giảm giá')}
+                    placeholder={t('promotion_discount', 'products')}
                   />
                 </div>
               </div>

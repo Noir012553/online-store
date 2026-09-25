@@ -11,6 +11,7 @@ interface TranslationResponse {
     code: string;
     namespace: string;
     translations: Record<string, string>; // Flat dot-notation keys (e.g., 'ui.commandPalette')
+    fallbackKeys?: string[];
   };
 }
 
@@ -38,7 +39,8 @@ class TranslationService {
   async getStaticTranslations(
     lang: string,
     namespace: string = 'common',
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onFallbackKeys?: (keys: string[]) => void
   ): Promise<Record<string, string>> {
     try {
       // Ensure namespace is never empty - fallback to 'common'
@@ -76,6 +78,7 @@ class TranslationService {
       }
 
       const translations = data.data.translations;
+      onFallbackKeys?.(data.data.fallbackKeys || []);
 
       // Cache to IndexedDB for offline support
       indexedDbService.save(lang, namespace, translations).catch(() => {});

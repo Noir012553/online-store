@@ -191,11 +191,26 @@ exports.getStaticTranslations = async (req, res) => {
     const defaultTranslations = lang !== defaultLang && fs.existsSync(defaultLocalePath)
       ? JSON.parse(fs.readFileSync(defaultLocalePath, 'utf8'))
       : {};
+    const localeFileTranslations = fs.existsSync(localePath)
+      ? JSON.parse(fs.readFileSync(localePath, 'utf8'))
+      : {};
+    const databaseTranslations = translation?.translations || {};
     const translations = {
       ...defaultTranslations,
-      ...(translation?.translations || {}),
-      ...(fs.existsSync(localePath) ? JSON.parse(fs.readFileSync(localePath, 'utf8')) : {}),
+      ...databaseTranslations,
+      ...localeFileTranslations,
     };
+    const defaultFlatTranslations = flattenJson(defaultTranslations);
+    const localizedFlatTranslations = {
+      ...flattenJson(databaseTranslations),
+      ...flattenJson(localeFileTranslations),
+    };
+    const fallbackKeys = lang === defaultLang
+      ? []
+      : Object.keys(defaultFlatTranslations).filter((key) => (
+        typeof localizedFlatTranslations[key] !== 'string'
+        || localizedFlatTranslations[key].trim() === ''
+      ));
 
     if (Object.keys(translations).length === 0) {
       return sendTranslationError(
@@ -208,6 +223,12 @@ exports.getStaticTranslations = async (req, res) => {
     }
 
     const flattenedTranslations = flattenJson(translations);
+    fallbackKeys.forEach((key) => {
+      const fallbackValue = defaultFlatTranslations[key];
+      if (typeof fallbackValue === 'string') {
+        flattenedTranslations[key] = fallbackValue;
+      }
+    });
 
     res.set('Cache-Control', 'public, max-age=300');
     if (translation?._id) {
@@ -221,6 +242,7 @@ exports.getStaticTranslations = async (req, res) => {
         code: lang,
         namespace: ns,
         translations: flattenedTranslations,
+        fallbackKeys,
       },
     });
   } catch (error) {

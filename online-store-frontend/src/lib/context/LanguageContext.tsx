@@ -19,7 +19,7 @@ import uiFallbacks from '../../locales/uiFallbacks.json';
 interface LanguageContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => Promise<void>;
-  t: (keyPath: string, defaultNamespace?: Namespace, fallback?: string) => string;
+  t: (keyPath: string, defaultNamespace?: Namespace) => string;
   loadNamespace: (ns: Namespace) => Promise<void>;
   isLoadingNamespace: (ns: Namespace) => boolean;
   isChangingLocale: boolean;
@@ -99,9 +99,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [isChangingLocale, setIsChangingLocale] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [localeConfigs, setLocaleConfigs] = useState<ActiveLocaleConfig[]>([]);
+  const fallbackKeysByNamespaceRef = useRef<Record<string, Set<string>>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
   const fallbackControllerRef = useRef<AbortController | null>(null);
   const namespacesToLoadRef = useRef<Set<Namespace>>(new Set());
+  const missingTranslationWarningsRef = useRef(new Set<string>());
   const pendingLoadRef = useRef(false);
   const prevLocaleRef = useRef<Locale>(DEFAULT_LOCALE);
 
@@ -192,7 +194,16 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const translations = await translationService.getStaticTranslations(locale, ns, controller.signal);
+        const translations = await translationService.getStaticTranslations(
+          locale,
+          ns,
+          controller.signal,
+          (fallbackKeys) => {
+            if (!controller.signal.aborted) {
+              fallbackKeysByNamespaceRef.current[cacheKey] = new Set(fallbackKeys);
+            }
+          },
+        );
 
         // Only update if request wasn't aborted
         if (!controller.signal.aborted) {
@@ -303,10 +314,19 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const translations = await translationService.getStaticTranslations(newLocale, 'common', controller.signal);
+        const cacheKey = `${newLocale}_common`;
+        const translations = await translationService.getStaticTranslations(
+          newLocale,
+          'common',
+          controller.signal,
+          (fallbackKeys) => {
+            if (!controller.signal.aborted) {
+              fallbackKeysByNamespaceRef.current[cacheKey] = new Set(fallbackKeys);
+            }
+          },
+        );
 
         if (!controller.signal.aborted) {
-          const cacheKey = `${newLocale}_common`;
           setLoadedTranslations((prev) => ({
             ...prev,
             [cacheKey]: translations,
@@ -315,9 +335,18 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           // Also load 'products' namespace immediately to avoid spec fallback
           const productsController = new AbortController();
           abortControllerRef.current = productsController;
-          const productsTranslations = await translationService.getStaticTranslations(newLocale, 'products', productsController.signal);
+          const productsCacheKey = `${newLocale}_products`;
+          const productsTranslations = await translationService.getStaticTranslations(
+            newLocale,
+            'products',
+            productsController.signal,
+            (fallbackKeys) => {
+              if (!productsController.signal.aborted) {
+                fallbackKeysByNamespaceRef.current[productsCacheKey] = new Set(fallbackKeys);
+              }
+            },
+          );
           if (!productsController.signal.aborted) {
-            const productsCacheKey = `${newLocale}_products`;
             setLoadedTranslations((prev) => ({
               ...prev,
               [productsCacheKey]: productsTranslations,
@@ -350,10 +379,17 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   );
 
   const t = useCallback(
-    (keyPath: string, defaultNamespace: Namespace = 'common', fallback?: string): string => {
+    (keyPath: string, defaultNamespace: Namespace = 'common'): string => {
       const namespace = defaultNamespace;
       const cacheKey = `${locale}_${namespace}`;
       const commonCacheKey = `${locale}_common`;
+      const warnMissingTranslation = (source: string) => {
+        if (process.env.NODE_ENV !== 'development') return;
+        const warningKey = `${locale}:${namespace}:${keyPath}`;
+        if (missingTranslationWarningsRef.current.has(warningKey)) return;
+        missingTranslationWarningsRef.current.add(warningKey);
+        console.warn(`[i18n] Missing ${locale}/${namespace}:${keyPath}; resolved from ${source}.`);
+      };
 
       let namespaceData = loadedTranslations[cacheKey];
       const commonData = loadedTranslations[commonCacheKey];
@@ -368,6 +404,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       if (namespaceData) {
         const result = getNestedValue(namespaceData, keyPath);
         if (result !== keyPath) {
+          if (fallbackKeysByNamespaceRef.current[cacheKey]?.has(keyPath)) {
+            warnMissingTranslation('the default locale');
+          }
           return result;
         }
       }
@@ -376,6 +415,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       if (commonData) {
         const result = getNestedValue(commonData, keyPath);
         if (result !== keyPath) {
+          if (fallbackKeysByNamespaceRef.current[commonCacheKey]?.has(keyPath)) {
+            warnMissingTranslation('the default locale');
+          }
           return result;
         }
       }
@@ -388,6 +430,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         }
         const result = getNestedValue(nsData, keyPath);
         if (result !== keyPath) {
+          if (fallbackKeysByNamespaceRef.current[cKey]?.has(keyPath)) {
+            warnMissingTranslation('the default locale');
+          }
           return result;
         }
       }
@@ -398,6 +443,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           if (nsData && typeof nsData === 'object') {
             const result = getNestedValue(nsData, keyPath);
             if (result !== keyPath) {
+              if (fallbackTranslations.appliedLang && fallbackTranslations.appliedLang !== locale) {
+                warnMissingTranslation(`fallback locale ${fallbackTranslations.appliedLang}`);
+              }
               return result;
             }
           }
@@ -407,7 +455,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath]
         ?? LOCAL_UI_FALLBACKS.en?.[keyPath];
 
-      return fallback ?? localFallback ?? keyPath;
+      if (namespaceData || commonData) {
+        warnMissingTranslation(localFallback === undefined ? 'the translation key itself' : 'the local fallback dictionary');
+      }
+
+      return localFallback ?? keyPath;
     },
     [locale, loadedTranslations, fallbackTranslations, loadingNamespaces]
   );
