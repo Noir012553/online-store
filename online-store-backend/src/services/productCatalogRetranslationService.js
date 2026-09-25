@@ -109,7 +109,7 @@ const retranslateProduct = async (productId, targetLang, { sequential = false } 
         sourceHash: getProductTranslationSourceHash(product),
         name: nameResult.value ?? product.name,
         description: descResult.value,
-        brand: product.brand,
+        brand: manualFields.includes('brand') ? catalogTranslation?.brand : product.brand,
         specs,
         technicalDescription: technicalDescriptionResult.value ?? product.technicalDescription ?? '',
         descriptionImages,
