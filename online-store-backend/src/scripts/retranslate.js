@@ -59,6 +59,11 @@ async function main() {
       console.log(`\n${CLI_SYMBOLS.list} Dry-run completed. Use without --dry-run to actually retranslate.`);
       process.exit(0);
     } else {
+      if (result.stats.quotaExceededCount > 0) {
+        console.error(
+          `${CLI_SYMBOLS.error} Cloudflare quota exhausted. ${result.stats.remainingCount} translation(s) remain for the next run.`,
+        );
+      }
       console.log(`\n${CLI_SYMBOLS.warning} Retranslation completed with some issues.`);
       process.exit(1);
     }

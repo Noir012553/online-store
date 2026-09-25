@@ -9,6 +9,11 @@ const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
+const translationValidationConfig = require('../config/translationValidation');
+const translationReporter = require('../utils/translationReporter');
+const libretranslateProductService = require('../services/libretranslateProductService');
+const retranslateSeeder = require('../seeds/retranslateSeeder');
+const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
@@ -37,6 +42,168 @@ describe('Product translation cache controller', () => {
 
   afterEach(() => {
     sandbox.restore();
+  });
+
+  it('selects retryable translations from both product cache layers', async () => {
+    const liveQuery = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    const catalogQuery = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    const liveFind = sandbox.stub(LiveTranslationCache, 'find').returns(liveQuery);
+    const catalogFind = sandbox.stub(ProductCatalogTranslationCache, 'find').returns(catalogQuery);
+
+    await retranslateSeeder.retranslate({ dryRun: true, verbose: false });
+
+    const liveFilter = liveFind.firstCall.args[0];
+    const catalogFilter = catalogFind.firstCall.args[0];
+    expect(liveFilter.provider.$in).to.include.members(
+      LiveTranslationCache.schema.path('provider').enumValues,
+    );
+    expect(liveFilter.$or).to.deep.include({
+      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    });
+    expect(liveFilter.$or).to.deep.include({ validationErrors: { $exists: true, $ne: [] } });
+    expect(liveFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
+      LiveTranslationCache.schema.path('status').enumValues
+        .filter(status => status.startsWith('failed_') || status.endsWith('_retry')),
+    );
+    expect(catalogFilter.$or).to.deep.include({
+      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    });
+    expect(catalogFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
+      ProductCatalogTranslationCache.schema.path('status').enumValues
+        .filter(status => status.startsWith('failed_') || status.endsWith('_retry')),
+    );
+  });
+
+  it('retranslates matching catalog records through the product retranslation service', async () => {
+    const qualityStatuses = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues;
+    const needsRetranslate = qualityStatuses.find(status => /retranslat|reject/i.test(status));
+    const approved = qualityStatuses.find(status => status === 'approved');
+    const candidate = {
+      _id: new mongoose.Types.ObjectId(),
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: targetLanguage.code,
+      name: `product-${new mongoose.Types.ObjectId()}`,
+      qualityStatus: needsRetranslate,
+      validationErrors: [],
+    };
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([candidate]),
+    });
+    const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation: { ...candidate, qualityStatus: approved, validationErrors: [] },
+      skippedManualFields: [],
+    });
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ verbose: false });
+
+    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, { sequential: true })).to.be.true;
+    expect(result.stats.totalToRetranslate).to.equal(1);
+    expect(result.stats.fixedCount).to.equal(1);
+  });
+
+  it('stops when Cloudflare quota is exhausted and reports unfinished translations', async () => {
+    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+    const productEntityType = LiveTranslationCache.schema.path('entityType').enumValues
+      .find((entityType) => entityType.startsWith('product_'));
+    const translations = LiveTranslationCache.schema.path('provider').enumValues.map((provider, index) => ({
+      _id: `translation-${index}`,
+      hashKey: `hash-${index}`,
+      originalText: `product ${index}`,
+      sourceLang: getDefaultLanguage().code,
+      targetLang: targetLanguage.code,
+      entityType: productEntityType,
+      provider,
+      qualityScore: Math.max(0, translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL - 1),
+      validationErrors: [],
+    }));
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(translations),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    const quotaError = Object.assign(new Error('Provider rate limit exceeded'), {
+      response: { status: 429 },
+    });
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').rejects(quotaError);
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ verbose: false });
+
+    expect(result.success).to.equal(false);
+    expect(result.stats.quotaExceededCount).to.equal(1);
+    expect(result.stats.errorCount).to.equal(1);
+    expect(result.stats.remainingCount).to.equal(translations.length - 1);
+    expect(libretranslateProductService.translateWithCloudflare.calledOnce).to.equal(true);
+  });
+
+  const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+
+  translationValidationConfig.PRESERVED_BRANDS.forEach((brand) => {
+    it(`does not approve a translation missing configured brand: ${brand}`, async () => {
+      sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+      const original = `${brand} ${targetLanguage.nativeName} product`;
+      const translated = `${targetLanguage.name} localized product`;
+      const result = await translationValidator.validateTranslation(
+        original,
+        translated,
+        targetLanguage.code,
+        'product_name',
+      );
+
+      expect(result.qualityScore).to.equal(
+        translationValidator.calculateQualityScore(result.validationErrors),
+      );
+      expect(result.qualityStatus).not.to.equal('approved');
+      expect(result.validationErrors).to.include('missing_brand');
+    });
+  });
+
+  it('ignores configured non-blocking validation errors in product status', async () => {
+    sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+    const brand = translationValidationConfig.PRESERVED_BRANDS[0];
+    const original = brand;
+    const translated = `${brand}${'x'.repeat(Math.floor(
+      original.length * translationValidationConfig.MAX_LENGTH_RATIO,
+    ) + 1)}`;
+    const lengthError = translationValidator.checkLength(original, translated)?.error;
+
+    expect(translationValidationConfig.NON_BLOCKING_ERRORS).to.include(lengthError);
+
+    const result = await translationValidator.validateTranslation(
+      original,
+      translated,
+      targetLanguage.code,
+      'product_name',
+    );
+    const expectedScore = translationValidator.calculateQualityScore([lengthError]);
+    const expectedStatus = expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_RETRANSLATE
+      ? 'needs_retranslate'
+      : expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
+        ? 'pending'
+        : 'approved';
+
+    expect(result.qualityScore).to.equal(expectedScore);
+    expect(result.qualityStatus).to.equal(expectedStatus);
+    expect(result.validationErrors).not.to.include(lengthError);
   });
 
   it('reads only successful approved product translations', async () => {
@@ -246,7 +413,7 @@ describe('Product translation cache controller', () => {
         manualFields: [],
       }),
     });
-    sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => `en:${source}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
       qualityScore: 100,
@@ -294,7 +461,7 @@ describe('Product translation cache controller', () => {
         manualFields: ['name'],
       }),
     });
-    const translate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async (source) => `en:${source}`);
+    const translate = sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => `en:${source}`);
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
       qualityScore: 100,

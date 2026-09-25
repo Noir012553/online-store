@@ -1,6 +1,9 @@
 const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
+const mongoose = require('mongoose');
+const { createClient } = require('redis');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 try {
   require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -122,6 +125,25 @@ const checkConfiguration = () => {
   );
 
   try {
+    const quotaRequests = parsePositiveInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 0);
+    const quotaInputChars = parsePositiveInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 0);
+    addCheck(
+      checks,
+      'Cloudflare request quota',
+      !cloudflareEnabled || quotaRequests > 0,
+      !cloudflareEnabled ? 'skipped because Cloudflare is disabled' : `${quotaRequests} requests/day`,
+    );
+    addCheck(
+      checks,
+      'Cloudflare input quota',
+      !cloudflareEnabled || quotaInputChars > 0,
+      !cloudflareEnabled ? 'skipped because Cloudflare is disabled' : `${quotaInputChars} chars/day`,
+    );
+  } catch (error) {
+    addCheck(checks, 'Cloudflare quota configuration', false, error.message);
+  }
+
+  try {
     const concurrency = parsePositiveInteger('PRODUCT_TRANSLATION_CONCURRENCY', 1);
     const languageConcurrency = parsePositiveInteger('PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY', 1);
     const chunkSize = parsePositiveInteger('PRODUCT_TRANSLATION_CHUNK_SIZE', 10);
@@ -147,7 +169,51 @@ const checkConfiguration = () => {
     addCheck(checks, 'Concurrency configuration', false, error.message);
   }
 
-  return { checks, libreEnabled };
+  return { checks, libreEnabled, lockMode };
+};
+
+const checkRuntimeDependencies = async (checks, lockMode) => {
+  if (!process.env.MONGO_URI) {
+    addCheck(checks, 'MongoDB connection', false, 'MONGO_URI is not configured');
+    addCheck(checks, 'Legacy failover migration', false, 'skipped because MongoDB is unavailable');
+  } else {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: DEFAULT_TIMEOUT_MS,
+      });
+      addCheck(checks, 'MongoDB connection', true, 'connected');
+
+      const legacyCount = await LiveTranslationCache.countDocuments({ status: 'fallback_libretranslate' });
+      addCheck(
+        checks,
+        'Legacy failover migration',
+        legacyCount === 0,
+        legacyCount === 0 ? 'no legacy status records found' : `${legacyCount} legacy record(s) require migration`,
+      );
+    } catch (error) {
+      addCheck(checks, 'MongoDB connection', false, error.message);
+      addCheck(checks, 'Legacy failover migration', false, 'skipped because MongoDB connection failed');
+    } finally {
+      if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
+    }
+  }
+
+  if (lockMode === 'memory') return;
+
+  const client = createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    password: process.env.REDIS_PASSWORD || undefined,
+    socket: { connectTimeout: DEFAULT_TIMEOUT_MS },
+  });
+  try {
+    await client.connect();
+    await client.ping();
+    addCheck(checks, 'Redis distributed lock', true, 'connected');
+  } catch (error) {
+    addCheck(checks, 'Redis distributed lock', false, error.message);
+  } finally {
+    if (client.isOpen) await client.quit();
+  }
 };
 
 const checkLibreTranslate = async (checks, smokeTest, enabled) => {
@@ -200,8 +266,9 @@ const checkLibreTranslate = async (checks, smokeTest, enabled) => {
 
 const run = async () => {
   const { json, smokeTest } = parseArgs(process.argv.slice(2));
-  const { checks, libreEnabled } = checkConfiguration();
+  const { checks, libreEnabled, lockMode } = checkConfiguration();
   await checkLibreTranslate(checks, smokeTest, libreEnabled);
+  await checkRuntimeDependencies(checks, lockMode);
 
   const failed = checks.filter(check => !check.ok && check.severity === 'error');
   const warnings = checks.filter(check => !check.ok && check.severity === 'warning');

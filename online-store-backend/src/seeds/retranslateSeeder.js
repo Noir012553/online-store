@@ -1,12 +1,42 @@
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
+const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const libretranslateProductService = require('../services/libretranslateProductService');
 const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const translationValidationConfig = require('../config/translationValidation');
+
+const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
+const TRANSLATION_STATUSES = [
+  ...LiveTranslationCache.schema.path('status').enumValues,
+  'fallback_libretranslate',
+];
+const FAILED_TRANSLATION_STATUSES = LiveTranslationCache.schema.path('status').enumValues
+  .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
+const CATALOG_RETRYABLE_STATUSES = ProductCatalogTranslationCache.schema.path('status').enumValues
+  .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
+const LIVE_RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qualityStatus').enumValues
+  .filter(status => /retranslat|reject/i.test(status));
+const CATALOG_RETRANSLATE_QUALITY_STATUSES = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues
+  .filter(status => /retranslat|reject/i.test(status));
+const isCloudflareQuotaError = (error) => {
+  const status = error?.response?.status ?? error?.statusCode;
+  if (status === 420 || status === 429) return true;
+  const providerErrors = Array.isArray(error?.response?.data?.errors)
+    ? error.response.data.errors
+    : [];
+  const providerMessages = [
+    error?.message,
+    error?.response?.data?.message,
+    ...providerErrors.map(({ message }) => message),
+  ].filter(Boolean).join(' ');
+  return /CLOUDFLARE_AI_(?:REQUEST|INPUT)_BUDGET_EXCEEDED|CLOUDFLARE_AI_BUDGET_NOT_CONFIGURED|rate[\s-]?limit|quota|too many requests/i.test(providerMessages);
+};
 
 const PRODUCT_ENTITY_TYPES = new Set([
   'product_name',
@@ -24,6 +54,8 @@ class RetranslateSeeder {
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
+      quotaExceededCount: 0,
+      remainingCount: 0,
       breakdown: {},
       stillBroken: [],
     };
@@ -46,6 +78,8 @@ class RetranslateSeeder {
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
+      quotaExceededCount: 0,
+      remainingCount: 0,
       breakdown: {},
       stillBroken: [],
     };
@@ -69,12 +103,14 @@ class RetranslateSeeder {
 
     const query = {
       ...safeFilter,
-      provider: 'libretranslate',
-      status: 'translated_via_libre',
+      provider: { $in: TRANSLATION_PROVIDERS },
+      status: { $in: TRANSLATION_STATUSES },
       qualityStatus: { $ne: 'retranslated' },
       entityType: requestedEntityType || { $in: [...PRODUCT_ENTITY_TYPES] },
       $or: [
-        { qualityScore: { $lt: 70 } },
+        { status: { $in: FAILED_TRANSLATION_STATUSES } },
+        { qualityStatus: { $in: LIVE_RETRANSLATE_QUALITY_STATUSES } },
+        { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
         { validationErrors: { $exists: true, $ne: [] } },
       ],
     };
@@ -83,35 +119,102 @@ class RetranslateSeeder {
       query.targetLang = lang;
     }
 
+    const catalogQuery = {
+      ...safeFilter,
+      ...(lang ? { targetLang: lang } : {}),
+      $or: [
+        { status: { $in: CATALOG_RETRYABLE_STATUSES } },
+        { qualityStatus: { $in: CATALOG_RETRANSLATE_QUALITY_STATUSES } },
+        { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
+        { validationErrors: { $exists: true, $ne: [] } },
+      ],
+    };
+
     let translationsQuery = LiveTranslationCache.find(query)
       .sort({ createdAt: 1, _id: 1 });
-    if (limit > 0) translationsQuery = translationsQuery.limit(limit);
-    const toRetranslate = await translationsQuery.lean();
+    let catalogTranslationsQuery = ProductCatalogTranslationCache.find(catalogQuery)
+      .sort({ createdAt: 1, _id: 1 });
+    if (limit > 0) {
+      translationsQuery = translationsQuery.limit(limit);
+      catalogTranslationsQuery = catalogTranslationsQuery.limit(limit);
+    }
+    const [liveTranslations, catalogTranslations] = await Promise.all([
+      translationsQuery.lean(),
+      requestedEntityType ? [] : catalogTranslationsQuery.lean(),
+    ]);
+    const toRetranslate = [
+      ...catalogTranslations.map(translation => ({ ...translation, retranslateSource: 'catalog' })),
+      ...liveTranslations.map(translation => ({ ...translation, retranslateSource: 'live' })),
+    ].sort((left, right) => (
+      new Date(left.createdAt || 0) - new Date(right.createdAt || 0)
+      || String(left._id).localeCompare(String(right._id))
+    ));
+    const limitedToRetranslate = limit > 0 ? toRetranslate.slice(0, limit) : toRetranslate;
 
-    this.stats.totalToRetranslate = toRetranslate.length;
+    this.stats.totalToRetranslate = limitedToRetranslate.length;
 
     if (verbose) {
       console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION PROCESS`);
       console.log(CLI_SYMBOLS.divider.repeat(55));
-      console.log(`\n${CLI_SYMBOLS.search} Found ${toRetranslate.length} translations to retranslate`);
+      console.log(`\n${CLI_SYMBOLS.search} Found ${limitedToRetranslate.length} translations to retranslate`);
+      console.log(`   Product catalog: ${catalogTranslations.length}; field cache: ${liveTranslations.length}`);
     }
 
     const results = [];
-    for (let i = 0; i < toRetranslate.length; i++) {
-      const translation = toRetranslate[i];
+    for (let i = 0; i < limitedToRetranslate.length; i++) {
+      const translation = limitedToRetranslate[i];
 
       if (verbose) {
-        const progress = Math.round((i / toRetranslate.length) * 100);
-        process.stdout.write(`\r${CLI_SYMBOLS.books} Processing: [${progress}%] ${i + 1}/${toRetranslate.length}`);
+        const progress = Math.round((i / limitedToRetranslate.length) * 100);
+        process.stdout.write(`\r${CLI_SYMBOLS.books} Processing: [${progress}%] ${i + 1}/${limitedToRetranslate.length}`);
       }
 
       try {
         if (dryRun) {
-          // Dry run: don't actually translate
           results.push({
             status: 'dry-run',
             originalId: translation._id,
-            originalText: translation.originalText,
+            originalText: translation.originalText || translation.name,
+          });
+          continue;
+        }
+
+        if (translation.retranslateSource === 'catalog') {
+          const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
+            translation.entityId,
+            translation.targetLang,
+            { sequential: true },
+          );
+          const validationErrors = updatedTranslation.validationErrors || [];
+          const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
+          if (wasFixed) {
+            this.stats.fixedCount++;
+          } else {
+            this.stats.stillBrokenCount++;
+            this.stats.stillBroken.push({
+              _id: updatedTranslation._id,
+              originalText: translation.name,
+              translatedText: updatedTranslation.name,
+              validationErrors,
+            });
+          }
+          translation.validationErrors?.forEach(error => {
+            if (!this.stats.breakdown[error]) {
+              this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
+            }
+            this.stats.breakdown[error].count++;
+            if (wasFixed) this.stats.breakdown[error].fixed++;
+            else this.stats.breakdown[error].broken++;
+          });
+          results.push({
+            status: 'success',
+            originalId: translation._id,
+            newId: updatedTranslation._id,
+            originalText: translation.name,
+            oldTranslation: translation.name,
+            newTranslation: updatedTranslation.name,
+            wasFixed,
+            validationErrors,
           });
           continue;
         }
@@ -234,7 +337,7 @@ class RetranslateSeeder {
 
         // Update stats
         const wasFixed = (
-          translation.qualityScore < 70
+          translation.qualityScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
           || translation.validationErrors?.length > 0
         ) && newValidationErrors.length === 0;
         if (wasFixed) {
@@ -275,13 +378,20 @@ class RetranslateSeeder {
       } catch (error) {
         console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${translation.originalText}": ${error.message}`);
         this.stats.errorCount++;
+        const quotaExhausted = isCloudflareQuotaError(error);
+        if (quotaExhausted) {
+          this.stats.quotaExceededCount++;
+          console.error(`${CLI_SYMBOLS.error} Cloudflare quota exhausted; stopping retranslation.`);
+        }
         results.push({
           status: 'error',
           originalId: translation._id,
           error: error.message,
         });
+        if (quotaExhausted) break;
       }
     }
+    this.stats.remainingCount = Math.max(0, limitedToRetranslate.length - results.length);
 
     if (verbose) {
       console.log('\n');
@@ -307,7 +417,7 @@ class RetranslateSeeder {
     }
 
     return {
-      success: !dryRun,
+      success: !dryRun && this.stats.errorCount === 0,
       dryRun,
       stats: this.stats,
       results,

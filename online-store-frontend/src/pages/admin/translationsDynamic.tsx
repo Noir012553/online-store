@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
@@ -63,6 +63,7 @@ export function ProductsTranslationsAdminContent() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Locale>(INITIAL_TRANSLATION_LOCALE);
   const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
+  const statusFetchRequestRef = useRef(0);
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
@@ -113,36 +114,42 @@ export function ProductsTranslationsAdminContent() {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, currentPage, locale, isAdmin, t]);
 
-  useEffect(() => {
-    const fetchStatuses = async () => {
-      if (!isAdmin || products.length === 0) {
-        setTranslationStatuses({});
-        return;
-      }
+  const fetchStatuses = useCallback(async () => {
+    const requestId = ++statusFetchRequestRef.current;
+    if (!isAdmin || products.length === 0) {
+      setTranslationStatuses({});
+      return;
+    }
 
-      try {
-        const productIds = products.map((product) => product._id).join(',');
-        const response = await fetch(
-          `/api/translations/admin/products/status?lang=${selectedLanguage}&productIds=${encodeURIComponent(productIds)}`,
-          {
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            credentials: 'include',
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`${t('status_load_failed', 'productsTranslations')} (${response.status})`);
+    try {
+      const productIds = products.map((product) => product._id).join(',');
+      const response = await fetch(
+        `/api/translations/admin/products/status?lang=${selectedLanguage}&productIds=${encodeURIComponent(productIds)}`,
+        {
+          headers: { Authorization: `Bearer ${getAuthToken()}` },
+          credentials: 'include',
         }
-        const data = await response.json();
-        setTranslationStatuses(Object.fromEntries(
-          (data.data || []).map((status: TranslationStatus & { productId: string }) => [status.productId, status])
-        ));
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t('status_load_failed', 'productsTranslations'));
+      );
+      if (!response.ok) {
+        throw new Error(`${t('status_load_failed', 'productsTranslations')} (${response.status})`);
       }
-    };
-
-    fetchStatuses();
+      const data = await response.json();
+      if (requestId !== statusFetchRequestRef.current) return;
+      setTranslationStatuses(Object.fromEntries(
+        (data.data || []).map((status: TranslationStatus & { productId: string }) => [status.productId, status])
+      ));
+    } catch (error) {
+      if (requestId !== statusFetchRequestRef.current) return;
+      toast.error(error instanceof Error ? error.message : t('status_load_failed', 'productsTranslations'));
+    }
   }, [products, selectedLanguage, t, isAdmin]);
+
+  useEffect(() => {
+    fetchStatuses();
+    return () => {
+      statusFetchRequestRef.current++;
+    };
+  }, [fetchStatuses]);
 
   if (!isAdmin) {
     return <PermissionDenied feature="translations_dynamic" />;
@@ -178,6 +185,7 @@ export function ProductsTranslationsAdminContent() {
           validationErrors: data.data.validationErrors || [],
         },
       }));
+      await fetchStatuses();
       toast.success(t('save_success', 'productsTranslations'));
       setEditingProductId(null);
     } catch (error) {
@@ -225,7 +233,16 @@ export function ProductsTranslationsAdminContent() {
           validationErrors: data.data.validationErrors || [],
         },
       }));
-      toast.success(t('retranslate_success', 'productsTranslations'));
+      await fetchStatuses();
+      if (data.data.status === 'approved' && (data.data.validationErrors || []).length === 0) {
+        toast.success(t('retranslate_success', 'productsTranslations'));
+      } else {
+        const issueDetails = (data.data.validationErrors || []).join(', ');
+        toast.info(
+          `${t('retranslate_success', 'productsTranslations')} — ${t(`status_${data.data.status}`, 'productsTranslations')}`,
+          issueDetails ? { description: issueDetails } : undefined,
+        );
+      }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         toast.error(t('retranslate_timeout', 'productsTranslations'));

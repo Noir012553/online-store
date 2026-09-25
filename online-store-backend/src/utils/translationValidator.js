@@ -201,27 +201,28 @@ class TranslationValidator {
     const inconsistencyCheck = await this.checkInconsistency(original, targetLang, translated, entityType);
     if (inconsistencyCheck) errors.push(inconsistencyCheck.error);
 
-    // Calculate quality score
     const qualityScore = this.calculateQualityScore(errors);
+    const validationErrors = errors.filter((error) => !config.NON_BLOCKING_ERRORS.includes(error));
 
-    // Determine status
     let qualityStatus = 'approved';
     if (qualityScore < config.QUALITY_THRESHOLD_FOR_RETRANSLATE) {
       qualityStatus = 'needs_retranslate';
-    } else if (qualityScore < config.QUALITY_THRESHOLD_FOR_APPROVAL) {
+    } else if (
+      qualityScore < config.QUALITY_THRESHOLD_FOR_APPROVAL
+      || validationErrors.length > 0
+    ) {
       qualityStatus = 'pending';
     }
 
-    // Auto-approve if no errors
-    if (config.AUTO_APPROVE_IF_NO_ERRORS && errors.length === 0) {
+    if (config.AUTO_APPROVE_IF_NO_ERRORS && validationErrors.length === 0) {
       qualityStatus = 'approved';
     }
 
     return {
-      validationErrors: errors,
+      validationErrors,
       qualityScore,
       qualityStatus,
-      hasCriticalErrors: errors.some(e => config.CRITICAL_ERRORS.includes(e)),
+      hasCriticalErrors: validationErrors.some((error) => config.CRITICAL_ERRORS.includes(error)),
     };
   }
 
