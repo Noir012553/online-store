@@ -39,6 +39,36 @@ describe('Product translation cache controller', () => {
     sandbox.restore();
   });
 
+  it('keeps validation failures out of approved translations', async () => {
+    sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+
+    const result = await translationValidator.validateTranslation(
+      'Razer Cobra Mouse',
+      'Gaming mouse',
+      'en',
+      'product_name',
+    );
+
+    expect(result.qualityScore).to.equal(80);
+    expect(result.qualityStatus).to.equal('pending');
+    expect(result.validationErrors).to.include('missing_brand');
+  });
+
+  it('does not report non-blocking length warnings as validation errors', async () => {
+    sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+
+    const result = await translationValidator.validateTranslation(
+      'Razer Mouse',
+      'Razer Gaming Mouse with many extra descriptive words and details',
+      'en',
+      'product_name',
+    );
+
+    expect(result.qualityScore).to.equal(85);
+    expect(result.qualityStatus).to.equal('approved');
+    expect(result.validationErrors).to.deep.equal([]);
+  });
+
   it('reads only successful approved product translations', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
