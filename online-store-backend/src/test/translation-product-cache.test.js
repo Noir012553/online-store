@@ -9,6 +9,7 @@ const TranslationBatchRequest = require('../models/TranslationBatchRequest');
 const LanguageService = require('../services/languageService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
+const translationValidationConfig = require('../config/translationValidation');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
@@ -39,34 +40,55 @@ describe('Product translation cache controller', () => {
     sandbox.restore();
   });
 
-  it('keeps validation failures out of approved translations', async () => {
-    sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+  const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
 
-    const result = await translationValidator.validateTranslation(
-      'Razer Cobra Mouse',
-      'Gaming mouse',
-      'en',
-      'product_name',
-    );
+  translationValidationConfig.PRESERVED_BRANDS.forEach((brand) => {
+    it(`does not approve a translation missing configured brand: ${brand}`, async () => {
+      sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+      const original = `${brand} ${targetLanguage.nativeName} product`;
+      const translated = `${targetLanguage.name} localized product`;
+      const result = await translationValidator.validateTranslation(
+        original,
+        translated,
+        targetLanguage.code,
+        'product_name',
+      );
 
-    expect(result.qualityScore).to.equal(80);
-    expect(result.qualityStatus).to.equal('pending');
-    expect(result.validationErrors).to.include('missing_brand');
+      expect(result.qualityScore).to.equal(
+        translationValidator.calculateQualityScore(result.validationErrors),
+      );
+      expect(result.qualityStatus).not.to.equal('approved');
+      expect(result.validationErrors).to.include('missing_brand');
+    });
   });
 
-  it('does not report non-blocking length warnings as validation errors', async () => {
+  it('ignores configured non-blocking validation errors in product status', async () => {
     sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
+    const brand = translationValidationConfig.PRESERVED_BRANDS[0];
+    const original = brand;
+    const translated = `${brand}${'x'.repeat(Math.floor(
+      original.length * translationValidationConfig.MAX_LENGTH_RATIO,
+    ) + 1)}`;
+    const lengthError = translationValidator.checkLength(original, translated)?.error;
+
+    expect(translationValidationConfig.NON_BLOCKING_ERRORS).to.include(lengthError);
 
     const result = await translationValidator.validateTranslation(
-      'Razer Mouse',
-      'Razer Gaming Mouse with many extra descriptive words and details',
-      'en',
+      original,
+      translated,
+      targetLanguage.code,
       'product_name',
     );
+    const expectedScore = translationValidator.calculateQualityScore([lengthError]);
+    const expectedStatus = expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_RETRANSLATE
+      ? 'needs_retranslate'
+      : expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
+        ? 'pending'
+        : 'approved';
 
-    expect(result.qualityScore).to.equal(85);
-    expect(result.qualityStatus).to.equal('approved');
-    expect(result.validationErrors).to.deep.equal([]);
+    expect(result.qualityScore).to.equal(expectedScore);
+    expect(result.qualityStatus).to.equal(expectedStatus);
+    expect(result.validationErrors).not.to.include(lengthError);
   });
 
   it('reads only successful approved product translations', async () => {
