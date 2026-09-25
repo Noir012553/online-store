@@ -98,10 +98,10 @@ export default function ImportExportWidget() {
       link.click();
       document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(t('export_zip_success', 'export', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
+      toast.success(t('export_zip_success', 'export'));
     } catch (error) {
       if (controller.signal.aborted) {
-        toast.info(t('export_cancelled', 'export', 'Đã hủy lượt xuất ZIP.'));
+        toast.info(t('export_cancelled', 'export'));
       } else {
         toast.error(t('error_exporting_file', 'export'));
       }

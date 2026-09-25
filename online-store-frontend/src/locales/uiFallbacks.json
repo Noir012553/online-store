@@ -128,6 +128,10 @@
     "promotion_gift_value": "Giá trị quà (VND)",
     "promotion_scope": "Phạm vi áp dụng",
     "promotion_discount": "Nội dung giảm giá",
+    "admin_currency_label": "Tiền tệ cơ sở",
+    "admin_select_currency": "Chọn tiền tệ",
+    "export_zip_success": "Đã xuất ZIP chứa products.json để có thể nhập lại.",
+    "export_cancelled": "Đã hủy lượt xuất ZIP.",
     "cancel": "Hủy",
     "loading_message": "Đang tải..."
   },
@@ -260,6 +264,10 @@
     "promotion_gift_value": "Gift value (VND)",
     "promotion_scope": "Promotion scope",
     "promotion_discount": "Discount details",
+    "admin_currency_label": "Base currency",
+    "admin_select_currency": "Select currency",
+    "export_zip_success": "Exported a ZIP containing products.json for re-import.",
+    "export_cancelled": "The ZIP export was cancelled.",
     "cancel": "Cancel",
     "loading_message": "Loading..."
   }
