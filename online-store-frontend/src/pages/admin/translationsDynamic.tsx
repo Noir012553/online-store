@@ -63,7 +63,9 @@ export function ProductsTranslationsAdminContent() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Locale>(INITIAL_TRANSLATION_LOCALE);
   const [translationStatuses, setTranslationStatuses] = useState<Record<string, TranslationStatus>>({});
+  const productsFetchRequestRef = useRef(0);
   const statusFetchRequestRef = useRef(0);
+  const retranslateLockRef = useRef(false);
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
@@ -71,6 +73,8 @@ export function ProductsTranslationsAdminContent() {
 
   // Fetch products with app locale language (left side follows global language)
   useEffect(() => {
+    const controller = new AbortController();
+    const requestId = ++productsFetchRequestRef.current;
     const fetchProducts = async () => {
       if (!isAdmin) {
         setIsLoading(false);
@@ -91,6 +95,7 @@ export function ProductsTranslationsAdminContent() {
             'Authorization': `Bearer ${getAuthToken()}`,
           },
           credentials: 'include',
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -98,20 +103,27 @@ export function ProductsTranslationsAdminContent() {
         }
 
         const data = await response.json();
+        if (requestId !== productsFetchRequestRef.current) return;
         setProducts(data.products || []);
+        setTranslationStatuses({});
         setTotalPages(data.pages || 1);
       } catch (error) {
+        if (controller.signal.aborted || requestId !== productsFetchRequestRef.current) return;
         toast.error(error instanceof Error ? error.message : t('load_failed', 'productsTranslations'));
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted && requestId === productsFetchRequestRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
-    const debounceTimer = setTimeout(() => {
-      fetchProducts();
-    }, 300);
+    const debounceTimer = setTimeout(fetchProducts, 300);
 
-    return () => clearTimeout(debounceTimer);
+    return () => {
+      clearTimeout(debounceTimer);
+      controller.abort();
+      if (productsFetchRequestRef.current === requestId) productsFetchRequestRef.current++;
+    };
   }, [searchQuery, currentPage, locale, isAdmin, t]);
 
   const fetchStatuses = useCallback(async () => {
@@ -143,6 +155,11 @@ export function ProductsTranslationsAdminContent() {
       toast.error(error instanceof Error ? error.message : t('status_load_failed', 'productsTranslations'));
     }
   }, [products, selectedLanguage, t, isAdmin]);
+  const fetchStatusesRef = useRef(fetchStatuses);
+
+  useEffect(() => {
+    fetchStatusesRef.current = fetchStatuses;
+  }, [fetchStatuses]);
 
   useEffect(() => {
     fetchStatuses();
@@ -185,7 +202,7 @@ export function ProductsTranslationsAdminContent() {
           validationErrors: data.data.validationErrors || [],
         },
       }));
-      await fetchStatuses();
+      await fetchStatusesRef.current();
       toast.success(t('save_success', 'productsTranslations'));
       setEditingProductId(null);
     } catch (error) {
@@ -200,8 +217,10 @@ export function ProductsTranslationsAdminContent() {
     : products.filter((product) => translationStatuses[product._id]?.status === statusFilter);
 
   const handleRetranslate = async () => {
-    if (!productToRetranslate) return;
+    if (!productToRetranslate || retranslateLockRef.current) return;
     const product = productToRetranslate;
+    const targetLanguage = selectedLanguage;
+    retranslateLockRef.current = true;
     setProductToRetranslate(null);
 
     const controller = new AbortController();
@@ -215,7 +234,7 @@ export function ProductsTranslationsAdminContent() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify({ lang: selectedLanguage }),
+        body: JSON.stringify({ lang: targetLanguage }),
         credentials: 'include',
         signal: controller.signal,
       });
@@ -233,7 +252,7 @@ export function ProductsTranslationsAdminContent() {
           validationErrors: data.data.validationErrors || [],
         },
       }));
-      await fetchStatuses();
+      await fetchStatusesRef.current();
       if (data.data.status === 'approved' && (data.data.validationErrors || []).length === 0) {
         toast.success(t('retranslate_success', 'productsTranslations'));
       } else {
@@ -251,6 +270,7 @@ export function ProductsTranslationsAdminContent() {
       }
     } finally {
       clearTimeout(timeoutId);
+      retranslateLockRef.current = false;
       setRetranslatingProductId(null);
     }
   };
@@ -284,8 +304,10 @@ export function ProductsTranslationsAdminContent() {
           value={selectedLanguage}
           onChange={(event) => {
             setSelectedLanguage(event.target.value as Locale);
+            setTranslationStatuses({});
             setCurrentPage(1);
           }}
+          disabled={isSubmitting || retranslatingProductId !== null}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors hover:border-blue-400 focus:ring-2 focus:ring-blue-500"
           aria-label={t('translation_language_label', 'productsTranslations')}
         >
@@ -328,13 +350,17 @@ export function ProductsTranslationsAdminContent() {
               product={product}
               isEditing={editingProductId === product._id}
               selectedLanguage={selectedLanguage}
-              onLanguageChange={(lang) => setSelectedLanguage(lang as Locale)}
+              onLanguageChange={(lang) => {
+                setSelectedLanguage(lang as Locale);
+                setTranslationStatuses({});
+              }}
               onEdit={() => setEditingProductId(product._id)}
               onCancel={() => setEditingProductId(null)}
               onSave={(translations) => handleSaveTranslations(product._id, translations)}
               isSubmitting={isSubmitting}
               translationStatus={translationStatuses[product._id]}
               isRetranslating={retranslatingProductId === product._id}
+              isRetranslationBusy={retranslatingProductId !== null}
               onRetranslate={() => setProductToRetranslate(product)}
             />
           ))
@@ -355,7 +381,7 @@ export function ProductsTranslationsAdminContent() {
             <Button variant="outline" onClick={() => setProductToRetranslate(null)}>
               {t('cancel_button', 'productsTranslations')}
             </Button>
-            <Button onClick={handleRetranslate}>
+            <Button onClick={handleRetranslate} disabled={retranslatingProductId !== null}>
               {t('retranslate_button', 'productsTranslations')}
             </Button>
           </DialogFooter>
@@ -385,6 +411,7 @@ interface ProductTranslationCardProps {
   isSubmitting: boolean;
   translationStatus?: TranslationStatus;
   isRetranslating: boolean;
+  isRetranslationBusy: boolean;
   onRetranslate: () => void;
 }
 
@@ -399,22 +426,31 @@ function ProductTranslationCard({
   isSubmitting,
   translationStatus,
   isRetranslating,
+  isRetranslationBusy,
   onRetranslate,
 }: ProductTranslationCardProps) {
   const { t } = useTranslation();
   const [translations, setTranslations] = useState<ProductTranslation>({});
   const [loadingTranslation, setLoadingTranslation] = useState(false);
+  const [loadedTranslationLanguage, setLoadedTranslationLanguage] = useState<string | null>(null);
+  const [translationLoadFailed, setTranslationLoadFailed] = useState(false);
 
-  // Load translations for selected language when editing
   useEffect(() => {
     if (!isEditing) {
       setTranslations({});
+      setLoadingTranslation(false);
+      setLoadedTranslationLanguage(null);
+      setTranslationLoadFailed(false);
       return;
     }
 
+    const controller = new AbortController();
     const fetchTranslations = async () => {
       try {
         setLoadingTranslation(true);
+        setLoadedTranslationLanguage(null);
+        setTranslationLoadFailed(false);
+        setTranslations({});
 
         const response = await fetch(
           `/api/translations/admin/products/${product._id}?lang=${selectedLanguage}`,
@@ -423,15 +459,16 @@ function ProductTranslationCard({
               'Authorization': `Bearer ${getAuthToken()}`,
             },
             credentials: 'include',
+            signal: controller.signal,
           }
         );
 
         if (!response.ok) {
-          toast.error(t('error_load_translation', 'productsTranslations').replace('{language}', selectedLanguage));
-          return;
+          throw new Error(t('error_load_translation', 'productsTranslations').replace('{language}', selectedLanguage));
         }
 
         const data = await response.json();
+        if (controller.signal.aborted) return;
 
         const translatedImages = Array.isArray(data.data?.descriptionImages) ? data.data.descriptionImages : [];
         const translatedPromotions = Array.isArray(data.data?.promotions) ? data.data.promotions : [];
@@ -453,14 +490,18 @@ function ProductTranslationCard({
             discountText: translatedPromotions[index]?.discountText || '',
           })),
         });
+        setLoadedTranslationLanguage(selectedLanguage);
       } catch (error) {
-        toast.error(t('load_failed', 'productsTranslations'));
+        if (controller.signal.aborted) return;
+        setTranslationLoadFailed(true);
+        toast.error(error instanceof Error ? error.message : t('load_failed', 'productsTranslations'));
       } finally {
-        setLoadingTranslation(false);
+        if (!controller.signal.aborted) setLoadingTranslation(false);
       }
     };
 
     fetchTranslations();
+    return () => controller.abort();
   }, [isEditing, selectedLanguage, product._id]);
 
   const handleFieldChange = (field: keyof ProductTranslation, value: any) => {
@@ -529,6 +570,7 @@ function ProductTranslationCard({
               <LanguageSelector
                 selectedLanguage={selectedLanguage}
                 onLanguageChange={onLanguageChange}
+                disabled={isRetranslationBusy || isSubmitting}
               />
             )}
             {!isEditing && (
@@ -537,7 +579,7 @@ function ProductTranslationCard({
                   variant="outline"
                   size="sm"
                   onClick={onRetranslate}
-                  disabled={isRetranslating || selectedLanguage === DEFAULT_LOCALE}
+                  disabled={isRetranslationBusy || selectedLanguage === DEFAULT_LOCALE}
                   className="w-full"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
@@ -563,7 +605,6 @@ function ProductTranslationCard({
           product={product}
           selectedLanguage={selectedLanguage}
           translations={translations}
-          isLoading={loadingTranslation}
           onFieldChange={handleFieldChange}
           onSpecChange={handleSpecChange}
           onDescriptionImageAltChange={handleDescriptionImageAltChange}
@@ -571,6 +612,8 @@ function ProductTranslationCard({
           onCancel={onCancel}
           onSave={() => onSave(translations)}
           isSubmitting={isSubmitting}
+          isLoadError={translationLoadFailed}
+          isLoading={loadingTranslation || loadedTranslationLanguage !== selectedLanguage}
         />
       ) : (
         <ViewMode />
@@ -582,6 +625,7 @@ function ProductTranslationCard({
 interface LanguageSelectorProps {
   selectedLanguage: string;
   onLanguageChange: (lang: string) => void;
+  disabled: boolean;
 }
 
 function TranslationStatusBadge({ status }: { status?: TranslationStatus }) {
@@ -617,7 +661,7 @@ function TranslationStatusBadge({ status }: { status?: TranslationStatus }) {
   );
 }
 
-function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelectorProps) {
+function LanguageSelector({ selectedLanguage, onLanguageChange, disabled }: LanguageSelectorProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const languages = getLanguages(t);
@@ -627,7 +671,8 @@ function LanguageSelector({ selectedLanguage, onLanguageChange }: LanguageSelect
     <div className="relative w-full">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg flex items-center justify-between gap-2 hover:border-blue-400 bg-white transition-colors"
+        disabled={disabled}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg flex items-center justify-between gap-2 hover:border-blue-400 bg-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={t('tier1_language_label', 'admin-translation')}
       >
         <span className="text-sm font-medium text-gray-900">{selectedLang?.name || selectedLanguage}</span>
@@ -664,6 +709,7 @@ interface EditViewProps {
   selectedLanguage: string;
   translations: ProductTranslation;
   isLoading: boolean;
+  isLoadError: boolean;
   onFieldChange: (field: keyof ProductTranslation, value: any) => void;
   onSpecChange: (key: string, value: string) => void;
   onDescriptionImageAltChange: (index: number, value: string) => void;
@@ -678,6 +724,7 @@ function EditView({
   selectedLanguage,
   translations,
   isLoading,
+  isLoadError,
   onFieldChange,
   onSpecChange,
   onDescriptionImageAltChange,
@@ -691,14 +738,28 @@ function EditView({
   const selectedLang = languages.find(l => l.code === selectedLanguage);
   const defaultLang = languages.find(l => l.code === DEFAULT_LOCALE);
 
+  if (isLoadError) {
+    return (
+      <div className="flex items-center justify-between gap-4 border-t border-gray-200 bg-red-50 p-5">
+        <p className="text-sm text-red-700">{t('load_failed', 'productsTranslations')}</p>
+        <Button variant="outline" onClick={onCancel}>{t('cancel_button', 'productsTranslations')}</Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-between gap-4 border-t border-gray-200 bg-blue-50 p-5">
+        <p className="text-sm text-blue-700">
+          {t('loading_translation', 'productsTranslations').replace('{language}', selectedLang?.name || selectedLanguage)}
+        </p>
+        <Button variant="outline" onClick={onCancel}>{t('cancel_button', 'productsTranslations')}</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="divide-y divide-gray-200">
-      {isLoading && (
-        <div className="p-6 text-center bg-blue-50 border-b border-blue-200">
-          <p className="text-blue-600">{t('loading_translation', 'productsTranslations').replace('{language}', selectedLang?.name || selectedLanguage)}</p>
-        </div>
-      )}
-
       {/* Simple Fields */}
       <TranslationField
         label={t('product_name', 'productsTranslations')}
