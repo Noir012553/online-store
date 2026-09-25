@@ -394,6 +394,8 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         console.warn(`[i18n] Missing ${locale}/${namespace}:${keyPath}; resolved from ${source}.`);
       };
 
+      const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath]
+        ?? LOCAL_UI_FALLBACKS.en?.[keyPath];
       let namespaceData = loadedTranslations[cacheKey];
       const commonData = loadedTranslations[commonCacheKey];
 
@@ -409,6 +411,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         if (result !== keyPath) {
           if (fallbackKeysByNamespaceRef.current[cacheKey]?.has(keyPath)) {
             warnMissingTranslation('the default locale');
+            return localFallback ?? result;
           }
           return result;
         }
@@ -420,6 +423,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         if (result !== keyPath) {
           if (fallbackKeysByNamespaceRef.current[commonCacheKey]?.has(keyPath)) {
             warnMissingTranslation('the default locale');
+            return localFallback ?? result;
           }
           return result;
         }
@@ -435,6 +439,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         if (result !== keyPath) {
           if (fallbackKeysByNamespaceRef.current[cKey]?.has(keyPath)) {
             warnMissingTranslation('the default locale');
+            return localFallback ?? result;
           }
           return result;
         }
@@ -448,15 +453,13 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
             if (result !== keyPath) {
               if (fallbackTranslations.appliedLang && fallbackTranslations.appliedLang !== locale) {
                 warnMissingTranslation(`fallback locale ${fallbackTranslations.appliedLang}`);
+                return localFallback ?? result;
               }
               return result;
             }
           }
         }
       }
-
-      const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath]
-        ?? LOCAL_UI_FALLBACKS.en?.[keyPath];
 
       if (namespaceData || commonData) {
         warnMissingTranslation(localFallback === undefined ? 'the translation key itself' : 'the local fallback dictionary');

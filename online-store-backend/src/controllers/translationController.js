@@ -207,10 +207,13 @@ exports.getStaticTranslations = async (req, res) => {
     };
     const fallbackKeys = lang === defaultLang
       ? []
-      : Object.keys(defaultFlatTranslations).filter((key) => (
-        typeof localizedFlatTranslations[key] !== 'string'
-        || localizedFlatTranslations[key].trim() === ''
-      ));
+      : Object.entries(defaultFlatTranslations)
+        .filter(([key, value]) => (
+          typeof value === 'string'
+          && (typeof localizedFlatTranslations[key] !== 'string'
+            || localizedFlatTranslations[key].trim() === '')
+        ))
+        .map(([key]) => key);
 
     if (Object.keys(translations).length === 0) {
       return sendTranslationError(

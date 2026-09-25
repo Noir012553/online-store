@@ -10,6 +10,7 @@ const STORE_NAME = 'translations';
 interface StoredTranslation {
   key: string; // Format: "lang_namespace" e.g., "en_common"
   data: Record<string, string>;
+  fallbackKeys?: string[];
   timestamp: number;
 }
 
@@ -55,7 +56,7 @@ class IndexedDbService {
     return this.initPromise;
   }
 
-  async save(lang: string, namespace: string, data: Record<string, string>): Promise<void> {
+  async save(lang: string, namespace: string, data: Record<string, string>, fallbackKeys: string[] = []): Promise<void> {
     await this.init();
 
     if (!this.db) {
@@ -71,6 +72,7 @@ class IndexedDbService {
         const item: StoredTranslation = {
           key,
           data,
+          fallbackKeys,
           timestamp: Date.now(),
         };
 
@@ -89,7 +91,7 @@ class IndexedDbService {
     });
   }
 
-  async get(lang: string, namespace: string): Promise<Record<string, string> | null> {
+  async get(lang: string, namespace: string): Promise<StoredTranslation | null> {
     await this.init();
 
     if (!this.db) {
@@ -111,7 +113,7 @@ class IndexedDbService {
         request.onsuccess = () => {
           const item = request.result as StoredTranslation | undefined;
           if (item) {
-            resolve(item.data);
+            resolve(item);
           } else {
             resolve(null);
           }

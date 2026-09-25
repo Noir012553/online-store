@@ -42,6 +42,13 @@ class TranslationService {
     signal?: AbortSignal,
     onFallbackKeys?: (keys: string[]) => void
   ): Promise<Record<string, string>> {
+    const readCachedTranslations = async () => {
+      const cached = await indexedDbService.get(lang, namespace);
+      if (!cached) return null;
+      onFallbackKeys?.(cached.fallbackKeys || []);
+      return cached.data;
+    };
+
     try {
       // Ensure namespace is never empty - fallback to 'common'
       const validNamespace = !namespace || namespace.trim() === '' ? 'common' : namespace;
@@ -57,7 +64,7 @@ class TranslationService {
       if (!response.ok) {
         if (response.status === 404 || response.status === 500) {
           // Try IndexedDB fallback before returning empty
-          const cached = await indexedDbService.get(lang, namespace);
+          const cached = await readCachedTranslations();
           if (cached) {
             return cached;
           }
@@ -70,7 +77,7 @@ class TranslationService {
 
       if (!data.success) {
         // Try IndexedDB fallback
-        const cached = await indexedDbService.get(lang, namespace);
+        const cached = await readCachedTranslations();
         if (cached) {
           return cached;
         }
@@ -78,16 +85,17 @@ class TranslationService {
       }
 
       const translations = data.data.translations;
-      onFallbackKeys?.(data.data.fallbackKeys || []);
+      const fallbackKeys = data.data.fallbackKeys || [];
+      onFallbackKeys?.(fallbackKeys);
 
       // Cache to IndexedDB for offline support
-      indexedDbService.save(lang, namespace, translations).catch(() => {});
+      indexedDbService.save(lang, namespace, translations, fallbackKeys).catch(() => {});
 
       return translations;
     } catch (error) {
       // Network error - try IndexedDB
       if (error instanceof Error) {
-        const cached = await indexedDbService.get(lang, namespace);
+        const cached = await readCachedTranslations();
         if (cached) {
           return cached;
         }
