@@ -4,6 +4,7 @@ const { promisify } = require('node:util');
 const mongoose = require('mongoose');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
 
 const execFileAsync = promisify(execFile);
 
@@ -27,6 +28,7 @@ const parseConcurrency = (value) => {
 
 async function main() {
   const shutdownAfter = args.includes('--shutdown');
+  const waitUntilUtcMidnight = args.includes('--wait-until-utc-midnight');
   let exitCode = 1;
   let shouldShutdown = false;
 
@@ -71,10 +73,20 @@ async function main() {
       options.concurrency = parseConcurrency(concurrencyArg.split('=').slice(1).join('='));
     }
 
-    // Connect to MongoDB
     if (!process.env.MONGO_URI) {
       throw new Error('MONGO_URI is not set. Add it to .env or the PowerShell environment before running retranslate.');
     }
+
+    if (waitUntilUtcMidnight) {
+      const waitMs = getMillisecondsUntilNextUtcMidnight();
+      if (waitMs > 0) {
+        const startsAt = new Date(Date.now() + waitMs).toISOString();
+        console.log(`Waiting until ${startsAt} (00:00 UTC) before starting retranslation...`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+      }
+    }
+
+    // Connect to MongoDB
     console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
