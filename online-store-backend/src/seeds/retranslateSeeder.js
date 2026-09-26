@@ -413,7 +413,9 @@ class RetranslateSeeder {
               validationErrors: newValidationErrors,
             });
           } catch (error) {
-            const recordLabel = translation.originalText || translation.name || translation._id;
+            const recordLabel = String(translation.name || translation.originalText || translation._id)
+              .replace(/\s+/g, ' ')
+              .slice(0, 120);
             console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${recordLabel}": ${error.message}`);
             this.stats.errorCount++;
             const quotaExhausted = isCloudflareQuotaError(error);
