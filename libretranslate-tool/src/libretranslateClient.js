@@ -82,7 +82,7 @@ class LibreTranslateClient {
     retries = Number(process.env.LIBRETRANSLATE_RETRIES || 2),
     retryDelayMs = Number(process.env.LIBRETRANSLATE_RETRY_DELAY_MS || 1000),
     apiKey = process.env.LIBRETRANSLATE_API_KEY || '',
-    maxParallelRequests = getPositiveInteger(process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS, 4),
+    maxParallelRequests = getPositiveInteger(process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS, 1),
     rateLimitCooldownMs = getPositiveInteger(process.env.LIBRETRANSLATE_RATE_LIMIT_COOLDOWN_MS, 30000),
     maxRateLimitCooldownMs = getPositiveInteger(process.env.LIBRETRANSLATE_MAX_RATE_LIMIT_COOLDOWN_MS, 900000),
   } = {}) {
@@ -179,6 +179,10 @@ class LibreTranslateClient {
           if (error.statusCode === 429 || error.statusCode === 420) {
             this.openCircuit(error);
             throw error;
+          }
+          if (error.code === 'ETIMEDOUT' || /timed out/i.test(error.message || '')) {
+            this.currentParallelRequests = Math.max(1, Math.floor(this.currentParallelRequests / 2));
+            this.successesSinceIncrease = 0;
           }
           const retryable = error.statusCode === undefined || RETRYABLE_STATUSES.has(error.statusCode);
           if (attempt >= this.retries || !retryable) {

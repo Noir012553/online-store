@@ -72,6 +72,8 @@ class RetranslateSeeder {
       validate = true,
       verbose = true,
       actor = 'system',
+      libreTranslateOnly = false,
+      concurrency = 3,
     } = options;
 
     this.stats = {
@@ -87,6 +89,9 @@ class RetranslateSeeder {
 
     if (!Number.isInteger(limit) || limit < 0) {
       throw new Error('Retranslate limit must be a non-negative integer; 0 means all matching records');
+    }
+    if (!Number.isInteger(concurrency) || concurrency < 1) {
+      throw new Error('Retranslate concurrency must be a positive integer');
     }
 
     const {
@@ -159,245 +164,287 @@ class RetranslateSeeder {
       console.log(CLI_SYMBOLS.divider.repeat(55));
       console.log(`\n${CLI_SYMBOLS.search} Found ${limitedToRetranslate.length} translations to retranslate`);
       console.log(`   Product catalog: ${catalogTranslations.length}; field cache: ${liveTranslations.length}`);
+      console.log(`   Batch concurrency: ${concurrency}`);
     }
 
     const results = [];
-    for (let i = 0; i < limitedToRetranslate.length; i++) {
-      const translation = limitedToRetranslate[i];
+    const groupsByProduct = new Map();
+    limitedToRetranslate.forEach((translation) => {
+      const groupKey = translation.entityId
+        ? JSON.stringify([translation.targetLang, String(translation.entityId)])
+        : `record:${translation._id}`;
+      const group = groupsByProduct.get(groupKey) || [];
+      group.push(translation);
+      groupsByProduct.set(groupKey, group);
+    });
+    const workGroups = [...groupsByProduct.values()];
+    let nextGroupIndex = 0;
+    let stopScheduling = false;
+    let completedCount = 0;
+    const processNextGroup = async () => {
+      while (!stopScheduling) {
+        const groupIndex = nextGroupIndex++;
+        if (groupIndex >= workGroups.length) return;
 
-      if (verbose) {
-        const progress = Math.round((i / limitedToRetranslate.length) * 100);
-        process.stdout.write(`\r${CLI_SYMBOLS.books} Processing: [${progress}%] ${i + 1}/${limitedToRetranslate.length}`);
-      }
+        for (const translation of workGroups[groupIndex]) {
+          if (stopScheduling) return;
 
-      try {
-        if (dryRun) {
-          results.push({
-            status: 'dry-run',
-            originalId: translation._id,
-            originalText: translation.originalText || translation.name,
-          });
-          continue;
-        }
-
-        if (translation.retranslateSource === 'catalog') {
-          const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
-            translation.entityId,
-            translation.targetLang,
-          );
-          const validationErrors = updatedTranslation.validationErrors || [];
-          const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
-          if (wasFixed) {
-            this.stats.fixedCount++;
-          } else {
-            this.stats.stillBrokenCount++;
-            this.stats.stillBroken.push({
-              _id: updatedTranslation._id,
-              originalText: translation.name,
-              translatedText: updatedTranslation.name,
-              validationErrors,
-            });
-          }
-          translation.validationErrors?.forEach(error => {
-            if (!this.stats.breakdown[error]) {
-              this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
+          try {
+            if (dryRun) {
+              results.push({
+                status: 'dry-run',
+                originalId: translation._id,
+                originalText: translation.originalText || translation.name,
+              });
+              continue;
             }
-            this.stats.breakdown[error].count++;
-            if (wasFixed) this.stats.breakdown[error].fixed++;
-            else this.stats.breakdown[error].broken++;
-          });
-          results.push({
-            status: 'success',
-            originalId: translation._id,
-            newId: updatedTranslation._id,
-            originalText: translation.name,
-            oldTranslation: translation.name,
-            newTranslation: updatedTranslation.name,
-            wasFixed,
-            validationErrors,
-          });
-          continue;
-        }
 
-        const defaultLang = getDefaultLanguage().code;
-        const sourceLang = translation.sourceLang || defaultLang;
-        const translationResult = PRODUCT_ENTITY_TYPES.has(translation.entityType)
-          ? await libretranslateProductService.translateWithFailover(
-            translation.originalText,
-            sourceLang,
-            translation.targetLang,
-          )
-          : {
-            translatedText: await cloudflareAiService.translate(
-              translation.originalText,
-              sourceLang,
-              translation.targetLang,
-            ),
-            provider: 'cloudflare',
-          };
-        const newTranslation = translationResult.translatedText;
-        const translationProvider = translationResult.provider || 'cloudflare';
-        const isLibreTranslateFailover = translationProvider === 'libretranslate';
+            if (translation.retranslateSource === 'catalog') {
+              const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
+                translation.entityId,
+                translation.targetLang,
+                { libreTranslateOnly },
+              );
+              const validationErrors = updatedTranslation.validationErrors || [];
+              const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
+              if (wasFixed) {
+                this.stats.fixedCount++;
+              } else {
+                this.stats.stillBrokenCount++;
+                this.stats.stillBroken.push({
+                  _id: updatedTranslation._id,
+                  originalText: translation.name,
+                  translatedText: updatedTranslation.name,
+                  validationErrors,
+                });
+              }
+              translation.validationErrors?.forEach(error => {
+                if (!this.stats.breakdown[error]) {
+                  this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
+                }
+                this.stats.breakdown[error].count++;
+                if (wasFixed) this.stats.breakdown[error].fixed++;
+                else this.stats.breakdown[error].broken++;
+              });
+              results.push({
+                status: 'success',
+                originalId: translation._id,
+                newId: updatedTranslation._id,
+                originalText: translation.name,
+                oldTranslation: translation.name,
+                newTranslation: updatedTranslation.name,
+                wasFixed,
+                validationErrors,
+              });
+              continue;
+            }
 
-        // Validate new translation
-        let validationResult = null;
-        if (validate) {
-          validationResult = await translationValidator.validateTranslation(
-            translation.originalText,
-            newTranslation,
-            translation.targetLang,
-            translation.entityType || 'generic'
-          );
-        }
+            const defaultLang = getDefaultLanguage().code;
+            const sourceLang = translation.sourceLang || defaultLang;
+            let translationResult;
+            if (libreTranslateOnly) {
+              translationResult = await libretranslateProductService.translateWithLibreTranslateOnly(
+                translation.originalText,
+                sourceLang,
+                translation.targetLang,
+              );
+            } else if (PRODUCT_ENTITY_TYPES.has(translation.entityType)) {
+              translationResult = await libretranslateProductService.translateWithFailover(
+                translation.originalText,
+                sourceLang,
+                translation.targetLang,
+              );
+            } else {
+              translationResult = {
+                translatedText: await cloudflareAiService.translate(
+                  translation.originalText,
+                  sourceLang,
+                  translation.targetLang,
+                ),
+                provider: 'cloudflare',
+              };
+            }
+            const newTranslation = translationResult.translatedText;
+            const translationProvider = translationResult.provider || 'cloudflare';
+            const isLibreTranslate = translationProvider === 'libretranslate';
+            const isLibreTranslateFailover = isLibreTranslate && !libreTranslateOnly;
 
-        const newQualityStatus = validationResult?.qualityStatus || 'pending';
-        const newQualityScore = validationResult?.qualityScore ?? null;
-        const newValidationErrors = validationResult?.validationErrors || [];
+            // Validate new translation
+            let validationResult = null;
+            if (validate) {
+              validationResult = await translationValidator.validateTranslation(
+                translation.originalText,
+                newTranslation,
+                translation.targetLang,
+                translation.entityType || 'generic'
+              );
+            }
 
-        // Create new version
-        const newVersion = {
-          hashKey: `${translation.hashKey}:v${(translation.version || 1) + 1}`,
-          originalText: translation.originalText,
-          sourceLang: translation.sourceLang || defaultLang,
-          targetLang: translation.targetLang,
-          translatedText: newTranslation,
-          entityId: translation.entityId,
-          entityType: translation.entityType,
-          specKey: translation.specKey || null,
-          fieldKey: translation.fieldKey || null,
-          status: isLibreTranslateFailover ? 'translated_via_libre' : 'success',
-          provider: translationProvider,
-          retryCount: 0,
-          version: (translation.version || 1) + 1,
-          previousVersion: translation._id,
-          failoverReason: translationResult.failoverReason
-            || translation.retranslateReason
-            || translation.validationErrors?.[0]
-            || 'manual_retranslate',
-          providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
-          metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
-          qualityStatus: newQualityStatus,
-          qualityScore: newQualityScore,
-          validationErrors: newValidationErrors,
-          createdAt: new Date(),
-        };
+            const newQualityStatus = validationResult?.qualityStatus || 'pending';
+            const newQualityScore = validationResult?.qualityScore ?? null;
+            const newValidationErrors = validationResult?.validationErrors || [];
 
-        const savedNewVersion = await LiveTranslationCache.findOneAndUpdate(
-          { hashKey: newVersion.hashKey },
-          { $setOnInsert: newVersion },
-          { upsert: true, new: true, setDefaultsOnInsert: true },
-        );
+            // Create new version
+            const newVersion = {
+              hashKey: `${translation.hashKey}:v${(translation.version || 1) + 1}`,
+              originalText: translation.originalText,
+              sourceLang: translation.sourceLang || defaultLang,
+              targetLang: translation.targetLang,
+              translatedText: newTranslation,
+              entityId: translation.entityId,
+              entityType: translation.entityType,
+              specKey: translation.specKey || null,
+              fieldKey: translation.fieldKey || null,
+              status: isLibreTranslate ? 'translated_via_libre' : 'success',
+              provider: translationProvider,
+              retryCount: 0,
+              version: (translation.version || 1) + 1,
+              previousVersion: translation._id,
+              failoverReason: translationResult.failoverReason
+                || translation.retranslateReason
+                || translation.validationErrors?.[0]
+                || 'manual_retranslate',
+              providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
+              metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
+              qualityStatus: newQualityStatus,
+              qualityScore: newQualityScore,
+              validationErrors: newValidationErrors,
+              createdAt: new Date(),
+            };
 
-        // Update old version status → "retranslated"
-        await LiveTranslationCache.updateOne(
-          { _id: translation._id },
-          {
-            $set: {
-              qualityStatus: 'retranslated',
-              reviewNotes: `Auto-retranslated. New version: ${savedNewVersion._id}`,
-            },
+            const savedNewVersion = await LiveTranslationCache.findOneAndUpdate(
+              { hashKey: newVersion.hashKey },
+              { $setOnInsert: newVersion },
+              { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+            );
+
+            // Update old version status → "retranslated"
+            await LiveTranslationCache.updateOne(
+              { _id: translation._id },
+              {
+                $set: {
+                  qualityStatus: 'retranslated',
+                  reviewNotes: `Auto-retranslated. New version: ${savedNewVersion._id}`,
+                },
+              }
+            );
+
+            // Create log for NEW version
+            await TranslationQualityLog.create({
+              translationId: savedNewVersion._id,
+              action: 'retranslated',
+              oldValue: translation.translatedText,
+              newValue: newTranslation,
+              actor,
+              reason: `auto_retranslation: ${translation.validationErrors?.[0] || 'needs_retranslate'}`,
+              metadata: {
+                provider: newVersion.provider,
+                providerSource: newVersion.providerSource,
+                secondary_provider: isLibreTranslateFailover,
+                version: newVersion.version,
+                qualityScore: newQualityScore,
+                validationErrors: newValidationErrors,
+                previousVersionId: translation._id,
+                oldQualityScore: translation.qualityScore,
+                oldValidationErrors: translation.validationErrors,
+              },
+            });
+
+            if (PRODUCT_ENTITY_TYPES.has(translation.entityType) && newQualityStatus === 'approved') {
+              await ProductTranslationSeederService._syncProductCatalogTranslations(
+                translation.targetLang,
+                [translation.entityId],
+              );
+            }
+
+            // Create log for OLD version (status changed to retranslated)
+            await TranslationQualityLog.create({
+              translationId: translation._id,
+              action: 'retranslated',
+              oldValue: translation.translatedText,
+              newValue: newTranslation,
+              actor,
+              reason: `old_version_marked_as_retranslated`,
+              metadata: {
+                provider: translation.provider,
+                providerSource: translation.providerSource,
+                oldVersion: translation.version,
+                newVersionId: savedNewVersion._id,
+                oldQualityScore: translation.qualityScore,
+                oldValidationErrors: translation.validationErrors,
+              },
+            });
+
+            // Update stats
+            const wasFixed = newQualityStatus === 'approved' && newValidationErrors.length === 0;
+            if (wasFixed) {
+              this.stats.fixedCount++;
+            } else if (newValidationErrors.length > 0) {
+              this.stats.stillBrokenCount++;
+              this.stats.stillBroken.push({
+                _id: savedNewVersion._id,
+                originalText: translation.originalText,
+                translatedText: newTranslation,
+                validationErrors: newValidationErrors,
+              });
+            }
+
+            // Track breakdown by error type
+            translation.validationErrors?.forEach(error => {
+              if (!this.stats.breakdown[error]) {
+                this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
+              }
+              this.stats.breakdown[error].count++;
+              if (wasFixed) {
+                this.stats.breakdown[error].fixed++;
+              } else if (newValidationErrors.length > 0) {
+                this.stats.breakdown[error].broken++;
+              }
+            });
+
+            results.push({
+              status: 'success',
+              originalId: translation._id,
+              newId: savedNewVersion._id,
+              originalText: translation.originalText,
+              oldTranslation: translation.translatedText,
+              newTranslation,
+              wasFixed,
+              validationErrors: newValidationErrors,
+            });
+          } catch (error) {
+            const recordLabel = String(translation.name || translation.originalText || translation._id)
+              .replace(/\s+/g, ' ')
+              .slice(0, 120);
+            console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${recordLabel}": ${error.message}`);
+            this.stats.errorCount++;
+            const quotaExhausted = isCloudflareQuotaError(error);
+            if (quotaExhausted) {
+              this.stats.quotaExceededCount++;
+              console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
+            }
+            results.push({
+              status: 'error',
+              originalId: translation._id,
+              error: error.message,
+            });
+            if (quotaExhausted) {
+              stopScheduling = true;
+              break;
+            }
+          } finally {
+            completedCount++;
+            if (verbose) {
+              const progress = Math.round((completedCount / limitedToRetranslate.length) * 100);
+              process.stdout.write(`\r${CLI_SYMBOLS.books} Processing: [${progress}%] ${completedCount}/${limitedToRetranslate.length}`);
+            }
           }
-        );
-
-        // Create log for NEW version
-        await TranslationQualityLog.create({
-          translationId: savedNewVersion._id,
-          action: 'retranslated',
-          oldValue: translation.translatedText,
-          newValue: newTranslation,
-          actor,
-          reason: `auto_retranslation: ${translation.validationErrors?.[0] || 'needs_retranslate'}`,
-          metadata: {
-            provider: newVersion.provider,
-            providerSource: newVersion.providerSource,
-            secondary_provider: isLibreTranslateFailover,
-            version: newVersion.version,
-            qualityScore: newQualityScore,
-            validationErrors: newValidationErrors,
-            previousVersionId: translation._id,
-            oldQualityScore: translation.qualityScore,
-            oldValidationErrors: translation.validationErrors,
-          },
-        });
-
-        if (PRODUCT_ENTITY_TYPES.has(translation.entityType) && newQualityStatus === 'approved') {
-          await ProductTranslationSeederService._syncProductCatalogTranslations(
-            translation.targetLang,
-            [translation.entityId],
-          );
         }
-
-        // Create log for OLD version (status changed to retranslated)
-        await TranslationQualityLog.create({
-          translationId: translation._id,
-          action: 'retranslated',
-          oldValue: translation.translatedText,
-          newValue: newTranslation,
-          actor,
-          reason: `old_version_marked_as_retranslated`,
-          metadata: {
-            provider: translation.provider,
-            providerSource: translation.providerSource,
-            oldVersion: translation.version,
-            newVersionId: savedNewVersion._id,
-            oldQualityScore: translation.qualityScore,
-            oldValidationErrors: translation.validationErrors,
-          },
-        });
-
-        // Update stats
-        const wasFixed = newQualityStatus === 'approved' && newValidationErrors.length === 0;
-        if (wasFixed) {
-          this.stats.fixedCount++;
-        } else if (newValidationErrors.length > 0) {
-          this.stats.stillBrokenCount++;
-          this.stats.stillBroken.push({
-            _id: savedNewVersion._id,
-            originalText: translation.originalText,
-            translatedText: newTranslation,
-            validationErrors: newValidationErrors,
-          });
-        }
-
-        // Track breakdown by error type
-        translation.validationErrors?.forEach(error => {
-          if (!this.stats.breakdown[error]) {
-            this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
-          }
-          this.stats.breakdown[error].count++;
-          if (wasFixed) {
-            this.stats.breakdown[error].fixed++;
-          } else if (newValidationErrors.length > 0) {
-            this.stats.breakdown[error].broken++;
-          }
-        });
-
-        results.push({
-          status: 'success',
-          originalId: translation._id,
-          newId: savedNewVersion._id,
-          originalText: translation.originalText,
-          oldTranslation: translation.translatedText,
-          newTranslation,
-          wasFixed,
-          validationErrors: newValidationErrors,
-        });
-      } catch (error) {
-        console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${translation.originalText}": ${error.message}`);
-        this.stats.errorCount++;
-        const quotaExhausted = isCloudflareQuotaError(error);
-        if (quotaExhausted) {
-          this.stats.quotaExceededCount++;
-          console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
-        }
-        results.push({
-          status: 'error',
-          originalId: translation._id,
-          error: error.message,
-        });
-        if (quotaExhausted) break;
       }
-    }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, workGroups.length) }, () => processNextGroup()),
+    );
     this.stats.remainingCount = Math.max(0, limitedToRetranslate.length - this.stats.fixedCount);
 
     if (verbose) {
@@ -411,7 +458,11 @@ class RetranslateSeeder {
           remaining: this.stats.remainingCount,
         },
         detailedBreakdown: this.stats.breakdown,
-        stillNeedsAttention: this.stats.stillBroken,
+        stillNeedsAttention: this.stats.stillBroken.map(item => ({
+          original: item.originalText,
+          current: item.translatedText,
+          issues: item.validationErrors,
+        })),
       });
     }
 
@@ -425,7 +476,10 @@ class RetranslateSeeder {
     }
 
     return {
-      success: !dryRun && this.stats.errorCount === 0,
+      success: !dryRun
+        && this.stats.errorCount === 0
+        && this.stats.stillBrokenCount === 0
+        && this.stats.remainingCount === 0,
       dryRun,
       stats: this.stats,
       results,

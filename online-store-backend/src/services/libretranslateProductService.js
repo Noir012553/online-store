@@ -28,8 +28,8 @@ const getChunkSize = () => {
     : DEFAULT_DESCRIPTION_CHUNK_SIZE;
 };
 
-const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
-  if (!isEnabled()) throw new Error('LIBRETRANSLATE_DISABLED');
+const translateWithLibreTranslate = async (text, sourceLang, targetLang, force = false) => {
+  if (!force && !isEnabled()) throw new Error('LIBRETRANSLATE_DISABLED');
   if (typeof text !== 'string' || text.trim() === '' || sourceLang === targetLang) return text;
 
   const chunks = splitText(text, getChunkSize());
@@ -39,6 +39,12 @@ const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
   }
   return joinTranslatedChunks(chunks, translatedChunks);
 };
+
+const translateWithLibreTranslateOnly = async (text, sourceLang, targetLang) => ({
+  translatedText: await translateWithLibreTranslate(text, sourceLang, targetLang, true),
+  provider: 'libretranslate',
+  providersUsed: ['libretranslate'],
+});
 
 const translateDraft = async (text, sourceLang, targetLang) => {
   if (!isEnabled()) return '';
@@ -135,6 +141,7 @@ module.exports = {
   isEnabled,
   isFailoverEnabled,
   translateDraft,
+  translateWithLibreTranslateOnly,
   translateWithCloudflare,
   translateWithFailover,
 };
