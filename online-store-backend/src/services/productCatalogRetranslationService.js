@@ -6,7 +6,24 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { refreshStorefrontReadiness } = require('./translationHelper');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
-const retranslateProduct = async (productId, targetLang, { sequential = false } = {}) => {
+const mapWithConcurrency = async (items, mapper, concurrency) => {
+  const results = new Array(items.length);
+  for (let offset = 0; offset < items.length; offset += concurrency) {
+    const settled = await Promise.allSettled(items.slice(offset, offset + concurrency).map(mapper));
+    const rejected = settled.find((result) => result.status === 'rejected');
+    if (rejected) throw rejected.reason;
+    settled.forEach(({ value }, index) => {
+      results[offset + index] = value;
+    });
+  }
+  return results;
+};
+
+const retranslateProduct = async (productId, targetLang) => {
+  const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 3);
+  if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
+    throw new Error('PRODUCT_RETRANSLATION_FIELD_CONCURRENCY must be a positive integer');
+  }
   const [product, catalogTranslation] = await Promise.all([
     Product.findById(productId).lean(),
     ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
@@ -18,15 +35,22 @@ const retranslateProduct = async (productId, targetLang, { sequential = false } 
   }
 
   const manualFields = catalogTranslation?.manualFields || [];
+  const providersUsed = new Set();
   const translateSourceText = async (source, entityType) => {
     if (!source) return { value: source, validation: null };
-    const value = await libretranslateProductService.translateWithCloudflare(
+    const result = await libretranslateProductService.translateWithFailover(
       source,
       getDefaultLanguage().code,
       targetLang,
     );
-    const validation = await translationValidator.validateTranslation(source, value, targetLang, entityType);
-    return { value, validation };
+    (result.providersUsed || [result.provider || 'cloudflare']).forEach((provider) => providersUsed.add(provider));
+    const validation = await translationValidator.validateTranslation(
+      source,
+      result.translatedText,
+      targetLang,
+      entityType,
+    );
+    return { value: result.translatedText, validation };
   };
   const translateField = async (field, source, entityType) => (
     manualFields.includes(field)
@@ -34,66 +58,60 @@ const retranslateProduct = async (productId, targetLang, { sequential = false } 
       : translateSourceText(source, entityType)
   );
 
-  let nameResult;
-  let descResult;
-  let technicalDescriptionResult;
-  if (sequential) {
-    nameResult = await translateField('name', product.name, 'product_name');
-    descResult = await translateField('description', product.description, 'product_description');
-    technicalDescriptionResult = await translateField(
-      'technicalDescription',
-      product.technicalDescription,
-      'product_technical_description',
-    );
-  } else {
-    [nameResult, descResult, technicalDescriptionResult] = await Promise.all([
-      translateField('name', product.name, 'product_name'),
-      translateField('description', product.description, 'product_description'),
-      translateField('technicalDescription', product.technicalDescription, 'product_technical_description'),
-    ]);
-  }
+  const [nameResult, descResult, technicalDescriptionResult] = await mapWithConcurrency([
+    ['name', product.name, 'product_name'],
+    ['description', product.description, 'product_description'],
+    ['technicalDescription', product.technicalDescription, 'product_technical_description'],
+  ], ([field, source, entityType]) => translateField(field, source, entityType), configuredConcurrency);
 
   const validationResults = [
     nameResult.validation,
     descResult.validation,
     technicalDescriptionResult.validation,
   ].filter(Boolean);
-  const specs = {};
-  for (const [key, value] of Object.entries(product.specs || {})) {
+  const specResults = await mapWithConcurrency(Object.entries(product.specs || {}), async ([key, value]) => {
     if (manualFields.includes('specs')) {
-      specs[key] = catalogTranslation?.specs?.[key] || String(value);
-    } else {
-      const { value: translated, validation } = await translateField('specs', String(value), 'product_spec');
-      specs[key] = translated;
-      if (validation) validationResults.push(validation);
+      return { key, value: catalogTranslation?.specs?.[key] || String(value), validation: null };
     }
-  }
+    const { value: translated, validation } = await translateField('specs', String(value), 'product_spec');
+    return { key, value: translated, validation };
+  }, configuredConcurrency);
+  const specs = Object.fromEntries(specResults.map(({ key, value, validation }) => {
+    if (validation) validationResults.push(validation);
+    return [key, value];
+  }));
 
-  const descriptionImages = manualFields.includes('descriptionImages')
-    ? catalogTranslation?.descriptionImages || product.descriptionImages || []
-    : [];
-  if (!manualFields.includes('descriptionImages')) {
-    for (const image of product.descriptionImages || []) {
+  const imageResults = manualFields.includes('descriptionImages')
+    ? null
+    : await mapWithConcurrency(product.descriptionImages || [], async (image) => {
       const { value: alt, validation } = await translateSourceText(image?.alt, 'product_description_image_alt');
-      descriptionImages.push({ ...image, alt: alt ?? image?.alt ?? '' });
+      return { image, alt: alt ?? image?.alt ?? '', validation };
+    }, configuredConcurrency);
+  const descriptionImages = imageResults
+    ? imageResults.map(({ image, alt, validation }) => {
       if (validation) validationResults.push(validation);
-    }
-  }
+      return { ...image, alt };
+    })
+    : catalogTranslation?.descriptionImages || product.descriptionImages || [];
 
-  const promotions = manualFields.includes('promotions')
-    ? catalogTranslation?.promotions || product.promotions || []
-    : [];
-  if (!manualFields.includes('promotions')) {
-    for (const promotion of product.promotions || []) {
+  const promotionResults = manualFields.includes('promotions')
+    ? null
+    : await mapWithConcurrency(product.promotions || [], async (promotion) => {
       const translatedPromotion = { ...promotion };
+      const validations = [];
       for (const field of ['title', 'giftProductName', 'scope', 'discountText']) {
         const { value, validation } = await translateSourceText(promotion?.[field], 'product_promotion');
+        if (validation) validations.push(validation);
         if (value) translatedPromotion[field] = value;
-        if (validation) validationResults.push(validation);
       }
-      promotions.push(translatedPromotion);
-    }
-  }
+      return { translatedPromotion, validations };
+    }, configuredConcurrency);
+  const promotions = promotionResults
+    ? promotionResults.map(({ translatedPromotion, validations }) => {
+      validationResults.push(...validations);
+      return translatedPromotion;
+    })
+    : catalogTranslation?.promotions || product.promotions || [];
 
   const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errors }) => errors))];
   const qualityScore = validationResults.length
@@ -102,6 +120,7 @@ const retranslateProduct = async (productId, targetLang, { sequential = false } 
   const hasNeeds = validationResults.some(({ qualityStatus }) => qualityStatus === 'needs_retranslate');
   const hasPending = validationResults.some(({ qualityStatus }) => qualityStatus === 'pending');
   const qualityStatus = hasNeeds ? 'needs_retranslate' : hasPending ? 'pending' : 'approved';
+  const resolvedProviders = [...providersUsed].sort();
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
     {
@@ -115,6 +134,10 @@ const retranslateProduct = async (productId, targetLang, { sequential = false } 
         descriptionImages,
         promotions,
         status: 'success',
+        provider: providersUsed.has('libretranslate') ? 'libretranslate' : 'cloudflare',
+        providersUsed: resolvedProviders.length > 0 ? resolvedProviders : ['cloudflare'],
+        providerSource: providersUsed.has('libretranslate') ? 'secondary_failover' : 'primary',
+        failoverReason: providersUsed.has('libretranslate') ? 'cloudflare_overload' : null,
         qualityStatus,
         qualityScore,
         validationErrors,

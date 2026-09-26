@@ -25,6 +25,7 @@ const LIVE_RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qual
 const CATALOG_RETRANSLATE_QUALITY_STATUSES = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues
   .filter(status => /retranslat|reject/i.test(status));
 const isCloudflareQuotaError = (error) => {
+  if (error?.cloudflareRateLimited) return true;
   const status = error?.response?.status ?? error?.statusCode;
   if (status === 420 || status === 429) return true;
   const providerErrors = Array.isArray(error?.response?.data?.errors)
@@ -183,7 +184,6 @@ class RetranslateSeeder {
           const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
             translation.entityId,
             translation.targetLang,
-            { sequential: true },
           );
           const validationErrors = updatedTranslation.validationErrors || [];
           const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
@@ -219,20 +219,25 @@ class RetranslateSeeder {
           continue;
         }
 
-        // Product content may use LibreTranslate only as a draft; Cloudflare remains final.
         const defaultLang = getDefaultLanguage().code;
         const sourceLang = translation.sourceLang || defaultLang;
-        const newTranslation = PRODUCT_ENTITY_TYPES.has(translation.entityType)
-          ? await libretranslateProductService.translateWithCloudflare(
+        const translationResult = PRODUCT_ENTITY_TYPES.has(translation.entityType)
+          ? await libretranslateProductService.translateWithFailover(
             translation.originalText,
             sourceLang,
             translation.targetLang,
           )
-          : await cloudflareAiService.translate(
-            translation.originalText,
-            sourceLang,
-            translation.targetLang,
-          );
+          : {
+            translatedText: await cloudflareAiService.translate(
+              translation.originalText,
+              sourceLang,
+              translation.targetLang,
+            ),
+            provider: 'cloudflare',
+          };
+        const newTranslation = translationResult.translatedText;
+        const translationProvider = translationResult.provider || 'cloudflare';
+        const isLibreTranslateFailover = translationProvider === 'libretranslate';
 
         // Validate new translation
         let validationResult = null;
@@ -260,13 +265,17 @@ class RetranslateSeeder {
           entityType: translation.entityType,
           specKey: translation.specKey || null,
           fieldKey: translation.fieldKey || null,
-          status: 'success',
-          provider: 'cloudflare',
+          status: isLibreTranslateFailover ? 'translated_via_libre' : 'success',
+          provider: translationProvider,
           retryCount: 0,
           version: (translation.version || 1) + 1,
           previousVersion: translation._id,
-          failoverReason: translation.failoverReason || translation.retranslateReason || translation.validationErrors?.[0] || 'manual_retranslate',
-          providerSource: 'primary',
+          failoverReason: translationResult.failoverReason
+            || translation.retranslateReason
+            || translation.validationErrors?.[0]
+            || 'manual_retranslate',
+          providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
+          metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
           qualityStatus: newQualityStatus,
           qualityScore: newQualityScore,
           validationErrors: newValidationErrors,
@@ -301,6 +310,7 @@ class RetranslateSeeder {
           metadata: {
             provider: newVersion.provider,
             providerSource: newVersion.providerSource,
+            secondary_provider: isLibreTranslateFailover,
             version: newVersion.version,
             qualityScore: newQualityScore,
             validationErrors: newValidationErrors,
@@ -381,7 +391,7 @@ class RetranslateSeeder {
         const quotaExhausted = isCloudflareQuotaError(error);
         if (quotaExhausted) {
           this.stats.quotaExceededCount++;
-          console.error(`${CLI_SYMBOLS.error} Cloudflare quota exhausted; stopping retranslation.`);
+          console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
         }
         results.push({
           status: 'error',
