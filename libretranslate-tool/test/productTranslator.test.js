@@ -54,6 +54,46 @@ test('LibreTranslateClient supports local HTTP endpoints', async () => {
   }
 });
 
+test('LibreTranslateClient opens a cooldown after 429 and recovers with one probe', async () => {
+  let requestCount = 0;
+  const server = http.createServer((request, response) => {
+    requestCount += 1;
+    response.setHeader('content-type', 'application/json');
+    if (requestCount === 1) {
+      response.statusCode = 429;
+      response.end(JSON.stringify({ error: 'Too many requests' }));
+      return;
+    }
+    response.end(JSON.stringify({ translatedText: 'HELLO' }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const { port } = server.address();
+    const client = new LibreTranslateClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      timeoutMs: 1000,
+      retries: 2,
+      maxParallelRequests: 4,
+      rateLimitCooldownMs: 30,
+    });
+
+    await assert.rejects(client.translate('hello', 'en', 'vi'), (error) => error.statusCode === 429);
+    assert.equal(client.currentParallelRequests, 2);
+    await assert.rejects(client.translate('hello', 'en', 'vi'), (error) => error.code === 'LIBRETRANSLATE_CIRCUIT_OPEN');
+    assert.equal(requestCount, 1);
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    assert.equal(await client.translate('hello', 'en', 'vi'), 'HELLO');
+    for (let index = 0; index < 19; index += 1) {
+      await client.translate('hello', 'en', 'vi');
+    }
+    assert.equal(client.currentParallelRequests, 3);
+    assert.equal(requestCount, 21);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
 test('LibreTranslateClient limits parallel requests', async () => {
   let activeRequests = 0;
   let maxActiveRequests = 0;

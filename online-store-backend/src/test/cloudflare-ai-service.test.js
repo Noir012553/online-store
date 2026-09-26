@@ -25,14 +25,21 @@ describe('Cloudflare AI rotation', () => {
   let sandbox;
   let originalConfigs;
   let originalConfigIndex;
+  let originalLastConfigIndex;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     originalConfigs = cloudflareAiService.configs;
     originalConfigIndex = cloudflareAiService.configIndex;
+    originalLastConfigIndex = cloudflareAiService.lastConfigIndex;
     cloudflareAiService.configs = [createConfig(1), createConfig(2)];
     cloudflareAiService.configIndex = 0;
-    cloudflareAiService.updateCurrentConfig();
+    cloudflareAiService.lastConfigIndex = null;
+    cloudflareAiService.configs.forEach((config) => Object.assign(config, {
+      cooldownUntil: 0,
+      rateLimitCount: 0,
+      runningRequests: 0,
+    }));
     sandbox.stub(cloudflareAiService, 'throttle').resolves();
   });
 
@@ -40,7 +47,7 @@ describe('Cloudflare AI rotation', () => {
     sandbox.restore();
     cloudflareAiService.configs = originalConfigs;
     cloudflareAiService.configIndex = originalConfigIndex;
-    cloudflareAiService.updateCurrentConfig();
+    cloudflareAiService.lastConfigIndex = originalLastConfigIndex;
   });
 
   it('fails closed when the free-tier AI guard is not explicitly enabled and budgeted', async () => {
@@ -106,6 +113,22 @@ describe('Cloudflare AI rotation', () => {
     expect(cloudflareAiService.configs.map(({ errorCount }) => errorCount)).to.deep.equal([1, 1]);
   });
 
+  it('uses the next healthy key without retrying the limited key', async () => {
+    const error = providerError({ status: 429, message: 'Rate limit exceeded' });
+    sandbox.stub(axios, 'post')
+      .onFirstCall().rejects(error)
+      .onSecondCall().resolves({ data: { success: true, result: { response: 'Translated' } } });
+
+    const translated = await cloudflareAiService._doTranslate('Nội dung', 'vi', 'en', null, 0, 0);
+
+    expect(translated).to.equal('Translated');
+    expect(axios.post.firstCall.args[0]).to.equal('https://example.invalid/1');
+    expect(axios.post.secondCall.args[0]).to.equal('https://example.invalid/2');
+    expect(cloudflareAiService.configs.map(({ errorCount }) => errorCount)).to.deep.equal([1, 0]);
+    expect(cloudflareAiService.configs.map(({ requestCount }) => requestCount)).to.deep.equal([0, 1]);
+    expect(cloudflareAiService.configs[0].cooldownUntil).to.be.greaterThan(Date.now());
+  });
+
   it('rotates when the provider reports exhausted quota without an HTTP status', async () => {
     const error = providerError({ message: 'Monthly quota exhausted' });
     sandbox.stub(axios, 'post').rejects(error);
@@ -132,6 +155,6 @@ describe('Cloudflare AI rotation', () => {
     }
 
     expect(axios.post.calledOnce).to.equal(true);
-    expect(cloudflareAiService.currentConfig.index).to.equal(1);
+    expect(cloudflareAiService.lastConfigIndex).to.equal(1);
   });
 });
