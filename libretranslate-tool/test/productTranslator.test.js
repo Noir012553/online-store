@@ -94,6 +94,26 @@ test('LibreTranslateClient opens a cooldown after 429 and recovers with one prob
   }
 });
 
+test('LibreTranslateClient backs off parallel requests after a timeout', async () => {
+  const server = http.createServer(() => {});
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const { port } = server.address();
+    const client = new LibreTranslateClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      timeoutMs: 20,
+      retries: 0,
+      maxParallelRequests: 4,
+    });
+
+    await assert.rejects(client.translate('hello', 'en', 'vi'), /timed out after 20ms/);
+    assert.equal(client.currentParallelRequests, 2);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
 test('LibreTranslateClient limits parallel requests', async () => {
   let activeRequests = 0;
   let maxActiveRequests = 0;
