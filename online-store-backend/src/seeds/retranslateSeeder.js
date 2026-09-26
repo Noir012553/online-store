@@ -72,6 +72,7 @@ class RetranslateSeeder {
       validate = true,
       verbose = true,
       actor = 'system',
+      libreTranslateOnly = false,
     } = options;
 
     this.stats = {
@@ -184,6 +185,7 @@ class RetranslateSeeder {
           const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
             translation.entityId,
             translation.targetLang,
+            { libreTranslateOnly },
           );
           const validationErrors = updatedTranslation.validationErrors || [];
           const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
@@ -221,13 +223,21 @@ class RetranslateSeeder {
 
         const defaultLang = getDefaultLanguage().code;
         const sourceLang = translation.sourceLang || defaultLang;
-        const translationResult = PRODUCT_ENTITY_TYPES.has(translation.entityType)
-          ? await libretranslateProductService.translateWithFailover(
+        let translationResult;
+        if (libreTranslateOnly) {
+          translationResult = await libretranslateProductService.translateWithLibreTranslateOnly(
             translation.originalText,
             sourceLang,
             translation.targetLang,
-          )
-          : {
+          );
+        } else if (PRODUCT_ENTITY_TYPES.has(translation.entityType)) {
+          translationResult = await libretranslateProductService.translateWithFailover(
+            translation.originalText,
+            sourceLang,
+            translation.targetLang,
+          );
+        } else {
+          translationResult = {
             translatedText: await cloudflareAiService.translate(
               translation.originalText,
               sourceLang,
@@ -235,9 +245,11 @@ class RetranslateSeeder {
             ),
             provider: 'cloudflare',
           };
+        }
         const newTranslation = translationResult.translatedText;
         const translationProvider = translationResult.provider || 'cloudflare';
-        const isLibreTranslateFailover = translationProvider === 'libretranslate';
+        const isLibreTranslate = translationProvider === 'libretranslate';
+        const isLibreTranslateFailover = isLibreTranslate && !libreTranslateOnly;
 
         // Validate new translation
         let validationResult = null;
@@ -265,7 +277,7 @@ class RetranslateSeeder {
           entityType: translation.entityType,
           specKey: translation.specKey || null,
           fieldKey: translation.fieldKey || null,
-          status: isLibreTranslateFailover ? 'translated_via_libre' : 'success',
+          status: isLibreTranslate ? 'translated_via_libre' : 'success',
           provider: translationProvider,
           retryCount: 0,
           version: (translation.version || 1) + 1,

@@ -13,6 +13,7 @@ const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const translationReporter = require('../utils/translationReporter');
 const libretranslateProductService = require('../services/libretranslateProductService');
+const { LibreTranslateClient } = require('../../../libretranslate-tool/src/libretranslateClient');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
@@ -109,9 +110,9 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
 
-    const result = await retranslateSeeder.retranslate({ verbose: false });
+    const result = await retranslateSeeder.retranslate({ verbose: false, libreTranslateOnly: true });
 
-    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang)).to.be.true;
+    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, { libreTranslateOnly: true })).to.be.true;
     expect(result.stats.totalToRetranslate).to.equal(1);
     expect(result.stats.fixedCount).to.equal(1);
   });
@@ -152,6 +153,85 @@ describe('Product translation cache controller', () => {
 
     expect(result.stats.stillBrokenCount).to.equal(1);
     expect(log.args.map(args => args.join(' ')).join('\n')).to.include('Issues: missing_brand');
+  });
+
+  it('uses LibreTranslate directly without calling Cloudflare', async () => {
+    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
+    process.env.LIBRETRANSLATE_ENABLED = 'false';
+    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate').resolves('Translated');
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
+
+    try {
+      const result = await libretranslateProductService.translateWithLibreTranslateOnly('Original', 'vi', 'en');
+
+      expect(result).to.deep.equal({
+        translatedText: 'Translated',
+        provider: 'libretranslate',
+        providersUsed: ['libretranslate'],
+      });
+      expect(libreTranslate.calledOnceWithExactly('Original', 'vi', 'en')).to.equal(true);
+      expect(cloudflareTranslate.called).to.equal(false);
+    } finally {
+      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
+      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
+    }
+  });
+
+  it('uses direct LibreTranslate for field-cache records when requested', async () => {
+    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+    const translation = {
+      _id: new mongoose.Types.ObjectId(),
+      hashKey: 'direct-libre-hash',
+      originalText: 'Laptop MSI',
+      translatedText: 'Old translation',
+      sourceLang: getDefaultLanguage().code,
+      targetLang: targetLanguage.code,
+      entityId: new mongoose.Types.ObjectId().toString(),
+      entityType: 'generic',
+      qualityScore: 10,
+      validationErrors: ['needs_retranslate'],
+    };
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([translation]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    const libreTranslate = sandbox.stub(libretranslateProductService, 'translateWithLibreTranslateOnly').resolves({
+      translatedText: 'MSI Laptop',
+      provider: 'libretranslate',
+      providersUsed: ['libretranslate'],
+    });
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({ _id: new mongoose.Types.ObjectId() });
+    sandbox.stub(LiveTranslationCache, 'updateOne').resolves({ modifiedCount: 1 });
+    sandbox.stub(TranslationQualityLog, 'create').resolves({});
+    sandbox.stub(ProductTranslationSeederService, '_syncProductCatalogTranslations').resolves();
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({
+      verbose: false,
+      limit: 1,
+      libreTranslateOnly: true,
+    });
+    const savedVersion = LiveTranslationCache.findOneAndUpdate.firstCall.args[1].$setOnInsert;
+
+    expect(result.success).to.equal(true);
+    expect(libreTranslate.calledOnceWithExactly('Laptop MSI', translation.sourceLang, targetLanguage.code)).to.equal(true);
+    expect(cloudflareTranslate.called).to.equal(false);
+    expect(savedVersion).to.include({
+      provider: 'libretranslate',
+      providerSource: 'primary',
+      status: 'translated_via_libre',
+    });
   });
 
   it('stores LibreTranslate as the final provider when Cloudflare is overloaded during retranslation', async () => {

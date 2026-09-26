@@ -35,6 +35,7 @@ async function main() {
       dryRun: args.includes('--dry-run'),
       validate: !args.includes('--no-validate'),
       verbose: true,
+      libreTranslateOnly: args.includes('--libretranslate-only'),
     };
 
     // Parse filter

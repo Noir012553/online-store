@@ -19,7 +19,7 @@ const mapWithConcurrency = async (items, mapper, concurrency) => {
   return results;
 };
 
-const retranslateProduct = async (productId, targetLang) => {
+const retranslateProduct = async (productId, targetLang, { libreTranslateOnly = false } = {}) => {
   const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 3);
   if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
     throw new Error('PRODUCT_RETRANSLATION_FIELD_CONCURRENCY must be a positive integer');
@@ -38,11 +38,10 @@ const retranslateProduct = async (productId, targetLang) => {
   const providersUsed = new Set();
   const translateSourceText = async (source, entityType) => {
     if (!source) return { value: source, validation: null };
-    const result = await libretranslateProductService.translateWithFailover(
-      source,
-      getDefaultLanguage().code,
-      targetLang,
-    );
+    const translate = libreTranslateOnly
+      ? libretranslateProductService.translateWithLibreTranslateOnly
+      : libretranslateProductService.translateWithFailover;
+    const result = await translate(source, getDefaultLanguage().code, targetLang);
     (result.providersUsed || [result.provider || 'cloudflare']).forEach((provider) => providersUsed.add(provider));
     const validation = await translationValidator.validateTranslation(
       source,
@@ -136,8 +135,10 @@ const retranslateProduct = async (productId, targetLang) => {
         status: 'success',
         provider: providersUsed.has('libretranslate') ? 'libretranslate' : 'cloudflare',
         providersUsed: resolvedProviders.length > 0 ? resolvedProviders : ['cloudflare'],
-        providerSource: providersUsed.has('libretranslate') ? 'secondary_failover' : 'primary',
-        failoverReason: providersUsed.has('libretranslate') ? 'cloudflare_overload' : null,
+        providerSource: !libreTranslateOnly && providersUsed.has('libretranslate')
+          ? 'secondary_failover'
+          : 'primary',
+        failoverReason: !libreTranslateOnly && providersUsed.has('libretranslate') ? 'cloudflare_overload' : null,
         qualityStatus,
         qualityScore,
         validationErrors,
