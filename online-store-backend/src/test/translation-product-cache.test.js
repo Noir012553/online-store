@@ -151,6 +151,7 @@ describe('Product translation cache controller', () => {
 
     const result = await retranslateSeeder.retranslate({ verbose: true });
 
+    expect(result.success).to.equal(false);
     expect(result.stats.stillBrokenCount).to.equal(1);
     expect(log.args.map(args => args.join(' ')).join('\n')).to.include('Issues: missing_brand');
   });

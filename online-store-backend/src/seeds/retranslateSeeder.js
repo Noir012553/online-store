@@ -473,7 +473,10 @@ class RetranslateSeeder {
     }
 
     return {
-      success: !dryRun && this.stats.errorCount === 0,
+      success: !dryRun
+        && this.stats.errorCount === 0
+        && this.stats.stillBrokenCount === 0
+        && this.stats.remainingCount === 0,
       dryRun,
       stats: this.stats,
       results,
