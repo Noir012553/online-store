@@ -116,6 +116,44 @@ describe('Product translation cache controller', () => {
     expect(result.stats.fixedCount).to.equal(1);
   });
 
+  it('prints catalog validation issues without failing the retranslation report', async () => {
+    const needsRetranslate = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues
+      .find(status => /retranslat|reject/i.test(status));
+    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+    const candidate = {
+      _id: new mongoose.Types.ObjectId(),
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: targetLanguage.code,
+      name: 'Laptop MSI',
+      qualityStatus: needsRetranslate,
+      validationErrors: ['needs_retranslate'],
+    };
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([candidate]),
+    });
+    sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation: {
+        ...candidate,
+        name: 'MSI Laptop',
+        validationErrors: ['missing_brand'],
+      },
+      skippedManualFields: [],
+    });
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+    const log = sandbox.stub(console, 'log');
+
+    const result = await retranslateSeeder.retranslate({ verbose: true });
+
+    expect(result.stats.stillBrokenCount).to.equal(1);
+    expect(log.args.map(args => args.join(' ')).join('\n')).to.include('Issues: missing_brand');
+  });
+
   it('stores LibreTranslate as the final provider when Cloudflare is overloaded during retranslation', async () => {
     const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
     const translation = {

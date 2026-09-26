@@ -411,7 +411,11 @@ class RetranslateSeeder {
           remaining: this.stats.remainingCount,
         },
         detailedBreakdown: this.stats.breakdown,
-        stillNeedsAttention: this.stats.stillBroken,
+        stillNeedsAttention: this.stats.stillBroken.map(item => ({
+          original: item.originalText,
+          current: item.translatedText,
+          issues: item.validationErrors,
+        })),
       });
     }
 
