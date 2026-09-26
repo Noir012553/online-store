@@ -246,6 +246,12 @@ class TranslationReporter {
     console.log(`\n${CLI_SYMBOLS.chart} RESULTS:`);
     console.log(`   ${CLI_SYMBOLS.success} Fixed successfully: ${report.results.fixedSuccessfully}`);
     console.log(`   ${CLI_SYMBOLS.error} Still has issues: ${report.results.stillHasIssues}`);
+    if (report.results.errors > 0) {
+      console.log(`   ${CLI_SYMBOLS.error} Failed: ${report.results.errors}`);
+    }
+    if (report.results.remaining > 0) {
+      console.log(`   ${CLI_SYMBOLS.warning} Remaining: ${report.results.remaining}`);
+    }
 
     if (report.stillNeedsAttention.length > 0) {
       console.log(`\n${CLI_SYMBOLS.warning} STILL NEEDS ATTENTION:`);

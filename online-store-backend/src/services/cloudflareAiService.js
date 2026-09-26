@@ -23,13 +23,28 @@ const stripTranslationPrefix = (text) => text
   .replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '')
   .trim();
 const RATE_LIMIT_STATUS_CODES = new Set([420, 429]);
-const RETRYABLE_STATUS_CODES = new Set([408, 420, 429, 500, 502, 503, 504]);
+const RETRYABLE_STATUS_CODES = new Set([408, 500, 502, 503, 504]);
 const parseNonNegativeInteger = (name, fallback = 0) => {
   const raw = process.env[name];
   if (raw === undefined || raw === '') return fallback;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 0) throw new Error(`${name} must be a non-negative integer`);
   return value;
+};
+const parsePositiveInteger = (name, fallback) => {
+  const value = parseNonNegativeInteger(name, fallback);
+  if (value < 1) throw new Error(`${name} must be a positive integer`);
+  return value;
+};
+const getRetryAfterMs = (headers) => {
+  const retryAfter = headers?.get?.('retry-after')
+    ?? headers?.['retry-after']
+    ?? headers?.['Retry-After'];
+  if (retryAfter === undefined || retryAfter === null || retryAfter === '') return null;
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const retryAt = Date.parse(retryAfter);
+  return Number.isNaN(retryAt) ? null : Math.max(0, retryAt - Date.now());
 };
 const getMaxOutputTokens = () => {
   const raw = process.env.CLOUDFLARE_AI_MAX_TOKENS;
@@ -92,11 +107,14 @@ class CloudflareAiService {
   constructor() {
     this.configs = this._loadConfigs();
     this.configIndex = 0;
-    this.updateCurrentConfig();
-
-    // Rate limiting config
-    this.maxRequestsPerSecond = parseInt(process.env.CLOUDFLARE_MAX_REQUESTS_PER_SEC || '5');
-    this.queue = new SimpleQueue(3);
+    this.lastConfigIndex = null;
+    this.rateLimitCooldownMs = parsePositiveInteger('CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS', 30000);
+    this.maxRateLimitCooldownMs = parsePositiveInteger('CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS', 900000);
+    this.maxParallelRequestsPerConfig = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_PER_KEY', 1);
+    this.configAvailabilityWaiters = [];
+    this.maxRequestsPerSecond = parsePositiveInteger('CLOUDFLARE_MAX_REQUESTS_PER_SEC', 5);
+    const configuredConcurrency = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_REQUESTS', 3);
+    this.queue = new SimpleQueue(Math.min(configuredConcurrency, this.configs.length || 1));
     this.lastRequestTime = 0;
     this.requestTimestamps = [];
     this.usageDay = null;
@@ -123,6 +141,8 @@ class CloudflareAiService {
           index: c.index,
           requests: c.requestCount,
           errors: c.errorCount,
+          coolingDown: c.coolingDown,
+          cooldownUntil: c.cooldownUntil,
         })),
       });
     }, 30 * 60 * 1000); // 30 minutes
@@ -153,6 +173,11 @@ class CloudflareAiService {
           errorCount: 0,
           lastError: null,
           lastErrorTime: null,
+          cooldownUntil: 0,
+          rateLimitCount: 0,
+          runningRequests: 0,
+          halfOpenProbeInFlight: false,
+          circuitGeneration: 0,
         });
       }
       return configs;
@@ -184,39 +209,67 @@ class CloudflareAiService {
         errorCount: 0,
         lastError: null,
         lastErrorTime: null,
+        cooldownUntil: 0,
+        rateLimitCount: 0,
+        runningRequests: 0,
+        halfOpenProbeInFlight: false,
+        circuitGeneration: 0,
       });
     }
 
     return configs;
   }
 
-  updateCurrentConfig() {
-    if (this.configs.length === 0) {
-      this.accountId = null;
-      this.apiToken = null;
-      this.model = null;
-      this.baseUrl = null;
-      this.currentConfig = { index: null, requestCount: 0, errorCount: 0 };
-      return;
+  selectConfig(excludedIndexes = new Set()) {
+    const now = Date.now();
+    for (let offset = 0; offset < this.configs.length; offset += 1) {
+      const index = (this.configIndex + offset) % this.configs.length;
+      const config = this.configs[index];
+      if (
+        excludedIndexes.has(config.index)
+        || (config.cooldownUntil || 0) > now
+        || (config.runningRequests || 0) >= this.maxParallelRequestsPerConfig
+        || (config.cooldownUntil > 0 && config.halfOpenProbeInFlight)
+      ) continue;
+      this.configIndex = (index + 1) % this.configs.length;
+      this.lastConfigIndex = config.index;
+      const halfOpenProbe = config.cooldownUntil > 0;
+      config.runningRequests = (config.runningRequests || 0) + 1;
+      if (halfOpenProbe) config.halfOpenProbeInFlight = true;
+      return { config, halfOpenProbe, generation: config.circuitGeneration || 0 };
     }
-    const config = this.configs[this.configIndex];
-    this.accountId = config.accountId;
-    this.apiToken = config.apiToken;
-    this.model = config.model;
-    this.baseUrl = config.baseUrl;
-    this.currentConfig = config;
+    return null;
   }
 
-  rotateConfig() {
-    if (this.configs.length === 1) return; // No rotation needed if only one config
+  async acquireConfig(excludedIndexes) {
+    while (true) {
+      const lease = this.selectConfig(excludedIndexes);
+      if (lease) return lease;
+      const now = Date.now();
+      const untriedConfigs = this.configs.filter((entry) => (
+        !excludedIndexes.has(entry.index) && (entry.cooldownUntil || 0) <= now
+      ));
+      if (untriedConfigs.length === 0) return null;
+      await new Promise((resolve) => this.configAvailabilityWaiters.push(resolve));
+    }
+  }
 
-    this.configIndex = (this.configIndex + 1) % this.configs.length;
-    this.updateCurrentConfig();
-    console.log(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rotated to config #${this.currentConfig.index}`);
+  releaseConfig(config, halfOpenProbe = false) {
+    config.runningRequests = Math.max(0, config.runningRequests - 1);
+    if (halfOpenProbe) config.halfOpenProbeInFlight = false;
+    this.configAvailabilityWaiters.splice(0).forEach((resolve) => resolve());
+  }
+
+  getRateLimitCooldown(config, error) {
+    const retryAfterMs = getRetryAfterMs(error.response?.headers);
+    if (retryAfterMs !== null) return retryAfterMs;
+    const cooldown = this.rateLimitCooldownMs * (2 ** Math.max(0, (config.rateLimitCount || 1) - 1));
+    const jitter = Math.random() * cooldown * 0.1;
+    return Math.min(cooldown + jitter, this.maxRateLimitCooldownMs);
   }
 
   validate() {
-    if (!this.accountId || !this.apiToken) {
+    if (this.configs.length === 0) {
       throw new Error(
         'Cloudflare credentials not configured. Set CLOUDFLARE_ACCOUNT_ID_1/2/... in .env'
       );
@@ -326,6 +379,9 @@ class CloudflareAiService {
     if (!targetLang) {
       throw new Error('Target language (targetLang) is required');
     }
+    let config;
+    let halfOpenProbe = false;
+    let configGeneration = 0;
     try {
       this.validate();
 
@@ -338,12 +394,28 @@ class CloudflareAiService {
         return text;
       }
 
+      const lease = await this.acquireConfig(attemptedConfigIndexes);
+      config = lease?.config;
+      halfOpenProbe = lease?.halfOpenProbe || false;
+      configGeneration = lease?.generation || 0;
+      if (!config) {
+        const nextCooldownAt = Math.min(...this.configs
+          .filter((entry) => (entry.cooldownUntil || 0) > Date.now())
+          .map((entry) => entry.cooldownUntil));
+        const error = new Error('All Cloudflare configurations are cooling down');
+        error.response = { status: 429, headers: {} };
+        error.retryAfterMs = Number.isFinite(nextCooldownAt) ? Math.max(0, nextCooldownAt - Date.now()) : this.rateLimitCooldownMs;
+        error.cloudflarePoolExhausted = true;
+
+        throw error;
+      }
+
       await this.throttle();
       if (enforceBudget) this.reserveUsage(text.length);
 
       const startTime = Date.now();
       const response = await axios.post(
-        this.baseUrl,
+        config.baseUrl,
         {
           messages: [
             {
@@ -361,7 +433,7 @@ class CloudflareAiService {
         },
         {
           headers: {
-            Authorization: `Bearer ${this.apiToken}`,
+            Authorization: `Bearer ${config.apiToken}`,
             'Content-Type': 'application/json',
           },
           timeout: 120000,
@@ -388,8 +460,13 @@ class CloudflareAiService {
         throw new Error('No usable translation returned from Cloudflare API');
       }
 
-      this.currentConfig.requestCount++;
-      console.log(`[CloudflareAI] ${CLI_SYMBOLS.success} Translation success: { textLength: ${text.length}, sourceLang: '${sourceLang}', targetLang: '${targetLang}', duration: '${duration}ms', config: '#${this.currentConfig.index}/${this.configs.length}', totalRequests: ${this.currentConfig.requestCount} }`);
+      config.requestCount++;
+      if (configGeneration === (config.circuitGeneration || 0)) {
+        config.rateLimitCount = 0;
+        config.cooldownUntil = 0;
+        config.halfOpenProbeInFlight = false;
+      }
+      console.log(`[CloudflareAI] ${CLI_SYMBOLS.success} Translation success: { textLength: ${text.length}, sourceLang: '${sourceLang}', targetLang: '${targetLang}', duration: '${duration}ms', config: '#${config.index}/${this.configs.length}', totalRequests: ${config.requestCount} }`);
 
       return normalizedTranslation;
     } catch (error) {
@@ -413,16 +490,27 @@ class CloudflareAiService {
 
       const isRateLimited = isRateLimitOrQuotaError(error);
 
-      if (isRateLimited) {
-        this.currentConfig.errorCount++;
-        this.currentConfig.lastError = `Rate limited or quota exhausted (${error.response?.status || 'provider message'})`;
-        this.currentConfig.lastErrorTime = new Date();
+      if (isRateLimited && config) {
+        config.errorCount++;
+        config.rateLimitCount = (config.rateLimitCount || 0) + 1;
+        config.circuitGeneration = (config.circuitGeneration || 0) + 1;
+        config.halfOpenProbeInFlight = false;
+        config.lastError = `Rate limited or quota exhausted (${error.response?.status || 'provider message'})`;
+        config.lastErrorTime = new Date();
+        const cooldownMs = this.getRateLimitCooldown(config, error);
+        config.cooldownUntil = Date.now() + cooldownMs;
 
+        const failedConfigIndex = config.index;
         const attemptedConfigs = new Set(attemptedConfigIndexes);
-        attemptedConfigs.add(this.currentConfig.index);
-        if (this.configs.length > 1 && attemptedConfigs.size < this.configs.length) {
-          this.rotateConfig();
-          console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} Rate limit or quota hit - switched to config #${this.currentConfig.index}`);
+        attemptedConfigs.add(failedConfigIndex);
+        this.releaseConfig(config, halfOpenProbe);
+        config = null;
+        halfOpenProbe = false;
+        const hasUntriedConfig = this.configs.some((entry) => (
+          !attemptedConfigs.has(entry.index) && (entry.cooldownUntil || 0) <= Date.now()
+        ));
+        if (hasUntriedConfig) {
+          console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} Config #${failedConfigIndex} rate limited; cooling down for ${cooldownMs}ms and trying another config`);
           return this._doTranslate(
             text,
             sourceLang,
@@ -436,18 +524,33 @@ class CloudflareAiService {
           );
         }
 
-        if (this.configs.length > 1) {
-          console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} All Cloudflare configurations are rate limited or out of quota; retrying after backoff`);
-        }
+        const nextCooldown = Math.min(...this.configs
+          .filter((entry) => (entry.cooldownUntil || 0) > Date.now())
+          .map((entry) => entry.cooldownUntil - Date.now()));
+        if (Number.isFinite(nextCooldown)) error.retryAfterMs = nextCooldown;
+        error.cloudflarePoolExhausted = true;
+        console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Config #${failedConfigIndex} rate limited; no untried key is currently available`);
       }
 
-      // Retry transient network, rate limit, timeout, and server errors
+      if (halfOpenProbe && config) {
+        const cooldownMs = this.rateLimitCooldownMs;
+        config.cooldownUntil = Date.now() + cooldownMs;
+        config.lastError = error.message;
+        config.lastErrorTime = new Date();
+        this.releaseConfig(config, true);
+        config = null;
+        halfOpenProbe = false;
+        error.retryAfterMs = cooldownMs;
+        throw error;
+      }
+
+      // Retry transient network, timeout, and server errors
       const statusCode = error.response?.status;
       const isServerError = statusCode >= 500 && statusCode < 600;
       const isRetryable = (
         isDnsError ||
         isNetworkUnreachable ||
-        isRateLimited ||
+        (isRateLimited && !config && error.retryAfterMs !== undefined && !error.cloudflarePoolExhausted) ||
         RETRYABLE_STATUS_CODES.has(statusCode) ||
         isServerError ||
         error.code === 'ECONNRESET' ||
@@ -458,10 +561,16 @@ class CloudflareAiService {
       );
 
       if (retries > 0 && isRetryable) {
+        if (config) {
+          this.releaseConfig(config, halfOpenProbe);
+          config = null;
+          halfOpenProbe = false;
+        }
         const retriesUsed = 3 - retries;
         // For server errors (5xx), use longer exponential backoff
         const serverErrorMultiplier = isServerError ? 2 : 1;
-        const exponentialDelay = baseDelay * Math.pow(2, retriesUsed) * serverErrorMultiplier;
+        const exponentialDelay = error.retryAfterMs
+          ?? baseDelay * Math.pow(2, retriesUsed) * serverErrorMultiplier;
 
         console.warn(`[CloudflareAI] ${CLI_SYMBOLS.warning} Retry (${retries} left) - waiting ${exponentialDelay}ms`, {
           status: error.response?.status,
@@ -470,9 +579,7 @@ class CloudflareAiService {
           nextDelay: `${exponentialDelay}ms`,
         });
         await new Promise(resolve => setTimeout(resolve, exponentialDelay));
-        const retryAttemptedConfigs = isRateLimited
-          && this.configs.length > 1
-          && attemptedConfigIndexes.size >= this.configs.length
+        const retryAttemptedConfigs = isRateLimited && !config
           ? new Set()
           : attemptedConfigIndexes;
         return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, retryAttemptedConfigs, enforceBudget, draftText);
@@ -484,10 +591,12 @@ class CloudflareAiService {
         error: error.message,
         code: error.code,
         status: error.response?.status,
-        headers: error.response?.headers,
+        retryAfterMs: error.retryAfterMs,
       });
 
       throw error;
+    } finally {
+      if (config) this.releaseConfig(config, halfOpenProbe);
     }
   }
 
@@ -499,14 +608,17 @@ class CloudflareAiService {
       usageDay: this.usageDay,
       usageRequests: this.usageRequests,
       usageInputChars: this.usageInputChars,
-      currentConfig: this.currentConfig.index,
+      currentConfig: this.lastConfigIndex,
       totalConfigs: this.configs.length,
       configs: this.configs.map(c => ({
         index: c.index,
         requestCount: c.requestCount,
         errorCount: c.errorCount,
+        runningRequests: c.runningRequests || 0,
         lastError: c.lastError,
         lastErrorTime: c.lastErrorTime,
+        cooldownUntil: c.cooldownUntil ? new Date(c.cooldownUntil).toISOString() : null,
+        coolingDown: (c.cooldownUntil || 0) > Date.now(),
       })),
     };
   }
@@ -514,7 +626,7 @@ class CloudflareAiService {
   getHealth() {
     const stats = this.getStats();
     const allConfigs = stats.configs;
-    const healthyConfigs = allConfigs.filter(c => c.errorCount < 10);
+    const healthyConfigs = allConfigs.filter(c => !c.coolingDown);
     const overallHealth = healthyConfigs.length > 0 ? 'healthy' : 'degraded';
 
     return {
@@ -542,14 +654,16 @@ class CloudflareAiService {
     return {
       timestamp: new Date().toISOString(),
       configCount: this.configs.length,
-      configs: this.configs.map((config, idx) => ({
+      configs: this.configs.map((config) => ({
         index: config.index,
         model: config.model,
         hasAccountId: !!config.accountId,
         hasToken: !!config.apiToken,
-        tokenLength: config.apiToken?.length || 0,
         requestCount: config.requestCount,
         errorCount: config.errorCount,
+        runningRequests: config.runningRequests || 0,
+        coolingDown: (config.cooldownUntil || 0) > Date.now(),
+        cooldownUntil: config.cooldownUntil ? new Date(config.cooldownUntil).toISOString() : null,
       })),
       warnings: this._generateWarnings(),
     };

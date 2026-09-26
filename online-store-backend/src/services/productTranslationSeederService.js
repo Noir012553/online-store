@@ -145,6 +145,7 @@ class ProductTranslationSeederService {
       // Layer 2 Configuration: Thoải mái hơn Layer 1
       const chunkSize = Number(process.env.PRODUCT_TRANSLATION_CHUNK_SIZE || 10);
       const concurrentProducts = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
+      const concurrentFields = Number(process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY || 3);
       const throttleBetweenChunks = Number(process.env.PRODUCT_TRANSLATION_DELAY_MS || 1000);
       const configuredLimit = Number(process.env.PRODUCT_TRANSLATION_LIMIT || 0);
       if (!Number.isInteger(chunkSize) || chunkSize < 1) {
@@ -152,6 +153,9 @@ class ProductTranslationSeederService {
       }
       if (!Number.isInteger(concurrentProducts) || concurrentProducts < 1) {
         throw new Error('PRODUCT_TRANSLATION_CONCURRENCY must be a positive integer');
+      }
+      if (!Number.isInteger(concurrentFields) || concurrentFields < 1) {
+        throw new Error('PRODUCT_TRANSLATION_FIELD_CONCURRENCY must be a positive integer');
       }
       if (!Number.isInteger(throttleBetweenChunks) || throttleBetweenChunks < 0) {
         throw new Error('PRODUCT_TRANSLATION_DELAY_MS must be a non-negative integer');
@@ -161,6 +165,7 @@ class ProductTranslationSeederService {
       }
       const CHUNK_SIZE = chunkSize;
       const CONCURRENT_PRODUCTS = concurrentProducts;
+      const CONCURRENT_FIELDS = concurrentFields;
       const THROTTLE_BETWEEN_CHUNKS = throttleBetweenChunks;
       const selectedProductCount = configuredLimit > 0
         ? Math.min(totalProducts, configuredLimit)
@@ -638,8 +643,7 @@ class ProductTranslationSeederService {
         });
       }
 
-      // Dịch từng field
-      for (const field of fieldsToTranslate) {
+      const translateField = async (field) => {
         try {
           const hashKey = crypto
             .createHash('md5')
@@ -670,7 +674,7 @@ class ProductTranslationSeederService {
               provider: cached.provider || 'cloudflare',
             });
             successCount++;
-            continue;
+            return;
           }
 
           const translationStartedAt = Date.now();
@@ -767,6 +771,12 @@ class ProductTranslationSeederService {
             otherErrorCount++;
           }
         }
+      };
+
+      for (let offset = 0; offset < fieldsToTranslate.length; offset += CONCURRENT_FIELDS) {
+        await Promise.all(fieldsToTranslate
+          .slice(offset, offset + CONCURRENT_FIELDS)
+          .map(translateField));
       }
 
       if (cacheWrites.length > 0) {

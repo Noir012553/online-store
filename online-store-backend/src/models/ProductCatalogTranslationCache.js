@@ -50,6 +50,25 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: [],
     },
+    provider: {
+      type: String,
+      enum: ['cloudflare', 'libretranslate'],
+      default: 'cloudflare',
+    },
+    providersUsed: {
+      type: [String],
+      enum: ['cloudflare', 'libretranslate'],
+      default: ['cloudflare'],
+    },
+    providerSource: {
+      type: String,
+      enum: ['primary', 'secondary_failover'],
+      default: 'primary',
+    },
+    failoverReason: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
       enum: ['success', 'failed_rate_limit', 'failed_error', 'pending_retry'],

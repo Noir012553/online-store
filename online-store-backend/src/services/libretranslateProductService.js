@@ -41,6 +41,8 @@ const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
 };
 
 const translateDraft = async (text, sourceLang, targetLang) => {
+  if (!isEnabled()) return '';
+
   try {
     return await translateWithLibreTranslate(text, sourceLang, targetLang);
   } catch (error) {
@@ -90,21 +92,20 @@ const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
 const translateWithFailover = async (text, sourceLang, targetLang) => {
   const chunks = splitText(text, getChunkSize());
   const translatedChunks = [];
-  let provider = 'cloudflare';
+  const providersUsed = new Set();
   let failoverReason = null;
 
   for (const chunk of chunks) {
     const translation = await translateChunkWithFailover(chunk, sourceLang, targetLang);
     translatedChunks.push(translation.translatedText);
-    if (translation.provider === 'libretranslate') {
-      provider = 'libretranslate';
-      failoverReason = translation.failoverReason;
-    }
+    providersUsed.add(translation.provider);
+    if (translation.failoverReason) failoverReason = translation.failoverReason;
   }
 
   return {
     translatedText: joinTranslatedChunks(chunks, translatedChunks),
-    provider,
+    provider: providersUsed.has('libretranslate') ? 'libretranslate' : 'cloudflare',
+    providersUsed: [...providersUsed],
     ...(failoverReason ? { failoverReason } : {}),
   };
 };
