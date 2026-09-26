@@ -161,6 +161,7 @@ describe('Product translation cache controller', () => {
     const savedVersion = LiveTranslationCache.findOneAndUpdate.firstCall.args[1].$setOnInsert;
 
     expect(result.success).to.equal(true);
+    expect(result.stats.remainingCount).to.equal(0);
     expect(savedVersion).to.include({
       provider: 'libretranslate',
       providerSource: 'secondary_failover',
@@ -206,7 +207,7 @@ describe('Product translation cache controller', () => {
     expect(result.success).to.equal(false);
     expect(result.stats.quotaExceededCount).to.equal(1);
     expect(result.stats.errorCount).to.equal(1);
-    expect(result.stats.remainingCount).to.equal(translations.length - 1);
+    expect(result.stats.remainingCount).to.equal(translations.length);
     expect(libretranslateProductService.translateWithFailover.calledOnce).to.equal(true);
   });
 

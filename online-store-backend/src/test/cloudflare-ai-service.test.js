@@ -113,6 +113,26 @@ describe('Cloudflare AI rotation', () => {
     expect(cloudflareAiService.configs.map(({ errorCount }) => errorCount)).to.deep.equal([1, 1]);
   });
 
+  it('stops retrying after every key has been rate limited', async () => {
+    const error = providerError({ status: 429, message: 'Rate limit exceeded' });
+    sandbox.stub(axios, 'post').rejects(error);
+    sandbox.stub(global, 'setTimeout').callsFake((callback) => {
+      callback();
+      return 0;
+    });
+
+    try {
+      await cloudflareAiService._doTranslate('Nội dung', 'vi', 'en', null, 3, 1);
+      expect.fail('Expected all Cloudflare keys to be cooling down');
+    } catch (caughtError) {
+      expect(caughtError).to.equal(error);
+      expect(caughtError.cloudflarePoolExhausted).to.equal(true);
+    }
+
+    expect(axios.post.callCount).to.equal(2);
+    expect(cloudflareAiService.configs.map(({ errorCount }) => errorCount)).to.deep.equal([1, 1]);
+  });
+
   it('uses the next healthy key without retrying the limited key', async () => {
     const error = providerError({ status: 429, message: 'Rate limit exceeded' });
     sandbox.stub(axios, 'post')

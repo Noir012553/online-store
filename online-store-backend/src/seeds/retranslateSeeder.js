@@ -346,10 +346,7 @@ class RetranslateSeeder {
         });
 
         // Update stats
-        const wasFixed = (
-          translation.qualityScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
-          || translation.validationErrors?.length > 0
-        ) && newValidationErrors.length === 0;
+        const wasFixed = newQualityStatus === 'approved' && newValidationErrors.length === 0;
         if (wasFixed) {
           this.stats.fixedCount++;
         } else if (newValidationErrors.length > 0) {
@@ -401,7 +398,7 @@ class RetranslateSeeder {
         if (quotaExhausted) break;
       }
     }
-    this.stats.remainingCount = Math.max(0, limitedToRetranslate.length - results.length);
+    this.stats.remainingCount = Math.max(0, limitedToRetranslate.length - this.stats.fixedCount);
 
     if (verbose) {
       console.log('\n');
@@ -411,6 +408,7 @@ class RetranslateSeeder {
           fixedSuccessfully: this.stats.fixedCount,
           stillHasIssues: this.stats.stillBrokenCount,
           errors: this.stats.errorCount,
+          remaining: this.stats.remainingCount,
         },
         detailedBreakdown: this.stats.breakdown,
         stillNeedsAttention: this.stats.stillBroken,

@@ -41,6 +41,8 @@ const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
 };
 
 const translateDraft = async (text, sourceLang, targetLang) => {
+  if (!isEnabled()) return '';
+
   try {
     return await translateWithLibreTranslate(text, sourceLang, targetLang);
   } catch (error) {

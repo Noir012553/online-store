@@ -61,7 +61,7 @@ async function main() {
     } else {
       if (result.stats.quotaExceededCount > 0) {
         console.error(
-          `${CLI_SYMBOLS.error} Cloudflare quota exhausted. ${result.stats.remainingCount} translation(s) remain for the next run.`,
+          `${CLI_SYMBOLS.error} Translation providers unavailable (Cloudflare rate limit/quota and no usable failover). ${result.stats.remainingCount} translation(s) remain for the next run.`,
         );
       }
       console.log(`\n${CLI_SYMBOLS.warning} Retranslation completed with some issues.`);

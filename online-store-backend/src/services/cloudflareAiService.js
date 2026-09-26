@@ -405,6 +405,7 @@ class CloudflareAiService {
         const error = new Error('All Cloudflare configurations are cooling down');
         error.response = { status: 429, headers: {} };
         error.retryAfterMs = Number.isFinite(nextCooldownAt) ? Math.max(0, nextCooldownAt - Date.now()) : this.rateLimitCooldownMs;
+        error.cloudflarePoolExhausted = true;
 
         throw error;
       }
@@ -527,6 +528,7 @@ class CloudflareAiService {
           .filter((entry) => (entry.cooldownUntil || 0) > Date.now())
           .map((entry) => entry.cooldownUntil - Date.now()));
         if (Number.isFinite(nextCooldown)) error.retryAfterMs = nextCooldown;
+        error.cloudflarePoolExhausted = true;
         console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Config #${failedConfigIndex} rate limited; no untried key is currently available`);
       }
 
@@ -548,7 +550,7 @@ class CloudflareAiService {
       const isRetryable = (
         isDnsError ||
         isNetworkUnreachable ||
-        (isRateLimited && !config && error.retryAfterMs !== undefined) ||
+        (isRateLimited && !config && error.retryAfterMs !== undefined && !error.cloudflarePoolExhausted) ||
         RETRYABLE_STATUS_CODES.has(statusCode) ||
         isServerError ||
         error.code === 'ECONNRESET' ||
