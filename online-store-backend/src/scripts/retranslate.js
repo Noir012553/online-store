@@ -17,6 +17,14 @@ const parseLimit = (value) => {
   return parsed;
 };
 
+const parseConcurrency = (value) => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error('--concurrency must be a positive integer');
+  }
+  return parsed;
+};
+
 async function main() {
   const shutdownAfter = args.includes('--shutdown');
   let exitCode = 1;
@@ -35,6 +43,7 @@ async function main() {
       dryRun: args.includes('--dry-run'),
       validate: !args.includes('--no-validate'),
       verbose: true,
+      concurrency: 3,
       libreTranslateOnly: args.includes('--libretranslate-only'),
     };
 
@@ -55,6 +64,11 @@ async function main() {
     const limitArg = args.find(arg => arg.startsWith('--limit='));
     if (limitArg) {
       options.limit = parseLimit(limitArg.split('=').slice(1).join('='));
+    }
+
+    const concurrencyArg = args.find(arg => arg.startsWith('--concurrency='));
+    if (concurrencyArg) {
+      options.concurrency = parseConcurrency(concurrencyArg.split('=').slice(1).join('='));
     }
 
     // Connect to MongoDB

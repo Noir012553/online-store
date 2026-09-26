@@ -320,13 +320,65 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
 
-    const result = await retranslateSeeder.retranslate({ verbose: false });
+    const result = await retranslateSeeder.retranslate({ verbose: false, concurrency: 1 });
 
     expect(result.success).to.equal(false);
     expect(result.stats.quotaExceededCount).to.equal(1);
     expect(result.stats.errorCount).to.equal(1);
     expect(result.stats.remainingCount).to.equal(translations.length);
     expect(libretranslateProductService.translateWithFailover.calledOnce).to.equal(true);
+  });
+
+  it('retranslates independent records with the configured concurrency cap', async () => {
+    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
+    const translations = Array.from({ length: 4 }, (_, index) => ({
+      _id: new mongoose.Types.ObjectId(),
+      hashKey: `concurrent-hash-${index}`,
+      originalText: `Source ${index}`,
+      translatedText: `Old ${index}`,
+      sourceLang: getDefaultLanguage().code,
+      targetLang: targetLanguage.code,
+      entityId: new mongoose.Types.ObjectId().toString(),
+      entityType: 'generic',
+      qualityScore: 0,
+      validationErrors: ['needs_retranslate'],
+    }));
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(translations),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    let activeTranslations = 0;
+    let maxActiveTranslations = 0;
+    sandbox.stub(libretranslateProductService, 'translateWithLibreTranslateOnly').callsFake(async (text) => {
+      activeTranslations++;
+      maxActiveTranslations = Math.max(maxActiveTranslations, activeTranslations);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      activeTranslations--;
+      return { translatedText: `${text} translated`, provider: 'libretranslate' };
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').callsFake(async () => ({ _id: new mongoose.Types.ObjectId() }));
+    sandbox.stub(LiveTranslationCache, 'updateOne').resolves({ modifiedCount: 1 });
+    sandbox.stub(TranslationQualityLog, 'create').resolves({});
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({
+      verbose: false,
+      concurrency: 2,
+      libreTranslateOnly: true,
+    });
+
+    expect(result.stats.fixedCount).to.equal(4);
+    expect(maxActiveTranslations).to.equal(2);
   });
 
   const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
