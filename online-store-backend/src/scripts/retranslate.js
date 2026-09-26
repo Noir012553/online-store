@@ -72,6 +72,9 @@ async function main() {
     }
 
     // Connect to MongoDB
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI is not set. Add it to .env or the PowerShell environment before running retranslate.');
+    }
     console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
