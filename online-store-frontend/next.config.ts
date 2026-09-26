@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const r2PublicPatterns = Array.from({ length: 9 }, (_, index) => {
@@ -13,6 +14,7 @@ const r2PublicPatterns = Array.from({ length: 9 }, (_, index) => {
 }).filter((pattern): pattern is { protocol: 'http' | 'https'; hostname: string; pathname: string } => Boolean(pattern));
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
   skipProxyUrlNormalize: true,

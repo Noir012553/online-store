@@ -36,7 +36,7 @@
     "backup:spec-key-cache": "node scripts/backup-spec-key-cache.js",
     "restore:spec-key-cache": "node scripts/restore-spec-key-cache.js",
     "seed:dry-run": "DRY_RUN=true node --expose-gc src/seeds/index.js -- --dry-run",
-    "seed:incremental": "INCREMENTAL_SEED=true node --expose-gc src/seeds/index.js -- --incremental",
+    "seed:incremental": "node --expose-gc src/seeds/index.js -- --incremental",
     "seed:i18n": "node --expose-gc src/seeds/index.js -- --i18n-only",
     "seed:pre-products": "node --expose-gc src/seeds/index.js -- --phase=pre-products",
     "seed:post-products": "node --expose-gc src/seeds/index.js -- --phase=post-products",

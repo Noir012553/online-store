@@ -44,7 +44,7 @@ export default function ImportExportWidget() {
       if (statsResult.status === 'fulfilled') {
         setExportStats(statsResult.value);
       } else if (!controller.signal.aborted) {
-        toast.error(t('error_loading_export_data', 'export'));
+        toast.error(t('error_loading_export_data', 'admin-export'));
       }
 
       if (categoriesResult.status === 'fulfilled') {
@@ -61,7 +61,7 @@ export default function ImportExportWidget() {
 
     void fetchData().catch(() => {
       if (!controller.signal.aborted) {
-        toast.error(t('error_loading_export_data', 'export'));
+        toast.error(t('error_loading_export_data', 'admin-export'));
       }
     });
 
@@ -98,12 +98,12 @@ export default function ImportExportWidget() {
       link.click();
       document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(t('export_zip_success', 'export', 'Đã xuất ZIP chứa products.json có thể nhập lại'));
+      toast.success(t('export_zip_success', 'admin-export'));
     } catch (error) {
       if (controller.signal.aborted) {
-        toast.info(t('export_cancelled', 'export', 'Đã hủy lượt xuất ZIP.'));
+        toast.info(t('export_cancelled', 'admin-export'));
       } else {
-        toast.error(t('error_exporting_file', 'export'));
+        toast.error(t('error_exporting_file', 'admin-export'));
       }
     } finally {
       if (exportAbortControllerRef.current === controller) {
@@ -141,31 +141,31 @@ export default function ImportExportWidget() {
             <Upload className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h3 className="font-bold text-lg">{t('import_products', 'export')}</h3>
-            <p className="text-sm text-gray-600">{t('import_products_desc', 'export')}</p>
+            <h3 className="font-bold text-lg">{t('import_products', 'admin-export')}</h3>
+            <p className="text-sm text-gray-600">{t('import_products_desc', 'admin-export')}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
-              {t('import_products_note', 'export')}
+              {t('import_products_note', 'admin-export')}
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-700">{t('features_label', 'export')}</p>
+            <p className="text-sm font-medium text-gray-700">{t('features_label', 'admin-export')}</p>
             <ul className="text-sm space-y-1 text-gray-600 list-disc list-inside">
-              <li>{t('feature_import_zip', 'export')}</li>
-              <li>{t('feature_import_modes', 'export')}</li>
-              <li>{t('feature_import_dry_run', 'export')}</li>
-              <li>{t('feature_import_error_details', 'export')}</li>
+              <li>{t('feature_import_zip', 'admin-export')}</li>
+              <li>{t('feature_import_modes', 'admin-export')}</li>
+              <li>{t('feature_import_dry_run', 'admin-export')}</li>
+              <li>{t('feature_import_error_details', 'admin-export')}</li>
             </ul>
           </div>
 
           <Link href="/admin/importProducts" className="block">
             <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors">
-              {t('go_to_import_page', 'export')}
+              {t('go_to_import_page', 'admin-export')}
             </button>
           </Link>
         </div>
@@ -178,31 +178,31 @@ export default function ImportExportWidget() {
             <Download className="w-6 h-6 text-green-600" />
           </div>
           <div>
-            <h3 className="font-bold text-lg">{t('export_products', 'export')}</h3>
-            <p className="text-sm text-gray-600">{t('export_products_desc', 'export')}</p>
+            <h3 className="font-bold text-lg">{t('export_products', 'admin-export')}</h3>
+            <p className="text-sm text-gray-600">{t('export_products_desc', 'admin-export')}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           {exportStats && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label', 'export')}</p>
+              <p className="text-sm font-medium text-green-900 mb-2">{t('stats_label', 'admin-export')}</p>
               <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
-                <div>{t('total_label', 'export')} <span className="font-bold">{exportStats.totalProducts}</span></div>
-                <div>{t('categories_label', 'export')} <span className="font-bold">{exportStats.categories.length}</span></div>
+                <div>{t('total_label', 'admin-export')} <span className="font-bold">{exportStats.totalProducts}</span></div>
+                <div>{t('categories_label', 'admin-export')} <span className="font-bold">{exportStats.categories.length}</span></div>
               </div>
             </div>
           )}
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('category_optional', 'export')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('category_optional', 'admin-export')}</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
               >
-                <option value="all">{t('all_categories', 'export')}</option>
+                <option value="all">{t('all_categories', 'admin-export')}</option>
                 {categories?.map((cat: any) => {
                   const categoryId = cat._id || cat.id || cat.categoryId;
                   const categoryStats = exportStats?.categories?.find(
@@ -220,14 +220,14 @@ export default function ImportExportWidget() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'export')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('format_label', 'admin-export')}</label>
             <select
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value as 'json' | 'csv')}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600"
             >
-              <option value="json">{t('format_json_extension', 'export')}</option>
-              <option value="csv">{t('format_csv_extension', 'export')}</option>
+              <option value="json">{t('format_json_extension', 'admin-export')}</option>
+              <option value="csv">{t('format_csv_extension', 'admin-export')}</option>
             </select>
           </div>
 
@@ -238,8 +238,8 @@ export default function ImportExportWidget() {
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition-colors"
             >
               {isExporting
-                ? t('exporting', 'export')
-                : t('export_products', 'export')}
+                ? t('exporting', 'admin-export')
+                : t('export_products', 'admin-export')}
             </button>
             {isExporting && (
               <button
@@ -247,7 +247,7 @@ export default function ImportExportWidget() {
                 onClick={handleCancelExport}
                 className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
               >
-                {t('cancel', 'common', 'Hủy')}
+                {t('cancel', 'common')}
               </button>
             )}
           </div>

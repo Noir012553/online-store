@@ -9,6 +9,7 @@
   "feature_import_modes": "Chế độ \"Thêm mới\" và \"Cập nhật\"",
   "feature_import_dry_run": "Chế độ \"Chạy thử\" để kiểm tra file trước khi nhập",
   "feature_import_error_details": "Báo cáo lỗi chi tiết cho từng dòng",
+  "feature_import_zip": "Hỗ trợ nhập dữ liệu từ tệp ZIP đã xuất",
   "go_to_import_page": "Đi đến trang nhập liệu",
   "export_products": "Xuất sản phẩm",
   "export_products_desc": "Xuất sản phẩm ra file JSON hoặc CSV",
@@ -23,5 +24,6 @@
   "error_loading_export_data": "Không thể tải dữ liệu xuất",
   "error_exporting_file": "Lỗi khi xuất file",
   "success_export": "Xuất {{format}} thành công",
-  "export_zip_success": "Đã xuất ZIP chứa products.json có thể nhập lại"
+  "export_zip_success": "Đã xuất ZIP chứa products.json có thể nhập lại",
+  "export_cancelled": "Đã hủy lượt xuất ZIP."
 }
