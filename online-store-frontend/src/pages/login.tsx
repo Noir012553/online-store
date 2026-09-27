@@ -138,7 +138,7 @@ export default function Login() {
               alt={t('brand_name', 'login')}
               width={220}
               height={80}
-              className="h-14 w-auto max-w-full object-contain"
+              className="h-16 w-auto max-w-full object-contain"
             />
           </div>
 
