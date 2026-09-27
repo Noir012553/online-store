@@ -84,6 +84,7 @@
     "check:translation-fallback": "node src/scripts/verify-no-english-fallback.js",
     "check:language-inventory": "node src/scripts/verify-language-inventory.js --skip-database",
     "retranslate": "node src/scripts/retranslate.js",
+    "retranslate:midnight": "node src/scripts/retranslate.js --wait-until-utc-midnight --shutdown",
     "translate:report": "node src/scripts/translate-report.js",
     "translate:approve": "node src/scripts/translate-approve.js",
     "translate:reject": "node src/scripts/translate-reject.js",
