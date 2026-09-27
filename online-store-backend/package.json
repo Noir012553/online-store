@@ -44,6 +44,7 @@
     "seed:about-media": "node src/scripts/seed-about-media.js",
     "seed:loading-media": "node src/scripts/seed-loading-media.js",
     "migrate:brand-logos": "node src/scripts/migrate-brand-logos-to-r2.js",
+    "migrate:brand-logos:apply": "node src/scripts/migrate-brand-logos-to-r2.js --apply",
     "seed:with-dashboard-data": "npm run seed && npm run indexes:dashboard:apply && npm run check:dashboard-data",
     "media:upload": "node src/scripts/upload-scraped-images.js",
     "test:ghn-ward": "node scripts/test-ghn-ward.js",
