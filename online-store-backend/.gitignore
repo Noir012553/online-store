@@ -41,7 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 # Runtime reports (auto-generated)
-/report/
 /reports/translation/
 /reports/seed/
 /reports/import-export/
