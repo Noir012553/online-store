@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -49,11 +50,14 @@ function HeaderComponent() {
       <header className="sticky top-0 z-[100] bg-white border-b shadow-sm h-20">
         <div className="container mx-auto header-container-px h-full flex items-center justify-between">
           {/* Left: Logo */}
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="bg-red-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded group-hover:bg-red-700 transition-colors">
-              <span className="text-sm sm:text-lg">{t('brand_initials', 'common')}</span>
-            </div>
-            <span className="text-xs sm:text-lg group-hover:text-red-600 transition-colors hidden md:inline">{t('brand_name', 'common')}</span>
+          <Link href="/" className="flex items-center shrink-0">
+            <Image
+              src="/assets/branding/logo.png"
+              alt={t('brand_name', 'common')}
+              width={180}
+              height={56}
+              className="h-10 w-auto max-w-[120px] object-contain sm:max-w-[180px]"
+            />
           </Link>
 
           {/* Center: Desktop Navigation */}

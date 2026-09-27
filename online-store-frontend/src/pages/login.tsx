@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -131,11 +132,14 @@ export default function Login() {
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-md mx-auto">
         <div className="bg-white rounded-lg border p-8">
-          <div className="flex items-center justify-center mb-6">
-            <div className="bg-red-600 text-white px-4 py-3 rounded">
-              <span className="text-2xl">{t('logo_text', 'login')}</span>
-            </div>
-            <span className="text-2xl ml-2">{t('brand_name', 'login')}</span>
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="/assets/branding/logo.png"
+              alt={t('brand_name', 'login')}
+              width={220}
+              height={80}
+              className="h-14 w-auto max-w-full object-contain"
+            />
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
