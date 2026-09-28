@@ -20,9 +20,16 @@ const libretranslateProductService = require('../services/libretranslateProductS
 const { LibreTranslateClient } = require('../../../libretranslate-tool/src/libretranslateClient');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const retranslateProgress = require('../utils/retranslateProgress');
-const { getWorkKey, hasCompleted, openCheckpoint } = retranslateProgress;
+const {
+  getProductFieldWorkKey,
+  getWorkKey,
+  hasCompleted,
+  markCompleted,
+  openCheckpoint,
+} = retranslateProgress;
 const productTranslationLock = require('../utils/productTranslationLock');
 const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
@@ -120,7 +127,11 @@ describe('Product translation cache controller', () => {
 
     const result = await retranslateSeeder.retranslate({ verbose: false, libreTranslateOnly: true });
 
-    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, { libreTranslateOnly: true })).to.be.true;
+    expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, {
+      libreTranslateOnly: true,
+      checkpoint: null,
+      parallelProducts: 3,
+    })).to.be.true;
     expect(result.stats.totalToRetranslate).to.equal(1);
     expect(result.stats.fixedCount).to.equal(1);
   });
@@ -185,6 +196,126 @@ describe('Product translation cache controller', () => {
       expect(resumed.stats.totalToRetranslate).to.equal(0);
       expect(productCatalogRetranslationService.retranslateProduct.calledOnce).to.be.true;
     } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('resumes completed product fields after a provider failure without repeating requests', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-fields-'));
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source name',
+      description: 'Source description',
+      technicalDescription: 'Source technical description',
+      specs: {},
+      descriptionImages: [],
+      promotions: [],
+    };
+    const sourceHash = getProductTranslationSourceHash(product);
+    const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
+    const nameKey = getProductFieldWorkKey({
+      productId,
+      targetLang: 'en',
+      field: 'name',
+      source: product.name,
+    });
+    markCompleted(checkpoint, nameKey, {
+      payload: {
+        value: 'Cached name',
+        validation: { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] },
+        providersUsed: ['cloudflare'],
+      },
+    });
+    const originalConcurrency = process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY;
+    process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = '3';
+    let failTechnicalDescription = true;
+    let providerCalls = 0;
+    const translate = sandbox.stub(libretranslateProductService, 'translateWithFailover').callsFake(async source => {
+      providerCalls++;
+      if (source === product.technicalDescription && failTechnicalDescription) {
+        failTechnicalDescription = false;
+        throw new Error('provider rate limit');
+      }
+      return { translatedText: `Translated ${source}`, provider: 'cloudflare', providersUsed: ['cloudflare'] };
+    });
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('test-lock');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves(true);
+    sandbox.stub(Product, 'findById').returns({ lean: sandbox.stub().resolves(product) });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({ manualFields: [] }),
+    });
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        name: 'Cached name',
+        description: 'Translated Source description',
+        technicalDescription: 'Translated Source technical description',
+        sourceHash,
+        qualityStatus: 'approved',
+        qualityScore: 100,
+        validationErrors: [],
+      }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    sandbox.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 2 });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+
+    try {
+      let firstError;
+      try {
+        await productCatalogRetranslationService.retranslateProduct(productId, 'en', {
+          checkpoint,
+          parallelProducts: 2,
+        });
+      } catch (error) {
+        firstError = error;
+      }
+      expect(firstError.message).to.equal('provider rate limit');
+
+      const descriptionKey = getProductFieldWorkKey({
+        productId,
+        targetLang: 'en',
+        field: 'description',
+        source: product.description,
+      });
+      const technicalDescriptionKey = getProductFieldWorkKey({
+        productId,
+        targetLang: 'en',
+        field: 'technicalDescription',
+        source: product.technicalDescription,
+      });
+      expect(hasCompleted(checkpoint, descriptionKey)).to.be.true;
+      expect(hasCompleted(checkpoint, technicalDescriptionKey)).to.be.false;
+
+      await productCatalogRetranslationService.retranslateProduct(productId, 'en', {
+        checkpoint,
+        parallelProducts: 2,
+      });
+
+      expect(providerCalls).to.equal(3);
+      expect(translate.callCount).to.equal(3);
+      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Cached name');
+      expect(hasCompleted(checkpoint, technicalDescriptionKey)).to.be.true;
+    } finally {
+      if (originalConcurrency === undefined) delete process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY;
+      else process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = originalConcurrency;
       fs.rmSync(directory, { recursive: true, force: true });
     }
   });

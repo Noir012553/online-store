@@ -49,6 +49,12 @@ const getWorkKey = translation => {
   return `live:${hashKey || translation._id}:${sourceHash}`;
 };
 
+const getProductFieldWorkKey = ({ productId, targetLang, field, source }) => {
+  const fieldHash = crypto.createHash('sha256').update(JSON.stringify(field)).digest('hex');
+  const sourceHash = crypto.createHash('sha256').update(String(source ?? '')).digest('hex');
+  return `product-field:${targetLang}:${productId}:${fieldHash}:${sourceHash}`;
+};
+
 const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
   const signature = getSignature(options);
   const filePath = getCheckpointPath(options, directory);
@@ -72,7 +78,11 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
       try {
         const entry = JSON.parse(line);
         if (typeof entry.key !== 'string') throw new Error('Checkpoint entry has no key');
-        completed.set(entry.key, { fixed: Boolean(entry.fixed), validationErrors: entry.validationErrors || [] });
+        completed.set(entry.key, {
+          fixed: Boolean(entry.fixed),
+          validationErrors: entry.validationErrors || [],
+          ...(entry.payload === undefined ? {} : { payload: entry.payload }),
+        });
         validContent += `${line}\n`;
       } catch {
         break;
@@ -107,6 +117,7 @@ const markCompleted = (checkpoint, key, result = {}) => {
     key,
     fixed: Boolean(result.fixed),
     validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
+    ...(result.payload === undefined ? {} : { payload: result.payload }),
   };
   fs.appendFileSync(checkpoint.filePath, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', mode: 0o600 });
   checkpoint.completed.set(key, entry);
@@ -123,15 +134,22 @@ const hydrateCheckpoint = async checkpoint => {
           $set: {
             fixed: Boolean(result.fixed),
             validationErrors: result.validationErrors || [],
+            ...(result.payload === undefined ? {} : { payload: result.payload }),
           },
         },
         upsert: true,
       },
     })));
   }
+  checkpoint.localCompletedCount = localEntries.length;
   const records = await RetranslationProgress.find({ signature: checkpoint.signature }).lean();
-  records.forEach(({ key, fixed, validationErrors }) => {
-    checkpoint.completed.set(key, { fixed: Boolean(fixed), validationErrors: validationErrors || [] });
+  checkpoint.durableCompletedCount = records.length;
+  records.forEach(({ key, fixed, validationErrors, payload }) => {
+    checkpoint.completed.set(key, {
+      fixed: Boolean(fixed),
+      validationErrors: validationErrors || [],
+      ...(payload === undefined || payload === null ? {} : { payload }),
+    });
   });
   return checkpoint;
 };
@@ -141,6 +159,7 @@ const markCompletedDurably = async (checkpoint, key, result = {}) => {
   const entry = {
     fixed: Boolean(result.fixed),
     validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
+    ...(result.payload === undefined ? {} : { payload: result.payload }),
   };
   await RetranslationProgress.updateOne(
     { signature: checkpoint.signature, key },
@@ -156,6 +175,27 @@ const removeCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
 };
 
 const removeDurableCheckpoint = options => RetranslationProgress.deleteMany({ signature: getSignature(options) });
+
+const clearProductFieldCheckpoint = async (checkpoint, productId, targetLang) => {
+  if (!checkpoint) return;
+  const prefix = `product-field:${targetLang}:${productId}:`;
+  const keys = [...checkpoint.completed.keys()].filter(key => key.startsWith(prefix));
+  if (keys.length === 0) return;
+
+  await RetranslationProgress.deleteMany({ signature: checkpoint.signature, key: { $in: keys } });
+  keys.forEach(key => checkpoint.completed.delete(key));
+  if (checkpoint.initialized && fs.existsSync(checkpoint.filePath)) {
+    const header = JSON.stringify({
+      type: 'retranslate-checkpoint',
+      version: 2,
+      signature: checkpoint.signature,
+    });
+    const entries = [...checkpoint.completed].map(([key, result]) => JSON.stringify({ key, ...result }));
+    const temporaryPath = `${checkpoint.filePath}.${process.pid}.tmp`;
+    fs.writeFileSync(temporaryPath, `${header}\n${entries.length ? `${entries.join('\n')}\n` : ''}`, { encoding: 'utf8', mode: 0o600 });
+    fs.renameSync(temporaryPath, checkpoint.filePath);
+  }
+};
 
 const clearCheckpoint = checkpoint => {
   if (!checkpoint) return;
@@ -298,8 +338,10 @@ module.exports = {
   getRetranslationLockKey,
   acquireProgressLock,
   clearCheckpoint,
+  clearProductFieldCheckpoint,
   getCompletedResult,
   getWorkKey,
+  getProductFieldWorkKey,
   hasCompleted,
   hydrateCheckpoint,
   markCompleted,

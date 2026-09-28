@@ -13,6 +13,7 @@ const productTranslationLock = require('../utils/productTranslationLock');
 const translationValidationConfig = require('../config/translationValidation');
 const {
   clearCheckpoint,
+  clearProductFieldCheckpoint,
   getCompletedResult,
   hasCompleted,
   getWorkKey,
@@ -156,7 +157,10 @@ class RetranslateSeeder {
       ],
     };
 
-    const candidateFetchLimit = limit > 0 ? limit + (checkpoint?.completed.size || 0) : 0;
+    const completedTranslationCount = checkpoint
+      ? [...checkpoint.completed.keys()].filter(key => !key.startsWith('product-field:')).length
+      : 0;
+    const candidateFetchLimit = limit > 0 ? limit + completedTranslationCount : 0;
     let liveQuery = LiveTranslationCache.find(query).sort({ createdAt: 1, _id: 1 });
     let catalogQueryBuilder = ProductCatalogTranslationCache.find(catalogQuery).sort({ createdAt: 1, _id: 1 });
     if (candidateFetchLimit > 0) {
@@ -247,7 +251,7 @@ class RetranslateSeeder {
               const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
                 translation.entityId,
                 translation.targetLang,
-                { libreTranslateOnly },
+                { libreTranslateOnly, checkpoint, parallelProducts: concurrency },
               );
               const validationErrors = updatedTranslation.validationErrors || [];
               const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
@@ -280,13 +284,19 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
+              const updatedSourceHash = updatedTranslation.sourceHash || translation.sourceHash;
               await markCompletedDurably(checkpoint, getWorkKey({
                 ...translation,
-                sourceHash: updatedTranslation.sourceHash || translation.sourceHash,
+                sourceHash: updatedSourceHash,
               }), {
                 fixed: wasFixed,
                 validationErrors,
               });
+              await clearProductFieldCheckpoint(
+                checkpoint,
+                String(translation.entityId),
+                translation.targetLang,
+              );
               await renewDatabaseLock?.();
               continue;
             }

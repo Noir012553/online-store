@@ -4,16 +4,19 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const sinon = require('sinon');
-const { RetranslationRunLock } = require('../models/RetranslationProgress');
+const { RetranslationProgress, RetranslationRunLock } = require('../models/RetranslationProgress');
 const {
   acquireDatabaseLock,
   acquireProgressLock,
   clearCheckpoint,
+  clearProductFieldCheckpoint,
   getCompletedResult,
+  getProductFieldWorkKey,
   getWorkKey,
   hasCompleted,
   markCompleted,
   openCheckpoint,
+  hydrateCheckpoint,
   removeCheckpoint,
 } = require('../utils/retranslateProgress');
 
@@ -51,6 +54,47 @@ test('checkpoint resumes completed catalog records after process restart', async
   });
 });
 
+test('product field checkpoints preserve translated payloads across process restarts', async () => {
+  await withTempDirectory(directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const key = getProductFieldWorkKey({
+      productId: 'product-1',
+      targetLang: 'en',
+      field: ['specs', 'RAM'],
+      source: '16GB',
+    });
+    markCompleted(checkpoint, key, {
+      payload: { value: '16 GB', validation: { qualityStatus: 'approved' }, providersUsed: ['cloudflare'] },
+    });
+
+    const resumed = openCheckpoint(options, directory);
+    assert.deepEqual(getCompletedResult(resumed, key).payload, {
+      value: '16 GB',
+      validation: { qualityStatus: 'approved' },
+      providersUsed: ['cloudflare'],
+    });
+  });
+});
+
+test('checkpoint hydrate restores durable field payloads from MongoDB', async () => {
+  const key = 'product-field:en:product-1:source-v1:field-hash';
+  const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+  const find = sinon.stub(RetranslationProgress, 'find').returns({
+    lean: async () => [{ key, fixed: true, validationErrors: [], payload: { value: 'Resume me' } }],
+  });
+  const checkpoint = openCheckpoint(options, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-hydrate-')));
+
+  try {
+    await hydrateCheckpoint(checkpoint);
+    assert.equal(checkpoint.durableCompletedCount, 1);
+    assert.equal(getCompletedResult(checkpoint, key).payload.value, 'Resume me');
+  } finally {
+    fs.rmSync(path.dirname(checkpoint.filePath), { recursive: true, force: true });
+    bulkWrite.restore();
+    find.restore();
+  }
+});
+
 test('checkpoint ignores a partial final record and can be reset explicitly', async () => {
   await withTempDirectory(directory => {
     const checkpoint = openCheckpoint(options, directory);
@@ -77,6 +121,33 @@ test('reset removes corrupted checkpoints before opening them', async () => {
 
     removeCheckpoint(options, directory);
     assert.doesNotThrow(() => openCheckpoint(options, directory));
+  });
+});
+
+test('completed product field checkpoints are removed after their product finishes', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const productKey = getProductFieldWorkKey({
+      productId: 'product-1',
+      targetLang: 'en',
+      field: ['name'],
+      source: 'Laptop source',
+    });
+    markCompleted(checkpoint, productKey, { payload: { value: 'Laptop' } });
+    markCompleted(checkpoint, 'live:other', { fixed: true });
+    const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+
+    try {
+      await clearProductFieldCheckpoint(checkpoint, 'product-1', 'en');
+      assert.equal(hasCompleted(checkpoint, productKey), false);
+      assert.equal(hasCompleted(checkpoint, 'live:other'), true);
+      assert.deepEqual(deleteMany.firstCall.args[0], {
+        signature: checkpoint.signature,
+        key: { $in: [productKey] },
+      });
+    } finally {
+      deleteMany.restore();
+    }
   });
 });
 
