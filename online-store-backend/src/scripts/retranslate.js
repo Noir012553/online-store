@@ -4,6 +4,7 @@ const { promisify } = require('node:util');
 const mongoose = require('mongoose');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { clearCheckpoint, openCheckpoint } = require('../utils/retranslateProgress');
 const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
 
 const execFileAsync = promisify(execFile);
@@ -75,6 +76,18 @@ async function main() {
 
     if (!process.env.MONGO_URI) {
       throw new Error('MONGO_URI is not set. Add it to .env or the PowerShell environment before running retranslate.');
+    }
+
+    const resetProgress = args.includes('--reset-progress');
+    if (resetProgress && options.dryRun) {
+      throw new Error('--reset-progress cannot be combined with --dry-run');
+    }
+    if (!options.dryRun) {
+      options.checkpoint = openCheckpoint(options);
+      if (resetProgress) {
+        clearCheckpoint(options.checkpoint);
+        console.log('Retranslation checkpoint cleared. Starting from the beginning.');
+      }
     }
 
     if (waitUntilUtcMidnight) {

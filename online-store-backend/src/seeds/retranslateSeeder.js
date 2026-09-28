@@ -10,6 +10,7 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const translationValidationConfig = require('../config/translationValidation');
+const { clearCheckpoint, hasCompleted, getWorkKey, markCompleted } = require('../utils/retranslateProgress');
 
 const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
 const TRANSLATION_STATUSES = [
@@ -74,6 +75,7 @@ class RetranslateSeeder {
       actor = 'system',
       libreTranslateOnly = false,
       concurrency = 3,
+      checkpoint = null,
     } = options;
 
     this.stats = {
@@ -136,17 +138,11 @@ class RetranslateSeeder {
       ],
     };
 
-    let translationsQuery = LiveTranslationCache.find(query)
-      .sort({ createdAt: 1, _id: 1 });
-    let catalogTranslationsQuery = ProductCatalogTranslationCache.find(catalogQuery)
-      .sort({ createdAt: 1, _id: 1 });
-    if (limit > 0) {
-      translationsQuery = translationsQuery.limit(limit);
-      catalogTranslationsQuery = catalogTranslationsQuery.limit(limit);
-    }
     const [liveTranslations, catalogTranslations] = await Promise.all([
-      translationsQuery.lean(),
-      requestedEntityType ? [] : catalogTranslationsQuery.lean(),
+      LiveTranslationCache.find(query).sort({ createdAt: 1, _id: 1 }).lean(),
+      requestedEntityType
+        ? []
+        : ProductCatalogTranslationCache.find(catalogQuery).sort({ createdAt: 1, _id: 1 }).lean(),
     ]);
     const toRetranslate = [
       ...catalogTranslations.map(translation => ({ ...translation, retranslateSource: 'catalog' })),
@@ -155,7 +151,15 @@ class RetranslateSeeder {
       new Date(left.createdAt || 0) - new Date(right.createdAt || 0)
       || String(left._id).localeCompare(String(right._id))
     ));
-    const limitedToRetranslate = limit > 0 ? toRetranslate.slice(0, limit) : toRetranslate;
+    const resumedCount = checkpoint
+      ? toRetranslate.filter(translation => hasCompleted(checkpoint, getWorkKey(translation))).length
+      : 0;
+    const pendingToRetranslate = toRetranslate.filter(
+      translation => !hasCompleted(checkpoint, getWorkKey(translation)),
+    );
+    const limitedToRetranslate = limit > 0
+      ? pendingToRetranslate.slice(0, limit)
+      : pendingToRetranslate;
 
     this.stats.totalToRetranslate = limitedToRetranslate.length;
 
@@ -165,6 +169,9 @@ class RetranslateSeeder {
       console.log(`\n${CLI_SYMBOLS.search} Found ${limitedToRetranslate.length} translations to retranslate`);
       console.log(`   Product catalog: ${catalogTranslations.length}; field cache: ${liveTranslations.length}`);
       console.log(`   Batch concurrency: ${concurrency}`);
+      if (resumedCount > 0) {
+        console.log(`   Resuming: skipped ${resumedCount} completed translations`);
+      }
     }
 
     const results = [];
@@ -236,6 +243,7 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
+              markCompleted(checkpoint, [getWorkKey(translation)]);
               continue;
             }
 
@@ -412,6 +420,7 @@ class RetranslateSeeder {
               wasFixed,
               validationErrors: newValidationErrors,
             });
+            markCompleted(checkpoint, [getWorkKey(translation)]);
           } catch (error) {
             const recordLabel = String(translation.name || translation.originalText || translation._id)
               .replace(/\s+/g, ' ')
@@ -445,7 +454,11 @@ class RetranslateSeeder {
     await Promise.all(
       Array.from({ length: Math.min(concurrency, workGroups.length) }, () => processNextGroup()),
     );
-    this.stats.remainingCount = Math.max(0, limitedToRetranslate.length - this.stats.fixedCount);
+    if (checkpoint && !dryRun && this.stats.errorCount === 0 && !stopScheduling && toRetranslate.length === 0) {
+      clearCheckpoint(checkpoint);
+    }
+
+    this.stats.remainingCount = Math.max(0, pendingToRetranslate.length - this.stats.fixedCount);
 
     if (verbose) {
       console.log('\n');
