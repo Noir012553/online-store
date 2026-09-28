@@ -3,7 +3,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const sinon = require('sinon');
+const { RetranslationRunLock } = require('../models/RetranslationProgress');
 const {
+  acquireDatabaseLock,
   acquireProgressLock,
   clearCheckpoint,
   getCompletedResult,
@@ -77,6 +80,22 @@ test('reset removes corrupted checkpoints before opening them', async () => {
   });
 });
 
+test('database retranslation locks renew their lease until released', async () => {
+  const findOneAndUpdate = sinon.stub(RetranslationRunLock, 'findOneAndUpdate').callsFake((filter, update) => ({
+    lean: async () => ({ owner: update.$set.owner }),
+  }));
+  const deleteOne = sinon.stub(RetranslationRunLock, 'deleteOne').resolves({ deletedCount: 1 });
+  const lock = await acquireDatabaseLock('test-retranslate-lock', 30);
+  try {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.ok(findOneAndUpdate.callCount > 1);
+  } finally {
+    await lock.release();
+    findOneAndUpdate.restore();
+    deleteOne.restore();
+  }
+});
+
 test('progress lock prevents concurrent translation processes', async () => {
   await withTempDirectory(directory => {
     const release = acquireProgressLock(directory);
@@ -93,8 +112,10 @@ test('checkpoint signatures change when translation options or database scope ch
     markCompleted(checkpoint, 'live:first', { validationErrors: ['quality_low'] });
     const changedOptions = openCheckpoint({ ...options, lang: 'vi' }, directory);
     const changedDatabase = openCheckpoint({ ...options, checkpointScope: 'other-database' }, directory);
+    const changedLimit = openCheckpoint({ ...options, limit: 500 }, directory);
 
     assert.equal(hasCompleted(changedOptions, 'live:first'), false);
     assert.equal(hasCompleted(changedDatabase, 'live:first'), false);
+    assert.equal(hasCompleted(changedLimit, 'live:first'), false);
   });
 });

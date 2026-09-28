@@ -9,6 +9,7 @@ const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const productTranslationLock = require('../utils/productTranslationLock');
 const translationValidationConfig = require('../config/translationValidation');
 const {
   clearCheckpoint,
@@ -231,6 +232,7 @@ class RetranslateSeeder {
         for (const translation of workGroups[groupIndex]) {
           if (stopScheduling) return;
 
+          let releaseProductLock;
           try {
             if (dryRun) {
               results.push({
@@ -278,12 +280,22 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
-              await markCompletedDurably(checkpoint, getWorkKey(translation), {
+              await markCompletedDurably(checkpoint, getWorkKey({
+                ...translation,
+                sourceHash: updatedTranslation.sourceHash || translation.sourceHash,
+              }), {
                 fixed: wasFixed,
                 validationErrors,
               });
               await renewDatabaseLock?.();
               continue;
+            }
+
+            if (PRODUCT_ENTITY_TYPES.has(translation.entityType) && translation.entityId) {
+              releaseProductLock = await productTranslationLock.acquireProductTranslationLock(
+                translation.entityId,
+                translation.targetLang,
+              );
             }
 
             const defaultLang = getDefaultLanguage().code;
@@ -471,20 +483,23 @@ class RetranslateSeeder {
             console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${recordLabel}": ${error.message}`);
             this.stats.errorCount++;
             const quotaExhausted = isCloudflareQuotaError(error);
+            const runLockLost = error.code === 'RETRANSLATE_LOCKED';
             if (quotaExhausted) {
               this.stats.quotaExceededCount++;
               console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
             }
+            if (runLockLost) stopScheduling = true;
             results.push({
               status: 'error',
               originalId: translation._id,
               error: error.message,
             });
-            if (quotaExhausted) {
+            if (quotaExhausted || runLockLost) {
               stopScheduling = true;
               break;
             }
           } finally {
+            await releaseProductLock?.();
             completedCount++;
             if (verbose) {
               const progress = Math.round((completedCount / limitedToRetranslate.length) * 100);

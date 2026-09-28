@@ -24,6 +24,8 @@ const { normalizeProductContentFields } = require('../utils/productImportValidat
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const TranslationCacheService = require('../services/translationCacheService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const retranslateProgress = require('../utils/retranslateProgress');
+const productTranslationLock = require('../utils/productTranslationLock');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 const pendingTranslations = new Map();
@@ -1278,6 +1280,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
 };
 
 exports.saveProductTranslation = async (req, res) => {
+  let releaseProductLock;
   try {
     const { id: productId } = req.params;
     const requestedLang = req.query.lang;
@@ -1311,6 +1314,7 @@ exports.saveProductTranslation = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PAYLOAD_INVALID', 'invalid_translation_data');
     }
 
+    releaseProductLock = await productTranslationLock.acquireProductTranslationLock(productId, lang);
     const [product, existing] = await Promise.all([
       Product.findById(productId).lean(),
       ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang: lang }).lean(),
@@ -1399,8 +1403,13 @@ exports.saveProductTranslation = async (req, res) => {
 
     return res.json({ success: true, data: translation });
   } catch (error) {
+    if (error.code === 'PRODUCT_TRANSLATION_LOCKED') {
+      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_BUSY', 'operation_failed');
+    }
     console.error('[TranslationController] Error saving product translation:', error);
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_SAVE_FAILED', 'product_save_failed');
+  } finally {
+    await releaseProductLock?.();
   }
 };
 
@@ -1740,6 +1749,7 @@ exports.importProductTranslationCache = async (req, res) => {
 };
 
 exports.retranslateProduct = async (req, res) => {
+  let databaseLock;
   try {
     const { id: productId } = req.params;
     const { lang: targetLang } = req.body || {};
@@ -1754,6 +1764,9 @@ exports.retranslateProduct = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
 
+    databaseLock = await retranslateProgress.acquireDatabaseLock(
+      retranslateProgress.getRetranslationLockKey(retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '')),
+    );
     const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
@@ -1774,8 +1787,13 @@ exports.retranslateProduct = async (req, res) => {
     if (error.code === 'PRODUCT_NOT_FOUND') {
       return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
     }
+    if (error.code === 'RETRANSLATE_LOCKED' || error.code === 'PRODUCT_TRANSLATION_LOCKED') {
+      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_BUSY', 'operation_failed');
+    }
     console.error('[TranslationController] Error retranslating product:', error);
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_FAILED', 'product_retranslate_failed');
+  } finally {
+    await databaseLock?.release();
   }
 };
 
@@ -1794,6 +1812,7 @@ const DYNAMIC_ENTITY_TYPES = new Set([
 ]);
 
 exports.retranslateDynamic = async (req, res) => {
+  let databaseLock;
   try {
     const { lang, limit = 100, entityType } = req.body || {};
     const parsedLimit = Number(limit);
@@ -1806,6 +1825,9 @@ exports.retranslateDynamic = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_DYNAMIC_ENTITY_TYPE_INVALID', 'dynamic_entity_type_invalid');
     }
 
+    databaseLock = await retranslateProgress.acquireDatabaseLock(
+      retranslateProgress.getRetranslationLockKey(retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '')),
+    );
     const result = await retranslateSeeder.retranslate({
       lang: lang || null,
       entityType,
@@ -1838,8 +1860,13 @@ exports.retranslateDynamic = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === 'RETRANSLATE_LOCKED') {
+      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_RETRANSLATE_BUSY', 'operation_failed');
+    }
     console.error('[TranslationController] Error retranslating dynamic translations:', error);
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_DYNAMIC_RETRANSLATE_FAILED', 'dynamic_retranslate_failed');
+  } finally {
+    await databaseLock?.release();
   }
 };
 

@@ -23,6 +23,7 @@ const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { getTranslationLockTtlSeconds } = require('../utils/productTranslationLock');
 
 const translationMemory = new Map();
 const getTranslationMemoryLimit = () => {
@@ -72,14 +73,6 @@ const getPercentile = (values, percentile) => {
   const index = Math.min(sorted.length - 1, Math.ceil((percentile / 100) * sorted.length) - 1);
   return sorted[index];
 };
-const getTranslationLockTtlSeconds = () => {
-  const configured = Number(process.env.PRODUCT_TRANSLATION_LOCK_TTL_SECONDS);
-  if (Number.isInteger(configured) && configured > 0) return configured;
-  const productConcurrency = Number(process.env.PRODUCT_TRANSLATION_CONCURRENCY || 1);
-  const languageConcurrency = Number(process.env.PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY || 1);
-  return Math.max(120, (productConcurrency * 60) + (languageConcurrency * 45));
-};
-
 class ProductTranslationSeederService {
   static async _translateDescription(text, sourceLang, targetLang) {
     const translation = await libretranslateProductService.translateWithFailover(
