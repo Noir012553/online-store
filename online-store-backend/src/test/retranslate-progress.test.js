@@ -187,6 +187,6 @@ test('checkpoint signatures change when translation options or database scope ch
 
     assert.equal(hasCompleted(changedOptions, 'live:first'), false);
     assert.equal(hasCompleted(changedDatabase, 'live:first'), false);
-    assert.equal(hasCompleted(changedLimit, 'live:first'), false);
+    assert.equal(hasCompleted(changedLimit, 'live:first'), true);
   });
 });

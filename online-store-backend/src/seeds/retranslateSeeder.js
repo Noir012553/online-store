@@ -525,8 +525,15 @@ class RetranslateSeeder {
     const allCandidatesCompleted = checkpoint && toRetranslate.every(
       translation => hasCompleted(checkpoint, getWorkKey(translation)),
     );
-    if (checkpoint && !dryRun && this.stats.errorCount === 0 && !stopScheduling && allCandidatesCompleted) {
-      clearCheckpoint(checkpoint);
+    if (
+      checkpoint
+      && !dryRun
+      && limit === 0
+      && this.stats.errorCount === 0
+      && !stopScheduling
+      && allCandidatesCompleted
+    ) {
+      await clearCheckpoint(checkpoint);
     }
 
     const fixedThisRun = this.stats.fixedCount - resumedFixedCount;

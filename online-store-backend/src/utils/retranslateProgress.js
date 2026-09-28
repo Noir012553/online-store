@@ -28,7 +28,7 @@ const getSignature = options => crypto
     filter: options.filter || {},
     lang: options.lang || null,
     entityType: options.entityType || null,
-    limit: options.limit || 0,
+    limit: 0,
     dryRun: Boolean(options.dryRun),
     validate: options.validate !== false,
     libreTranslateOnly: Boolean(options.libreTranslateOnly),
