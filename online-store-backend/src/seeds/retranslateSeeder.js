@@ -9,6 +9,7 @@ const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+const productTranslationLock = require('../utils/productTranslationLock');
 const translationValidationConfig = require('../config/translationValidation');
 const {
   clearCheckpoint,
@@ -231,6 +232,7 @@ class RetranslateSeeder {
         for (const translation of workGroups[groupIndex]) {
           if (stopScheduling) return;
 
+          let releaseProductLock;
           try {
             if (dryRun) {
               results.push({
@@ -287,6 +289,13 @@ class RetranslateSeeder {
               });
               await renewDatabaseLock?.();
               continue;
+            }
+
+            if (PRODUCT_ENTITY_TYPES.has(translation.entityType) && translation.entityId) {
+              releaseProductLock = await productTranslationLock.acquireProductTranslationLock(
+                translation.entityId,
+                translation.targetLang,
+              );
             }
 
             const defaultLang = getDefaultLanguage().code;
@@ -490,6 +499,7 @@ class RetranslateSeeder {
               break;
             }
           } finally {
+            await releaseProductLock?.();
             completedCount++;
             if (verbose) {
               const progress = Math.round((completedCount / limitedToRetranslate.length) * 100);
