@@ -10,7 +10,13 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const translationValidationConfig = require('../config/translationValidation');
-const { clearCheckpoint, getCompletedResult, hasCompleted, getWorkKey, markCompleted } = require('../utils/retranslateProgress');
+const {
+  clearCheckpoint,
+  getCompletedResult,
+  hasCompleted,
+  getWorkKey,
+  markCompletedDurably,
+} = require('../utils/retranslateProgress');
 
 const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
 const TRANSLATION_STATUSES = [
@@ -76,6 +82,7 @@ class RetranslateSeeder {
       libreTranslateOnly = false,
       concurrency = 3,
       checkpoint = null,
+      renewDatabaseLock = null,
     } = options;
 
     this.stats = {
@@ -271,10 +278,11 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
-              markCompleted(checkpoint, getWorkKey(translation), {
+              await markCompletedDurably(checkpoint, getWorkKey(translation), {
                 fixed: wasFixed,
                 validationErrors,
               });
+              await renewDatabaseLock?.();
               continue;
             }
 
@@ -451,10 +459,11 @@ class RetranslateSeeder {
               wasFixed,
               validationErrors: newValidationErrors,
             });
-            markCompleted(checkpoint, getWorkKey(translation), {
+            await markCompletedDurably(checkpoint, getWorkKey(translation), {
               fixed: wasFixed,
               validationErrors: newValidationErrors,
             });
+            await renewDatabaseLock?.();
           } catch (error) {
             const recordLabel = String(translation.name || translation.originalText || translation._id)
               .replace(/\s+/g, ' ')

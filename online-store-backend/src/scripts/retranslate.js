@@ -5,7 +5,14 @@ const { promisify } = require('node:util');
 const mongoose = require('mongoose');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { acquireProgressLock, openCheckpoint, removeCheckpoint } = require('../utils/retranslateProgress');
+const {
+  acquireDatabaseLock,
+  acquireProgressLock,
+  hydrateCheckpoint,
+  openCheckpoint,
+  removeCheckpoint,
+  removeDurableCheckpoint,
+} = require('../utils/retranslateProgress');
 const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
 
 const execFileAsync = promisify(execFile);
@@ -34,6 +41,7 @@ async function main() {
   let exitCode = 1;
   let shouldShutdown = false;
   let releaseProgressLock = null;
+  let databaseLock = null;
 
   try {
     if (shutdownAfter && process.platform !== 'win32') {
@@ -109,6 +117,12 @@ async function main() {
     // Connect to MongoDB
     console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
+    databaseLock = await acquireDatabaseLock(`retranslate:${options.checkpointScope}`);
+    if (resetProgress) {
+      await removeDurableCheckpoint(options);
+    }
+    await hydrateCheckpoint(options.checkpoint);
+    options.renewDatabaseLock = databaseLock.renew;
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
     // Run retranslation
@@ -135,6 +149,7 @@ async function main() {
     exitCode = 1;
   } finally {
     try {
+      await databaseLock?.release();
       await mongoose.connection.close();
     } finally {
       releaseProgressLock?.();
