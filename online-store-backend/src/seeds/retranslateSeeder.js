@@ -148,11 +148,16 @@ class RetranslateSeeder {
       ],
     };
 
+    const candidateFetchLimit = limit > 0 ? limit + (checkpoint?.completed.size || 0) : 0;
+    let liveQuery = LiveTranslationCache.find(query).sort({ createdAt: 1, _id: 1 });
+    let catalogQueryBuilder = ProductCatalogTranslationCache.find(catalogQuery).sort({ createdAt: 1, _id: 1 });
+    if (candidateFetchLimit > 0) {
+      liveQuery = liveQuery.limit(candidateFetchLimit);
+      catalogQueryBuilder = catalogQueryBuilder.limit(candidateFetchLimit);
+    }
     const [liveTranslations, catalogTranslations] = await Promise.all([
-      LiveTranslationCache.find(query).sort({ createdAt: 1, _id: 1 }).lean(),
-      requestedEntityType
-        ? []
-        : ProductCatalogTranslationCache.find(catalogQuery).sort({ createdAt: 1, _id: 1 }).lean(),
+      liveQuery.lean(),
+      requestedEntityType ? [] : catalogQueryBuilder.lean(),
     ]);
     const toRetranslate = [
       ...catalogTranslations.map(translation => ({ ...translation, retranslateSource: 'catalog' })),

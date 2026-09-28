@@ -121,6 +121,7 @@ const clearCheckpoint = checkpoint => {
 const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
   fs.mkdirSync(directory, { recursive: true });
   const lockPath = path.join(directory, 'retranslate.lock');
+  const recoveryPath = `${lockPath}.recovery`;
   const token = crypto.randomUUID();
   const lock = { pid: process.pid, hostname: os.hostname(), token };
   let descriptor;
@@ -135,16 +136,36 @@ const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
     } catch {
       throw new Error(`Retranslate lock is corrupted; inspect ${lockPath} before removing it`);
     }
-    if (existing.hostname !== os.hostname() || !Number.isInteger(existing.pid)) {
+    if (existing.hostname !== os.hostname() || !Number.isInteger(existing.pid) || typeof existing.token !== 'string') {
       throw new Error(`Retranslate is already running or its lock cannot be verified: ${lockPath}`);
     }
+
+    let recoveryDescriptor;
     try {
-      process.kill(existing.pid, 0);
-      throw new Error(`Retranslate is already running as process ${existing.pid}`);
-    } catch (processError) {
-      if (processError.code !== 'ESRCH') throw processError;
+      recoveryDescriptor = fs.openSync(recoveryPath, 'wx', 0o600);
+    } catch (recoveryError) {
+      if (recoveryError.code === 'EEXIST') {
+        throw new Error(`Retranslate lock recovery is already in progress: ${recoveryPath}`);
+      }
+      throw recoveryError;
     }
-    fs.unlinkSync(lockPath);
+
+    try {
+      const current = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      if (current.token !== existing.token) {
+        throw new Error(`Retranslate lock changed during recovery: ${lockPath}`);
+      }
+      try {
+        process.kill(current.pid, 0);
+        throw new Error(`Retranslate is already running as process ${current.pid}`);
+      } catch (processError) {
+        if (processError.code !== 'ESRCH') throw processError;
+      }
+      fs.unlinkSync(lockPath);
+    } finally {
+      fs.closeSync(recoveryDescriptor);
+      fs.unlinkSync(recoveryPath);
+    }
     descriptor = fs.openSync(lockPath, 'wx', 0o600);
   }
 
