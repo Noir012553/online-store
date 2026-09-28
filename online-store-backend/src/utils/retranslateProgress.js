@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const PROGRESS_DIRECTORY = path.resolve(__dirname, '../../.retranslate-progress');
@@ -23,6 +24,7 @@ const getSignature = options => crypto
     dryRun: Boolean(options.dryRun),
     validate: options.validate !== false,
     libreTranslateOnly: Boolean(options.libreTranslateOnly),
+    checkpointScope: options.checkpointScope || null,
   })))
   .digest('hex');
 
@@ -30,16 +32,19 @@ const getCheckpointPath = (options, directory = PROGRESS_DIRECTORY) => path.join
 
 const getWorkKey = translation => {
   if (translation.retranslateSource === 'catalog') {
-    return `catalog:${translation.targetLang}:${translation.entityId}`;
+    return `catalog:${translation.targetLang}:${translation.entityId}:${translation.sourceHash || 'unversioned'}`;
   }
-  const hashKey = String(translation.hashKey || '').replace(/(:v\d+)+$/, '');
-  return `live:${hashKey || translation._id}`;
+  const hashKey = String(translation.hashKey || '').replace(/(?::v[0-9]+)+$/, '');
+  const sourceHash = crypto.createHash('sha256')
+    .update(String(translation.originalText || translation.name || ''))
+    .digest('hex');
+  return `live:${hashKey || translation._id}:${sourceHash}`;
 };
 
 const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
   const signature = getSignature(options);
   const filePath = getCheckpointPath(options, directory);
-  const completedKeys = new Set();
+  const completed = new Map();
 
   if (fs.existsSync(filePath)) {
     const content = fs.readFileSync(filePath, 'utf8');
@@ -50,7 +55,7 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
     } catch {
       throw new Error(`Retranslate checkpoint is corrupted: ${filePath}`);
     }
-    if (header.type !== 'retranslate-checkpoint' || header.version !== 1 || header.signature !== signature) {
+    if (header.type !== 'retranslate-checkpoint' || header.version !== 2 || header.signature !== signature) {
       throw new Error(`Retranslate checkpoint does not match the current options: ${filePath}`);
     }
     let validContent = `${lines[0]}\n`;
@@ -58,7 +63,8 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
       if (!line) continue;
       try {
         const entry = JSON.parse(line);
-        if (typeof entry.key === 'string') completedKeys.add(entry.key);
+        if (typeof entry.key !== 'string') throw new Error('Checkpoint entry has no key');
+        completed.set(entry.key, { fixed: Boolean(entry.fixed), validationErrors: entry.validationErrors || [] });
         validContent += `${line}\n`;
       } catch {
         break;
@@ -67,19 +73,20 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
     if (content !== validContent) fs.writeFileSync(filePath, validContent, 'utf8');
   }
 
-  return { signature, filePath, completedKeys, initialized: fs.existsSync(filePath) };
+  return { signature, filePath, completed, initialized: fs.existsSync(filePath) };
 };
 
-const hasCompleted = (checkpoint, key) => Boolean(checkpoint?.completedKeys.has(key));
+const hasCompleted = (checkpoint, key) => Boolean(checkpoint?.completed.has(key));
+const getCompletedResult = (checkpoint, key) => checkpoint?.completed.get(key) || null;
 
-const markCompleted = (checkpoint, keys) => {
-  if (!checkpoint) return;
+const markCompleted = (checkpoint, key, result = {}) => {
+  if (!checkpoint || !key || checkpoint.completed.has(key)) return;
 
   if (!checkpoint.initialized) {
     fs.mkdirSync(path.dirname(checkpoint.filePath), { recursive: true });
     const header = JSON.stringify({
       type: 'retranslate-checkpoint',
-      version: 1,
+      version: 2,
       signature: checkpoint.signature,
     });
     const temporaryPath = `${checkpoint.filePath}.${process.pid}.tmp`;
@@ -88,11 +95,18 @@ const markCompleted = (checkpoint, keys) => {
     checkpoint.initialized = true;
   }
 
-  for (const key of keys.filter(Boolean)) {
-    if (checkpoint.completedKeys.has(key)) continue;
-    fs.appendFileSync(checkpoint.filePath, `${JSON.stringify({ key })}\n`, { encoding: 'utf8', mode: 0o600 });
-    checkpoint.completedKeys.add(key);
-  }
+  const entry = {
+    key,
+    fixed: Boolean(result.fixed),
+    validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
+  };
+  fs.appendFileSync(checkpoint.filePath, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', mode: 0o600 });
+  checkpoint.completed.set(key, entry);
+};
+
+const removeCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
+  const filePath = getCheckpointPath(options, directory);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 };
 
 const clearCheckpoint = checkpoint => {
@@ -100,8 +114,63 @@ const clearCheckpoint = checkpoint => {
   if (checkpoint.initialized && fs.existsSync(checkpoint.filePath)) {
     fs.unlinkSync(checkpoint.filePath);
   }
-  checkpoint.completedKeys.clear();
+  checkpoint.completed.clear();
   checkpoint.initialized = false;
 };
 
-module.exports = { openCheckpoint, hasCompleted, markCompleted, clearCheckpoint, getWorkKey };
+const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
+  fs.mkdirSync(directory, { recursive: true });
+  const lockPath = path.join(directory, 'retranslate.lock');
+  const token = crypto.randomUUID();
+  const lock = { pid: process.pid, hostname: os.hostname(), token };
+  let descriptor;
+
+  try {
+    descriptor = fs.openSync(lockPath, 'wx', 0o600);
+  } catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    let existing;
+    try {
+      existing = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+    } catch {
+      throw new Error(`Retranslate lock is corrupted; inspect ${lockPath} before removing it`);
+    }
+    if (existing.hostname !== os.hostname() || !Number.isInteger(existing.pid)) {
+      throw new Error(`Retranslate is already running or its lock cannot be verified: ${lockPath}`);
+    }
+    try {
+      process.kill(existing.pid, 0);
+      throw new Error(`Retranslate is already running as process ${existing.pid}`);
+    } catch (processError) {
+      if (processError.code !== 'ESRCH') throw processError;
+    }
+    fs.unlinkSync(lockPath);
+    descriptor = fs.openSync(lockPath, 'wx', 0o600);
+  }
+
+  try {
+    fs.writeFileSync(descriptor, JSON.stringify(lock), 'utf8');
+  } finally {
+    fs.closeSync(descriptor);
+  }
+
+  return () => {
+    try {
+      const current = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      if (current.token === token) fs.unlinkSync(lockPath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  };
+};
+
+module.exports = {
+  acquireProgressLock,
+  clearCheckpoint,
+  getCompletedResult,
+  getWorkKey,
+  hasCompleted,
+  markCompleted,
+  openCheckpoint,
+  removeCheckpoint,
+};

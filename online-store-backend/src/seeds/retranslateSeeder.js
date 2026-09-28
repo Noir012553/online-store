@@ -10,7 +10,7 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const translationValidationConfig = require('../config/translationValidation');
-const { clearCheckpoint, hasCompleted, getWorkKey, markCompleted } = require('../utils/retranslateProgress');
+const { clearCheckpoint, getCompletedResult, hasCompleted, getWorkKey, markCompleted } = require('../utils/retranslateProgress');
 
 const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
 const TRANSLATION_STATUSES = [
@@ -118,8 +118,13 @@ class RetranslateSeeder {
       $or: [
         { status: { $in: FAILED_TRANSLATION_STATUSES } },
         { qualityStatus: { $in: LIVE_RETRANSLATE_QUALITY_STATUSES } },
-        { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-        { validationErrors: { $exists: true, $ne: [] } },
+        {
+          qualityStatus: { $ne: 'approved' },
+          $or: [
+            { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
+            { validationErrors: { $exists: true, $ne: [] } },
+          ],
+        },
       ],
     };
 
@@ -133,8 +138,13 @@ class RetranslateSeeder {
       $or: [
         { status: { $in: CATALOG_RETRYABLE_STATUSES } },
         { qualityStatus: { $in: CATALOG_RETRANSLATE_QUALITY_STATUSES } },
-        { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-        { validationErrors: { $exists: true, $ne: [] } },
+        {
+          qualityStatus: { $ne: 'approved' },
+          $or: [
+            { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
+            { validationErrors: { $exists: true, $ne: [] } },
+          ],
+        },
       ],
     };
 
@@ -151,9 +161,22 @@ class RetranslateSeeder {
       new Date(left.createdAt || 0) - new Date(right.createdAt || 0)
       || String(left._id).localeCompare(String(right._id))
     ));
-    const resumedCount = checkpoint
-      ? toRetranslate.filter(translation => hasCompleted(checkpoint, getWorkKey(translation))).length
-      : 0;
+    const resumedResults = checkpoint
+      ? toRetranslate
+        .map(translation => ({ translation, result: getCompletedResult(checkpoint, getWorkKey(translation)) }))
+        .filter(({ result }) => result)
+      : [];
+    const resumedFixedCount = resumedResults.filter(({ result }) => result.fixed).length;
+    const resumedNeedsAttention = resumedResults.filter(({ result }) => !result.fixed);
+    this.stats.fixedCount = resumedFixedCount;
+    this.stats.stillBrokenCount = resumedNeedsAttention.length;
+    this.stats.stillBroken = resumedNeedsAttention.map(({ translation, result }) => ({
+      _id: translation._id,
+      originalText: translation.originalText || translation.name,
+      translatedText: translation.translatedText || translation.name,
+      validationErrors: result.validationErrors,
+    }));
+    const resumedCount = resumedResults.length;
     const pendingToRetranslate = toRetranslate.filter(
       translation => !hasCompleted(checkpoint, getWorkKey(translation)),
     );
@@ -243,7 +266,10 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
-              markCompleted(checkpoint, [getWorkKey(translation)]);
+              markCompleted(checkpoint, getWorkKey(translation), {
+                fixed: wasFixed,
+                validationErrors,
+              });
               continue;
             }
 
@@ -420,7 +446,10 @@ class RetranslateSeeder {
               wasFixed,
               validationErrors: newValidationErrors,
             });
-            markCompleted(checkpoint, [getWorkKey(translation)]);
+            markCompleted(checkpoint, getWorkKey(translation), {
+              fixed: wasFixed,
+              validationErrors: newValidationErrors,
+            });
           } catch (error) {
             const recordLabel = String(translation.name || translation.originalText || translation._id)
               .replace(/\s+/g, ' ')
@@ -454,11 +483,16 @@ class RetranslateSeeder {
     await Promise.all(
       Array.from({ length: Math.min(concurrency, workGroups.length) }, () => processNextGroup()),
     );
-    if (checkpoint && !dryRun && this.stats.errorCount === 0 && !stopScheduling && toRetranslate.length === 0) {
+    const allCandidatesCompleted = checkpoint && toRetranslate.every(
+      translation => hasCompleted(checkpoint, getWorkKey(translation)),
+    );
+    if (checkpoint && !dryRun && this.stats.errorCount === 0 && !stopScheduling && allCandidatesCompleted) {
       clearCheckpoint(checkpoint);
     }
 
-    this.stats.remainingCount = Math.max(0, pendingToRetranslate.length - this.stats.fixedCount);
+    const fixedThisRun = this.stats.fixedCount - resumedFixedCount;
+    this.stats.remainingCount = Math.max(0, pendingToRetranslate.length - fixedThisRun)
+      + resumedNeedsAttention.length;
 
     if (verbose) {
       console.log('\n');

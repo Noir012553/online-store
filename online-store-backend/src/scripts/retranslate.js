@@ -1,10 +1,11 @@
 require('dotenv').config();
+const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const mongoose = require('mongoose');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
-const { clearCheckpoint, openCheckpoint } = require('../utils/retranslateProgress');
+const { acquireProgressLock, openCheckpoint, removeCheckpoint } = require('../utils/retranslateProgress');
 const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
 
 const execFileAsync = promisify(execFile);
@@ -32,6 +33,7 @@ async function main() {
   const waitUntilUtcMidnight = args.includes('--wait-until-utc-midnight');
   let exitCode = 1;
   let shouldShutdown = false;
+  let releaseProgressLock = null;
 
   try {
     if (shutdownAfter && process.platform !== 'win32') {
@@ -78,16 +80,18 @@ async function main() {
       throw new Error('MONGO_URI is not set. Add it to .env or the PowerShell environment before running retranslate.');
     }
 
+    options.checkpointScope = crypto.createHash('sha256').update(process.env.MONGO_URI).digest('hex');
     const resetProgress = args.includes('--reset-progress');
     if (resetProgress && options.dryRun) {
       throw new Error('--reset-progress cannot be combined with --dry-run');
     }
     if (!options.dryRun) {
-      options.checkpoint = openCheckpoint(options);
+      releaseProgressLock = acquireProgressLock();
       if (resetProgress) {
-        clearCheckpoint(options.checkpoint);
+        removeCheckpoint(options);
         console.log('Retranslation checkpoint cleared. Starting from the beginning.');
       }
+      options.checkpoint = openCheckpoint(options);
     }
 
     if (waitUntilUtcMidnight) {
@@ -130,7 +134,11 @@ async function main() {
     console.error(`\n${CLI_SYMBOLS.error} Retranslation failed:`, error.message);
     exitCode = 1;
   } finally {
-    await mongoose.connection.close();
+    try {
+      await mongoose.connection.close();
+    } finally {
+      releaseProgressLock?.();
+    }
   }
 
   if (shouldShutdown) {
