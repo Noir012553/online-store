@@ -34,6 +34,7 @@ const {
 } = require('../services/translationHelper');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
@@ -1106,7 +1107,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     await Promise.all([
       ProductCatalogTranslationCache.updateMany(
         { entityId: String(updatedProduct._id) },
-        { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+        {
+          $set: {
+            qualityStatus: 'needs_retranslate',
+            validationErrors: ['source_content_changed'],
+            sourceHash: getProductTranslationSourceHash(updatedProduct),
+          },
+        },
       ),
       LiveTranslationCache.updateMany(
         { entityId: String(updatedProduct._id), entityType: { $in: productEntityTypes } },

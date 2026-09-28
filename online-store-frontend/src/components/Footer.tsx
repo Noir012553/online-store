@@ -202,12 +202,15 @@ export function Footer() {
           <div className="flex flex-col md:flex-row gap-8 sm:gap-12 mb-8 sm:mb-12">
             {/* Left Column: Brand, Inputs, Social Icons (3/10) */}
             <div className="md:flex-3">
-              <div className="flex items-center gap-2 mb-4 group">
-                <div className="bg-linear-to-br from-red-600 to-red-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-lg group-hover:shadow-red-600/50 transition-all duration-300">
-                  <span className="text-base sm:text-xl">{t('brand_initials', 'footer')}</span>
-                </div>
-                <span className="text-base sm:text-xl">{t('brand_name', 'footer')}</span>
-              </div>
+              <Link href="/" className="mb-4 inline-flex">
+                <Image
+                  src="/assets/branding/logo.png"
+                  alt={t('brand_name', 'footer')}
+                  width={220}
+                  height={80}
+                  className="logo-image h-14 w-auto max-w-full object-contain object-left sm:h-16"
+                />
+              </Link>
               <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 leading-relaxed">
                 {t('description', 'footer')}</p>
 
