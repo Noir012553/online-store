@@ -1,5 +1,4 @@
 require('dotenv').config();
-const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const mongoose = require('mongoose');
@@ -12,6 +11,8 @@ const {
   openCheckpoint,
   removeCheckpoint,
   removeDurableCheckpoint,
+  getDatabaseScope,
+  getRetranslationLockKey,
 } = require('../utils/retranslateProgress');
 const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
 
@@ -88,7 +89,7 @@ async function main() {
       throw new Error('MONGO_URI is not set. Add it to .env or the PowerShell environment before running retranslate.');
     }
 
-    options.checkpointScope = crypto.createHash('sha256').update(process.env.MONGO_URI).digest('hex');
+    options.checkpointScope = getDatabaseScope(process.env.MONGO_URI);
     const resetProgress = args.includes('--reset-progress');
     if (resetProgress && options.dryRun) {
       throw new Error('--reset-progress cannot be combined with --dry-run');
@@ -117,7 +118,7 @@ async function main() {
     // Connect to MongoDB
     console.log(`${CLI_SYMBOLS.connection} Connecting to MongoDB...`);
     await mongoose.connect(process.env.MONGO_URI);
-    databaseLock = await acquireDatabaseLock(`retranslate:${options.checkpointScope}`);
+    databaseLock = await acquireDatabaseLock(getRetranslationLockKey(options.checkpointScope));
     if (resetProgress) {
       await removeDurableCheckpoint(options);
     }

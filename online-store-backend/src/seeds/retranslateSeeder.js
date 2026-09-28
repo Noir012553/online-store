@@ -278,7 +278,10 @@ class RetranslateSeeder {
                 wasFixed,
                 validationErrors,
               });
-              await markCompletedDurably(checkpoint, getWorkKey(translation), {
+              await markCompletedDurably(checkpoint, getWorkKey({
+                ...translation,
+                sourceHash: updatedTranslation.sourceHash || translation.sourceHash,
+              }), {
                 fixed: wasFixed,
                 validationErrors,
               });
@@ -471,16 +474,18 @@ class RetranslateSeeder {
             console.error(`\n${CLI_SYMBOLS.error} Retranslation failed for "${recordLabel}": ${error.message}`);
             this.stats.errorCount++;
             const quotaExhausted = isCloudflareQuotaError(error);
+            const runLockLost = error.code === 'RETRANSLATE_LOCKED';
             if (quotaExhausted) {
               this.stats.quotaExceededCount++;
               console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
             }
+            if (runLockLost) stopScheduling = true;
             results.push({
               status: 'error',
               originalId: translation._id,
               error: error.message,
             });
-            if (quotaExhausted) {
+            if (quotaExhausted || runLockLost) {
               stopScheduling = true;
               break;
             }

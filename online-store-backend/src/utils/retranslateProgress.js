@@ -15,6 +15,13 @@ const sortObjectKeys = value => {
   }, {});
 };
 
+const getDatabaseScope = uri => crypto
+  .createHash('sha256')
+  .update(uri)
+  .digest('hex');
+
+const getRetranslationLockKey = scope => `retranslate:${scope}`;
+
 const getSignature = options => crypto
   .createHash('sha256')
   .update(JSON.stringify(sortObjectKeys({
@@ -161,28 +168,60 @@ const clearCheckpoint = checkpoint => {
 
 const acquireDatabaseLock = async (key, leaseMs = 10 * 60 * 1000) => {
   const owner = crypto.randomUUID();
+  const createLockedError = () => Object.assign(
+    new Error('Retranslate is already running for this database'),
+    { code: 'RETRANSLATE_LOCKED' },
+  );
   const renew = async () => {
-    const expiresAt = new Date(Date.now() + leaseMs);
-    const lock = await RetranslationRunLock.findOneAndUpdate(
-      { key, $or: [{ expiresAt: { $lte: new Date() } }, { owner }] },
-      { $set: { owner, expiresAt } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    ).lean();
-    if (!lock || lock.owner !== owner) {
-      throw new Error('Retranslate is already running for this database');
+    let lock;
+    try {
+      const expiresAt = new Date(Date.now() + leaseMs);
+      lock = await RetranslationRunLock.findOneAndUpdate(
+        { key, $or: [{ expiresAt: { $lte: new Date() } }, { owner }] },
+        { $set: { owner, expiresAt } },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      ).lean();
+    } catch (error) {
+      if (error?.code === 11000) throw createLockedError();
+      throw error;
     }
+    if (!lock || lock.owner !== owner) throw createLockedError();
   };
 
-  try {
-    await renew();
-  } catch (error) {
-    if (error?.code === 11000) throw new Error('Retranslate is already running for this database');
-    throw error;
-  }
+  await renew();
+
+  let heartbeatError = null;
+  let heartbeatInFlight = null;
+  const heartbeat = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = renew()
+      .then(() => {
+        heartbeatError = null;
+      })
+      .catch((error) => {
+        heartbeatError = error;
+      })
+      .finally(() => {
+        heartbeatInFlight = null;
+      });
+  }, Math.max(1, Math.floor(leaseMs / 3)));
+  heartbeat.unref?.();
 
   return {
-    renew,
-    release: () => RetranslationRunLock.deleteOne({ key, owner }),
+    renew: async () => {
+      try {
+        await renew();
+        heartbeatError = null;
+      } catch (error) {
+        heartbeatError = error;
+        throw error;
+      }
+    },
+    release: async () => {
+      clearInterval(heartbeat);
+      await heartbeatInFlight;
+      return RetranslationRunLock.deleteOne({ key, owner });
+    },
   };
 };
 
@@ -255,6 +294,8 @@ const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
 
 module.exports = {
   acquireDatabaseLock,
+  getDatabaseScope,
+  getRetranslationLockKey,
   acquireProgressLock,
   clearCheckpoint,
   getCompletedResult,

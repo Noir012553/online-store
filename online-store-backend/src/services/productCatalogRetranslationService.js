@@ -5,6 +5,7 @@ const translationValidator = require('../utils/translationValidator');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { refreshStorefrontReadiness } = require('./translationHelper');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { acquireProductTranslationLock } = require('../utils/productTranslationLock');
 
 const mapWithConcurrency = async (items, mapper, concurrency) => {
   const results = new Array(items.length);
@@ -19,7 +20,7 @@ const mapWithConcurrency = async (items, mapper, concurrency) => {
   return results;
 };
 
-const retranslateProduct = async (productId, targetLang, { libreTranslateOnly = false } = {}) => {
+const retranslateProductUnlocked = async (productId, targetLang, { libreTranslateOnly = false } = {}) => {
   const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 3);
   if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
     throw new Error('PRODUCT_RETRANSLATION_FIELD_CONCURRENCY must be a positive integer');
@@ -151,6 +152,15 @@ const retranslateProduct = async (productId, targetLang, { libreTranslateOnly = 
 
   await refreshStorefrontReadiness([productId]);
   return { translation, skippedManualFields: manualFields };
+};
+
+const retranslateProduct = async (productId, targetLang, options = {}) => {
+  const releaseLock = await acquireProductTranslationLock(productId, targetLang);
+  try {
+    return await retranslateProductUnlocked(productId, targetLang, options);
+  } finally {
+    await releaseLock();
+  }
 };
 
 module.exports = { retranslateProduct };
