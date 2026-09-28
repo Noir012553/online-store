@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { RetranslationProgress, RetranslationRunLock } = require('../models/RetranslationProgress');
 
 const PROGRESS_DIRECTORY = path.resolve(__dirname, '../../.retranslate-progress');
 
@@ -104,10 +105,50 @@ const markCompleted = (checkpoint, key, result = {}) => {
   checkpoint.completed.set(key, entry);
 };
 
+const hydrateCheckpoint = async checkpoint => {
+  if (!checkpoint) return checkpoint;
+  const localEntries = [...checkpoint.completed.entries()];
+  if (localEntries.length > 0) {
+    await RetranslationProgress.bulkWrite(localEntries.map(([key, result]) => ({
+      updateOne: {
+        filter: { signature: checkpoint.signature, key },
+        update: {
+          $set: {
+            fixed: Boolean(result.fixed),
+            validationErrors: result.validationErrors || [],
+          },
+        },
+        upsert: true,
+      },
+    })));
+  }
+  const records = await RetranslationProgress.find({ signature: checkpoint.signature }).lean();
+  records.forEach(({ key, fixed, validationErrors }) => {
+    checkpoint.completed.set(key, { fixed: Boolean(fixed), validationErrors: validationErrors || [] });
+  });
+  return checkpoint;
+};
+
+const markCompletedDurably = async (checkpoint, key, result = {}) => {
+  if (!checkpoint || !key || checkpoint.completed.has(key)) return;
+  const entry = {
+    fixed: Boolean(result.fixed),
+    validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
+  };
+  await RetranslationProgress.updateOne(
+    { signature: checkpoint.signature, key },
+    { $set: entry },
+    { upsert: true },
+  );
+  markCompleted(checkpoint, key, entry);
+};
+
 const removeCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
   const filePath = getCheckpointPath(options, directory);
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 };
+
+const removeDurableCheckpoint = options => RetranslationProgress.deleteMany({ signature: getSignature(options) });
 
 const clearCheckpoint = checkpoint => {
   if (!checkpoint) return;
@@ -116,6 +157,33 @@ const clearCheckpoint = checkpoint => {
   }
   checkpoint.completed.clear();
   checkpoint.initialized = false;
+};
+
+const acquireDatabaseLock = async (key, leaseMs = 10 * 60 * 1000) => {
+  const owner = crypto.randomUUID();
+  const renew = async () => {
+    const expiresAt = new Date(Date.now() + leaseMs);
+    const lock = await RetranslationRunLock.findOneAndUpdate(
+      { key, $or: [{ expiresAt: { $lte: new Date() } }, { owner }] },
+      { $set: { owner, expiresAt } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).lean();
+    if (!lock || lock.owner !== owner) {
+      throw new Error('Retranslate is already running for this database');
+    }
+  };
+
+  try {
+    await renew();
+  } catch (error) {
+    if (error?.code === 11000) throw new Error('Retranslate is already running for this database');
+    throw error;
+  }
+
+  return {
+    renew,
+    release: () => RetranslationRunLock.deleteOne({ key, owner }),
+  };
 };
 
 const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
@@ -186,12 +254,16 @@ const acquireProgressLock = (directory = PROGRESS_DIRECTORY) => {
 };
 
 module.exports = {
+  acquireDatabaseLock,
   acquireProgressLock,
   clearCheckpoint,
   getCompletedResult,
   getWorkKey,
   hasCompleted,
+  hydrateCheckpoint,
   markCompleted,
+  markCompletedDurably,
   openCheckpoint,
   removeCheckpoint,
+  removeDurableCheckpoint,
 };
