@@ -123,6 +123,12 @@ async function main() {
       await removeDurableCheckpoint(options);
     }
     await hydrateCheckpoint(options.checkpoint);
+    if (options.checkpoint) {
+      console.log(
+        `Restored ${options.checkpoint.completed.size} checkpoint entries `
+        + `(${options.checkpoint.durableCompletedCount} stored in MongoDB).`,
+      );
+    }
     options.renewDatabaseLock = databaseLock.renew;
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);
 
