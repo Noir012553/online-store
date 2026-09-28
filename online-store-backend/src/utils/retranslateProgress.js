@@ -94,11 +94,22 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
   return { signature, filePath, completed, initialized: fs.existsSync(filePath) };
 };
 
+const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) => openCheckpoint({
+  filter: {},
+  lang: null,
+  entityType: null,
+  limit: 0,
+  dryRun: false,
+  validate: true,
+  libreTranslateOnly: false,
+  checkpointScope,
+}, directory);
+
 const hasCompleted = (checkpoint, key) => Boolean(checkpoint?.completed.has(key));
 const getCompletedResult = (checkpoint, key) => checkpoint?.completed.get(key) || null;
 
-const markCompleted = (checkpoint, key, result = {}) => {
-  if (!checkpoint || !key || checkpoint.completed.has(key)) return;
+const markCompleted = (checkpoint, key, result = {}, replace = false) => {
+  if (!checkpoint || !key || (checkpoint.completed.has(key) && !replace)) return;
 
   if (!checkpoint.initialized) {
     fs.mkdirSync(path.dirname(checkpoint.filePath), { recursive: true });
@@ -154,8 +165,8 @@ const hydrateCheckpoint = async checkpoint => {
   return checkpoint;
 };
 
-const markCompletedDurably = async (checkpoint, key, result = {}) => {
-  if (!checkpoint || !key || checkpoint.completed.has(key)) return;
+const markCompletedDurably = async (checkpoint, key, result = {}, replace = false) => {
+  if (!checkpoint || !key || (checkpoint.completed.has(key) && !replace)) return;
   const entry = {
     fixed: Boolean(result.fixed),
     validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
@@ -166,7 +177,7 @@ const markCompletedDurably = async (checkpoint, key, result = {}) => {
     { $set: entry },
     { upsert: true },
   );
-  markCompleted(checkpoint, key, entry);
+  markCompleted(checkpoint, key, entry, replace);
 };
 
 const removeCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
@@ -219,7 +230,7 @@ const acquireDatabaseLock = async (key, leaseMs = 10 * 60 * 1000) => {
       lock = await RetranslationRunLock.findOneAndUpdate(
         { key, $or: [{ expiresAt: { $lte: new Date() } }, { owner }] },
         { $set: { owner, expiresAt } },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
       ).lean();
     } catch (error) {
       if (error?.code === 11000) throw createLockedError();
@@ -347,6 +358,7 @@ module.exports = {
   markCompleted,
   markCompletedDurably,
   openCheckpoint,
+  openProductCheckpoint,
   removeCheckpoint,
   removeDurableCheckpoint,
 };

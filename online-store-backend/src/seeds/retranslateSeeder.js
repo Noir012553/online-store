@@ -1,6 +1,7 @@
 const TranslationQualityLog = require('../models/TranslationQualityLog');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const Product = require('../models/Product');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const libretranslateProductService = require('../services/libretranslateProductService');
@@ -11,6 +12,7 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const productTranslationLock = require('../utils/productTranslationLock');
 const translationValidationConfig = require('../config/translationValidation');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const {
   clearCheckpoint,
   clearProductFieldCheckpoint,
@@ -171,10 +173,54 @@ class RetranslateSeeder {
       liveQuery.lean(),
       requestedEntityType ? [] : catalogQueryBuilder.lean(),
     ]);
-    const toRetranslate = [
+    const candidates = [
       ...catalogTranslations.map(translation => ({ ...translation, retranslateSource: 'catalog' })),
       ...liveTranslations.map(translation => ({ ...translation, retranslateSource: 'live' })),
     ].sort((left, right) => (
+      new Date(left.createdAt || 0) - new Date(right.createdAt || 0)
+      || String(left._id).localeCompare(String(right._id))
+    ));
+    const productCandidates = new Map();
+    const toRetranslate = [];
+    candidates.forEach((translation) => {
+      const isProductTranslation = !requestedEntityType
+        && translation.entityId
+        && (translation.retranslateSource === 'catalog' || PRODUCT_ENTITY_TYPES.has(translation.entityType));
+      if (!isProductTranslation) {
+        toRetranslate.push(translation);
+        return;
+      }
+      const key = JSON.stringify([translation.targetLang, String(translation.entityId)]);
+      const group = productCandidates.get(key) || [];
+      group.push(translation);
+      productCandidates.set(key, group);
+    });
+
+    if (productCandidates.size > 0) {
+      const productIds = [...new Set([...productCandidates.values()].flatMap(group => group.map(({ entityId }) => String(entityId))))];
+      const products = dryRun
+        ? []
+        : await Product.find({ _id: { $in: productIds } })
+          .select('name description brand specs technicalDescription descriptionImages promotions')
+          .lean();
+      const productsById = new Map(products.map(product => [String(product._id), product]));
+
+      for (const group of productCandidates.values()) {
+        const first = group[0];
+        const catalog = group.find(({ retranslateSource }) => retranslateSource === 'catalog');
+        const product = productsById.get(String(first.entityId));
+        toRetranslate.push({
+          ...first,
+          entityId: String(first.entityId),
+          sourceHash: product
+            ? getProductTranslationSourceHash(product)
+            : catalog?.sourceHash || first.sourceHash,
+          retranslateSource: 'catalog',
+        });
+      }
+    }
+
+    toRetranslate.sort((left, right) => (
       new Date(left.createdAt || 0) - new Date(right.createdAt || 0)
       || String(left._id).localeCompare(String(right._id))
     ));

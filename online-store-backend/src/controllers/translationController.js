@@ -1764,13 +1764,33 @@ exports.retranslateProduct = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_SOURCE_LANGUAGE_INVALID', 'source_language_invalid');
     }
 
+    const checkpointScope = retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '');
     databaseLock = await retranslateProgress.acquireDatabaseLock(
-      retranslateProgress.getRetranslationLockKey(retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '')),
+      retranslateProgress.getRetranslationLockKey(checkpointScope),
     );
+    const checkpoint = retranslateProgress.openProductCheckpoint(checkpointScope);
+    await retranslateProgress.hydrateCheckpoint(checkpoint);
     const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
+      { checkpoint },
     );
+    const validationErrors = translation.validationErrors || [];
+    await retranslateProgress.markCompletedDurably(
+      checkpoint,
+      retranslateProgress.getWorkKey({
+        retranslateSource: 'catalog',
+        targetLang,
+        entityId: productId,
+        sourceHash: translation.sourceHash,
+      }),
+      {
+        fixed: translation.qualityStatus === 'approved' && validationErrors.length === 0,
+        validationErrors,
+      },
+      true,
+    );
+    await retranslateProgress.clearProductFieldCheckpoint(checkpoint, productId, targetLang);
 
     return res.json({
       success: true,
