@@ -1751,12 +1751,13 @@ exports.importProductTranslationCache = async (req, res) => {
 exports.retranslateProduct = async (req, res) => {
   let databaseLock;
   try {
-    const { id: productId } = req.params;
+    const { id: requestedProductId } = req.params;
     const { lang: targetLang } = req.body || {};
 
-    if (!isProductId(productId)) {
+    if (!isProductId(requestedProductId)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_ID_INVALID', 'product_id_invalid');
     }
+    const productId = requestedProductId.toLowerCase();
     if (typeof targetLang !== 'string' || !SUPPORTED_LANG_CODES.includes(targetLang)) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_TARGET_LANGUAGE_INVALID', 'target_language_invalid');
     }

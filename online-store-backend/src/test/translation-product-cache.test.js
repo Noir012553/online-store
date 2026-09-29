@@ -1021,7 +1021,7 @@ describe('Product translation cache controller', () => {
 
   it('uses the shared product checkpoint for admin retranslation', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-product-retranslate-'));
-    const productId = new mongoose.Types.ObjectId().toString();
+    const productId = 'abcdefabcdefabcdefabcdef';
     const targetLang = 'en';
     const sourceHash = 'current-source';
     const checkpointScope = retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '');
@@ -1044,7 +1044,7 @@ describe('Product translation cache controller', () => {
 
     try {
       await retranslateProduct({
-        params: { id: productId },
+        params: { id: productId.toUpperCase() },
         body: { lang: targetLang },
         lang: 'en',
       }, res);

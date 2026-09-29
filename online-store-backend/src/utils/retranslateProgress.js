@@ -76,24 +76,26 @@ const loadCheckpointFile = (filePath, signature, completed) => {
   if (header.type !== 'retranslate-checkpoint' || header.version !== 2 || header.signature !== signature) {
     throw new Error(`Retranslate checkpoint does not match the current options: ${filePath}`);
   }
+  const fileEntries = new Map();
   let validContent = `${lines[0]}\n`;
   for (const line of lines.slice(1)) {
     if (!line) continue;
     try {
       const entry = JSON.parse(line);
       if (typeof entry.key !== 'string') throw new Error('Checkpoint entry has no key');
-      if (!completed.has(entry.key)) {
-        completed.set(entry.key, {
-          fixed: Boolean(entry.fixed),
-          validationErrors: entry.validationErrors || [],
-          ...(entry.payload === undefined ? {} : { payload: entry.payload }),
-        });
-      }
+      fileEntries.set(entry.key, {
+        fixed: Boolean(entry.fixed),
+        validationErrors: entry.validationErrors || [],
+        ...(entry.payload === undefined ? {} : { payload: entry.payload }),
+      });
       validContent += `${line}\n`;
     } catch {
       break;
     }
   }
+  fileEntries.forEach((result, key) => {
+    if (!completed.has(key)) completed.set(key, result);
+  });
   if (content !== validContent) fs.writeFileSync(filePath, validContent, 'utf8');
   return true;
 };

@@ -43,6 +43,18 @@ test('live translation versions share a checkpoint only while source text is unc
   assert.notEqual(second, changedSource);
 });
 
+test('checkpoint replay uses the latest update for each key', async () => {
+  await withTempDirectory(directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    markCompleted(checkpoint, 'live:first', { fixed: true, validationErrors: [] });
+    markCompleted(checkpoint, 'live:first', { fixed: false, validationErrors: ['quality_low'] }, true);
+
+    const resumed = openCheckpoint(options, directory);
+    assert.equal(getCompletedResult(resumed, 'live:first').fixed, false);
+    assert.deepEqual(getCompletedResult(resumed, 'live:first').validationErrors, ['quality_low']);
+  });
+});
+
 test('checkpoint resumes completed catalog records after process restart', async () => {
   await withTempDirectory(directory => {
     const checkpoint = openCheckpoint(options, directory);
