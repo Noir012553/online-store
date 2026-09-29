@@ -86,7 +86,7 @@ LIBRETRANSLATE_URL=http://127.0.0.1:5001
 LIBRETRANSLATE_TIMEOUT_MS=30000
 LIBRETRANSLATE_RETRIES=2
 LIBRETRANSLATE_RETRY_DELAY_MS=1000
-LIBRETRANSLATE_MAX_PARALLEL_REQUESTS=2
+LIBRETRANSLATE_MAX_PARALLEL_REQUESTS=3
 LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
 LIBRETRANSLATE_API_KEY=
 ```
@@ -99,7 +99,9 @@ LIBRETRANSLATE_API_KEY=
 - `LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=true`: cho phép failover sau khi Cloudflare retry và rotate config thất bại vì rate limit/quota.
 - `LIBRETRANSLATE_AS_PRIMARY_APPROVED` được giữ để tương thích cấu hình cũ nhưng không còn chặn quality score; trạng thái vẫn do validator quyết định.
 - `LIBRETRANSLATE_URL`: URL API local hoặc remote đã được bảo vệ.
-- `LIBRETRANSLATE_MAX_PARALLEL_REQUESTS`: giới hạn request đồng thời tới LibreTranslate trong mỗi backend process; mặc định `2`.
+- `LIBRETRANSLATE_MAX_PARALLEL_REQUESTS`: giới hạn request đồng thời tới LibreTranslate trong mỗi backend process; mặc định `3`.
+- `LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE`: giới hạn chia đoạn đầu vào; mỗi request bị chặn ở mức tối đa `6000` ký tự.
+- Standalone CLI `libretranslate-tool` mặc định dịch 3 sản phẩm song song; client dùng chung giới hạn tối đa 3 request đồng thời.
 - `LIBRETRANSLATE_API_KEY`: chỉ cần khi instance yêu cầu API key.
 
 Không đặt secret thật trong `.env.example` hoặc Git.

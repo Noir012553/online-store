@@ -13,8 +13,8 @@ Options:
   --url URL                    LibreTranslate base URL
   --timeout-ms NUMBER          Request timeout (default: 30000)
   --retries NUMBER             Retries for transient failures (default: 2)
-  --concurrency NUMBER         Products translated in parallel (default: 1)
-  --description-chunk-size N   Maximum description chunk size (default: 6000)
+  --concurrency NUMBER         Products translated in parallel (default: 3)
+  --description-chunk-size N   Maximum description chunk size (default: 6000, hard cap: 6000)
 `;
 
 const parseArgs = (argv) => {
@@ -83,7 +83,7 @@ const run = async () => {
     }),
     sourceLang: args.source || process.env.LIBRETRANSLATE_SOURCE_LANG || 'vi',
     targetLang: args.target,
-    concurrency: Number(args.concurrency || process.env.LIBRETRANSLATE_CONCURRENCY || 1),
+    concurrency: Number(args.concurrency || process.env.LIBRETRANSLATE_CONCURRENCY || 3),
     descriptionChunkSize: Number(args.description_chunk_size || process.env.LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE || 6000),
   };
 

@@ -8,7 +8,23 @@ test('splitText keeps all content and prefers word boundaries', () => {
   const source = 'one two three four five six seven eight';
   const chunks = splitText(source, 12);
   assert.equal(chunks.join(''), source);
-  assert.ok(chunks.every((chunk) => chunk.length <= 12 || chunk === chunks.at(-1)));
+  assert.ok(chunks.every((chunk) => chunk.length <= 12));
+});
+
+test('splitText caps chunks at 6000 characters', () => {
+  const source = 'a'.repeat(6005);
+  const chunks = splitText(source, 7000);
+
+  assert.deepEqual(chunks.map((chunk) => chunk.length), [6000, 5]);
+  assert.equal(chunks.join(''), source);
+});
+
+test('splitText never exceeds the chunk limit at a punctuation boundary', () => {
+  const source = `${'a'.repeat(5999)}. ${'b'.repeat(10)}`;
+  const chunks = splitText(source, 6000);
+
+  assert.ok(chunks.every((chunk) => chunk.length <= 6000));
+  assert.equal(chunks.join(''), source);
 });
 
 test('translateProduct preserves whitespace between translated chunks', async () => {
@@ -54,13 +70,13 @@ test('LibreTranslateClient supports local HTTP endpoints', async () => {
   }
 });
 
-test('LibreTranslateClient allows two parallel requests by default', () => {
+test('LibreTranslateClient allows three parallel requests by default', () => {
   const previousLimit = process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
   delete process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
 
   try {
     const client = new LibreTranslateClient();
-    assert.equal(client.maxParallelRequests, 2);
+    assert.equal(client.maxParallelRequests, 3);
   } finally {
     if (previousLimit === undefined) delete process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
     else process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS = previousLimit;

@@ -2,19 +2,20 @@ const DEFAULT_DESCRIPTION_CHUNK_SIZE = 6000;
 const TRANSLATABLE_PROMOTION_FIELDS = ['title', 'giftProductName', 'scope', 'discountText'];
 
 const splitText = (text, maxLength = DEFAULT_DESCRIPTION_CHUNK_SIZE) => {
-  if (text.length <= maxLength) return [text];
+  const chunkLimit = Math.min(maxLength, DEFAULT_DESCRIPTION_CHUNK_SIZE);
+  if (text.length <= chunkLimit) return [text];
 
   const chunks = [];
   let start = 0;
   while (start < text.length) {
-    let end = Math.min(start + maxLength, text.length);
+    let end = Math.min(start + chunkLimit, text.length);
     if (end < text.length) {
       const boundary = Math.max(
-        text.lastIndexOf('\n', end),
-        text.lastIndexOf('. ', end),
-        text.lastIndexOf('! ', end),
-        text.lastIndexOf('? ', end),
-        text.lastIndexOf(' ', end),
+        text.lastIndexOf('\n', end - 1),
+        text.lastIndexOf('. ', end - 2),
+        text.lastIndexOf('! ', end - 2),
+        text.lastIndexOf('? ', end - 2),
+        text.lastIndexOf(' ', end - 1),
       );
       if (boundary > start) {
         const boundaryText = text.slice(boundary, boundary + 2);
