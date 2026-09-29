@@ -63,49 +63,53 @@ const getProductFieldWorkKey = ({ productId, targetLang, field, source }) => {
   return `product-field:${targetLang}:${productId}:${fieldHash}:${sourceHash}`;
 };
 
-const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
-  const signature = getSignature(options);
-  const filePath = getCheckpointPath(options, directory);
-  const completed = new Map();
-
-  if (fs.existsSync(filePath)) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split(/\r?\n/);
-    let header;
+const loadCheckpointFile = (filePath, signature, completed) => {
+  if (!fs.existsSync(filePath)) return false;
+  const content = fs.readFileSync(filePath, 'utf8');
+  const lines = content.split(/\r?\n/);
+  let header;
+  try {
+    header = JSON.parse(lines[0]);
+  } catch {
+    throw new Error(`Retranslate checkpoint is corrupted: ${filePath}`);
+  }
+  if (header.type !== 'retranslate-checkpoint' || header.version !== 2 || header.signature !== signature) {
+    throw new Error(`Retranslate checkpoint does not match the current options: ${filePath}`);
+  }
+  let validContent = `${lines[0]}\n`;
+  for (const line of lines.slice(1)) {
+    if (!line) continue;
     try {
-      header = JSON.parse(lines[0]);
-    } catch {
-      throw new Error(`Retranslate checkpoint is corrupted: ${filePath}`);
-    }
-    if (header.type !== 'retranslate-checkpoint' || header.version !== 2 || header.signature !== signature) {
-      throw new Error(`Retranslate checkpoint does not match the current options: ${filePath}`);
-    }
-    let validContent = `${lines[0]}\n`;
-    for (const line of lines.slice(1)) {
-      if (!line) continue;
-      try {
-        const entry = JSON.parse(line);
-        if (typeof entry.key !== 'string') throw new Error('Checkpoint entry has no key');
+      const entry = JSON.parse(line);
+      if (typeof entry.key !== 'string') throw new Error('Checkpoint entry has no key');
+      if (!completed.has(entry.key)) {
         completed.set(entry.key, {
           fixed: Boolean(entry.fixed),
           validationErrors: entry.validationErrors || [],
           ...(entry.payload === undefined ? {} : { payload: entry.payload }),
         });
-        validContent += `${line}\n`;
-      } catch {
-        break;
       }
+      validContent += `${line}\n`;
+    } catch {
+      break;
     }
-    if (content !== validContent) fs.writeFileSync(filePath, validContent, 'utf8');
   }
+  if (content !== validContent) fs.writeFileSync(filePath, validContent, 'utf8');
+  return true;
+};
 
-  return {
-    signature,
-    legacySignatures: [...new Set(getLegacySignatures(options))],
-    filePath,
-    completed,
-    initialized: fs.existsSync(filePath),
-  };
+const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
+  const signature = getSignature(options);
+  const filePath = getCheckpointPath(options, directory);
+  const legacySignatures = [...new Set(getLegacySignatures(options))];
+  const completed = new Map();
+  const initialized = loadCheckpointFile(filePath, signature, completed);
+  const legacyFilePaths = legacySignatures.map(legacySignature => path.join(directory, `${legacySignature}.jsonl`));
+  legacyFilePaths.forEach((legacyFilePath, index) => {
+    loadCheckpointFile(legacyFilePath, legacySignatures[index], completed);
+  });
+
+  return { signature, legacySignatures, legacyFilePaths, filePath, completed, initialized };
 };
 
 const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) => openCheckpoint({
@@ -153,41 +157,73 @@ const hydrateCheckpoint = async checkpoint => {
   const records = await RetranslationProgress.find({
     signature: { $in: [checkpoint.signature, ...(checkpoint.legacySignatures || [])] },
   }).lean();
-  const currentKeys = new Set(records
+  const recordsByKey = new Map(records
     .filter(record => record.signature === checkpoint.signature)
-    .map(({ key }) => key));
+    .map(record => [record.key, record]));
   const legacyRecords = records.filter(record => record.signature !== checkpoint.signature);
-  const recordsToMigrate = legacyRecords.filter(record => !currentKeys.has(record.key));
+  const recordsToMigrate = legacyRecords.filter(record => !recordsByKey.has(record.key));
   if (recordsToMigrate.length > 0) {
-    await RetranslationProgress.bulkWrite(recordsToMigrate.map(({ key, fixed, validationErrors, payload }) => ({
+    await RetranslationProgress.bulkWrite(recordsToMigrate.map(({ key, fixed, validationErrors, payload, deleted }) => ({
       updateOne: {
         filter: { signature: checkpoint.signature, key },
         update: {
           $set: {
             fixed: Boolean(fixed),
             validationErrors: validationErrors || [],
-            ...(payload === undefined || payload === null ? {} : { payload }),
+            payload: payload ?? null,
+            deleted: Boolean(deleted),
           },
         },
         upsert: true,
       },
     })));
+    recordsToMigrate.forEach(record => recordsByKey.set(record.key, { ...record, signature: checkpoint.signature }));
   }
   if (legacyRecords.length > 0) {
     await RetranslationProgress.deleteMany({ signature: { $in: checkpoint.legacySignatures } });
   }
+
+  const localEntries = [...checkpoint.completed.entries()]
+    .filter(([key]) => !recordsByKey.has(key));
+  if (localEntries.length > 0) {
+    await RetranslationProgress.bulkWrite(localEntries.map(([key, result]) => ({
+      updateOne: {
+        filter: { signature: checkpoint.signature, key },
+        update: {
+          $set: {
+            fixed: Boolean(result.fixed),
+            validationErrors: result.validationErrors || [],
+            payload: result.payload ?? null,
+            deleted: false,
+          },
+        },
+        upsert: true,
+      },
+    })));
+    localEntries.forEach(([key, result]) => recordsByKey.set(key, {
+      key,
+      signature: checkpoint.signature,
+      ...result,
+      deleted: false,
+    }));
+  }
+
   checkpoint.completed.clear();
-  checkpoint.durableCompletedCount = new Set(records.map(({ key }) => key)).size;
-  records
-    .filter(record => record.signature === checkpoint.signature || !currentKeys.has(record.key))
-    .forEach(({ key, fixed, validationErrors, payload }) => {
+  for (const [key, record] of recordsByKey) {
+    if (!record.deleted) {
       checkpoint.completed.set(key, {
-        fixed: Boolean(fixed),
-        validationErrors: validationErrors || [],
-        ...(payload === undefined || payload === null ? {} : { payload }),
+        fixed: Boolean(record.fixed),
+        validationErrors: record.validationErrors || [],
+        ...(record.payload === undefined || record.payload === null ? {} : { payload: record.payload }),
       });
-    });
+    }
+  }
+  checkpoint.durableCompletedCount = checkpoint.completed.size;
+  checkpoint.initialized = checkpoint.initialized || checkpoint.completed.size > 0;
   persistCheckpoint(checkpoint);
+  checkpoint.legacyFilePaths?.forEach(filePath => {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  });
   return checkpoint;
 };
 
@@ -200,7 +236,7 @@ const markCompletedDurably = async (checkpoint, key, result = {}, replace = fals
   };
   await RetranslationProgress.updateOne(
     { signature: checkpoint.signature, key },
-    { $set: entry },
+    { $set: { ...entry, deleted: false } },
     { upsert: true },
   );
   markCompleted(checkpoint, key, entry, replace);
@@ -233,7 +269,13 @@ const persistCheckpoint = checkpoint => {
 
 const clearCheckpointEntries = async (checkpoint, keys) => {
   if (!checkpoint || keys.length === 0) return;
-  await RetranslationProgress.deleteMany({ signature: checkpoint.signature, key: { $in: keys } });
+  await RetranslationProgress.bulkWrite(keys.map(key => ({
+    updateOne: {
+      filter: { signature: checkpoint.signature, key },
+      update: { $set: { deleted: true, payload: null } },
+      upsert: true,
+    },
+  })));
   keys.forEach(key => checkpoint.completed.delete(key));
   persistCheckpoint(checkpoint);
 };
