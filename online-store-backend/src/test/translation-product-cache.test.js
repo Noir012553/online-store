@@ -26,6 +26,7 @@ const retranslateProgress = require('../utils/retranslateProgress');
 const {
   getProductFieldWorkKey,
   getWorkKey,
+  openProductCheckpoint,
   hasCompleted,
   markCompleted,
   openCheckpoint,
@@ -55,6 +56,14 @@ describe('Product translation cache controller', () => {
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     sandbox.stub(retranslateProgress, 'acquireDatabaseLock').resolves({ release: async () => {} });
+    sandbox.stub(retranslateProgress, 'openProductCheckpoint').returns({
+      signature: 'test-product-checkpoint',
+      completed: new Map(),
+      initialized: false,
+    });
+    sandbox.stub(retranslateProgress, 'hydrateCheckpoint').resolves();
+    sandbox.stub(retranslateProgress, 'markCompletedDurably').resolves();
+    sandbox.stub(retranslateProgress, 'clearProductFieldCheckpoint').resolves();
   });
 
   afterEach(() => {
@@ -97,6 +106,131 @@ describe('Product translation cache controller', () => {
     );
   });
 
+  it('keeps completed progress after a limited batch', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-limited-'));
+    const candidate = {
+      _id: new mongoose.Types.ObjectId(),
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: targetLanguage.code,
+      sourceHash: 'source-v1',
+      name: 'Product',
+      qualityStatus: 'needs_retranslate',
+      validationErrors: ['needs_retranslate'],
+    };
+    const checkpointOptions = {
+      filter: {},
+      lang: null,
+      entityType: null,
+      limit: 1,
+      dryRun: false,
+      validate: true,
+      libreTranslateOnly: false,
+    };
+    const checkpoint = openCheckpoint(checkpointOptions, directory);
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([candidate]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: candidate.entityId, name: 'Source product' }]),
+    });
+    sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation: { ...candidate, qualityStatus: 'approved', validationErrors: [] },
+      skippedManualFields: [],
+    });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    const deleteMany = sandbox.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    try {
+      await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
+      expect(deleteMany.called).to.be.false;
+      expect(fs.existsSync(checkpoint.filePath)).to.be.true;
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('deduplicates catalog and field-cache candidates into one product-language job', async () => {
+    const entityId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(entityId),
+      name: 'Source product',
+      description: 'Source description',
+      technicalDescription: '',
+      specs: {},
+      descriptionImages: [],
+      promotions: [],
+    };
+    const catalogCandidate = {
+      _id: new mongoose.Types.ObjectId(),
+      entityId,
+      targetLang: targetLanguage.code,
+      sourceHash: 'old-source-hash',
+      name: 'Old product translation',
+      qualityStatus: 'needs_retranslate',
+      validationErrors: ['needs_retranslate'],
+    };
+    const fieldCandidates = ['product_name', 'product_description'].map((entityType, index) => ({
+      _id: new mongoose.Types.ObjectId(),
+      hashKey: `field-${index}`,
+      originalText: `Field ${index}`,
+      translatedText: `Old field translation ${index}`,
+      targetLang: targetLanguage.code,
+      entityId,
+      entityType,
+      qualityStatus: 'needs_retranslate',
+      validationErrors: ['needs_retranslate'],
+    }));
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(fieldCandidates),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([catalogCandidate]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
+    let activeJobs = 0;
+    let maxActiveJobs = 0;
+    const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').callsFake(async () => {
+      activeJobs++;
+      maxActiveJobs = Math.max(maxActiveJobs, activeJobs);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      activeJobs--;
+      return {
+        translation: {
+          ...catalogCandidate,
+          sourceHash: getProductTranslationSourceHash(product),
+          qualityStatus: 'approved',
+          validationErrors: [],
+        },
+        skippedManualFields: [],
+      };
+    });
+    sandbox.stub(translationReporter, 'printRetranslateReport');
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ concurrency: 2, verbose: false });
+
+    expect(result.stats.totalToRetranslate).to.equal(1);
+    expect(retranslateProduct.calledOnce).to.be.true;
+    expect(maxActiveJobs).to.equal(1);
+  });
+
   it('retranslates matching catalog records through the product retranslation service', async () => {
     const qualityStatuses = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues;
     const needsRetranslate = qualityStatuses.find(status => /retranslat|reject/i.test(status));
@@ -116,6 +250,10 @@ describe('Product translation cache controller', () => {
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
       sort: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([candidate]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: candidate.entityId, name: 'Source product' }]),
     });
     const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: { ...candidate, qualityStatus: approved, validationErrors: [] },
@@ -138,9 +276,14 @@ describe('Product translation cache controller', () => {
 
   it('resumes a catalog translation using the source hash saved by retranslation', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-catalog-'));
+    const product = {
+      _id: new mongoose.Types.ObjectId(),
+      name: 'Source product',
+      specs: {},
+    };
     const candidate = {
       _id: new mongoose.Types.ObjectId(),
-      entityId: new mongoose.Types.ObjectId().toString(),
+      entityId: product._id.toString(),
       targetLang: targetLanguage.code,
       sourceHash: 'source-before',
       name: 'Product',
@@ -166,13 +309,17 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([{ ...candidate, sourceHash }]),
     });
     sandbox.stub(LiveTranslationCache, 'find').returns(emptyLiveQuery);
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
     const catalogFind = sandbox.stub(ProductCatalogTranslationCache, 'find');
     catalogFind.onFirstCall().returns(catalogQuery('source-before'));
     catalogFind.onSecondCall().returns(catalogQuery('source-after'));
     sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: {
         ...candidate,
-        sourceHash: 'source-after',
+        sourceHash: getProductTranslationSourceHash(product),
         qualityStatus: 'needs_retranslate',
         validationErrors: ['needs_retranslate'],
       },
@@ -187,7 +334,7 @@ describe('Product translation cache controller', () => {
       await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
       expect(hasCompleted(checkpoint, getWorkKey({
         ...candidate,
-        sourceHash: 'source-after',
+        sourceHash: getProductTranslationSourceHash(product),
         retranslateSource: 'catalog',
       }))).to.equal(true);
 
@@ -269,6 +416,7 @@ describe('Product translation cache controller', () => {
       maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 2 });
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
@@ -438,30 +586,35 @@ describe('Product translation cache controller', () => {
     });
   });
 
-  it('stores LibreTranslate as the final provider when Cloudflare is overloaded during retranslation', async () => {
-    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
-    const translation = {
-      _id: new mongoose.Types.ObjectId(),
-      hashKey: 'retranslate-hash',
-      originalText: 'Laptop source',
-      translatedText: 'Old translation',
-      sourceLang: getDefaultLanguage().code,
-      targetLang: targetLanguage.code,
-      entityId: new mongoose.Types.ObjectId().toString(),
-      entityType: 'product_name',
-      qualityScore: 10,
-      validationErrors: ['needs_retranslate'],
+  it('syncs product retranslation status back to superseded field-cache records', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Laptop source',
+      description: '',
+      specs: {},
+      descriptionImages: [],
+      promotions: [],
     };
-    sandbox.stub(LiveTranslationCache, 'find').returns({
-      sort: sandbox.stub().returnsThis(),
-      limit: sandbox.stub().returnsThis(),
-      lean: sandbox.stub().resolves([translation]),
+    const targetLang = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code).code;
+    sandbox.stub(Product, 'findById').returns({ lean: sandbox.stub().resolves(product) });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({ manualFields: [] }),
+    });
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({ qualityStatus: 'approved', validationErrors: [] }),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
-      sort: sandbox.stub().returnsThis(),
-      limit: sandbox.stub().returnsThis(),
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    const updateMany = sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 1 });
     sandbox.stub(libretranslateProductService, 'translateWithFailover').resolves({
       translatedText: 'Laptop traduit',
       provider: 'libretranslate',
@@ -473,27 +626,23 @@ describe('Product translation cache controller', () => {
       qualityScore: 100,
       validationErrors: [],
     });
-    sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({ _id: new mongoose.Types.ObjectId() });
-    sandbox.stub(LiveTranslationCache, 'updateOne').resolves({ modifiedCount: 1 });
-    sandbox.stub(TranslationQualityLog, 'create').resolves({});
-    sandbox.stub(ProductTranslationSeederService, '_syncProductCatalogTranslations').resolves();
-    sandbox.stub(translationReporter, 'printRetranslateReport');
-    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
-    sandbox.stub(translationReporter, 'saveReport');
-
     sandbox.stub(productTranslationLock, 'acquireProductTranslationLock').resolves(async () => {});
-    const result = await retranslateSeeder.retranslate({ verbose: false, limit: 1 });
-    const savedVersion = LiveTranslationCache.findOneAndUpdate.firstCall.args[1].$setOnInsert;
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('test-lock');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves(true);
 
-    expect(result.success).to.equal(true);
-    expect(result.stats.remainingCount).to.equal(0);
-    expect(savedVersion).to.include({
+    await productCatalogRetranslationService.retranslateProduct(productId, targetLang);
+
+    const savedCatalog = findOneAndUpdate.firstCall.args[1].$set;
+    const syncQuery = updateMany.firstCall.args[0];
+    const syncUpdate = updateMany.firstCall.args[1].$set;
+    expect(savedCatalog).to.include({
       provider: 'libretranslate',
       providerSource: 'secondary_failover',
-      status: 'translated_via_libre',
       failoverReason: 'cloudflare_overload',
     });
-    expect(savedVersion.metadata).to.deep.equal({ secondary_provider: true });
+    expect(syncQuery).to.include({ entityId: productId, targetLang });
+    expect(syncUpdate).to.include({ qualityStatus: 'retranslated' });
   });
 
   it('stops when Cloudflare quota is exhausted and reports unfinished translations', async () => {
@@ -786,6 +935,7 @@ describe('Product translation cache controller', () => {
       maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
@@ -868,6 +1018,46 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].code).to.equal('TRANSLATION_RETRANSLATE_BUSY');
   });
 
+  it('uses the shared product checkpoint for admin retranslation', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-product-retranslate-'));
+    const productId = new mongoose.Types.ObjectId().toString();
+    const targetLang = 'en';
+    const sourceHash = 'current-source';
+    const checkpointScope = retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '');
+    const checkpoint = openProductCheckpoint(checkpointScope, directory);
+    const translation = {
+      entityId: productId,
+      targetLang,
+      sourceHash,
+      qualityStatus: 'approved',
+      validationErrors: [],
+    };
+    retranslateProgress.openProductCheckpoint.returns(checkpoint);
+    const markCompletedDurably = retranslateProgress.markCompletedDurably;
+    markCompletedDurably.resetHistory();
+    const retranslate = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation,
+      skippedManualFields: [],
+    });
+    const res = createResponse();
+
+    try {
+      await retranslateProduct({
+        params: { id: productId },
+        body: { lang: targetLang },
+        lang: 'en',
+      }, res);
+
+      expect(retranslate.calledOnceWith(productId, targetLang, { checkpoint })).to.be.true;
+      expect(markCompletedDurably.firstCall.args[1]).to.equal(
+        `catalog:${targetLang}:${productId}:${sourceHash}`,
+      );
+      expect(res.json.calledOnce).to.be.true;
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it('rejects catalog retranslation while the product seeder holds its lock', async () => {
     sandbox.stub(distributedLockService, 'initialize').resolves();
     sandbox.stub(distributedLockService, 'acquireLock').resolves(null);
@@ -926,6 +1116,7 @@ describe('Product translation cache controller', () => {
       maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
@@ -1004,6 +1195,7 @@ describe('Product translation cache controller', () => {
       maxTimeMS: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
+    sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 

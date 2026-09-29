@@ -1,7 +1,9 @@
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const libretranslateProductService = require('./libretranslateProductService');
 const translationValidator = require('../utils/translationValidator');
+const translationValidationConfig = require('../config/translationValidation');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { refreshStorefrontReadiness } = require('./translationHelper');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
@@ -11,6 +13,19 @@ const {
   getProductFieldWorkKey,
   markCompletedDurably,
 } = require('../utils/retranslateProgress');
+
+const PRODUCT_ENTITY_TYPES = [
+  'product_name',
+  'product_description',
+  'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
+];
+const FAILED_TRANSLATION_STATUSES = LiveTranslationCache.schema.path('status').enumValues
+  .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
+const RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qualityStatus').enumValues
+  .filter(status => /retranslat|reject/i.test(status));
 
 const mapWithConcurrency = async (items, mapper, concurrency) => {
   const results = new Array(items.length);
@@ -187,6 +202,28 @@ const retranslateProductUnlocked = async (
     },
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   ).lean();
+
+  await LiveTranslationCache.updateMany({
+    entityId: String(productId),
+    targetLang,
+    entityType: { $in: PRODUCT_ENTITY_TYPES },
+    $or: [
+      { status: { $in: FAILED_TRANSLATION_STATUSES } },
+      { qualityStatus: { $in: RETRANSLATE_QUALITY_STATUSES } },
+      {
+        qualityStatus: { $ne: 'approved' },
+        $or: [
+          { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
+          { validationErrors: { $exists: true, $ne: [] } },
+        ],
+      },
+    ],
+  }, {
+    $set: {
+      qualityStatus: 'retranslated',
+      reviewNotes: `Superseded by product translation ${sourceHash}`,
+    },
+  });
 
   await refreshStorefrontReadiness([productId]);
   return { translation, skippedManualFields: manualFields };

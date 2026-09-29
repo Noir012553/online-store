@@ -16,6 +16,7 @@ const {
   hasCompleted,
   markCompleted,
   openCheckpoint,
+  openProductCheckpoint,
   hydrateCheckpoint,
   removeCheckpoint,
 } = require('../utils/retranslateProgress');
@@ -177,6 +178,24 @@ test('progress lock prevents concurrent translation processes', async () => {
   });
 });
 
+test('admin and CLI product jobs use the same checkpoint signature', async () => {
+  await withTempDirectory(directory => {
+    const cliCheckpoint = openCheckpoint({
+      filter: {},
+      lang: null,
+      entityType: null,
+      limit: 0,
+      dryRun: false,
+      validate: true,
+      libreTranslateOnly: false,
+      checkpointScope: 'shared-database',
+    }, directory);
+    const adminCheckpoint = openProductCheckpoint('shared-database', directory);
+
+    assert.equal(adminCheckpoint.signature, cliCheckpoint.signature);
+  });
+});
+
 test('checkpoint signatures change when translation options or database scope changes', async () => {
   await withTempDirectory(directory => {
     const checkpoint = openCheckpoint(options, directory);
@@ -187,6 +206,6 @@ test('checkpoint signatures change when translation options or database scope ch
 
     assert.equal(hasCompleted(changedOptions, 'live:first'), false);
     assert.equal(hasCompleted(changedDatabase, 'live:first'), false);
-    assert.equal(hasCompleted(changedLimit, 'live:first'), false);
+    assert.equal(hasCompleted(changedLimit, 'live:first'), true);
   });
 });
