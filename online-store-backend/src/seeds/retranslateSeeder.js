@@ -14,7 +14,7 @@ const productTranslationLock = require('../utils/productTranslationLock');
 const translationValidationConfig = require('../config/translationValidation');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const {
-  clearCheckpoint,
+  clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
   getCompletedResult,
   hasCompleted,
@@ -252,12 +252,10 @@ class RetranslateSeeder {
     if (verbose) {
       console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION PROCESS`);
       console.log(CLI_SYMBOLS.divider.repeat(55));
-      console.log(`\n${CLI_SYMBOLS.search} Found ${limitedToRetranslate.length} translations to retranslate`);
-      console.log(`   Product catalog: ${catalogTranslations.length}; field cache: ${liveTranslations.length}`);
+      console.log(`\n${CLI_SYMBOLS.search} Matched ${toRetranslate.length} product translation jobs`);
+      console.log(`   Completed checkpoint: ${resumedCount}; remaining this run: ${limitedToRetranslate.length}`);
+      console.log(`   Source records: product catalog ${catalogTranslations.length}; field cache ${liveTranslations.length}`);
       console.log(`   Batch concurrency: ${concurrency}`);
-      if (resumedCount > 0) {
-        console.log(`   Resuming: skipped ${resumedCount} completed translations`);
-      }
     }
 
     const results = [];
@@ -579,7 +577,7 @@ class RetranslateSeeder {
       && !stopScheduling
       && allCandidatesCompleted
     ) {
-      await clearCheckpoint(checkpoint);
+      await clearFixedCheckpointEntries(checkpoint);
     }
 
     const fixedThisRun = this.stats.fixedCount - resumedFixedCount;

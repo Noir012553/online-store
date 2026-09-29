@@ -11,6 +11,7 @@ const {
   openCheckpoint,
   removeCheckpoint,
   removeDurableCheckpoint,
+  clearUnfixedCheckpointEntries,
   getDatabaseScope,
   getRetranslationLockKey,
 } = require('../utils/retranslateProgress');
@@ -59,6 +60,7 @@ async function main() {
       verbose: true,
       concurrency: 3,
       libreTranslateOnly: args.includes('--libretranslate-only'),
+      retryUnresolved: args.includes('--retry-unresolved'),
     };
 
     // Parse filter
@@ -91,8 +93,14 @@ async function main() {
 
     options.checkpointScope = getDatabaseScope(process.env.MONGO_URI);
     const resetProgress = args.includes('--reset-progress');
-    if (resetProgress && options.dryRun) {
-      throw new Error('--reset-progress cannot be combined with --dry-run');
+    if ((resetProgress || options.retryUnresolved) && options.dryRun) {
+      throw new Error('--reset-progress and --retry-unresolved cannot be combined with --dry-run');
+    }
+    if (resetProgress && options.retryUnresolved) {
+      throw new Error('--reset-progress cannot be combined with --retry-unresolved');
+    }
+    if (options.retryUnresolved && options.limit > 0) {
+      throw new Error('--retry-unresolved cannot be combined with --limit');
     }
     if (!options.dryRun) {
       releaseProgressLock = acquireProgressLock();
@@ -128,6 +136,13 @@ async function main() {
         `Restored ${options.checkpoint.completed.size} checkpoint entries `
         + `(${options.checkpoint.durableCompletedCount} stored in MongoDB).`,
       );
+      if (options.retryUnresolved) {
+        const retryCount = await clearUnfixedCheckpointEntries(options.checkpoint, {
+          lang: options.lang,
+          filter: options.filter,
+        });
+        console.log(`Cleared ${retryCount} unresolved completed item(s) for an explicit retry.`);
+      }
     }
     options.renewDatabaseLock = databaseLock.renew;
     console.log(`${CLI_SYMBOLS.success} Connected to MongoDB\n`);

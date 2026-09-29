@@ -10,6 +10,7 @@ const {
   acquireProgressLock,
   clearCheckpoint,
   clearProductFieldCheckpoint,
+  clearUnfixedCheckpointEntries,
   getCompletedResult,
   getProductFieldWorkKey,
   getWorkKey,
@@ -94,6 +95,71 @@ test('checkpoint hydrate restores durable field payloads from MongoDB', async ()
     bulkWrite.restore();
     find.restore();
   }
+});
+
+test('checkpoint signatures are shared across language filters', async () => {
+  await withTempDirectory(directory => {
+    const allLanguages = openCheckpoint({ ...options, checkpointScope: 'shared-database' }, directory);
+    const oneLanguage = openCheckpoint({ ...options, lang: 'en', checkpointScope: 'shared-database' }, directory);
+    assert.equal(allLanguages.signature, oneLanguage.signature);
+  });
+});
+
+test('checkpoint hydration migrates records from the former language-specific signature', async () => {
+  const key = 'catalog:en:product-1:source-v1';
+  const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+  const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+  let checkpoint;
+  const find = sinon.stub(RetranslationProgress, 'find').callsFake(() => ({
+    lean: async () => [{
+      signature: checkpoint.legacySignatures[0],
+      key,
+      fixed: false,
+      validationErrors: ['quality_low'],
+    }],
+  }));
+  checkpoint = openCheckpoint({ ...options, lang: 'en' }, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-legacy-')));
+
+  try {
+    await hydrateCheckpoint(checkpoint);
+    assert.equal(hasCompleted(checkpoint, key), true);
+    assert.equal(bulkWrite.firstCall.args[0][0].updateOne.filter.signature, checkpoint.signature);
+    assert.deepEqual(deleteMany.firstCall.args[0], { signature: { $in: checkpoint.legacySignatures } });
+  } finally {
+    fs.rmSync(path.dirname(checkpoint.filePath), { recursive: true, force: true });
+    bulkWrite.restore();
+    deleteMany.restore();
+    find.restore();
+  }
+});
+
+test('retrying unresolved work clears its product field payloads but preserves fixed work', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const unresolvedKey = 'catalog:en:product-1:source-v1';
+    const fieldKey = getProductFieldWorkKey({
+      productId: 'product-1',
+      targetLang: 'en',
+      field: 'name',
+      source: 'Source name',
+    });
+    markCompleted(checkpoint, unresolvedKey, { fixed: false, validationErrors: ['quality_low'] });
+    markCompleted(checkpoint, fieldKey, { payload: { value: 'Old result' } });
+    markCompleted(checkpoint, 'catalog:fr:product-2:source-v1', { fixed: false });
+    markCompleted(checkpoint, 'catalog:de:product-3:source-v1', { fixed: true });
+    const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 2 });
+
+    try {
+      assert.equal(await clearUnfixedCheckpointEntries(checkpoint, { lang: 'en' }), 1);
+      assert.equal(hasCompleted(checkpoint, unresolvedKey), false);
+      assert.equal(hasCompleted(checkpoint, fieldKey), false);
+      assert.equal(hasCompleted(checkpoint, 'catalog:fr:product-2:source-v1'), true);
+      assert.equal(hasCompleted(checkpoint, 'catalog:de:product-3:source-v1'), true);
+      assert.equal(deleteMany.callCount, 2);
+    } finally {
+      deleteMany.restore();
+    }
+  });
 });
 
 test('checkpoint ignores a partial final record and can be reset explicitly', async () => {
@@ -204,7 +270,7 @@ test('checkpoint signatures change when translation options or database scope ch
     const changedDatabase = openCheckpoint({ ...options, checkpointScope: 'other-database' }, directory);
     const changedLimit = openCheckpoint({ ...options, limit: 500 }, directory);
 
-    assert.equal(hasCompleted(changedOptions, 'live:first'), false);
+    assert.equal(hasCompleted(changedOptions, 'live:first'), true);
     assert.equal(hasCompleted(changedDatabase, 'live:first'), false);
     assert.equal(hasCompleted(changedLimit, 'live:first'), true);
   });

@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { RetranslationProgress, RetranslationRunLock } = require('../models/RetranslationProgress');
+const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 
 const PROGRESS_DIRECTORY = path.resolve(__dirname, '../../.retranslate-progress');
 
@@ -22,19 +23,26 @@ const getDatabaseScope = uri => crypto
 
 const getRetranslationLockKey = scope => `retranslate:${scope}`;
 
-const getSignature = options => crypto
+const getSignaturePayload = options => ({
+  filter: options.filter || {},
+  lang: options.lang || null,
+  entityType: options.entityType || null,
+  limit: 0,
+  dryRun: Boolean(options.dryRun),
+  validate: options.validate !== false,
+  libreTranslateOnly: Boolean(options.libreTranslateOnly),
+  checkpointScope: options.checkpointScope || null,
+});
+
+const hashSignature = payload => crypto
   .createHash('sha256')
-  .update(JSON.stringify(sortObjectKeys({
-    filter: options.filter || {},
-    lang: options.lang || null,
-    entityType: options.entityType || null,
-    limit: 0,
-    dryRun: Boolean(options.dryRun),
-    validate: options.validate !== false,
-    libreTranslateOnly: Boolean(options.libreTranslateOnly),
-    checkpointScope: options.checkpointScope || null,
-  })))
+  .update(JSON.stringify(sortObjectKeys(payload)))
   .digest('hex');
+
+const getSignature = options => hashSignature({ ...getSignaturePayload(options), lang: null });
+const getLegacySignatures = options => [null, ...SUPPORTED_LANGUAGES.map(({ code }) => code)]
+  .map(lang => hashSignature({ ...getSignaturePayload(options), lang }))
+  .filter(signature => signature !== getSignature(options));
 
 const getCheckpointPath = (options, directory = PROGRESS_DIRECTORY) => path.join(directory, `${getSignature(options)}.jsonl`);
 
@@ -91,7 +99,13 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
     if (content !== validContent) fs.writeFileSync(filePath, validContent, 'utf8');
   }
 
-  return { signature, filePath, completed, initialized: fs.existsSync(filePath) };
+  return {
+    signature,
+    legacySignatures: [...new Set(getLegacySignatures(options))],
+    filePath,
+    completed,
+    initialized: fs.existsSync(filePath),
+  };
 };
 
 const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) => openCheckpoint({
@@ -153,15 +167,49 @@ const hydrateCheckpoint = async checkpoint => {
     })));
   }
   checkpoint.localCompletedCount = localEntries.length;
-  const records = await RetranslationProgress.find({ signature: checkpoint.signature }).lean();
-  checkpoint.durableCompletedCount = records.length;
-  records.forEach(({ key, fixed, validationErrors, payload }) => {
-    checkpoint.completed.set(key, {
-      fixed: Boolean(fixed),
-      validationErrors: validationErrors || [],
-      ...(payload === undefined || payload === null ? {} : { payload }),
+  const records = await RetranslationProgress.find({
+    signature: { $in: [checkpoint.signature, ...(checkpoint.legacySignatures || [])] },
+  }).lean();
+  const currentKeys = new Set(records
+    .filter(record => record.signature === checkpoint.signature)
+    .map(({ key }) => key));
+  const legacyRecords = records.filter(record => record.signature !== checkpoint.signature);
+  const recordsToMigrate = legacyRecords.filter(record => !currentKeys.has(record.key));
+  if (recordsToMigrate.length > 0) {
+    await RetranslationProgress.bulkWrite(recordsToMigrate.map(({ key, fixed, validationErrors, payload }) => ({
+      updateOne: {
+        filter: { signature: checkpoint.signature, key },
+        update: {
+          $set: {
+            fixed: Boolean(fixed),
+            validationErrors: validationErrors || [],
+            ...(payload === undefined || payload === null ? {} : { payload }),
+          },
+        },
+        upsert: true,
+      },
+    })));
+    recordsToMigrate.forEach(({ key, fixed, validationErrors, payload }) => {
+      markCompleted(checkpoint, key, {
+        fixed: Boolean(fixed),
+        validationErrors: validationErrors || [],
+        ...(payload === undefined || payload === null ? {} : { payload }),
+      }, true);
     });
-  });
+  }
+  if (legacyRecords.length > 0) {
+    await RetranslationProgress.deleteMany({ signature: { $in: checkpoint.legacySignatures } });
+  }
+  checkpoint.durableCompletedCount = new Set(records.map(({ key }) => key)).size;
+  records
+    .filter(record => record.signature === checkpoint.signature || !currentKeys.has(record.key))
+    .forEach(({ key, fixed, validationErrors, payload }) => {
+      checkpoint.completed.set(key, {
+        fixed: Boolean(fixed),
+        validationErrors: validationErrors || [],
+        ...(payload === undefined || payload === null ? {} : { payload }),
+      });
+    });
   return checkpoint;
 };
 
@@ -181,31 +229,85 @@ const markCompletedDurably = async (checkpoint, key, result = {}, replace = fals
 };
 
 const removeCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
-  const filePath = getCheckpointPath(options, directory);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  const filePaths = [getSignature(options), ...getLegacySignatures(options)]
+    .map(signature => path.join(directory, `${signature}.jsonl`));
+  filePaths.forEach(filePath => {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  });
 };
 
-const removeDurableCheckpoint = options => RetranslationProgress.deleteMany({ signature: getSignature(options) });
+const removeDurableCheckpoint = options => RetranslationProgress.deleteMany({
+  signature: { $in: [getSignature(options), ...getLegacySignatures(options)] },
+});
+
+const persistCheckpoint = checkpoint => {
+  if (!checkpoint?.initialized || !fs.existsSync(checkpoint.filePath)) return;
+  const header = JSON.stringify({
+    type: 'retranslate-checkpoint',
+    version: 2,
+    signature: checkpoint.signature,
+  });
+  const entries = [...checkpoint.completed].map(([key, result]) => JSON.stringify({ key, ...result }));
+  const temporaryPath = `${checkpoint.filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporaryPath, `${header}\n${entries.length ? `${entries.join('\n')}\n` : ''}`, { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(temporaryPath, checkpoint.filePath);
+};
+
+const clearCheckpointEntries = async (checkpoint, keys) => {
+  if (!checkpoint || keys.length === 0) return;
+  await RetranslationProgress.deleteMany({ signature: checkpoint.signature, key: { $in: keys } });
+  keys.forEach(key => checkpoint.completed.delete(key));
+  persistCheckpoint(checkpoint);
+};
 
 const clearProductFieldCheckpoint = async (checkpoint, productId, targetLang) => {
   if (!checkpoint) return;
   const prefix = `product-field:${targetLang}:${productId}:`;
   const keys = [...checkpoint.completed.keys()].filter(key => key.startsWith(prefix));
-  if (keys.length === 0) return;
+  await clearCheckpointEntries(checkpoint, keys);
+};
 
-  await RetranslationProgress.deleteMany({ signature: checkpoint.signature, key: { $in: keys } });
-  keys.forEach(key => checkpoint.completed.delete(key));
-  if (checkpoint.initialized && fs.existsSync(checkpoint.filePath)) {
-    const header = JSON.stringify({
-      type: 'retranslate-checkpoint',
-      version: 2,
-      signature: checkpoint.signature,
-    });
-    const entries = [...checkpoint.completed].map(([key, result]) => JSON.stringify({ key, ...result }));
-    const temporaryPath = `${checkpoint.filePath}.${process.pid}.tmp`;
-    fs.writeFileSync(temporaryPath, `${header}\n${entries.length ? `${entries.join('\n')}\n` : ''}`, { encoding: 'utf8', mode: 0o600 });
-    fs.renameSync(temporaryPath, checkpoint.filePath);
-  }
+const clearProductRetranslationCheckpoint = async (checkpoint, productId, targetLang) => {
+  if (!checkpoint) return;
+  const prefixes = [
+    `catalog:${targetLang}:${productId}:`,
+    `product-field:${targetLang}:${productId}:`,
+  ];
+  const keys = [...checkpoint.completed.keys()].filter(key => prefixes.some(prefix => key.startsWith(prefix)));
+  await clearCheckpointEntries(checkpoint, keys);
+};
+
+const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter = {} } = {}) => {
+  if (!checkpoint) return 0;
+  const unresolvedKeys = [...checkpoint.completed]
+    .filter(([key, result]) => (
+      !key.startsWith('product-field:')
+      && !result.fixed
+      && (!lang || key.startsWith(`catalog:${lang}:`))
+      && (!filter.validationErrors || result.validationErrors.includes(filter.validationErrors))
+    ))
+    .map(([key]) => key);
+  const productJobs = new Set(unresolvedKeys
+    .filter(key => key.startsWith('catalog:'))
+    .map(key => {
+      const [, targetLang, productId] = key.split(':');
+      return JSON.stringify([productId, targetLang]);
+    }));
+
+  await clearCheckpointEntries(checkpoint, unresolvedKeys);
+  await Promise.all([...productJobs].map(job => {
+    const [productId, targetLang] = JSON.parse(job);
+    return clearProductFieldCheckpoint(checkpoint, productId, targetLang);
+  }));
+  return unresolvedKeys.length;
+};
+
+const clearFixedCheckpointEntries = async checkpoint => {
+  if (!checkpoint) return;
+  const fixedKeys = [...checkpoint.completed]
+    .filter(([, result]) => result.fixed)
+    .map(([key]) => key);
+  await clearCheckpointEntries(checkpoint, fixedKeys);
 };
 
 const clearCheckpoint = checkpoint => {
@@ -349,7 +451,11 @@ module.exports = {
   getRetranslationLockKey,
   acquireProgressLock,
   clearCheckpoint,
+  clearCheckpointEntries,
+  clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
+  clearProductRetranslationCheckpoint,
+  clearUnfixedCheckpointEntries,
   getCompletedResult,
   getWorkKey,
   getProductFieldWorkKey,

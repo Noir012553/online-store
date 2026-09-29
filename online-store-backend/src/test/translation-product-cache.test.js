@@ -64,6 +64,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(retranslateProgress, 'hydrateCheckpoint').resolves();
     sandbox.stub(retranslateProgress, 'markCompletedDurably').resolves();
     sandbox.stub(retranslateProgress, 'clearProductFieldCheckpoint').resolves();
+    sandbox.stub(retranslateProgress, 'clearProductRetranslationCheckpoint').resolves();
   });
 
   afterEach(() => {
@@ -1049,6 +1050,7 @@ describe('Product translation cache controller', () => {
       }, res);
 
       expect(retranslate.calledOnceWith(productId, targetLang, { checkpoint })).to.be.true;
+      expect(retranslateProgress.clearProductRetranslationCheckpoint.firstCall.calledBefore(retranslate.firstCall)).to.be.true;
       expect(markCompletedDurably.firstCall.args[1]).to.equal(
         `catalog:${targetLang}:${productId}:${sourceHash}`,
       );

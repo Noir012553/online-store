@@ -1770,6 +1770,7 @@ exports.retranslateProduct = async (req, res) => {
     );
     const checkpoint = retranslateProgress.openProductCheckpoint(checkpointScope);
     await retranslateProgress.hydrateCheckpoint(checkpoint);
+    await retranslateProgress.clearProductRetranslationCheckpoint(checkpoint, productId, targetLang);
     const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
