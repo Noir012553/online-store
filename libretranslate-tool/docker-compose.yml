@@ -28,7 +28,7 @@ services:
       - vi,en,pt,fr,de,it,es,nl,sv
       - --update-models
       - --threads
-      - "1"
+      - "2"
     volumes:
       - libretranslate_models:/home/libretranslate/.local/share/argos-translate
     healthcheck:

@@ -54,6 +54,19 @@ test('LibreTranslateClient supports local HTTP endpoints', async () => {
   }
 });
 
+test('LibreTranslateClient allows two parallel requests by default', () => {
+  const previousLimit = process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
+  delete process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
+
+  try {
+    const client = new LibreTranslateClient();
+    assert.equal(client.maxParallelRequests, 2);
+  } finally {
+    if (previousLimit === undefined) delete process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS;
+    else process.env.LIBRETRANSLATE_MAX_PARALLEL_REQUESTS = previousLimit;
+  }
+});
+
 test('LibreTranslateClient opens a cooldown after 429 and recovers with one probe', async () => {
   let requestCount = 0;
   const server = http.createServer((request, response) => {

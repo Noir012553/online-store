@@ -567,10 +567,12 @@ describe('Product translation cache controller', () => {
     };
     sandbox.stub(LiveTranslationCache, 'find').returns({
       sort: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([translation]),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
       sort: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
     });
     const libreTranslate = sandbox.stub(libretranslateProductService, 'translateWithLibreTranslateOnly').resolves({
