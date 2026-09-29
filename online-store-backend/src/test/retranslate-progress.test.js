@@ -9,6 +9,7 @@ const {
   acquireDatabaseLock,
   acquireProgressLock,
   clearCheckpoint,
+  clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
   clearUnfixedCheckpointEntries,
   getCompletedResult,
@@ -133,6 +134,25 @@ test('checkpoint hydration migrates records from the former language-specific si
   }
 });
 
+test('successful batch cleanup only clears completed candidates from that run', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const enKey = 'catalog:en:product-1:source-v1';
+    const frKey = 'catalog:fr:product-1:source-v1';
+    markCompleted(checkpoint, enKey, { fixed: true });
+    markCompleted(checkpoint, frKey, { fixed: true });
+    const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+
+    try {
+      await clearFixedCheckpointEntries(checkpoint, [enKey]);
+      assert.equal(hasCompleted(checkpoint, enKey), false);
+      assert.equal(hasCompleted(checkpoint, frKey), true);
+    } finally {
+      deleteMany.restore();
+    }
+  });
+});
+
 test('retrying unresolved work clears its product field payloads but preserves fixed work', async () => {
   await withTempDirectory(async directory => {
     const checkpoint = openCheckpoint(options, directory);
@@ -155,7 +175,11 @@ test('retrying unresolved work clears its product field payloads but preserves f
       assert.equal(hasCompleted(checkpoint, fieldKey), false);
       assert.equal(hasCompleted(checkpoint, 'catalog:fr:product-2:source-v1'), true);
       assert.equal(hasCompleted(checkpoint, 'catalog:de:product-3:source-v1'), true);
-      assert.equal(deleteMany.callCount, 2);
+      assert.equal(deleteMany.calledOnce, true);
+      assert.deepEqual(deleteMany.firstCall.args[0], {
+        signature: checkpoint.signature,
+        key: { $in: [unresolvedKey, fieldKey] },
+      });
     } finally {
       deleteMany.restore();
     }

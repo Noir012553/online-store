@@ -287,26 +287,23 @@ const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter =
       && (!filter.validationErrors || result.validationErrors.includes(filter.validationErrors))
     ))
     .map(([key]) => key);
-  const productJobs = new Set(unresolvedKeys
+  const productJobs = [...new Set(unresolvedKeys
     .filter(key => key.startsWith('catalog:'))
     .map(key => {
       const [, targetLang, productId] = key.split(':');
       return JSON.stringify([productId, targetLang]);
-    }));
+    }))].map(job => JSON.parse(job));
+  const fieldPrefixes = productJobs.map(([productId, targetLang]) => `product-field:${targetLang}:${productId}:`);
+  const fieldKeys = [...checkpoint.completed.keys()]
+    .filter(key => fieldPrefixes.some(prefix => key.startsWith(prefix)));
 
-  await clearCheckpointEntries(checkpoint, unresolvedKeys);
-  await Promise.all([...productJobs].map(job => {
-    const [productId, targetLang] = JSON.parse(job);
-    return clearProductFieldCheckpoint(checkpoint, productId, targetLang);
-  }));
+  await clearCheckpointEntries(checkpoint, [...unresolvedKeys, ...fieldKeys]);
   return unresolvedKeys.length;
 };
 
-const clearFixedCheckpointEntries = async checkpoint => {
+const clearFixedCheckpointEntries = async (checkpoint, candidateKeys) => {
   if (!checkpoint) return;
-  const fixedKeys = [...checkpoint.completed]
-    .filter(([, result]) => result.fixed)
-    .map(([key]) => key);
+  const fixedKeys = candidateKeys.filter(key => checkpoint.completed.get(key)?.fixed);
   await clearCheckpointEntries(checkpoint, fixedKeys);
 };
 

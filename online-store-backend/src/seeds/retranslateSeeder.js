@@ -577,7 +577,7 @@ class RetranslateSeeder {
       && !stopScheduling
       && allCandidatesCompleted
     ) {
-      await clearFixedCheckpointEntries(checkpoint);
+      await clearFixedCheckpointEntries(checkpoint, toRetranslate.map(getWorkKey));
     }
 
     const fixedThisRun = this.stats.fixedCount - resumedFixedCount;
