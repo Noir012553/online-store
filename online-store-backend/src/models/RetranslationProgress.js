@@ -6,6 +6,7 @@ const RetranslationProgressSchema = new mongoose.Schema({
   fixed: { type: Boolean, default: false },
   validationErrors: { type: [String], default: [] },
   payload: { type: mongoose.Schema.Types.Mixed, default: null },
+  deleted: { type: Boolean, default: false },
 }, { timestamps: true });
 
 RetranslationProgressSchema.index({ signature: 1, key: 1 }, { unique: true });

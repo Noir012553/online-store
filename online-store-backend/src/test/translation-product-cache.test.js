@@ -64,6 +64,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(retranslateProgress, 'hydrateCheckpoint').resolves();
     sandbox.stub(retranslateProgress, 'markCompletedDurably').resolves();
     sandbox.stub(retranslateProgress, 'clearProductFieldCheckpoint').resolves();
+    sandbox.stub(retranslateProgress, 'clearProductRetranslationCheckpoint').resolves();
   });
 
   afterEach(() => {
@@ -418,7 +419,7 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
-    sandbox.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 2 });
+    sandbox.stub(RetranslationProgress, 'bulkWrite').resolves({ acknowledged: true });
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       qualityStatus: 'approved',
       qualityScore: 100,
@@ -1020,7 +1021,7 @@ describe('Product translation cache controller', () => {
 
   it('uses the shared product checkpoint for admin retranslation', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'admin-product-retranslate-'));
-    const productId = new mongoose.Types.ObjectId().toString();
+    const productId = 'abcdefabcdefabcdefabcdef';
     const targetLang = 'en';
     const sourceHash = 'current-source';
     const checkpointScope = retranslateProgress.getDatabaseScope(process.env.MONGO_URI || '');
@@ -1043,12 +1044,13 @@ describe('Product translation cache controller', () => {
 
     try {
       await retranslateProduct({
-        params: { id: productId },
+        params: { id: productId.toUpperCase() },
         body: { lang: targetLang },
         lang: 'en',
       }, res);
 
       expect(retranslate.calledOnceWith(productId, targetLang, { checkpoint })).to.be.true;
+      expect(retranslateProgress.clearProductRetranslationCheckpoint.firstCall.calledBefore(retranslate.firstCall)).to.be.true;
       expect(markCompletedDurably.firstCall.args[1]).to.equal(
         `catalog:${targetLang}:${productId}:${sourceHash}`,
       );

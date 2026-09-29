@@ -9,7 +9,9 @@ const {
   acquireDatabaseLock,
   acquireProgressLock,
   clearCheckpoint,
+  clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
+  clearUnfixedCheckpointEntries,
   getCompletedResult,
   getProductFieldWorkKey,
   getWorkKey,
@@ -39,6 +41,18 @@ test('live translation versions share a checkpoint only while source text is unc
 
   assert.equal(first, second);
   assert.notEqual(second, changedSource);
+});
+
+test('checkpoint replay uses the latest update for each key', async () => {
+  await withTempDirectory(directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    markCompleted(checkpoint, 'live:first', { fixed: true, validationErrors: [] });
+    markCompleted(checkpoint, 'live:first', { fixed: false, validationErrors: ['quality_low'] }, true);
+
+    const resumed = openCheckpoint(options, directory);
+    assert.equal(getCompletedResult(resumed, 'live:first').fixed, false);
+    assert.deepEqual(getCompletedResult(resumed, 'live:first').validationErrors, ['quality_low']);
+  });
 });
 
 test('checkpoint resumes completed catalog records after process restart', async () => {
@@ -79,11 +93,11 @@ test('product field checkpoints preserve translated payloads across process rest
 
 test('checkpoint hydrate restores durable field payloads from MongoDB', async () => {
   const key = 'product-field:en:product-1:source-v1:field-hash';
-  const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+  let checkpoint;
   const find = sinon.stub(RetranslationProgress, 'find').returns({
-    lean: async () => [{ key, fixed: true, validationErrors: [], payload: { value: 'Resume me' } }],
+    lean: async () => [{ signature: checkpoint.signature, key, fixed: true, validationErrors: [], payload: { value: 'Resume me' } }],
   });
-  const checkpoint = openCheckpoint(options, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-hydrate-')));
+  checkpoint = openCheckpoint(options, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-hydrate-')));
 
   try {
     await hydrateCheckpoint(checkpoint);
@@ -91,9 +105,142 @@ test('checkpoint hydrate restores durable field payloads from MongoDB', async ()
     assert.equal(getCompletedResult(checkpoint, key).payload.value, 'Resume me');
   } finally {
     fs.rmSync(path.dirname(checkpoint.filePath), { recursive: true, force: true });
-    bulkWrite.restore();
     find.restore();
   }
+});
+
+test('durable tombstones suppress stale local entries during recovery', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const key = 'catalog:en:product-1:source-v1';
+    markCompleted(checkpoint, key, { fixed: false });
+    const find = sinon.stub(RetranslationProgress, 'find').returns({
+      lean: async () => [{ signature: checkpoint.signature, key, fixed: false, deleted: true }],
+    });
+
+    try {
+      await hydrateCheckpoint(checkpoint);
+      assert.equal(checkpoint.completed.size, 0);
+      assert.equal(fs.readFileSync(checkpoint.filePath, 'utf8').trim().split(/\r?\n/).length, 1);
+    } finally {
+      find.restore();
+    }
+  });
+});
+
+test('checkpoint signatures are shared across language filters', async () => {
+  await withTempDirectory(directory => {
+    const allLanguages = openCheckpoint({ ...options, checkpointScope: 'shared-database' }, directory);
+    const oneLanguage = openCheckpoint({ ...options, lang: 'en', checkpointScope: 'shared-database' }, directory);
+    assert.equal(allLanguages.signature, oneLanguage.signature);
+  });
+});
+
+test('legacy local checkpoint files are imported before they are removed', async () => {
+  await withTempDirectory(async directory => {
+    const initial = openCheckpoint(options, directory);
+    const legacySignature = initial.legacySignatures[0];
+    const legacyPath = path.join(directory, `${legacySignature}.jsonl`);
+    const key = 'catalog:vi:product-1:source-v1';
+    fs.writeFileSync(legacyPath, `${JSON.stringify({
+      type: 'retranslate-checkpoint',
+      version: 2,
+      signature: legacySignature,
+    })}\n${JSON.stringify({ key, fixed: true, validationErrors: [] })}\n`);
+    const checkpoint = openCheckpoint(options, directory);
+    const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+    const find = sinon.stub(RetranslationProgress, 'find').returns({ lean: async () => [] });
+
+    try {
+      await hydrateCheckpoint(checkpoint);
+      assert.equal(hasCompleted(checkpoint, key), true);
+      assert.equal(bulkWrite.firstCall.args[0][0].updateOne.filter.signature, checkpoint.signature);
+      assert.equal(fs.existsSync(legacyPath), false);
+    } finally {
+      bulkWrite.restore();
+      find.restore();
+    }
+  });
+});
+
+test('checkpoint hydration migrates records from the former language-specific signature', async () => {
+  const key = 'catalog:en:product-1:source-v1';
+  const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+  const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+  let checkpoint;
+  const find = sinon.stub(RetranslationProgress, 'find').callsFake(() => ({
+    lean: async () => [{
+      signature: checkpoint.legacySignatures[0],
+      key,
+      fixed: false,
+      validationErrors: ['quality_low'],
+    }],
+  }));
+  checkpoint = openCheckpoint({ ...options, lang: 'en' }, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-legacy-')));
+
+  try {
+    await hydrateCheckpoint(checkpoint);
+    assert.equal(hasCompleted(checkpoint, key), true);
+    assert.equal(bulkWrite.firstCall.args[0][0].updateOne.filter.signature, checkpoint.signature);
+    assert.deepEqual(deleteMany.firstCall.args[0], { signature: { $in: checkpoint.legacySignatures } });
+  } finally {
+    fs.rmSync(path.dirname(checkpoint.filePath), { recursive: true, force: true });
+    bulkWrite.restore();
+    deleteMany.restore();
+    find.restore();
+  }
+});
+
+test('successful batch cleanup only clears completed candidates from that run', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const enKey = 'catalog:en:product-1:source-v1';
+    const frKey = 'catalog:fr:product-1:source-v1';
+    markCompleted(checkpoint, enKey, { fixed: true });
+    markCompleted(checkpoint, frKey, { fixed: true });
+    const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+
+    try {
+      await clearFixedCheckpointEntries(checkpoint, [enKey]);
+      assert.equal(hasCompleted(checkpoint, enKey), false);
+      assert.equal(hasCompleted(checkpoint, frKey), true);
+    } finally {
+      bulkWrite.restore();
+    }
+  });
+});
+
+test('retrying unresolved work clears its product field payloads but preserves fixed work', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const unresolvedKey = 'catalog:en:product-1:source-v1';
+    const fieldKey = getProductFieldWorkKey({
+      productId: 'product-1',
+      targetLang: 'en',
+      field: 'name',
+      source: 'Source name',
+    });
+    markCompleted(checkpoint, unresolvedKey, { fixed: false, validationErrors: ['quality_low'] });
+    markCompleted(checkpoint, fieldKey, { payload: { value: 'Old result' } });
+    markCompleted(checkpoint, 'catalog:fr:product-2:source-v1', { fixed: false });
+    markCompleted(checkpoint, 'catalog:de:product-3:source-v1', { fixed: true });
+    const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+
+    try {
+      assert.equal(await clearUnfixedCheckpointEntries(checkpoint, { lang: 'en' }), 1);
+      assert.equal(hasCompleted(checkpoint, unresolvedKey), false);
+      assert.equal(hasCompleted(checkpoint, fieldKey), false);
+      assert.equal(hasCompleted(checkpoint, 'catalog:fr:product-2:source-v1'), true);
+      assert.equal(hasCompleted(checkpoint, 'catalog:de:product-3:source-v1'), true);
+      assert.equal(bulkWrite.calledOnce, true);
+      assert.deepEqual(bulkWrite.firstCall.args[0].map(({ updateOne }) => updateOne), [
+        { filter: { signature: checkpoint.signature, key: fieldKey }, update: { $set: { deleted: true, payload: null } }, upsert: true },
+        { filter: { signature: checkpoint.signature, key: unresolvedKey }, update: { $set: { deleted: true, payload: null } }, upsert: true },
+      ]);
+    } finally {
+      bulkWrite.restore();
+    }
+  });
 });
 
 test('checkpoint ignores a partial final record and can be reset explicitly', async () => {
@@ -136,18 +283,19 @@ test('completed product field checkpoints are removed after their product finish
     });
     markCompleted(checkpoint, productKey, { payload: { value: 'Laptop' } });
     markCompleted(checkpoint, 'live:other', { fixed: true });
-    const deleteMany = sinon.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 1 });
+    const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
 
     try {
       await clearProductFieldCheckpoint(checkpoint, 'product-1', 'en');
       assert.equal(hasCompleted(checkpoint, productKey), false);
       assert.equal(hasCompleted(checkpoint, 'live:other'), true);
-      assert.deepEqual(deleteMany.firstCall.args[0], {
-        signature: checkpoint.signature,
-        key: { $in: [productKey] },
+      assert.deepEqual(bulkWrite.firstCall.args[0][0].updateOne, {
+        filter: { signature: checkpoint.signature, key: productKey },
+        update: { $set: { deleted: true, payload: null } },
+        upsert: true,
       });
     } finally {
-      deleteMany.restore();
+      bulkWrite.restore();
     }
   });
 });
@@ -204,7 +352,7 @@ test('checkpoint signatures change when translation options or database scope ch
     const changedDatabase = openCheckpoint({ ...options, checkpointScope: 'other-database' }, directory);
     const changedLimit = openCheckpoint({ ...options, limit: 500 }, directory);
 
-    assert.equal(hasCompleted(changedOptions, 'live:first'), false);
+    assert.equal(hasCompleted(changedOptions, 'live:first'), true);
     assert.equal(hasCompleted(changedDatabase, 'live:first'), false);
     assert.equal(hasCompleted(changedLimit, 'live:first'), true);
   });
