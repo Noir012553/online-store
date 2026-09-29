@@ -99,6 +99,12 @@ async function main() {
     if (resetProgress && options.retryUnresolved) {
       throw new Error('--reset-progress cannot be combined with --retry-unresolved');
     }
+    if (resetProgress && options.lang) {
+      throw new Error('--reset-progress cannot be combined with --lang because checkpoint progress is shared across languages');
+    }
+    if (options.retryUnresolved && options.lang) {
+      throw new Error('--retry-unresolved cannot be combined with --lang; retry unresolved work without a language filter');
+    }
     if (options.retryUnresolved && options.limit > 0) {
       throw new Error('--retry-unresolved cannot be combined with --limit');
     }
