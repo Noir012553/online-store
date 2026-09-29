@@ -419,7 +419,7 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
-    sandbox.stub(RetranslationProgress, 'deleteMany').resolves({ deletedCount: 2 });
+    sandbox.stub(RetranslationProgress, 'bulkWrite').resolves({ acknowledged: true });
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       qualityStatus: 'approved',
       qualityScore: 100,
