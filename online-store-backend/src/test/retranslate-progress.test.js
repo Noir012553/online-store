@@ -81,11 +81,11 @@ test('product field checkpoints preserve translated payloads across process rest
 
 test('checkpoint hydrate restores durable field payloads from MongoDB', async () => {
   const key = 'product-field:en:product-1:source-v1:field-hash';
-  const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+  let checkpoint;
   const find = sinon.stub(RetranslationProgress, 'find').returns({
-    lean: async () => [{ key, fixed: true, validationErrors: [], payload: { value: 'Resume me' } }],
+    lean: async () => [{ signature: checkpoint.signature, key, fixed: true, validationErrors: [], payload: { value: 'Resume me' } }],
   });
-  const checkpoint = openCheckpoint(options, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-hydrate-')));
+  checkpoint = openCheckpoint(options, fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-hydrate-')));
 
   try {
     await hydrateCheckpoint(checkpoint);
@@ -93,9 +93,24 @@ test('checkpoint hydrate restores durable field payloads from MongoDB', async ()
     assert.equal(getCompletedResult(checkpoint, key).payload.value, 'Resume me');
   } finally {
     fs.rmSync(path.dirname(checkpoint.filePath), { recursive: true, force: true });
-    bulkWrite.restore();
     find.restore();
   }
+});
+
+test('database checkpoint state removes stale local entries during recovery', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    markCompleted(checkpoint, 'catalog:en:product-1:source-v1', { fixed: false });
+    const find = sinon.stub(RetranslationProgress, 'find').returns({ lean: async () => [] });
+
+    try {
+      await hydrateCheckpoint(checkpoint);
+      assert.equal(checkpoint.completed.size, 0);
+      assert.equal(fs.readFileSync(checkpoint.filePath, 'utf8').trim().split(/\r?\n/).length, 1);
+    } finally {
+      find.restore();
+    }
+  });
 });
 
 test('checkpoint signatures are shared across language filters', async () => {

@@ -150,23 +150,6 @@ const markCompleted = (checkpoint, key, result = {}, replace = false) => {
 
 const hydrateCheckpoint = async checkpoint => {
   if (!checkpoint) return checkpoint;
-  const localEntries = [...checkpoint.completed.entries()];
-  if (localEntries.length > 0) {
-    await RetranslationProgress.bulkWrite(localEntries.map(([key, result]) => ({
-      updateOne: {
-        filter: { signature: checkpoint.signature, key },
-        update: {
-          $set: {
-            fixed: Boolean(result.fixed),
-            validationErrors: result.validationErrors || [],
-            ...(result.payload === undefined ? {} : { payload: result.payload }),
-          },
-        },
-        upsert: true,
-      },
-    })));
-  }
-  checkpoint.localCompletedCount = localEntries.length;
   const records = await RetranslationProgress.find({
     signature: { $in: [checkpoint.signature, ...(checkpoint.legacySignatures || [])] },
   }).lean();
@@ -189,17 +172,11 @@ const hydrateCheckpoint = async checkpoint => {
         upsert: true,
       },
     })));
-    recordsToMigrate.forEach(({ key, fixed, validationErrors, payload }) => {
-      markCompleted(checkpoint, key, {
-        fixed: Boolean(fixed),
-        validationErrors: validationErrors || [],
-        ...(payload === undefined || payload === null ? {} : { payload }),
-      }, true);
-    });
   }
   if (legacyRecords.length > 0) {
     await RetranslationProgress.deleteMany({ signature: { $in: checkpoint.legacySignatures } });
   }
+  checkpoint.completed.clear();
   checkpoint.durableCompletedCount = new Set(records.map(({ key }) => key)).size;
   records
     .filter(record => record.signature === checkpoint.signature || !currentKeys.has(record.key))
@@ -210,6 +187,7 @@ const hydrateCheckpoint = async checkpoint => {
         ...(payload === undefined || payload === null ? {} : { payload }),
       });
     });
+  persistCheckpoint(checkpoint);
   return checkpoint;
 };
 
