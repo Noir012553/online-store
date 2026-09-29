@@ -60,6 +60,7 @@
   "retranslating": "Wird neu übersetzt...",
   "retranslate_confirm": "„{name}“ neu übersetzen? Manuell bearbeitete Felder bleiben erhalten.",
   "retranslate_approved_confirm": "Diese Übersetzung ist genehmigt. Möchten Sie sie trotzdem neu übersetzen?",
+  "retranslate_not_needed": "Dieses Produkt erfüllt bereits die Übersetzungsanforderungen; eine Neuübersetzung ist nicht erforderlich.",
   "retranslate_success": "Produkt erfolgreich neu übersetzt",
   "retranslate_failed": "Produkt konnte nicht neu übersetzt werden",
   "retranslate_timeout": "Die Neuübersetzung dauert länger als erwartet. Prüfen Sie den Produktstatus in einigen Minuten erneut."

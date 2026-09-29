@@ -60,6 +60,7 @@
   "retranslating": "Översätter igen...",
   "retranslate_confirm": "Översätt \"{name}\" igen? Manuellt redigerade fält bevaras.",
   "retranslate_approved_confirm": "Den här översättningen är godkänd. Vill du ändå översätta den igen?",
+  "retranslate_not_needed": "Den här produkten uppfyller redan översättningskraven; den behöver inte översättas igen.",
   "retranslate_success": "Produkten har översatts igen",
   "retranslate_failed": "Det gick inte att översätta produkten igen",
   "retranslate_timeout": "Den nya översättningen tar längre tid än väntat. Kontrollera produktstatusen igen om några minuter."

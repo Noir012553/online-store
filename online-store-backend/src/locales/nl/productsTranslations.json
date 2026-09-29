@@ -60,6 +60,7 @@
   "retranslating": "Opnieuw vertalen...",
   "retranslate_confirm": "\"{name}\" opnieuw vertalen? Handmatig bewerkte velden blijven behouden.",
   "retranslate_approved_confirm": "Deze vertaling is goedgekeurd. Wilt u deze toch opnieuw vertalen?",
+  "retranslate_not_needed": "Dit product voldoet al aan de vertaalvereisten; opnieuw vertalen is niet nodig.",
   "retranslate_success": "Product opnieuw vertaald",
   "retranslate_failed": "Product kon niet opnieuw worden vertaald",
   "retranslate_timeout": "Het opnieuw vertalen duurt langer dan verwacht. Controleer de productstatus over enkele minuten opnieuw."

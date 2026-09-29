@@ -60,6 +60,7 @@
   "retranslating": "Nuova traduzione in corso...",
   "retranslate_confirm": "Tradurre di nuovo \"{name}\"? I campi modificati manualmente verranno mantenuti.",
   "retranslate_approved_confirm": "Questa traduzione è approvata. Vuoi comunque tradurla di nuovo?",
+  "retranslate_not_needed": "Questo prodotto soddisfa già i requisiti di traduzione; non è necessario tradurlo di nuovo.",
   "retranslate_success": "Prodotto tradotto di nuovo correttamente",
   "retranslate_failed": "Impossibile tradurre di nuovo il prodotto",
   "retranslate_timeout": "La nuova traduzione sta richiedendo più tempo del previsto. Controlla di nuovo lo stato del prodotto tra qualche minuto."

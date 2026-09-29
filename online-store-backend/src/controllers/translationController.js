@@ -26,6 +26,11 @@ const TranslationCacheService = require('../services/translationCacheService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const retranslateProgress = require('../utils/retranslateProgress');
 const productTranslationLock = require('../utils/productTranslationLock');
+const {
+  buildCatalogProductRetranslationQuery,
+  buildLiveProductRetranslationQuery,
+  isCatalogProductRetranslatable,
+} = require('../utils/productRetranslationSelector');
 
 const SUPPORTED_LANG_CODES = SUPPORTED_LANGUAGES.map(({ code }) => code);
 const pendingTranslations = new Map();
@@ -1211,6 +1216,11 @@ exports.getProductTranslationStatuses = async (req, res) => {
         .lean(),
     ]);
     const productsById = new Map(products.map((product) => [product._id.toString(), product]));
+    const catalogCandidates = new Set(
+      catalogTranslations
+        .filter(isCatalogProductRetranslatable)
+        .map(({ entityId }) => entityId),
+    );
     const catalogByProductId = new Map(
       catalogTranslations
         .filter((translation) => translation.sourceHash === getProductTranslationSourceHash(productsById.get(translation.entityId)))
@@ -1224,6 +1234,12 @@ exports.getProductTranslationStatuses = async (req, res) => {
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean()
       : [];
+    const liveCandidates = await LiveTranslationCache.find(buildLiveProductRetranslationQuery({
+      entityId: { $in: productIds },
+      targetLang: lang,
+      entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+    })).lean();
+    const liveCandidateProductIds = new Set(liveCandidates.map(({ entityId }) => entityId));
     const legacyByProductId = new Map();
 
     legacyTranslations.forEach((translation) => {
@@ -1236,17 +1252,19 @@ exports.getProductTranslationStatuses = async (req, res) => {
 
     const data = productIds.map((productId) => {
       const catalogTranslation = catalogByProductId.get(productId);
+      const legacyRecords = legacyByProductId.get(productId) || [];
       if (catalogTranslation) {
         return {
           productId,
           status: productTranslationStatus(catalogTranslation),
+          canRetranslate: catalogCandidates.has(productId)
+            || liveCandidateProductIds.has(productId),
           manualFields: catalogTranslation.manualFields || [],
           updatedAt: catalogTranslation.updatedAt || catalogTranslation.lastTranslatedAt || null,
           validationErrors: catalogTranslation.validationErrors || [],
         };
       }
 
-      const legacyRecords = legacyByProductId.get(productId) || [];
       const currentLegacyRecords = legacyRecords.filter((record) => record.qualityStatus !== 'retranslated');
       const translatedTypes = new Set(currentLegacyRecords.map((record) => record.entityType));
       const product = productsById.get(productId);
@@ -1269,7 +1287,14 @@ exports.getProductTranslationStatuses = async (req, res) => {
             ? 'pending'
             : isComplete ? 'approved' : 'missing';
 
-      return { productId, status: legacyStatus, manualFields: [], updatedAt: null, validationErrors: [] };
+      return {
+        productId,
+        status: legacyStatus,
+        canRetranslate: liveCandidateProductIds.has(productId),
+        manualFields: [],
+        updatedAt: null,
+        validationErrors: [],
+      };
     });
 
     return res.json({ success: true, data });
@@ -1769,9 +1794,44 @@ exports.retranslateProduct = async (req, res) => {
     databaseLock = await retranslateProgress.acquireDatabaseLock(
       retranslateProgress.getRetranslationLockKey(checkpointScope),
     );
+    const productExists = await Product.exists({ _id: productId });
+    if (!productExists) {
+      const error = new Error('Product not found');
+      error.code = 'PRODUCT_NOT_FOUND';
+      throw error;
+    }
+
+    const [catalogCandidate, liveCandidates] = await Promise.all([
+      ProductCatalogTranslationCache.findOne(buildCatalogProductRetranslationQuery({
+        entityId: productId,
+        targetLang,
+      })).lean(),
+      LiveTranslationCache.find(buildLiveProductRetranslationQuery({
+        entityId: productId,
+        targetLang,
+        entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
+      })).limit(1).lean(),
+    ]);
+    if (!isCatalogProductRetranslatable(catalogCandidate) && liveCandidates.length === 0) {
+      return res.json({
+        success: true,
+        code: 'TRANSLATION_RETRANSLATE_NOT_NEEDED',
+        message: getMessage(getRequestLanguage(req), 'productsTranslations.retranslate_not_needed'),
+        data: {
+          productId,
+          lang: targetLang,
+          status: productTranslationStatus(catalogCandidate),
+          canRetranslate: false,
+          skipped: true,
+          skippedManualFields: catalogCandidate?.manualFields || [],
+          updatedAt: catalogCandidate?.updatedAt || catalogCandidate?.lastTranslatedAt || null,
+          validationErrors: catalogCandidate?.validationErrors || [],
+        },
+      });
+    }
+
     const checkpoint = retranslateProgress.openProductCheckpoint(checkpointScope);
     await retranslateProgress.hydrateCheckpoint(checkpoint);
-    await retranslateProgress.clearProductRetranslationCheckpoint(checkpoint, productId, targetLang);
     const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
@@ -1800,6 +1860,7 @@ exports.retranslateProduct = async (req, res) => {
         productId,
         lang: targetLang,
         status: translation.qualityStatus,
+        canRetranslate: isCatalogProductRetranslatable(translation),
         skippedManualFields,
         updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
         validationErrors: translation.validationErrors || [],

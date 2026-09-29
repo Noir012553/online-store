@@ -60,6 +60,7 @@
   "retranslating": "Retranslating...",
   "retranslate_confirm": "Retranslate \"{name}\"? Manually edited fields will be preserved.",
   "retranslate_approved_confirm": "This translation is approved. Do you still want to retranslate it?",
+  "retranslate_not_needed": "This product already meets translation requirements; no retranslation is needed.",
   "retranslate_success": "Product retranslated successfully",
   "retranslate_failed": "Unable to retranslate product",
   "retranslate_timeout": "Retranslation is taking longer than expected. Please check the product status again in a few minutes."

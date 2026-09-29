@@ -44,6 +44,7 @@ interface TranslationStatus {
   manualFields: string[];
   updatedAt: string | null;
   validationErrors: string[];
+  canRetranslate?: boolean;
 }
 
 export function ProductsTranslationsAdminContent() {
@@ -243,10 +244,17 @@ export function ProductsTranslationsAdminContent() {
         throw new Error(data?.message || `${t('retranslate_failed', 'productsTranslations')} (${response.status})`);
       }
 
+      if (data.data.skipped) {
+        toast.info(data.message || t('retranslate_not_needed', 'productsTranslations'));
+        await fetchStatusesRef.current();
+        return;
+      }
+
       setTranslationStatuses((current) => ({
         ...current,
         [product._id]: {
           status: data.data.status,
+          canRetranslate: data.data.canRetranslate,
           manualFields: data.data.skippedManualFields || [],
           updatedAt: data.data.updatedAt || null,
           validationErrors: data.data.validationErrors || [],
@@ -579,7 +587,7 @@ function ProductTranslationCard({
                   variant="outline"
                   size="sm"
                   onClick={onRetranslate}
-                  disabled={isRetranslationBusy || selectedLanguage === DEFAULT_LOCALE}
+                  disabled={isRetranslationBusy || selectedLanguage === DEFAULT_LOCALE || !translationStatus || translationStatus.canRetranslate === false}
                   className="w-full"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
