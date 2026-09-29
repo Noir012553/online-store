@@ -11,8 +11,12 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const productTranslationLock = require('../utils/productTranslationLock');
-const translationValidationConfig = require('../config/translationValidation');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  PRODUCT_ENTITY_TYPES: PRODUCT_ENTITY_TYPE_LIST,
+  buildCatalogProductRetranslationQuery,
+  buildLiveProductRetranslationQuery,
+} = require('../utils/productRetranslationSelector');
 const {
   clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
@@ -22,19 +26,7 @@ const {
   markCompletedDurably,
 } = require('../utils/retranslateProgress');
 
-const TRANSLATION_PROVIDERS = LiveTranslationCache.schema.path('provider').enumValues;
-const TRANSLATION_STATUSES = [
-  ...LiveTranslationCache.schema.path('status').enumValues,
-  'fallback_libretranslate',
-];
-const FAILED_TRANSLATION_STATUSES = LiveTranslationCache.schema.path('status').enumValues
-  .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
-const CATALOG_RETRYABLE_STATUSES = ProductCatalogTranslationCache.schema.path('status').enumValues
-  .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
-const LIVE_RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qualityStatus').enumValues
-  .filter(status => /retranslat|reject/i.test(status));
-const CATALOG_RETRANSLATE_QUALITY_STATUSES = ProductCatalogTranslationCache.schema.path('qualityStatus').enumValues
-  .filter(status => /retranslat|reject/i.test(status));
+const PRODUCT_ENTITY_TYPES = new Set(PRODUCT_ENTITY_TYPE_LIST);
 const isCloudflareQuotaError = (error) => {
   if (error?.cloudflareRateLimited) return true;
   const status = error?.response?.status ?? error?.statusCode;
@@ -49,15 +41,6 @@ const isCloudflareQuotaError = (error) => {
   ].filter(Boolean).join(' ');
   return /CLOUDFLARE_AI_(?:REQUEST|INPUT)_BUDGET_EXCEEDED|CLOUDFLARE_AI_BUDGET_NOT_CONFIGURED|rate[\s-]?limit|quota|too many requests/i.test(providerMessages);
 };
-
-const PRODUCT_ENTITY_TYPES = new Set([
-  'product_name',
-  'product_description',
-  'product_spec',
-  'product_technical_description',
-  'product_description_image_alt',
-  'product_promotion',
-]);
 
 class RetranslateSeeder {
   constructor() {
@@ -120,44 +103,15 @@ class RetranslateSeeder {
       throw new Error(`Unsupported product entity type: ${requestedEntityType}`);
     }
 
-    const query = {
+    const query = buildLiveProductRetranslationQuery({
       ...safeFilter,
-      provider: { $in: TRANSLATION_PROVIDERS },
-      status: { $in: TRANSLATION_STATUSES },
-      qualityStatus: { $ne: 'retranslated' },
       entityType: requestedEntityType || { $in: [...PRODUCT_ENTITY_TYPES] },
-      $or: [
-        { status: { $in: FAILED_TRANSLATION_STATUSES } },
-        { qualityStatus: { $in: LIVE_RETRANSLATE_QUALITY_STATUSES } },
-        {
-          qualityStatus: { $ne: 'approved' },
-          $or: [
-            { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-            { validationErrors: { $exists: true, $ne: [] } },
-          ],
-        },
-      ],
-    };
-
-    if (lang) {
-      query.targetLang = lang;
-    }
-
-    const catalogQuery = {
+      ...(lang ? { targetLang: lang } : {}),
+    });
+    const catalogQuery = buildCatalogProductRetranslationQuery({
       ...safeFilter,
       ...(lang ? { targetLang: lang } : {}),
-      $or: [
-        { status: { $in: CATALOG_RETRYABLE_STATUSES } },
-        { qualityStatus: { $in: CATALOG_RETRANSLATE_QUALITY_STATUSES } },
-        {
-          qualityStatus: { $ne: 'approved' },
-          $or: [
-            { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-            { validationErrors: { $exists: true, $ne: [] } },
-          ],
-        },
-      ],
-    };
+    });
 
     const completedTranslationCount = checkpoint
       ? [...checkpoint.completed.keys()].filter(key => !key.startsWith('product-field:')).length

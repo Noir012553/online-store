@@ -60,6 +60,7 @@
   "retranslating": "Retraduction en cours...",
   "retranslate_confirm": "Retraduire « {name} » ? Les champs modifiés manuellement seront conservés.",
   "retranslate_approved_confirm": "Cette traduction est approuvée. Souhaitez-vous tout de même la retraduire ?",
+  "retranslate_not_needed": "Ce produit répond déjà aux exigences de traduction ; aucune retraduction n’est nécessaire.",
   "retranslate_success": "Produit retraduit avec succès",
   "retranslate_failed": "Impossible de retraduire le produit",
   "retranslate_timeout": "La retraduction prend plus de temps que prévu. Vérifiez de nouveau le statut du produit dans quelques minutes."

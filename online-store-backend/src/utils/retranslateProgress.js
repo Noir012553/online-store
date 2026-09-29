@@ -294,16 +294,6 @@ const clearProductFieldCheckpoint = async (checkpoint, productId, targetLang) =>
   await clearCheckpointEntries(checkpoint, keys);
 };
 
-const clearProductRetranslationCheckpoint = async (checkpoint, productId, targetLang) => {
-  if (!checkpoint) return;
-  const catalogPrefix = `catalog:${targetLang}:${productId}:`;
-  const fieldPrefix = `product-field:${targetLang}:${productId}:`;
-  const keys = [...checkpoint.completed.keys()];
-  const fieldKeys = keys.filter(key => key.startsWith(fieldPrefix));
-  const catalogKeys = keys.filter(key => key.startsWith(catalogPrefix));
-  await clearCheckpointEntries(checkpoint, [...fieldKeys, ...catalogKeys]);
-};
-
 const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter = {} } = {}) => {
   if (!checkpoint) return 0;
   const unresolvedKeys = [...checkpoint.completed]
@@ -478,7 +468,6 @@ module.exports = {
   clearCheckpointEntries,
   clearFixedCheckpointEntries,
   clearProductFieldCheckpoint,
-  clearProductRetranslationCheckpoint,
   clearUnfixedCheckpointEntries,
   getCompletedResult,
   getWorkKey,

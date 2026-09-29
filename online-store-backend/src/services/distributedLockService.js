@@ -2,17 +2,34 @@ const redis = require('redis');
 
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
+const formatRedisError = error => error?.message?.trim()
+  || [error?.code, error?.address, error?.port].filter(Boolean).join(' ')
+  || 'Unknown Redis connection error';
+
 class DistributedLockService {
   constructor() {
     this.client = null;
     this.locks = new Map();
     this.initialized = false;
+    this.initializationPromise = null;
     this.useMemoryFallback = false;
   }
 
   async initialize() {
     if (this.initialized || this.useMemoryFallback) return;
 
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeOnce();
+    }
+
+    try {
+      await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  async initializeOnce() {
     if (process.env.PRODUCT_SEED_LOCK_MODE === 'memory') {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('PRODUCT_SEED_LOCK_MODE=memory is not allowed in production');
@@ -33,8 +50,11 @@ class DistributedLockService {
         },
       });
 
-      this.client.on('error', (err) => {
-        console.error('[DistributedLock] Redis error:', err.message);
+      this.client.on('error', (error) => {
+        const detail = error.message?.trim()
+          || [error.code, error.address, error.port].filter(Boolean).join(' ')
+          || 'Unknown Redis connection error';
+        console.error('[DistributedLock] Redis error:', detail);
       });
 
       await this.client.connect();
@@ -42,13 +62,16 @@ class DistributedLockService {
       console.log(`[DistributedLock] ${CLI_SYMBOLS.success} Redis connected`);
     } catch (error) {
       this.client = null;
+      const detail = error.message?.trim()
+        || [error.code, error.address, error.port].filter(Boolean).join(' ')
+        || 'Unknown Redis connection error';
       if (process.env.NODE_ENV === 'production') {
         this.initialized = false;
-        throw new Error(`Redis is required for distributed product locks: ${error.message}`);
+        throw new Error(`Redis is required for distributed product locks: ${detail}`);
       }
       this.useMemoryFallback = true;
       this.initialized = true;
-      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available, using in-memory fallback`);
+      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available (${detail}), using in-memory fallback`);
     }
   }
 
