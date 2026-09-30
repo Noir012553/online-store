@@ -28,17 +28,40 @@ const splitText = (text, maxLength = DEFAULT_DESCRIPTION_CHUNK_SIZE) => {
   return chunks;
 };
 
-const joinTranslatedChunks = (sourceChunks, translatedChunks) => translatedChunks
-  .map((chunk, index) => {
-    if (index === 0) return chunk;
-    const sourceBoundary = sourceChunks[index - 1].match(/\s+$/)?.[0] || '';
-    const previousChunk = translatedChunks[index - 1];
-    const hasBoundaryWhitespace = /\s$/.test(previousChunk) || /^\s/.test(chunk);
-    return sourceBoundary && !hasBoundaryWhitespace
-      ? `${sourceBoundary}${chunk}`
-      : chunk;
-  })
-  .join('');
+const joinTranslatedChunks = (sourceChunks, translatedChunks) => {
+  if (sourceChunks.length !== translatedChunks.length) {
+    throw Object.assign(new Error('Translation output is missing a source chunk'), {
+      code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+    });
+  }
+
+  translatedChunks.forEach((chunk, index) => {
+    if (typeof chunk !== 'string' || chunk.trim() === '') {
+      throw Object.assign(new Error('Translation provider returned an empty chunk'), {
+        code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+      });
+    }
+
+    const source = sourceChunks[index].trim();
+    if (source.length >= 40 && chunk.trim().length / source.length < 0.2) {
+      throw Object.assign(new Error('Translation provider returned a severely shortened chunk'), {
+        code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+      });
+    }
+  });
+
+  return translatedChunks
+    .map((chunk, index) => {
+      if (index === 0) return chunk;
+      const sourceBoundary = sourceChunks[index - 1].match(/\s+$/)?.[0] || '';
+      const previousChunk = translatedChunks[index - 1];
+      const hasBoundaryWhitespace = /\s$/.test(previousChunk) || /^\s/.test(chunk);
+      return sourceBoundary && !hasBoundaryWhitespace
+        ? `${sourceBoundary}${chunk}`
+        : chunk;
+    })
+    .join('');
+};
 
 const translateText = async (client, value, sourceLang, targetLang, chunkSize) => {
   if (typeof value !== 'string' || value.trim() === '') return value;

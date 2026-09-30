@@ -290,7 +290,7 @@ describe('Product translation cache controller', () => {
     expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, {
       libreTranslateOnly: true,
       checkpoint: null,
-      parallelProducts: 3,
+      parallelProducts: 1,
     })).to.be.true;
     expect(result.stats.totalToRetranslate).to.equal(1);
     expect(result.stats.fixedCount).to.equal(1);
@@ -510,6 +510,10 @@ describe('Product translation cache controller', () => {
       sort: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([candidate]),
     });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ _id: candidate.entityId, name: 'MSI Laptop' }]),
+    });
     sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: {
         ...candidate,
@@ -527,6 +531,50 @@ describe('Product translation cache controller', () => {
     expect(result.success).to.equal(false);
     expect(result.stats.stillBrokenCount).to.equal(1);
     expect(log.args.map(args => args.join(' ')).join('\n')).to.include('Issues: missing_brand');
+  });
+
+  it('caps Cloudflare translation input into bounded chunks', async () => {
+    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
+    const originalChunkSize = process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+    process.env.LIBRETRANSLATE_ENABLED = 'false';
+    process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = '900';
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => `[en] ${text}`);
+
+    try {
+      const translated = await libretranslateProductService.translateWithFailover('A'.repeat(2500), 'vi', 'en');
+
+      expect(cloudflareTranslate.callCount).to.equal(3);
+      expect(cloudflareTranslate.args.every(([text]) => text.length <= 900)).to.equal(true);
+      expect(translated.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+    } finally {
+      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
+      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
+      if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+      else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
+    }
+  });
+
+  it('retries incomplete provider output with smaller Cloudflare chunks', async () => {
+    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
+    const originalChunkSize = process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+    process.env.LIBRETRANSLATE_ENABLED = 'false';
+    process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = '900';
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => (
+      text.length > 256 ? 'short' : `[en] ${text}`
+    ));
+
+    try {
+      const translated = await libretranslateProductService.translateWithFailover('A'.repeat(2500), 'vi', 'en');
+
+      expect(cloudflareTranslate.callCount).to.be.greaterThan(3);
+      expect(translated.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(translated.providersUsed).to.deep.equal(['cloudflare']);
+    } finally {
+      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
+      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
+      if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+      else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
+    }
   });
 
   it('uses LibreTranslate directly without calling Cloudflare', async () => {

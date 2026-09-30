@@ -153,15 +153,15 @@ data/scraped-products/current/<nhóm-sản-phẩm>/
 
 Không có bảo đảm tuyệt đối rằng provider trả đủ nội dung cho mọi đoạn. Mục tiêu cũng không nên là số ký tự đích phải bằng số ký tự nguồn: bản dịch giữa các ngôn ngữ thường dài/ngắn khác nhau. Cần bảo đảm mọi đoạn nguồn đều có kết quả không rỗng, các dữ kiện bắt buộc được giữ, không có dấu hiệu bị cắt cụt và toàn bộ trường đạt validation.
 
-Cả luồng Cloudflare/failover và LibreTranslate-only hiện chia văn bản dài thành các đoạn tối đa mặc định 6.000 ký tự rồi ghép lại. Cloudflare giới hạn đầu ra mặc định ở `2048` token mỗi request (`CLOUDFLARE_AI_MAX_TOKENS` có thể cấu hình), còn LibreTranslate client chỉ xác nhận `translatedText` có kiểu string; string rỗng vẫn qua được bước kiểm tra kiểu. Pipeline chưa kiểm tra chắc chắn provider đã hoàn thành toàn bộ output của từng đoạn trước khi ghép.
+LibreTranslate-only chia văn bản thành các đoạn tối đa mặc định 6.000 ký tự; Cloudflare/failover dùng chunk đầu vào mặc định 1.800 ký tự. Cả hai ghép lại chỉ khi số chunk khớp, từng output là string không rỗng và chunk nguồn từ 40 ký tự không bị rút xuống dưới 20%. Cloudflare giới hạn đầu ra mặc định ở `2048` token mỗi request (`CLOUDFLARE_AI_MAX_TOKENS` có thể cấu hình); nếu response có finish reason báo chạm token limit, pipeline từ chối output và thử chia nhỏ lại tối đa hai cấp. Không phải mọi provider/model đều trả finish reason, nên đây là biện pháp phát hiện lỗi rõ ràng chứ không phải chứng minh đầy đủ ngữ nghĩa.
 
 Catalog sản phẩm dịch `name`, `description`, `technicalDescription`, giá trị specs, alt ảnh và các field promotion có dữ liệu. Brand được giữ từ nguồn; các field trong `manualFields` có thể được giữ nguyên thay vì dịch. Kết quả field có thể được ghi checkpoint trước, nhưng catalog chỉ được upsert sau khi các bước dịch trường kết thúc. Vì vậy checkpoint field không có nghĩa cả product/language đã hoàn tất.
 
 ### Giới hạn validation hiện tại
 
 - Validator đánh dấu `too_short` khi output ngắn hơn 20% nguồn và `too_long` khi dài hơn 300%; `too_long` hiện là lỗi không chặn approval.
-- Có kiểm tra token kỹ thuật, markup, ngôn ngữ và một heuristic `truncated`, nhưng heuristic cắt cụt chỉ bắt một số trường hợp nguồn dài từ 40 ký tự, kết thúc bằng dấu câu, trong khi bản dịch không kết thúc bằng dấu câu.
-- Không có xác nhận độc lập rằng từng đoạn hoặc từng câu nguồn đều được thể hiện trong bản dịch. So sánh tỷ lệ ký tự đơn lẻ cũng không chứng minh được tính đầy đủ và có thể sai do đặc thù ngôn ngữ.
+- Có kiểm tra token kỹ thuật, markup, ngôn ngữ, một heuristic `truncated` và kiểm tra output tối thiểu theo chunk. Heuristic `truncated` chỉ bắt một số trường hợp nguồn dài từ 40 ký tự, kết thúc bằng dấu câu, trong khi bản dịch không kết thúc bằng dấu câu.
+- Chưa có xác nhận ngữ nghĩa độc lập rằng mọi thông tin/câu nguồn đều có trong bản dịch. Output đủ dài vẫn có thể bỏ sót dữ kiện; không yêu cầu số ký tự hai ngôn ngữ bằng nhau.
 
 ### Trạng thái của lần chạy mới nhất
 
@@ -177,12 +177,21 @@ Lần chạy người dùng gửi có `Matched 3461`, `Completed checkpoint: 254
 
 ### Cải tiến code nên làm
 
-- Thêm preflight health check thật cho provider trước khi lập batch; nếu không có provider dùng được thì dừng ngay, không để concurrency tạo thêm các job lỗi.
-- Kiểm tra từng chunk: output phải không rỗng; nếu API cung cấp lý do kết thúc do chạm giới hạn output thì đánh dấu retry, không ghép/lưu như bản hoàn chỉnh. Lưu trạng thái per-chunk cần thiết để có thể tiếp tục an toàn.
-- Điều chỉnh chunk size theo giới hạn output thực tế của model, không tăng `CLOUDFLARE_AI_MAX_TOKENS` mù quáng; thử trên các trường dài và ngôn ngữ có output mở rộng.
-- Bổ sung validation theo chunk/câu và các token dữ kiện quan trọng; dùng ngưỡng độ dài theo locale như tín hiệu cảnh báo, không yêu cầu số ký tự hai ngôn ngữ bằng nhau.
-- Chỉ upsert catalog khi mọi field bắt buộc đã hoàn tất và pass validation; lưu rõ field nào được giữ thủ công/không có nguồn để completeness không bị hiểu nhầm.
+- Thêm preflight health check thật cho provider trước khi lập batch; nếu không có provider dùng được thì dừng ngay, không để batch bắt đầu rồi mới phát hiện endpoint/quota lỗi.
+- Điều chỉnh chunk size theo giới hạn output thực tế của model, không tăng `CLOUDFLARE_AI_MAX_TOKENS` mù quáng; kiểm thử trên trường dài và locale có output mở rộng.
+- Bổ sung validation ngữ nghĩa theo câu/dữ kiện quan trọng hoặc một bước review phù hợp; các phép đo ký tự/token chỉ là tín hiệu cảnh báo, không chứng minh bản dịch đầy đủ.
+- Cân nhắc chỉ upsert catalog khi mọi field bắt buộc đã hoàn tất và pass validation; hiện catalog có thể được lưu với `qualityStatus` chưa approved để admin xem/sửa, còn storefront vẫn chặn theo readiness gate.
 - Giữ validation bật; không dùng `--no-validate` để ép tăng số lượng approved. Sau khi provider khỏe, concurrency thấp ở pilot; tăng dần sau khi tỷ lệ timeout/429 và lỗi quality ổn định.
+
+### Safeguards đã bổ sung trong code
+
+- Mọi chunk phải có output dạng string không rỗng; chunk thiếu hoặc ngắn dưới 20% nguồn (với nguồn từ 40 ký tự) bị từ chối trước khi ghép/lưu.
+- Nếu Cloudflare báo finish reason do chạm giới hạn output, kết quả bị đánh dấu `TRANSLATION_OUTPUT_INCOMPLETE`. Chunk lớn bị thiếu output được chia lại tối đa hai cấp; nếu vẫn thiếu, job thất bại thay vì ghi nhận như bản dịch hoàn tất.
+- Cloudflare dùng chunk đầu vào mặc định 1.800 ký tự (`CLOUDFLARE_AI_INPUT_CHUNK_SIZE`); Cloudflare request concurrency và `retranslate` mặc định là 1 để tránh burst. Các biến concurrency trong `.env` có thể override giá trị mẫu.
+- Query retranslate chỉ lấy các field cần xử lý; kết quả giữ trong RAM không còn giữ nguyên văn toàn bộ output cho từng job. Báo cáo giữ tối đa 5 ví dụ lỗi, mỗi ví dụ giới hạn 240 ký tự.
+- Hook storefront không bị sửa: `useProductTranslation` dùng TanStack Query, truyền `AbortSignal` cho request, có `gcTime` 5 phút và không ghi translation vào `localStorage`.
+
+Các kiểm tra này chặn nhiều lỗi rỗng/cắt ngắn rõ ràng, nhưng không chứng minh được bản dịch đúng nghĩa hoặc không bỏ sót thông tin tinh vi; vẫn cần validation chất lượng và kiểm tra mẫu trước khi chạy batch lớn.
 
 ## Tham chiếu code
 
@@ -195,6 +204,11 @@ Lần chạy người dùng gửi có `Matched 3461`, `Completed checkpoint: 254
 - `online-store-backend/src/controllers/productController.js`
 - `online-store-backend/src/services/cloudflareAiService.js`
 - `online-store-backend/src/services/libretranslateProductService.js`
+- `libretranslate-tool/src/productTranslator.js`
+- `libretranslate-tool/src/libretranslateClient.js`
+- `online-store-backend/src/test/cloudflare-ai-service.test.js`
+- `online-store-backend/src/test/translation-product-cache.test.js`
+- `libretranslate-tool/test/productTranslator.test.js`
 - `online-store-backend/src/models/ProductCatalogTranslationCache.js`
 - `online-store-backend/src/config/languageInventory.js`
 - `online-store-backend/python/scraper_paths.py`

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { splitText, translateProduct } = require('../src/productTranslator');
+const { splitText, joinTranslatedChunks, translateProduct } = require('../src/productTranslator');
 const { LibreTranslateClient } = require('../src/libretranslateClient');
 
 test('splitText keeps all content and prefers word boundaries', () => {
@@ -25,6 +25,17 @@ test('splitText never exceeds the chunk limit at a punctuation boundary', () => 
 
   assert.ok(chunks.every((chunk) => chunk.length <= 6000));
   assert.equal(chunks.join(''), source);
+});
+
+test('joinTranslatedChunks rejects empty and severely shortened provider output', () => {
+  assert.throws(
+    () => joinTranslatedChunks(['A complete source sentence that should not disappear.'], ['']),
+    { code: 'TRANSLATION_OUTPUT_INCOMPLETE' },
+  );
+  assert.throws(
+    () => joinTranslatedChunks(['A'.repeat(100)], ['Short']),
+    { code: 'TRANSLATION_OUTPUT_INCOMPLETE' },
+  );
 });
 
 test('translateProduct preserves whitespace between translated chunks', async () => {
@@ -65,6 +76,28 @@ test('LibreTranslateClient supports local HTTP endpoints', async () => {
       retries: 0,
     });
     assert.equal(await client.translate('hello', 'en', 'vi'), 'HELLO');
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
+test('LibreTranslateClient rejects an empty translation response', async () => {
+  const server = http.createServer((request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ translatedText: '   ' }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const { port } = server.address();
+    const client = new LibreTranslateClient({
+      baseUrl: `http://127.0.0.1:${port}`,
+      timeoutMs: 1000,
+      retries: 0,
+    });
+    await assert.rejects(client.translate('hello', 'en', 'vi'), {
+      code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+    });
   } finally {
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
