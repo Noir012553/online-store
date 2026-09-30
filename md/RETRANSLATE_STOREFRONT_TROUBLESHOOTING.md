@@ -147,6 +147,43 @@ data/scraped-products/current/<nhóm-sản-phẩm>/
 5. Chọn chính sách storefront rõ ràng: hoàn thiện đủ mọi locale trước khi mở sản phẩm, hoặc thay đổi thiết kế gate sang readiness theo locale và fallback tiếng Việt cho locale thiếu. Hai lựa chọn có trade-off khác nhau; chưa có thay đổi gate nào được thực hiện trong phiên.
 6. Khi dùng `--shutdown`, lưu công việc đang mở và cắm nguồn; máy chỉ tắt sau khi run thành công hoàn toàn.
 
+## 10. Độ đầy đủ nội dung của từng trường và cách khắc phục
+
+### Kết luận
+
+Không có bảo đảm tuyệt đối rằng provider trả đủ nội dung cho mọi đoạn. Mục tiêu cũng không nên là số ký tự đích phải bằng số ký tự nguồn: bản dịch giữa các ngôn ngữ thường dài/ngắn khác nhau. Cần bảo đảm mọi đoạn nguồn đều có kết quả không rỗng, các dữ kiện bắt buộc được giữ, không có dấu hiệu bị cắt cụt và toàn bộ trường đạt validation.
+
+Cả luồng Cloudflare/failover và LibreTranslate-only hiện chia văn bản dài thành các đoạn tối đa mặc định 6.000 ký tự rồi ghép lại. Cloudflare giới hạn đầu ra mặc định ở `2048` token mỗi request (`CLOUDFLARE_AI_MAX_TOKENS` có thể cấu hình), còn LibreTranslate client chỉ xác nhận `translatedText` có kiểu string; string rỗng vẫn qua được bước kiểm tra kiểu. Pipeline chưa kiểm tra chắc chắn provider đã hoàn thành toàn bộ output của từng đoạn trước khi ghép.
+
+Catalog sản phẩm dịch `name`, `description`, `technicalDescription`, giá trị specs, alt ảnh và các field promotion có dữ liệu. Brand được giữ từ nguồn; các field trong `manualFields` có thể được giữ nguyên thay vì dịch. Kết quả field có thể được ghi checkpoint trước, nhưng catalog chỉ được upsert sau khi các bước dịch trường kết thúc. Vì vậy checkpoint field không có nghĩa cả product/language đã hoàn tất.
+
+### Giới hạn validation hiện tại
+
+- Validator đánh dấu `too_short` khi output ngắn hơn 20% nguồn và `too_long` khi dài hơn 300%; `too_long` hiện là lỗi không chặn approval.
+- Có kiểm tra token kỹ thuật, markup, ngôn ngữ và một heuristic `truncated`, nhưng heuristic cắt cụt chỉ bắt một số trường hợp nguồn dài từ 40 ký tự, kết thúc bằng dấu câu, trong khi bản dịch không kết thúc bằng dấu câu.
+- Không có xác nhận độc lập rằng từng đoạn hoặc từng câu nguồn đều được thể hiện trong bản dịch. So sánh tỷ lệ ký tự đơn lẻ cũng không chứng minh được tính đầy đủ và có thể sai do đặc thù ngôn ngữ.
+
+### Trạng thái của lần chạy mới nhất
+
+Lần chạy người dùng gửi có `Matched 3461`, `Completed checkpoint: 2540`, `remaining this run: 921`, nhưng `Fixed successfully: 0`, `Still has issues: 2540`, `Failed: 3` và `Remaining: 3461`. Cả 9 cấu hình Cloudflare bị rate-limit/cooldown, LibreTranslate trả `ECONNREFUSED 127.0.0.1:5001`; không có cơ sở kết luận output lần này bị cắt vì các provider không trả được kết quả cho các job thất bại. Không cộng các số trong report thành tổng độc lập.
+
+### Khắc phục theo thứ tự an toàn
+
+1. Dừng batch khi không có provider khỏe. Khởi động LibreTranslate và xác nhận một request `/translate` ngắn trả `translatedText` không rỗng; hoặc xác nhận quota Cloudflare đã phục hồi trước khi gửi request thử. Không lặp probe nhiều key khi provider vẫn 429.
+2. Chạy pilot nhỏ với validation mặc định đang bật, một ngôn ngữ và concurrency 1; ví dụ từ thư mục backend: `npm run retranslate -- --lang=es --limit=3 --concurrency=1`. Đây là lệnh ghi DB, không phải dry-run; không thêm `--shutdown` trong lúc kiểm chứng.
+3. Kiểm tra catalog trong MongoDB cho các product/language vừa xử lý: `status`, `qualityStatus`, `sourceHash`, `validationErrors`, `provider`/`providersUsed`, và completeness của `name`, `description` (nếu nguồn có), các spec, alt và promotion tương ứng. So sánh với product nguồn, không chỉ nhìn log “Translation success”.
+4. Chỉ khi pilot được lưu đủ và đạt chất lượng mới chạy retry phần unresolved bằng provider đã xác nhận khỏe. `--retry-unresolved` không kết hợp với `--lang` hoặc `--limit`; giữ checkpoint hiện có, không xóa thủ công.
+5. Với LibreTranslate-only, thêm `--libretranslate-only` chỉ khi instance local thật sự hoạt động. Với luồng mặc định, Cloudflare vẫn là provider chính; LibreTranslate draft không thay thế Cloudflare trừ khi cấu hình failover phù hợp.
+
+### Cải tiến code nên làm
+
+- Thêm preflight health check thật cho provider trước khi lập batch; nếu không có provider dùng được thì dừng ngay, không để concurrency tạo thêm các job lỗi.
+- Kiểm tra từng chunk: output phải không rỗng; nếu API cung cấp lý do kết thúc do chạm giới hạn output thì đánh dấu retry, không ghép/lưu như bản hoàn chỉnh. Lưu trạng thái per-chunk cần thiết để có thể tiếp tục an toàn.
+- Điều chỉnh chunk size theo giới hạn output thực tế của model, không tăng `CLOUDFLARE_AI_MAX_TOKENS` mù quáng; thử trên các trường dài và ngôn ngữ có output mở rộng.
+- Bổ sung validation theo chunk/câu và các token dữ kiện quan trọng; dùng ngưỡng độ dài theo locale như tín hiệu cảnh báo, không yêu cầu số ký tự hai ngôn ngữ bằng nhau.
+- Chỉ upsert catalog khi mọi field bắt buộc đã hoàn tất và pass validation; lưu rõ field nào được giữ thủ công/không có nguồn để completeness không bị hiểu nhầm.
+- Giữ validation bật; không dùng `--no-validate` để ép tăng số lượng approved. Sau khi provider khỏe, concurrency thấp ở pilot; tăng dần sau khi tỷ lệ timeout/429 và lỗi quality ổn định.
+
 ## Tham chiếu code
 
 - `online-store-backend/src/scripts/retranslate.js`
