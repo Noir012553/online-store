@@ -1,0 +1,163 @@
+# Ghi nhận sự cố retranslate và storefront
+
+## Mục đích và phạm vi
+
+Tài liệu này ghi lại các vấn đề đã được quan sát khi cài dependency, chạy `retranslate`, kiểm tra Redis/LibreTranslate/Cloudflare và đối chiếu điều kiện hiển thị storefront. Các số liệu là kết quả tại thời điểm người dùng chạy lệnh trên máy Windows; chúng có thể thay đổi khi chạy lại.
+
+Không ghi giá trị `.env`, API key, token, MongoDB URI, mật khẩu hoặc nội dung secret vào tài liệu này.
+
+## Tóm tắt hiện trạng
+
+- Backend `.env` được tạo từ `.env.example` trên máy Windows.
+- Redis không lắng nghe trên `localhost:6379`; sau đó `PRODUCT_SEED_LOCK_MODE=memory` được xác nhận. Chế độ này phù hợp cho một tiến trình local, không dùng cho production hoặc nhiều tiến trình song song.
+- LibreTranslate ở `127.0.0.1:5001` đã có lúc mở TCP nhưng request `/translate` timeout; ở lần chạy khác kết nối bị `ECONNREFUSED`. Chưa có bằng chứng endpoint dịch hoạt động ổn định.
+- Probe gửi một request ngắn cho mỗi 9 cấu hình Cloudflare; cả 9 đều trả `HTTP 429`, không có `Retry-After`. Cloudflare chưa sẵn sàng chạy lại batch tại thời điểm probe.
+- Storefront chỉ có 3/618 sản phẩm sẵn sàng theo cờ hiện lưu và phép tính readiness chạy lại.
+- Chưa xác định được một sản phẩm cụ thể nào mất bản dịch; cần kiểm tra catalog theo một mã sản phẩm và ngôn ngữ mục tiêu sau khi provider hoạt động.
+
+## 1. Cài package và audit
+
+### Cảnh báo ghi nhận
+
+- `node-domexception@1.0.0` bị cảnh báo deprecated theo chuỗi dependency gián tiếp `google-auth-library -> gaxios -> node-fetch -> fetch-blob`.
+- `@scarf/scarf@1.4.0` có postinstall telemetry bị npm chặn do chưa được duyệt. Đã giữ script bị chặn; không cần bật telemetry để backend chạy.
+- `npm fund` chỉ là thông báo tài trợ.
+- Audit ban đầu ghi nhận lỗ hổng moderate ở Nodemailer và Multer.
+
+### Thay đổi dependency đã thực hiện
+
+- `online-store-backend/package.json`: Multer `^2.4.0`, Nodemailer `^10.0.12`.
+- `online-store-backend/package-lock.json` được cập nhật tương ứng.
+- `npm audit` sau cập nhật: 0 vulnerabilities.
+- Smoke test CommonJS cho Nodemailer/Multer thành công; 2 test upload boundary đạt.
+- Chạy toàn bộ `import-file-validator.test.js` có 2 assertion mapping sản phẩm thất bại (`sourceUrl` dư trong mô tả ảnh và thiếu issue `sourceProductId`). Đây không phải lỗi do thay đổi package đã xác minh; cần xử lý riêng nếu muốn sửa.
+
+Không chạy `npm audit fix --force` hoặc `npm update` lặp lại để xử lý cảnh báo deprecated: có thể gây thay đổi ngoài phạm vi và không loại được nguồn dependency hiện tại. Không override `node-domexception` một cách cưỡng ép nếu chưa xác nhận tương thích.
+
+## 2. `.env` và Redis
+
+### `.env`
+
+- Lần kiểm tra đầu tiên chạy từ `C:\Windows\system32`, nên không tìm thấy `.env`; báo cáo TXT lúc đó phản ánh trạng thái cũ.
+- Sau đó `.env` được sao chép từ `online-store-backend/.env.example`; `Test-Path` trả `True`.
+- `LIBRETRANSLATE_API_KEY` có thể để trống nếu instance không yêu cầu xác thực.
+- `REDIS_PASSWORD` có thể để trống nếu Redis không bật xác thực. Không đặt secret thật trong `.env.example` hoặc Git.
+
+### Redis
+
+- `Test-NetConnection localhost -Port 6379` trả `False`; Windows không liệt kê dịch vụ Redis/Memurai.
+- `redis` trong `package.json` là client Node.js, không phải Redis server.
+- `.env` ban đầu dùng `REDIS_URL=redis://localhost:6379`, `PRODUCT_SEED_LOCK_MODE=redis`; code thử kết nối và nhận `ECONNREFUSED`, rồi trong môi trường local dùng in-memory fallback.
+- Sau đó biến mode được kiểm tra là `memory`. Với local một tiến trình, mode này bỏ qua Redis; không an toàn cho các tiến trình seed/retranslate chạy đồng thời. Production chặn mode `memory`.
+- `REDIS_PASSWORD` rỗng không phải nguyên nhân của `ECONNREFUSED`; lỗi đó cho biết không có server lắng nghe tại host/cổng được cấu hình.
+
+## 3. Khóa retranslate trong MongoDB
+
+Khóa chạy retranslate là khóa riêng trong MongoDB, không phải Redis lock. Nó có lease 10 phút và được gia hạn khi tiến trình còn hoạt động.
+
+- Có lần lệnh báo `Retranslate is already running for this database`, dù không thấy `node.exe` chứa `retranslate.js` trên máy.
+- Lệnh Node kiểm tra khóa sau đó trả “không có” tại thời điểm truy vấn. Một lần chạy sau lại gặp thông báo khóa đang tồn tại.
+- Khởi động lại máy không bảo đảm xóa khóa đang được một tiến trình khác gia hạn. Khác Mongo URI hoặc một tiến trình/máy khác dùng cùng database cũng có thể gây xung đột.
+- Khi kiểm tra Node từ `C:\Windows\system32`, lệnh lỗi `Cannot find module 'dotenv'`; cần chạy từ thư mục backend để Node resolve đúng dependency và `.env`.
+- Lần bị lock dừng trước khi dịch; cờ `--shutdown` không lên lịch tắt máy.
+
+Không xóa document khóa bằng tay và không dùng `--reset-progress` để chữa lỗi khóa. Nếu lỗi lặp lại, kiểm tra tiến trình local và run lock ngay sau lỗi bằng cùng `.env`/Mongo URI, không gửi URI vào chat.
+
+## 4. LibreTranslate
+
+### Kết quả quan sát
+
+- `.env.example` mặc định trỏ tới `http://127.0.0.1:5001` và timeout backend là `60000ms`.
+- Một lần chạy `--libretranslate-only` báo nhiều request timeout sau 60 giây.
+- Probe TCP có lúc `True`, nhưng request dịch ngắn từ PowerShell trả `WebException: The operation has timed out`.
+- Ở log khác, client nhận `connect ECONNREFUSED 127.0.0.1:5001`, tức không kết nối được tới listener tại thời điểm đó.
+
+TCP mở chỉ xác nhận cổng chấp nhận kết nối; chưa xác nhận model dịch đã nạp hoặc API `/translate` xử lý được request. Chỉ tiếp tục batch sau khi `/languages` và một request `/translate` ngắn trả kết quả hợp lệ. Timeout `60000ms` cùng `LIBRETRANSLATE_RETRIES=2` có thể khiến một chunk thử tối đa ba lần, kéo dài đáng kể.
+
+### Khác biệt lệnh
+
+- `npm run retranslate -- --libretranslate-only --shutdown`: ép dùng LibreTranslate cho bản dịch retranslate, không fallback Cloudflare; cần endpoint LibreTranslate hoạt động.
+- `npm run retranslate -- --shutdown`: luồng mặc định. Với sản phẩm, LibreTranslate có thể được gọi làm draft nếu `LIBRETRANSLATE_ENABLED=true`, rồi Cloudflare vẫn tạo bản dịch cuối. Nếu draft lỗi, code log cảnh báo và vẫn thử Cloudflare.
+- Do đó log `Product draft unavailable; continuing with Cloudflare AI` không có nghĩa bản dịch đã được hoàn tất bởi LibreTranslate.
+
+## 5. Cloudflare rate limit
+
+- Log retranslate mặc định có các lần Cloudflare dịch thành công, xen kẽ cảnh báo rate-limit và fallback draft LibreTranslate bị `ECONNREFUSED`.
+- Probe từng cấu hình gửi tối đa một request nhỏ cho 9 cấu hình; cả 9 trả `RATE_LIMITED (HTTP 429)`, không có `Retry-After`.
+- Kết quả chỉ xác nhận tình trạng tại lúc probe. Không biết giờ reset từ response đó; kiểm tra quota/usage trong dashboard Cloudflare. Nếu nhiều key cùng account, quota account có thể ảnh hưởng tất cả.
+- Cooldown trong service Cloudflare là trạng thái trong bộ nhớ của tiến trình, còn quota/rate limit do Cloudflare trả về là trạng thái provider; restart app không khôi phục quota provider.
+- Ngân sách nội bộ của service tính ngày UTC; điều đó không bảo đảm thời điểm reset quota Cloudflare cũng là nửa đêm UTC.
+
+Không lặp probe 9 key hoặc chạy batch khi cả 9 còn 429; mỗi probe vẫn là request tới provider.
+
+## 6. Ý nghĩa kết quả retranslate và checkpoint
+
+Một lần gọi Cloudflare/LibreTranslate thành công không đồng nghĩa job sản phẩm hoàn tất hoặc được duyệt.
+
+- Product retranslate gom các trường sản phẩm/ngôn ngữ, validate chúng và chỉ sau đó upsert `ProductCatalogTranslationCache`.
+- Một số kết quả field có thể được checkpoint trước khi toàn bộ product translation được lưu; lỗi ở field/chunk khác có thể khiến catalog tổng hợp chưa được cập nhật.
+- Catalog dùng `status: success` và `provider`; `qualityStatus` độc lập, ví dụ `approved`, `pending`, `needs_retranslate` hoặc `rejected`.
+- `Fixed successfully` chỉ đếm job đạt approval và không còn validation errors. `Still has issues`, `Failed` và `Remaining` không phải các nhóm số luôn cộng được thành tổng job.
+- Timeout/provider failure không tạo bản dịch hợp lệ cho field đó; checkpoint của các field đã thành công có thể được dùng khi tiếp tục.
+- Checkpoint đã xử lý nhưng `fixed: false` không tự chạy lại trong lần sau. `--retry-unresolved` dùng để mở lại các mục chưa fixed; xem giới hạn CLI hiện hành trước khi kết hợp `--lang`, `--limit` hoặc `--dry-run`.
+- `--shutdown` chỉ lên lịch `shutdown.exe /s /t 60` khi toàn bộ run báo success. Lỗi/remaining/issues đồng nghĩa không lên lịch tắt máy. Có thể hủy đếm ngược bằng `shutdown /a`.
+
+Log batch đã ghi nhận `1` fixed, `2540` still issues, `3` failed, `3461` remaining trong lượt có `2478` jobs. Đây là snapshot của lần chạy đó; `Remaining` có thể bao gồm các mục checkpoint chưa fixed và mục chưa xử lý, không nên cộng các dòng thành tổng độc lập.
+
+## 7. Điều kiện storefront và số liệu đã kiểm tra
+
+Storefront không hiển thị chỉ vì một provider log “Translation success”. Readiness cần bản catalog:
+
+- `status: success`;
+- `qualityStatus: approved`;
+- `sourceHash` khớp product hiện tại;
+- đủ field bắt buộc, description/spec nguồn tương ứng;
+- có bản hợp lệ cho cả 8 ngôn ngữ ngoài tiếng Việt trong inventory hiện hành.
+
+Tiếng Việt có thể dùng nội dung nguồn, nên `vi: 0/0` bản catalog không nhất thiết là lỗi. Product listing lọc `storefrontReady: true`; product detail cũng kiểm tra readiness. Bản dịch `legacy` trong `LiveTranslationCache` không thay cho catalog trong phép tính readiness của storefront.
+
+Kết quả PowerShell đọc MongoDB tại thời điểm kiểm tra:
+
+- Products không xóa: `618`.
+- `storefrontReady` lưu sẵn: `3`.
+- Tính readiness lại bằng helper storefront: `3`.
+- Catalog `approved/total` theo locale: `en 353/612`, `pt 138/612`, `fr 159/612`, `de 190/612`, `it 12/612`, `es 255/612`, `nl 210/612`, `sv 143/612`, `vi 0/0`.
+- Số legacy product translation approved cao hơn nhiều (ví dụ `en 5022/7571`, `es 4437/5587`), nhưng các bản này không được dùng làm readiness catalog.
+
+Số đếm locale là số bản ghi riêng rẽ, không phải cùng một tập sản phẩm; `sourceHash` và completeness còn phải khớp. Dữ liệu cho thấy chỉ 3 sản phẩm hiện qua gate, không phải vấn đề cờ readiness cũ (giá trị lưu và tính lại đều bằng 3).
+
+Trang quản trị bản dịch và storefront khác nhau: admin có thể xem/chỉnh catalog theo locale; storefront áp readiness nghiêm hơn. Với trang admin, cần chọn đúng locale và bật Edit để xem field dịch.
+
+## 8. Thư mục scraper `data` và `current`
+
+Code không đổi tên `data` thành `current`. Output scraper mặc định là:
+
+```text
+data/scraped-products/current/<nhóm-sản-phẩm>/
+```
+
+`current` là thư mục output bên trong `data/scraped-products`; `SCRAPER_OUTPUT_DIR` có thể ghi đè vị trí này. Đường dẫn đó chứa dữ liệu scraper, không phải kho bản dịch MongoDB. `data/scraped-products/` bị Git ignore. Lệnh `Get-ChildItem ..` chạy từ backend liệt kê thư mục cha, không phải thư mục con của backend.
+
+## 9. Các bước xử lý an toàn tiếp theo
+
+1. Tạm dừng retranslate batch cho tới khi ít nhất một provider trả kết quả test thành công. Tại thời điểm ghi nhận, LibreTranslate timeout/ECONNREFUSED và 9/9 Cloudflare probe trả 429.
+2. Nếu chọn LibreTranslate-only, khởi động/kiểm tra server local, xác nhận `/languages` và một `/translate` ngắn; chỉ sau đó chạy lại job.
+3. Nếu chọn Cloudflare, kiểm tra quota account và chờ phục hồi; thử một request nhỏ trên một cấu hình thay vì probe lặp lại toàn bộ.
+4. Sau khi provider khỏe, dùng checkpoint hiện tại; cân nhắc `--retry-unresolved` cho các job đã xử lý nhưng chưa fixed. Không xóa checkpoint/lock bằng tay.
+5. Chọn chính sách storefront rõ ràng: hoàn thiện đủ mọi locale trước khi mở sản phẩm, hoặc thay đổi thiết kế gate sang readiness theo locale và fallback tiếng Việt cho locale thiếu. Hai lựa chọn có trade-off khác nhau; chưa có thay đổi gate nào được thực hiện trong phiên.
+6. Khi dùng `--shutdown`, lưu công việc đang mở và cắm nguồn; máy chỉ tắt sau khi run thành công hoàn toàn.
+
+## Tham chiếu code
+
+- `online-store-backend/src/scripts/retranslate.js`
+- `online-store-backend/src/seeds/retranslateSeeder.js`
+- `online-store-backend/src/services/productCatalogRetranslationService.js`
+- `online-store-backend/src/services/distributedLockService.js`
+- `online-store-backend/src/utils/retranslateProgress.js`
+- `online-store-backend/src/services/translationHelper.js`
+- `online-store-backend/src/controllers/productController.js`
+- `online-store-backend/src/services/cloudflareAiService.js`
+- `online-store-backend/src/services/libretranslateProductService.js`
+- `online-store-backend/src/models/ProductCatalogTranslationCache.js`
+- `online-store-backend/src/config/languageInventory.js`
+- `online-store-backend/python/scraper_paths.py`
