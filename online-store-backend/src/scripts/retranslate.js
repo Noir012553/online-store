@@ -58,7 +58,7 @@ async function main() {
       dryRun: args.includes('--dry-run'),
       validate: !args.includes('--no-validate'),
       verbose: true,
-      concurrency: 3,
+      concurrency: 1,
       libreTranslateOnly: args.includes('--libretranslate-only'),
       retryUnresolved: args.includes('--retry-unresolved'),
     };

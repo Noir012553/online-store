@@ -27,6 +27,48 @@ const getChunkSize = () => {
     ? configured
     : DEFAULT_DESCRIPTION_CHUNK_SIZE;
 };
+const getCloudflareChunkSize = () => {
+  const configured = Number(process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE);
+  if (process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE !== undefined && (!Number.isInteger(configured) || configured < 1)) {
+    throw new Error('CLOUDFLARE_AI_INPUT_CHUNK_SIZE must be a positive integer');
+  }
+  return configured || 1800;
+};
+
+const translateChunkSafely = async (chunk, sourceLang, targetLang, translate, splitDepth = 0) => {
+  try {
+    const response = await translate(chunk);
+    const translatedText = typeof response === 'string' ? response : response?.translatedText;
+    joinTranslatedChunks([chunk], [translatedText]);
+    return {
+      translatedText,
+      provider: response?.provider,
+      providersUsed: response?.providersUsed || (response?.provider ? [response.provider] : []),
+      failoverReason: response?.failoverReason,
+    };
+  } catch (error) {
+    if (error.code !== 'TRANSLATION_OUTPUT_INCOMPLETE' || splitDepth >= 2 || chunk.trim().length <= 256) throw error;
+
+    const sourceChunks = splitText(chunk, Math.max(256, Math.floor(chunk.length / 2)));
+    const translatedChunks = [];
+    const providersUsed = new Set();
+    let failoverReason = null;
+    for (const sourceChunk of sourceChunks) {
+      const result = await translateChunkSafely(sourceChunk, sourceLang, targetLang, translate, splitDepth + 1);
+      translatedChunks.push(result.translatedText);
+      result.providersUsed.forEach(provider => providersUsed.add(provider));
+      if (result.failoverReason) failoverReason = result.failoverReason;
+    }
+
+    const resolvedProviders = [...providersUsed];
+    return {
+      translatedText: joinTranslatedChunks(sourceChunks, translatedChunks),
+      provider: resolvedProviders.includes('libretranslate') ? 'libretranslate' : 'cloudflare',
+      providersUsed: resolvedProviders,
+      ...(failoverReason ? { failoverReason } : {}),
+    };
+  }
+};
 
 const translateWithLibreTranslate = async (text, sourceLang, targetLang, force = false) => {
   if (!force && !isEnabled()) throw new Error('LIBRETRANSLATE_DISABLED');
@@ -35,7 +77,13 @@ const translateWithLibreTranslate = async (text, sourceLang, targetLang, force =
   const chunks = splitText(text, getChunkSize());
   const translatedChunks = [];
   for (const chunk of chunks) {
-    translatedChunks.push(await getClient().translate(chunk, sourceLang, targetLang));
+    const result = await translateChunkSafely(
+      chunk,
+      sourceLang,
+      targetLang,
+      chunkText => getClient().translate(chunkText, sourceLang, targetLang),
+    );
+    translatedChunks.push(result.translatedText);
   }
   return joinTranslatedChunks(chunks, translatedChunks);
 };
@@ -77,6 +125,7 @@ const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
     return {
       translatedText: stripTranslationPrefix(translatedChunk),
       provider: 'cloudflare',
+      providersUsed: ['cloudflare'],
     };
   } catch (error) {
     if (!isFailoverEnabled() || !isRateLimitError(error)) throw error;
@@ -86,6 +135,7 @@ const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
       return {
         translatedText: stripTranslationPrefix(translatedText),
         provider: 'libretranslate',
+        providersUsed: ['libretranslate'],
         failoverReason: 'cloudflare_overload',
       };
     } catch (failoverError) {
@@ -96,15 +146,20 @@ const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
 };
 
 const translateWithFailover = async (text, sourceLang, targetLang) => {
-  const chunks = splitText(text, getChunkSize());
+  const chunks = splitText(text, getCloudflareChunkSize());
   const translatedChunks = [];
   const providersUsed = new Set();
   let failoverReason = null;
 
   for (const chunk of chunks) {
-    const translation = await translateChunkWithFailover(chunk, sourceLang, targetLang);
+    const translation = await translateChunkSafely(
+      chunk,
+      sourceLang,
+      targetLang,
+      chunkText => translateChunkWithFailover(chunkText, sourceLang, targetLang),
+    );
     translatedChunks.push(translation.translatedText);
-    providersUsed.add(translation.provider);
+    translation.providersUsed.forEach(provider => providersUsed.add(provider));
     if (translation.failoverReason) failoverReason = translation.failoverReason;
   }
 
@@ -117,21 +172,24 @@ const translateWithFailover = async (text, sourceLang, targetLang) => {
 };
 
 const translateWithCloudflare = async (text, sourceLang, targetLang) => {
-  const chunks = splitText(text, getChunkSize());
+  const chunks = splitText(text, getCloudflareChunkSize());
   const translatedChunks = [];
 
   for (const chunk of chunks) {
-    const draftText = await translateDraft(chunk, sourceLang, targetLang);
-    const translatedChunk = await cloudflareAiService.translate(
-      chunk,
-      sourceLang,
-      targetLang,
-      null,
-      3,
-      2000,
-      { draftText },
-    );
-    translatedChunks.push(stripTranslationPrefix(translatedChunk));
+    const result = await translateChunkSafely(chunk, sourceLang, targetLang, async (chunkText) => {
+      const draftText = await translateDraft(chunkText, sourceLang, targetLang);
+      const translatedChunk = await cloudflareAiService.translate(
+        chunkText,
+        sourceLang,
+        targetLang,
+        null,
+        3,
+        2000,
+        { draftText },
+      );
+      return stripTranslationPrefix(translatedChunk);
+    });
+    translatedChunks.push(result.translatedText);
   }
 
   return joinTranslatedChunks(chunks, translatedChunks);

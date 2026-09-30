@@ -98,6 +98,19 @@ describe('Cloudflare AI rotation', () => {
     }
   });
 
+  it('rejects provider responses stopped by the output token limit', async () => {
+    sandbox.stub(axios, 'post').resolves({
+      data: { success: true, result: { response: 'Partial translation', finish_reason: 'length' } },
+    });
+
+    try {
+      await cloudflareAiService._doTranslate('Source text', 'vi', 'en', null, 0, 0);
+      expect.fail('Expected truncated provider output to be rejected');
+    } catch (error) {
+      expect(error.code).to.equal('TRANSLATION_OUTPUT_INCOMPLETE');
+    }
+  });
+
   it('tries each configuration once then stops on HTTP 420', async () => {
     const error = providerError({ status: 420, message: 'Rate limit exceeded' });
     sandbox.stub(axios, 'post').rejects(error);

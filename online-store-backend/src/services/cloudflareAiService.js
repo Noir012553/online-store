@@ -113,7 +113,7 @@ class CloudflareAiService {
     this.maxParallelRequestsPerConfig = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_PER_KEY', 1);
     this.configAvailabilityWaiters = [];
     this.maxRequestsPerSecond = parsePositiveInteger('CLOUDFLARE_MAX_REQUESTS_PER_SEC', 5);
-    const configuredConcurrency = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_REQUESTS', 3);
+    const configuredConcurrency = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_REQUESTS', 1);
     this.queue = new SimpleQueue(Math.min(configuredConcurrency, this.configs.length || 1));
     this.lastRequestTime = 0;
     this.requestTimestamps = [];
@@ -447,7 +447,14 @@ class CloudflareAiService {
         throw new Error(`Cloudflare AI error: ${response.data.errors?.[0]?.message || 'Unknown error'}`);
       }
 
-      let translatedText = response.data.result?.response || '';
+      const result = response.data.result || {};
+      const finishReason = String(result.finish_reason || result.finishReason || '').toLowerCase();
+      if (['length', 'max_tokens', 'max_output_tokens', 'token_limit'].includes(finishReason)) {
+        throw Object.assign(new Error('Cloudflare translation reached the output token limit'), {
+          code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+        });
+      }
+      let translatedText = result.response || '';
 
       // Ensure translatedText is a string
       if (typeof translatedText !== 'string') {

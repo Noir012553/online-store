@@ -173,6 +173,11 @@ class LibreTranslateClient {
           if (typeof response.translatedText !== 'string') {
             throw new Error('LibreTranslate response is missing translatedText');
           }
+          if (response.translatedText.trim() === '') {
+            throw Object.assign(new Error('LibreTranslate returned an empty translation'), {
+              code: 'TRANSLATION_OUTPUT_INCOMPLETE',
+            });
+          }
           this.closeCircuit(generation);
           return response.translatedText;
         } catch (error) {

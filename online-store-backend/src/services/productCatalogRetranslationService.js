@@ -45,7 +45,7 @@ const retranslateProductUnlocked = async (
   targetLang,
   { libreTranslateOnly = false, checkpoint = null, parallelProducts = 1 } = {},
 ) => {
-  const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 3);
+  const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 1);
   if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
     throw new Error('PRODUCT_RETRANSLATION_FIELD_CONCURRENCY must be a positive integer');
   }

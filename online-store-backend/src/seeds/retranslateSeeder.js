@@ -67,7 +67,7 @@ class RetranslateSeeder {
       verbose = true,
       actor = 'system',
       libreTranslateOnly = false,
-      concurrency = 3,
+      concurrency = 1,
       checkpoint = null,
       renewDatabaseLock = null,
     } = options;
@@ -117,8 +117,14 @@ class RetranslateSeeder {
       ? [...checkpoint.completed.keys()].filter(key => !key.startsWith('product-field:')).length
       : 0;
     const candidateFetchLimit = limit > 0 ? limit + completedTranslationCount : 0;
-    let liveQuery = LiveTranslationCache.find(query).sort({ createdAt: 1, _id: 1 });
-    let catalogQueryBuilder = ProductCatalogTranslationCache.find(catalogQuery).sort({ createdAt: 1, _id: 1 });
+    let liveQuery = LiveTranslationCache.find(
+      query,
+      '_id hashKey originalText translatedText sourceLang targetLang entityId entityType specKey fieldKey version provider qualityScore validationErrors createdAt',
+    ).sort({ createdAt: 1, _id: 1 });
+    let catalogQueryBuilder = ProductCatalogTranslationCache.find(
+      catalogQuery,
+      '_id entityId targetLang sourceHash name validationErrors status qualityStatus createdAt',
+    ).sort({ createdAt: 1, _id: 1 });
     if (candidateFetchLimit > 0) {
       liveQuery = liveQuery.limit(candidateFetchLimit);
       catalogQueryBuilder = catalogQueryBuilder.limit(candidateFetchLimit);
@@ -187,10 +193,10 @@ class RetranslateSeeder {
     const resumedNeedsAttention = resumedResults.filter(({ result }) => !result.fixed);
     this.stats.fixedCount = resumedFixedCount;
     this.stats.stillBrokenCount = resumedNeedsAttention.length;
-    this.stats.stillBroken = resumedNeedsAttention.map(({ translation, result }) => ({
+    this.stats.stillBroken = resumedNeedsAttention.slice(0, 5).map(({ translation, result }) => ({
       _id: translation._id,
-      originalText: translation.originalText || translation.name,
-      translatedText: translation.translatedText || translation.name,
+      originalText: String(translation.originalText || translation.name || '').slice(0, 240),
+      translatedText: String(translation.translatedText || translation.name || '').slice(0, 240),
       validationErrors: result.validationErrors,
     }));
     const resumedCount = resumedResults.length;
@@ -240,7 +246,6 @@ class RetranslateSeeder {
               results.push({
                 status: 'dry-run',
                 originalId: translation._id,
-                originalText: translation.originalText || translation.name,
               });
               continue;
             }
@@ -257,12 +262,14 @@ class RetranslateSeeder {
                 this.stats.fixedCount++;
               } else {
                 this.stats.stillBrokenCount++;
-                this.stats.stillBroken.push({
-                  _id: updatedTranslation._id,
-                  originalText: translation.name,
-                  translatedText: updatedTranslation.name,
-                  validationErrors,
-                });
+                if (this.stats.stillBroken.length < 5) {
+                  this.stats.stillBroken.push({
+                    _id: updatedTranslation._id,
+                    originalText: String(translation.name || '').slice(0, 240),
+                    translatedText: String(updatedTranslation.name || '').slice(0, 240),
+                    validationErrors,
+                  });
+                }
               }
               translation.validationErrors?.forEach(error => {
                 if (!this.stats.breakdown[error]) {
@@ -276,9 +283,6 @@ class RetranslateSeeder {
                 status: 'success',
                 originalId: translation._id,
                 newId: updatedTranslation._id,
-                originalText: translation.name,
-                oldTranslation: translation.name,
-                newTranslation: updatedTranslation.name,
                 wasFixed,
                 validationErrors,
               });
@@ -448,12 +452,14 @@ class RetranslateSeeder {
               this.stats.fixedCount++;
             } else if (newValidationErrors.length > 0) {
               this.stats.stillBrokenCount++;
-              this.stats.stillBroken.push({
-                _id: savedNewVersion._id,
-                originalText: translation.originalText,
-                translatedText: newTranslation,
-                validationErrors: newValidationErrors,
-              });
+              if (this.stats.stillBroken.length < 5) {
+                this.stats.stillBroken.push({
+                  _id: savedNewVersion._id,
+                  originalText: String(translation.originalText || '').slice(0, 240),
+                  translatedText: String(newTranslation || '').slice(0, 240),
+                  validationErrors: newValidationErrors,
+                });
+              }
             }
 
             // Track breakdown by error type
@@ -473,9 +479,6 @@ class RetranslateSeeder {
               status: 'success',
               originalId: translation._id,
               newId: savedNewVersion._id,
-              originalText: translation.originalText,
-              oldTranslation: translation.translatedText,
-              newTranslation,
               wasFixed,
               validationErrors: newValidationErrors,
             });
