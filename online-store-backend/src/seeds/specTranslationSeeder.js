@@ -23,6 +23,7 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { refreshStorefrontReadiness } = require('../services/translationHelper');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -71,6 +72,10 @@ async function seedSpecTranslations(repairAttempt = 0) {
         },
         status: { $in: ['success', 'translated_via_libre'] },
         qualityStatus: 'approved',
+        $or: [
+          { validationErrors: { $exists: false } },
+          { validationErrors: { $size: 0 } },
+        ],
         targetLang: { $in: TRANSLATED_LANG_CODES },
       }).lean();
 
@@ -263,15 +268,38 @@ async function seedSpecTranslations(repairAttempt = 0) {
 
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
       const batch = entries.slice(i, i + BATCH_SIZE);
-      const operations = batch.map(entry => ({
-        updateOne: {
-          filter: { entityId: entry.entityId, targetLang: entry.targetLang },
-          update: entry.qualityStatus === 'approved'
-            ? { $set: entry }
-            : { $setOnInsert: entry },
-          upsert: true,
-        }
-      }));
+      const operations = batch.map(entry => {
+        const {
+          entityId,
+          targetLang,
+          sourceHash,
+          status,
+          qualityStatus,
+          qualityScore,
+          validationErrors,
+          lastTranslatedAt,
+          ...content
+        } = entry;
+        return {
+          updateOne: {
+            filter: { entityId, targetLang },
+            update: qualityStatus === 'approved'
+              ? { $set: entry }
+              : {
+                $set: {
+                  sourceHash,
+                  status,
+                  qualityStatus,
+                  qualityScore,
+                  validationErrors,
+                  lastTranslatedAt,
+                },
+                $setOnInsert: content,
+              },
+            upsert: true,
+          }
+        };
+      });
 
       try {
         const result = await ProductCatalogTranslationCache.bulkWrite(operations);
@@ -287,10 +315,11 @@ async function seedSpecTranslations(repairAttempt = 0) {
 
     console.timeEnd(batchTimerLabel);
 
+    const productIds = products.map((product) => product._id.toString());
+    await refreshStorefrontReadiness(productIds);
+
     // Step 5: Verify aggregation
     console.log(`\n${CLI_SYMBOLS.success} Step 5: Verification...`);
-
-    const productIds = products.map((product) => product._id.toString());
     const verifyByLang = {};
     for (const lang of TRANSLATED_LANG_CODES) {
       const count = await ProductCatalogTranslationCache.countDocuments({

@@ -56,13 +56,11 @@ const hasValidationErrors = translation => translation?.validationErrors !== und
 const isProductRetranslatable = (translation, retryableStatuses, qualityStatuses) => (
   retryableStatuses.includes(translation?.status)
   || qualityStatuses.includes(translation?.qualityStatus)
+  || hasValidationErrors(translation)
   || (
     translation?.qualityStatus !== 'approved'
-    && (
-      (typeof translation?.qualityScore === 'number'
-        && translation.qualityScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL)
-      || hasValidationErrors(translation)
-    )
+    && typeof translation?.qualityScore === 'number'
+    && translation.qualityScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
   )
 );
 

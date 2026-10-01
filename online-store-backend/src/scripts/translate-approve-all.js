@@ -38,8 +38,16 @@ async function main() {
       filter.qualityStatus = 'pending'; // Default
     }
 
+    const approvalFilter = {
+      ...filter,
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: [] },
+      ],
+    };
+
     // Get count
-    const count = await LiveTranslationCache.countDocuments(filter);
+    const count = await LiveTranslationCache.countDocuments(approvalFilter);
     console.log(`Found ${count} translations to approve\n`);
 
     if (count === 0) {
@@ -56,9 +64,11 @@ async function main() {
     // Get admin name
     const adminName = process.env.ADMIN_NAME || 'admin_system';
 
+    const translations = await LiveTranslationCache.find(approvalFilter).lean();
+
     // Perform bulk update
     const result = await LiveTranslationCache.updateMany(
-      filter,
+      approvalFilter,
       {
         $set: {
           qualityStatus: 'approved',
@@ -69,7 +79,17 @@ async function main() {
     );
 
     // Create logs
-    const translations = await LiveTranslationCache.find(filter).lean();
+    const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+    const productSyncGroups = new Map();
+    translations.forEach((translation) => {
+      if (!translation.entityType?.startsWith('product_') || !translation.entityId || !translation.targetLang) return;
+      const productIds = productSyncGroups.get(translation.targetLang) || new Set();
+      productIds.add(String(translation.entityId));
+      productSyncGroups.set(translation.targetLang, productIds);
+    });
+    await Promise.all([...productSyncGroups].map(([targetLang, productIds]) => (
+      ProductTranslationSeederService._syncProductCatalogTranslations(targetLang, [...productIds])
+    )));
     const logs = translations.map(t => ({
       translationId: t._id,
       action: 'approved',

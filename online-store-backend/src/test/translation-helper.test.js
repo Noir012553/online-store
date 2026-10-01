@@ -13,6 +13,7 @@ const {
   localizeProductSpecs,
 } = require('../services/translationHelper');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 function createQueryMock() {
   const mock = (query) => {
@@ -198,6 +199,22 @@ describe('translationHelper - Product legacy cache fallback', () => {
     LiveTranslationCache.find = originalLegacyFind;
   });
 
+  it('restores source product fields when cached translations contain a no-input response', async () => {
+    const sourceDescription = 'Laptop chơi game';
+    mockProductCache.find.result = Promise.resolve([{
+      entityId: '1',
+      name: "(Note: It seems like there's no text provided. Please provide the text you'd like me to translate, and I'll be happy to assist you.) Once you provide the text, I'll translate it into English.",
+      description: sourceDescription,
+    }]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Máy tính xách tay', description: sourceDescription, brand: 'Brand', specs: {} },
+    ], 'product', 'sv');
+
+    assert.strictEqual(result[0].name, 'Máy tính xách tay');
+    assert.strictEqual(result[0].description, sourceDescription);
+  });
+
   it('uses legacy translations for a product missing from the catalog cache', async () => {
     mockProductCache.find.result = Promise.resolve([]);
     mockLegacyFind.result = Promise.resolve([
@@ -239,7 +256,11 @@ describe('translationHelper - Product legacy cache fallback', () => {
         ],
       },
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
     }]);
   });
 
@@ -311,8 +332,10 @@ describe('translationHelper - Storefront product visibility', () => {
       ...product,
       entityId: 'product-1',
       targetLang,
+      sourceHash: getProductTranslationSourceHash(product),
       status: 'success',
       qualityStatus: 'approved',
+      validationErrors: [],
       ...overrides,
     }))
   );
@@ -323,6 +346,14 @@ describe('translationHelper - Storefront product visibility', () => {
     const result = await getStorefrontVisibleProductIds([product]);
 
     assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('hides approved products that still have validation errors', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations({ validationErrors: ['too_long'] }));
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.strictEqual(result.size, 0);
   });
 
   it('hides products when a required translation is missing or not approved', async () => {

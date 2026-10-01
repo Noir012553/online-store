@@ -25,10 +25,10 @@ import { getImageUrl, isLoginPath } from "../../lib/utils";
 import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
+import { isNoInputTranslationResponse } from "../../lib/translationResponseGuard";
 
 const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
-const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 const PRODUCT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 const normalizeProductId = (value: string | string[] | undefined): string | null => {
@@ -64,7 +64,7 @@ const formatProductAmount = (
 const cleanProductDescription = (value: unknown): string => {
   if (typeof value !== 'string') return '';
   const description = value.trim();
-  return EMPTY_TRANSLATION_RESPONSE.test(description) || /^(?:thông số|specifications?)\s*:\s*\{\s*\}$/i.test(description)
+  return isNoInputTranslationResponse(description) || /^(?:thông số|specifications?)\s*:\s*\{\s*\}$/i.test(description)
     ? ''
     : description;
 };
@@ -431,14 +431,18 @@ export default function ProductDetail() {
 
   // Convert backend product to frontend Laptop format for cart
   const isSourceLocale = locale === 'vi';
-  const localizedName = isSourceLocale ? laptop.name : translation?.name?.trim() || laptop.name;
-  const localizedDescription = cleanProductDescription(
-    isSourceLocale ? laptop.description : translation?.description?.trim() || laptop.description,
-  );
-  const localizedBrand = isSourceLocale ? laptop.brand : translation?.brand?.trim() || laptop.brand;
+  const localizedName = isSourceLocale
+    ? cleanProductDescription(laptop.name)
+    : cleanProductDescription(translation?.name) || cleanProductDescription(laptop.name);
+  const localizedDescription = isSourceLocale
+    ? cleanProductDescription(laptop.description)
+    : cleanProductDescription(translation?.description) || cleanProductDescription(laptop.description);
+  const localizedBrand = isSourceLocale
+    ? cleanProductDescription(laptop.brand)
+    : cleanProductDescription(translation?.brand) || cleanProductDescription(laptop.brand);
   const localizedTechnicalDescription = isSourceLocale
-    ? laptop.technicalDescription
-    : translation?.technicalDescription?.trim() || laptop.technicalDescription;
+    ? cleanProductDescription(laptop.technicalDescription)
+    : cleanProductDescription(translation?.technicalDescription) || cleanProductDescription(laptop.technicalDescription);
   const localizedDescriptionImages = isSourceLocale
     ? laptop.descriptionImages ?? []
     : (translation?.descriptionImages?.length ? translation.descriptionImages : laptop.descriptionImages ?? []);
@@ -446,9 +450,14 @@ export default function ProductDetail() {
     ? laptop.promotions ?? []
     : (translation?.promotions?.length ? translation.promotions : laptop.promotions ?? []);
   const sourceSpecs = laptop.specs ?? {};
-  const localizedSpecs = isSourceLocale
+  const localizedSpecs = Object.fromEntries(Object.entries(isSourceLocale
     ? sourceSpecs
-    : { ...sourceSpecs, ...(translation?.specs ?? {}) };
+    : { ...sourceSpecs, ...(translation?.specs ?? {}) })
+    .filter((entry): entry is [string, string | number] => {
+      const value = entry[1];
+      return (typeof value === 'string' || typeof value === 'number')
+        && !isNoInputTranslationResponse(value);
+    }));
   const specLabels = isSourceLocale
     ? (laptop.specLabels ?? {})
     : (translation?.specLabels ?? laptop.specLabels ?? {});

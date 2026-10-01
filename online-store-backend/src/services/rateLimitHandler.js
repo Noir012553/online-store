@@ -9,7 +9,30 @@
  */
 
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const translationValidator = require('../utils/translationValidator');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const PRODUCT_ENTITY_TYPES = new Set([
+  'product_name',
+  'product_description',
+  'product_brand',
+  'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
+]);
+
+const getManualOverrideValidation = async (record, translatedText) => {
+  if (!PRODUCT_ENTITY_TYPES.has(record.entityType)) {
+    return { qualityStatus: 'approved', qualityScore: record.qualityScore, validationErrors: [] };
+  }
+  return translationValidator.validateTranslation(
+    record.originalText,
+    translatedText,
+    record.targetLang,
+    record.entityType,
+  );
+};
 
 class RateLimitHandler {
   /**
@@ -246,14 +269,18 @@ class RateLimitHandler {
    */
   static async manualOverride(hashKey, translatedText) {
     try {
+      const record = await LiveTranslationCache.findOne({ hashKey }).lean();
+      if (!record) throw new Error(`Translation with hashKey ${hashKey} not found`);
+      const validation = await getManualOverrideValidation(record, translatedText);
       const updated = await LiveTranslationCache.findOneAndUpdate(
         { hashKey },
         {
           $set: {
             translatedText,
             status: 'success',
-            qualityStatus: 'approved',
-            validationErrors: [],
+            qualityStatus: validation.qualityStatus,
+            qualityScore: validation.qualityScore,
+            validationErrors: validation.validationErrors,
             lastRetryAt: new Date(),
             retryCount: 0,
           }
@@ -284,20 +311,31 @@ class RateLimitHandler {
    */
   static async batchManualOverride(updates) {
     try {
-      const operations = updates.map(({ hashKey, translatedText }) => ({
-        updateOne: {
-          filter: { hashKey },
-          update: {
-            $set: {
-              translatedText,
-              status: 'success',
-              qualityStatus: 'approved',
-              validationErrors: [],
-              lastRetryAt: new Date(),
-              retryCount: 0,
+      const records = await LiveTranslationCache.find({
+        hashKey: { $in: updates.map(({ hashKey }) => hashKey) },
+      }).lean();
+      const recordsByHashKey = new Map(records.map((record) => [record.hashKey, record]));
+      const operations = await Promise.all(updates.map(async ({ hashKey, translatedText }) => {
+        const record = recordsByHashKey.get(hashKey);
+        const validation = record
+          ? await getManualOverrideValidation(record, translatedText)
+          : { qualityStatus: 'approved', qualityScore: null, validationErrors: [] };
+        return {
+          updateOne: {
+            filter: { hashKey },
+            update: {
+              $set: {
+                translatedText,
+                status: 'success',
+                qualityStatus: validation.qualityStatus,
+                qualityScore: validation.qualityScore,
+                validationErrors: validation.validationErrors,
+                lastRetryAt: new Date(),
+                retryCount: 0,
+              }
             }
           }
-        }
+        };
       }));
 
       const result = await LiveTranslationCache.bulkWrite(operations);

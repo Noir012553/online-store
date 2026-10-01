@@ -16,6 +16,7 @@ const cloudflareAiService = require('../services/cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const translationReporter = require('../utils/translationReporter');
+const RateLimitHandler = require('../services/rateLimitHandler');
 const libretranslateProductService = require('../services/libretranslateProductService');
 const { LibreTranslateClient } = require('../../../libretranslate-tool/src/libretranslateClient');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
@@ -40,6 +41,7 @@ const distributedLockService = require('../services/distributedLockService');
 const { SUPPORTED_LANGUAGES, getDefaultLanguage } = require('../config/languageInventory');
 const {
   getProductCatalogTranslations,
+  getProductTranslationStatuses,
   getProductTranslations,
   translateText,
   saveProductTranslation,
@@ -74,9 +76,54 @@ describe('Product translation cache controller', () => {
     sandbox.restore();
   });
 
+  it('updates existing catalog status when approved field data becomes incomplete', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'find').callsFake(() => ({
+      select: () => ({ lean: async () => [product] }),
+    }));
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({
+      matchedCount: 1,
+      modifiedCount: 1,
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+
+    await ProductTranslationSeederService._syncProductCatalogTranslations('en', [productId]);
+
+    const update = bulkWrite.firstCall.args[0][0].updateOne.update.$set;
+    expect(update.qualityStatus).to.equal('pending');
+    expect(update.validationErrors).to.include('missing_name');
+    expect(update.sourceHash).to.equal(getProductTranslationSourceHash(product));
+    expect(update).not.to.have.property('name');
+    expect(Product.bulkWrite.calledOnce).to.be.true;
+  });
+
   it('uses the same retranslation eligibility for catalog and legacy records', () => {
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'approved', qualityScore: 100, validationErrors: [] })).to.be.false;
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'needs_retranslate', validationErrors: [] })).to.be.true;
+    expect(isCatalogProductRetranslatable({
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: ['too_long'],
+    })).to.be.true;
     expect(isLiveProductRetranslatable({
       provider: 'cloudflare',
       status: 'success',
@@ -90,6 +137,83 @@ describe('Product translation cache controller', () => {
       qualityStatus: 'rejected',
       validationErrors: [],
     })).to.be.true;
+  });
+
+  it('keeps invalid manual product overrides pending', async () => {
+    sandbox.stub(LiveTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        entityType: 'product_name',
+        originalText: 'Source laptop name',
+        targetLang: 'en',
+      }),
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      validationErrors: ['too_long'],
+      qualityScore: 85,
+      qualityStatus: 'pending',
+    });
+    const findOneAndUpdate = sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({
+      hashKey: 'field-hash',
+      entityId: 'product-id',
+      targetLang: 'en',
+      entityType: 'product_name',
+      status: 'success',
+      qualityStatus: 'pending',
+      validationErrors: ['too_long'],
+    });
+
+    await RateLimitHandler.manualOverride('field-hash', 'A very long invalid translation');
+
+    expect(findOneAndUpdate.firstCall.args[1].$set).to.include({
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 85,
+    });
+    expect(findOneAndUpdate.firstCall.args[1].$set.validationErrors).to.deep.equal(['too_long']);
+  });
+
+  it('reports approved catalog records with validation errors as pending', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      lean: sandbox.stub().resolves([{
+        entityId: productId,
+        targetLang: 'en',
+        sourceHash: getProductTranslationSourceHash(product),
+        status: 'success',
+        qualityStatus: 'approved',
+        validationErrors: ['too_long'],
+      }]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      lean: sandbox.stub().resolves([]),
+    });
+    const res = createResponse();
+
+    await getProductTranslationStatuses({
+      query: { lang: 'en', productIds: productId },
+      lang: 'en',
+    }, res);
+
+    expect(res.json.firstCall.args[0].data[0]).to.include({
+      productId,
+      status: 'pending',
+      canRetranslate: true,
+    });
+    expect(res.json.firstCall.args[0].data[0].validationErrors).to.deep.equal(['too_long']);
   });
 
   it('selects retryable translations from both product cache layers', async () => {
@@ -831,7 +955,7 @@ describe('Product translation cache controller', () => {
     });
   });
 
-  it('ignores configured non-blocking validation errors in product status', async () => {
+  it('requires review for translations that exceed the maximum length ratio', async () => {
     sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
     const brand = translationValidationConfig.PRESERVED_BRANDS[0];
     const original = brand;
@@ -840,7 +964,7 @@ describe('Product translation cache controller', () => {
     ) + 1)}`;
     const lengthError = translationValidator.checkLength(original, translated)?.error;
 
-    expect(translationValidationConfig.NON_BLOCKING_ERRORS).to.include(lengthError);
+    expect(translationValidationConfig.NON_BLOCKING_ERRORS).not.to.include(lengthError);
 
     const result = await translationValidator.validateTranslation(
       original,
@@ -849,15 +973,9 @@ describe('Product translation cache controller', () => {
       'product_name',
     );
     const expectedScore = translationValidator.calculateQualityScore([lengthError]);
-    const expectedStatus = expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_RETRANSLATE
-      ? 'needs_retranslate'
-      : expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
-        ? 'pending'
-        : 'approved';
-
     expect(result.qualityScore).to.equal(expectedScore);
-    expect(result.qualityStatus).to.equal(expectedStatus);
-    expect(result.validationErrors).not.to.include(lengthError);
+    expect(result.qualityStatus).to.equal('pending');
+    expect(result.validationErrors).to.include(lengthError);
   });
 
   it('reads only successful approved product translations', async () => {
@@ -884,6 +1002,10 @@ describe('Product translation cache controller', () => {
       targetLang: 'en',
       status: 'success',
       qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Laptop');
   });
@@ -979,17 +1101,32 @@ describe('Product translation cache controller', () => {
 
   it('saves manual product fields while preserving prior manual fields', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
     sandbox.stub(Product, 'findById').returns({
-      lean: sandbox.stub().resolves({ name: 'Laptop source' }),
+      lean: sandbox.stub().resolves(sourceProduct),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
-      lean: sandbox.stub().resolves({ name: 'Existing laptop', manualFields: ['description'] }),
+      lean: sandbox.stub().resolves({
+        name: 'Existing laptop',
+        description: 'Bad description',
+        brand: 'Brand translation',
+        manualFields: ['description'],
+      }),
     });
-    sandbox.stub(translationValidator, 'validateTranslation').resolves({
-      validationErrors: [],
-      qualityScore: 100,
-      qualityStatus: 'approved',
-    });
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (source, translated) => ({
+      validationErrors: translated === 'Bad description' ? ['too_long'] : [],
+      qualityScore: translated === 'Bad description' ? 85 : 100,
+      qualityStatus: translated === 'Bad description' ? 'pending' : 'approved',
+    }));
     const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
       lean: sandbox.stub().resolves({
         entityId: productId,
@@ -1023,8 +1160,12 @@ describe('Product translation cache controller', () => {
     expect(findOneAndUpdate.firstCall.args[1].$set).to.include({
       name: 'Manual laptop',
       status: 'success',
-      qualityStatus: 'approved',
+      qualityStatus: 'pending',
+      qualityScore: 85,
     });
+    expect(findOneAndUpdate.firstCall.args[1].$set.sourceHash)
+      .to.equal(getProductTranslationSourceHash(sourceProduct));
+    expect(findOneAndUpdate.firstCall.args[1].$set.validationErrors).to.deep.equal(['too_long']);
     expect(findOneAndUpdate.firstCall.args[1].$set.manualFields).to.have.members(['description', 'name']);
     expect(res.json.firstCall.args[0].data.name).to.equal('Manual laptop');
   });
