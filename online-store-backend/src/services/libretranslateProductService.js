@@ -8,14 +8,6 @@ const cloudflareAiService = require('./cloudflareAiService');
 
 let client;
 
-const isEnabled = () => process.env.LIBRETRANSLATE_ENABLED === 'true';
-const isFailoverEnabled = () => process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
-const isRateLimitError = (error) => {
-  const status = error?.response?.status ?? error?.statusCode;
-  if (status === 420 || status === 429) return true;
-  return /rate[\s-]?limit|quota|too many requests/i.test(error?.message || '');
-};
-
 const getClient = () => {
   if (!client) client = new LibreTranslateClient();
   return client;
@@ -70,8 +62,7 @@ const translateChunkSafely = async (chunk, sourceLang, targetLang, translate, sp
   }
 };
 
-const translateWithLibreTranslate = async (text, sourceLang, targetLang, force = false) => {
-  if (!force && !isEnabled()) throw new Error('LIBRETRANSLATE_DISABLED');
+const translateWithLibreTranslate = async (text, sourceLang, targetLang) => {
   if (typeof text !== 'string' || text.trim() === '' || sourceLang === targetLang) return text;
 
   const chunks = splitText(text, getChunkSize());
@@ -89,85 +80,28 @@ const translateWithLibreTranslate = async (text, sourceLang, targetLang, force =
 };
 
 const translateWithLibreTranslateOnly = async (text, sourceLang, targetLang) => ({
-  translatedText: await translateWithLibreTranslate(text, sourceLang, targetLang, true),
+  translatedText: await translateWithLibreTranslate(text, sourceLang, targetLang),
   provider: 'libretranslate',
   providersUsed: ['libretranslate'],
 });
-
-const translateDraft = async (text, sourceLang, targetLang) => {
-  if (!isEnabled()) return '';
-
-  try {
-    return await translateWithLibreTranslate(text, sourceLang, targetLang);
-  } catch (error) {
-    console.warn('[LibreTranslate] Product draft unavailable; continuing with Cloudflare AI:', error.message);
-    return '';
-  }
-};
 
 const stripTranslationPrefix = (text) => (
   text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
 );
 
-const translateChunkWithFailover = async (chunk, sourceLang, targetLang) => {
-  const draftText = await translateDraft(chunk, sourceLang, targetLang);
-
-  try {
-    const translatedChunk = await cloudflareAiService.translate(
-      chunk,
-      sourceLang,
-      targetLang,
-      null,
-      3,
-      2000,
-      { draftText },
-    );
-    return {
-      translatedText: stripTranslationPrefix(translatedChunk),
-      provider: 'cloudflare',
-      providersUsed: ['cloudflare'],
-    };
-  } catch (error) {
-    if (!isFailoverEnabled() || !isRateLimitError(error)) throw error;
-
-    try {
-      const translatedText = draftText || await translateWithLibreTranslate(chunk, sourceLang, targetLang);
-      return {
-        translatedText: stripTranslationPrefix(translatedText),
-        provider: 'libretranslate',
-        providersUsed: ['libretranslate'],
-        failoverReason: 'cloudflare_overload',
-      };
-    } catch (failoverError) {
-      failoverError.cloudflareRateLimited = true;
-      throw failoverError;
-    }
-  }
-};
-
-const translateWithFailover = async (text, sourceLang, targetLang) => {
-  const chunks = splitText(text, getCloudflareChunkSize());
-  const translatedChunks = [];
-  const providersUsed = new Set();
-  let failoverReason = null;
-
-  for (const chunk of chunks) {
-    const translation = await translateChunkSafely(
-      chunk,
-      sourceLang,
-      targetLang,
-      chunkText => translateChunkWithFailover(chunkText, sourceLang, targetLang),
-    );
-    translatedChunks.push(translation.translatedText);
-    translation.providersUsed.forEach(provider => providersUsed.add(provider));
-    if (translation.failoverReason) failoverReason = translation.failoverReason;
-  }
-
+const translateChunkWithCloudflare = async (chunk, sourceLang, targetLang) => {
+  const translatedChunk = await cloudflareAiService.translate(
+    chunk,
+    sourceLang,
+    targetLang,
+    null,
+    3,
+    2000,
+  );
   return {
-    translatedText: joinTranslatedChunks(chunks, translatedChunks),
-    provider: providersUsed.has('libretranslate') ? 'libretranslate' : 'cloudflare',
-    providersUsed: [...providersUsed],
-    ...(failoverReason ? { failoverReason } : {}),
+    translatedText: stripTranslationPrefix(translatedChunk),
+    provider: 'cloudflare',
+    providersUsed: ['cloudflare'],
   };
 };
 
@@ -176,30 +110,23 @@ const translateWithCloudflare = async (text, sourceLang, targetLang) => {
   const translatedChunks = [];
 
   for (const chunk of chunks) {
-    const result = await translateChunkSafely(chunk, sourceLang, targetLang, async (chunkText) => {
-      const draftText = await translateDraft(chunkText, sourceLang, targetLang);
-      const translatedChunk = await cloudflareAiService.translate(
-        chunkText,
-        sourceLang,
-        targetLang,
-        null,
-        3,
-        2000,
-        { draftText },
-      );
-      return stripTranslationPrefix(translatedChunk);
-    });
+    const result = await translateChunkSafely(
+      chunk,
+      sourceLang,
+      targetLang,
+      chunkText => translateChunkWithCloudflare(chunkText, sourceLang, targetLang),
+    );
     translatedChunks.push(result.translatedText);
   }
 
-  return joinTranslatedChunks(chunks, translatedChunks);
+  return {
+    translatedText: joinTranslatedChunks(chunks, translatedChunks),
+    provider: 'cloudflare',
+    providersUsed: ['cloudflare'],
+  };
 };
 
 module.exports = {
-  isEnabled,
-  isFailoverEnabled,
-  translateDraft,
   translateWithLibreTranslateOnly,
   translateWithCloudflare,
-  translateWithFailover,
 };

@@ -254,9 +254,6 @@ Product tiếng Việt
 Chia nội dung thành chunk nếu vượt giới hạn
         |
         v
-LibreTranslate tạo draft tùy chọn
-        |
-        v
 Cloudflare AI dịch bản cuối
         |
         v
@@ -276,13 +273,7 @@ ProductCatalogTranslationCache / LiveTranslationCache
 API storefront
 ```
 
-LibreTranslate chỉ tạo bản nháp cho sản phẩm nếu bật:
-
-```env
-LIBRETRANSLATE_ENABLED=true
-```
-
-Cloudflare AI vẫn là provider tạo bản dịch cuối cùng. Khi LibreTranslate lỗi hoặc bị tắt, Cloudflare AI dịch trực tiếp từ nội dung gốc.
+Luồng tự động chỉ gọi Cloudflare AI. LibreTranslate không được dùng làm draft hoặc fallback; chế độ LibreTranslate-only chỉ chạy khi được chọn rõ ràng qua CLI.
 
 ## 4. Các file quan trọng
 
@@ -337,9 +328,9 @@ online-store-backend/src/services/cloudflareAiService.js
 online-store-backend/src/services/libretranslateProductService.js
 ```
 
-- Chia nội dung mô tả thành chunk.
-- Gọi LibreTranslate để tạo draft nếu được bật.
-- Gọi Cloudflare AI cho bản dịch cuối.
+- Chia nội dung thành chunk.
+- Gọi Cloudflare AI trực tiếp cho các luồng tự động.
+- Không tạo draft hoặc fallback LibreTranslate.
 - Ghép các chunk sau khi dịch.
 
 ```text
@@ -441,7 +432,6 @@ CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY=...
 CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY=...
 CLOUDFLARE_AI_MAX_TOKENS=2048
 
-LIBRETRANSLATE_ENABLED=false
 LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
 ```
 
@@ -533,17 +523,13 @@ Hướng xử lý:
 - Không cho phép admin approve nếu có `mixed_language`, `wrong_language` hoặc `empty`.
 - Dùng endpoint retranslate để thay thế bản dịch lỗi.
 
-### 7.7. LibreTranslate tạo draft sai nhưng Cloudflare giữ nguyên lỗi
-
-Dấu hiệu:
-
-- Draft chứa câu dịch sai và bản cuối gần như sao chép draft.
+### 7.7. Bản dịch tự động không đạt validator
 
 Hướng xử lý:
 
-- Prompt phải nói rõ draft chỉ là tài liệu tham khảo.
-- Validator phải kiểm tra bản cuối, không kiểm tra draft.
-- Khi draft lỗi, có thể tắt `LIBRETRANSLATE_ENABLED` để Cloudflare dịch trực tiếp từ source.
+- Kiểm tra provider và `validationErrors` của từng bản ghi.
+- Luồng tự động chỉ dùng Cloudflare AI; rate limit/quota sẽ để lại tác vụ chưa hoàn tất để retry sau.
+- Không dùng bản LibreTranslate-only để thay quota Cloudflare trong batch tự động.
 
 ### 7.8. Chunk bị nối thiếu khoảng trắng hoặc lặp khoảng trắng
 

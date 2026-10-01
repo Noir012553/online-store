@@ -603,8 +603,11 @@ exports.translateProductAll9Languages = async (req, res) => {
         }
       }
 
-      // Cloudflare AI remains the final provider; LibreTranslate is product-only and optional.
-      translatedText = await libretranslateProductService.translateWithCloudflare(text, sourceLang, lang);
+      translatedText = (await libretranslateProductService.translateWithCloudflare(
+        text,
+        sourceLang,
+        lang,
+      )).translatedText;
       const validation = await translationValidator.validateTranslation(text, translatedText, lang, entityType);
       translations[lang] = translatedText;
       allFromCache = false;

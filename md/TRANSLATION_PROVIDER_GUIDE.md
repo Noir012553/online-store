@@ -1,73 +1,29 @@
-# Hướng dẫn phối hợp Cloudflare AI và LibreTranslate
+# Hướng dẫn dịch bằng Cloudflare AI
 
 ## Mục tiêu
 
-Cloudflare AI là provider bắt buộc và tạo bản dịch cuối cùng. LibreTranslate chỉ là provider tùy chọn cho nội dung sản phẩm, dùng để tạo bản dịch nháp trước khi Cloudflare AI hiệu chỉnh.
+Cloudflare AI là provider duy nhất của các luồng dịch tự động trong backend. LibreTranslate không được dùng làm draft hoặc tự động thay thế Cloudflare khi bị rate limit/quota.
 
-Các nội dung không phải sản phẩm không đi qua LibreTranslate.
-
-## Luồng dịch
+## Luồng dịch tự động
 
 ```text
-Sản phẩm tiếng Việt
-        |
-        | LIBRETRANSLATE_ENABLED=true
-        v
-LibreTranslate tạo bản nháp tùy chọn
-        |
-        v
-Cloudflare AI dịch văn bản gốc và tham khảo bản nháp
-        |
-        v
-Validator + LiveTranslationCache/ProductCatalogTranslationCache
+Nội dung nguồn
+      |
+      v
+Cloudflare AI: retry / thử cấu hình khả dụng
+      |
+      +--> bản dịch --> validator --> translation cache
+      |
+      +--> rate limit/quota --> ghi nhận lỗi, giữ bản dịch ở trạng thái chưa hoàn tất
 ```
 
-Khi LibreTranslate tắt, bị timeout, không kết nối được hoặc trả lỗi trong chế độ draft, backend bỏ qua bản nháp và Cloudflare AI dịch trực tiếp từ văn bản gốc.
+Khi Cloudflare hết quota, tác vụ không được đánh dấu là bản dịch thành công và không chuyển sang provider chất lượng thấp hơn. Có thể retry sau khi quota hồi phục.
 
-### Failover khi Cloudflare quá tải
+## LibreTranslate có chủ đích
 
-Khi `LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=true`, backend chỉ chuyển sang LibreTranslate sau khi Cloudflare đã retry và thử hết các config khả dụng nhưng vẫn gặp lỗi rate limit/quota. Failover không áp dụng cho lỗi input hoặc lỗi mạng thông thường.
+LibreTranslate chỉ còn dùng khi người vận hành gọi rõ ràng `npm run retranslate -- --libretranslate-only`. Chế độ này bỏ qua Cloudflare và kết quả vẫn phải qua validator; không dùng làm failover cho batch dịch tự động.
 
-Bản dịch failover được lưu với:
-
-- `provider: libretranslate`
-- `providerSource: secondary_failover`
-- `metadata.secondary_provider: true`
-- `status: translated_via_libre`
-- `qualityStatus` và `qualityScore` theo kết quả validator thật
-- `failoverReason: cloudflare_overload`
-
-Bản ghi chỉ được dùng cho storefront khi đạt `approved` và đủ dữ liệu. Bản chưa đạt chuẩn sẽ được retranslate bằng Cloudflare sau khi quota hồi phục. `LIBRETRANSLATE_AS_PRIMARY_APPROVED` không còn được dùng để thay đổi điểm validator.
-
-Cloudflare AI không được tắt trong pipeline. Các guard `CLOUDFLARE_AI_ENABLED`, quota và credential vẫn áp dụng như trước.
-
-## Phạm vi provider
-
-### LibreTranslate
-
-Chỉ được gọi từ luồng dịch sản phẩm và chỉ tạo bản nháp cho các field:
-
-- `name`
-- `description`
-- `specs[*]`
-- `technicalDescription`
-- `descriptionImages[].alt`
-- `promotions[].title`
-- `promotions[].giftProductName`
-- `promotions[].scope`
-- `promotions[].discountText`
-
-LibreTranslate không ghi MongoDB và không thay thế cache chính thức.
-
-### Cloudflare AI
-
-Cloudflare AI vẫn là provider chính cho sản phẩm và tiếp tục xử lý các nội dung khác. LibreTranslate chỉ thay thế tạm thời trong failover rate-limit khi được bật rõ ràng:
-
-- Banner: title, subtitle, description, CTA.
-- Nội dung giao diện động và static translation cache.
-- Tên/spec key động.
-- Nội dung admin, checkout, order, newsletter, footer và các namespace hệ thống.
-- Tất cả các luồng không phải sản phẩm.
+Các luồng dịch sản phẩm, banner, giao diện động/static, admin, checkout, order, newsletter và namespace hệ thống đều dùng Cloudflare trong chế độ tự động.
 
 ## Cấu hình backend
 
@@ -79,9 +35,6 @@ CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY=...
 CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY=...
 CLOUDFLARE_AI_MAX_TOKENS=2048
 
-LIBRETRANSLATE_ENABLED=false
-LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=false
-LIBRETRANSLATE_AS_PRIMARY_APPROVED=false
 LIBRETRANSLATE_URL=http://127.0.0.1:5001
 LIBRETRANSLATE_TIMEOUT_MS=30000
 LIBRETRANSLATE_RETRIES=2
@@ -92,16 +45,10 @@ LIBRETRANSLATE_API_KEY=
 ```
 
 - `CLOUDFLARE_AI_MAX_TOKENS`: số token tối đa cho mỗi phản hồi dịch; mặc định `2048` để tránh model cắt ngắn nội dung.
-- `LIBRETRANSLATE_ENABLED=false`: không gọi LibreTranslate.
-- `LIBRETRANSLATE_ENABLED=true`: LibreTranslate tạo draft rồi Cloudflare vẫn dịch nội dung thật.
-- `npm run retranslate -- --libretranslate-only`: dịch trực tiếp bằng LibreTranslate, không gửi nội dung sang Cloudflare.
-- `LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=false`: mặc định không thay thế Cloudflare khi hết quota.
-- `LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=true`: cho phép failover sau khi Cloudflare retry và rotate config thất bại vì rate limit/quota.
-- `LIBRETRANSLATE_AS_PRIMARY_APPROVED` được giữ để tương thích cấu hình cũ nhưng không còn chặn quality score; trạng thái vẫn do validator quyết định.
-- `LIBRETRANSLATE_URL`: URL API local hoặc remote đã được bảo vệ.
+- `LIBRETRANSLATE_URL`: endpoint riêng chỉ cần cho chế độ `--libretranslate-only` hoặc công cụ độc lập.
 - `LIBRETRANSLATE_MAX_PARALLEL_REQUESTS`: giới hạn request đồng thời tới LibreTranslate trong mỗi backend process; mặc định `3`.
-- `LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE`: giới hạn chia đoạn đầu vào; mỗi request bị chặn ở mức tối đa `6000` ký tự.
-- Standalone CLI `libretranslate-tool` mặc định dịch 3 sản phẩm song song; client dùng chung giới hạn tối đa 3 request đồng thời.
+- `LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE`: kích thước chia đoạn trong chế độ LibreTranslate-only.
+- Standalone CLI `libretranslate-tool` dùng cấu hình endpoint/API key riêng và không phải provider failover của backend.
 - `LIBRETRANSLATE_API_KEY`: chỉ cần khi instance yêu cầu API key.
 
 Không đặt secret thật trong `.env.example` hoặc Git.
@@ -190,20 +137,15 @@ Nếu nhận `404`, cần cập nhật URL trong file dữ liệu hoặc cào l�
 
 ## Vận hành pipeline sản phẩm
 
-1. Bảo đảm Cloudflare AI đã có credential và quota hợp lệ.
-2. Bảo đảm LibreTranslate có đủ model nếu muốn bật draft.
-3. Đặt `LIBRETRANSLATE_ENABLED=true` nếu muốn dùng draft hoặc failover.
-4. Chỉ đặt `LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD=true` sau khi đã test batch nhỏ.
-5. Chạy luồng dịch sản phẩm hiện có.
-6. Kiểm tra provider, status failover và chất lượng trong cache/validator.
-7. Xác nhận cache có `sourceHash` khớp source product hiện tại trước khi coi là `approved`.
-8. Khi quota hồi phục, chạy luồng retranslate có giới hạn cho các bản ghi Libre có `qualityScore < 70` hoặc có `validationErrors`.
-9. Sau khi bản dịch Cloudflare đạt `approved`, backend đồng bộ lại `ProductCatalogTranslationCache`.
-10. Nếu LibreTranslate lỗi, không cần dừng pipeline; backend sẽ tiếp tục bằng Cloudflare hoặc ghi nhận retry.
+1. Bảo đảm Cloudflare AI có credential và quota hợp lệ.
+2. Chạy batch thử nhỏ với concurrency thấp; kiểm tra provider, status và validator.
+3. Chỉ tăng concurrency sau khi đã đo rate limit và thời gian phản hồi.
+4. Khi Cloudflare hết quota, để các bản ghi chưa hoàn tất ở trạng thái cần retry; chạy lại sau khi quota hồi phục.
+5. Xác nhận `sourceHash` khớp dữ liệu sản phẩm hiện tại trước khi coi bản dịch là `approved`.
+6. Giữ lại cache đã được duyệt; bản dịch mới chỉ cập nhật storefront khi validator thông qua.
+7. Chỉ dùng `--libretranslate-only` cho tác vụ thủ công có chủ đích, không dùng để lấp quota Cloudflare.
 
-Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache. Bản failover được chọn lại bởi retranslate seeder; bản dịch mới chỉ cập nhật catalog khi đã đạt `approved` và còn khớp source product.
-
-Không chạy LibreTranslate cho banner, static namespace, admin hoặc nội dung checkout. Không ghi bản dịch LibreTranslate trực tiếp vào cache chính thức.
+Batch product seeder giữ nguyên bản dịch đã có `approved` trong cache và chỉ đồng bộ catalog khi đạt validator và còn khớp source product.
 
 ## Các cải thiện đã triển khai
 

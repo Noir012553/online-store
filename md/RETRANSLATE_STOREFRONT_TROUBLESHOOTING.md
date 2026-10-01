@@ -76,13 +76,13 @@ TCP mở chỉ xác nhận cổng chấp nhận kết nối; chưa xác nhận m
 
 ### Khác biệt lệnh
 
-- `npm run retranslate -- --libretranslate-only --shutdown`: ép dùng LibreTranslate cho bản dịch retranslate, không fallback Cloudflare; cần endpoint LibreTranslate hoạt động.
-- `npm run retranslate -- --shutdown`: luồng mặc định. Với sản phẩm, LibreTranslate có thể được gọi làm draft nếu `LIBRETRANSLATE_ENABLED=true`, rồi Cloudflare vẫn tạo bản dịch cuối. Nếu draft lỗi, code log cảnh báo và vẫn thử Cloudflare.
-- Do đó log `Product draft unavailable; continuing with Cloudflare AI` không có nghĩa bản dịch đã được hoàn tất bởi LibreTranslate.
+- `npm run retranslate -- --libretranslate-only --shutdown`: ép dùng LibreTranslate cho batch được chọn chủ động, không gọi Cloudflare; cần endpoint LibreTranslate hoạt động và vẫn phải qua validator.
+- `npm run retranslate -- --shutdown`: luồng mặc định chỉ dùng Cloudflare; LibreTranslate không được gọi làm draft hoặc fallback.
+- Khi Cloudflare bị rate limit/quota, tác vụ được ghi nhận là chưa hoàn tất để retry sau; không đánh dấu thành công bằng kết quả từ provider khác.
 
 ## 5. Cloudflare rate limit
 
-- Log retranslate mặc định có các lần Cloudflare dịch thành công, xen kẽ cảnh báo rate-limit và fallback draft LibreTranslate bị `ECONNREFUSED`.
+- Trước khi gỡ draft/fallback, log retranslate mặc định có cảnh báo rate-limit và draft LibreTranslate bị `ECONNREFUSED`; luồng mặc định hiện tại không còn gọi LibreTranslate.
 - Probe từng cấu hình gửi tối đa một request nhỏ cho 9 cấu hình; cả 9 trả `RATE_LIMITED (HTTP 429)`, không có `Retry-After`.
 - Kết quả chỉ xác nhận tình trạng tại lúc probe. Không biết giờ reset từ response đó; kiểm tra quota/usage trong dashboard Cloudflare. Nếu nhiều key cùng account, quota account có thể ảnh hưởng tất cả.
 - Cooldown trong service Cloudflare là trạng thái trong bộ nhớ của tiến trình, còn quota/rate limit do Cloudflare trả về là trạng thái provider; restart app không khôi phục quota provider.

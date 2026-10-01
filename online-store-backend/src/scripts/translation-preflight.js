@@ -86,8 +86,6 @@ const addCheck = (checks, name, ok, detail, severity = 'error') => {
 
 const checkConfiguration = () => {
   const checks = [];
-  const libreEnabled = process.env.LIBRETRANSLATE_ENABLED === 'true';
-  const failoverEnabled = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
   const cloudflareEnabled = process.env.CLOUDFLARE_AI_ENABLED === 'true';
   const lockMode = process.env.PRODUCT_SEED_LOCK_MODE || 'redis';
 
@@ -108,22 +106,6 @@ const checkConfiguration = () => {
     ),
     cloudflareEnabled ? 'credentials configured' : 'Cloudflare must be enabled for product translation',
   );
-  addCheck(
-    checks,
-    'LibreTranslate failover guard',
-    !failoverEnabled || libreEnabled,
-    failoverEnabled && !libreEnabled ? 'failover requires LIBRETRANSLATE_ENABLED=true' : 'configuration consistent',
-  );
-  addCheck(
-    checks,
-    'LibreTranslate approval policy',
-    true,
-    process.env.LIBRETRANSLATE_AS_PRIMARY_APPROVED === 'true'
-      ? 'legacy approval flag is ignored; validator controls quality'
-      : 'validator controls quality independently of provider',
-    'warning',
-  );
-
   try {
     const quotaRequests = parsePositiveInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 0);
     const quotaInputChars = parsePositiveInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 0);
@@ -147,14 +129,12 @@ const checkConfiguration = () => {
     const concurrency = parsePositiveInteger('PRODUCT_TRANSLATION_CONCURRENCY', 1);
     const languageConcurrency = parsePositiveInteger('PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY', 1);
     const chunkSize = parsePositiveInteger('PRODUCT_TRANSLATION_CHUNK_SIZE', 10);
-    const libreConcurrency = parsePositiveInteger('LIBRETRANSLATE_MAX_PARALLEL_REQUESTS', 4);
     const delayMs = parseNonNegativeInteger('PRODUCT_TRANSLATION_DELAY_MS', 1000);
     const productLimit = parseNonNegativeInteger('PRODUCT_TRANSLATION_LIMIT', 0);
     const lockTtl = parsePositiveInteger('PRODUCT_TRANSLATION_LOCK_TTL_SECONDS', 120);
     addCheck(checks, 'Product concurrency', true, String(concurrency));
     addCheck(checks, 'Language concurrency', true, String(languageConcurrency));
     addCheck(checks, 'Translation chunk size', true, String(chunkSize));
-    addCheck(checks, 'LibreTranslate max parallel requests', true, String(libreConcurrency));
     addCheck(checks, 'Translation delay', true, `${delayMs}ms`);
     addCheck(checks, 'Product translation limit', true, productLimit === 0 ? 'all products' : String(productLimit));
     addCheck(checks, 'Translation lock TTL', true, `${lockTtl}s`);
@@ -169,7 +149,7 @@ const checkConfiguration = () => {
     addCheck(checks, 'Concurrency configuration', false, error.message);
   }
 
-  return { checks, libreEnabled, lockMode };
+  return { checks, lockMode };
 };
 
 const checkRuntimeDependencies = async (checks, lockMode) => {
@@ -216,17 +196,8 @@ const checkRuntimeDependencies = async (checks, lockMode) => {
   }
 };
 
-const checkLibreTranslate = async (checks, smokeTest, enabled) => {
-  if (!enabled) {
-    addCheck(
-      checks,
-      'LibreTranslate endpoint',
-      !smokeTest,
-      smokeTest ? 'smoke test requires LIBRETRANSLATE_ENABLED=true' : 'skipped because disabled',
-      smokeTest ? 'error' : 'warning',
-    );
-    return;
-  }
+const checkLibreTranslate = async (checks, smokeTest) => {
+  if (!smokeTest) return;
 
   const baseUrl = process.env.LIBRETRANSLATE_URL || 'http://127.0.0.1:5001';
   try {
@@ -266,8 +237,8 @@ const checkLibreTranslate = async (checks, smokeTest, enabled) => {
 
 const run = async () => {
   const { json, smokeTest } = parseArgs(process.argv.slice(2));
-  const { checks, libreEnabled, lockMode } = checkConfiguration();
-  await checkLibreTranslate(checks, smokeTest, libreEnabled);
+  const { checks, lockMode } = checkConfiguration();
+  await checkLibreTranslate(checks, smokeTest);
   await checkRuntimeDependencies(checks, lockMode);
 
   const failed = checks.filter(check => !check.ok && check.severity === 'error');

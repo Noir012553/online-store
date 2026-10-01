@@ -80,7 +80,7 @@ const retranslateProductUnlocked = async (
 
     const translate = libreTranslateOnly
       ? libretranslateProductService.translateWithLibreTranslateOnly
-      : libretranslateProductService.translateWithFailover;
+      : libretranslateProductService.translateWithCloudflare;
     const result = await translate(source, getDefaultLanguage().code, targetLang);
     const usedProviders = result.providersUsed || [result.provider || 'cloudflare'];
     usedProviders.forEach(provider => providersUsed.add(provider));

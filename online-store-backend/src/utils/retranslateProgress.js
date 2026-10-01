@@ -31,6 +31,7 @@ const getSignaturePayload = options => ({
   dryRun: Boolean(options.dryRun),
   validate: options.validate !== false,
   libreTranslateOnly: Boolean(options.libreTranslateOnly),
+  translationPolicy: 'cloudflare-only-v1',
   checkpointScope: options.checkpointScope || null,
 });
 

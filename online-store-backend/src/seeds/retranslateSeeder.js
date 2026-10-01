@@ -28,7 +28,6 @@ const {
 
 const PRODUCT_ENTITY_TYPES = new Set(PRODUCT_ENTITY_TYPE_LIST);
 const isCloudflareQuotaError = (error) => {
-  if (error?.cloudflareRateLimited) return true;
   const status = error?.response?.status ?? error?.statusCode;
   if (status === 420 || status === 429) return true;
   const providerErrors = Array.isArray(error?.response?.data?.errors)
@@ -320,7 +319,7 @@ class RetranslateSeeder {
                 translation.targetLang,
               );
             } else if (PRODUCT_ENTITY_TYPES.has(translation.entityType)) {
-              translationResult = await libretranslateProductService.translateWithFailover(
+              translationResult = await libretranslateProductService.translateWithCloudflare(
                 translation.originalText,
                 sourceLang,
                 translation.targetLang,

@@ -75,14 +75,14 @@ const getPercentile = (values, percentile) => {
   return sorted[index];
 };
 class ProductTranslationSeederService {
-  static async _translateDescription(text, sourceLang, targetLang) {
-    const translation = await libretranslateProductService.translateWithFailover(
+  static async _translateProductText(text, sourceLang, targetLang) {
+    const translation = await libretranslateProductService.translateWithCloudflare(
       text,
       sourceLang,
       targetLang,
     );
     if (typeof translation.translatedText !== 'string' || translation.translatedText.trim() === '') {
-      throw new Error('Description translation returned empty content');
+      throw new Error('Product translation returned empty content');
     }
     return translation;
   }
@@ -93,7 +93,7 @@ class ProductTranslationSeederService {
    *
    * @param {string} targetLang - Ngôn ngữ đích (e.g., 'pt')
    * @param {string} sourceLang - Ngôn ngữ nguồn (mặc định từ config)
-   * @returns {Promise<{successCount, rateLimitCount, failoverCount, memoryCacheHits, translationMetrics, errorCount, totalProcessed}>}
+   * @returns {Promise<{successCount, rateLimitCount, memoryCacheHits, translationMetrics, errorCount, totalProcessed}>}
    */
   static async translateAllProducts(targetLang, sourceLang) {
     // Validate that sourceLang is provided
@@ -120,7 +120,6 @@ class ProductTranslationSeederService {
         return {
           successCount: 0,
           rateLimitCount: 0,
-          failoverCount: 0,
           memoryCacheHits: 0,
           errorCount: 0,
           totalProcessed: 0,
@@ -130,7 +129,6 @@ class ProductTranslationSeederService {
       let successCount = 0;
       let rateLimitCount = 0;
       let errorCount = 0;
-      let failoverCount = 0;
       let memoryCacheHits = 0;
       const translationMetrics = createTranslationMetrics();
       let totalProcessed = 0;
@@ -197,11 +195,10 @@ class ProductTranslationSeederService {
           for (const result of results) {
             totalProcessed++;
             if (result.status === 'fulfilled') {
-              const { success, rateLimitErr, failoverErr, otherErr } = result.value;
+              const { success, rateLimitErr, otherErr } = result.value;
               successCount += success;
               rateLimitCount += rateLimitErr;
-              chunkRateLimitCount += rateLimitErr + failoverErr;
-              failoverCount += failoverErr;
+              chunkRateLimitCount += rateLimitErr;
               memoryCacheHits += result.value.memoryCacheHits;
               mergeTranslationMetrics(translationMetrics, result.value.translationMetrics);
               errorCount += otherErr;
@@ -223,7 +220,6 @@ class ProductTranslationSeederService {
       console.log(`\n[ProductSeeder] ${CLI_SYMBOLS.target} PHASE 2 hoàn tất:`);
       console.log(`  ${CLI_SYMBOLS.success} Thành công: ${successCount}`);
       console.log(`  ${CLI_SYMBOLS.warning}  Rate Limit (ghi nhận): ${rateLimitCount}`);
-      console.log(`  ${CLI_SYMBOLS.progress} LibreTranslate failover: ${failoverCount}`);
       console.log(`  ${CLI_SYMBOLS.chart} Memory cache hit: ${memoryCacheHits}`);
       console.log(`  ${CLI_SYMBOLS.chart} Provider: ${JSON.stringify(translationMetrics.providerCounts)}`);
       console.log(`  ${CLI_SYMBOLS.chart} Translation p95: ${getPercentile(translationMetrics.durations, 95) ?? 'n/a'}ms`);
@@ -238,7 +234,6 @@ class ProductTranslationSeederService {
       return {
         successCount,
         rateLimitCount,
-        failoverCount,
         memoryCacheHits,
         translationMetrics: {
           providerCounts: translationMetrics.providerCounts,
@@ -557,10 +552,6 @@ class ProductTranslationSeederService {
     }
   }
 
-  static async _translateWithDraft(text, sourceLang, targetLang) {
-    return libretranslateProductService.translateWithFailover(text, sourceLang, targetLang);
-  }
-
   /**
    * Dịch một sản phẩm cụ thể
    * @private
@@ -581,7 +572,7 @@ class ProductTranslationSeederService {
         return {
           success: 0,
           rateLimitErr: 0,
-          failoverErr: 0,
+
           memoryCacheHits: 0,
           otherErr: 0,
         };
@@ -594,7 +585,6 @@ class ProductTranslationSeederService {
 
       let successCount = 0;
       let rateLimitCount = 0;
-      let failoverCount = 0;
       let memoryCacheHitCount = 0;
       const translationMetrics = createTranslationMetrics();
       let otherErrorCount = 0;
@@ -700,25 +690,23 @@ class ProductTranslationSeederService {
           }
 
           const translationStartedAt = Date.now();
-          const translation = memoryTranslation || (['product_description', 'product_technical_description'].includes(field.entityType)
-            ? await this._translateDescription(field.originalText, sourceLang, targetLang)
-            : await this._translateWithDraft(field.originalText, sourceLang, targetLang));
+          const translation = memoryTranslation || await this._translateProductText(
+            field.originalText,
+            sourceLang,
+            targetLang,
+          );
           if (!memoryTranslation) {
             recordTranslationMetric(translationMetrics, translation.provider, Date.now() - translationStartedAt);
           }
           if (memoryTranslation) memoryCacheHitCount++;
           if (!memoryTranslation) setTranslationMemoryValue(memoryKey, translation);
           const translatedText = translation.translatedText;
-          if (translation.provider === 'libretranslate') failoverCount++;
-
           const validationResult = await translationValidator.validateTranslation(
             field.originalText,
             translatedText,
             targetLang,
             field.entityType
           );
-          const isLibreTranslateFailover = translation.provider === 'libretranslate';
-
           // Lưu cache
           const translationRecord = {
             hashKey,
@@ -730,10 +718,10 @@ class ProductTranslationSeederService {
             entityType: field.entityType,
             specKey: field.specKey || null,
             fieldKey: field.fieldKey || null,
-            status: isLibreTranslateFailover ? 'translated_via_libre' : 'success',
+            status: 'success',
             provider: translation.provider,
-            providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
-            metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
+            providerSource: 'primary',
+            metadata: {},
             qualityStatus: validationResult.qualityStatus,
             qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,
@@ -751,7 +739,7 @@ class ProductTranslationSeederService {
           successCount++;
         } catch (err) {
           // ========== Xử lý 429 Rate Limit ==========
-          if (err.response?.status === 429 || err.cloudflareRateLimited === true) {
+          if ([420, 429].includes(err.response?.status)) {
             console.warn(
               `[ProductSeeder] ${CLI_SYMBOLS.warning}  429 Rate Limit: ${field.entityType} (${productId})`
             );
@@ -763,9 +751,7 @@ class ProductTranslationSeederService {
                 targetLang,
                 productId,
                 field.entityType,
-                err.cloudflareRateLimited === true
-                  ? 'Cloudflare overload exhausted; LibreTranslate failover unavailable'
-                  : '429 Too Many Requests from Cloudflare AI',
+                'Rate limit or quota exhausted from Cloudflare AI',
                 sourceLang,
                 field.fieldKey || null,
               );
@@ -808,7 +794,6 @@ class ProductTranslationSeederService {
       return {
         success: successCount,
         rateLimitErr: rateLimitCount,
-        failoverErr: failoverCount,
         memoryCacheHits: memoryCacheHitCount,
         translationMetrics,
         otherErr: otherErrorCount,
@@ -818,7 +803,6 @@ class ProductTranslationSeederService {
       return {
         success: 0,
         rateLimitErr: 0,
-        failoverErr: 0,
         memoryCacheHits: 0,
         otherErr: 1,
       };

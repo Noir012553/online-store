@@ -524,7 +524,7 @@ describe('Product translation cache controller', () => {
     process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = '3';
     let failTechnicalDescription = true;
     let providerCalls = 0;
-    const translate = sandbox.stub(libretranslateProductService, 'translateWithFailover').callsFake(async source => {
+    const translate = sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async source => {
       providerCalls++;
       if (source === product.technicalDescription && failTechnicalDescription) {
         failTechnicalDescription = false;
@@ -658,69 +658,80 @@ describe('Product translation cache controller', () => {
   });
 
   it('caps Cloudflare translation input into bounded chunks', async () => {
-    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
     const originalChunkSize = process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
-    process.env.LIBRETRANSLATE_ENABLED = 'false';
     process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = '900';
     const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => `[en] ${text}`);
 
     try {
-      const translated = await libretranslateProductService.translateWithFailover('A'.repeat(2500), 'vi', 'en');
+      const result = await libretranslateProductService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
 
       expect(cloudflareTranslate.callCount).to.equal(3);
       expect(cloudflareTranslate.args.every(([text]) => text.length <= 900)).to.equal(true);
-      expect(translated.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(result.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(result.providersUsed).to.deep.equal(['cloudflare']);
     } finally {
-      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
-      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
       if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
       else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
     }
   });
 
   it('retries incomplete provider output with smaller Cloudflare chunks', async () => {
-    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
     const originalChunkSize = process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
-    process.env.LIBRETRANSLATE_ENABLED = 'false';
     process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = '900';
     const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => (
       text.length > 256 ? 'short' : `[en] ${text}`
     ));
 
     try {
-      const translated = await libretranslateProductService.translateWithFailover('A'.repeat(2500), 'vi', 'en');
+      const result = await libretranslateProductService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
 
       expect(cloudflareTranslate.callCount).to.be.greaterThan(3);
-      expect(translated.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
-      expect(translated.providersUsed).to.deep.equal(['cloudflare']);
+      expect(result.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(result.providersUsed).to.deep.equal(['cloudflare']);
     } finally {
-      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
-      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
       if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
       else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
     }
   });
 
-  it('uses LibreTranslate directly without calling Cloudflare', async () => {
+  it('does not call LibreTranslate when Cloudflare is rate limited', async () => {
     const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
-    process.env.LIBRETRANSLATE_ENABLED = 'false';
-    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate').resolves('Translated');
-    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
+    const originalFailover = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD;
+    process.env.LIBRETRANSLATE_ENABLED = 'true';
+    process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD = 'true';
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').rejects(
+      Object.assign(new Error('Rate limit exceeded'), { response: { status: 429 } }),
+    );
+    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate');
 
     try {
-      const result = await libretranslateProductService.translateWithLibreTranslateOnly('Original', 'vi', 'en');
-
-      expect(result).to.deep.equal({
-        translatedText: 'Translated',
-        provider: 'libretranslate',
-        providersUsed: ['libretranslate'],
-      });
-      expect(libreTranslate.calledOnceWithExactly('Original', 'vi', 'en')).to.equal(true);
-      expect(cloudflareTranslate.called).to.equal(false);
+      await libretranslateProductService.translateWithCloudflare('Original', 'vi', 'en');
+      expect.fail('Expected Cloudflare rate limit to be thrown');
+    } catch (error) {
+      expect(error.response.status).to.equal(429);
+      expect(cloudflareTranslate.calledOnce).to.equal(true);
+      expect(libreTranslate.called).to.equal(false);
     } finally {
       if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
       else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
+      if (originalFailover === undefined) delete process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD;
+      else process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD = originalFailover;
     }
+  });
+
+  it('uses LibreTranslate directly without calling Cloudflare when explicitly requested', async () => {
+    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate').resolves('Translated');
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
+
+    const result = await libretranslateProductService.translateWithLibreTranslateOnly('Original', 'vi', 'en');
+
+    expect(result).to.deep.equal({
+      translatedText: 'Translated',
+      provider: 'libretranslate',
+      providersUsed: ['libretranslate'],
+    });
+    expect(libreTranslate.calledOnceWithExactly('Original', 'vi', 'en')).to.equal(true);
+    expect(cloudflareTranslate.called).to.equal(false);
   });
 
   it('uses direct LibreTranslate for field-cache records when requested', async () => {
@@ -811,11 +822,10 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([]),
     });
     const updateMany = sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 1 });
-    sandbox.stub(libretranslateProductService, 'translateWithFailover').resolves({
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').resolves({
       translatedText: 'Laptop traduit',
-      provider: 'libretranslate',
-      providersUsed: ['libretranslate'],
-      failoverReason: 'cloudflare_overload',
+      provider: 'cloudflare',
+      providersUsed: ['cloudflare'],
     });
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       qualityStatus: 'approved',
@@ -833,9 +843,9 @@ describe('Product translation cache controller', () => {
     const syncQuery = updateMany.firstCall.args[0];
     const syncUpdate = updateMany.firstCall.args[1].$set;
     expect(savedCatalog).to.include({
-      provider: 'libretranslate',
-      providerSource: 'secondary_failover',
-      failoverReason: 'cloudflare_overload',
+      provider: 'cloudflare',
+      providerSource: 'primary',
+      failoverReason: null,
     });
     expect(syncQuery).to.include({ entityId: productId, targetLang });
     expect(syncUpdate).to.include({ qualityStatus: 'retranslated' });
@@ -867,7 +877,7 @@ describe('Product translation cache controller', () => {
     const quotaError = Object.assign(new Error('Provider rate limit exceeded'), {
       response: { status: 429 },
     });
-    sandbox.stub(libretranslateProductService, 'translateWithFailover').rejects(quotaError);
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').rejects(quotaError);
     sandbox.stub(translationReporter, 'printRetranslateReport');
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
@@ -878,7 +888,7 @@ describe('Product translation cache controller', () => {
     expect(result.stats.quotaExceededCount).to.equal(1);
     expect(result.stats.errorCount).to.equal(1);
     expect(result.stats.remainingCount).to.equal(translations.length);
-    expect(libretranslateProductService.translateWithFailover.calledOnce).to.equal(true);
+    expect(libretranslateProductService.translateWithCloudflare.calledOnce).to.equal(true);
   });
 
   it('retranslates independent records with the configured concurrency cap', async () => {
@@ -1369,11 +1379,10 @@ describe('Product translation cache controller', () => {
         manualFields: [],
       }),
     });
-    sandbox.stub(libretranslateProductService, 'translateWithFailover').callsFake(async (source) => ({
+    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => ({
       translatedText: `en:${source}`,
-      provider: 'libretranslate',
-      providersUsed: ['libretranslate'],
-      failoverReason: 'cloudflare_overload',
+      provider: 'cloudflare',
+      providersUsed: ['cloudflare'],
     }));
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       validationErrors: [],
@@ -1409,10 +1418,10 @@ describe('Product translation cache controller', () => {
     const update = findOneAndUpdate.firstCall.args[1].$set;
     expect(update.descriptionImages).to.deep.equal([{ url: 'https://example.invalid/source.jpg', alt: '' }]);
     expect(update.promotions).to.deep.equal([{ type: 'Gift', title: '' }]);
-    expect(update.provider).to.equal('libretranslate');
-    expect(update.providersUsed).to.deep.equal(['libretranslate']);
-    expect(update.providerSource).to.equal('secondary_failover');
-    expect(update.failoverReason).to.equal('cloudflare_overload');
+    expect(update.provider).to.equal('cloudflare');
+    expect(update.providersUsed).to.deep.equal(['cloudflare']);
+    expect(update.providerSource).to.equal('primary');
+    expect(update.failoverReason).to.equal(null);
   });
 
   it('keeps manual fields unchanged while retranslating remaining fields in bounded parallel', async () => {
@@ -1512,11 +1521,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(distributedLockService, 'releaseLock').resolves();
     sandbox.stub(LiveTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
     const saveTranslation = sandbox.stub(LiveTranslationCache, 'bulkWrite').resolves({});
-    const originalEnv = {
-      LIBRETRANSLATE_ENABLED: process.env.LIBRETRANSLATE_ENABLED,
-      PRODUCT_TRANSLATION_FIELD_CONCURRENCY: process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY,
-    };
-    process.env.LIBRETRANSLATE_ENABLED = 'false';
+    const originalFieldConcurrency = process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY;
     process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY = '2';
     let activeTranslations = 0;
     let maximumActiveTranslations = 0;
@@ -1554,16 +1559,13 @@ describe('Product translation cache controller', () => {
         }],
       }, 'en', 'vi', 0);
     } finally {
-      if (originalEnv.LIBRETRANSLATE_ENABLED === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
-      else process.env.LIBRETRANSLATE_ENABLED = originalEnv.LIBRETRANSLATE_ENABLED;
-      if (originalEnv.PRODUCT_TRANSLATION_FIELD_CONCURRENCY === undefined) delete process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY;
-      else process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY = originalEnv.PRODUCT_TRANSLATION_FIELD_CONCURRENCY;
+      if (originalFieldConcurrency === undefined) delete process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY;
+      else process.env.PRODUCT_TRANSLATION_FIELD_CONCURRENCY = originalFieldConcurrency;
     }
 
     const records = saveTranslation.firstCall.args[0].map((operation) => operation.updateOne.update.$set);
     expect(result.success).to.equal(9);
     expect(result.rateLimitErr).to.equal(0);
-    expect(result.failoverErr).to.equal(0);
     expect(result.otherErr).to.equal(0);
     expect(maximumActiveTranslations).to.equal(2);
     expect(records.some(({ entityType, fieldKey, originalText }) => (
