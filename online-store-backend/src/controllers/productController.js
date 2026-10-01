@@ -35,6 +35,9 @@ const {
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const getProductSourceHash = product => getProductTranslationSourceHash(
+  product?.toObject ? product.toObject() : product,
+);
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
@@ -911,7 +914,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     originalPrice, baseCurrencyCode, featured, images, specs, deal, imageAsset,
     technicalDescription, descriptionImages, promotions
   } = req.body;
-  const sourceFieldsChanged = [
+  const sourceFieldsSubmitted = [
     name, description, brand, specs, technicalDescription, descriptionImages, promotions,
   ].some((value) => value !== undefined);
 
@@ -921,6 +924,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
+
+  const previousSourceHash = getProductSourceHash(product);
 
   // ==================== VALIDATE PRICE AND STOCK ====================
   // Only validate if they're being updated
@@ -1038,6 +1043,9 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.deal = parseDealInput(deal);
   }
 
+  const sourceFieldsChanged = sourceFieldsSubmitted
+    && previousSourceHash !== getProductSourceHash(product);
+
   if (sourceFieldsChanged) {
     product.storefrontReady = false;
     product.storefrontReadinessCheckedAt = null;
@@ -1111,7 +1119,7 @@ const updateProduct = asyncHandler(async (req, res) => {
           $set: {
             qualityStatus: 'needs_retranslate',
             validationErrors: ['source_content_changed'],
-            sourceHash: getProductTranslationSourceHash(updatedProduct),
+            sourceHash: getProductSourceHash(updatedProduct),
           },
         },
       ),
