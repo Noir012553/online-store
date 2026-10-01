@@ -135,13 +135,6 @@ const SEED_MODULES = {
     seeder: require('./inventorySeeder'),
     importance: 'CRITICAL',
   },
-  outOfStock: {
-    name: 'Out-of-Stock Demo Products',
-    layer: 2,
-    depends: ['users', 'categories'],
-    seeder: require('./outOfStockSeeder'),
-    importance: 'MEDIUM',
-  },
   reviews: {
     name: 'Product Reviews',
     layer: 2,
@@ -206,7 +199,7 @@ const SEED_PHASES = {
     'addresses',
     'categoryTranslations',
   ],
-  postProducts: ['brands', 'inventory', 'outOfStock', 'reviews', 'orders', 'coupons', 'specTranslations'],
+  postProducts: ['brands', 'inventory', 'reviews', 'orders', 'coupons', 'specTranslations'],
 };
 
 /**
