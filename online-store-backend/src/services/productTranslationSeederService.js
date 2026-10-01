@@ -14,7 +14,7 @@ const Product = require('../models/Product');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const cloudflareAiService = require('./cloudflareAiService');
-const libretranslateProductService = require('./libretranslateProductService');
+const productTranslationService = require('./productTranslationService');
 const RateLimitHandler = require('./rateLimitHandler');
 const distributedLockService = require('./distributedLockService');
 const translationValidator = require('../utils/translationValidator');
@@ -76,7 +76,7 @@ const getPercentile = (values, percentile) => {
 };
 class ProductTranslationSeederService {
   static async _translateProductText(text, sourceLang, targetLang) {
-    const translation = await libretranslateProductService.translateWithCloudflare(
+    const translation = await productTranslationService.translateWithCloudflare(
       text,
       sourceLang,
       targetLang,

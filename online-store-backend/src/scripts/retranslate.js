@@ -59,7 +59,6 @@ async function main() {
       validate: !args.includes('--no-validate'),
       verbose: true,
       concurrency: 1,
-      libreTranslateOnly: args.includes('--libretranslate-only'),
       retryUnresolved: args.includes('--retry-unresolved'),
     };
 

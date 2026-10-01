@@ -20,7 +20,7 @@ Express REST API + Socket.IO (online-store-backend)
    ├── VNPay / thanh toán COD
    ├── GHN / vận chuyển
    ├── Cloudflare R2 / lưu trữ ảnh
-   └── Cloudflare AI và LibreTranslate / dịch nội dung
+   └── Cloudflare AI / dịch nội dung
 ```
 
 Frontend và backend là hai ứng dụng riêng. Frontend gửi request API qua đường dẫn `/api`; cấu hình rewrite trong Next.js chuyển request sang backend. Backend tổ chức xử lý theo routes, controllers, services và models. MongoDB lưu dữ liệu nghiệp vụ cùng dữ liệu cache bản dịch.
@@ -51,7 +51,6 @@ online-store/
 │       ├── locales/             # File bản dịch theo ngôn ngữ
 │       ├── scripts/             # Công cụ vận hành, migration, kiểm tra
 │       └── test/                # Test và test runner
-├── libretranslate-tool/         # Công cụ liên quan LibreTranslate
 └── md/                          # Tài liệu kỹ thuật dự án
 ```
 
@@ -71,7 +70,7 @@ Mỗi ứng dụng có `package.json` riêng; lệnh frontend chạy trong `onli
 | Thanh toán | VNPay, COD | Tạo và xử lý các phương thức thanh toán |
 | Vận chuyển | GHN | Tích hợp dịch vụ giao hàng |
 | Lưu trữ media | Cloudflare R2, AWS S3 SDK | Tải lên và lưu trữ ảnh/tệp |
-| Dịch thuật | Cloudflare AI, LibreTranslate | Dịch nội dung động và hỗ trợ cơ chế dự phòng |
+| Dịch thuật | Cloudflare AI | Dịch nội dung sản phẩm và giao diện |
 
 ## 5. Cách tổ chức nghiệp vụ
 

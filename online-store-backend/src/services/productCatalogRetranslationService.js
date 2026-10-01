@@ -1,7 +1,7 @@
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
-const libretranslateProductService = require('./libretranslateProductService');
+const productTranslationService = require('./productTranslationService');
 const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const { getDefaultLanguage } = require('../config/languageInventory');
@@ -43,7 +43,7 @@ const mapWithConcurrency = async (items, mapper, concurrency) => {
 const retranslateProductUnlocked = async (
   productId,
   targetLang,
-  { libreTranslateOnly = false, checkpoint = null, parallelProducts = 1 } = {},
+  { checkpoint = null, parallelProducts = 1 } = {},
 ) => {
   const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 1);
   if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
@@ -62,7 +62,6 @@ const retranslateProductUnlocked = async (
   }
 
   const manualFields = catalogTranslation?.manualFields || [];
-  const providersUsed = new Set();
   const sourceHash = getProductTranslationSourceHash(product);
   const translateSourceText = async (source, entityType, field) => {
     if (!source) return { value: source, validation: null };
@@ -74,16 +73,14 @@ const retranslateProductUnlocked = async (
     });
     const completed = getCompletedResult(checkpoint, workKey);
     if (completed?.payload) {
-      (completed.payload.providersUsed || []).forEach(provider => providersUsed.add(provider));
       return { value: completed.payload.value, validation: completed.payload.validation };
     }
 
-    const translate = libreTranslateOnly
-      ? libretranslateProductService.translateWithLibreTranslateOnly
-      : libretranslateProductService.translateWithCloudflare;
-    const result = await translate(source, getDefaultLanguage().code, targetLang);
-    const usedProviders = result.providersUsed || [result.provider || 'cloudflare'];
-    usedProviders.forEach(provider => providersUsed.add(provider));
+    const result = await productTranslationService.translateWithCloudflare(
+      source,
+      getDefaultLanguage().code,
+      targetLang,
+    );
     const validation = await translationValidator.validateTranslation(
       source,
       result.translatedText,
@@ -93,7 +90,7 @@ const retranslateProductUnlocked = async (
     await markCompletedDurably(checkpoint, workKey, {
       fixed: validation?.qualityStatus === 'approved' && (validation.validationErrors || []).length === 0,
       validationErrors: validation?.validationErrors || [],
-      payload: { value: result.translatedText, validation, providersUsed: usedProviders },
+      payload: { value: result.translatedText, validation },
     });
     return { value: result.translatedText, validation };
   };
@@ -173,7 +170,6 @@ const retranslateProductUnlocked = async (
   const hasNeeds = validationResults.some(({ qualityStatus }) => qualityStatus === 'needs_retranslate');
   const hasPending = validationResults.some(({ qualityStatus }) => qualityStatus === 'pending');
   const qualityStatus = hasNeeds ? 'needs_retranslate' : hasPending ? 'pending' : 'approved';
-  const resolvedProviders = [...providersUsed].sort();
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
     {
@@ -187,12 +183,10 @@ const retranslateProductUnlocked = async (
         descriptionImages,
         promotions,
         status: 'success',
-        provider: providersUsed.has('libretranslate') ? 'libretranslate' : 'cloudflare',
-        providersUsed: resolvedProviders.length > 0 ? resolvedProviders : ['cloudflare'],
-        providerSource: !libreTranslateOnly && providersUsed.has('libretranslate')
-          ? 'secondary_failover'
-          : 'primary',
-        failoverReason: !libreTranslateOnly && providersUsed.has('libretranslate') ? 'cloudflare_overload' : null,
+        provider: 'cloudflare',
+        providersUsed: ['cloudflare'],
+        providerSource: 'primary',
+        failoverReason: null,
         qualityStatus,
         qualityScore,
         validationErrors,

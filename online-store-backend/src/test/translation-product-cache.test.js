@@ -17,8 +17,7 @@ const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const translationReporter = require('../utils/translationReporter');
 const RateLimitHandler = require('../services/rateLimitHandler');
-const libretranslateProductService = require('../services/libretranslateProductService');
-const { LibreTranslateClient } = require('../../../libretranslate-tool/src/libretranslateClient');
+const productTranslationService = require('../services/productTranslationService');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
@@ -270,7 +269,7 @@ describe('Product translation cache controller', () => {
       limit: 1,
       dryRun: false,
       validate: true,
-      libreTranslateOnly: false,
+
     };
     const checkpoint = openCheckpoint(checkpointOptions, directory);
     sandbox.stub(LiveTranslationCache, 'find').returns({
@@ -409,10 +408,9 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
 
-    const result = await retranslateSeeder.retranslate({ verbose: false, libreTranslateOnly: true });
+    const result = await retranslateSeeder.retranslate({ verbose: false });
 
     expect(retranslateProduct.calledOnceWith(candidate.entityId, candidate.targetLang, {
-      libreTranslateOnly: true,
       checkpoint: null,
       parallelProducts: 1,
     })).to.be.true;
@@ -443,7 +441,7 @@ describe('Product translation cache controller', () => {
       limit: 0,
       dryRun: false,
       validate: true,
-      libreTranslateOnly: false,
+
     };
     const checkpoint = openCheckpoint(checkpointOptions, directory);
     const emptyLiveQuery = {
@@ -524,7 +522,7 @@ describe('Product translation cache controller', () => {
     process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = '3';
     let failTechnicalDescription = true;
     let providerCalls = 0;
-    const translate = sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async source => {
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async source => {
       providerCalls++;
       if (source === product.technicalDescription && failTechnicalDescription) {
         failTechnicalDescription = false;
@@ -663,12 +661,31 @@ describe('Product translation cache controller', () => {
     const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => `[en] ${text}`);
 
     try {
-      const result = await libretranslateProductService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
+      const result = await productTranslationService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
 
       expect(cloudflareTranslate.callCount).to.equal(3);
       expect(cloudflareTranslate.args.every(([text]) => text.length <= 900)).to.equal(true);
-      expect(result.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(result.translatedText.replace(/\[en\] /g, '')).to.equal('A'.repeat(2500));
       expect(result.providersUsed).to.deep.equal(['cloudflare']);
+    } finally {
+      if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+      else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
+    }
+  });
+
+  it('preserves source whitespace between Cloudflare chunks', async () => {
+    const originalChunkSize = process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
+    const source = `${'A'.repeat(800)}\n${'B'.repeat(800)}`;
+    process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = '900';
+    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').callsFake(async text => `[en] ${text}`);
+
+    try {
+      const result = await productTranslationService.translateWithCloudflare(source, 'vi', 'en');
+      const requestedText = cloudflareTranslate.args.map(([text]) => text).join('');
+
+      expect(cloudflareTranslate.callCount).to.equal(2);
+      expect(requestedText).to.equal(source);
+      expect(result.translatedText.replace(/\[en\] /g, '')).to.equal(source);
     } finally {
       if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
       else process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE = originalChunkSize;
@@ -683,10 +700,10 @@ describe('Product translation cache controller', () => {
     ));
 
     try {
-      const result = await libretranslateProductService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
+      const result = await productTranslationService.translateWithCloudflare('A'.repeat(2500), 'vi', 'en');
 
       expect(cloudflareTranslate.callCount).to.be.greaterThan(3);
-      expect(result.translatedText.replace(/\[en\] /g, '').length).to.equal(2500);
+      expect(result.translatedText.replace(/\[en\] /g, '')).to.equal('A'.repeat(2500));
       expect(result.providersUsed).to.deep.equal(['cloudflare']);
     } finally {
       if (originalChunkSize === undefined) delete process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE;
@@ -694,103 +711,18 @@ describe('Product translation cache controller', () => {
     }
   });
 
-  it('does not call LibreTranslate when Cloudflare is rate limited', async () => {
-    const originalEnabled = process.env.LIBRETRANSLATE_ENABLED;
-    const originalFailover = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD;
-    process.env.LIBRETRANSLATE_ENABLED = 'true';
-    process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD = 'true';
+  it('propagates Cloudflare rate limits without reporting a translation result', async () => {
     const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate').rejects(
       Object.assign(new Error('Rate limit exceeded'), { response: { status: 429 } }),
     );
-    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate');
 
     try {
-      await libretranslateProductService.translateWithCloudflare('Original', 'vi', 'en');
+      await productTranslationService.translateWithCloudflare('Original', 'vi', 'en');
       expect.fail('Expected Cloudflare rate limit to be thrown');
     } catch (error) {
       expect(error.response.status).to.equal(429);
       expect(cloudflareTranslate.calledOnce).to.equal(true);
-      expect(libreTranslate.called).to.equal(false);
-    } finally {
-      if (originalEnabled === undefined) delete process.env.LIBRETRANSLATE_ENABLED;
-      else process.env.LIBRETRANSLATE_ENABLED = originalEnabled;
-      if (originalFailover === undefined) delete process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD;
-      else process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD = originalFailover;
     }
-  });
-
-  it('uses LibreTranslate directly without calling Cloudflare when explicitly requested', async () => {
-    const libreTranslate = sandbox.stub(LibreTranslateClient.prototype, 'translate').resolves('Translated');
-    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
-
-    const result = await libretranslateProductService.translateWithLibreTranslateOnly('Original', 'vi', 'en');
-
-    expect(result).to.deep.equal({
-      translatedText: 'Translated',
-      provider: 'libretranslate',
-      providersUsed: ['libretranslate'],
-    });
-    expect(libreTranslate.calledOnceWithExactly('Original', 'vi', 'en')).to.equal(true);
-    expect(cloudflareTranslate.called).to.equal(false);
-  });
-
-  it('uses direct LibreTranslate for field-cache records when requested', async () => {
-    const targetLanguage = SUPPORTED_LANGUAGES.find(({ code }) => code !== getDefaultLanguage().code);
-    const translation = {
-      _id: new mongoose.Types.ObjectId(),
-      hashKey: 'direct-libre-hash',
-      originalText: 'Laptop MSI',
-      translatedText: 'Old translation',
-      sourceLang: getDefaultLanguage().code,
-      targetLang: targetLanguage.code,
-      entityId: new mongoose.Types.ObjectId().toString(),
-      entityType: 'generic',
-      qualityScore: 10,
-      validationErrors: ['needs_retranslate'],
-    };
-    sandbox.stub(LiveTranslationCache, 'find').returns({
-      sort: sandbox.stub().returnsThis(),
-      limit: sandbox.stub().returnsThis(),
-      lean: sandbox.stub().resolves([translation]),
-    });
-    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
-      sort: sandbox.stub().returnsThis(),
-      limit: sandbox.stub().returnsThis(),
-      lean: sandbox.stub().resolves([]),
-    });
-    const libreTranslate = sandbox.stub(libretranslateProductService, 'translateWithLibreTranslateOnly').resolves({
-      translatedText: 'MSI Laptop',
-      provider: 'libretranslate',
-      providersUsed: ['libretranslate'],
-    });
-    const cloudflareTranslate = sandbox.stub(cloudflareAiService, 'translate');
-    sandbox.stub(translationValidator, 'validateTranslation').resolves({
-      qualityStatus: 'approved',
-      qualityScore: 100,
-      validationErrors: [],
-    });
-    sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').resolves({ _id: new mongoose.Types.ObjectId() });
-    sandbox.stub(LiveTranslationCache, 'updateOne').resolves({ modifiedCount: 1 });
-    sandbox.stub(TranslationQualityLog, 'create').resolves({});
-    sandbox.stub(ProductTranslationSeederService, '_syncProductCatalogTranslations').resolves();
-    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
-    sandbox.stub(translationReporter, 'saveReport');
-
-    const result = await retranslateSeeder.retranslate({
-      verbose: false,
-      limit: 1,
-      libreTranslateOnly: true,
-    });
-    const savedVersion = LiveTranslationCache.findOneAndUpdate.firstCall.args[1].$setOnInsert;
-
-    expect(result.success).to.equal(true);
-    expect(libreTranslate.calledOnceWithExactly('Laptop MSI', translation.sourceLang, targetLanguage.code)).to.equal(true);
-    expect(cloudflareTranslate.called).to.equal(false);
-    expect(savedVersion).to.include({
-      provider: 'libretranslate',
-      providerSource: 'primary',
-      status: 'translated_via_libre',
-    });
   });
 
   it('syncs product retranslation status back to superseded field-cache records', async () => {
@@ -822,7 +754,7 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([]),
     });
     const updateMany = sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 1 });
-    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').resolves({
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
       translatedText: 'Laptop traduit',
       provider: 'cloudflare',
       providersUsed: ['cloudflare'],
@@ -877,7 +809,7 @@ describe('Product translation cache controller', () => {
     const quotaError = Object.assign(new Error('Provider rate limit exceeded'), {
       response: { status: 429 },
     });
-    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').rejects(quotaError);
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').rejects(quotaError);
     sandbox.stub(translationReporter, 'printRetranslateReport');
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
@@ -888,7 +820,7 @@ describe('Product translation cache controller', () => {
     expect(result.stats.quotaExceededCount).to.equal(1);
     expect(result.stats.errorCount).to.equal(1);
     expect(result.stats.remainingCount).to.equal(translations.length);
-    expect(libretranslateProductService.translateWithCloudflare.calledOnce).to.equal(true);
+    expect(productTranslationService.translateWithCloudflare.calledOnce).to.equal(true);
   });
 
   it('retranslates independent records with the configured concurrency cap', async () => {
@@ -901,7 +833,7 @@ describe('Product translation cache controller', () => {
       sourceLang: getDefaultLanguage().code,
       targetLang: targetLanguage.code,
       entityId: new mongoose.Types.ObjectId().toString(),
-      entityType: 'generic',
+      entityType: 'product_name',
       qualityScore: 0,
       validationErrors: ['needs_retranslate'],
     }));
@@ -915,12 +847,13 @@ describe('Product translation cache controller', () => {
     });
     let activeTranslations = 0;
     let maxActiveTranslations = 0;
-    sandbox.stub(libretranslateProductService, 'translateWithLibreTranslateOnly').callsFake(async (text) => {
+    sandbox.stub(productTranslationLock, 'acquireProductTranslationLock').resolves(async () => {});
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (text) => {
       activeTranslations++;
       maxActiveTranslations = Math.max(maxActiveTranslations, activeTranslations);
       await new Promise(resolve => setTimeout(resolve, 10));
       activeTranslations--;
-      return { translatedText: `${text} translated`, provider: 'libretranslate' };
+      return { translatedText: `${text} translated`, provider: 'cloudflare', providersUsed: ['cloudflare'] };
     });
     sandbox.stub(translationValidator, 'validateTranslation').resolves({
       qualityStatus: 'approved',
@@ -930,13 +863,13 @@ describe('Product translation cache controller', () => {
     sandbox.stub(LiveTranslationCache, 'findOneAndUpdate').callsFake(async () => ({ _id: new mongoose.Types.ObjectId() }));
     sandbox.stub(LiveTranslationCache, 'updateOne').resolves({ modifiedCount: 1 });
     sandbox.stub(TranslationQualityLog, 'create').resolves({});
+    sandbox.stub(ProductTranslationSeederService, '_syncProductCatalogTranslations').resolves();
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
 
     const result = await retranslateSeeder.retranslate({
       verbose: false,
       concurrency: 2,
-      libreTranslateOnly: true,
     });
 
     expect(result.stats.fixedCount).to.equal(4);
@@ -1379,7 +1312,7 @@ describe('Product translation cache controller', () => {
         manualFields: [],
       }),
     });
-    sandbox.stub(libretranslateProductService, 'translateWithCloudflare').callsFake(async (source) => ({
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => ({
       translatedText: `en:${source}`,
       provider: 'cloudflare',
       providersUsed: ['cloudflare'],
@@ -1450,7 +1383,7 @@ describe('Product translation cache controller', () => {
     });
     let activeTranslations = 0;
     let maximumActiveTranslations = 0;
-    const translate = sandbox.stub(libretranslateProductService, 'translateWithFailover').callsFake(async (source) => {
+    const translate = sandbox.stub(productTranslationService, 'translateWithFailover').callsFake(async (source) => {
       activeTranslations++;
       maximumActiveTranslations = Math.max(maximumActiveTranslations, activeTranslations);
       await new Promise((resolve) => setTimeout(resolve, 10));

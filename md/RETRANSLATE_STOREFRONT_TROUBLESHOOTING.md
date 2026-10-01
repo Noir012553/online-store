@@ -2,7 +2,7 @@
 
 ## Mục đích và phạm vi
 
-Tài liệu này ghi lại các vấn đề đã được quan sát khi cài dependency, chạy `retranslate`, kiểm tra Redis/LibreTranslate/Cloudflare và đối chiếu điều kiện hiển thị storefront. Các số liệu là kết quả tại thời điểm người dùng chạy lệnh trên máy Windows; chúng có thể thay đổi khi chạy lại.
+Tài liệu này ghi lại các vấn đề đã được quan sát khi cài dependency, chạy `retranslate`, kiểm tra Redis/Cloudflare và đối chiếu điều kiện hiển thị storefront. Các số liệu là kết quả lịch sử tại thời điểm người dùng chạy lệnh trên máy Windows.
 
 Không ghi giá trị `.env`, API key, token, MongoDB URI, mật khẩu hoặc nội dung secret vào tài liệu này.
 
@@ -10,7 +10,7 @@ Không ghi giá trị `.env`, API key, token, MongoDB URI, mật khẩu hoặc n
 
 - Backend `.env` được tạo từ `.env.example` trên máy Windows.
 - Redis không lắng nghe trên `localhost:6379`; sau đó `PRODUCT_SEED_LOCK_MODE=memory` được xác nhận. Chế độ này phù hợp cho một tiến trình local, không dùng cho production hoặc nhiều tiến trình song song.
-- LibreTranslate ở `127.0.0.1:5001` đã có lúc mở TCP nhưng request `/translate` timeout; ở lần chạy khác kết nối bị `ECONNREFUSED`. Chưa có bằng chứng endpoint dịch hoạt động ổn định.
+- Provider LibreTranslate cũ từng timeout/`ECONNREFUSED` và cho chất lượng không đủ; đã gỡ client, CLI và thư mục tool khỏi luồng hiện tại.
 - Probe gửi một request ngắn cho mỗi 9 cấu hình Cloudflare; cả 9 đều trả `HTTP 429`, không có `Retry-After`. Cloudflare chưa sẵn sàng chạy lại batch tại thời điểm probe.
 - Storefront chỉ có 3/618 sản phẩm sẵn sàng theo cờ hiện lưu và phép tính readiness chạy lại.
 - Chưa xác định được một sản phẩm cụ thể nào mất bản dịch; cần kiểm tra catalog theo một mã sản phẩm và ngôn ngữ mục tiêu sau khi provider hoạt động.
@@ -40,7 +40,6 @@ Không chạy `npm audit fix --force` hoặc `npm update` lặp lại để xử
 
 - Lần kiểm tra đầu tiên chạy từ `C:\Windows\system32`, nên không tìm thấy `.env`; báo cáo TXT lúc đó phản ánh trạng thái cũ.
 - Sau đó `.env` được sao chép từ `online-store-backend/.env.example`; `Test-Path` trả `True`.
-- `LIBRETRANSLATE_API_KEY` có thể để trống nếu instance không yêu cầu xác thực.
 - `REDIS_PASSWORD` có thể để trống nếu Redis không bật xác thực. Không đặt secret thật trong `.env.example` hoặc Git.
 
 ### Redis
@@ -63,26 +62,15 @@ Khóa chạy retranslate là khóa riêng trong MongoDB, không phải Redis loc
 
 Không xóa document khóa bằng tay và không dùng `--reset-progress` để chữa lỗi khóa. Nếu lỗi lặp lại, kiểm tra tiến trình local và run lock ngay sau lỗi bằng cùng `.env`/Mongo URI, không gửi URI vào chat.
 
-## 4. LibreTranslate
+## 4. Provider đã gỡ
 
-### Kết quả quan sát
+Các log LibreTranslate ở tài liệu này chỉ là lịch sử. Backend hiện không chứa client, CLI option, cấu hình hay fallback LibreTranslate; luồng dịch/retranslate chỉ dùng Cloudflare AI. Không dùng lệnh hoặc `.env` mẫu cũ của LibreTranslate.
 
-- `.env.example` mặc định trỏ tới `http://127.0.0.1:5001` và timeout backend là `60000ms`.
-- Một lần chạy `--libretranslate-only` báo nhiều request timeout sau 60 giây.
-- Probe TCP có lúc `True`, nhưng request dịch ngắn từ PowerShell trả `WebException: The operation has timed out`.
-- Ở log khác, client nhận `connect ECONNREFUSED 127.0.0.1:5001`, tức không kết nối được tới listener tại thời điểm đó.
-
-TCP mở chỉ xác nhận cổng chấp nhận kết nối; chưa xác nhận model dịch đã nạp hoặc API `/translate` xử lý được request. Chỉ tiếp tục batch sau khi `/languages` và một request `/translate` ngắn trả kết quả hợp lệ. Timeout `60000ms` cùng `LIBRETRANSLATE_RETRIES=2` có thể khiến một chunk thử tối đa ba lần, kéo dài đáng kể.
-
-### Khác biệt lệnh
-
-- `npm run retranslate -- --libretranslate-only --shutdown`: ép dùng LibreTranslate cho batch được chọn chủ động, không gọi Cloudflare; cần endpoint LibreTranslate hoạt động và vẫn phải qua validator.
-- `npm run retranslate -- --shutdown`: luồng mặc định chỉ dùng Cloudflare; LibreTranslate không được gọi làm draft hoặc fallback.
-- Khi Cloudflare bị rate limit/quota, tác vụ được ghi nhận là chưa hoàn tất để retry sau; không đánh dấu thành công bằng kết quả từ provider khác.
+Khi Cloudflare bị rate limit/quota, tác vụ được ghi nhận là chưa hoàn tất để retry sau; không đánh dấu thành công bằng kết quả từ provider khác.
 
 ## 5. Cloudflare rate limit
 
-- Trước khi gỡ draft/fallback, log retranslate mặc định có cảnh báo rate-limit và draft LibreTranslate bị `ECONNREFUSED`; luồng mặc định hiện tại không còn gọi LibreTranslate.
+- Log cũ có cảnh báo rate-limit Cloudflare xen kẽ lỗi LibreTranslate; hành vi fallback đó đã bị gỡ.
 - Probe từng cấu hình gửi tối đa một request nhỏ cho 9 cấu hình; cả 9 trả `RATE_LIMITED (HTTP 429)`, không có `Retry-After`.
 - Kết quả chỉ xác nhận tình trạng tại lúc probe. Không biết giờ reset từ response đó; kiểm tra quota/usage trong dashboard Cloudflare. Nếu nhiều key cùng account, quota account có thể ảnh hưởng tất cả.
 - Cooldown trong service Cloudflare là trạng thái trong bộ nhớ của tiến trình, còn quota/rate limit do Cloudflare trả về là trạng thái provider; restart app không khôi phục quota provider.
@@ -92,7 +80,7 @@ Không lặp probe 9 key hoặc chạy batch khi cả 9 còn 429; mỗi probe v�
 
 ## 6. Ý nghĩa kết quả retranslate và checkpoint
 
-Một lần gọi Cloudflare/LibreTranslate thành công không đồng nghĩa job sản phẩm hoàn tất hoặc được duyệt.
+Một lần gọi Cloudflare thành công không đồng nghĩa job sản phẩm hoàn tất hoặc được duyệt.
 
 - Product retranslate gom các trường sản phẩm/ngôn ngữ, validate chúng và chỉ sau đó upsert `ProductCatalogTranslationCache`.
 - Một số kết quả field có thể được checkpoint trước khi toàn bộ product translation được lưu; lỗi ở field/chunk khác có thể khiến catalog tổng hợp chưa được cập nhật.
@@ -140,12 +128,11 @@ data/scraped-products/current/<nhóm-sản-phẩm>/
 
 ## 9. Các bước xử lý an toàn tiếp theo
 
-1. Tạm dừng retranslate batch cho tới khi ít nhất một provider trả kết quả test thành công. Tại thời điểm ghi nhận, LibreTranslate timeout/ECONNREFUSED và 9/9 Cloudflare probe trả 429.
-2. Nếu chọn LibreTranslate-only, khởi động/kiểm tra server local, xác nhận `/languages` và một `/translate` ngắn; chỉ sau đó chạy lại job.
-3. Nếu chọn Cloudflare, kiểm tra quota account và chờ phục hồi; thử một request nhỏ trên một cấu hình thay vì probe lặp lại toàn bộ.
-4. Sau khi provider khỏe, dùng checkpoint hiện tại; cân nhắc `--retry-unresolved` cho các job đã xử lý nhưng chưa fixed. Không xóa checkpoint/lock bằng tay.
-5. Chọn chính sách storefront rõ ràng: hoàn thiện đủ mọi locale trước khi mở sản phẩm, hoặc thay đổi thiết kế gate sang readiness theo locale và fallback tiếng Việt cho locale thiếu. Hai lựa chọn có trade-off khác nhau; chưa có thay đổi gate nào được thực hiện trong phiên.
-6. Khi dùng `--shutdown`, lưu công việc đang mở và cắm nguồn; máy chỉ tắt sau khi run thành công hoàn toàn.
+1. Tạm dừng retranslate khi Cloudflare trả 429; kiểm tra quota tài khoản và đợi hạn mức phục hồi.
+2. Khi sẵn sàng, thử một request nhỏ trên một cấu hình Cloudflare; không lặp probe tất cả keys khi provider vẫn rate limit.
+3. Dùng checkpoint hiện tại; cân nhắc `--retry-unresolved` cho job đã xử lý nhưng chưa fixed. Không xóa checkpoint/lock bằng tay.
+4. Chọn chính sách storefront rõ ràng: hoàn thiện đủ mọi locale trước khi mở sản phẩm, hoặc thay đổi thiết kế gate sang readiness theo locale và fallback tiếng Việt cho locale thiếu. Hai lựa chọn có trade-off khác nhau; chưa có thay đổi gate nào được thực hiện trong phiên.
+5. Khi dùng `--shutdown`, lưu công việc đang mở và cắm nguồn; máy chỉ tắt sau khi run thành công hoàn toàn.
 
 ## 10. Độ đầy đủ nội dung của từng trường và cách khắc phục
 
@@ -153,7 +140,7 @@ data/scraped-products/current/<nhóm-sản-phẩm>/
 
 Không có bảo đảm tuyệt đối rằng provider trả đủ nội dung cho mọi đoạn. Mục tiêu cũng không nên là số ký tự đích phải bằng số ký tự nguồn: bản dịch giữa các ngôn ngữ thường dài/ngắn khác nhau. Cần bảo đảm mọi đoạn nguồn đều có kết quả không rỗng, các dữ kiện bắt buộc được giữ, không có dấu hiệu bị cắt cụt và toàn bộ trường đạt validation.
 
-LibreTranslate-only chia văn bản thành các đoạn tối đa mặc định 6.000 ký tự; Cloudflare/failover dùng chunk đầu vào mặc định 1.800 ký tự. Cả hai ghép lại chỉ khi số chunk khớp, từng output là string không rỗng và chunk nguồn từ 40 ký tự không bị rút xuống dưới 20%. Cloudflare giới hạn đầu ra mặc định ở `2048` token mỗi request (`CLOUDFLARE_AI_MAX_TOKENS` có thể cấu hình); nếu response có finish reason báo chạm token limit, pipeline từ chối output và thử chia nhỏ lại tối đa hai cấp. Không phải mọi provider/model đều trả finish reason, nên đây là biện pháp phát hiện lỗi rõ ràng chứ không phải chứng minh đầy đủ ngữ nghĩa.
+Luồng dịch Cloudflare chia văn bản thành các đoạn đầu vào mặc định 1.800 ký tự. Kết quả chỉ được ghép khi mọi chunk có output string không rỗng và chunk nguồn từ 40 ký tự không bị rút xuống dưới 20%. Cloudflare giới hạn đầu ra mặc định ở `2048` token mỗi request (`CLOUDFLARE_AI_MAX_TOKENS` có thể cấu hình); nếu response báo chạm token limit, pipeline từ chối output và thử chia nhỏ lại tối đa hai cấp. Đây là biện pháp phát hiện lỗi, không phải chứng minh đầy đủ ngữ nghĩa.
 
 Catalog sản phẩm dịch `name`, `description`, `technicalDescription`, giá trị specs, alt ảnh và các field promotion có dữ liệu. Brand được giữ từ nguồn; các field trong `manualFields` có thể được giữ nguyên thay vì dịch. Kết quả field có thể được ghi checkpoint trước, nhưng catalog chỉ được upsert sau khi các bước dịch trường kết thúc. Vì vậy checkpoint field không có nghĩa cả product/language đã hoàn tất.
 
@@ -165,15 +152,14 @@ Catalog sản phẩm dịch `name`, `description`, `technicalDescription`, giá 
 
 ### Trạng thái của lần chạy mới nhất
 
-Lần chạy người dùng gửi có `Matched 3461`, `Completed checkpoint: 2540`, `remaining this run: 921`, nhưng `Fixed successfully: 0`, `Still has issues: 2540`, `Failed: 3` và `Remaining: 3461`. Cả 9 cấu hình Cloudflare bị rate-limit/cooldown, LibreTranslate trả `ECONNREFUSED 127.0.0.1:5001`; không có cơ sở kết luận output lần này bị cắt vì các provider không trả được kết quả cho các job thất bại. Không cộng các số trong report thành tổng độc lập.
+Lần chạy lịch sử có `Matched 3461`, `Completed checkpoint: 2540`, `remaining this run: 921`, nhưng `Fixed successfully: 0`, `Still has issues: 2540`, `Failed: 3` và `Remaining: 3461`. Cả 9 cấu hình Cloudflare bị rate-limit/cooldown; provider LibreTranslate cũ trả `ECONNREFUSED`. Không có cơ sở kết luận output bị cắt cho các job không nhận được kết quả. Không cộng các số trong report thành tổng độc lập.
 
 ### Khắc phục theo thứ tự an toàn
 
-1. Dừng batch khi không có provider khỏe. Khởi động LibreTranslate và xác nhận một request `/translate` ngắn trả `translatedText` không rỗng; hoặc xác nhận quota Cloudflare đã phục hồi trước khi gửi request thử. Không lặp probe nhiều key khi provider vẫn 429.
+1. Dừng batch khi Cloudflare bị rate limit; xác nhận quota đã phục hồi trước khi gửi request thử. Không lặp probe nhiều key khi provider vẫn 429.
 2. Chạy pilot nhỏ với validation mặc định đang bật, một ngôn ngữ và concurrency 1; ví dụ từ thư mục backend: `npm run retranslate -- --lang=es --limit=3 --concurrency=1`. Đây là lệnh ghi DB, không phải dry-run; không thêm `--shutdown` trong lúc kiểm chứng.
 3. Kiểm tra catalog trong MongoDB cho các product/language vừa xử lý: `status`, `qualityStatus`, `sourceHash`, `validationErrors`, `provider`/`providersUsed`, và completeness của `name`, `description` (nếu nguồn có), các spec, alt và promotion tương ứng. So sánh với product nguồn, không chỉ nhìn log “Translation success”.
 4. Chỉ khi pilot được lưu đủ và đạt chất lượng mới chạy retry phần unresolved bằng provider đã xác nhận khỏe. `--retry-unresolved` không kết hợp với `--lang` hoặc `--limit`; giữ checkpoint hiện có, không xóa thủ công.
-5. Với LibreTranslate-only, thêm `--libretranslate-only` chỉ khi instance local thật sự hoạt động. Với luồng mặc định, Cloudflare vẫn là provider chính; LibreTranslate draft không thay thế Cloudflare trừ khi cấu hình failover phù hợp.
 
 ### Cải tiến code nên làm
 
@@ -203,12 +189,9 @@ Các kiểm tra này chặn nhiều lỗi rỗng/cắt ngắn rõ ràng, nhưng 
 - `online-store-backend/src/services/translationHelper.js`
 - `online-store-backend/src/controllers/productController.js`
 - `online-store-backend/src/services/cloudflareAiService.js`
-- `online-store-backend/src/services/libretranslateProductService.js`
-- `libretranslate-tool/src/productTranslator.js`
-- `libretranslate-tool/src/libretranslateClient.js`
+- `online-store-backend/src/services/productTranslationService.js`
 - `online-store-backend/src/test/cloudflare-ai-service.test.js`
 - `online-store-backend/src/test/translation-product-cache.test.js`
-- `libretranslate-tool/test/productTranslator.test.js`
 - `online-store-backend/src/models/ProductCatalogTranslationCache.js`
 - `online-store-backend/src/config/languageInventory.js`
 - `online-store-backend/python/scraper_paths.py`

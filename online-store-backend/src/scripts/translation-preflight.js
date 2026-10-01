@@ -1,6 +1,4 @@
 const path = require('node:path');
-const http = require('node:http');
-const https = require('node:https');
 const mongoose = require('mongoose');
 const { createClient } = require('redis');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
@@ -11,7 +9,6 @@ try {
   if (error.code !== 'MODULE_NOT_FOUND') throw error;
 }
 
-const REQUIRED_LANGUAGES = ['vi', 'en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'];
 const DEFAULT_TIMEOUT_MS = 5000;
 
 const parseNonNegativeInteger = (name, fallback) => {
@@ -34,50 +31,8 @@ const parsePositiveInteger = (name, fallback) => {
   return value;
 };
 
-const requestJson = (url, options = {}, body = null) => new Promise((resolve, reject) => {
-  const parsedUrl = new URL(url);
-  const transport = parsedUrl.protocol === 'https:' ? https : http;
-  const payload = body === null ? null : JSON.stringify(body);
-  const request = transport.request(parsedUrl, {
-    method: options.method || 'GET',
-    headers: {
-      ...(payload ? {
-        'content-type': 'application/json',
-        'content-length': Buffer.byteLength(payload),
-      } : {}),
-      ...(options.headers || {}),
-    },
-  }, (response) => {
-    let responseBody = '';
-    response.setEncoding('utf8');
-    response.on('data', chunk => { responseBody += chunk; });
-    response.on('end', () => {
-      let data = {};
-      try {
-        data = responseBody ? JSON.parse(responseBody) : {};
-      } catch {
-        reject(new Error(`Invalid JSON response (HTTP ${response.statusCode})`));
-        return;
-      }
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        resolve(data);
-        return;
-      }
-      reject(new Error(data.error || `HTTP ${response.statusCode}`));
-    });
-  });
-
-  request.setTimeout(DEFAULT_TIMEOUT_MS, () => {
-    request.destroy(new Error(`Request timed out after ${DEFAULT_TIMEOUT_MS}ms`));
-  });
-  request.on('error', reject);
-  if (payload) request.write(payload);
-  request.end();
-});
-
 const parseArgs = (args) => ({
   json: args.includes('--json'),
-  smokeTest: args.includes('--smoke-test'),
 });
 
 const addCheck = (checks, name, ok, detail, severity = 'error') => {
@@ -196,49 +151,9 @@ const checkRuntimeDependencies = async (checks, lockMode) => {
   }
 };
 
-const checkLibreTranslate = async (checks, smokeTest) => {
-  if (!smokeTest) return;
-
-  const baseUrl = process.env.LIBRETRANSLATE_URL || 'http://127.0.0.1:5001';
-  try {
-    const languages = await requestJson(`${baseUrl.replace(/\/$/, '')}/languages`);
-    const available = new Set((Array.isArray(languages) ? languages : []).map(language => language.code));
-    const missing = REQUIRED_LANGUAGES.filter(language => !available.has(language));
-    addCheck(
-      checks,
-      'LibreTranslate languages',
-      missing.length === 0,
-      missing.length === 0 ? `${REQUIRED_LANGUAGES.length} required languages available` : `missing: ${missing.join(', ')}`,
-    );
-
-    if (smokeTest) {
-      const result = await requestJson(
-        `${baseUrl.replace(/\/$/, '')}/translate`,
-        { method: 'POST' },
-        {
-          q: 'Laptop Gaming Acer Nitro 5 RAM 16GB SSD 512GB RTX 4060',
-          source: 'vi',
-          target: 'en',
-          format: 'text',
-          ...(process.env.LIBRETRANSLATE_API_KEY ? { api_key: process.env.LIBRETRANSLATE_API_KEY } : {}),
-        },
-      );
-      addCheck(
-        checks,
-        'LibreTranslate smoke test',
-        typeof result.translatedText === 'string' && result.translatedText.trim() !== '',
-        typeof result.translatedText === 'string' ? result.translatedText : 'missing translatedText',
-      );
-    }
-  } catch (error) {
-    addCheck(checks, 'LibreTranslate endpoint', false, error.message);
-  }
-};
-
 const run = async () => {
-  const { json, smokeTest } = parseArgs(process.argv.slice(2));
+  const { json } = parseArgs(process.argv.slice(2));
   const { checks, lockMode } = checkConfiguration();
-  await checkLibreTranslate(checks, smokeTest);
   await checkRuntimeDependencies(checks, lockMode);
 
   const failed = checks.filter(check => !check.ok && check.severity === 'error');

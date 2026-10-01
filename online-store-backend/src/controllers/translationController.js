@@ -6,7 +6,7 @@ const Product = require('../models/Product');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const translationValidator = require('../utils/translationValidator');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const libretranslateProductService = require('../services/libretranslateProductService');
+const productTranslationService = require('../services/productTranslationService');
 const LanguageService = require('../services/languageService');
 const TranslationShadowWriteService = require('../services/translationShadowWriteService');
 const TranslationBatchRequest = require('../models/TranslationBatchRequest');
@@ -603,7 +603,7 @@ exports.translateProductAll9Languages = async (req, res) => {
         }
       }
 
-      translatedText = (await libretranslateProductService.translateWithCloudflare(
+      translatedText = (await productTranslationService.translateWithCloudflare(
         text,
         sourceLang,
         lang,

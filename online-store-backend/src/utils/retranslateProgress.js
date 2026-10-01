@@ -30,7 +30,6 @@ const getSignaturePayload = options => ({
   limit: 0,
   dryRun: Boolean(options.dryRun),
   validate: options.validate !== false,
-  libreTranslateOnly: Boolean(options.libreTranslateOnly),
   translationPolicy: 'cloudflare-only-v1',
   checkpointScope: options.checkpointScope || null,
 });
@@ -122,7 +121,6 @@ const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) 
   limit: 0,
   dryRun: false,
   validate: true,
-  libreTranslateOnly: false,
   checkpointScope,
 }, directory);
 

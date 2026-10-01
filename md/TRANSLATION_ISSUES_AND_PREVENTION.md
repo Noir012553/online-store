@@ -94,8 +94,8 @@ Các file liên quan:
 
 ```text
 online-store-backend/src/services/cloudflareAiService.js
-online-store-backend/src/services/libretranslateProductService.js
-libretranslate-tool/src/productTranslator.js
+online-store-backend/src/services/productTranslationService.js
+online-store-backend/src/services/productTranslationService.js
 ```
 
 ### 2.3. AI trả thêm prefix không mong muốn
@@ -129,7 +129,7 @@ Backend xử lý tại:
 
 ```text
 online-store-backend/src/services/cloudflareAiService.js
-online-store-backend/src/services/libretranslateProductService.js
+online-store-backend/src/services/productTranslationService.js
 ```
 
 Regex được neo ở đầu chuỗi để không xóa nhầm nội dung hợp lệ ở giữa mô tả.
@@ -273,7 +273,7 @@ ProductCatalogTranslationCache / LiveTranslationCache
 API storefront
 ```
 
-Luồng tự động chỉ gọi Cloudflare AI. LibreTranslate không được dùng làm draft hoặc fallback; chế độ LibreTranslate-only chỉ chạy khi được chọn rõ ràng qua CLI.
+Luồng dịch chỉ gọi Cloudflare AI. Nếu provider bị giới hạn, tác vụ không được ghi thành bản dịch thành công và phải được retry sau.
 
 ## 4. Các file quan trọng
 
@@ -325,16 +325,15 @@ online-store-backend/src/services/cloudflareAiService.js
 - Retry, rate limit và quota.
 
 ```text
-online-store-backend/src/services/libretranslateProductService.js
+online-store-backend/src/services/productTranslationService.js
 ```
 
 - Chia nội dung thành chunk.
 - Gọi Cloudflare AI trực tiếp cho các luồng tự động.
-- Không tạo draft hoặc fallback LibreTranslate.
 - Ghép các chunk sau khi dịch.
 
 ```text
-libretranslate-tool/src/productTranslator.js
+online-store-backend/src/services/productTranslationService.js
 ```
 
 - Chia chunk theo newline, ranh giới câu hoặc ranh giới từ.
@@ -432,7 +431,7 @@ CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY=...
 CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY=...
 CLOUDFLARE_AI_MAX_TOKENS=2048
 
-LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE=6000
+CLOUDFLARE_AI_INPUT_CHUNK_SIZE=6000
 ```
 
 Khuyến nghị không đặt secret thật vào Git hoặc `.env.example`.
@@ -452,7 +451,7 @@ Dấu hiệu:
 Hướng xử lý:
 
 - Kiểm tra `max_tokens`.
-- Giảm `LIBRETRANSLATE_DESCRIPTION_CHUNK_SIZE`.
+- Giảm `CLOUDFLARE_AI_INPUT_CHUNK_SIZE`.
 - Thêm kiểm tra kết thúc câu vào validator.
 - Tự động retry chunk lỗi với kích thước nhỏ hơn.
 
@@ -529,7 +528,6 @@ Hướng xử lý:
 
 - Kiểm tra provider và `validationErrors` của từng bản ghi.
 - Luồng tự động chỉ dùng Cloudflare AI; rate limit/quota sẽ để lại tác vụ chưa hoàn tất để retry sau.
-- Không dùng bản LibreTranslate-only để thay quota Cloudflare trong batch tự động.
 
 ### 7.8. Chunk bị nối thiếu khoảng trắng hoặc lặp khoảng trắng
 
@@ -590,7 +588,7 @@ Hướng xử lý:
 
 ```bash
 node --check online-store-backend/src/services/cloudflareAiService.js
-node --check online-store-backend/src/services/libretranslateProductService.js
+node --check online-store-backend/src/services/productTranslationService.js
 node --check online-store-backend/src/utils/translationValidator.js
 node --check online-store-backend/src/controllers/translationController.js
 ```
@@ -598,7 +596,7 @@ node --check online-store-backend/src/controllers/translationController.js
 2. Kiểm tra chunk không mất nội dung:
 
 ```bash
-node --test libretranslate-tool/test/productTranslator.test.js
+cd online-store-backend && ./node_modules/.bin/mocha src/test/cloudflare-ai-service.test.js
 ```
 
 3. Kiểm tra whitespace trong diff:
@@ -648,13 +646,11 @@ GET /api/products/6aad5417f008195af2ef6092/translations?lang=pt
 - Thêm `sourceHash` cho `ProductCatalogTranslationCache` để phát hiện cache stale.
 - Invalidate cả cache mới và cache legacy khi source product thay đổi.
 - Validator được áp dụng trước khi lưu bản dịch từ API, manual save, import và retranslate.
-- LibreTranslate local hỗ trợ endpoint HTTP và có test hồi quy.
 - Tối ưu layout product detail và tabs.
 
 Đã kiểm thử code:
 
-- `node --check` cho toàn bộ file backend và LibreTranslate đã thay đổi.
-- Test LibreTranslate và chunk: `4/4` test pass.
+- Kiểm tra cú pháp backend và unit test cho Cloudflare/chunking.
 - Test validator cho mixed-language, technical token và markup mismatch: pass.
 - `git diff --check`: pass.
 
