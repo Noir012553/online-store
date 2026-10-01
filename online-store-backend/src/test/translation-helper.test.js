@@ -13,6 +13,7 @@ const {
   localizeProductSpecs,
 } = require('../services/translationHelper');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 function createQueryMock() {
   const mock = (query) => {
@@ -256,6 +257,10 @@ describe('translationHelper - Product legacy cache fallback', () => {
       },
       status: 'success',
       qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
     }]);
   });
 
@@ -327,8 +332,10 @@ describe('translationHelper - Storefront product visibility', () => {
       ...product,
       entityId: 'product-1',
       targetLang,
+      sourceHash: getProductTranslationSourceHash(product),
       status: 'success',
       qualityStatus: 'approved',
+      validationErrors: [],
       ...overrides,
     }))
   );
@@ -339,6 +346,14 @@ describe('translationHelper - Storefront product visibility', () => {
     const result = await getStorefrontVisibleProductIds([product]);
 
     assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('hides approved products that still have validation errors', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations({ validationErrors: ['too_long'] }));
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.strictEqual(result.size, 0);
   });
 
   it('hides products when a required translation is missing or not approved', async () => {

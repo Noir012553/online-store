@@ -58,6 +58,12 @@ const TRANSLATABLE_FIELDS = {
   testimonial: ['content', 'authorName', 'authorTitle', 'authorCompany'],
 };
 
+const NO_VALIDATION_ERRORS = {
+  $or: [
+    { validationErrors: { $exists: false } },
+    { validationErrors: { $size: 0 } },
+  ],
+};
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 
 const hasRequiredProductFields = (product) => (
@@ -155,7 +161,9 @@ const getBatchSpecLabels = async (entities, targetLang) => {
 };
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
-  if (containsNoInputTranslationResponse(translation) || !hasRequiredProductFields(translation)) return false;
+  if ((Array.isArray(translation?.validationErrors) && translation.validationErrors.length > 0)
+    || containsNoInputTranslationResponse(translation)
+    || !hasRequiredProductFields(translation)) return false;
   if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
 
   const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
@@ -195,6 +203,7 @@ async function getStorefrontVisibleProductIds(products, options = {}) {
       targetLang: { $in: requiredLanguages },
       status: 'success',
       qualityStatus: 'approved',
+      ...NO_VALIDATION_ERRORS,
     })
       .select('entityId targetLang status qualityStatus sourceHash name brand description specs -_id')
       .maxTimeMS(maxTimeMS)
@@ -346,6 +355,7 @@ const getLegacyProductTranslationMap = async (products, targetLang) => {
         },
         status: 'success',
         qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
       })
         .select('entityId entityType specKey fieldKey translatedText -_id')
         .maxTimeMS(5000)
@@ -448,7 +458,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
       entityId: { $in: entityIds },
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
     }).lean();
 
     // Debug logging
@@ -479,8 +489,9 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
           entityId: { $in: brandIds },
           targetLang,
           status: 'success',
-          qualityStatus: 'approved',
-        }).lean();
+        qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
+      }).lean();
 
         brandTranslations.forEach(t => {
           brandTranslationMap[t.entityId] = t;
@@ -544,7 +555,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
     }).lean();
     if (!translation && entityType === 'product') {
       translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
@@ -606,7 +617,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       entityId,
       targetLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
     }).lean();
     if (!translation && entityType === 'product') {
       translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
@@ -766,7 +777,7 @@ async function getTranslationWithFallback(entityId, entityType, requestedLang) {
       entityId: String(entityId),
       targetLang: requestedLang,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
     }).lean();
 
     if (translation) {
@@ -811,7 +822,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
         entityId: { $in: entityIds },
         targetLang,
         status: 'success',
-        ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+        ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
       })
         .select('entityId targetLang status qualityStatus name brand description specs technicalDescription descriptionImages promotions -_id')
         .maxTimeMS(5000)
@@ -846,8 +857,9 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
           entityId: { $in: brandIds },
           targetLang,
           status: 'success',
-          qualityStatus: 'approved',
-        }).lean();
+        qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
+      }).lean();
 
         brandTranslations.forEach(t => {
           brandTranslationMap[t.entityId] = t;
@@ -900,7 +912,7 @@ async function getLocalizedEntity(entityId, entityType, locale) {
       entityId: String(entityId),
       targetLang: locale,
       status: 'success',
-      ...(entityType === 'product' ? { qualityStatus: 'approved' } : {}),
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
     }).lean();
 
     if (!cache) {

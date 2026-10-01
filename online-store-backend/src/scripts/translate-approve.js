@@ -28,6 +28,10 @@ async function main() {
       process.exit(1);
     }
 
+    if (Array.isArray(translation.validationErrors) && translation.validationErrors.length > 0) {
+      throw new Error(`Cannot approve a translation with validation errors: ${translation.validationErrors.join(', ')}`);
+    }
+
     // Parse note
     const noteArg = args.find(arg => arg.startsWith('--note='));
     const note = noteArg ? noteArg.split('=')[1].replace(/^"|"$/g, '') : '';
@@ -41,6 +45,13 @@ async function main() {
     translation.reviewedAt = new Date();
     translation.reviewNotes = note;
     await translation.save();
+    if (translation.entityType.startsWith('product_') && translation.entityId && translation.targetLang) {
+      const ProductTranslationSeederService = require('../services/productTranslationSeederService');
+      await ProductTranslationSeederService._syncProductCatalogTranslations(
+        translation.targetLang,
+        [String(translation.entityId)],
+      );
+    }
 
     // Create audit log
     await TranslationQualityLog.create({

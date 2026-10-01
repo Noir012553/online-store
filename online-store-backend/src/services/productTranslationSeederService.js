@@ -23,6 +23,7 @@ const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { refreshStorefrontReadiness } = require('./translationHelper');
 const { getTranslationLockTtlSeconds } = require('../utils/productTranslationLock');
 
 const translationMemory = new Map();
@@ -265,6 +266,10 @@ class ProductTranslationSeederService {
         targetLang,
         status: { $in: ['success', 'translated_via_libre'] },
         qualityStatus: 'approved',
+        $or: [
+          { validationErrors: { $exists: false } },
+          { validationErrors: { $size: 0 } },
+        ],
         entityType: {
           $in: [
             'product_name',
@@ -408,15 +413,39 @@ class ProductTranslationSeederService {
 
     if (entries.length === 0) return;
 
-    await ProductCatalogTranslationCache.bulkWrite(entries.map((entry) => ({
-      updateOne: {
-        filter: { entityId: entry.entityId, targetLang },
-        update: entry.qualityStatus === 'approved'
-          ? { $set: entry }
-          : { $setOnInsert: entry },
-        upsert: true,
-      },
-    })));
+    await ProductCatalogTranslationCache.bulkWrite(entries.map((entry) => {
+      const {
+        entityId,
+        targetLang: entryTargetLang,
+        sourceHash,
+        status,
+        qualityStatus,
+        qualityScore,
+        validationErrors,
+        lastTranslatedAt,
+        ...content
+      } = entry;
+      return {
+        updateOne: {
+          filter: { entityId, targetLang: entryTargetLang },
+          update: qualityStatus === 'approved'
+            ? { $set: entry }
+            : {
+              $set: {
+                sourceHash,
+                status,
+                qualityStatus,
+                qualityScore,
+                validationErrors,
+                lastTranslatedAt,
+              },
+              $setOnInsert: content,
+            },
+          upsert: true,
+        },
+      };
+    }));
+    await refreshStorefrontReadiness(productIds);
   }
 
   /**
