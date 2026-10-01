@@ -12,6 +12,7 @@ const mongoose = require('mongoose');
 const Product = require('../../../models/Product');
 const Category = require('../../../models/Category');
 const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../../../models/LiveTranslationCache');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const Currency = require('../../../models/Currency');
 const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
@@ -232,7 +233,8 @@ describe('Product Controller', () => {
       findByIdStub.onSecondCall().returns({
         populate: sandbox.stub().withArgs('category').resolves(populatedProduct),
       });
-      sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
+      const catalogUpdate = sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
+      const liveUpdate = sandbox.stub(LiveTranslationCache, 'updateMany').resolves();
       const req = {
         params: { id: product._id.toString() },
         query: {},
@@ -242,6 +244,51 @@ describe('Product Controller', () => {
       const res = { json: sandbox.stub() };
       await updateProduct(req, res);
       expect(res.json.calledOnce).to.be.true;
+      expect(catalogUpdate.firstCall.args[1].$set.qualityStatus).to.equal('needs_retranslate');
+      expect(catalogUpdate.firstCall.args[1].$set.validationErrors).to.deep.equal(['source_content_changed']);
+      expect(liveUpdate.calledOnce).to.be.true;
+    });
+
+    it('does not invalidate translations when submitted source fields are unchanged', async () => {
+      const product = {
+        _id: new mongoose.Types.ObjectId(),
+        name: 'Laptop',
+        brand: 'Brand',
+        description: 'Description',
+        technicalDescription: '',
+        descriptionImages: [],
+        promotions: [],
+        specs: {},
+        save: sandbox.stub().resolvesThis(),
+      };
+      const populatedProduct = { ...product };
+      const findByIdStub = sandbox.stub(Product, 'findById');
+      findByIdStub.onFirstCall().resolves(product);
+      findByIdStub.onSecondCall().returns({
+        populate: sandbox.stub().withArgs('category').resolves(populatedProduct),
+      });
+      const catalogUpdate = sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
+      const liveUpdate = sandbox.stub(LiveTranslationCache, 'updateMany').resolves();
+      const req = {
+        params: { id: product._id.toString() },
+        query: {},
+        body: {
+          name: 'Laptop',
+          brand: 'Brand',
+          description: 'Description',
+          technicalDescription: '',
+          descriptionImages: '[]',
+          promotions: '[]',
+        },
+        app: { get: sandbox.stub().returns(null) },
+      };
+      const res = { json: sandbox.stub() };
+
+      await updateProduct(req, res);
+
+      expect(res.json.calledOnce).to.be.true;
+      expect(catalogUpdate.called).to.be.false;
+      expect(liveUpdate.called).to.be.false;
     });
 
     it('should return 404 if product not found during update', async () => {
