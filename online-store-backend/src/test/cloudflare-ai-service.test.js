@@ -98,6 +98,25 @@ describe('Cloudflare AI rotation', () => {
     }
   });
 
+  it('rejects conversational no-input responses instead of treating them as translations', async () => {
+    const responses = [
+      "(Note: It seems like there's no text provided. Please provide the text you'd like me to translate, and I'll be happy to assist you.) Once you provide the text, I'll translate it into English.",
+      'There is no text provided. Please paste the text you would like me to translate.',
+    ];
+    sandbox.stub(axios, 'post').callsFake(async () => ({
+      data: { success: true, result: { response: responses.shift() } },
+    }));
+
+    for (let index = 0; index < 2; index += 1) {
+      try {
+        await cloudflareAiService._doTranslate('Laptop', 'vi', 'sv', null, 0, 0);
+        expect.fail('Expected the no-input response to be rejected');
+      } catch (error) {
+        expect(error.message).to.equal('No usable translation returned from Cloudflare API');
+      }
+    }
+  });
+
   it('rejects provider responses stopped by the output token limit', async () => {
     sandbox.stub(axios, 'post').resolves({
       data: { success: true, result: { response: 'Partial translation', finish_reason: 'length' } },

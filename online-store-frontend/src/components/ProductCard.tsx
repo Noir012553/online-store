@@ -11,6 +11,7 @@ import { ImageWithFallback } from "./image/ImageWithFallback";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { BackendProduct } from "../lib/api";
+import { isNoInputTranslationResponse } from "../lib/translationResponseGuard";
 
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mod.QuickViewModal), {
   ssr: false,
@@ -39,11 +40,12 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
     const categoryObj = laptop.category && typeof laptop.category === 'object' ? laptop.category : null;
     const categoryId = categoryObj ? (categoryObj._id ?? categoryObj.id) : (typeof laptop.category === 'string' ? laptop.category : undefined);
     const displayCategoryName = categoryObj ? getCategoryName(categoryObj, locale) : '';
+    const displayName = getTranslatedValue(laptop.name, locale);
     const displayBrand = getTranslatedValue(laptop.brand, locale) || t('no_brand', 'products');
 
     return {
       id: laptop._id || laptop.id || '',
-      name: getTranslatedValue(laptop.name, locale),
+      name: isNoInputTranslationResponse(displayName) ? '' : displayName,
       brand: displayBrand,
       category: categoryId || t('no_category', 'admin'),
       categoryName: displayCategoryName || t('no_category', 'admin'),
@@ -187,7 +189,9 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
 
               <div className="mb-3 min-h-20 space-y-1.5 text-xs leading-4 text-gray-600 sm:min-h-32">
                 {(() => {
-                  const specEntries = Object.entries(convertedLaptop.specs || {}).slice(0, 4);
+                  const specEntries = Object.entries(convertedLaptop.specs || {})
+                    .filter(([, value]) => !isNoInputTranslationResponse(value))
+                    .slice(0, 4);
                   if (specEntries.length === 0) {
                     return <p className="text-xs text-gray-400">{t('no_specs', 'products')}</p>;
                   }

@@ -25,6 +25,10 @@ const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  containsNoInputTranslationResponse,
+  restoreNoInputTranslationResponses,
+} = require('../utils/translationResponseGuard');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -151,7 +155,7 @@ const getBatchSpecLabels = async (entities, targetLang) => {
 };
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
-  if (!hasRequiredProductFields(translation)) return false;
+  if (containsNoInputTranslationResponse(translation) || !hasRequiredProductFields(translation)) return false;
   if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
 
   const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
@@ -341,7 +345,7 @@ const getLegacyProductTranslationMap = async (products, targetLang) => {
           ],
         },
         status: 'success',
-        qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+        qualityStatus: 'approved',
       })
         .select('entityId entityType specKey fieldKey translatedText -_id')
         .maxTimeMS(5000)
@@ -373,13 +377,14 @@ function applyTranslationOverlay(entity, entityType, translation) {
   const translatableFields = TRANSLATABLE_FIELDS[entityType] || [];
 
   translatableFields.forEach(field => {
-    const value = translation[field];
+    const value = entityType === 'product'
+      ? restoreNoInputTranslationResponses(translation[field], entity[field])
+      : translation[field];
     const isEmptyStructuredValue = ['descriptionImages', 'promotions'].includes(field)
       && Array.isArray(value)
       && value.length === 0;
     if (!(field in translation) || !value || isEmptyStructuredValue) return;
 
-    // Xử lý Map fields (ví dụ specs)
     if (field === 'specs' && value instanceof Map) {
       result[field] = new Map(value);
     } else {

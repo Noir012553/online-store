@@ -831,7 +831,7 @@ describe('Product translation cache controller', () => {
     });
   });
 
-  it('ignores configured non-blocking validation errors in product status', async () => {
+  it('requires review for translations that exceed the maximum length ratio', async () => {
     sandbox.stub(LiveTranslationCache, 'findOne').resolves(null);
     const brand = translationValidationConfig.PRESERVED_BRANDS[0];
     const original = brand;
@@ -840,7 +840,7 @@ describe('Product translation cache controller', () => {
     ) + 1)}`;
     const lengthError = translationValidator.checkLength(original, translated)?.error;
 
-    expect(translationValidationConfig.NON_BLOCKING_ERRORS).to.include(lengthError);
+    expect(translationValidationConfig.NON_BLOCKING_ERRORS).not.to.include(lengthError);
 
     const result = await translationValidator.validateTranslation(
       original,
@@ -849,15 +849,9 @@ describe('Product translation cache controller', () => {
       'product_name',
     );
     const expectedScore = translationValidator.calculateQualityScore([lengthError]);
-    const expectedStatus = expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_RETRANSLATE
-      ? 'needs_retranslate'
-      : expectedScore < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
-        ? 'pending'
-        : 'approved';
-
     expect(result.qualityScore).to.equal(expectedScore);
-    expect(result.qualityStatus).to.equal(expectedStatus);
-    expect(result.validationErrors).not.to.include(lengthError);
+    expect(result.qualityStatus).to.equal('pending');
+    expect(result.validationErrors).to.include(lengthError);
   });
 
   it('reads only successful approved product translations', async () => {

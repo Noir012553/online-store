@@ -24,6 +24,10 @@ const { normalizeProductContentFields } = require('../utils/productImportValidat
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const TranslationCacheService = require('../services/translationCacheService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  containsNoInputTranslationResponse,
+  restoreNoInputTranslationResponses,
+} = require('../utils/translationResponseGuard');
 const retranslateProgress = require('../utils/retranslateProgress');
 const productTranslationLock = require('../utils/productTranslationLock');
 const {
@@ -738,6 +742,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
         promotions: Array.isArray(newSchemaData.promotions) ? newSchemaData.promotions : [],
         ...localizedSpecData,
       });
+      Object.assign(result, restoreNoInputTranslationResponses(result, sourceProduct));
       res.set('Cache-Control', 'public, max-age=3600');
       return res.json({
         success: true,
@@ -789,7 +794,7 @@ exports.getProductCatalogTranslations = async (req, res) => {
     res.set('Cache-Control', 'public, max-age=3600');
     res.json({
       success: true,
-      data: result,
+      data: restoreNoInputTranslationResponses(result, sourceProduct),
     });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translations:', error);
@@ -1118,6 +1123,7 @@ const mergeTranslatedContentWithSource = (sourceProduct, translatedContent) => {
 };
 
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
+  if (containsNoInputTranslationResponse(translation)) return false;
   const requiredFields = ['name', 'brand'];
   if (typeof sourceProduct?.description === 'string' && sourceProduct.description.trim()) {
     requiredFields.push('description');
@@ -1167,8 +1173,9 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
       descriptionImages: Array.isArray(translation.descriptionImages) ? translation.descriptionImages : [],
       promotions: Array.isArray(translation.promotions) ? translation.promotions : [],
     };
-    if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, data)) return null;
-    return data;
+    const safeData = restoreNoInputTranslationResponses(data, sourceProduct);
+    if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, safeData)) return null;
+    return safeData;
   }
 
   const legacyTranslations = (await LiveTranslationCache.find(legacyQuery).lean())
@@ -1176,9 +1183,10 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const legacyTranslation = buildLegacyProductTranslation(legacyTranslations, sourceProduct);
   if (!legacyTranslation) return null;
   legacyTranslation.brand = legacyTranslation.brand || sourceProduct?.brand;
-  if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, legacyTranslation)) return null;
+  const safeLegacyTranslation = restoreNoInputTranslationResponses(legacyTranslation, sourceProduct);
+  if (!includeNonSuccess && !hasCompleteProductTranslation(sourceProduct, safeLegacyTranslation)) return null;
 
-  return legacyTranslation;
+  return safeLegacyTranslation;
 };
 
 exports.getProductTranslationForAdmin = async (req, res) => {

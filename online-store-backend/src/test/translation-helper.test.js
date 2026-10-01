@@ -198,6 +198,22 @@ describe('translationHelper - Product legacy cache fallback', () => {
     LiveTranslationCache.find = originalLegacyFind;
   });
 
+  it('restores source product fields when cached translations contain a no-input response', async () => {
+    const sourceDescription = 'Laptop chơi game';
+    mockProductCache.find.result = Promise.resolve([{
+      entityId: '1',
+      name: "(Note: It seems like there's no text provided. Please provide the text you'd like me to translate, and I'll be happy to assist you.) Once you provide the text, I'll translate it into English.",
+      description: sourceDescription,
+    }]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Máy tính xách tay', description: sourceDescription, brand: 'Brand', specs: {} },
+    ], 'product', 'sv');
+
+    assert.strictEqual(result[0].name, 'Máy tính xách tay');
+    assert.strictEqual(result[0].description, sourceDescription);
+  });
+
   it('uses legacy translations for a product missing from the catalog cache', async () => {
     mockProductCache.find.result = Promise.resolve([]);
     mockLegacyFind.result = Promise.resolve([
@@ -239,7 +255,7 @@ describe('translationHelper - Product legacy cache fallback', () => {
         ],
       },
       status: 'success',
-      qualityStatus: { $nin: ['needs_retranslate', 'rejected'] },
+      qualityStatus: 'approved',
     }]);
   });
 

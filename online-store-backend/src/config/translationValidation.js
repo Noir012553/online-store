@@ -52,7 +52,7 @@ module.exports = {
     'markup_mismatch',
     'truncated',
   ],
-  NON_BLOCKING_ERRORS: ['too_long'],
+  NON_BLOCKING_ERRORS: [],
 
   // ========== LOGGING ==========
   VERBOSE: process.env.NODE_ENV === 'development',

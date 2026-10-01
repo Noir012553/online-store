@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { isSupportedLanguage, getActiveLangCodes } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+const { isNoInputTranslationResponse } = require('../utils/translationResponseGuard');
 
 const LOCALIZATION_SYSTEM_PROMPT = `You are a translator for e-commerce products.
 
@@ -18,7 +19,6 @@ IMPORTANT:
 - Stock numbers, CPU/RAM/storage specs → Keep unchanged
 - Professional, formal tone for products`;
 
-const EMPTY_TRANSLATION_RESPONSE = /^there is no text provided\.\s*please paste the text you would like me to translate\.?$/i;
 const stripTranslationPrefix = (text) => text
   .replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '')
   .trim();
@@ -463,7 +463,7 @@ class CloudflareAiService {
 
       const normalizedTranslation = stripTranslationPrefix(translatedText);
 
-      if (!normalizedTranslation || EMPTY_TRANSLATION_RESPONSE.test(normalizedTranslation)) {
+      if (!normalizedTranslation || isNoInputTranslationResponse(normalizedTranslation)) {
         throw new Error('No usable translation returned from Cloudflare API');
       }
 
