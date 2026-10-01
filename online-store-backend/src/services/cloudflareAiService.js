@@ -290,8 +290,8 @@ class CloudflareAiService {
     this.requestTimestamps.push(now);
   }
 
-  getIdempotencyKey(text, targetLang, draftText = '') {
-    return crypto.createHash('md5').update(`${text}:${targetLang}:${draftText}`).digest('hex');
+  getIdempotencyKey(text, targetLang) {
+    return crypto.createHash('md5').update(`${text}:${targetLang}`).digest('hex');
   }
 
   getUsagePolicy() {
@@ -328,7 +328,7 @@ class CloudflareAiService {
     this.usageInputChars += inputChars;
   }
 
-  async translate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000, options = {}) {
+  async translate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000) {
     // Validate required parameters
     if (typeof text !== 'string' || text.trim() === '') {
       throw new Error('Translation text must be a non-empty string');
@@ -340,15 +340,14 @@ class CloudflareAiService {
       throw new Error('Target language (targetLang) is required');
     }
     if (sourceLang === targetLang) return text;
-    const draftText = typeof options?.draftText === 'string' ? options.draftText.trim() : '';
-    const idempotencyKey = this.getIdempotencyKey(text, targetLang, draftText);
+    const idempotencyKey = this.getIdempotencyKey(text, targetLang);
 
     if (this.pendingRequests.has(idempotencyKey)) {
       return this.pendingRequests.get(idempotencyKey);
     }
 
     const promise = this.queue.add(async () => {
-      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay, new Set(), true, draftText);
+      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay, new Set(), true);
     });
 
     this.pendingRequests.set(idempotencyKey, promise);
@@ -370,7 +369,6 @@ class CloudflareAiService {
     baseDelay = 2000,
     attemptedConfigIndexes = new Set(),
     enforceBudget = false,
-    draftText = '',
   ) {
     // Validate required parameters
     if (!sourceLang) {
@@ -424,9 +422,7 @@ class CloudflareAiService {
             },
             {
               role: 'user',
-              content: draftText
-                ? `Translate this original text to ${targetLang}. A LibreTranslate draft is included only as a reference. Correct any errors and return only the final translation.\n\nOriginal text:\n${text}\n\nLibreTranslate draft:\n${draftText}`
-                : `Translate this text to ${targetLang}:\n\n${text}`,
+              content: `Translate this text to ${targetLang}:\n\n${text}`,
             },
           ],
           max_tokens: getMaxOutputTokens(),
@@ -527,7 +523,6 @@ class CloudflareAiService {
             baseDelay,
             attemptedConfigs,
             enforceBudget,
-            draftText,
           );
         }
 
@@ -589,7 +584,7 @@ class CloudflareAiService {
         const retryAttemptedConfigs = isRateLimited && !config
           ? new Set()
           : attemptedConfigIndexes;
-        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, retryAttemptedConfigs, enforceBudget, draftText);
+        return this._doTranslate(text, sourceLang, targetLang, signal, retries - 1, baseDelay, retryAttemptedConfigs, enforceBudget);
       }
 
       console.error(`[CloudflareAI] ${CLI_SYMBOLS.error} Translation failed (exhausted retries):`, {

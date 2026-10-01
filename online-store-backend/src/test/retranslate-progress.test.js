@@ -335,7 +335,6 @@ test('admin and CLI product jobs use the same checkpoint signature', async () =>
       limit: 0,
       dryRun: false,
       validate: true,
-      libreTranslateOnly: false,
       checkpointScope: 'shared-database',
     }, directory);
     const adminCheckpoint = openProductCheckpoint('shared-database', directory);

@@ -1,6 +1,4 @@
 const path = require('node:path');
-const http = require('node:http');
-const https = require('node:https');
 const mongoose = require('mongoose');
 const { createClient } = require('redis');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
@@ -11,7 +9,6 @@ try {
   if (error.code !== 'MODULE_NOT_FOUND') throw error;
 }
 
-const REQUIRED_LANGUAGES = ['vi', 'en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'];
 const DEFAULT_TIMEOUT_MS = 5000;
 
 const parseNonNegativeInteger = (name, fallback) => {
@@ -34,50 +31,8 @@ const parsePositiveInteger = (name, fallback) => {
   return value;
 };
 
-const requestJson = (url, options = {}, body = null) => new Promise((resolve, reject) => {
-  const parsedUrl = new URL(url);
-  const transport = parsedUrl.protocol === 'https:' ? https : http;
-  const payload = body === null ? null : JSON.stringify(body);
-  const request = transport.request(parsedUrl, {
-    method: options.method || 'GET',
-    headers: {
-      ...(payload ? {
-        'content-type': 'application/json',
-        'content-length': Buffer.byteLength(payload),
-      } : {}),
-      ...(options.headers || {}),
-    },
-  }, (response) => {
-    let responseBody = '';
-    response.setEncoding('utf8');
-    response.on('data', chunk => { responseBody += chunk; });
-    response.on('end', () => {
-      let data = {};
-      try {
-        data = responseBody ? JSON.parse(responseBody) : {};
-      } catch {
-        reject(new Error(`Invalid JSON response (HTTP ${response.statusCode})`));
-        return;
-      }
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        resolve(data);
-        return;
-      }
-      reject(new Error(data.error || `HTTP ${response.statusCode}`));
-    });
-  });
-
-  request.setTimeout(DEFAULT_TIMEOUT_MS, () => {
-    request.destroy(new Error(`Request timed out after ${DEFAULT_TIMEOUT_MS}ms`));
-  });
-  request.on('error', reject);
-  if (payload) request.write(payload);
-  request.end();
-});
-
 const parseArgs = (args) => ({
   json: args.includes('--json'),
-  smokeTest: args.includes('--smoke-test'),
 });
 
 const addCheck = (checks, name, ok, detail, severity = 'error') => {
@@ -86,8 +41,6 @@ const addCheck = (checks, name, ok, detail, severity = 'error') => {
 
 const checkConfiguration = () => {
   const checks = [];
-  const libreEnabled = process.env.LIBRETRANSLATE_ENABLED === 'true';
-  const failoverEnabled = process.env.LIBRETRANSLATE_FAILOVER_ON_CLOUDFLARE_OVERLOAD === 'true';
   const cloudflareEnabled = process.env.CLOUDFLARE_AI_ENABLED === 'true';
   const lockMode = process.env.PRODUCT_SEED_LOCK_MODE || 'redis';
 
@@ -108,22 +61,6 @@ const checkConfiguration = () => {
     ),
     cloudflareEnabled ? 'credentials configured' : 'Cloudflare must be enabled for product translation',
   );
-  addCheck(
-    checks,
-    'LibreTranslate failover guard',
-    !failoverEnabled || libreEnabled,
-    failoverEnabled && !libreEnabled ? 'failover requires LIBRETRANSLATE_ENABLED=true' : 'configuration consistent',
-  );
-  addCheck(
-    checks,
-    'LibreTranslate approval policy',
-    true,
-    process.env.LIBRETRANSLATE_AS_PRIMARY_APPROVED === 'true'
-      ? 'legacy approval flag is ignored; validator controls quality'
-      : 'validator controls quality independently of provider',
-    'warning',
-  );
-
   try {
     const quotaRequests = parsePositiveInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 0);
     const quotaInputChars = parsePositiveInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 0);
@@ -147,14 +84,12 @@ const checkConfiguration = () => {
     const concurrency = parsePositiveInteger('PRODUCT_TRANSLATION_CONCURRENCY', 1);
     const languageConcurrency = parsePositiveInteger('PRODUCT_TRANSLATION_LANGUAGE_CONCURRENCY', 1);
     const chunkSize = parsePositiveInteger('PRODUCT_TRANSLATION_CHUNK_SIZE', 10);
-    const libreConcurrency = parsePositiveInteger('LIBRETRANSLATE_MAX_PARALLEL_REQUESTS', 4);
     const delayMs = parseNonNegativeInteger('PRODUCT_TRANSLATION_DELAY_MS', 1000);
     const productLimit = parseNonNegativeInteger('PRODUCT_TRANSLATION_LIMIT', 0);
     const lockTtl = parsePositiveInteger('PRODUCT_TRANSLATION_LOCK_TTL_SECONDS', 120);
     addCheck(checks, 'Product concurrency', true, String(concurrency));
     addCheck(checks, 'Language concurrency', true, String(languageConcurrency));
     addCheck(checks, 'Translation chunk size', true, String(chunkSize));
-    addCheck(checks, 'LibreTranslate max parallel requests', true, String(libreConcurrency));
     addCheck(checks, 'Translation delay', true, `${delayMs}ms`);
     addCheck(checks, 'Product translation limit', true, productLimit === 0 ? 'all products' : String(productLimit));
     addCheck(checks, 'Translation lock TTL', true, `${lockTtl}s`);
@@ -169,7 +104,7 @@ const checkConfiguration = () => {
     addCheck(checks, 'Concurrency configuration', false, error.message);
   }
 
-  return { checks, libreEnabled, lockMode };
+  return { checks, lockMode };
 };
 
 const checkRuntimeDependencies = async (checks, lockMode) => {
@@ -216,58 +151,9 @@ const checkRuntimeDependencies = async (checks, lockMode) => {
   }
 };
 
-const checkLibreTranslate = async (checks, smokeTest, enabled) => {
-  if (!enabled) {
-    addCheck(
-      checks,
-      'LibreTranslate endpoint',
-      !smokeTest,
-      smokeTest ? 'smoke test requires LIBRETRANSLATE_ENABLED=true' : 'skipped because disabled',
-      smokeTest ? 'error' : 'warning',
-    );
-    return;
-  }
-
-  const baseUrl = process.env.LIBRETRANSLATE_URL || 'http://127.0.0.1:5001';
-  try {
-    const languages = await requestJson(`${baseUrl.replace(/\/$/, '')}/languages`);
-    const available = new Set((Array.isArray(languages) ? languages : []).map(language => language.code));
-    const missing = REQUIRED_LANGUAGES.filter(language => !available.has(language));
-    addCheck(
-      checks,
-      'LibreTranslate languages',
-      missing.length === 0,
-      missing.length === 0 ? `${REQUIRED_LANGUAGES.length} required languages available` : `missing: ${missing.join(', ')}`,
-    );
-
-    if (smokeTest) {
-      const result = await requestJson(
-        `${baseUrl.replace(/\/$/, '')}/translate`,
-        { method: 'POST' },
-        {
-          q: 'Laptop Gaming Acer Nitro 5 RAM 16GB SSD 512GB RTX 4060',
-          source: 'vi',
-          target: 'en',
-          format: 'text',
-          ...(process.env.LIBRETRANSLATE_API_KEY ? { api_key: process.env.LIBRETRANSLATE_API_KEY } : {}),
-        },
-      );
-      addCheck(
-        checks,
-        'LibreTranslate smoke test',
-        typeof result.translatedText === 'string' && result.translatedText.trim() !== '',
-        typeof result.translatedText === 'string' ? result.translatedText : 'missing translatedText',
-      );
-    }
-  } catch (error) {
-    addCheck(checks, 'LibreTranslate endpoint', false, error.message);
-  }
-};
-
 const run = async () => {
-  const { json, smokeTest } = parseArgs(process.argv.slice(2));
-  const { checks, libreEnabled, lockMode } = checkConfiguration();
-  await checkLibreTranslate(checks, smokeTest, libreEnabled);
+  const { json } = parseArgs(process.argv.slice(2));
+  const { checks, lockMode } = checkConfiguration();
   await checkRuntimeDependencies(checks, lockMode);
 
   const failed = checks.filter(check => !check.ok && check.severity === 'error');

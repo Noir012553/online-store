@@ -6,7 +6,7 @@ const Product = require('../models/Product');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const translationValidator = require('../utils/translationValidator');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const libretranslateProductService = require('../services/libretranslateProductService');
+const productTranslationService = require('../services/productTranslationService');
 const LanguageService = require('../services/languageService');
 const TranslationShadowWriteService = require('../services/translationShadowWriteService');
 const TranslationBatchRequest = require('../models/TranslationBatchRequest');
@@ -603,8 +603,11 @@ exports.translateProductAll9Languages = async (req, res) => {
         }
       }
 
-      // Cloudflare AI remains the final provider; LibreTranslate is product-only and optional.
-      translatedText = await libretranslateProductService.translateWithCloudflare(text, sourceLang, lang);
+      translatedText = (await productTranslationService.translateWithCloudflare(
+        text,
+        sourceLang,
+        lang,
+      )).translatedText;
       const validation = await translationValidator.validateTranslation(text, translatedText, lang, entityType);
       translations[lang] = translatedText;
       allFromCache = false;

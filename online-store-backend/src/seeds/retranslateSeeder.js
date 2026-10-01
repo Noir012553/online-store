@@ -4,7 +4,7 @@ const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslat
 const Product = require('../models/Product');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
-const libretranslateProductService = require('../services/libretranslateProductService');
+const productTranslationService = require('../services/productTranslationService');
 const translationValidator = require('../utils/translationValidator');
 const translationReporter = require('../utils/translationReporter');
 const { getDefaultLanguage } = require('../config/languageInventory');
@@ -28,7 +28,6 @@ const {
 
 const PRODUCT_ENTITY_TYPES = new Set(PRODUCT_ENTITY_TYPE_LIST);
 const isCloudflareQuotaError = (error) => {
-  if (error?.cloudflareRateLimited) return true;
   const status = error?.response?.status ?? error?.statusCode;
   if (status === 420 || status === 429) return true;
   const providerErrors = Array.isArray(error?.response?.data?.errors)
@@ -66,7 +65,6 @@ class RetranslateSeeder {
       validate = true,
       verbose = true,
       actor = 'system',
-      libreTranslateOnly = false,
       concurrency = 1,
       checkpoint = null,
       renewDatabaseLock = null,
@@ -254,7 +252,7 @@ class RetranslateSeeder {
               const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
                 translation.entityId,
                 translation.targetLang,
-                { libreTranslateOnly, checkpoint, parallelProducts: concurrency },
+                { checkpoint, parallelProducts: concurrency },
               );
               const validationErrors = updatedTranslation.validationErrors || [];
               const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
@@ -312,21 +310,13 @@ class RetranslateSeeder {
 
             const defaultLang = getDefaultLanguage().code;
             const sourceLang = translation.sourceLang || defaultLang;
-            let translationResult;
-            if (libreTranslateOnly) {
-              translationResult = await libretranslateProductService.translateWithLibreTranslateOnly(
+            const translationResult = PRODUCT_ENTITY_TYPES.has(translation.entityType)
+              ? await productTranslationService.translateWithCloudflare(
                 translation.originalText,
                 sourceLang,
                 translation.targetLang,
-              );
-            } else if (PRODUCT_ENTITY_TYPES.has(translation.entityType)) {
-              translationResult = await libretranslateProductService.translateWithFailover(
-                translation.originalText,
-                sourceLang,
-                translation.targetLang,
-              );
-            } else {
-              translationResult = {
+              )
+              : {
                 translatedText: await cloudflareAiService.translate(
                   translation.originalText,
                   sourceLang,
@@ -334,11 +324,7 @@ class RetranslateSeeder {
                 ),
                 provider: 'cloudflare',
               };
-            }
             const newTranslation = translationResult.translatedText;
-            const translationProvider = translationResult.provider || 'cloudflare';
-            const isLibreTranslate = translationProvider === 'libretranslate';
-            const isLibreTranslateFailover = isLibreTranslate && !libreTranslateOnly;
 
             // Validate new translation
             let validationResult = null;
@@ -366,17 +352,14 @@ class RetranslateSeeder {
               entityType: translation.entityType,
               specKey: translation.specKey || null,
               fieldKey: translation.fieldKey || null,
-              status: isLibreTranslate ? 'translated_via_libre' : 'success',
-              provider: translationProvider,
+              status: 'success',
+              provider: 'cloudflare',
               retryCount: 0,
               version: (translation.version || 1) + 1,
               previousVersion: translation._id,
-              failoverReason: translationResult.failoverReason
-                || translation.retranslateReason
-                || translation.validationErrors?.[0]
-                || 'manual_retranslate',
-              providerSource: isLibreTranslateFailover ? 'secondary_failover' : 'primary',
-              metadata: isLibreTranslateFailover ? { secondary_provider: true } : {},
+              failoverReason: null,
+              providerSource: 'primary',
+              metadata: {},
               qualityStatus: newQualityStatus,
               qualityScore: newQualityScore,
               validationErrors: newValidationErrors,
@@ -411,7 +394,6 @@ class RetranslateSeeder {
               metadata: {
                 provider: newVersion.provider,
                 providerSource: newVersion.providerSource,
-                secondary_provider: isLibreTranslateFailover,
                 version: newVersion.version,
                 qualityScore: newQualityScore,
                 validationErrors: newValidationErrors,
@@ -497,7 +479,7 @@ class RetranslateSeeder {
             const runLockLost = error.code === 'RETRANSLATE_LOCKED';
             if (quotaExhausted) {
               this.stats.quotaExceededCount++;
-              console.error(`${CLI_SYMBOLS.error} All translation providers are unavailable; stopping retranslation.`);
+              console.error(`${CLI_SYMBOLS.error} Cloudflare AI quota is exhausted; stopping retranslation.`);
             }
             if (runLockLost) stopScheduling = true;
             results.push({
