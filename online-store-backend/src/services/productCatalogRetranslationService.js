@@ -157,22 +157,19 @@ const retranslateProductUnlocked = async (
     }
     const accepted = isApproved(validation);
     if (!accepted) allFieldsVerified = false;
-    const storedValidation = accepted ? validation : currentValidation || validation;
     await markCompletedDurably(checkpoint, workKey, {
       fixed: accepted,
-      validationErrors: storedValidation?.validationErrors || [],
-      ...(accepted ? {
-        payload: {
-          value: result.translatedText,
-          validation,
-          providersUsed: result.providersUsed || ['cloudflare'],
-          catalogWorkKey,
-        },
-      } : {}),
+      validationErrors: validation.validationErrors || [],
+      payload: {
+        value: result.translatedText,
+        validation,
+        providersUsed: result.providersUsed || ['cloudflare'],
+        catalogWorkKey,
+      },
     }, true);
     return {
       value: accepted ? result.translatedText : existingValue,
-      validation: storedValidation,
+      validation,
     };
   };
   const translateField = (
@@ -279,7 +276,7 @@ const retranslateProductUnlocked = async (
     ? [...new Set(validationResults.flatMap(({ validationErrors: errors }) => errors))]
     : catalogTranslation?.validationErrors || [];
   const catalogUpdate = {
-    sourceHash: allFieldsVerified ? sourceHash : catalogTranslation?.sourceHash ?? null,
+    sourceHash,
     name: nameResult.value ?? product.name,
     description: descResult.value,
     brand: catalogTranslation?.brand ?? product.brand,
@@ -302,6 +299,18 @@ const retranslateProductUnlocked = async (
       lastTranslatedAt: new Date(),
     });
   }
+  const candidateApproved = allFieldsVerified
+    && qualityStatus === 'approved'
+    && validationErrors.length === 0;
+  if (!candidateApproved) {
+    return {
+      translation: catalogTranslation,
+      candidate: catalogUpdate,
+      committed: false,
+      skippedManualFields: manualFields,
+    };
+  }
+
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
     { $set: catalogUpdate },
@@ -331,7 +340,12 @@ const retranslateProductUnlocked = async (
   });
 
   await refreshStorefrontReadiness([productId]);
-  return { translation, skippedManualFields: manualFields };
+  return {
+    translation,
+    candidate: translation,
+    committed: true,
+    skippedManualFields: manualFields,
+  };
 };
 
 const retranslateProduct = async (productId, targetLang, options = {}) => {
