@@ -4,7 +4,7 @@
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái cập nhật:** code đã có các thay đổi cho checkpoint/report, bảo toàn technical token, cache theo field, candidate-before-commit và usage telemetry. Các thay đổi chưa được xác nhận bằng đầy đủ regression tests hoặc chạy canary; chưa truy cập/cập nhật database, chưa chạy retranslate và chưa triển khai production. Usage Neurons chỉ có thể báo số thực nếu response từ Cloudflare cung cấp trường usage tương ứng.
+**Trạng thái cập nhật:** code đã có các thay đổi cho checkpoint/report, bảo toàn technical token, cache theo field, candidate-before-commit và usage telemetry; đã bổ sung regression tests cho cache field, candidate chưa commit, source đổi giữa lúc dịch và usage thực trả. Syntax check và `git diff --check` đã qua. Chưa chạy được test suite vì môi trường thiếu `chai`, `sinon` và `mongoose`; chưa chạy canary, chưa truy cập/cập nhật database, chưa chạy retranslate và chưa triển khai production. Usage Neurons chỉ có thể báo số thực nếu response từ Cloudflare cung cấp trường usage tương ứng.
 
 ## Tóm tắt vấn đề và cách giải quyết
 

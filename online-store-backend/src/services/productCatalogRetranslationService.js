@@ -143,9 +143,8 @@ const retranslateProductUnlocked = async (
       targetLang,
       policySignature: translationPolicy,
     });
-    const existingFieldHashMatches = sourceHashMatches
-      || (catalogTranslation?.translationPolicy === translationPolicy
-        && catalogTranslation?.fieldHashes?.[fieldIdentity] === fieldHash);
+    const existingFieldHashMatches = catalogTranslation?.translationPolicy === translationPolicy
+      && (sourceHashMatches || catalogTranslation?.fieldHashes?.[fieldIdentity] === fieldHash);
     let currentValidation = null;
     if (existingFieldHashMatches && typeof currentValue === 'string' && currentValue.trim()) {
       currentValidation = await translationValidator.validateTranslation(

@@ -58,6 +58,23 @@ const createResponse = () => ({
   json: sinon.stub(),
 });
 
+const getCatalogProductFieldHash = ({ field, entityType, source, targetLang }) => getProductTranslationFieldHash({
+  field: JSON.stringify(field),
+  entityType,
+  source,
+  sourceLang: getDefaultLanguage().code,
+  targetLang,
+  policySignature: productCatalogRetranslationService.getTranslationPolicySignature(),
+});
+
+const getCatalogProductFieldWorkKey = ({ productId, targetLang, entityType, source }) => getProductFieldWorkKey({
+  productId,
+  targetLang,
+  field: JSON.stringify([entityType]),
+  source,
+  policySignature: productCatalogRetranslationService.getTranslationPolicySignature(),
+});
+
 const stubCatalogRetranslationReads = (sandbox, product) => {
   sandbox.stub(Product, 'findById').returns({ lean: sandbox.stub().resolves(product) });
   sandbox.stub(Product, 'find').returns({
@@ -314,6 +331,11 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: { ...candidate, qualityStatus: 'approved', validationErrors: [] },
+      candidateTranslation: { name: 'Candidate not approved', qualityStatus: 'pending' },
+      candidateQualityStatus: 'pending',
+      validationErrors: ['too_short'],
+      committed: false,
+      fixed: false,
       skippedManualFields: [],
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
@@ -323,7 +345,10 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'saveReport');
 
     try {
-      await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
+      const result = await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
+      expect(result.stats.fixedCount).to.equal(0);
+      expect(result.stats.stillBrokenCount).to.equal(1);
+      expect(result.results[0].committed).to.equal(false);
       expect(deleteMany.called).to.be.false;
       expect(fs.existsSync(checkpoint.filePath)).to.be.true;
     } finally {
@@ -584,17 +609,28 @@ describe('Product translation cache controller', () => {
     };
     const sourceHash = getProductTranslationSourceHash(product);
     const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
-    const nameKey = getProductFieldWorkKey({
+    const translationPolicy = productCatalogRetranslationService.getTranslationPolicySignature();
+    const nameIdentity = JSON.stringify(['product_name']);
+    const nameKey = getCatalogProductFieldWorkKey({
       productId,
       targetLang: 'en',
-      field: 'name',
+      entityType: 'product_name',
       source: product.name,
+    });
+    const nameHash = getProductTranslationFieldHash({
+      field: nameIdentity,
+      entityType: 'product_name',
+      source: product.name,
+      sourceLang: getDefaultLanguage().code,
+      targetLang: 'en',
+      policySignature: translationPolicy,
     });
     markCompleted(checkpoint, nameKey, {
       payload: {
         value: 'Cached name',
         validation: { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] },
         providersUsed: ['cloudflare'],
+        fieldHash: nameHash,
       },
     });
     const originalConcurrency = process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY;
@@ -660,16 +696,16 @@ describe('Product translation cache controller', () => {
       }
       expect(firstError.message).to.equal('provider rate limit');
 
-      const descriptionKey = getProductFieldWorkKey({
+      const descriptionKey = getCatalogProductFieldWorkKey({
         productId,
         targetLang: 'en',
-        field: 'description',
+        entityType: 'product_description',
         source: product.description,
       });
-      const technicalDescriptionKey = getProductFieldWorkKey({
+      const technicalDescriptionKey = getCatalogProductFieldWorkKey({
         productId,
         targetLang: 'en',
-        field: 'technicalDescription',
+        entityType: 'product_technical_description',
         source: product.technicalDescription,
       });
       expect(hasCompleted(checkpoint, descriptionKey)).to.be.true;
@@ -754,6 +790,114 @@ describe('Product translation cache controller', () => {
     expect(findOneAndUpdate.firstCall.args[1].$set.fieldHashes[nameIdentity]).to.equal(nameHash);
   });
 
+  it('retranslates existing fields when the translation policy changes', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const fieldIdentity = JSON.stringify(['product_name']);
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        sourceHash: getProductTranslationSourceHash(product),
+        translationPolicy: 'previous-policy',
+        fieldHashes: {
+          [fieldIdentity]: getCatalogProductFieldHash({
+            field: ['product_name'],
+            entityType: 'product_name',
+            source: product.name,
+            targetLang: 'en',
+          }),
+        },
+        name: 'Previous translation',
+        manualFields: [],
+      }),
+    });
+    stubCatalogRetranslationReads(sandbox, product);
+    const update = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        name: 'New translation',
+        qualityStatus: 'approved',
+        validationErrors: [],
+      }),
+    });
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'New translation',
+      providersUsed: ['cloudflare'],
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+
+    expect(result.committed).to.equal(true);
+    expect(translate.calledOnceWith('Source laptop', 'vi', 'en')).to.be.true;
+    expect(update.firstCall.args[1].$set.name).to.equal('New translation');
+  });
+
+  it('does not commit when the product source changes during translation', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: 'Source description',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const changedProduct = { ...product, description: 'Changed description' };
+    const productReads = [product, changedProduct];
+    sandbox.stub(Product, 'findById').callsFake(() => ({
+      lean: sandbox.stub().resolves(productReads.shift()),
+    }));
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves(null),
+    });
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    const catalogWrite = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate');
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'Translated text',
+      providersUsed: ['cloudflare'],
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    sandbox.stub(distributedLockService, 'initialize').resolves();
+    sandbox.stub(distributedLockService, 'acquireLock').resolves('test-lock');
+    sandbox.stub(distributedLockService, 'releaseLock').resolves(true);
+
+    let sourceChangedError;
+    try {
+      await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+    } catch (error) {
+      sourceChangedError = error;
+    }
+
+    expect(sourceChangedError?.code).to.equal('PRODUCT_SOURCE_CHANGED_DURING_TRANSLATION');
+    expect(catalogWrite.called).to.equal(false);
+    expect(productReads).to.have.length(0);
+  });
+
   it('retranslates only invalid fields and keeps the previous value when the new output fails validation', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     const product = {
@@ -767,18 +911,36 @@ describe('Product translation cache controller', () => {
       promotions: [],
     };
     const sourceHash = getProductTranslationSourceHash(product);
+    const translationPolicy = productCatalogRetranslationService.getTranslationPolicySignature();
+    const nameIdentity = JSON.stringify(['product_name']);
+    const ramIdentity = JSON.stringify(['product_spec', 'RAM']);
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
       lean: sandbox.stub().resolves({
         entityId: productId,
         targetLang: 'en',
         sourceHash,
+        translationPolicy,
+        fieldHashes: {
+          [nameIdentity]: getCatalogProductFieldHash({
+            field: ['product_name'],
+            entityType: 'product_name',
+            source: product.name,
+            targetLang: 'en',
+          }),
+          [ramIdentity]: getCatalogProductFieldHash({
+            field: ['product_spec', 'RAM'],
+            entityType: 'product_spec',
+            source: product.specs.RAM,
+            targetLang: 'en',
+          }),
+        },
         name: 'Translated laptop',
         description: 'Previous description',
         brand: 'Brand',
         specs: { RAM: '16 GB' },
         manualFields: [],
-        qualityStatus: 'needs_retranslate',
-        validationErrors: ['too_short'],
+        qualityStatus: 'approved',
+        validationErrors: [],
       }),
     });
     stubCatalogRetranslationReads(sandbox, product);
@@ -827,10 +989,10 @@ describe('Product translation cache controller', () => {
       promotions: [],
     };
     const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
-    const nameKey = getProductFieldWorkKey({
+    const nameKey = getCatalogProductFieldWorkKey({
       productId,
       targetLang: 'en',
-      field: 'name',
+      entityType: 'product_name',
       source: product.name,
     });
     markCompleted(checkpoint, nameKey, {

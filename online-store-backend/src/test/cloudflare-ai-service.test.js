@@ -195,6 +195,62 @@ describe('Cloudflare AI rotation', () => {
     expect(axios.post.callCount).to.equal(2);
   });
 
+  it('records provider-reported token and neuron usage without estimating missing values', () => {
+    const trackedUsage = [
+      'usagePromptTokens',
+      'usageCompletionTokens',
+      'usageTotalTokens',
+      'usageNeurons',
+      'usageNeuronResponses',
+      'usageResponseCount',
+    ];
+    const previousUsage = Object.fromEntries(trackedUsage.map(key => [key, cloudflareAiService[key]]));
+    const config = cloudflareAiService.configs[0];
+    const trackedConfigUsage = [
+      'usagePromptTokens',
+      'usageCompletionTokens',
+      'usageTotalTokens',
+      'usageNeurons',
+      'usageNeuronResponses',
+    ];
+    const previousConfigUsage = Object.fromEntries(trackedConfigUsage.map(key => [key, config[key]]));
+
+    try {
+      cloudflareAiService.recordResponseUsage({
+        prompt_tokens: '12',
+        completion_tokens: 5,
+        total_tokens: 17,
+      }, config);
+      expect(cloudflareAiService.getStats()).to.include({
+        usagePromptTokens: (previousUsage.usagePromptTokens || 0) + 12,
+        usageCompletionTokens: (previousUsage.usageCompletionTokens || 0) + 5,
+        usageTotalTokens: (previousUsage.usageTotalTokens || 0) + 17,
+        usageNeurons: previousUsage.usageNeurons || null,
+        usageNeuronResponses: previousUsage.usageNeuronResponses || 0,
+        usageResponseCount: (previousUsage.usageResponseCount || 0) + 1,
+      });
+
+      cloudflareAiService.recordResponseUsage({ input_characters: 500 }, config);
+      expect(cloudflareAiService.getStats().usageResponseCount)
+        .to.equal((previousUsage.usageResponseCount || 0) + 1);
+
+      cloudflareAiService.recordResponseUsage({ neurons: 9 }, config);
+      expect(cloudflareAiService.getStats()).to.include({
+        usageNeurons: (previousUsage.usageNeurons || 0) + 9,
+        usageNeuronResponses: (previousUsage.usageNeuronResponses || 0) + 1,
+        usageResponseCount: (previousUsage.usageResponseCount || 0) + 2,
+      });
+    } finally {
+      trackedUsage.forEach(key => {
+        cloudflareAiService[key] = previousUsage[key];
+      });
+      trackedConfigUsage.forEach(key => {
+        if (previousConfigUsage[key] === undefined) delete config[key];
+        else config[key] = previousConfigUsage[key];
+      });
+    }
+  });
+
   it('does not rotate credentials for authentication failures', async () => {
     const error = providerError({ status: 401, message: 'Unauthorized' });
     sandbox.stub(axios, 'post').rejects(error);
