@@ -4,7 +4,28 @@
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái tài liệu:** đã triển khai một phần các bảo vệ trong code cho checkpoint, accounting/report và technical token. Chưa chạy migration, chưa truy cập/cập nhật database, chưa chạy retranslate hoặc canary. Luồng candidate-before-commit và kiểm thử đầy đủ vẫn còn tiếp tục.
+**Trạng thái cập nhật:** code đã có các thay đổi cho checkpoint/report, bảo toàn technical token, cache theo field, candidate-before-commit và usage telemetry. Các thay đổi chưa được xác nhận bằng đầy đủ regression tests hoặc chạy canary; chưa truy cập/cập nhật database, chưa chạy retranslate và chưa triển khai production. Usage Neurons chỉ có thể báo số thực nếu response từ Cloudflare cung cấp trường usage tương ứng.
+
+## Tóm tắt vấn đề và cách giải quyết
+
+### Vấn đề
+
+- Provider trả kết quả không đồng nghĩa bản dịch đạt chuẩn; nhiều bản dịch vẫn bị validator đánh lỗi, trong khi dịch lại diện rộng có thể tiếp tục tiêu tốn quota mà không cải thiện chất lượng.
+- Một product/language có nhiều field dịch. Chỉ đổi một phần nội dung nguồn vẫn có thể làm hash toàn sản phẩm đổi và khiến các field không đổi bị dịch lại, phát sinh request/token không cần thiết.
+- Nếu candidate mới không đạt, không nên ghi đè bản catalog hiện hành; đồng thời phải giữ candidate và lỗi để chẩn đoán, tránh báo “fixed” khi thực tế chưa commit.
+- Checkpoint, số liệu batch và usage provider cần cùng phản ánh đúng policy, số việc đã commit/chưa commit và usage API thực trả về; số ký tự không phải phép đo thay thế cho Neurons.
+
+### Cách giải quyết đã được đưa vào code
+
+1. Tạo fingerprint riêng theo field, bao gồm field identity, nội dung nguồn, locale và translation policy. Chỉ tái sử dụng bản field hiện có/cache khi policy tương thích; vẫn validate lại trước khi chấp nhận.
+2. Chỉ commit catalog khi các field tự động cần dịch đều đạt `approved` và không có lỗi validation. Candidate không đạt được lưu riêng cùng lỗi; giữ nguyên translation đang dùng và không tính là fixed.
+3. Kiểm tra source hash lần nữa trước khi lưu để không commit kết quả dựa trên dữ liệu nguồn đã thay đổi giữa lúc dịch.
+4. Đưa model/prompt/validator policy vào khóa cache/checkpoint; đo request, ký tự prompt đầy đủ, token và Neurons từ response nếu provider có trả, đồng thời ghi delta theo batch/config/model.
+5. Giữ giới hạn request/concurrency hiện có; chưa bật batching JSON vì chưa chứng minh giảm Neurons và có rủi ro parse/mất field. Không đổi sang model self-hosted vì chất lượng thử nghiệm trước đó không đạt yêu cầu.
+
+### Ranh giới trước khi rollout
+
+Các thay đổi trên mới là implementation, chưa phải bằng chứng chất lượng hay tiết kiệm quota trong production. Trước khi chạy lại cần hoàn tất kiểm tra syntax/regression, xác nhận accounting và hành vi candidate/checkpoint; sau đó mới canary nhỏ có review thủ công. Không chạy retranslate diện rộng, không ghi DB và không tuyên bố mức tiết kiệm Neurons nếu response API không cung cấp usage đáng tin cậy.
 
 ## Số liệu ghi nhận
 
