@@ -17,6 +17,7 @@ const {
   getWorkKey,
   hasCompleted,
   markCompleted,
+  markCompletedDurably,
   openCheckpoint,
   openProductCheckpoint,
   hydrateCheckpoint,
@@ -52,6 +53,34 @@ test('checkpoint replay uses the latest update for each key', async () => {
     const resumed = openCheckpoint(options, directory);
     assert.equal(getCompletedResult(resumed, 'live:first').fixed, false);
     assert.deepEqual(getCompletedResult(resumed, 'live:first').validationErrors, ['quality_low']);
+  });
+});
+
+test('replacing an invalid field result removes its stale durable payload', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const key = 'product-field:en:product-1:field-hash:source-hash';
+    markCompleted(checkpoint, key, { fixed: true, payload: { value: 'Old output' } });
+    const updateOne = sinon.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+
+    try {
+      await markCompletedDurably(checkpoint, key, {
+        fixed: false,
+        validationErrors: ['unexpected_technical_token'],
+      }, true);
+
+      assert.equal(getCompletedResult(checkpoint, key).payload, undefined);
+      assert.deepEqual(updateOne.firstCall.args[1], {
+        $set: {
+          fixed: false,
+          validationErrors: ['unexpected_technical_token'],
+          deleted: false,
+        },
+        $unset: { payload: '' },
+      });
+    } finally {
+      updateOne.restore();
+    }
   });
 });
 
@@ -210,7 +239,7 @@ test('successful batch cleanup only clears completed candidates from that run', 
   });
 });
 
-test('retrying unresolved work clears its product field payloads but preserves fixed work', async () => {
+test('retrying unresolved work clears rejected fields but preserves approved field payloads', async () => {
   await withTempDirectory(async directory => {
     const checkpoint = openCheckpoint(options, directory);
     const unresolvedKey = 'catalog:en:product-1:source-v1';
@@ -222,6 +251,18 @@ test('retrying unresolved work clears its product field payloads but preserves f
     });
     markCompleted(checkpoint, unresolvedKey, { fixed: false, validationErrors: ['quality_low'] });
     markCompleted(checkpoint, fieldKey, { payload: { value: 'Old result' } });
+    const approvedFieldKey = getProductFieldWorkKey({
+      productId: 'product-1',
+      targetLang: 'en',
+      field: 'description',
+      source: 'Source description',
+    });
+    markCompleted(checkpoint, approvedFieldKey, {
+      payload: {
+        value: 'Approved result',
+        validation: { qualityStatus: 'approved', validationErrors: [] },
+      },
+    });
     markCompleted(checkpoint, 'catalog:fr:product-2:source-v1', { fixed: false });
     markCompleted(checkpoint, 'catalog:de:product-3:source-v1', { fixed: true });
     const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
@@ -230,6 +271,7 @@ test('retrying unresolved work clears its product field payloads but preserves f
       assert.equal(await clearUnfixedCheckpointEntries(checkpoint, { lang: 'en' }), 1);
       assert.equal(hasCompleted(checkpoint, unresolvedKey), false);
       assert.equal(hasCompleted(checkpoint, fieldKey), false);
+      assert.equal(hasCompleted(checkpoint, approvedFieldKey), true);
       assert.equal(hasCompleted(checkpoint, 'catalog:fr:product-2:source-v1'), true);
       assert.equal(hasCompleted(checkpoint, 'catalog:de:product-3:source-v1'), true);
       assert.equal(bulkWrite.calledOnce, true);

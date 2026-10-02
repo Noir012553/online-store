@@ -22,12 +22,10 @@ const CATALOG_RETRANSLATE_QUALITY_STATUSES = ProductCatalogTranslationCache.sche
 
 const getQualityConditions = qualityStatuses => [
   { qualityStatus: { $in: qualityStatuses } },
+  { validationErrors: { $exists: true, $ne: [] } },
   {
     qualityStatus: { $ne: 'approved' },
-    $or: [
-      { qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL } },
-      { validationErrors: { $exists: true, $ne: [] } },
-    ],
+    qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
   },
 ];
 

@@ -30,7 +30,7 @@ const getSignaturePayload = options => ({
   limit: 0,
   dryRun: Boolean(options.dryRun),
   validate: options.validate !== false,
-  translationPolicy: 'cloudflare-only-v1',
+  translationPolicy: 'cloudflare-only-quality-guard-v2',
   checkpointScope: options.checkpointScope || null,
 });
 
@@ -239,9 +239,11 @@ const markCompletedDurably = async (checkpoint, key, result = {}, replace = fals
     validationErrors: Array.isArray(result.validationErrors) ? result.validationErrors : [],
     ...(result.payload === undefined ? {} : { payload: result.payload }),
   };
+  const update = { $set: { ...entry, deleted: false } };
+  if (result.payload === undefined) update.$unset = { payload: '' };
   await RetranslationProgress.updateOne(
     { signature: checkpoint.signature, key },
-    { $set: { ...entry, deleted: false } },
+    update,
     { upsert: true },
   );
   markCompleted(checkpoint, key, entry, replace);
@@ -310,8 +312,15 @@ const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter =
       return JSON.stringify([productId, targetLang]);
     }))].map(job => JSON.parse(job));
   const fieldPrefixes = productJobs.map(([productId, targetLang]) => `product-field:${targetLang}:${productId}:`);
-  const fieldKeys = [...checkpoint.completed.keys()]
-    .filter(key => fieldPrefixes.some(prefix => key.startsWith(prefix)));
+  const fieldKeys = [...checkpoint.completed]
+    .filter(([key, result]) => (
+      fieldPrefixes.some(prefix => key.startsWith(prefix))
+      && !(
+        result.payload?.validation?.qualityStatus === 'approved'
+        && (result.payload.validation.validationErrors || []).length === 0
+      )
+    ))
+    .map(([key]) => key);
 
   await clearCheckpointEntries(checkpoint, [...fieldKeys, ...unresolvedKeys]);
   return unresolvedKeys.length;
