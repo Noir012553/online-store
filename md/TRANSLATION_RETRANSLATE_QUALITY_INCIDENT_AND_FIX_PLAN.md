@@ -4,7 +4,7 @@
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái cập nhật:** code đã có các thay đổi cho checkpoint/report, bảo toàn technical token, cache theo field, candidate-before-commit và usage telemetry; đã bổ sung regression tests cho cache field, candidate chưa commit, source đổi giữa lúc dịch và usage thực trả. Syntax check và `git diff --check` đã qua. Chưa chạy được test suite vì môi trường thiếu `chai`, `sinon` và `mongoose`; chưa chạy canary, chưa truy cập/cập nhật database, chưa chạy retranslate và chưa triển khai production. Usage Neurons chỉ có thể báo số thực nếu response từ Cloudflare cung cấp trường usage tương ứng.
+**Trạng thái cập nhật:** code đã có các thay đổi cho checkpoint/report, bảo toàn technical token, cache theo field, candidate-before-commit và usage telemetry. Lượt rà soát gần nhất đã siết điều kiện reuse: policy dịch và fingerprint của field phải cùng khớp; source hash toàn sản phẩm khớp một mình không đủ. Đã bổ sung regression tests cho reuse field, policy đổi, candidate chưa commit, source đổi giữa lúc dịch và usage API trả về. Syntax check các file JavaScript liên quan và `git diff --check` đã qua. Chưa chạy được test suite vì môi trường thiếu `chai`, `sinon` và `mongoose`; chưa chạy canary, chưa truy cập/cập nhật database, chưa chạy retranslate và chưa triển khai production. Chưa đo được mức tiết kiệm quota thực tế. Usage Neurons chỉ có thể báo số thực nếu response từ Cloudflare cung cấp trường usage tương ứng.
 
 ## Tóm tắt vấn đề và cách giải quyết
 
@@ -17,7 +17,7 @@ Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạ
 
 ### Cách giải quyết đã được đưa vào code
 
-1. Tạo fingerprint riêng theo field, bao gồm field identity, nội dung nguồn, locale và translation policy. Chỉ tái sử dụng bản field hiện có/cache khi policy tương thích; vẫn validate lại trước khi chấp nhận.
+1. Tạo fingerprint riêng theo field, bao gồm field identity, nội dung nguồn, locale và translation policy. Chỉ tái sử dụng bản dịch catalog khi policy và fingerprint field cùng khớp; nếu chỉ hash toàn sản phẩm khớp nhưng policy không khớp thì phải dịch lại. Cache Live chỉ được tái sử dụng khi cùng nguồn/model-policy và vẫn validate lại trước khi chấp nhận.
 2. Chỉ commit catalog khi các field tự động cần dịch đều đạt `approved` và không có lỗi validation. Candidate không đạt được lưu riêng cùng lỗi; giữ nguyên translation đang dùng và không tính là fixed.
 3. Kiểm tra source hash lần nữa trước khi lưu để không commit kết quả dựa trên dữ liệu nguồn đã thay đổi giữa lúc dịch.
 4. Đưa model/prompt/validator policy vào khóa cache/checkpoint; đo request, ký tự prompt đầy đủ, token và Neurons từ response nếu provider có trả, đồng thời ghi delta theo batch/config/model.
