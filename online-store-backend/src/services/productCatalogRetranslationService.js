@@ -26,6 +26,10 @@ const FAILED_TRANSLATION_STATUSES = LiveTranslationCache.schema.path('status').e
   .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
 const RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qualityStatus').enumValues
   .filter(status => /retranslat|reject/i.test(status));
+const isApproved = validation => (
+  validation?.qualityStatus === 'approved'
+  && (validation.validationErrors || []).length === 0
+);
 
 const mapWithConcurrency = async (items, mapper, concurrency) => {
   const results = new Array(items.length);
@@ -63,41 +67,123 @@ const retranslateProductUnlocked = async (
 
   const manualFields = catalogTranslation?.manualFields || [];
   const sourceHash = getProductTranslationSourceHash(product);
-  const translateSourceText = async (source, entityType, field) => {
-    if (!source) return { value: source, validation: null };
+  const sourceHashMatches = catalogTranslation?.sourceHash === sourceHash;
+  let providerUsed = false;
+  let allFieldsVerified = true;
+  const translateSourceText = async (source, entityType, field, currentValue, manual = false) => {
+    const sourceText = source == null ? '' : String(source);
+    const existingValue = currentValue ?? sourceText;
+    if (!sourceText.trim()) {
+      return { value: manual ? existingValue : sourceText, validation: null };
+    }
+
+    if (manual) return { value: existingValue, validation: null };
+
+    let currentValidation = null;
+    if (sourceHashMatches && typeof currentValue === 'string' && currentValue.trim()) {
+      currentValidation = await translationValidator.validateTranslation(
+        sourceText,
+        currentValue,
+        targetLang,
+        entityType,
+      );
+      if (isApproved(currentValidation)) {
+        return { value: currentValue, validation: currentValidation };
+      }
+    }
+
     const workKey = getProductFieldWorkKey({
       productId: String(productId),
       targetLang,
       field,
-      source,
+      source: sourceText,
     });
     const completed = getCompletedResult(checkpoint, workKey);
-    if (completed?.payload) {
+    if (completed?.payload && isApproved(completed.payload.validation)) {
+      providerUsed = true;
       return { value: completed.payload.value, validation: completed.payload.validation };
     }
+    const useApprovedCanonical = async validation => {
+      if (!validation?.validationErrors?.includes('inconsistent')) return null;
+      const canonical = await LiveTranslationCache.findOne({
+        originalText: sourceText,
+        targetLang,
+        entityType,
+        status: 'success',
+        provider: 'cloudflare',
+        qualityStatus: 'approved',
+        version: 1,
+      }).select('translatedText').lean();
+      if (!canonical?.translatedText) return null;
+      const canonicalValidation = await translationValidator.validateTranslation(
+        sourceText,
+        canonical.translatedText,
+        targetLang,
+        entityType,
+      );
+      if (!isApproved(canonicalValidation)) return null;
+      providerUsed = true;
+      await markCompletedDurably(checkpoint, workKey, {
+        fixed: true,
+        validationErrors: [],
+        payload: {
+          value: canonical.translatedText,
+          validation: canonicalValidation,
+          providersUsed: ['cloudflare'],
+        },
+      }, true);
+      return { value: canonical.translatedText, validation: canonicalValidation };
+    };
+    const currentCanonical = await useApprovedCanonical(currentValidation);
+    if (currentCanonical) return currentCanonical;
 
     const result = await productTranslationService.translateWithCloudflare(
-      source,
+      sourceText,
       getDefaultLanguage().code,
       targetLang,
     );
+    providerUsed = true;
     const validation = await translationValidator.validateTranslation(
-      source,
+      sourceText,
       result.translatedText,
       targetLang,
       entityType,
     );
+    if (!isApproved(validation)) {
+      const canonical = await useApprovedCanonical(validation);
+      if (canonical) return canonical;
+    }
+    const accepted = isApproved(validation);
+    if (!accepted) allFieldsVerified = false;
+    const storedValidation = accepted ? validation : currentValidation || validation;
     await markCompletedDurably(checkpoint, workKey, {
-      fixed: validation?.qualityStatus === 'approved' && (validation.validationErrors || []).length === 0,
-      validationErrors: validation?.validationErrors || [],
-      payload: { value: result.translatedText, validation },
-    });
-    return { value: result.translatedText, validation };
+      fixed: accepted,
+      validationErrors: storedValidation?.validationErrors || [],
+      ...(accepted ? {
+        payload: {
+          value: result.translatedText,
+          validation,
+          providersUsed: result.providersUsed || ['cloudflare'],
+        },
+      } : {}),
+    }, true);
+    return {
+      value: accepted ? result.translatedText : existingValue,
+      validation: storedValidation,
+    };
   };
-  const translateField = async (field, source, entityType, fieldPath = field) => (
-    manualFields.includes(field)
-      ? { value: catalogTranslation?.[field], validation: null }
-      : translateSourceText(source, entityType, fieldPath)
+  const translateField = (
+    field,
+    source,
+    entityType,
+    fieldPath = field,
+    currentValue = catalogTranslation?.[field],
+  ) => translateSourceText(
+    source,
+    entityType,
+    fieldPath,
+    currentValue,
+    manualFields.includes(field),
   );
 
   const [nameResult, descResult, technicalDescriptionResult] = await mapWithConcurrency([
@@ -112,16 +198,22 @@ const retranslateProductUnlocked = async (
     technicalDescriptionResult.validation,
   ].filter(Boolean);
   const specResults = await mapWithConcurrency(Object.entries(product.specs || {}), async ([key, value]) => {
-    if (manualFields.includes('specs')) {
-      return { key, value: catalogTranslation?.specs?.[key] || String(value), validation: null };
-    }
-    const { value: translated, validation } = await translateField('specs', String(value), 'product_spec', ['specs', key]);
+    const { value: translated, validation } = await translateField(
+      'specs',
+      String(value),
+      'product_spec',
+      ['specs', key],
+      catalogTranslation?.specs?.[key],
+    );
     return { key, value: translated, validation };
   }, fieldConcurrency);
-  const specs = Object.fromEntries(specResults.map(({ key, value, validation }) => {
+  const translatedSpecs = Object.fromEntries(specResults.map(({ key, value, validation }) => {
     if (validation) validationResults.push(validation);
     return [key, value];
   }));
+  const specs = manualFields.includes('specs')
+    ? { ...(catalogTranslation?.specs || {}), ...translatedSpecs }
+    : translatedSpecs;
 
   const imageResults = manualFields.includes('descriptionImages')
     ? null
@@ -130,6 +222,7 @@ const retranslateProductUnlocked = async (
         image?.alt,
         'product_description_image_alt',
         ['descriptionImages', index, 'alt'],
+        catalogTranslation?.descriptionImages?.[index]?.alt,
       );
       return { image, alt: alt ?? image?.alt ?? '', validation };
     }, fieldConcurrency);
@@ -150,9 +243,10 @@ const retranslateProductUnlocked = async (
           promotion?.[field],
           'product_promotion',
           ['promotions', index, field],
+          catalogTranslation?.promotions?.[index]?.[field],
         );
         if (validation) validations.push(validation);
-        if (value) translatedPromotion[field] = value;
+        if (value !== undefined) translatedPromotion[field] = value;
       }
       return { translatedPromotion, validations };
     }, fieldConcurrency);
@@ -163,37 +257,51 @@ const retranslateProductUnlocked = async (
     })
     : catalogTranslation?.promotions || product.promotions || [];
 
-  const validationErrors = [...new Set(validationResults.flatMap(({ validationErrors: errors }) => errors))];
   const qualityScore = validationResults.length
     ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
-    : 100;
+    : catalogTranslation?.qualityScore ?? null;
   const hasNeeds = validationResults.some(({ qualityStatus }) => qualityStatus === 'needs_retranslate');
-  const hasPending = validationResults.some(({ qualityStatus }) => qualityStatus === 'pending');
-  const qualityStatus = hasNeeds ? 'needs_retranslate' : hasPending ? 'pending' : 'approved';
+  const hasPending = validationResults.some(validation => (
+    validation.qualityStatus === 'pending'
+    || (validation.qualityStatus !== 'needs_retranslate' && !isApproved(validation))
+  ));
+  const qualityStatus = hasNeeds
+    ? 'needs_retranslate'
+    : hasPending
+      ? 'pending'
+      : validationResults.length > 0
+        ? 'approved'
+        : catalogTranslation?.qualityStatus || 'pending';
+  const validationErrors = validationResults.length > 0
+    ? [...new Set(validationResults.flatMap(({ validationErrors: errors }) => errors))]
+    : catalogTranslation?.validationErrors || [];
+  const catalogUpdate = {
+    sourceHash: allFieldsVerified ? sourceHash : catalogTranslation?.sourceHash ?? null,
+    name: nameResult.value ?? product.name,
+    description: descResult.value,
+    brand: catalogTranslation?.brand ?? product.brand,
+    specs,
+    technicalDescription: technicalDescriptionResult.value ?? product.technicalDescription ?? '',
+    descriptionImages,
+    promotions,
+    status: 'success',
+    qualityStatus,
+    qualityScore,
+    validationErrors,
+    manualFields,
+  };
+  if (providerUsed) {
+    Object.assign(catalogUpdate, {
+      provider: 'cloudflare',
+      providersUsed: ['cloudflare'],
+      providerSource: 'primary',
+      failoverReason: null,
+      lastTranslatedAt: new Date(),
+    });
+  }
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
-    {
-      $set: {
-        sourceHash,
-        name: nameResult.value ?? product.name,
-        description: descResult.value,
-        brand: manualFields.includes('brand') ? catalogTranslation?.brand : product.brand,
-        specs,
-        technicalDescription: technicalDescriptionResult.value ?? product.technicalDescription ?? '',
-        descriptionImages,
-        promotions,
-        status: 'success',
-        provider: 'cloudflare',
-        providersUsed: ['cloudflare'],
-        providerSource: 'primary',
-        failoverReason: null,
-        qualityStatus,
-        qualityScore,
-        validationErrors,
-        manualFields,
-        lastTranslatedAt: new Date(),
-      },
-    },
+    { $set: catalogUpdate },
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   ).lean();
 

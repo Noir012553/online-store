@@ -45,6 +45,9 @@ class RetranslateSeeder {
   constructor() {
     this.stats = {
       totalToRetranslate: 0,
+      matchedCount: 0,
+      scheduledCount: 0,
+      resumedCount: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
@@ -72,6 +75,9 @@ class RetranslateSeeder {
 
     this.stats = {
       totalToRetranslate: 0,
+      matchedCount: 0,
+      scheduledCount: 0,
+      resumedCount: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
       errorCount: 0,
@@ -206,6 +212,9 @@ class RetranslateSeeder {
       : pendingToRetranslate;
 
     this.stats.totalToRetranslate = limitedToRetranslate.length;
+    this.stats.matchedCount = toRetranslate.length;
+    this.stats.scheduledCount = limitedToRetranslate.length;
+    this.stats.resumedCount = resumedCount;
 
     if (verbose) {
       console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION PROCESS`);
@@ -526,7 +535,11 @@ class RetranslateSeeder {
     if (verbose) {
       console.log('\n');
       translationReporter.printRetranslateReport({
-        input: { totalToRetranslate: this.stats.totalToRetranslate },
+        input: {
+          totalToRetranslate: this.stats.matchedCount,
+          scheduledCount: this.stats.scheduledCount,
+          resumedCount: this.stats.resumedCount,
+        },
         results: {
           fixedSuccessfully: this.stats.fixedCount,
           stillHasIssues: this.stats.stillBrokenCount,
@@ -545,7 +558,12 @@ class RetranslateSeeder {
     // Save report
     if (!dryRun) {
       const report = await translationReporter.generateRetranslateReport(
-        { totalToRetranslate: this.stats.totalToRetranslate, filters: { ...filter, lang, entityType, limit } },
+        {
+          totalToRetranslate: this.stats.matchedCount,
+          scheduledCount: this.stats.scheduledCount,
+          resumedCount: this.stats.resumedCount,
+          filters: { ...filter, lang, entityType, limit },
+        },
         this.stats
       );
       translationReporter.saveReport(report);

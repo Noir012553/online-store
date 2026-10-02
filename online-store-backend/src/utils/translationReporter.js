@@ -67,6 +67,8 @@ class TranslationReporter {
       type: 'retranslate',
       input: {
         totalToRetranslate: beforeStats.totalToRetranslate,
+        scheduledCount: beforeStats.scheduledCount ?? beforeStats.totalToRetranslate,
+        resumedCount: beforeStats.resumedCount || 0,
         filters: beforeStats.filters || {},
       },
       results: {
@@ -242,7 +244,9 @@ class TranslationReporter {
     console.log(`\n${CLI_SYMBOLS.progress} RETRANSLATION REPORT`);
     console.log(CLI_SYMBOLS.divider.repeat(55));
     console.log(`\n${CLI_SYMBOLS.list} INPUT:`);
-    console.log(`   Total to retranslate: ${report.input.totalToRetranslate}`);
+    console.log(`   Matched jobs: ${report.input.totalToRetranslate}`);
+    console.log(`   Scheduled this run: ${report.input.scheduledCount ?? report.input.totalToRetranslate}`);
+    console.log(`   Resumed from checkpoint: ${report.input.resumedCount || 0}`);
     console.log(`\n${CLI_SYMBOLS.chart} RESULTS:`);
     console.log(`   ${CLI_SYMBOLS.success} Fixed successfully: ${report.results.fixedSuccessfully}`);
     console.log(`   ${CLI_SYMBOLS.error} Still has issues: ${report.results.stillHasIssues}`);

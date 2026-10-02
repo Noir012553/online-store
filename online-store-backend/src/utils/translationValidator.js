@@ -11,7 +11,7 @@ const PRODUCT_ENTITY_TYPES = new Set([
   'product_promotion',
 ]);
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
-const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|mm|cm|Hz|W|V|%|inch|in)|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
+const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
 const removeVietnameseDiacritics = (value) => value
   .normalize('NFD')
@@ -24,6 +24,10 @@ const getWords = (value) => value
   .filter(Boolean);
 
 const getTechnicalTokens = (value) => String(value || '').match(TECHNICAL_TOKEN_PATTERN) || [];
+const normalizeTechnicalToken = token => token
+  .toLocaleLowerCase()
+  .replace(/\s+/g, '')
+  .replace(/,/g, '.');
 const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTERN) || [];
 
 class TranslationValidator {
@@ -60,10 +64,29 @@ class TranslationValidator {
 
   checkTechnicalTokens(original, translated) {
     if (typeof original !== 'string' || typeof translated !== 'string') return null;
-    const sourceTokens = getTechnicalTokens(original);
-    const translatedText = translated.toLocaleLowerCase();
-    const missingToken = sourceTokens.find((token) => !translatedText.includes(token.toLocaleLowerCase()));
-    return missingToken ? { error: 'missing_technical_token', token: missingToken } : null;
+    const sourceCounts = new Map();
+    getTechnicalTokens(original).forEach((token) => {
+      const normalized = normalizeTechnicalToken(token);
+      sourceCounts.set(normalized, (sourceCounts.get(normalized) || 0) + 1);
+    });
+
+    const translatedCounts = new Map();
+    getTechnicalTokens(translated).forEach((token) => {
+      const normalized = normalizeTechnicalToken(token);
+      translatedCounts.set(normalized, (translatedCounts.get(normalized) || 0) + 1);
+    });
+
+    for (const [token, count] of sourceCounts) {
+      if ((translatedCounts.get(token) || 0) < count) {
+        return { error: 'missing_technical_token', token };
+      }
+    }
+    for (const [token, count] of translatedCounts) {
+      if (count > (sourceCounts.get(token) || 0)) {
+        return { error: 'unexpected_technical_token', token };
+      }
+    }
+    return null;
   }
 
   checkMarkup(original, translated) {

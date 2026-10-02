@@ -55,6 +55,22 @@ const createResponse = () => ({
   json: sinon.stub(),
 });
 
+const stubCatalogRetranslationReads = (sandbox, product) => {
+  sandbox.stub(Product, 'findById').returns({ lean: sandbox.stub().resolves(product) });
+  sandbox.stub(Product, 'find').returns({
+    select: sandbox.stub().returnsThis(),
+    lean: sandbox.stub().resolves([product]),
+  });
+  sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+    select: sandbox.stub().returnsThis(),
+    maxTimeMS: sandbox.stub().returnsThis(),
+    lean: sandbox.stub().resolves([]),
+  });
+  sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+  sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
+  sandbox.stub(productTranslationLock, 'acquireProductTranslationLock').resolves(async () => {});
+};
+
 describe('Product translation cache controller', () => {
   let sandbox;
 
@@ -234,16 +250,19 @@ describe('Product translation cache controller', () => {
     expect(liveFilter.provider.$in).to.include.members(
       LiveTranslationCache.schema.path('provider').enumValues,
     );
-    expect(liveFilter.$or[2].$or).to.deep.include({
-      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    expect(liveFilter.$or).to.deep.include({ validationErrors: { $exists: true, $ne: [] } });
+    const liveLowScore = liveFilter.$or.find(condition => condition.qualityStatus?.$ne === 'approved');
+    expect(liveLowScore.qualityScore).to.deep.equal({
+      $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL,
     });
-    expect(liveFilter.$or[2].$or).to.deep.include({ validationErrors: { $exists: true, $ne: [] } });
     expect(liveFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
       LiveTranslationCache.schema.path('status').enumValues
         .filter(status => status.startsWith('failed_') || status.endsWith('_retry')),
     );
-    expect(catalogFilter.$or[2].$or).to.deep.include({
-      qualityScore: { $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL },
+    expect(catalogFilter.$or).to.deep.include({ validationErrors: { $exists: true, $ne: [] } });
+    const catalogLowScore = catalogFilter.$or.find(condition => condition.qualityStatus?.$ne === 'approved');
+    expect(catalogLowScore.qualityScore).to.deep.equal({
+      $lt: translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL,
     });
     expect(catalogFilter.$or.find(({ status }) => status)?.status.$in).to.include.members(
       ProductCatalogTranslationCache.schema.path('status').enumValues
@@ -485,6 +504,8 @@ describe('Product translation cache controller', () => {
       const resumed = await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
 
       expect(resumed.stats.totalToRetranslate).to.equal(0);
+      expect(resumed.stats.matchedCount).to.equal(1);
+      expect(resumed.stats.resumedCount).to.equal(1);
       expect(productCatalogRetranslationService.retranslateProduct.calledOnce).to.be.true;
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
@@ -610,6 +631,131 @@ describe('Product translation cache controller', () => {
       else process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = originalConcurrency;
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it('retranslates only invalid fields and keeps the previous value when the new output fails validation', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: 'Source description',
+      brand: 'Brand',
+      specs: { RAM: '16GB' },
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const sourceHash = getProductTranslationSourceHash(product);
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        sourceHash,
+        name: 'Translated laptop',
+        description: 'Previous description',
+        brand: 'Brand',
+        specs: { RAM: '16 GB' },
+        manualFields: [],
+        qualityStatus: 'needs_retranslate',
+        validationErrors: ['too_short'],
+      }),
+    });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({}),
+    });
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'Still too short',
+      provider: 'cloudflare',
+      providersUsed: ['cloudflare'],
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (source, translated) => {
+      if (translated === 'Previous description' || translated === 'Still too short') {
+        return { qualityStatus: 'pending', qualityScore: 30, validationErrors: ['too_short'] };
+      }
+      return { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] };
+    });
+
+    await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+
+    expect(translate.calledOnceWith('Source description', 'vi', 'en')).to.be.true;
+    const update = findOneAndUpdate.firstCall.args[1].$set;
+    expect(update).to.include({
+      name: 'Translated laptop',
+      description: 'Previous description',
+      qualityStatus: 'pending',
+    });
+    expect(update.specs).to.deep.equal({ RAM: '16 GB' });
+    expect(update.validationErrors).to.deep.equal(['too_short']);
+  });
+
+  it('retranslates a field when its checkpoint payload did not pass validation', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-invalid-field-'));
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
+    const nameKey = getProductFieldWorkKey({
+      productId,
+      targetLang: 'en',
+      field: 'name',
+      source: product.name,
+    });
+    markCompleted(checkpoint, nameKey, {
+      fixed: false,
+      validationErrors: ['missing_technical_token'],
+      payload: {
+        value: 'Wrong cached laptop',
+        validation: { qualityStatus: 'pending', validationErrors: ['missing_technical_token'] },
+      },
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves({ manualFields: [] }) });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({}),
+    });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'Fresh translated laptop',
+      providersUsed: ['cloudflare'],
+    });
+
+    try {
+      await productCatalogRetranslationService.retranslateProduct(productId, 'en', { checkpoint });
+      expect(translate.calledOnceWith('Source laptop', 'vi', 'en')).to.be.true;
+      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh translated laptop');
+      expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
+        .to.equal('Fresh translated laptop');
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves repeated technical tokens while rejecting missing or introduced specs', () => {
+    expect(translationValidator.checkTechnicalTokens(
+      'RTX 3050 4GB Core 5-210H',
+      'RTX 3050 4 GB Core 5-210H',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('16GB 1TB', '16GB'))
+      .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens('16GB', '16GB 32GB'))
+      .to.include({ error: 'unexpected_technical_token' });
+    expect(translationValidator.checkTechnicalTokens('Win 11', 'Windows 11')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('RTX 3050 RTX 3050', 'RTX 3050'))
+      .to.include({ error: 'missing_technical_token' });
   });
 
   it('prints catalog validation issues without failing the retranslation report', async () => {
@@ -1383,7 +1529,7 @@ describe('Product translation cache controller', () => {
     });
     let activeTranslations = 0;
     let maximumActiveTranslations = 0;
-    const translate = sandbox.stub(productTranslationService, 'translateWithFailover').callsFake(async (source) => {
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => {
       activeTranslations++;
       maximumActiveTranslations = Math.max(maximumActiveTranslations, activeTranslations);
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -1428,22 +1574,29 @@ describe('Product translation cache controller', () => {
     sandbox.stub(distributedLockService, 'acquireLock').resolves('lock-id');
     sandbox.stub(distributedLockService, 'extendLock').resolves(true);
     sandbox.stub(distributedLockService, 'releaseLock').resolves(true);
-    await retranslateProduct({
-      params: { id: productId },
-      body: { lang: 'en' },
-      lang: 'en',
-    }, res);
+    const originalFieldConcurrency = process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY;
+    process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = '2';
+    try {
+      await retranslateProduct({
+        params: { id: productId },
+        body: { lang: 'en' },
+        lang: 'en',
+      }, res);
 
-    expect(translate.callCount).to.equal(3);
-    expect(maximumActiveTranslations).to.equal(2);
-    expect(findOneAndUpdate.firstCall.args[1].$set).to.include({
-      name: 'Manual laptop',
-      description: 'en:Source description',
-      technicalDescription: 'en:Technical source',
-      brand: 'Source brand',
-    });
-    expect(findOneAndUpdate.firstCall.args[1].$set.specs).to.deep.equal({ RAM: 'en:16GB' });
-    expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name']);
+      expect(translate.callCount).to.equal(3);
+      expect(maximumActiveTranslations).to.equal(2);
+      expect(findOneAndUpdate.firstCall.args[1].$set).to.include({
+        name: 'Manual laptop',
+        description: 'en:Source description',
+        technicalDescription: 'en:Technical source',
+        brand: 'Source brand',
+      });
+      expect(findOneAndUpdate.firstCall.args[1].$set.specs).to.deep.equal({ RAM: 'en:16GB' });
+      expect(res.json.firstCall.args[0].data.skippedManualFields).to.deep.equal(['name']);
+    } finally {
+      if (originalFieldConcurrency === undefined) delete process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY;
+      else process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY = originalFieldConcurrency;
+    }
   });
 
   it('dịch text scraper có cấu trúc song song có giới hạn và giữ nguyên URL, giá trị nghiệp vụ', async () => {
