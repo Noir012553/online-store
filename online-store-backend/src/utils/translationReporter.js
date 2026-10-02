@@ -79,6 +79,7 @@ class TranslationReporter {
         stillHasIssues: afterStats.stillBrokenCount || 0,
         errors: afterStats.errorCount || 0,
         remaining: afterStats.remainingCount || 0,
+        providerUsage: afterStats.providerUsage || null,
       },
       detailedBreakdown: afterStats.breakdown || {},
       stillNeedsAttention: [],
@@ -260,6 +261,12 @@ class TranslationReporter {
     }
     if (report.results.remaining > 0) {
       console.log(`   ${CLI_SYMBOLS.warning} Remaining: ${report.results.remaining}`);
+    }
+
+    if (report.results.providerUsage) {
+      const usage = report.results.providerUsage;
+      console.log(`   Cloudflare requests: ${usage.requests}; input chars: ${usage.inputCharacters}; tokens: ${usage.totalTokens}`);
+      console.log(`   Neurons reported by API: ${usage.neurons ?? 'unavailable'}`);
     }
 
     if (report.stillNeedsAttention.length > 0) {

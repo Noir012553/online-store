@@ -56,6 +56,7 @@ class RetranslateSeeder {
       errorCount: 0,
       quotaExceededCount: 0,
       remainingCount: 0,
+      providerUsage: null,
       breakdown: {},
       stillBroken: [],
     };
@@ -89,6 +90,7 @@ class RetranslateSeeder {
       errorCount: 0,
       quotaExceededCount: 0,
       remainingCount: 0,
+      providerUsage: null,
       breakdown: {},
       stillBroken: [],
     };
@@ -224,6 +226,7 @@ class RetranslateSeeder {
     }
 
     const results = [];
+    const usageBefore = cloudflareAiService.getStats();
     const groupsByProduct = new Map();
     limitedToRetranslate.forEach((translation) => {
       const groupKey = translation.entityId
@@ -257,13 +260,18 @@ class RetranslateSeeder {
 
             this.stats.startedCount++;
             if (translation.retranslateSource === 'catalog') {
-              const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
+              const retranslation = await productCatalogRetranslationService.retranslateProduct(
                 translation.entityId,
                 translation.targetLang,
                 { checkpoint, parallelProducts: concurrency },
               );
-              const validationErrors = updatedTranslation.validationErrors || [];
-              const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
+              const { translation: updatedTranslation, committed, fixed } = retranslation;
+              const validationErrors = retranslation.validationErrors || updatedTranslation.validationErrors || [];
+              const wasFixed = fixed ?? (
+                committed !== false
+                && updatedTranslation.qualityStatus === 'approved'
+                && validationErrors.length === 0
+              );
               if (wasFixed) {
                 this.stats.fixedCount++;
               } else {
@@ -272,7 +280,7 @@ class RetranslateSeeder {
                   this.stats.stillBroken.push({
                     _id: updatedTranslation._id,
                     originalText: String(translation.name || '').slice(0, 240),
-                    translatedText: String(updatedTranslation.name || '').slice(0, 240),
+                    translatedText: String(retranslation.candidateTranslation?.name || updatedTranslation.name || '').slice(0, 240),
                     validationErrors,
                   });
                 }
@@ -289,22 +297,30 @@ class RetranslateSeeder {
                 status: 'success',
                 originalId: translation._id,
                 newId: updatedTranslation._id,
+                committed: committed !== false,
                 wasFixed,
                 validationErrors,
               });
-              const updatedSourceHash = updatedTranslation.sourceHash || translation.sourceHash;
+              const updatedSourceHash = retranslation.sourceHash
+                || updatedTranslation.sourceHash
+                || translation.sourceHash;
               await markCompletedDurably(checkpoint, getWorkKey({
                 ...translation,
                 sourceHash: updatedSourceHash,
               }), {
                 fixed: wasFixed,
                 validationErrors,
+                ...(retranslation.candidateTranslation
+                  ? { payload: { candidateTranslation: retranslation.candidateTranslation } }
+                  : {}),
               });
-              await clearProductFieldCheckpoint(
-                checkpoint,
-                String(translation.entityId),
-                translation.targetLang,
-              );
+              if (committed !== false) {
+                await clearProductFieldCheckpoint(
+                  checkpoint,
+                  String(translation.entityId),
+                  translation.targetLang,
+                );
+              }
               await renewDatabaseLock?.();
               this.stats.completedCount++;
               continue;
@@ -530,6 +546,39 @@ class RetranslateSeeder {
     }
 
     this.stats.notStartedCount = Math.max(0, this.stats.scheduledCount - this.stats.startedCount);
+    const usageAfter = cloudflareAiService.getStats();
+    const usageDelta = key => (
+      usageBefore.usageDay === usageAfter.usageDay && usageAfter[key] >= usageBefore[key]
+        ? usageAfter[key] - usageBefore[key]
+        : usageAfter[key]
+    );
+    const neuronUsageAvailable = usageAfter.usageNeurons !== null
+      && (usageBefore.usageNeurons !== null || usageAfter.usageDay !== usageBefore.usageDay);
+    const usageByConfig = usageAfter.configs.map(config => {
+      const beforeConfig = usageBefore.configs.find(({ index }) => index === config.index);
+      const succeededRequests = Math.max(0, config.requestCount - (beforeConfig?.requestCount || 0));
+      return {
+        index: config.index,
+        model: config.model,
+        succeededRequests,
+        totalTokens: Math.max(0, config.usageTotalTokens - (beforeConfig?.usageTotalTokens || 0)),
+        neurons: config.usageNeuronResponses > (beforeConfig?.usageNeuronResponses || 0)
+          ? Math.max(0, config.usageNeurons - (beforeConfig?.usageNeurons || 0))
+          : null,
+      };
+    });
+    this.stats.providerUsage = {
+      models: [...new Set(usageByConfig.filter(config => config.succeededRequests > 0).map(({ model }) => model))],
+      requests: usageDelta('usageRequests'),
+      inputCharacters: usageDelta('usageInputChars'),
+      promptTokens: usageDelta('usagePromptTokens'),
+      completionTokens: usageDelta('usageCompletionTokens'),
+      totalTokens: usageDelta('usageTotalTokens'),
+      neurons: neuronUsageAvailable ? usageDelta('usageNeurons') : null,
+      responsesWithUsage: usageDelta('usageResponseCount'),
+      responsesWithNeuronUsage: usageDelta('usageNeuronResponses'),
+      configs: usageByConfig,
+    };
     const fixedThisRun = this.stats.fixedCount - resumedFixedCount;
     this.stats.remainingCount = Math.max(0, pendingToRetranslate.length - fixedThisRun)
       + resumedNeedsAttention.length;
@@ -550,6 +599,7 @@ class RetranslateSeeder {
           stillHasIssues: this.stats.stillBrokenCount,
           errors: this.stats.errorCount,
           remaining: this.stats.remainingCount,
+          providerUsage: this.stats.providerUsage,
         },
         detailedBreakdown: this.stats.breakdown,
         stillNeedsAttention: this.stats.stillBroken.map(item => ({

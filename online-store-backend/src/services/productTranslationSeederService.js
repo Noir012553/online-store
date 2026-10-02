@@ -721,7 +721,9 @@ class ProductTranslationSeederService {
             status: 'success',
             provider: translation.provider,
             providerSource: 'primary',
-            metadata: {},
+            metadata: translation.provider === 'cloudflare'
+              ? { translationPolicy: `${cloudflareAiService.getTranslationPolicySignature()}:${translationValidator.policyVersion}` }
+              : {},
             qualityStatus: validationResult.qualityStatus,
             qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,

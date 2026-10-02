@@ -20,6 +20,43 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       default: null,
       description: 'Hash of the source product fields used for translation',
     },
+    fieldHashes: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    translationPolicy: {
+      type: String,
+      default: null,
+    },
+    fieldTranslationMetadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    candidateTranslation: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    candidateQualityStatus: {
+      type: String,
+      enum: ['approved', 'pending', 'needs_retranslate', 'rejected'],
+      default: null,
+    },
+    candidateValidationErrors: {
+      type: [String],
+      default: [],
+    },
+    candidateSourceHash: {
+      type: String,
+      default: null,
+    },
+    candidateTranslationPolicy: {
+      type: String,
+      default: null,
+    },
+    candidateUpdatedAt: {
+      type: Date,
+      default: null,
+    },
     name: {
       type: String,
       required: true,

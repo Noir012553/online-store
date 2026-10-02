@@ -20,7 +20,10 @@ const RateLimitHandler = require('../services/rateLimitHandler');
 const productTranslationService = require('../services/productTranslationService');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
-const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  getProductTranslationFieldHash,
+  getProductTranslationSourceHash,
+} = require('../utils/productTranslationFingerprint');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const retranslateProgress = require('../utils/retranslateProgress');
 const {
@@ -67,6 +70,10 @@ const stubCatalogRetranslationReads = (sandbox, product) => {
     lean: sandbox.stub().resolves([]),
   });
   sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+  sandbox.stub(LiveTranslationCache, 'find').returns({
+    select: sandbox.stub().returnsThis(),
+    lean: sandbox.stub().resolves([]),
+  });
   sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
   sandbox.stub(productTranslationLock, 'acquireProductTranslationLock').resolves(async () => {});
 };
@@ -684,6 +691,69 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('reuses unchanged fields when the aggregate product source changes', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: 'Source description',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const translationPolicy = productCatalogRetranslationService.getTranslationPolicySignature();
+    const nameIdentity = JSON.stringify(['product_name']);
+    const nameHash = getProductTranslationFieldHash({
+      field: nameIdentity,
+      entityType: 'product_name',
+      source: product.name,
+      sourceLang: getDefaultLanguage().code,
+      targetLang: 'en',
+      policySignature: translationPolicy,
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        sourceHash: 'old-product-hash',
+        translationPolicy,
+        fieldHashes: { [nameIdentity]: nameHash },
+        name: 'Existing translated name',
+        description: null,
+        manualFields: [],
+      }),
+    });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'en',
+        name: 'Existing translated name',
+        description: 'Translated source description',
+        sourceHash: getProductTranslationSourceHash(product),
+        qualityStatus: 'approved',
+        validationErrors: [],
+      }),
+    });
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'Translated source description',
+      providersUsed: ['cloudflare'],
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+
+    expect(result.committed).to.equal(true);
+    expect(translate.calledOnceWith('Source description', 'vi', 'en')).to.be.true;
+    expect(findOneAndUpdate.firstCall.args[1].$set.fieldHashes[nameIdentity]).to.equal(nameHash);
+  });
+
   it('retranslates only invalid fields and keeps the previous value when the new output fails validation', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     const product = {
@@ -727,17 +797,20 @@ describe('Product translation cache controller', () => {
       return { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] };
     });
 
-    await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
 
     expect(translate.calledOnceWith('Source description', 'vi', 'en')).to.be.true;
+    expect(result.committed).to.equal(false);
     const update = findOneAndUpdate.firstCall.args[1].$set;
-    expect(update).to.include({
+    expect(update.candidateTranslation).to.include({
       name: 'Translated laptop',
       description: 'Previous description',
       qualityStatus: 'pending',
     });
-    expect(update.specs).to.deep.equal({ RAM: '16 GB' });
-    expect(update.validationErrors).to.deep.equal(['too_short']);
+    expect(update.candidateTranslation.specs).to.deep.equal({ RAM: '16 GB' });
+    expect(update.candidateValidationErrors).to.deep.equal(['too_short']);
+    expect(update).not.to.have.property('name');
+    expect(LiveTranslationCache.updateMany.called).to.equal(false);
   });
 
   it('retranslates a field when its checkpoint payload did not pass validation', async () => {
@@ -793,6 +866,24 @@ describe('Product translation cache controller', () => {
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it('versions field fingerprints by source and translation policy', () => {
+    const fingerprint = {
+      field: '["product_spec","RAM"]',
+      entityType: 'product_spec',
+      source: '16GB DDR5',
+      sourceLang: 'vi',
+      targetLang: 'fr',
+      policySignature: 'model-prompt-validator-v1',
+    };
+
+    expect(getProductTranslationFieldHash(fingerprint))
+      .to.equal(getProductTranslationFieldHash({ ...fingerprint }));
+    expect(getProductTranslationFieldHash(fingerprint))
+      .not.to.equal(getProductTranslationFieldHash({ ...fingerprint, source: '32GB DDR5' }));
+    expect(getProductTranslationFieldHash(fingerprint))
+      .not.to.equal(getProductTranslationFieldHash({ ...fingerprint, policySignature: 'model-prompt-validator-v2' }));
   });
 
   it('preserves repeated technical tokens while rejecting missing or introduced specs', () => {

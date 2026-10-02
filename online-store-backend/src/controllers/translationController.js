@@ -1888,40 +1888,58 @@ exports.retranslateProduct = async (req, res) => {
       });
     }
 
-    const checkpoint = retranslateProgress.openProductCheckpoint(checkpointScope);
+    const checkpoint = retranslateProgress.openProductCheckpoint(
+      checkpointScope,
+      undefined,
+      productCatalogRetranslationService.getTranslationPolicySignature(),
+    );
     await retranslateProgress.hydrateCheckpoint(checkpoint);
-    const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
+    const retranslation = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
       { checkpoint },
     );
-    const validationErrors = translation.validationErrors || [];
+    const { translation, skippedManualFields, committed, fixed, sourceHash } = retranslation;
+    const validationErrors = retranslation.validationErrors || translation.validationErrors || [];
     await retranslateProgress.markCompletedDurably(
       checkpoint,
       retranslateProgress.getWorkKey({
         retranslateSource: 'catalog',
         targetLang,
         entityId: productId,
-        sourceHash: translation.sourceHash,
+        sourceHash: sourceHash || translation.sourceHash,
       }),
       {
-        fixed: translation.qualityStatus === 'approved' && validationErrors.length === 0,
+        fixed: fixed ?? (
+          committed !== false
+          && translation.qualityStatus === 'approved'
+          && validationErrors.length === 0
+        ),
         validationErrors,
+        ...(retranslation.candidateTranslation
+          ? { payload: { candidateTranslation: retranslation.candidateTranslation } }
+          : {}),
       },
       true,
     );
-    await retranslateProgress.clearProductFieldCheckpoint(checkpoint, productId, targetLang);
+    if (committed !== false) {
+      await retranslateProgress.clearProductFieldCheckpoint(checkpoint, productId, targetLang);
+    }
 
     return res.json({
       success: true,
       data: {
         productId,
         lang: targetLang,
-        status: translation.qualityStatus,
+        status: committed === false ? retranslation.candidateQualityStatus : translation.qualityStatus,
+        persistedStatus: translation.qualityStatus,
+        committed: committed !== false,
         canRetranslate: isCatalogProductRetranslatable(translation),
         skippedManualFields,
-        updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
-        validationErrors: translation.validationErrors || [],
+        updatedAt: committed === false
+          ? translation.candidateUpdatedAt || translation.updatedAt || null
+          : translation.updatedAt || translation.lastTranslatedAt || null,
+        validationErrors,
       },
     });
   } catch (error) {

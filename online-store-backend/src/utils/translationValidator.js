@@ -273,4 +273,7 @@ class TranslationValidator {
   }
 }
 
-module.exports = new TranslationValidator();
+const translationValidator = new TranslationValidator();
+translationValidator.policyVersion = 'product-validator-v2';
+
+module.exports = translationValidator;

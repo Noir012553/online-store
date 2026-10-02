@@ -1119,7 +1119,15 @@ const updateProduct = asyncHandler(async (req, res) => {
           $set: {
             qualityStatus: 'needs_retranslate',
             validationErrors: ['source_content_changed'],
-            sourceHash: getProductSourceHash(updatedProduct),
+            sourceHash: null,
+          },
+          $unset: {
+            candidateTranslation: '',
+            candidateQualityStatus: '',
+            candidateValidationErrors: '',
+            candidateSourceHash: '',
+            candidateTranslationPolicy: '',
+            candidateUpdatedAt: '',
           },
         },
       ),

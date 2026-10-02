@@ -107,6 +107,13 @@ class SimpleQueue {
 class CloudflareAiService {
   constructor() {
     this.configs = this._loadConfigs();
+    this.configs.forEach(config => Object.assign(config, {
+      usagePromptTokens: 0,
+      usageCompletionTokens: 0,
+      usageTotalTokens: 0,
+      usageNeurons: 0,
+      usageNeuronResponses: 0,
+    }));
     this.configIndex = 0;
     this.lastConfigIndex = null;
     this.rateLimitCooldownMs = parsePositiveInteger('CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS', 30000);
@@ -121,6 +128,12 @@ class CloudflareAiService {
     this.usageDay = null;
     this.usageRequests = 0;
     this.usageInputChars = 0;
+    this.usagePromptTokens = 0;
+    this.usageCompletionTokens = 0;
+    this.usageTotalTokens = 0;
+    this.usageNeurons = 0;
+    this.usageNeuronResponses = 0;
+    this.usageResponseCount = 0;
 
     // Idempotency cache (in-memory, prevents duplicate requests)
     this.pendingRequests = new Map();
@@ -309,7 +322,59 @@ class CloudflareAiService {
       this.usageDay = day;
       this.usageRequests = 0;
       this.usageInputChars = 0;
+      this.usagePromptTokens = 0;
+      this.usageCompletionTokens = 0;
+      this.usageTotalTokens = 0;
+      this.usageNeurons = 0;
+      this.usageNeuronResponses = 0;
+      this.usageResponseCount = 0;
+      this.configs.forEach(config => Object.assign(config, {
+        usagePromptTokens: 0,
+        usageCompletionTokens: 0,
+        usageTotalTokens: 0,
+        usageNeurons: 0,
+        usageNeuronResponses: 0,
+      }));
     }
+  }
+
+  getTranslationPolicySignature() {
+    return crypto.createHash('sha256')
+      .update(JSON.stringify({
+        prompt: LOCALIZATION_SYSTEM_PROMPT,
+        models: [...new Set(this.configs.map(({ model }) => model))].sort(),
+      }))
+      .digest('hex');
+  }
+
+  recordResponseUsage(usage = {}, config = null) {
+    const readUsage = (...keys) => {
+      const value = keys.map(key => usage[key]).find(item => item !== undefined && item !== null);
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+    };
+    const promptTokens = readUsage('prompt_tokens', 'promptTokens');
+    const completionTokens = readUsage('completion_tokens', 'completionTokens');
+    const totalTokens = readUsage('total_tokens', 'totalTokens');
+    const neurons = readUsage('neurons', 'neuron_count', 'neuronCount');
+    if ([promptTokens, completionTokens, totalTokens, neurons].every(value => value === null)) return;
+    this.usagePromptTokens += promptTokens || 0;
+    this.usageCompletionTokens += completionTokens || 0;
+    this.usageTotalTokens += totalTokens ?? ((promptTokens || 0) + (completionTokens || 0));
+    if (neurons !== null) {
+      this.usageNeurons += neurons;
+      this.usageNeuronResponses++;
+    }
+    if (config) {
+      config.usagePromptTokens = (config.usagePromptTokens || 0) + (promptTokens || 0);
+      config.usageCompletionTokens = (config.usageCompletionTokens || 0) + (completionTokens || 0);
+      config.usageTotalTokens = (config.usageTotalTokens || 0) + (totalTokens ?? ((promptTokens || 0) + (completionTokens || 0)));
+      if (neurons !== null) {
+        config.usageNeurons = (config.usageNeurons || 0) + neurons;
+        config.usageNeuronResponses = (config.usageNeuronResponses || 0) + 1;
+      }
+    }
+    this.usageResponseCount++;
   }
 
   reserveUsage(inputChars) {
@@ -410,7 +475,13 @@ class CloudflareAiService {
       }
 
       await this.throttle();
-      if (enforceBudget) this.reserveUsage(text.length);
+      if (enforceBudget) {
+        this.reserveUsage(
+          LOCALIZATION_SYSTEM_PROMPT.length
+          + `Translate this text to ${targetLang}:\n\n`.length
+          + text.length,
+        );
+      }
 
       const startTime = Date.now();
       const response = await axios.post(
@@ -445,6 +516,7 @@ class CloudflareAiService {
       }
 
       const result = response.data.result || {};
+      this.recordResponseUsage(response.data.usage || result.usage || {}, config);
       const finishReason = String(result.finish_reason || result.finishReason || '').toLowerCase();
       if (['length', 'max_tokens', 'max_output_tokens', 'token_limit'].includes(finishReason)) {
         throw Object.assign(new Error('Cloudflare translation reached the output token limit'), {
@@ -611,12 +683,24 @@ class CloudflareAiService {
       usageDay: this.usageDay,
       usageRequests: this.usageRequests,
       usageInputChars: this.usageInputChars,
+      usagePromptTokens: this.usagePromptTokens,
+      usageCompletionTokens: this.usageCompletionTokens,
+      usageTotalTokens: this.usageTotalTokens,
+      usageNeurons: this.usageNeuronResponses > 0 ? this.usageNeurons : null,
+      usageNeuronResponses: this.usageNeuronResponses,
+      usageResponseCount: this.usageResponseCount,
       currentConfig: this.lastConfigIndex,
       totalConfigs: this.configs.length,
       configs: this.configs.map(c => ({
         index: c.index,
+        model: c.model,
         requestCount: c.requestCount,
         errorCount: c.errorCount,
+        usagePromptTokens: c.usagePromptTokens || 0,
+        usageCompletionTokens: c.usageCompletionTokens || 0,
+        usageTotalTokens: c.usageTotalTokens || 0,
+        usageNeurons: c.usageNeuronResponses > 0 ? c.usageNeurons : null,
+        usageNeuronResponses: c.usageNeuronResponses || 0,
         runningRequests: c.runningRequests || 0,
         lastError: c.lastError,
         lastErrorTime: c.lastErrorTime,

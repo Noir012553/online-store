@@ -30,7 +30,7 @@ const getSignaturePayload = options => ({
   limit: 0,
   dryRun: Boolean(options.dryRun),
   validate: options.validate !== false,
-  translationPolicy: 'cloudflare-only-quality-guard-v3',
+  translationPolicy: options.translationPolicy || 'cloudflare-only-quality-guard-v3',
   checkpointScope: options.checkpointScope || null,
 });
 
@@ -57,8 +57,10 @@ const getWorkKey = translation => {
   return `live:${hashKey || translation._id}:${sourceHash}`;
 };
 
-const getProductFieldWorkKey = ({ productId, targetLang, field, source }) => {
-  const fieldHash = crypto.createHash('sha256').update(JSON.stringify(field)).digest('hex');
+const getProductFieldWorkKey = ({ productId, targetLang, field, source, policySignature = null }) => {
+  const fieldHash = crypto.createHash('sha256')
+    .update(JSON.stringify([field, policySignature]))
+    .digest('hex');
   const sourceHash = crypto.createHash('sha256').update(String(source ?? '')).digest('hex');
   return `product-field:${targetLang}:${productId}:${fieldHash}:${sourceHash}`;
 };
@@ -114,7 +116,7 @@ const openCheckpoint = (options, directory = PROGRESS_DIRECTORY) => {
   return { signature, legacySignatures, legacyFilePaths, filePath, completed, initialized };
 };
 
-const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) => openCheckpoint({
+const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY, translationPolicy = null) => openCheckpoint({
   filter: {},
   lang: null,
   entityType: null,
@@ -122,6 +124,7 @@ const openProductCheckpoint = (checkpointScope, directory = PROGRESS_DIRECTORY) 
   dryRun: false,
   validate: true,
   checkpointScope,
+  translationPolicy,
 }, directory);
 
 const hasCompleted = (checkpoint, key) => Boolean(checkpoint?.completed.has(key));

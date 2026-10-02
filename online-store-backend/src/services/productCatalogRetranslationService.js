@@ -2,11 +2,16 @@ const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const productTranslationService = require('./productTranslationService');
+const cloudflareAiService = require('./cloudflareAiService');
 const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { refreshStorefrontReadiness } = require('./translationHelper');
-const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  getProductTranslationFieldHash,
+  getProductTranslationFieldKey,
+  getProductTranslationSourceHash,
+} = require('../utils/productTranslationFingerprint');
 const { acquireProductTranslationLock } = require('../utils/productTranslationLock');
 const {
   getCompletedResult,
@@ -26,10 +31,42 @@ const FAILED_TRANSLATION_STATUSES = LiveTranslationCache.schema.path('status').e
   .filter(status => status.startsWith('failed_') || status.endsWith('_retry'));
 const RETRANSLATE_QUALITY_STATUSES = LiveTranslationCache.schema.path('qualityStatus').enumValues
   .filter(status => /retranslat|reject/i.test(status));
+const getTranslationPolicySignature = () => (
+  `${cloudflareAiService.getTranslationPolicySignature()}:${translationValidator.policyVersion}`
+);
 const isApproved = validation => (
   validation?.qualityStatus === 'approved'
   && (validation.validationErrors || []).length === 0
 );
+const getFieldIdentity = (entityType, field) => {
+  const parts = Array.isArray(field) ? field : [field];
+  if (entityType === 'product_spec') return getProductTranslationFieldKey([entityType, parts[1]]);
+  if (entityType === 'product_description_image_alt' || entityType === 'product_promotion') {
+    return getProductTranslationFieldKey([entityType, parts.join('.')]);
+  }
+  return getProductTranslationFieldKey([entityType]);
+};
+const ensureCurrentSource = async (productId, sourceHash) => {
+  const currentProduct = await Product.findById(productId).lean();
+  if (!currentProduct || getProductTranslationSourceHash(currentProduct) !== sourceHash) {
+    throw Object.assign(new Error('Product source changed during translation'), {
+      code: 'PRODUCT_SOURCE_CHANGED_DURING_TRANSLATION',
+    });
+  }
+};
+const getCachedFieldTranslation = (translations, entityType, field, sourceText) => {
+  const parts = Array.isArray(field) ? field : [field];
+  const fieldKey = entityType === 'product_description_image_alt' || entityType === 'product_promotion'
+    ? parts.join('.')
+    : null;
+  const specKey = entityType === 'product_spec' ? String(parts[1] ?? '') : null;
+  return translations.find(translation => (
+    translation.entityType === entityType
+    && (translation.specKey || null) === specKey
+    && (translation.fieldKey || null) === fieldKey
+    && translation.originalText === sourceText
+  )) || null;
+};
 
 const mapWithConcurrency = async (items, mapper, concurrency) => {
   const results = new Array(items.length);
@@ -69,6 +106,23 @@ const retranslateProductUnlocked = async (
   const sourceHash = getProductTranslationSourceHash(product);
   const catalogWorkKey = `catalog:${targetLang}:${productId}:${sourceHash}`;
   const sourceHashMatches = catalogTranslation?.sourceHash === sourceHash;
+  const sourceLang = getDefaultLanguage().code;
+  const translationPolicy = getTranslationPolicySignature();
+  const fieldHashes = { ...(catalogTranslation?.fieldHashes || {}) };
+  const fieldTranslationMetadata = { ...(catalogTranslation?.fieldTranslationMetadata || {}) };
+  const reusableFieldTranslations = !sourceHashMatches
+    ? await LiveTranslationCache.find({
+      entityId: String(productId),
+      sourceLang,
+      targetLang,
+      status: 'success',
+      provider: 'cloudflare',
+      qualityStatus: 'approved',
+      validationErrors: [],
+      'metadata.translationPolicy': translationPolicy,
+      entityType: { $in: PRODUCT_ENTITY_TYPES },
+    }).select('entityType specKey fieldKey originalText translatedText').lean()
+    : [];
   let providerUsed = false;
   let allFieldsVerified = true;
   const translateSourceText = async (source, entityType, field, currentValue, manual = false) => {
@@ -80,8 +134,20 @@ const retranslateProductUnlocked = async (
 
     if (manual) return { value: existingValue, validation: null };
 
+    const fieldIdentity = getFieldIdentity(entityType, field);
+    const fieldHash = getProductTranslationFieldHash({
+      field: fieldIdentity,
+      entityType,
+      source: sourceText,
+      sourceLang,
+      targetLang,
+      policySignature: translationPolicy,
+    });
+    const existingFieldHashMatches = sourceHashMatches
+      || (catalogTranslation?.translationPolicy === translationPolicy
+        && catalogTranslation?.fieldHashes?.[fieldIdentity] === fieldHash);
     let currentValidation = null;
-    if (sourceHashMatches && typeof currentValue === 'string' && currentValue.trim()) {
+    if (existingFieldHashMatches && typeof currentValue === 'string' && currentValue.trim()) {
       currentValidation = await translationValidator.validateTranslation(
         sourceText,
         currentValue,
@@ -89,19 +155,56 @@ const retranslateProductUnlocked = async (
         entityType,
       );
       if (isApproved(currentValidation)) {
+        fieldHashes[fieldIdentity] = fieldHash;
+        fieldTranslationMetadata[fieldIdentity] = {
+          sourceHash: fieldHash,
+          qualityScore: currentValidation.qualityScore,
+          validatedAt: new Date(),
+        };
         return { value: currentValue, validation: currentValidation };
+      }
+    }
+
+    const cachedFieldTranslation = getCachedFieldTranslation(
+      reusableFieldTranslations,
+      entityType,
+      field,
+      sourceText,
+    );
+    if (cachedFieldTranslation?.translatedText) {
+      const cachedValidation = await translationValidator.validateTranslation(
+        sourceText,
+        cachedFieldTranslation.translatedText,
+        targetLang,
+        entityType,
+      );
+      if (isApproved(cachedValidation)) {
+        fieldHashes[fieldIdentity] = fieldHash;
+        fieldTranslationMetadata[fieldIdentity] = {
+          sourceHash: fieldHash,
+          qualityScore: cachedValidation.qualityScore,
+          validatedAt: new Date(),
+        };
+        return { value: cachedFieldTranslation.translatedText, validation: cachedValidation };
       }
     }
 
     const workKey = getProductFieldWorkKey({
       productId: String(productId),
       targetLang,
-      field,
+      field: fieldIdentity,
       source: sourceText,
+      policySignature: translationPolicy,
     });
     const completed = getCompletedResult(checkpoint, workKey);
-    if (completed?.payload && isApproved(completed.payload.validation)) {
+    if (completed?.payload?.fieldHash === fieldHash && isApproved(completed.payload.validation)) {
       providerUsed = true;
+      fieldHashes[fieldIdentity] = fieldHash;
+      fieldTranslationMetadata[fieldIdentity] = {
+        sourceHash: fieldHash,
+        qualityScore: completed.payload.validation.qualityScore,
+        validatedAt: new Date(),
+      };
       return { value: completed.payload.value, validation: completed.payload.validation };
     }
     const useApprovedCanonical = async validation => {
@@ -132,6 +235,9 @@ const retranslateProductUnlocked = async (
           validation: canonicalValidation,
           providersUsed: ['cloudflare'],
           catalogWorkKey,
+          fieldHash,
+          fieldIdentity,
+          translationPolicy,
         },
       }, true);
       return { value: canonical.translatedText, validation: canonicalValidation };
@@ -141,7 +247,7 @@ const retranslateProductUnlocked = async (
 
     const result = await productTranslationService.translateWithCloudflare(
       sourceText,
-      getDefaultLanguage().code,
+      sourceLang,
       targetLang,
     );
     providerUsed = true;
@@ -157,19 +263,28 @@ const retranslateProductUnlocked = async (
     }
     const accepted = isApproved(validation);
     if (!accepted) allFieldsVerified = false;
-    const storedValidation = accepted ? validation : currentValidation || validation;
+    const storedValidation = validation;
     await markCompletedDurably(checkpoint, workKey, {
       fixed: accepted,
-      validationErrors: storedValidation?.validationErrors || [],
-      ...(accepted ? {
-        payload: {
-          value: result.translatedText,
-          validation,
-          providersUsed: result.providersUsed || ['cloudflare'],
-          catalogWorkKey,
-        },
-      } : {}),
+      validationErrors: storedValidation.validationErrors || [],
+      payload: {
+        value: result.translatedText,
+        validation,
+        providersUsed: result.providersUsed || ['cloudflare'],
+        catalogWorkKey,
+        fieldHash,
+        fieldIdentity,
+        translationPolicy,
+      },
     }, true);
+    if (accepted) {
+      fieldHashes[fieldIdentity] = fieldHash;
+      fieldTranslationMetadata[fieldIdentity] = {
+        sourceHash: fieldHash,
+        qualityScore: validation.qualityScore,
+        validatedAt: new Date(),
+      };
+    }
     return {
       value: accepted ? result.translatedText : existingValue,
       validation: storedValidation,
@@ -279,7 +394,10 @@ const retranslateProductUnlocked = async (
     ? [...new Set(validationResults.flatMap(({ validationErrors: errors }) => errors))]
     : catalogTranslation?.validationErrors || [];
   const catalogUpdate = {
-    sourceHash: allFieldsVerified ? sourceHash : catalogTranslation?.sourceHash ?? null,
+    sourceHash,
+    translationPolicy,
+    fieldHashes,
+    fieldTranslationMetadata,
     name: nameResult.value ?? product.name,
     description: descResult.value,
     brand: catalogTranslation?.brand ?? product.brand,
@@ -293,6 +411,57 @@ const retranslateProductUnlocked = async (
     validationErrors,
     manualFields,
   };
+  const candidateApproved = allFieldsVerified
+    && qualityStatus === 'approved'
+    && validationErrors.length === 0;
+  if (!candidateApproved) {
+    await ensureCurrentSource(productId, sourceHash);
+    const candidateTranslation = {
+      ...catalogUpdate,
+      qualityStatus,
+      validationErrors,
+    };
+    const candidateFields = {
+      candidateTranslation,
+      candidateQualityStatus: qualityStatus,
+      candidateValidationErrors: validationErrors,
+      candidateSourceHash: sourceHash,
+      candidateTranslationPolicy: translationPolicy,
+      candidateUpdatedAt: new Date(),
+    };
+    const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
+      { entityId: productId, targetLang },
+      {
+        $set: candidateFields,
+        $setOnInsert: {
+          entityId: String(productId),
+          targetLang,
+          name: String(product.name || ''),
+          sourceHash: null,
+          status: 'pending_retry',
+          qualityStatus: 'needs_retranslate',
+          validationErrors: ['candidate_needs_review'],
+        },
+      },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+    ).lean();
+    await markCompletedDurably(checkpoint, catalogWorkKey, {
+      fixed: false,
+      validationErrors,
+      payload: { candidateTranslation, candidateQualityStatus: qualityStatus },
+    }, true);
+    await refreshStorefrontReadiness([productId]);
+    return {
+      translation,
+      candidateTranslation,
+      committed: false,
+      fixed: false,
+      candidateQualityStatus: qualityStatus,
+      validationErrors,
+      sourceHash,
+      skippedManualFields: manualFields,
+    };
+  }
   if (providerUsed) {
     Object.assign(catalogUpdate, {
       provider: 'cloudflare',
@@ -302,9 +471,20 @@ const retranslateProductUnlocked = async (
       lastTranslatedAt: new Date(),
     });
   }
+  await ensureCurrentSource(productId, sourceHash);
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
-    { $set: catalogUpdate },
+    {
+      $set: catalogUpdate,
+      $unset: {
+        candidateTranslation: '',
+        candidateQualityStatus: '',
+        candidateValidationErrors: '',
+        candidateSourceHash: '',
+        candidateTranslationPolicy: '',
+        candidateUpdatedAt: '',
+      },
+    },
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   ).lean();
 
@@ -331,7 +511,15 @@ const retranslateProductUnlocked = async (
   });
 
   await refreshStorefrontReadiness([productId]);
-  return { translation, skippedManualFields: manualFields };
+  return {
+    translation,
+    committed: true,
+    fixed: translation.qualityStatus === 'approved' && (translation.validationErrors || []).length === 0,
+    candidateQualityStatus: translation.qualityStatus,
+    validationErrors: translation.validationErrors || [],
+    sourceHash,
+    skippedManualFields: manualFields,
+  };
 };
 
 const retranslateProduct = async (productId, targetLang, options = {}) => {
@@ -343,4 +531,4 @@ const retranslateProduct = async (productId, targetLang, options = {}) => {
   }
 };
 
-module.exports = { retranslateProduct };
+module.exports = { getTranslationPolicySignature, retranslateProduct };

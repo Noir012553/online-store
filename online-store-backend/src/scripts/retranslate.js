@@ -3,6 +3,7 @@ const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const mongoose = require('mongoose');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
+const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const {
   acquireDatabaseLock,
@@ -60,6 +61,7 @@ async function main() {
       verbose: true,
       concurrency: 1,
       retryUnresolved: args.includes('--retry-unresolved'),
+      translationPolicy: productCatalogRetranslationService.getTranslationPolicySignature(),
     };
 
     // Parse filter
