@@ -250,7 +250,9 @@ test('retrying unresolved work clears rejected fields but preserves approved fie
       source: 'Source name',
     });
     markCompleted(checkpoint, unresolvedKey, { fixed: false, validationErrors: ['quality_low'] });
-    markCompleted(checkpoint, fieldKey, { payload: { value: 'Old result' } });
+    markCompleted(checkpoint, fieldKey, {
+      payload: { value: 'Old result', catalogWorkKey: unresolvedKey },
+    });
     const approvedFieldKey = getProductFieldWorkKey({
       productId: 'product-1',
       targetLang: 'en',
@@ -261,6 +263,7 @@ test('retrying unresolved work clears rejected fields but preserves approved fie
       payload: {
         value: 'Approved result',
         validation: { qualityStatus: 'approved', validationErrors: [] },
+        catalogWorkKey: unresolvedKey,
       },
     });
     markCompleted(checkpoint, 'catalog:fr:product-2:source-v1', { fixed: false });
@@ -279,6 +282,45 @@ test('retrying unresolved work clears rejected fields but preserves approved fie
         { filter: { signature: checkpoint.signature, key: fieldKey }, update: { $set: { deleted: true, payload: null } }, upsert: true },
         { filter: { signature: checkpoint.signature, key: unresolvedKey }, update: { $set: { deleted: true, payload: null } }, upsert: true },
       ]);
+    } finally {
+      bulkWrite.restore();
+    }
+  });
+});
+
+test('retrying unresolved work clears orphaned product field checkpoints for the selected language', async () => {
+  await withTempDirectory(async directory => {
+    const checkpoint = openCheckpoint(options, directory);
+    const orphanKey = getProductFieldWorkKey({
+      productId: 'product-orphan',
+      targetLang: 'en',
+      field: 'name',
+      source: 'Source name',
+    });
+    const staleCatalogKey = 'catalog:en:product-orphan:old-source-v1';
+    const otherLanguageOrphanKey = getProductFieldWorkKey({
+      productId: 'product-orphan-fr',
+      targetLang: 'fr',
+      field: 'name',
+      source: 'Source name',
+    });
+    markCompleted(checkpoint, staleCatalogKey, { fixed: true });
+    markCompleted(checkpoint, orphanKey, {
+      payload: {
+        value: 'Partial output',
+        validation: { qualityStatus: 'approved', validationErrors: [] },
+        catalogWorkKey: 'catalog:en:product-orphan:new-source-v2',
+      },
+    });
+    markCompleted(checkpoint, otherLanguageOrphanKey, { payload: { value: 'French partial output' } });
+    const bulkWrite = sinon.stub(RetranslationProgress, 'bulkWrite').resolves({});
+
+    try {
+      assert.equal(await clearUnfixedCheckpointEntries(checkpoint, { lang: 'en' }), 0);
+      assert.equal(hasCompleted(checkpoint, orphanKey), false);
+      assert.equal(hasCompleted(checkpoint, otherLanguageOrphanKey), true);
+      assert.equal(hasCompleted(checkpoint, staleCatalogKey), true);
+      assert.deepEqual(bulkWrite.firstCall.args[0].map(({ updateOne }) => updateOne.filter.key), [orphanKey]);
     } finally {
       bulkWrite.restore();
     }

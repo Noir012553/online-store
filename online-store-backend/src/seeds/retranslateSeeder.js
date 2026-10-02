@@ -47,6 +47,9 @@ class RetranslateSeeder {
       totalToRetranslate: 0,
       matchedCount: 0,
       scheduledCount: 0,
+      startedCount: 0,
+      completedCount: 0,
+      notStartedCount: 0,
       resumedCount: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
@@ -77,6 +80,9 @@ class RetranslateSeeder {
       totalToRetranslate: 0,
       matchedCount: 0,
       scheduledCount: 0,
+      startedCount: 0,
+      completedCount: 0,
+      notStartedCount: 0,
       resumedCount: 0,
       fixedCount: 0,
       stillBrokenCount: 0,
@@ -117,10 +123,6 @@ class RetranslateSeeder {
       ...(lang ? { targetLang: lang } : {}),
     });
 
-    const completedTranslationCount = checkpoint
-      ? [...checkpoint.completed.keys()].filter(key => !key.startsWith('product-field:')).length
-      : 0;
-    const candidateFetchLimit = limit > 0 ? limit + completedTranslationCount : 0;
     let liveQuery = LiveTranslationCache.find(
       query,
       '_id hashKey originalText translatedText sourceLang targetLang entityId entityType specKey fieldKey version provider qualityScore validationErrors createdAt',
@@ -129,10 +131,6 @@ class RetranslateSeeder {
       catalogQuery,
       '_id entityId targetLang sourceHash name validationErrors status qualityStatus createdAt',
     ).sort({ createdAt: 1, _id: 1 });
-    if (candidateFetchLimit > 0) {
-      liveQuery = liveQuery.limit(candidateFetchLimit);
-      catalogQueryBuilder = catalogQueryBuilder.limit(candidateFetchLimit);
-    }
     const [liveTranslations, catalogTranslations] = await Promise.all([
       liveQuery.lean(),
       requestedEntityType ? [] : catalogQueryBuilder.lean(),
@@ -257,6 +255,7 @@ class RetranslateSeeder {
               continue;
             }
 
+            this.stats.startedCount++;
             if (translation.retranslateSource === 'catalog') {
               const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
                 translation.entityId,
@@ -307,6 +306,7 @@ class RetranslateSeeder {
                 translation.targetLang,
               );
               await renewDatabaseLock?.();
+              this.stats.completedCount++;
               continue;
             }
 
@@ -478,6 +478,7 @@ class RetranslateSeeder {
               validationErrors: newValidationErrors,
             });
             await renewDatabaseLock?.();
+            this.stats.completedCount++;
           } catch (error) {
             const recordLabel = String(translation.name || translation.originalText || translation._id)
               .replace(/\s+/g, ' ')
@@ -528,6 +529,7 @@ class RetranslateSeeder {
       await clearFixedCheckpointEntries(checkpoint, toRetranslate.map(getWorkKey));
     }
 
+    this.stats.notStartedCount = Math.max(0, this.stats.scheduledCount - this.stats.startedCount);
     const fixedThisRun = this.stats.fixedCount - resumedFixedCount;
     this.stats.remainingCount = Math.max(0, pendingToRetranslate.length - fixedThisRun)
       + resumedNeedsAttention.length;
@@ -538,6 +540,9 @@ class RetranslateSeeder {
         input: {
           totalToRetranslate: this.stats.matchedCount,
           scheduledCount: this.stats.scheduledCount,
+          startedCount: this.stats.startedCount,
+          completedCount: this.stats.completedCount,
+          notStartedCount: this.stats.notStartedCount,
           resumedCount: this.stats.resumedCount,
         },
         results: {
@@ -561,6 +566,9 @@ class RetranslateSeeder {
         {
           totalToRetranslate: this.stats.matchedCount,
           scheduledCount: this.stats.scheduledCount,
+          startedCount: this.stats.startedCount,
+          completedCount: this.stats.completedCount,
+          notStartedCount: this.stats.notStartedCount,
           resumedCount: this.stats.resumedCount,
           filters: { ...filter, lang, entityType, limit },
         },

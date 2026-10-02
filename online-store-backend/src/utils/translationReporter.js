@@ -68,12 +68,17 @@ class TranslationReporter {
       input: {
         totalToRetranslate: beforeStats.totalToRetranslate,
         scheduledCount: beforeStats.scheduledCount ?? beforeStats.totalToRetranslate,
+        startedCount: beforeStats.startedCount || 0,
+        completedCount: beforeStats.completedCount || 0,
+        notStartedCount: beforeStats.notStartedCount || 0,
         resumedCount: beforeStats.resumedCount || 0,
         filters: beforeStats.filters || {},
       },
       results: {
         fixedSuccessfully: afterStats.fixedCount || 0,
         stillHasIssues: afterStats.stillBrokenCount || 0,
+        errors: afterStats.errorCount || 0,
+        remaining: afterStats.remainingCount || 0,
       },
       detailedBreakdown: afterStats.breakdown || {},
       stillNeedsAttention: [],

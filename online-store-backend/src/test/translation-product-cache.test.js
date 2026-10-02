@@ -324,6 +324,57 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('counts all matching jobs when only a limited batch is scheduled', async () => {
+    const candidates = Array.from({ length: 3 }, (_, index) => ({
+      _id: new mongoose.Types.ObjectId(),
+      entityId: new mongoose.Types.ObjectId().toString(),
+      targetLang: targetLanguage.code,
+      sourceHash: `source-${index}`,
+      name: `Product ${index}`,
+      qualityStatus: 'needs_retranslate',
+      validationErrors: ['needs_retranslate'],
+    }));
+    const liveQuery = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    const catalogQuery = {
+      sort: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(candidates),
+    };
+    const liveFind = sandbox.stub(LiveTranslationCache, 'find').returns(liveQuery);
+    const catalogFind = sandbox.stub(ProductCatalogTranslationCache, 'find').returns(catalogQuery);
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct')
+      .callsFake(async entityId => ({
+        translation: {
+          _id: entityId,
+          sourceHash: `source-${candidates.findIndex(({ entityId: id }) => id === entityId)}`,
+          qualityStatus: 'approved',
+          validationErrors: [],
+        },
+      }));
+    sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
+    sandbox.stub(translationReporter, 'saveReport');
+
+    const result = await retranslateSeeder.retranslate({ limit: 1, verbose: false });
+
+    expect(liveFind.calledOnce).to.be.true;
+    expect(catalogFind.calledOnce).to.be.true;
+    expect(liveQuery.sort.calledOnce).to.be.true;
+    expect(catalogQuery.sort.calledOnce).to.be.true;
+    expect(retranslateProduct.calledOnce).to.be.true;
+    expect(result.stats.matchedCount).to.equal(3);
+    expect(result.stats.scheduledCount).to.equal(1);
+    expect(result.stats.startedCount).to.equal(1);
+    expect(result.stats.completedCount).to.equal(1);
+    expect(result.stats.notStartedCount).to.equal(0);
+    expect(result.stats.remainingCount).to.equal(2);
+  });
+
   it('deduplicates catalog and field-cache candidates into one product-language job', async () => {
     const entityId = new mongoose.Types.ObjectId().toString();
     const product = {
@@ -746,8 +797,8 @@ describe('Product translation cache controller', () => {
 
   it('preserves repeated technical tokens while rejecting missing or introduced specs', () => {
     expect(translationValidator.checkTechnicalTokens(
-      'RTX 3050 4GB Core 5-210H',
-      'RTX 3050 4 GB Core 5-210H',
+      'RTX 3050 4GB Core 5-210H SKU-001',
+      'RTX 3050 4 GB Core 5-210H SKU-001',
     )).to.equal(null);
     expect(translationValidator.checkTechnicalTokens('16GB 1TB', '16GB'))
       .to.include({ error: 'missing_technical_token' });
@@ -756,6 +807,41 @@ describe('Product translation cache controller', () => {
     expect(translationValidator.checkTechnicalTokens('Win 11', 'Windows 11')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens('RTX 3050 RTX 3050', 'RTX 3050'))
       .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens('SKU-001', 'SKU-002'))
+      .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens('1.5GHz', '15GHz'))
+      .to.include({ error: 'missing_technical_token' });
+  });
+
+  it('includes job accounting in saved retranslation reports', async () => {
+    const report = await translationReporter.generateRetranslateReport({
+      totalToRetranslate: 7,
+      scheduledCount: 3,
+      startedCount: 2,
+      completedCount: 1,
+      notStartedCount: 1,
+      resumedCount: 1,
+    }, {
+      fixedCount: 2,
+      stillBrokenCount: 1,
+      errorCount: 1,
+      remainingCount: 4,
+    });
+
+    expect(report.input).to.include({
+      totalToRetranslate: 7,
+      scheduledCount: 3,
+      startedCount: 2,
+      completedCount: 1,
+      notStartedCount: 1,
+      resumedCount: 1,
+    });
+    expect(report.results).to.include({
+      fixedSuccessfully: 2,
+      stillHasIssues: 1,
+      errors: 1,
+      remaining: 4,
+    });
   });
 
   it('prints catalog validation issues without failing the retranslation report', async () => {
@@ -960,13 +1046,15 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
 
-    const result = await retranslateSeeder.retranslate({ verbose: false, concurrency: 1 });
+    const result = await retranslateSeeder.retranslate({ verbose: false, concurrency: 2 });
 
     expect(result.success).to.equal(false);
-    expect(result.stats.quotaExceededCount).to.equal(1);
-    expect(result.stats.errorCount).to.equal(1);
+    expect(result.stats.quotaExceededCount).to.equal(result.stats.errorCount);
+    expect(result.stats.errorCount).to.be.at.least(1).and.at.most(2);
+    expect(result.stats.startedCount).to.equal(productTranslationService.translateWithCloudflare.callCount);
+    expect(result.stats.startedCount).to.be.at.most(2);
+    expect(result.stats.notStartedCount).to.equal(translations.length - result.stats.startedCount);
     expect(result.stats.remainingCount).to.equal(translations.length);
-    expect(productTranslationService.translateWithCloudflare.calledOnce).to.equal(true);
   });
 
   it('retranslates independent records with the configured concurrency cap', async () => {
