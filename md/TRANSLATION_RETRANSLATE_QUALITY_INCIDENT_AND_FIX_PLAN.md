@@ -4,7 +4,7 @@
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái tài liệu:** ghi nhận sự cố và đề xuất kế hoạch; chưa thay đổi code, chưa chạy migration, chưa cập nhật database.
+**Trạng thái tài liệu:** đã triển khai một phần các bảo vệ trong code cho checkpoint, accounting/report và technical token. Chưa chạy migration, chưa truy cập/cập nhật database, chưa chạy retranslate hoặc canary. Luồng candidate-before-commit và kiểm thử đầy đủ vẫn còn tiếp tục.
 
 ## Số liệu ghi nhận
 

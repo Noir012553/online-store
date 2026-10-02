@@ -67,6 +67,7 @@ const retranslateProductUnlocked = async (
 
   const manualFields = catalogTranslation?.manualFields || [];
   const sourceHash = getProductTranslationSourceHash(product);
+  const catalogWorkKey = `catalog:${targetLang}:${productId}:${sourceHash}`;
   const sourceHashMatches = catalogTranslation?.sourceHash === sourceHash;
   let providerUsed = false;
   let allFieldsVerified = true;
@@ -130,6 +131,7 @@ const retranslateProductUnlocked = async (
           value: canonical.translatedText,
           validation: canonicalValidation,
           providersUsed: ['cloudflare'],
+          catalogWorkKey,
         },
       }, true);
       return { value: canonical.translatedText, validation: canonicalValidation };
@@ -164,6 +166,7 @@ const retranslateProductUnlocked = async (
           value: result.translatedText,
           validation,
           providersUsed: result.providersUsed || ['cloudflare'],
+          catalogWorkKey,
         },
       } : {}),
     }, true);

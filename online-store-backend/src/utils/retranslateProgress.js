@@ -30,7 +30,7 @@ const getSignaturePayload = options => ({
   limit: 0,
   dryRun: Boolean(options.dryRun),
   validate: options.validate !== false,
-  translationPolicy: 'cloudflare-only-quality-guard-v2',
+  translationPolicy: 'cloudflare-only-quality-guard-v3',
   checkpointScope: options.checkpointScope || null,
 });
 
@@ -302,7 +302,7 @@ const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter =
       !key.startsWith('product-field:')
       && !result.fixed
       && (!lang || key.startsWith(`catalog:${lang}:`))
-      && (!filter.validationErrors || result.validationErrors.includes(filter.validationErrors))
+      && (!filter.validationErrors || (result.validationErrors || []).includes(filter.validationErrors))
     ))
     .map(([key]) => key);
   const productJobs = [...new Set(unresolvedKeys
@@ -313,16 +313,22 @@ const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter =
     }))].map(job => JSON.parse(job));
   const fieldPrefixes = productJobs.map(([productId, targetLang]) => `product-field:${targetLang}:${productId}:`);
   const fieldKeys = [...checkpoint.completed]
-    .filter(([key, result]) => (
-      fieldPrefixes.some(prefix => key.startsWith(prefix))
-      && !(
-        result.payload?.validation?.qualityStatus === 'approved'
-        && (result.payload.validation.validationErrors || []).length === 0
-      )
-    ))
+    .filter(([key, result]) => {
+      if (!key.startsWith('product-field:') || (lang && !key.startsWith(`product-field:${lang}:`))) {
+        return false;
+      }
+      const isUnresolvedJobField = fieldPrefixes.some(prefix => key.startsWith(prefix))
+        && !(result.payload?.validation?.qualityStatus === 'approved'
+          && (result.payload.validation.validationErrors || []).length === 0);
+      const isOrphanField = !checkpoint.completed.has(result.payload?.catalogWorkKey)
+        && (!filter.validationErrors
+          || (result.payload?.validation?.validationErrors || result.validationErrors || [])
+            .includes(filter.validationErrors));
+      return isUnresolvedJobField || isOrphanField;
+    })
     .map(([key]) => key);
 
-  await clearCheckpointEntries(checkpoint, [...fieldKeys, ...unresolvedKeys]);
+  await clearCheckpointEntries(checkpoint, [...new Set([...fieldKeys, ...unresolvedKeys])]);
   return unresolvedKeys.length;
 };
 
