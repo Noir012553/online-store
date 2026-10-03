@@ -40,7 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# Runtime reports (auto-generated)
+# Runtime reports and database backups (auto-generated)
+/backups/
 /.retranslate-progress/
 /reports/translation/
 /reports/seed/

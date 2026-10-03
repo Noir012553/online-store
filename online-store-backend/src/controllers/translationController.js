@@ -1890,38 +1890,43 @@ exports.retranslateProduct = async (req, res) => {
 
     const checkpoint = retranslateProgress.openProductCheckpoint(checkpointScope);
     await retranslateProgress.hydrateCheckpoint(checkpoint);
-    const { translation, skippedManualFields } = await productCatalogRetranslationService.retranslateProduct(
+    const outcome = await productCatalogRetranslationService.retranslateProduct(
       productId,
       targetLang,
       { checkpoint },
     );
-    const validationErrors = translation.validationErrors || [];
+    const { translation, candidate, committed, skippedManualFields } = outcome;
+    const result = translation || candidate;
+    const validationErrors = candidate?.validationErrors || result.validationErrors || [];
     await retranslateProgress.markCompletedDurably(
       checkpoint,
       retranslateProgress.getWorkKey({
         retranslateSource: 'catalog',
         targetLang,
         entityId: productId,
-        sourceHash: translation.sourceHash,
+        sourceHash: candidate?.sourceHash || result.sourceHash,
       }),
       {
-        fixed: translation.qualityStatus === 'approved' && validationErrors.length === 0,
+        fixed: committed && result.qualityStatus === 'approved' && validationErrors.length === 0,
         validationErrors,
       },
       true,
     );
-    await retranslateProgress.clearProductFieldCheckpoint(checkpoint, productId, targetLang);
+    if (committed) {
+      await retranslateProgress.clearProductFieldCheckpoint(checkpoint, productId, targetLang);
+    }
 
     return res.json({
       success: true,
       data: {
         productId,
         lang: targetLang,
-        status: translation.qualityStatus,
-        canRetranslate: isCatalogProductRetranslatable(translation),
+        status: result.qualityStatus,
+        committed,
+        canRetranslate: isCatalogProductRetranslatable(result),
         skippedManualFields,
-        updatedAt: translation.updatedAt || translation.lastTranslatedAt || null,
-        validationErrors: translation.validationErrors || [],
+        updatedAt: translation?.updatedAt || translation?.lastTranslatedAt || null,
+        validationErrors,
       },
     });
   } catch (error) {

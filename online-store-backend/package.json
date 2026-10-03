@@ -34,6 +34,7 @@
     "audit:spec-key-cache": "node src/scripts/audit-spec-key-cache.js",
     "migrate:spec-key-cache": "node src/scripts/migrate-spec-key-cache.js",
     "backup:spec-key-cache": "node scripts/backup-spec-key-cache.js",
+    "backup:retranslation": "node scripts/backup-retranslation-data.js",
     "restore:spec-key-cache": "node scripts/restore-spec-key-cache.js",
     "seed:dry-run": "DRY_RUN=true node --expose-gc src/seeds/index.js -- --dry-run",
     "seed:incremental": "node --expose-gc src/seeds/index.js -- --incremental",

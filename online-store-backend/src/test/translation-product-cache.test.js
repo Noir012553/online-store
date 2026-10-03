@@ -307,6 +307,7 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: { ...candidate, qualityStatus: 'approved', validationErrors: [] },
+      committed: true,
       skippedManualFields: [],
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
@@ -356,6 +357,7 @@ describe('Product translation cache controller', () => {
           qualityStatus: 'approved',
           validationErrors: [],
         },
+        committed: true,
       }));
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
     sandbox.stub(translationReporter, 'saveReport');
@@ -432,6 +434,7 @@ describe('Product translation cache controller', () => {
           qualityStatus: 'approved',
           validationErrors: [],
         },
+        committed: true,
         skippedManualFields: [],
       };
     });
@@ -472,6 +475,7 @@ describe('Product translation cache controller', () => {
     });
     const retranslateProduct = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation: { ...candidate, qualityStatus: approved, validationErrors: [] },
+      committed: true,
       skippedManualFields: [],
     });
     sandbox.stub(translationReporter, 'printRetranslateReport');
@@ -514,6 +518,19 @@ describe('Product translation cache controller', () => {
 
     };
     const checkpoint = openCheckpoint(checkpointOptions, directory);
+    const productFieldKey = getProductFieldWorkKey({
+      productId: product._id.toString(),
+      targetLang: candidate.targetLang,
+      field: 'name',
+      source: product.name,
+    });
+    markCompleted(checkpoint, productFieldKey, {
+      payload: {
+        value: 'Cached product name',
+        validation: { qualityStatus: 'approved', validationErrors: [] },
+        catalogWorkKey: `catalog:${candidate.targetLang}:${candidate.entityId}:source-before`,
+      },
+    });
     const emptyLiveQuery = {
       sort: sandbox.stub().returnsThis(),
       lean: sandbox.stub().resolves([]),
@@ -537,6 +554,7 @@ describe('Product translation cache controller', () => {
         qualityStatus: 'needs_retranslate',
         validationErrors: ['needs_retranslate'],
       },
+      committed: false,
       skippedManualFields: [],
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
@@ -551,6 +569,7 @@ describe('Product translation cache controller', () => {
         sourceHash: getProductTranslationSourceHash(product),
         retranslateSource: 'catalog',
       }))).to.equal(true);
+      expect(hasCompleted(checkpoint, productFieldKey)).to.equal(true);
 
       const resumed = await retranslateSeeder.retranslate({ ...checkpointOptions, checkpoint, verbose: false });
 
@@ -684,7 +703,9 @@ describe('Product translation cache controller', () => {
     }
   });
 
-  it('retranslates only invalid fields and keeps the previous value when the new output fails validation', async () => {
+  it('keeps the catalog unchanged and checkpoints candidates that fail validation', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-candidate-'));
+    const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
     const productId = new mongoose.Types.ObjectId().toString();
     const product = {
       _id: new mongoose.Types.ObjectId(productId),
@@ -726,18 +747,29 @@ describe('Product translation cache controller', () => {
       }
       return { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] };
     });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
 
-    await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+    try {
+      const outcome = await productCatalogRetranslationService.retranslateProduct(productId, 'en', { checkpoint });
+      const descriptionKey = getProductFieldWorkKey({
+        productId,
+        targetLang: 'en',
+        field: 'description',
+        source: product.description,
+      });
 
-    expect(translate.calledOnceWith('Source description', 'vi', 'en')).to.be.true;
-    const update = findOneAndUpdate.firstCall.args[1].$set;
-    expect(update).to.include({
-      name: 'Translated laptop',
-      description: 'Previous description',
-      qualityStatus: 'pending',
-    });
-    expect(update.specs).to.deep.equal({ RAM: '16 GB' });
-    expect(update.validationErrors).to.deep.equal(['too_short']);
+      expect(translate.calledOnceWith('Source description', 'vi', 'en')).to.be.true;
+      expect(outcome.committed).to.equal(false);
+      expect(outcome.translation.description).to.equal('Previous description');
+      expect(outcome.candidate).to.include({ qualityStatus: 'pending' });
+      expect(outcome.candidate.validationErrors).to.deep.equal(['too_short']);
+      expect(outcome.candidate.name).to.equal('Translated laptop');
+      expect(findOneAndUpdate.called).to.equal(false);
+      expect(retranslateProgress.getCompletedResult(checkpoint, descriptionKey).payload.value)
+        .to.equal('Still too short');
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('retranslates a field when its checkpoint payload did not pass validation', async () => {
@@ -874,6 +906,7 @@ describe('Product translation cache controller', () => {
         name: 'MSI Laptop',
         validationErrors: ['missing_brand'],
       },
+      committed: false,
       skippedManualFields: [],
     });
     sandbox.stub(translationReporter, 'generateRetranslateReport').resolves({});
@@ -1102,6 +1135,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(translationReporter, 'saveReport');
 
     const result = await retranslateSeeder.retranslate({
+      entityType: 'product_name',
       verbose: false,
       concurrency: 2,
     });
@@ -1442,6 +1476,8 @@ describe('Product translation cache controller', () => {
     markCompletedDurably.resetHistory();
     const retranslate = sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
       translation,
+      candidate: translation,
+      committed: true,
       skippedManualFields: [],
     });
     const res = createResponse();
@@ -1461,6 +1497,54 @@ describe('Product translation cache controller', () => {
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it('reports uncommitted admin candidates without clearing their field checkpoint', async () => {
+    const productId = 'abcdefabcdefabcdefabcdef';
+    const targetLang = 'en';
+    const existingTranslation = {
+      entityId: productId,
+      targetLang,
+      sourceHash: 'old-source',
+      qualityStatus: 'needs_retranslate',
+      validationErrors: ['too_short'],
+      name: 'Existing translation',
+    };
+    const candidate = {
+      ...existingTranslation,
+      sourceHash: 'new-source',
+      validationErrors: ['missing_technical_token'],
+      name: 'Candidate translation',
+    };
+    sandbox.stub(Product, 'exists').resolves({ _id: productId });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves(existingTranslation),
+    });
+    sandbox.stub(LiveTranslationCache, 'find').returns({
+      limit: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    });
+    sandbox.stub(productCatalogRetranslationService, 'retranslateProduct').resolves({
+      translation: existingTranslation,
+      candidate,
+      committed: false,
+      skippedManualFields: [],
+    });
+    const res = createResponse();
+
+    await retranslateProduct({
+      params: { id: productId },
+      body: { lang: targetLang },
+      lang: 'en',
+    }, res);
+
+    expect(retranslateProgress.clearProductFieldCheckpoint.called).to.equal(false);
+    expect(res.json.firstCall.args[0].data).to.include({
+      status: 'needs_retranslate',
+      committed: false,
+      canRetranslate: true,
+    });
+    expect(res.json.firstCall.args[0].data.validationErrors).to.deep.equal(['missing_technical_token']);
   });
 
   it('skips admin retranslation when the product is not a CLI candidate', async () => {

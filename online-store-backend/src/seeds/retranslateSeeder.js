@@ -257,13 +257,18 @@ class RetranslateSeeder {
 
             this.stats.startedCount++;
             if (translation.retranslateSource === 'catalog') {
-              const { translation: updatedTranslation } = await productCatalogRetranslationService.retranslateProduct(
+              const outcome = await productCatalogRetranslationService.retranslateProduct(
                 translation.entityId,
                 translation.targetLang,
                 { checkpoint, parallelProducts: concurrency },
               );
-              const validationErrors = updatedTranslation.validationErrors || [];
-              const wasFixed = updatedTranslation.qualityStatus === 'approved' && validationErrors.length === 0;
+              const updatedTranslation = outcome.translation || outcome.candidate;
+              const validationErrors = outcome.candidate?.validationErrors
+                || updatedTranslation?.validationErrors
+                || [];
+              const wasFixed = outcome.committed
+                && updatedTranslation?.qualityStatus === 'approved'
+                && validationErrors.length === 0;
               if (wasFixed) {
                 this.stats.fixedCount++;
               } else {
@@ -277,7 +282,7 @@ class RetranslateSeeder {
                   });
                 }
               }
-              translation.validationErrors?.forEach(error => {
+              validationErrors.forEach(error => {
                 if (!this.stats.breakdown[error]) {
                   this.stats.breakdown[error] = { count: 0, fixed: 0, broken: 0 };
                 }
@@ -286,13 +291,15 @@ class RetranslateSeeder {
                 else this.stats.breakdown[error].broken++;
               });
               results.push({
-                status: 'success',
+                status: outcome.committed ? 'success' : 'needs-review',
                 originalId: translation._id,
-                newId: updatedTranslation._id,
+                newId: outcome.translation?._id || null,
                 wasFixed,
                 validationErrors,
               });
-              const updatedSourceHash = updatedTranslation.sourceHash || translation.sourceHash;
+              const updatedSourceHash = outcome.candidate?.sourceHash
+                || outcome.translation?.sourceHash
+                || translation.sourceHash;
               await markCompletedDurably(checkpoint, getWorkKey({
                 ...translation,
                 sourceHash: updatedSourceHash,
@@ -300,11 +307,13 @@ class RetranslateSeeder {
                 fixed: wasFixed,
                 validationErrors,
               });
-              await clearProductFieldCheckpoint(
-                checkpoint,
-                String(translation.entityId),
-                translation.targetLang,
-              );
+              if (wasFixed) {
+                await clearProductFieldCheckpoint(
+                  checkpoint,
+                  String(translation.entityId),
+                  translation.targetLang,
+                );
+              }
               await renewDatabaseLock?.();
               this.stats.completedCount++;
               continue;
