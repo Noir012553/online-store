@@ -279,7 +279,7 @@ function buildLegacyProductTranslation(translations, sourceProduct) {
   if (descriptionImageAlts.size > 0 && Array.isArray(sourceProduct?.descriptionImages)) {
     data.descriptionImages = sourceProduct.descriptionImages.map((image, index) => ({
       ...image,
-      alt: descriptionImageAlts.get(`descriptionImages.${index}.alt`) || image.alt || '',
+      alt: descriptionImageAlts.get(`descriptionImages.${index}.alt`) || '',
     }));
   }
   if (promotionTexts.size > 0 && Array.isArray(sourceProduct?.promotions)) {
@@ -287,7 +287,7 @@ function buildLegacyProductTranslation(translations, sourceProduct) {
       const localized = { ...promotion };
       ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
         const translation = promotionTexts.get(`promotions.${index}.${field}`);
-        if (translation) localized[field] = translation;
+        localized[field] = translation || '';
       });
       return localized;
     });
@@ -342,7 +342,7 @@ const getLegacyProductTranslationMap = async (products, targetLang) => {
     ]));
   } catch (error) {
     console.error('[translationHelper] Error fetching legacy product translations:', error);
-    return new Map();
+    throw error;
   }
 };
 
@@ -355,20 +355,21 @@ function getEmptyTranslatedField(entity, field) {
     return (entity.descriptionImages || []).map((image) => ({ ...image, alt: '' }));
   }
   if (field === 'promotions') {
-    return (entity.promotions || []).map((promotion) => ({
-      ...promotion,
-      title: '',
-      giftProductName: '',
-      scope: '',
-      discountText: '',
-    }));
+    const textFields = ['title', 'giftProductName', 'scope', 'discountText'];
+    return (entity.promotions || []).map((promotion) => {
+      const localized = { ...promotion };
+      textFields.forEach((textField) => {
+        if (textField in promotion) localized[textField] = '';
+      });
+      return localized;
+    });
   }
   return '';
 }
 
 function applyTranslationOverlay(entity, entityType, translation, targetLang) {
   if (!entity) return entity;
-  if (targetLang === getDefaultLanguage().code && !translation) return entity;
+  if (targetLang === getDefaultLanguage().code) return entity;
 
   const result = { ...entity };
   const translatableFields = TRANSLATABLE_FIELDS[entityType] || [];
@@ -391,13 +392,11 @@ function applyTranslationOverlay(entity, entityType, translation, targetLang) {
     if (field === 'promotions' && Array.isArray(value)) {
       result[field] = (entity.promotions || []).map((promotion, index) => {
         const translatedPromotion = value[index] || {};
-        return {
-          ...promotion,
-          title: translatedPromotion.title || '',
-          giftProductName: translatedPromotion.giftProductName || '',
-          scope: translatedPromotion.scope || '',
-          discountText: translatedPromotion.discountText || '',
-        };
+        const localized = { ...promotion };
+        ['title', 'giftProductName', 'scope', 'discountText'].forEach((textField) => {
+          if (textField in promotion) localized[textField] = translatedPromotion[textField] || '';
+        });
+        return localized;
       });
       return;
     }
@@ -445,10 +444,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
   }
 
   const CacheModel = CACHE_MODELS[entityType];
-  if (!CacheModel) {
-    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
-    return entities;
-  }
+  if (!CacheModel) throw new Error(`Unknown entity type: ${entityType}`);
 
   try {
     // Query tất cả translation cache cho batch này
@@ -542,10 +538,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
   }
 
   const CacheModel = CACHE_MODELS[entityType];
-  if (!CacheModel) {
-    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
-    return entity;
-  }
+  if (!CacheModel) throw new Error(`Unknown entity type: ${entityType}`);
 
   try {
     const entityId = entity._id?.toString() || entity.id;
@@ -604,10 +597,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
   }
 
   const CacheModel = CACHE_MODELS[entityType];
-  if (!CacheModel) {
-    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
-    return entity;
-  }
+  if (!CacheModel) throw new Error(`Unknown entity type: ${entityType}`);
 
   try {
     const entityId = entity._id?.toString() || entity.id;
@@ -669,7 +659,7 @@ async function applyTranslationCache(config) {
   if (!data) return data;
 
   const CacheModel = CACHE_MODELS[type];
-  if (!CacheModel) return data;
+  if (!CacheModel) throw new Error(`Unknown entity type: ${type}`);
 
   try {
     const ids = Array.isArray(data) ? data.map(d => d._id || d.id) : [data._id || data.id];
@@ -690,7 +680,7 @@ async function applyTranslationCache(config) {
     const mapTranslation = (entity) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId];
-      if (!translation && lang === getDefaultLanguage().code) return entity;
+      if (lang === getDefaultLanguage().code) return entity;
 
       const result = { ...entity };
       Object.entries(cacheFields).forEach(([originalField, translationField]) => {
@@ -807,10 +797,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
   }
 
   const CacheModel = CACHE_MODELS[entityType];
-  if (!CacheModel) {
-    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
-    return entities;
-  }
+  if (!CacheModel) throw new Error(`Unknown entity type: ${entityType}`);
 
   try {
     const entityIds = entities.map(e => e._id?.toString() || e.id);

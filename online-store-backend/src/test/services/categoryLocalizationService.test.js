@@ -55,7 +55,7 @@ describe('categoryLocalizationService', () => {
     });
   });
 
-  it('keeps source category values when no successful exact-language translation exists', async () => {
+  it('returns blank localized fields when no exact-language translation exists', async () => {
     const categoryId = new mongoose.Types.ObjectId();
     const product = {
       _id: new mongoose.Types.ObjectId(),
@@ -75,7 +75,7 @@ describe('categoryLocalizationService', () => {
       targetLang: 'en',
       status: 'success',
     })).to.be.true;
-    expect(localizedProduct.category).to.deep.equal(product.category);
+    expect(localizedProduct.category).to.deep.equal({ ...product.category, name: '', description: '' });
   });
 
   it('preserves products whose category is missing or not populated', async () => {

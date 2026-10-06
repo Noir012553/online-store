@@ -26,7 +26,10 @@ function SearchResultItem({
   const { t } = useTranslation();
   const { translation } = useProductTranslation(product._id);
   const displayName = useMemo(() => {
-    return getTranslatedValue(typeof product.name === 'object' ? product.name : translation?.name || product.name, locale);
+    const localizedName = typeof product.name === 'object'
+      ? getTranslatedValue(product.name, locale)
+      : '';
+    return translation?.name || localizedName;
   }, [product.name, translation, locale]);
 
   const displayCategory = useMemo(() => {

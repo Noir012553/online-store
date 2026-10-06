@@ -15,7 +15,6 @@ import { getIntlLocale } from '../../lib/localeUtils';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 
 function OrderItemName({ itemLaptop }: { itemLaptop: any }) {
-  const { locale } = useLanguage();
   const { translation } = useProductTranslation(itemLaptop.id || itemLaptop._id);
 
   const displayName = translation?.name || '';

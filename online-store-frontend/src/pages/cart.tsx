@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import { Trash2, Minus, Plus, ShoppingBag, CheckCircle } from "lucide-react";
 import { useCart } from "../lib/context/CartContext";
 import { useTranslation } from "../lib/i18n";
-import { useLanguage } from "../lib/i18n";
 import { useProductTranslation } from "../hooks/useProductTranslation";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
@@ -22,7 +21,6 @@ export const getServerSideProps = async () => {
 };
 
 function CartItemName({ itemLaptop }: { itemLaptop: any }) {
-  const { locale } = useLanguage();
   const { translation } = useProductTranslation(itemLaptop.id || itemLaptop._id);
 
   const displayName = translation?.name || '';

@@ -155,6 +155,21 @@ class ScraperRunnerTest(unittest.TestCase):
             ],
         )
 
+    def test_does_not_use_static_html_when_dynamic_render_fails(self):
+        response = Mock(status_code=200, text="<h1>Example Product</h1>")
+
+        with patch.dict("os.environ", {"SCRAPER_DYNAMIC_RENDER": "true"}), \
+             patch("scraper_runner.fetch_html", return_value=response), \
+             patch("scraper_runner.render_product_html", side_effect=RuntimeError("render failed")):
+            url, record = _scrape_product(
+                "https://gearvn.com/products/example",
+                "Brand",
+                "Category",
+            )
+
+        self.assertEqual(url, "https://gearvn.com/products/example")
+        self.assertIsNone(record)
+
     def test_builds_product_record_with_the_canonical_schema(self):
         soup = BeautifulSoup(
             """

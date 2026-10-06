@@ -161,6 +161,14 @@ class ScraperPathsTest(unittest.TestCase):
         )
         self.assertEqual(extract_product_promotions(soup)[0]["ProductPromotionType"], "Gift")
 
+    def test_does_not_use_open_graph_image_as_product_image(self):
+        soup = BeautifulSoup(
+            '<meta property="og:image" content="https://cdn.example.com/social.jpg">',
+            "html.parser",
+        )
+
+        self.assertEqual(extract_product_image_urls(soup), [])
+
     def test_extracts_description_from_escaped_next_payload(self):
         soup = BeautifulSoup(
             r'''
