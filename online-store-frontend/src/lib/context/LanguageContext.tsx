@@ -94,14 +94,11 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [loadedTranslations, setLoadedTranslations] = useState<Record<string, any>>({});
-  const [fallbackTranslations, setFallbackTranslations] = useState<Record<string, any>>({});
   const [loadingNamespaces, setLoadingNamespaces] = useState<Record<string, boolean>>({});
   const [isChangingLocale, setIsChangingLocale] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [localeConfigs, setLocaleConfigs] = useState<ActiveLocaleConfig[]>([]);
-  const fallbackKeysByNamespaceRef = useRef<Record<string, Set<string>>>({});
   const abortControllerRef = useRef<AbortController | null>(null);
-  const fallbackControllerRef = useRef<AbortController | null>(null);
   const namespacesToLoadRef = useRef<Set<Namespace>>(new Set());
   const missingTranslationWarningsRef = useRef(new Set<string>());
   const pendingLoadRef = useRef(false);
@@ -193,18 +190,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         // Create new AbortController for this language's requests
         const controller = new AbortController();
         abortControllerRef.current = controller;
-        fallbackKeysByNamespaceRef.current[cacheKey] = new Set();
-
-        const translations = await translationService.getStaticTranslations(
-          locale,
-          ns,
-          controller.signal,
-          (fallbackKeys) => {
-            if (!controller.signal.aborted) {
-              fallbackKeysByNamespaceRef.current[cacheKey] = new Set(fallbackKeys);
-            }
-          },
-        );
+        const translations = await translationService.getStaticTranslations(locale, ns, controller.signal);
 
         // Only update if request wasn't aborted
         if (!controller.signal.aborted) {
@@ -248,21 +234,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       loadNamespace('components');
       loadNamespace('pagination');
 
-      // Rule #1: Load fallback translations asynchronously for offline support
-      // This ensures translations are available even if namespace is not loaded yet
-      (async () => {
-        try {
-          const fallbacks = await translationService.getFallbackTranslations(locale, fallbackControllerRef.current?.signal);
-          if (!fallbackControllerRef.current?.signal.aborted) {
-            setFallbackTranslations(fallbacks);
-          }
-        } catch (error) {
-          // Silently fail - not critical for UI
-          if (error instanceof Error && error.name !== 'AbortError') {
-            console.debug('[LanguageContext] Fallback translations load skipped:', error.message);
-          }
-        }
-      })();
     }
   }, [isHydrated, locale, loadNamespace]);
 
@@ -300,10 +271,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        if (fallbackControllerRef.current) {
-          fallbackControllerRef.current.abort();
-        }
-
         // Clear namespace loading states (but KEEP translations from old locale as fallback)
         setLoadingNamespaces({});
         loadingRef.current = {};
@@ -316,17 +283,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         abortControllerRef.current = controller;
 
         const cacheKey = `${newLocale}_common`;
-        fallbackKeysByNamespaceRef.current[cacheKey] = new Set();
-        const translations = await translationService.getStaticTranslations(
-          newLocale,
-          'common',
-          controller.signal,
-          (fallbackKeys) => {
-            if (!controller.signal.aborted) {
-              fallbackKeysByNamespaceRef.current[cacheKey] = new Set(fallbackKeys);
-            }
-          },
-        );
+        const translations = await translationService.getStaticTranslations(newLocale, 'common', controller.signal);
 
         if (!controller.signal.aborted) {
           setLoadedTranslations((prev) => ({
@@ -338,17 +295,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           const productsController = new AbortController();
           abortControllerRef.current = productsController;
           const productsCacheKey = `${newLocale}_products`;
-          fallbackKeysByNamespaceRef.current[productsCacheKey] = new Set();
-          const productsTranslations = await translationService.getStaticTranslations(
-            newLocale,
-            'products',
-            productsController.signal,
-            (fallbackKeys) => {
-              if (!productsController.signal.aborted) {
-                fallbackKeysByNamespaceRef.current[productsCacheKey] = new Set(fallbackKeys);
-              }
-            },
-          );
+          const productsTranslations = await translationService.getStaticTranslations(newLocale, 'products', productsController.signal);
           if (!productsController.signal.aborted) {
             setLoadedTranslations((prev) => ({
               ...prev,
@@ -357,23 +304,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           }
         }
 
-        // Fetch fallback translations asynchronously (Rule #1: Offline support)
-        const fallbackController = new AbortController();
-        fallbackControllerRef.current = fallbackController;
-
-        translationService.getFallbackTranslations(newLocale, fallbackController.signal)
-          .then((fallbacks) => {
-            if (!fallbackController.signal.aborted) {
-              setFallbackTranslations(fallbacks);
-            }
-          })
-          .catch((error) => {
-            if (error instanceof Error && error.name !== 'AbortError') {
-              if (process.env.NODE_ENV === 'development') {
-                console.debug('[LanguageContext] Fallback translations load failed:', error.message);
-              }
-            }
-          });
       } finally {
         setIsChangingLocale(false);
       }
@@ -394,8 +324,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         console.warn(`[i18n] Missing ${locale}/${namespace}:${keyPath}; resolved from ${source}.`);
       };
 
-      const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath]
-        ?? LOCAL_UI_FALLBACKS.en?.[keyPath];
+      const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath];
       let namespaceData = loadedTranslations[cacheKey];
       const commonData = loadedTranslations[commonCacheKey];
 
@@ -408,25 +337,13 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       // Try to get translation from specific namespace first
       if (namespaceData) {
         const result = getNestedValue(namespaceData, keyPath);
-        if (result !== keyPath) {
-          if (fallbackKeysByNamespaceRef.current[cacheKey]?.has(keyPath)) {
-            warnMissingTranslation('the default locale');
-            return localFallback ?? result;
-          }
-          return result;
-        }
+        if (result !== keyPath) return result;
       }
 
       // Fallback to common namespace if not found in specific namespace
       if (commonData) {
         const result = getNestedValue(commonData, keyPath);
-        if (result !== keyPath) {
-          if (fallbackKeysByNamespaceRef.current[commonCacheKey]?.has(keyPath)) {
-            warnMissingTranslation('the default locale');
-            return localFallback ?? result;
-          }
-          return result;
-        }
+        if (result !== keyPath) return result;
       }
 
       // If still not found, search through all loaded namespaces
@@ -436,38 +353,16 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
           continue;
         }
         const result = getNestedValue(nsData, keyPath);
-        if (result !== keyPath) {
-          if (fallbackKeysByNamespaceRef.current[cKey]?.has(keyPath)) {
-            warnMissingTranslation('the default locale');
-            return localFallback ?? result;
-          }
-          return result;
-        }
-      }
-
-      // Try fallback translations if not found in loaded namespaces (Rule #1: Offline support)
-      if (fallbackTranslations && typeof fallbackTranslations === 'object') {
-        for (const nsData of Object.values(fallbackTranslations)) {
-          if (nsData && typeof nsData === 'object') {
-            const result = getNestedValue(nsData, keyPath);
-            if (result !== keyPath) {
-              if (fallbackTranslations.appliedLang && fallbackTranslations.appliedLang !== locale) {
-                warnMissingTranslation(`fallback locale ${fallbackTranslations.appliedLang}`);
-                return localFallback ?? result;
-              }
-              return result;
-            }
-          }
-        }
+        if (result !== keyPath) return result;
       }
 
       if (namespaceData || commonData) {
-        warnMissingTranslation(localFallback === undefined ? 'the translation key itself' : 'the local fallback dictionary');
+        warnMissingTranslation(localFallback === undefined ? 'the translation key itself' : 'the locale dictionary');
       }
 
       return localFallback ?? keyPath;
     },
-    [locale, loadedTranslations, fallbackTranslations, loadingNamespaces]
+    [locale, loadedTranslations, loadingNamespaces]
   );
 
   useEffect(() => {

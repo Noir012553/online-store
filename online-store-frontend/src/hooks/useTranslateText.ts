@@ -41,13 +41,15 @@ export function useTranslateText() {
         });
 
         if (!response.ok) {
-          return text;
+          throw new Error(`Translation request failed with status ${response.status}`);
         }
 
         const json = await response.json();
-        return json.data?.translatedText || text;
-      } catch (error) {
-        return text;
+        const translatedText = json.data?.translatedText;
+        if (typeof translatedText !== 'string' || !translatedText.trim()) {
+          throw new Error('Translation response did not contain translated text');
+        }
+        return translatedText;
       } finally {
         clearTimeout(timeoutId);
       }

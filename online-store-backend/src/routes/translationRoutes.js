@@ -150,8 +150,6 @@ router.post(
 );
 
 // Public routes
-router.get('/fallback', translationController.getFallbackTranslations);
-
 router.get('/health', translationController.getTranslationHealth);
 
 router.post('/translate', translationAiLimiter, translationController.translateText);

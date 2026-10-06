@@ -48,7 +48,7 @@ export function useLiveTranslation() {
       }
 
       if (pendingRequestsRef.current.has(translationKey)) {
-        return text;
+        return '';
       }
 
       const controller = new AbortController();
@@ -59,7 +59,7 @@ export function useLiveTranslation() {
         ...prev,
         [translationKey]: {
           originalText: text,
-          translatedText: text,
+          translatedText: '',
           isLoading: true,
           error: null,
         },
@@ -74,7 +74,7 @@ export function useLiveTranslation() {
           controller.signal
         );
 
-        if (controller.signal.aborted) return text;
+        if (controller.signal.aborted) return '';
 
         setTranslations((prev) => ({
           ...prev,
@@ -88,7 +88,7 @@ export function useLiveTranslation() {
         return result;
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') {
-          return text;
+          return '';
         }
 
         const errorMsg = err instanceof Error ? err.message : 'translation_failed';
@@ -96,12 +96,12 @@ export function useLiveTranslation() {
           ...prev,
           [translationKey]: {
             originalText: text,
-            translatedText: text,
+            translatedText: '',
             isLoading: false,
             error: errorMsg,
           },
         }));
-        return text;
+        return '';
       } finally {
         pendingRequestsRef.current.delete(translationKey);
         controllersRef.current.delete(translationKey);

@@ -8,16 +8,8 @@ const CACHE_TTL = 3600 * 1000; // 1 hour in milliseconds
 const cache = new Map();
 
 class TranslationCacheService {
-  /**
-   * Generate cache key
-   */
-  static getCacheKey(type, lang, namespace = null) {
-    if (type === 'fallback') {
-      return `fallback_${lang}_${namespace}`;
-    } else if (type === 'health') {
-      return `health_${lang}`;
-    }
-    return null;
+  static getCacheKey(type, lang) {
+    return type === 'health' ? `health_${lang}` : null;
   }
 
   /**

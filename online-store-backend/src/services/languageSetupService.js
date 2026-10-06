@@ -34,15 +34,12 @@ const runLanguageSetup = async (langCode) => {
     console.log(`[Language] ${CLI_SYMBOLS.location} Starting setup for ${langCode}`);
 
     try {
-      const clonedCount = await TranslationSeederService.cloneStaticTranslations(defaultLang, langCode);
-      if (clonedCount > 0) {
-        const { translatedCount, errorCount } = await TranslationSeederService.translateStaticTranslations(
-          langCode,
-          defaultLang,
-        );
-        setupFailed = errorCount > 0;
-        console.log(`[Language] ${CLI_SYMBOLS.check} Phase 1 ${langCode}: ${translatedCount} translated, ${errorCount} errors`);
-      }
+      const { translatedCount, errorCount } = await TranslationSeederService.translateStaticTranslations(
+        langCode,
+        defaultLang,
+      );
+      setupFailed = errorCount > 0;
+      console.log(`[Language] ${CLI_SYMBOLS.check} Phase 1 ${langCode}: ${translatedCount} translated, ${errorCount} errors`);
     } catch (error) {
       setupFailed = true;
       console.error(`[Language] ${CLI_SYMBOLS.error} Phase 1 failed for ${langCode}:`, error.message);

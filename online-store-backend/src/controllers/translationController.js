@@ -55,8 +55,7 @@ const saveTranslationCache = async (record) => {
   ).lean();
 };
 
-const invalidateStaticTranslationCache = (language, namespace) => {
-  TranslationCacheService.invalidate('fallback', language, namespace);
+const invalidateStaticTranslationCache = (language) => {
   TranslationCacheService.invalidate('health', language);
 };
 
@@ -173,7 +172,16 @@ const resolveTranslationRecord = async ({ hashKey, entityId, entityType, targetL
 exports.getStaticTranslations = async (req, res) => {
   try {
     let { lang, ns = 'common' } = req.query;
-    lang = getLanguageParam({ lang });
+    lang = String(lang || req.lang || '').trim().toLowerCase();
+    if (!getActiveLangCodes().includes(lang)) {
+      return sendTranslationError(
+        res,
+        400,
+        getRequestLanguage(req),
+        'TRANSLATION_LANGUAGE_UNSUPPORTED',
+        'language_unsupported',
+      );
+    }
 
     // Fallback to 'common' if namespace is empty string or invalid
     if (!ns || ns === 'undefined' || ns.trim() === '') {
@@ -196,35 +204,14 @@ exports.getStaticTranslations = async (req, res) => {
       isDeleted: false,
     });
 
-    const defaultLang = getDefaultLanguage().code;
-    const defaultLocalePath = path.join(__dirname, '../locales', defaultLang, `${ns}.json`);
     const localePath = path.join(__dirname, '../locales', lang, `${ns}.json`);
-    const defaultTranslations = lang !== defaultLang && fs.existsSync(defaultLocalePath)
-      ? JSON.parse(fs.readFileSync(defaultLocalePath, 'utf8'))
-      : {};
     const localeFileTranslations = fs.existsSync(localePath)
       ? JSON.parse(fs.readFileSync(localePath, 'utf8'))
       : {};
-    const databaseTranslations = translation?.translations || {};
     const translations = {
-      ...defaultTranslations,
-      ...databaseTranslations,
+      ...(translation?.translations || {}),
       ...localeFileTranslations,
     };
-    const defaultFlatTranslations = flattenJson(defaultTranslations);
-    const localizedFlatTranslations = {
-      ...flattenJson(databaseTranslations),
-      ...flattenJson(localeFileTranslations),
-    };
-    const fallbackKeys = lang === defaultLang
-      ? []
-      : Object.entries(defaultFlatTranslations)
-        .filter(([key, value]) => (
-          typeof value === 'string'
-          && (typeof localizedFlatTranslations[key] !== 'string'
-            || localizedFlatTranslations[key].trim() === '')
-        ))
-        .map(([key]) => key);
 
     if (Object.keys(translations).length === 0) {
       return sendTranslationError(
@@ -237,12 +224,6 @@ exports.getStaticTranslations = async (req, res) => {
     }
 
     const flattenedTranslations = flattenJson(translations);
-    fallbackKeys.forEach((key) => {
-      const fallbackValue = defaultFlatTranslations[key];
-      if (typeof fallbackValue === 'string') {
-        flattenedTranslations[key] = fallbackValue;
-      }
-    });
 
     res.set('Cache-Control', 'public, max-age=300');
     if (translation?._id) {
@@ -256,7 +237,6 @@ exports.getStaticTranslations = async (req, res) => {
         code: lang,
         namespace: ns,
         translations: flattenedTranslations,
-        fallbackKeys,
       },
     });
   } catch (error) {
@@ -3376,112 +3356,6 @@ exports.verifyTranslationConsistency = async (req, res) => {
     });
   } catch (error) {
     console.error('[TranslationController] Error verifying translation consistency:', error);
-    return sendTranslationError(
-      res,
-      500,
-      getRequestLanguage(req),
-      'TRANSLATION_OPERATION_FAILED',
-      'operation_failed'
-    );
-  }
-};
-
-/**
- * GET /api/translations/fallback
- * Return fallback chain for a language + namespace
- * Dynamic fallback: [requestedLang, DEFAULT_LANG, ...otherLanguages]
- * Supports all 9 languages: VI, EN, PT, FR, DE, IT, ES, NL, SV
- */
-exports.getFallbackTranslations = async (req, res) => {
-  try {
-    let { lang, ns = 'common' } = req.query;
-    const resolvedLang = req.lang || getLanguageParam({ lang });
-    const TranslationCacheService = require('../services/translationCacheService');
-
-    if (!resolvedLang) {
-      return res.status(400).json({
-        success: false,
-        code: 'TRANSLATION_LANGUAGE_REQUIRED',
-        message: getMessage(getRequestLanguage(req), 'admin-controllers-messages.lang_ns_required'),
-      });
-    }
-
-    // Fallback to 'common' if namespace is empty string or invalid
-    if (!ns || ns === 'undefined' || ns.trim() === '') {
-      ns = 'common';
-    }
-
-    // Check cache first
-    const cached = TranslationCacheService.get('fallback', resolvedLang, ns);
-    if (cached) {
-      res.set('Cache-Control', 'public, max-age=3600');
-      res.set('X-Cache', 'HIT');
-      return res.json({
-        success: true,
-        data: cached,
-      });
-    }
-
-    // Fallback chain: [requested lang, default lang, then all other active languages]
-    const DEFAULT_LANG = getDefaultLanguage().code;
-    const allActiveLangs = getActiveLangCodes();
-    const fallbackChain = [
-      resolvedLang,
-      DEFAULT_LANG,
-      ...allActiveLangs.filter(l => l !== resolvedLang && l !== DEFAULT_LANG)
-    ];
-
-    let translation = null;
-    let appliedLang = null;
-
-    // Try each language in fallback chain
-    for (const fallbackLang of fallbackChain) {
-      translation = await StaticTranslation.findOne({
-        code: fallbackLang,
-        namespace: ns,
-        isDeleted: false,
-      }).lean();
-
-      if (translation) {
-        appliedLang = fallbackLang;
-        break;
-      }
-    }
-
-    if (!translation) {
-      return res.status(404).json({
-        success: false,
-        code: 'TRANSLATION_FALLBACK_NOT_FOUND',
-        message: getMessage(resolvedLang, 'admin-controllers-messages.translations_not_found_in_fallback_chain', { ns }),
-      });
-    }
-
-    // Flatten translations
-    const { flattenJson } = require('../utils/jsonFlattener');
-    const flattenedTranslations = flattenJson(translation.translations);
-
-    const responseData = {
-      requestedLang: resolvedLang,
-      appliedLang,
-      fallbackChain,
-      fallbackUsed: appliedLang !== resolvedLang,
-      namespace: ns,
-      translations: flattenedTranslations,
-    };
-
-    // Cache the response
-    TranslationCacheService.set('fallback', resolvedLang, responseData, ns);
-
-    // Set cache headers
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.set('X-Cache', 'MISS');
-
-    res.json({
-      success: true,
-      data: responseData,
-    });
-  } catch (error) {
-    console.error('[TranslationController] Error fetching fallback translations:', error);
     return sendTranslationError(
       res,
       500,

@@ -103,28 +103,17 @@ export interface Review {
 }
 
 /**
- * Get translated value from object with locale keys (Rule #2: Dynamic Data Translations)
- * Handles both {vi: ..., en: ...} format and fallbacks
+ * Get translated value from an object with locale keys.
  */
-export const getTranslatedValue = (value: any, locale: string = DEFAULT_LOCALE, fallbackToAny: boolean = true): string => {
+export const getTranslatedValue = (value: any, locale: string = DEFAULT_LOCALE): string => {
   if (!value) return '';
 
   // If it's an object with locale-specific values
   if (typeof value === 'object' && value !== null) {
-    // Try exact locale match first
-    if (value[locale]) {
-      return String(value[locale]).trim();
-    }
-    // Fallback to any available locale value
-    if (fallbackToAny) {
-      const firstValue = Object.values(value).find(v => v);
-      if (firstValue) {
-        return String(firstValue).trim();
-      }
-    }
+    const localizedValue = value[locale];
+    return typeof localizedValue === 'string' ? localizedValue.trim() : '';
   }
 
-  // Fallback to string conversion
   return String(value).trim();
 };
 
@@ -180,11 +169,6 @@ export const getProductName = (productValue: any, locale?: string): string => {
         // Try locale-specific first
         if (productValue.name[lang]) {
           return String(productValue.name[lang]).trim();
-        }
-        // Fallback to first available value in the object
-        const firstValue = Object.values(productValue.name).find(v => v);
-        if (firstValue) {
-          return String(firstValue).trim();
         }
       }
       // Otherwise treat name as string
