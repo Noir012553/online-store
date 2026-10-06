@@ -132,10 +132,11 @@ class BaseImportAdapter {
       ? (Array.isArray(product.ProductDescriptionImages)
         ? product.ProductDescriptionImages.map(image => {
           const sourceUrl = image?.ProductDescriptionImageURL || image?.url || image?.sourceUrl;
-          const hasLocalPath = Object.hasOwn(image || {}, 'ProductDescriptionImageLocalPath');
+          const assetPath = image?.ProductDescriptionImageLocalPath;
           return {
-            url: image?.ProductDescriptionImageLocalPath || (hasLocalPath ? '' : sourceUrl),
+            url: sourceUrl,
             sourceUrl,
+            ...(assetPath ? { assetPath } : {}),
             alt: image?.ProductDescriptionImageAlt || image?.alt || '',
           };
         })
@@ -156,11 +157,33 @@ class BaseImportAdapter {
         : product.ProductPromotions)
       : undefined;
     const sourceMainImage = getCrawlerValue('ProductMainImage', 'MainImage');
-    const localMainImage = isNewCrawlerProduct ? product.ProductMainImageLocalPath : product.MainImageLocalPath;
+    const mainLocalKey = isNewCrawlerProduct ? 'ProductMainImageLocalPath' : 'MainImageLocalPath';
+    const localMainImage = product[mainLocalKey];
     const sourceGalleryImages = parseCrawlerArray(getCrawlerValue('ProductGalleryImages', 'GalleryImages'));
-    const localGalleryImages = parseCrawlerArray(
-      isNewCrawlerProduct ? product.ProductGalleryImageLocalPaths : product.GalleryImageLocalPaths,
-    );
+    const galleryLocalKey = isNewCrawlerProduct ? 'ProductGalleryImageLocalPaths' : 'GalleryImageLocalPaths';
+    const localGalleryImages = parseCrawlerArray(product[galleryLocalKey]);
+    const imagePreparationFailures = [];
+    if (Object.hasOwn(product, mainLocalKey) && sourceMainImage && !String(localMainImage || '').trim()) {
+      imagePreparationFailures.push({ role: 'main', sourceUrl: String(sourceMainImage) });
+    }
+    if (Object.hasOwn(product, galleryLocalKey) && Array.isArray(sourceGalleryImages) && Array.isArray(localGalleryImages)) {
+      sourceGalleryImages.forEach((sourceUrl, index) => {
+        if (sourceUrl && !String(localGalleryImages[index] || '').trim()) {
+          imagePreparationFailures.push({ role: 'gallery', index, sourceUrl: String(sourceUrl) });
+        }
+      });
+    }
+    const sourceDescriptionImages = isNewCrawlerProduct ? product.ProductDescriptionImages : product.DescriptionImages;
+    if (Array.isArray(sourceDescriptionImages)) {
+      sourceDescriptionImages.forEach((image, index) => {
+        if (!image || typeof image !== 'object' || !Object.hasOwn(image, 'ProductDescriptionImageLocalPath')) return;
+        const sourceUrl = image.ProductDescriptionImageURL || image.url || image.sourceUrl;
+        if (sourceUrl && !String(image.ProductDescriptionImageLocalPath || '').trim()) {
+          imagePreparationFailures.push({ role: 'description', index, sourceUrl: String(sourceUrl) });
+        }
+      });
+    }
+    if (imagePreparationFailures.length > 0) normalized.imagePreparationFailures = imagePreparationFailures;
     normalized.image = localMainImage || sourceMainImage;
     const hasLocalGallery = Array.isArray(localGalleryImages);
     normalized.images = Array.isArray(sourceGalleryImages)

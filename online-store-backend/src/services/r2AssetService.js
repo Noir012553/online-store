@@ -353,6 +353,7 @@ const uploadBuffer = async (buffer, options = {}) => {
         }),
         policy.maxRetries,
       );
+      options.onAssetCreated?.(reference);
     } catch (error) {
       releaseUploadBudget(buffer.length);
       throw error;

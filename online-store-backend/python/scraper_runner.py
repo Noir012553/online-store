@@ -482,7 +482,7 @@ def run_scraper(script_path, collection_slug):
         file_prefix,
         batch_directory,
     )
-    main_image_failures, gallery_image_failures = process_product_images(
+    main_image_failures, gallery_image_failures, description_image_failures = process_product_images(
         json_path,
         get_output_directory(),
         batch_id=run_id,
@@ -504,6 +504,8 @@ def run_scraper(script_path, collection_slug):
         print(f"⚠️ Không tải được ảnh chính: {failure}")
     for failure in gallery_image_failures:
         print(f"⚠️ Không tải được ảnh gallery: {failure}")
+    for failure in description_image_failures:
+        print(f"⚠️ Không tải được ảnh mô tả: {failure}")
     print(f">>> Hoàn thành: {len(records)} sản phẩm")
     print(f"- {csv_path}")
     print(f"- {json_path}")
