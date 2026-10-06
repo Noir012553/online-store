@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 
 from scraper_paths import PRODUCT_OUTPUT_FIELDS
 from scraper_runner import (
+    _load_product_soup,
     _product_record,
     _scrape_product,
     build_staging_records,
@@ -109,6 +110,43 @@ class ScraperRunnerTest(unittest.TestCase):
         )
 
         self.assertEqual(extract_product_specs(soup), {"Dòng CPU": "Core 5-210H"})
+
+    def test_renders_when_description_image_has_competing_source_urls(self):
+        static_html = """
+            <h1>Example Product</h1>
+            <section>
+              <h3>Thông số nổi bật</h3>
+              <div class="min-w-0"><p>Kết nối</p><div>USB</div></div>
+            </section>
+            <div class="news-html-content">
+              <img src="//file.example.com/stale.jpg" data-src="//cdn.example.com/active.jpg">
+            </div>
+        """
+        rendered_html = """
+            <h1>Example Product</h1>
+            <section>
+              <h3>Thông số nổi bật</h3>
+              <div class="min-w-0"><p>Kết nối</p><div>USB</div></div>
+            </section>
+            <div class="news-html-content">
+              <img src="//file.example.com/stale.jpg" data-src="//cdn.example.com/active.jpg"
+                   data-scraper-current-src="//cdn.example.com/active.jpg">
+            </div>
+        """
+
+        with patch("scraper_runner._dynamic_render_enabled", return_value=True) as dynamic_render, patch(
+            "scraper_runner.render_product_html",
+            return_value=rendered_html,
+        ) as render:
+            soup = _load_product_soup("https://gearvn.com/products/example", static_html)
+
+        dynamic_render.assert_called_once()
+
+        render.assert_called_once_with("https://gearvn.com/products/example")
+        self.assertEqual(
+            extract_product_description_images(soup)[0]["ProductDescriptionImageURL"],
+            "https://cdn.example.com/active.jpg",
+        )
 
     def test_renders_dynamic_html_when_static_product_fields_are_missing(self):
         static_html = "<h1>Example Product</h1>"

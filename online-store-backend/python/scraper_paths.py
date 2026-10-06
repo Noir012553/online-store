@@ -392,6 +392,28 @@ def extract_product_description(soup):
     return content.get_text(" ", strip=True)
 
 
+def has_competing_description_image_sources(soup):
+    content = _description_container(soup)
+    if not content:
+        return False
+
+    for image in content.select('img'):
+        candidates = set()
+        for attribute in ("src", "srcset", "data-src", "data-srcset", "data-original"):
+            value = str(image.get(attribute) or "").strip()
+            if not value:
+                continue
+            values = (
+                [candidate.strip().split()[0] for candidate in value.split(",") if candidate.strip()]
+                if "srcset" in attribute
+                else [value]
+            )
+            candidates.update(_absolute_image_url(candidate) for candidate in values)
+        if len(candidates) > 1:
+            return True
+    return False
+
+
 def extract_product_description_images(soup):
     content = _description_container(soup)
     if not content:
