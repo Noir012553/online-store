@@ -263,6 +263,10 @@ function validateProduct(product, rowIndex = 0, options = {}) {
   }
   const warnings = [];
   const cleaned = {};
+  for (const failure of Array.isArray(product.imagePreparationFailures) ? product.imagePreparationFailures : []) {
+    const slot = failure.index === undefined ? failure.role : `${failure.role} ${failure.index + 1}`;
+    errors.push(`Row ${rowIndex}: Failed to prepare ${slot} image`);
+  }
 
   // Check required fields
   const requiredFields = options.requireComplete ? COMPLETE_REQUIRED_FIELDS : REQUIRED_FIELDS;
@@ -598,6 +602,9 @@ function validateProduct(product, rowIndex = 0, options = {}) {
     cleaned.description = sanitizeDescriptionText(product.description);
   } else {
     cleaned.description = '';
+  }
+  if (options.requireDescriptionImage && cleaned.description.trim() && !cleaned.descriptionImages?.length) {
+    errors.push(`Row ${rowIndex}: Description requires at least one image`);
   }
 
   return {

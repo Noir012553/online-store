@@ -246,7 +246,7 @@ const getProductImagePublicId = (product, slot, index = 0) => (
   `${getProductIdentityHash(product)}/${slot}${slot === 'gallery' ? `-${index}` : ''}`
 );
 
-const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = {}) => {
+const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = {}, createdAssets = []) => {
   const normalizedSource = String(sourceUrl || '').trim();
   if (!normalizedSource) throw new Error('Thiếu nguồn ảnh sản phẩm');
   const source = /^https?:\/\//i.test(normalizedSource)
@@ -257,6 +257,7 @@ const uploadProductImage = async (sourceUrl, publicId, role = 'main', product = 
     stableKey: publicId,
     publicKey: product.sourceProductId || product.sku || product.sourceUrl,
     storagePrefix: getProductStoragePrefix(product, role),
+    onAssetCreated: reference => createdAssets.push(reference),
   });
   return {
     ...asset,
@@ -275,48 +276,48 @@ const getProductImageErrorMessage = (error) => {
 };
 
 const uploadProductImages = async (product) => {
+  const createdAssets = [];
   const sourceImage = String(product.image || '').trim();
   const sourceGallery = Array.isArray(product.images)
     ? product.images.map(image => String(image || '').trim()).filter(Boolean)
     : [];
 
-  const mainImage = await uploadProductImage(
-    sourceImage,
-    getProductImagePublicId(product, 'main'),
-    'main',
-    product,
-  );
+  try {
+    const mainImage = await uploadProductImage(
+      sourceImage,
+      getProductImagePublicId(product, 'main'),
+      'main',
+      product,
+      createdAssets,
+    );
 
-  const galleryImages = [];
-  const galleryAssets = [];
+    const galleryImages = [];
+    const galleryAssets = [];
 
-  for (let index = 0; index < sourceGallery.length; index += 1) {
-    try {
+    for (let index = 0; index < sourceGallery.length; index += 1) {
       const uploadedImage = await uploadProductImage(
         sourceGallery[index],
         getProductImagePublicId(product, 'gallery', index),
         'gallery',
         product,
+        createdAssets,
       );
       galleryImages.push(uploadedImage.url);
       galleryAssets.push(uploadedImage);
-    } catch (error) {
-      console.warn(`[ProductPipeline] Bỏ qua ảnh gallery ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
     }
-  }
 
-  const descriptionImages = [];
-  for (let index = 0; index < (Array.isArray(product.descriptionImages) ? product.descriptionImages.length : 0); index += 1) {
-    const descriptionImage = product.descriptionImages[index];
-    const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
-    const source = descriptionEntry.url ?? descriptionEntry.sourceUrl;
-    if (!source) continue;
-    try {
+    const descriptionImages = [];
+    for (let index = 0; index < (Array.isArray(product.descriptionImages) ? product.descriptionImages.length : 0); index += 1) {
+      const descriptionImage = product.descriptionImages[index];
+      const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
+      const source = descriptionEntry.assetPath || descriptionEntry.url || descriptionEntry.sourceUrl;
+      if (!source) continue;
       const uploadedImage = await uploadProductImage(
         source,
         getProductImagePublicId(product, 'description', index),
         'description',
         product,
+        createdAssets,
       );
       descriptionImages.push({
         ...descriptionEntry,
@@ -324,33 +325,40 @@ const uploadProductImages = async (product) => {
         url: uploadedImage.url,
         publicUrl: uploadedImage.publicUrl,
       });
-    } catch (error) {
-      console.warn(`[ProductPipeline] Bỏ qua ảnh mô tả ${index + 1} của "${product.name}": ${getProductImageErrorMessage(error)}`);
     }
-  }
 
-  return {
-    ...product,
-    image: mainImage.url,
-    imagePublicId: null,
-    imageAsset: mainImage,
-    images: galleryImages,
-    imagePublicIds: [],
-    imageAssets: galleryAssets,
-    descriptionImages,
-  };
+    return {
+      ...product,
+      image: mainImage.url,
+      imagePublicId: null,
+      imageAsset: mainImage,
+      images: galleryImages,
+      imagePublicIds: [],
+      imageAssets: galleryAssets,
+      descriptionImages,
+    };
+  } catch (error) {
+    if (createdAssets.length > 0) {
+      await r2AssetService.deleteR2Assets(createdAssets).catch(cleanupError => {
+        console.warn(`[ProductPipeline] Không dọn được R2 asset cho "${product.name}": ${cleanupError.message}`);
+      });
+    }
+    throw error;
+  }
 };
 
 const prepareProductImages = async (products) => {
   const preparedProducts = [];
+  let skippedProducts = 0;
   for (const product of products) {
     try {
       preparedProducts.push(await uploadProductImages(product));
     } catch (error) {
-      console.warn(`[ProductPipeline] Bỏ qua sản phẩm "${product.name}" vì không tải được ảnh chính: ${getProductImageErrorMessage(error)}`);
+      skippedProducts += 1;
+      console.warn(`[ProductPipeline] Bỏ qua toàn bộ sản phẩm "${product.name}" do lỗi ảnh: ${getProductImageErrorMessage(error)}`);
     }
   }
-  return preparedProducts;
+  return { products: preparedProducts, skippedProducts };
 };
 
 const getInputFiles = ({ file, directory }) => {
@@ -496,13 +504,14 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
   await ensureSourceCategories(parsedProducts, filePath, dryRun);
   const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts);
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
-  const validation = await manager.validate(dedupedProducts, format);
+  const validation = await manager.validate(dedupedProducts, format, { requireDescriptionImage: true });
   const productsToImport = initializeHighlights && !dryRun
     ? assignInitialHighlights(validation.validProducts)
     : validation.validProducts;
-  const unique = dryRun
-    ? productsToImport
+  const imagePreparation = dryRun
+    ? { products: productsToImport, skippedProducts: 0 }
     : await prepareProductImages(productsToImport);
+  const unique = imagePreparation.products;
   const totalBatches = Math.ceil(unique.length / batchSize);
   const summary = {
     file: filePath,
@@ -514,10 +523,11 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
     inserted: 0,
     updated: 0,
     skipped: 0,
+    skippedImageProducts: imagePreparation.skippedProducts,
     batches: 0,
   };
 
-  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, loại ${rejectedProducts.length} dòng ngoài phạm vi, ${validation.invalidProducts.length} dòng lỗi, ${unique.length} dòng hợp lệ sau dedupe`);
+  console.log(`[ProductPipeline] ${path.basename(filePath)}: ${parsedProducts.length} dòng, loại ${rejectedProducts.length} dòng ngoài phạm vi, ${validation.invalidProducts.length} dòng lỗi, ${validation.validProducts.length} hợp lệ sau dedupe, ${unique.length} sẵn sàng nhập, ${imagePreparation.skippedProducts} bỏ qua do lỗi ảnh`);
   if (rejectedProducts.length > 0) {
     const filteredExamples = rejectedProducts
       .slice(0, 5)

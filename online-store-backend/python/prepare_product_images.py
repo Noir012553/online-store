@@ -221,6 +221,7 @@ def process_file(json_path, output_root, batch_id=None):
     manifest = {}
     main_failures = []
     gallery_failures = []
+    description_failures = []
     changed = False
 
     for index, product in enumerate(products):
@@ -311,6 +312,7 @@ def process_file(json_path, output_root, batch_id=None):
                     changed = True
                 except Exception as error:
                     updated_entry['ProductDescriptionImageLocalPath'] = ''
+                    description_failures.append(f'{json_path.name} row {index + 1} description {description_index + 1}: {description_source} ({error})')
                     entry['description'].append({
                         'sourceUrl': description_source,
                         'status': 'failed',
@@ -344,7 +346,7 @@ def process_file(json_path, output_root, batch_id=None):
     manifest_path = output_root / 'manifests' / batch_id / f'{json_path.stem}.images.json'
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
-    return main_failures, gallery_failures
+    return main_failures, gallery_failures, description_failures
 
 
 def get_target_files(output_root, file_arg, since):
@@ -373,12 +375,16 @@ def main():
 
     all_main_failures = []
     all_gallery_failures = []
+    all_description_failures = []
     for json_path in target_files:
-        main_failures, gallery_failures = process_file(json_path, output_root, batch_id)
+        main_failures, gallery_failures, description_failures = process_file(json_path, output_root, batch_id)
         all_main_failures.extend(main_failures)
         all_gallery_failures.extend(gallery_failures)
+        all_description_failures.extend(description_failures)
         print(f'[ImageProcessor] Processed {json_path.name}')
 
+    for failure in all_description_failures:
+        print(f'[ImageProcessor] WARNING description: {failure}')
     for failure in all_gallery_failures:
         print(f'[ImageProcessor] WARNING gallery: {failure}')
     if all_main_failures:

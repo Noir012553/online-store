@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -24,7 +25,7 @@ class PrepareProductImagesTest(unittest.TestCase):
             downloaded_path = output_root / 'images' / 'batch' / 'products' / 'sku' / 'description-01.jpg'
 
             with patch('prepare_product_images.download_image_with_retry', return_value=downloaded_path):
-                main_failures, gallery_failures = process_file(
+                main_failures, gallery_failures, description_failures = process_file(
                     json_path,
                     output_root,
                     batch_id='batch',
@@ -32,6 +33,7 @@ class PrepareProductImagesTest(unittest.TestCase):
 
             self.assertEqual(main_failures, [])
             self.assertEqual(gallery_failures, [])
+            self.assertEqual(description_failures, [])
             product = json.loads(json_path.read_text(encoding='utf-8'))[0]
             self.assertEqual(product['ProductDescriptionImages'], [{
                 'ProductDescriptionImageURL': 'https://cdn.example.com/description.jpg',
@@ -60,19 +62,55 @@ class PrepareProductImagesTest(unittest.TestCase):
                 return destination_base / f'{slot}.jpg'
 
             with patch('prepare_product_images.download_image_with_retry', side_effect=fake_download):
-                process_file(json_path, output_root, batch_id='batch')
+                main_failures, gallery_failures, description_failures = process_file(json_path, output_root, batch_id='batch')
+
+            self.assertEqual(main_failures, [])
+            self.assertEqual(gallery_failures, [])
+            self.assertEqual(description_failures, [])
 
             product = json.loads(json_path.read_text(encoding='utf-8'))[0]
             self.assertEqual(product['ProductMainImage'], 'https://cdn.example.com/main.jpg')
-            self.assertEqual(product['ProductMainImageLocalPath'], 'images/batch/products/sku-2/main.jpg')
+            product_key = hashlib.sha256(b'SKU-2').hexdigest()[:24]
+            self.assertEqual(product['ProductMainImageLocalPath'], f'images/batch/products/{product_key}/main.jpg')
             self.assertEqual(product['ProductGalleryImages'], [
                 'https://cdn.example.com/gallery-1.jpg',
                 'https://cdn.example.com/gallery-2.jpg',
             ])
             self.assertEqual(product['ProductGalleryImageLocalPaths'], [
-                'images/batch/products/sku-2/gallery-01.jpg',
-                'images/batch/products/sku-2/gallery-02.jpg',
+                f'images/batch/products/{product_key}/gallery-01.jpg',
+                f'images/batch/products/{product_key}/gallery-02.jpg',
             ])
+
+    def test_reports_failed_description_image_and_preserves_source_url(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            json_path = output_root / 'products.json'
+            source_url = 'https://cdn.example.com/missing.jpg'
+            json_path.write_text(json.dumps([{
+                'ProductSKU': 'SKU-3',
+                'ProductName': 'Example Product 3',
+                'ProductMainImage': 'images/batch/products/sku/main.jpg',
+                'ProductDescription': 'Has a description',
+                'ProductDescriptionImages': [{
+                    'ProductDescriptionImageURL': source_url,
+                    'ProductDescriptionImageAlt': 'Description image',
+                }],
+            }]), encoding='utf-8')
+
+            with patch('prepare_product_images.download_image_with_retry', side_effect=RuntimeError('HTTP 404')):
+                main_failures, gallery_failures, description_failures = process_file(
+                    json_path,
+                    output_root,
+                    batch_id='batch',
+                )
+
+            product = json.loads(json_path.read_text(encoding='utf-8'))[0]
+            self.assertEqual(main_failures, [])
+            self.assertEqual(gallery_failures, [])
+            self.assertEqual(len(description_failures), 1)
+            self.assertIn(source_url, description_failures[0])
+            self.assertEqual(product['ProductDescriptionImages'][0]['ProductDescriptionImageURL'], source_url)
+            self.assertEqual(product['ProductDescriptionImages'][0]['ProductDescriptionImageLocalPath'], '')
 
 
 if __name__ == '__main__':
