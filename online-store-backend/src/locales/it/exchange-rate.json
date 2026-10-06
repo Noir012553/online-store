@@ -1,0 +1,16 @@
+{
+  "required_codes": "Entrambi i codici valuta sono obbligatori",
+  "required_fields": "Sono obbligatori la valuta di origine, la valuta di destinazione e il tasso di cambio",
+  "rate_must_be_positive": "Il tasso di cambio deve essere maggiore di zero",
+  "created_success": "Tasso di cambio creato correttamente",
+  "updated_success": "Tasso di cambio aggiornato correttamente",
+  "deleted_success": "Tasso di cambio eliminato correttamente",
+  "amount_non_negative": "L'importo non può essere negativo",
+  "updated_rates": "Aggiornati {{count}} tassi di cambio",
+  "not_found": "Tasso di cambio non trovato",
+  "pair_not_found": "Tasso di cambio da {{fromCode}} a {{toCode}} non trovato",
+  "currencies_match": "Le valute di origine e destinazione devono essere diverse",
+  "already_exists": "Il tasso di cambio da {{fromCode}} a {{toCode}} esiste già",
+  "currency_not_found": "Valuta {{currencyCode}} non trovata",
+  "operation_failed": "Impossibile elaborare la richiesta del tasso di cambio"
+}

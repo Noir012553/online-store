@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Serverfout",
+  "error_server_desc": "De server ondervindt problemen. Probeer het later opnieuw.",
+  "error_network_title": "Netwerkfout",
+  "error_network_desc": "Kon niet verbinding maken met de server. Controleer uw internetverbinding.",
+  "error_too_many_requests_title": "Te veel verzoeken",
+  "error_too_many_requests_desc": "Wacht alstublieft voordat u de pagina opnieuw laadt. De server is overbelast.",
+  "error_server_overloaded_title": "Server is overbelast",
+  "error_server_overloaded_desc": "Probeer het alstublieft over een paar seconden opnieuw.",
+  "error_request_title": "Verzoek mislukt",
+  "error_request_status": "Fout {{status}}",
+  "error_request_slow": "Het verzoek duurt langer...",
+  "error_request_processing": "wordt verwerkt",
+  "error_request_timeout": "Het verzoek duurde te lang. Controleer uw verbinding.",
+  "error_network_fallback": "Kon niet verbinding maken met de server. Controleer uw internetverbinding.",
+  "error_auth_required": "Log alstublieft opnieuw in.",
+  "error_permission_denied": "U bent niet gemachtigd om toegang te krijgen.",
+  "error_data_not_found": "Gegevens niet gevonden.",
+  "error_generic": "Probeer het later opnieuw.",
+  "error_generic_fallback": "Probeer het opnieuw."
+}

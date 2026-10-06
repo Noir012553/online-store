@@ -1,0 +1,14 @@
+{
+  "emailLabel": "Indirizzo Email",
+  "emailPlaceholder": "email@esempio.com",
+  "phoneLabel": "Numero di Telefono",
+  "phonePlaceholder": "+39 (06) 1234-5678",
+  "subscribe": "Iscriviti",
+  "sending": "Invio in corso...",
+  "thankYouTitle": "Grazie!",
+  "thankYouMessage": "Invieremo offerte esclusive alla tua email. Controlla la tua casella di posta!",
+  "successMessage": "Grazie per esserti iscritto!",
+  "errorMessage": "L'iscrizione è fallita. Riprova.",
+  "invalidEmail": "Formato email non valido",
+  "invalidPhone": "Numero di telefono non valido"
+}

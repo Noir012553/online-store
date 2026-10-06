@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Fehler beim Speichern der Außerkraftsetzung",
+  "error_saving_override": "Fehler beim Speichern der Außerkraftsetzung",
+  "failed_load_namespace": "Fehler beim Laden des Namespace",
+  "error_fetching_health_data": "Fehler beim Abrufen von Integritätsdaten",
+  "error_fetching_logs": "Fehler beim Abrufen von Protokollen",
+  "error_fetching_languages": "Fehler beim Abrufen von Sprachen",
+  "error_fetching_supported_languages": "Fehler beim Abrufen unterstützter Sprachen",
+  "failed_fetch_products": "Fehler beim Abrufen von Produkten",
+  "failed_fetch_deleted_products": "Fehler beim Abrufen gelöschter Produkte",
+  "http_error_status": "HTTP-Fehler! Status: {status}",
+  "failed_create_shipment": "Fehler beim Erstellen der Sendung",
+  "failed_update_translation": "Fehler beim Aktualisieren der Übersetzung",
+  "failed_delete_product": "Fehler beim Löschen des Produkts",
+  "failed_import_products": "Fehler beim Importieren von Produkten",
+  "network_timeout": "Netzwerk-Zeitüberschreitung"
+}

@@ -1,0 +1,34 @@
+{
+  "address": {
+    "maxLength": "Het adres mag niet meer dan 500 tekens bevatten"
+  },
+  "cart": {
+    "empty": "Winkelwagen is leeg"
+  },
+  "customer": {
+    "nameInvalid": "Klantnaam is ongeldig"
+  },
+  "email": {
+    "invalid": "E-mail is ongeldig",
+    "required": "E-mail is vereist"
+  },
+  "name": {
+    "lengthRange": "Naam moet tussen 2 en 100 tekens lang zijn"
+  },
+  "password": {
+    "minLength": "Wachtwoord moet minstens 6 tekens lang zijn",
+    "required": "Wachtwoord is vereist"
+  },
+  "phone": {
+    "invalid": "Telefoonnummer is ongeldig"
+  },
+  "product": {
+    "idRequired": "Product-ID is vereist"
+  },
+  "quantity": {
+    "invalid": "Hoeveelheid is ongeldig"
+  },
+  "shipping": {
+    "addressRequired": "Verzendadres is vereist"
+  }
+}

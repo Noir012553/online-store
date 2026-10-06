@@ -1,0 +1,14 @@
+{
+  "emailLabel": "Email Address",
+  "emailPlaceholder": "email@example.com",
+  "phoneLabel": "Phone Number",
+  "phonePlaceholder": "+1 (555) 123-4567",
+  "subscribe": "Subscribe",
+  "sending": "Sending...",
+  "thankYouTitle": "Thank You!",
+  "thankYouMessage": "We'll send exclusive offers to your email. Check your inbox!",
+  "successMessage": "Thank you for subscribing!",
+  "errorMessage": "Subscription failed. Please try again.",
+  "invalidEmail": "Invalid email format",
+  "invalidPhone": "Invalid phone number"
+}

@@ -1,0 +1,20 @@
+{
+  "keyboard": "Toetsenbord",
+  "keyboard_desc": "Hoogwaardige computertoetsenborden met modern design en geavanceerde functies",
+  "mouse": "Muis",
+  "mouse_desc": "Ergonomische computermuis met hoge precisie",
+  "headphones": "Koptelefoon",
+  "headphones_desc": "Computerkotelefoon met levendige geluid en kwaliteitsmicrofoon",
+  "cooling": "Koeling",
+  "cooling_desc": "Effectieve computerkoelingsoplossingen voor warmteproblemen",
+  "gaming_laptop": "Gaming-laptop",
+  "gaming_laptop_desc": "Krachtige gaming-laptops met sterke GPU's",
+  "office_laptop": "Kantoor-laptop",
+  "office_laptop_desc": "Lichte kantoorlaptops met lange batterijduur",
+  "category_keyboard": "Toetsenbord",
+  "category_mouse": "Muis",
+  "category_headphones": "Koptelefoon",
+  "category_cooling": "Koeling",
+  "category_gaming_laptop": "Gaming-laptop",
+  "category_office_laptop": "Kantoor-laptop"
+}

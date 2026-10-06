@@ -1,0 +1,34 @@
+{
+  "address": {
+    "maxLength": "Address must not exceed 500 characters"
+  },
+  "cart": {
+    "empty": "Cart is empty"
+  },
+  "customer": {
+    "nameInvalid": "Customer name is invalid"
+  },
+  "email": {
+    "invalid": "Email is invalid",
+    "required": "Email is required"
+  },
+  "name": {
+    "lengthRange": "Name must be between 2 and 100 characters"
+  },
+  "password": {
+    "minLength": "Password must be at least 6 characters",
+    "required": "Password is required"
+  },
+  "phone": {
+    "invalid": "Phone number is invalid"
+  },
+  "product": {
+    "idRequired": "Product ID is required"
+  },
+  "quantity": {
+    "invalid": "Quantity is invalid"
+  },
+  "shipping": {
+    "addressRequired": "Shipping address is required"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "server_error": "Erreur serveur",
+  "network_error": "Erreur réseau",
+  "too_many_requests": "Trop de requêtes",
+  "request_timeout": "Délai d'expiration de la requête",
+  "request_processing": "Requête en cours de traitement..."
+}

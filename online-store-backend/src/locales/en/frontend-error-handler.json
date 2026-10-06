@@ -1,0 +1,21 @@
+{
+  "error_server_title": "Server error",
+  "error_server_desc": "The server is experiencing issues. Please try again later.",
+  "error_network_title": "Network error",
+  "error_network_desc": "Could not connect to the server. Check your internet connection.",
+  "error_too_many_requests_title": "Too many requests",
+  "error_too_many_requests_desc": "Please wait before reloading the page. The server is under heavy load.",
+  "error_server_overloaded_title": "Server is overloaded",
+  "error_server_overloaded_desc": "Please try again in a few seconds.",
+  "error_request_title": "Request failed",
+  "error_request_status": "Error {{status}}",
+  "error_request_slow": "Request is taking time...",
+  "error_request_processing": "is being processed",
+  "error_request_timeout": "The request took too long. Please check your connection.",
+  "error_network_fallback": "Could not connect to the server. Check your internet connection.",
+  "error_auth_required": "Please login again.",
+  "error_permission_denied": "You do not have permission to access.",
+  "error_data_not_found": "Data not found.",
+  "error_generic": "Please try again later.",
+  "error_generic_fallback": "Please try again."
+}

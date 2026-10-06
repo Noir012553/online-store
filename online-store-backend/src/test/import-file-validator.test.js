@@ -1,0 +1,1105 @@
+const chai = require('chai');
+const expect = chai.expect;
+const sinon = require('sinon');
+const crypto = require('crypto');
+const fs = require('fs');
+const os = require('os');
+const archiverModule = require('archiver');
+const path = require('path');
+const { validateImportFile } = require('../utils/fileUtils');
+const {
+  validateProduct,
+  validateProductArray,
+  normalizeProductContentFields,
+} = require('../utils/productImportValidator');
+const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
+const { errorHandler } = require('../middleware/errorMiddleware');
+const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
+const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
+const {
+  buildUpsertProductUpdate,
+  getProductLookupFilter,
+  findDuplicateImportIssues,
+  serializeProductForExport,
+  convertProductsToCSV,
+  writeExportZipFile,
+  getExportProductBatchFilter,
+} = require('../controllers/productImportController');
+const {
+  MAX_ZIP_IMAGE_BYTES: MAX_IMAGE_ASSET_BYTES,
+  isSafeEntryName,
+  readImportZip,
+} = require('../utils/zipImport');
+const {
+  isBlockedIp,
+  validateSafeRemoteUrl,
+  fetchSafeRemoteImage,
+} = require('../utils/safeRemoteUrl');
+const r2AssetService = require('../services/r2AssetService');
+const {
+  getProductImagePublicId,
+  uploadProductImage,
+  uploadProductImages,
+  assignInitialHighlights,
+  getInitialStock,
+  filterSeedProducts,
+  normalizeSeedCategory,
+  inferCategoryFromFilename,
+  getSeedIdentityKey,
+  dedupeProducts,
+} = require('../seeds/productSeedPipeline');
+
+describe('Canonical scraper contract', () => {
+  const canonicalProduct = {
+    ProductBrand: 'Acer',
+    ProductID: 'gearvn-001',
+    ProductName: 'Acer Aspire',
+    ProductSKU: 'ACER-001',
+    ProductPriceVND: 1000000,
+    ProductRegularPriceVND: null,
+    ProductStockStatus: 'In Stock',
+    ProductCategory: 'Laptop',
+    ProductSpecifications: { CPU: 'Intel' },
+    ProductTechnicalDescription: 'Thông số: Intel',
+    ProductDescription: 'Mô tả',
+    ProductDescriptionImages: [{
+      ProductDescriptionImageURL: 'https://example.invalid/description.jpg',
+      ProductDescriptionImageAlt: 'Ảnh mô tả',
+    }],
+    ProductPromotions: [{
+      ProductPromotionType: 'Gift',
+      ProductPromotionTitle: 'Tặng chuột',
+      ProductPromotionGiftValueVND: null,
+    }],
+    ProductMainImage: 'https://example.invalid/main.jpg',
+    ProductGalleryImages: ['https://example.invalid/gallery.jpg'],
+    ProductURL: 'https://example.invalid/products/acer-001',
+  };
+
+  it('maps canonical JSON fields and keeps nullable optional fields valid', async () => {
+    const adapter = new JSONAdapter();
+    const [parsed] = await adapter.parse(JSON.stringify([canonicalProduct]));
+    const result = validateProduct(parsed, 1);
+
+    expect(parsed).to.include({
+      sourceProductId: 'gearvn-001',
+      sourceUrl: 'https://example.invalid/products/acer-001',
+      name: 'Acer Aspire',
+      sku: 'ACER-001',
+      description: 'Mô tả',
+    });
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.descriptionImages).to.deep.equal([{
+      url: 'https://example.invalid/description.jpg',
+      alt: 'Ảnh mô tả',
+    }]);
+    expect(result.cleaned.promotions).to.deep.equal([{
+      type: 'Gift',
+      title: 'Tặng chuột',
+    }]);
+  });
+
+  it('deduplicates structured content and rejects unknown promotion types', () => {
+    const normalized = normalizeProductContentFields({
+      descriptionImages: [
+        { url: 'https://example.invalid/description.jpg', alt: 'Ảnh đầu tiên' },
+        { url: 'https://example.invalid/description.jpg', alt: 'Ảnh trùng' },
+      ],
+      promotions: [
+        { type: 'Gift', title: 'Tặng chuột', giftProductUrl: 'https://example.invalid/mouse' },
+        { type: 'Gift', title: 'Tặng chuột', giftProductUrl: 'https://example.invalid/mouse' },
+      ],
+    }, 1);
+
+    expect(normalized.errors).to.deep.equal([]);
+    expect(normalized.cleaned.descriptionImages).to.have.length(1);
+    expect(normalized.cleaned.promotions).to.have.length(1);
+
+    const invalid = normalizeProductContentFields({
+      promotions: [{ type: 'Custom', title: 'Ưu đãi không hợp lệ' }],
+    }, 1);
+    expect(invalid.errors).to.deep.equal(['Row 1: Invalid promotion type "Custom"']);
+  });
+
+  it('round-trips structured fields through CSV as JSON', async () => {
+    const quote = value => `"${value.replace(/"/g, '""')}"`;
+    const csv = [
+      'ProductName,ProductBrand,ProductPriceVND,ProductCategory,ProductMainImage,ProductDescriptionImages,ProductPromotions',
+      [
+        'Acer Aspire',
+        'Acer',
+        '1000000',
+        'Laptop',
+        'https://example.invalid/main.jpg',
+        quote(JSON.stringify(canonicalProduct.ProductDescriptionImages)),
+        quote(JSON.stringify(canonicalProduct.ProductPromotions)),
+      ].join(','),
+    ].join('\n');
+    const adapter = new CSVAdapter();
+    const [parsed] = await adapter.parse(csv);
+
+    expect(JSON.parse(parsed.descriptionImages)).to.deep.equal(canonicalProduct.ProductDescriptionImages);
+    expect(JSON.parse(parsed.promotions)).to.deep.equal(canonicalProduct.ProductPromotions);
+  });
+
+  it('uses ProductID, SKU, then source URL for seed dedupe', () => {
+    expect(getSeedIdentityKey({ sourceProductId: 'ID-1', sku: 'SKU-1', sourceUrl: 'https://example.invalid/1' }))
+      .to.equal('sourceProductId:id-1');
+    const result = dedupeProducts([
+      { sourceProductId: 'ID-1', sku: 'SKU-1', sourceUrl: 'https://example.invalid/1' },
+      { sourceProductId: 'ID-1', sku: 'SKU-2', sourceUrl: 'https://example.invalid/2' },
+      { sourceUrl: 'https://example.invalid/3' },
+      { sourceUrl: 'https://example.invalid/3' },
+    ]);
+    expect(result.duplicateCount).to.equal(2);
+    expect(result.unique).to.have.length(2);
+  });
+
+  it('uses source identity for upsert and duplicate checks', () => {
+    expect(getProductLookupFilter({ sourceProductId: 'gearvn-001', sku: 'SKU-1' })).to.deep.equal({
+      sourceProductId: 'gearvn-001',
+      isDeleted: false,
+    });
+    expect(getProductLookupFilter({ sourceUrl: 'https://example.invalid/products/1' })).to.deep.equal({
+      sourceUrl: 'https://example.invalid/products/1',
+      isDeleted: false,
+    });
+    expect(findDuplicateImportIssues([
+      { name: 'A', brand: 'B', sourceProductId: 'same' },
+      { name: 'C', brand: 'D', sourceProductId: 'same' },
+    ])).to.deep.include({ field: 'sourceProductId', value: 'same' });
+  });
+
+  it('accepts safe local image paths produced by the scraper image preparation step', () => {
+    const result = validateProduct({
+      name: 'Acer Aspire',
+      brand: 'Acer',
+      price: 1000000,
+      baseCurrencyCode: 'VND',
+      category: 'Laptop',
+      image: 'images/batch/product/main.jpg',
+      images: ['images/batch/product/gallery.jpg'],
+    });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.image).to.equal('images/batch/product/main.jpg');
+  });
+});
+
+describe('Scraped product filtering', () => {
+  it('preserves source categories and rejects only missing categories', () => {
+    expect(normalizeSeedCategory(' Bàn Phím ')).to.equal('Bàn Phím');
+    expect(normalizeSeedCategory('Laptop Gaming')).to.equal('Laptop Gaming');
+
+    const result = filterSeedProducts([
+      { name: 'Bàn phím cơ gaming', category: 'Bàn Phím' },
+      { name: 'Laptop gaming', category: 'Laptop Gaming' },
+      { name: 'Sản phẩm chưa phân loại', category: '' },
+    ]);
+
+    expect(result.acceptedProducts).to.have.length(2);
+    expect(result.acceptedProducts[0].category).to.equal('Bàn Phím');
+    expect(result.rejectedProducts).to.have.length(1);
+  });
+});
+
+describe('Scraped product category compatibility', () => {
+  it('maps legacy Asus Laptop output to Laptop Office', () => {
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop', brand: 'Asus' },
+      '/tmp/Asus_Laptop_20260911.json',
+    )).to.equal('Laptop Office');
+
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop Gaming', brand: 'Asus' },
+      '/tmp/Asus_Laptop_20260911.json',
+    )).to.equal('Laptop Gaming');
+
+    expect(inferCategoryFromFilename(
+      { category: 'Laptop Office', brand: 'Asus' },
+      '/tmp/Asus_Laptop_Office_20260911.json',
+    )).to.equal('Laptop Office');
+  });
+});
+
+describe('ZIP upload boundary errors', () => {
+  const invokeErrorHandler = (error, path) => {
+    const response = {
+      statusCode: 200,
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(payload) {
+        this.payload = payload;
+        return this;
+      },
+      headersSent: false,
+    };
+    errorHandler(error, { path, originalUrl: path, lang: 'vi' }, response, () => {});
+    return response;
+  };
+
+  it('returns 413 for an oversized ZIP', () => {
+    const response = invokeErrorHandler(
+      { code: 'LIMIT_FILE_SIZE' },
+      '/api/products/admin/import-file',
+    );
+    expect(response.statusCode).to.equal(413);
+    expect(response.payload.code).to.equal('IMPORT_ZIP_SIZE_INVALID');
+  });
+
+  it('returns a client error for a rejected ZIP MIME type', () => {
+    const response = invokeErrorHandler(
+      { message: 'Only valid .zip files are allowed' },
+      '/api/products/admin/import-file',
+    );
+    expect(response.statusCode).to.equal(400);
+    expect(response.payload.code).to.equal('IMPORT_ZIP_ONLY');
+  });
+});
+
+describe('Safe remote image URLs', () => {
+  it('blocks loopback, private, metadata and mapped IPv4 addresses', () => {
+    expect(isBlockedIp('127.0.0.1')).to.equal(true);
+    expect(isBlockedIp('10.0.0.8')).to.equal(true);
+    expect(isBlockedIp('169.254.169.254')).to.equal(true);
+    expect(isBlockedIp('::1')).to.equal(true);
+    expect(isBlockedIp('::ffff:127.0.0.1')).to.equal(true);
+  });
+
+  it('rejects credentials and unsafe hostnames before fetching', async () => {
+    for (const source of [
+      'https://user:pass@example.com/image.jpg',
+      'https://localhost/image.jpg',
+    ]) {
+      let error;
+      try {
+        await validateSafeRemoteUrl(source);
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.errorCode).to.equal('EXPORT_IMAGE_URL_INVALID');
+    }
+  });
+
+  it('rejects redirects into a private address', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = async () => new Response(null, {
+      status: 302,
+      headers: { location: 'http://127.0.0.1/internal' },
+    });
+
+    try {
+      let error;
+      try {
+        await fetchSafeRemoteImage('https://example.invalid/image.jpg');
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.errorCode).to.equal('EXPORT_IMAGE_URL_INVALID');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
+
+describe('Product export serialization', () => {
+  it('advances export batches with an exclusive _id boundary', () => {
+    const exportFilter = { isDeleted: false, category: { $in: ['category-id'] } };
+    const lastId = 'product-id-250';
+
+    expect(getExportProductBatchFilter(exportFilter)).to.equal(exportFilter);
+    expect(getExportProductBatchFilter(exportFilter, lastId)).to.deep.equal({
+      ...exportFilter,
+      _id: { $gt: lastId },
+    });
+  });
+
+  const product = {
+    _id: { toString: () => 'product-id' },
+    category: {
+      _id: { toString: () => 'category-id' },
+      name: 'Keyboard',
+    },
+    name: 'Keyboard Pro',
+    brand: 'Brand',
+    image: 'https://example.invalid/main.jpg',
+    images: ['https://example.invalid/main.jpg', 'https://example.invalid/gallery.jpg'],
+    imagePublicId: 'products/main',
+    imagePublicIds: ['products/main', 'products/gallery'],
+    customField: 'preserved',
+    deal: { discount: 0 },
+    user: 'internal-user-id',
+    reviews: ['internal-review-id'],
+    isDeleted: false,
+    storefrontReady: true,
+    storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
+  };
+
+  it('preserves all product fields and all image data', () => {
+    const exported = serializeProductForExport(product);
+
+    expect(exported).to.include({
+      productId: 'product-id',
+      categoryId: 'category-id',
+      category: 'Keyboard',
+      customField: 'preserved',
+    });
+    expect(exported.images.map(image => image.url)).to.deep.equal(product.images);
+    expect(exported.imagePublicIds).to.deep.equal(product.imagePublicIds);
+    expect(exported).to.include({
+      user: 'internal-user-id',
+      isDeleted: false,
+      storefrontReady: true,
+      storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
+    });
+    expect(exported.reviews).to.deep.equal(['internal-review-id']);
+  });
+
+  it('normalizes canonical and legacy specs fields during export', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: new Map([['connection', 'Wireless']]),
+      specifications: { legacyField: 'Preserved' },
+      Attributes: { ignoredField: 'Fallback' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wireless' });
+    expect(exported).not.to.have.property('specifications');
+    expect(exported).not.to.have.property('Attributes');
+  });
+
+  it('falls back to legacy specs fields when canonical specs are empty', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      specs: {},
+      specifications: { connection: 'Wired' },
+    });
+
+    expect(exported.specs).to.deep.equal({ connection: 'Wired' });
+  });
+
+  it('includes the main image when the gallery only contains attached images', () => {
+    const exported = serializeProductForExport({
+      ...product,
+      images: ['https://example.invalid/gallery.jpg'],
+      imagePublicIds: ['products/gallery'],
+    });
+
+    expect(exported.images.map(image => image.url)).to.deep.equal([
+      'https://example.invalid/main.jpg',
+      'https://example.invalid/gallery.jpg',
+    ]);
+    expect(exported.imagePublicIds).to.deep.equal(['products/main', 'products/gallery']);
+  });
+
+  it('writes a completed JSON ZIP file', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+
+    try {
+      await writeExportZipFile(filePath, { products: [{ productId: 'product-id' }] }, 'json');
+      const archive = await fs.promises.readFile(filePath);
+
+      expect(archive.subarray(0, 2).toString()).to.equal('PK');
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps the ZIP valid when a remote image cannot be downloaded', async function() {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    global.fetch = async () => {
+      throw new Error('remote image unavailable');
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://missing-image.invalid/missing.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+      const archive = await fs.promises.readFile(filePath);
+
+      expect(archive.subarray(0, 2).toString()).to.equal('PK');
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  }).timeout(10000);
+
+  it('retries a transient remote image failure before adding the asset', async function() {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    let fetchAttempts = 0;
+    global.fetch = async () => {
+      fetchAttempts += 1;
+      if (fetchAttempts === 1) throw new Error('temporary remote image failure');
+      return new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), {
+        status: 200,
+        headers: { 'content-type': 'image/jpeg' },
+      });
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://example.invalid/retry.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+
+      expect(fetchAttempts).to.equal(2);
+      const archive = await fs.promises.readFile(filePath);
+      expect(archive.length).to.be.greaterThan(0);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  }).timeout(10000);
+
+  it('retries a transient HTTP image failure before adding the asset', async function() {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-export-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+    const originalFetch = global.fetch;
+    let fetchAttempts = 0;
+    global.fetch = async () => {
+      fetchAttempts += 1;
+      if (fetchAttempts === 1) {
+        return new Response('temporarily unavailable', { status: 503 });
+      }
+      return new Response(Buffer.from([0xff, 0xd8, 0xff, 0xd9]), {
+        status: 200,
+        headers: { 'content-type': 'image/jpeg' },
+      });
+    };
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          productId: 'product-id',
+          images: [{
+            url: 'https://example.invalid/http-retry.jpg',
+            position: 0,
+            type: 'main',
+          }],
+        }],
+      }, 'json');
+
+      expect(fetchAttempts).to.equal(2);
+    } finally {
+      global.fetch = originalFetch;
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  }).timeout(10000);
+
+  it('includes dynamic fields and gallery images in CSV output', () => {
+    const csv = convertProductsToCSV([serializeProductForExport(product)]);
+
+    expect(csv).to.include('images');
+    expect(csv).to.include('imagePublicIds');
+    expect(csv).to.include('customField');
+    expect(csv).to.include('https://example.invalid/main.jpg|https://example.invalid/gallery.jpg');
+    expect(csv).to.include('products/main|products/gallery');
+  });
+
+  it('serializes description images and promotions as JSON in CSV', async () => {
+    const csv = convertProductsToCSV([{
+      ...product,
+      descriptionImages: [{ url: 'https://example.invalid/description.jpg', alt: 'Ảnh' }],
+      promotions: [{ type: 'Gift', title: 'Tặng chuột', giftValueVND: 0 }],
+    }]);
+    const [parsed] = await new CSVAdapter().parse(csv);
+
+    expect(JSON.parse(parsed.descriptionImages)).to.deep.equal([
+      { url: 'https://example.invalid/description.jpg', alt: 'Ảnh' },
+    ]);
+    expect(JSON.parse(parsed.promotions)).to.deep.equal([
+      { type: 'Gift', title: 'Tặng chuột', giftValueVND: 0 },
+    ]);
+  });
+});
+
+describe('Import file validation', () => {
+  const createFile = (content, originalname, mimetype) => ({
+    buffer: Buffer.from(content, 'utf8'),
+    originalname,
+    mimetype,
+  });
+
+  it('accepts JSON content with matching metadata', () => {
+    const result = validateImportFile(
+      createFile('[{"name":"Laptop"}]', 'products.json', 'application/json'),
+      'json'
+    );
+
+    expect(result.format).to.equal('json');
+  });
+
+  it('rejects a CSV payload disguised as JSON', () => {
+    expect(() => validateImportFile(
+      createFile('name,price\nLaptop,1000', 'products.json', 'application/json'),
+      'json'
+    )).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+
+  it('rejects a JSON payload disguised as CSV', () => {
+    expect(() => validateImportFile(
+      createFile('[{"name":"Laptop"}]', 'products.csv', 'text/csv'),
+      'csv'
+    )).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+
+  it('rejects mismatched extension and MIME type', () => {
+    expect(() => validateImportFile(
+      createFile('[{"name":"Laptop"}]', 'products.csv', 'application/json'),
+      'json'
+    )).to.throw('IMPORT_FILE_TYPE_MISMATCH');
+  });
+
+  it('rejects binary content', () => {
+    expect(() => validateImportFile({
+      buffer: Buffer.from([0x00, 0xff, 0xd8, 0xff]),
+      originalname: 'products.json',
+      mimetype: 'application/json',
+    }, 'json')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+
+  it('rejects files larger than the import limit', () => {
+    expect(() => validateImportFile({
+      buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 'a'),
+      originalname: 'products.csv',
+      mimetype: 'text/csv',
+    }, 'csv')).to.throw('IMPORT_FILE_CONTENT_INVALID');
+  });
+});
+
+describe('ZIP import validation', () => {
+  const createZipBuffer = (entries) => new Promise((resolve, reject) => {
+    const archive = new archiverModule.ZipArchive({ zlib: { level: 1 } });
+    const chunks = [];
+    archive.on('data', chunk => chunks.push(chunk));
+    archive.on('error', reject);
+    archive.on('end', () => resolve(Buffer.concat(chunks)));
+
+    entries.forEach(({ name, content }) => {
+      archive.append(content, { name });
+    });
+    archive.finalize();
+  });
+
+  it('reads image assets from an exported ZIP', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [{
+        name: 'Laptop',
+        image: 'https://example.invalid/main.jpg',
+        images: [{ url: 'https://example.invalid/main.jpg', type: 'main', assetPath: 'assets/images/product-main.jpg' }],
+      }] }) },
+      { name: 'assets/images/product-main.jpg', content: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) },
+    ]);
+
+    const imported = await readImportZip(archive);
+    expect(imported.assets.get('assets/images/product-main.jpg')).to.deep.equal(
+      Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    );
+  });
+
+  it('rejects image assets larger than the shared import limit', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [] }) },
+      {
+        name: 'assets/images/too-large.jpg',
+        content: crypto.randomBytes(MAX_IMAGE_ASSET_BYTES + 1),
+      },
+    ]);
+
+    try {
+      await readImportZip(archive);
+      throw new Error('Expected oversized image asset to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_ZIP_IMAGE_SIZE_INVALID');
+    }
+  });
+
+  it('uses the extracted image buffer when ZIP metadata reports a larger size', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: JSON.stringify({ products: [] }) },
+      { name: 'assets/images/metadata-mismatch.jpg', content: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) },
+    ]);
+    const centralDirectoryEntry = archive.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    expect(centralDirectoryEntry).to.be.greaterThan(-1);
+    archive.writeUInt32LE(MAX_IMAGE_ASSET_BYTES + 1, centralDirectoryEntry + 24);
+
+    const imported = await readImportZip(archive);
+    expect(imported.assets.get('assets/images/metadata-mismatch.jpg')).to.deep.equal(
+      Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    );
+  });
+
+  it('reads products.json from an exported ZIP', async () => {
+    const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'online-store-zip-import-test-'));
+    const filePath = path.join(directory, 'products-export.zip');
+
+    try {
+      await writeExportZipFile(filePath, {
+        products: [{
+          name: 'Laptop',
+          brand: 'Brand',
+          price: 1000,
+          category: 'Keyboard',
+          baseCurrencyCode: 'VND',
+        }],
+      }, 'json');
+
+      const imported = await readImportZip(await fs.promises.readFile(filePath));
+      expect(imported.format).to.equal('json');
+      expect(JSON.parse(imported.content).products).to.have.length(1);
+    } finally {
+      await fs.promises.rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('reads products.csv from a ZIP', async () => {
+    const archive = await createZipBuffer([
+      {
+        name: 'products.csv',
+        content: 'name,brand,price,category\nLaptop,Brand,1000,Keyboard',
+      },
+    ]);
+
+    const imported = await readImportZip(archive);
+    expect(imported.format).to.equal('csv');
+    expect(imported.content).to.include('Laptop,Brand,1000,Keyboard');
+  });
+
+  it('rejects ZIP path traversal entry names', () => {
+    expect(isSafeEntryName('../products.json')).to.equal(false);
+    expect(isSafeEntryName('/products.json')).to.equal(false);
+    expect(isSafeEntryName('assets\\images\\product.jpg')).to.equal(false);
+    expect(isSafeEntryName('products.json')).to.equal(true);
+  });
+
+  it('rejects archives with ambiguous data entries', async () => {
+    const archive = await createZipBuffer([
+      { name: 'products.json', content: '{"products":[]}' },
+      { name: 'products.csv', content: 'name,brand,price,category\\nLaptop,Brand,1000,Keyboard' },
+    ]);
+
+    try {
+      await readImportZip(archive);
+      throw new Error('Expected multiple data entries to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_ZIP_DATA_ENTRY_INVALID');
+    }
+  });
+});
+
+describe('CSV import validation', () => {
+  it('preserves quoted newlines inside a field', async () => {
+    const products = await new CSVAdapter().parse([
+      'name,brand,price,category,image,description',
+      'Laptop,Brand,1000,Keyboard,https://example.com/laptop.jpg,"Line one',
+      'line two"',
+    ].join('\n'));
+
+    expect(products[0].description).to.equal('Line one\nline two');
+  });
+
+  it('rejects a row with a mismatched column count', async () => {
+    try {
+      await new CSVAdapter().parse([
+        'name,brand,price',
+        'Laptop,Brand',
+      ].join('\n'));
+      throw new Error('Expected CSV parse to fail');
+    } catch (error) {
+      expect(error.code).to.equal('IMPORT_CSV_ROW_INVALID');
+    }
+  });
+});
+
+describe('Product payload validation', () => {
+  const validProduct = {
+    name: 'Laptop',
+    brand: 'Brand',
+    price: 1000,
+    category: 'Keyboard',
+    baseCurrencyCode: 'VND',
+    image: 'https://example.com/laptop.jpg',
+  };
+
+  it('rejects incomplete products in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      countInStock: 10,
+      specs: { connection: 'Wireless' },
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('description'))).to.equal(true);
+  });
+
+  it('accepts products without specs in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
+  });
+
+  it('accepts empty specs in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+      specs: {},
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.specs).to.deep.equal({});
+  });
+
+  it('accepts a complete product in ZIP imports', () => {
+    const result = validateProduct({
+      ...validProduct,
+      description: 'Product description',
+      countInStock: 10,
+      specs: { connection: 'Wireless' },
+    }, 1, { requireComplete: true });
+
+    expect(result.isValid).to.equal(true);
+  });
+
+  it('preserves safe ZIP asset paths for restoration', () => {
+    const result = validateProduct({
+      ...validProduct,
+      images: [
+        { url: validProduct.image, type: 'main', assetPath: 'assets/images/main.jpg' },
+        { url: 'https://example.com/gallery.jpg', type: 'gallery', assetPath: 'assets/images/gallery.jpg' },
+      ],
+      imageAssetPaths: 'assets/images/main.jpg|assets/images/gallery.jpg',
+    }, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.imageAssetPath).to.equal('assets/images/main.jpg');
+    expect(result.cleaned.imageAssetPaths).to.deep.equal(['assets/images/gallery.jpg']);
+  });
+
+  it('rejects unsafe ZIP asset paths', () => {
+    const result = validateProduct({
+      ...validProduct,
+      images: [{ url: validProduct.image, type: 'main', assetPath: 'assets/images/../../secret.jpg' }],
+    }, 1);
+
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('asset path'))).to.equal(true);
+  });
+
+  it('rejects partially parsed numeric values', () => {
+    const result = validateProduct({ ...validProduct, price: '1000abc' }, 1);
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('Price'))).to.equal(true);
+  });
+
+  it('rejects private image URLs', () => {
+    const result = validateProduct({ ...validProduct, image: 'http://127.0.0.1/image.jpg' }, 1);
+    expect(result.isValid).to.equal(false);
+    expect(result.errors.some(error => error.includes('Image URL'))).to.equal(true);
+  });
+
+  it('rejects unsafe nested keys', () => {
+    const result = validateProduct({
+      ...validProduct,
+      specs: { constructor: { polluted: true } },
+    }, 1);
+    expect(result.isValid).to.equal(false);
+  });
+
+  it('rejects more than the supported product count', () => {
+    const result = validateProductArray(Array.from({ length: 5001 }, () => validProduct));
+    expect(result.isValid).to.equal(false);
+    expect(result.errors[0]).to.include('5000');
+  });
+});
+
+describe('Dynamic spec key import', () => {
+  it('keeps unknown spec columns for automatic registration during import', async () => {
+    const products = await new CSVAdapter().parse([
+      'name,brand,price,category,specs_battery_life_hours',
+      'Laptop,Brand,1000,Keyboard,80 hours',
+    ].join('\n'));
+
+    expect(products[0].specs).to.deep.equal({ battery_life_hours: '80 hours' });
+  });
+});
+
+describe('Seed initial stock configuration', () => {
+  const originalInitialStock = process.env.SEED_INITIAL_STOCK;
+
+  afterEach(() => {
+    if (originalInitialStock === undefined) {
+      delete process.env.SEED_INITIAL_STOCK;
+      return;
+    }
+    process.env.SEED_INITIAL_STOCK = originalInitialStock;
+  });
+
+  it('reads a non-negative integer from SEED_INITIAL_STOCK', () => {
+    process.env.SEED_INITIAL_STOCK = '25';
+
+    expect(getInitialStock()).to.equal(25);
+  });
+
+  it('rejects an invalid SEED_INITIAL_STOCK value', () => {
+    process.env.SEED_INITIAL_STOCK = '-1';
+
+    expect(getInitialStock).to.throw('SEED_INITIAL_STOCK phải là số nguyên không âm');
+  });
+
+  it('preserves existing stock during seed upsert', () => {
+    const product = { productId: 'product-id', name: 'Keyboard', countInStock: 25 };
+
+    expect(buildUpsertProductUpdate(product, true)).to.deep.equal({ name: 'Keyboard' });
+    expect(buildUpsertProductUpdate(product, false)).to.deep.equal({ name: 'Keyboard', countInStock: 25 });
+  });
+});
+
+describe('Crawler product field mapping', () => {
+  it('uses configured initial stock for crawler products marked in stock', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-stock-config',
+      Name: 'Configured stock product',
+      SKU: 'SKU-STOCK-CONFIG',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'In Stock',
+      Categories: 'Mouse',
+      Attributes: '{}',
+      Description: 'Source description',
+      MainImage: 'https://example.invalid/main.jpg',
+      GalleryImages: [],
+      URL: 'https://example.invalid/stock-config',
+    };
+
+    const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
+
+    expect(normalized.countInStock).to.equal(25);
+  });
+
+  it('keeps crawler products marked out of stock at zero', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-out-of-stock',
+      Name: 'Out of stock product',
+      SKU: 'SKU-OUT-OF-STOCK',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'Out of Stock',
+      Categories: 'Mouse',
+      Attributes: '{}',
+      Description: 'Source description',
+      MainImage: 'https://example.invalid/main.jpg',
+      GalleryImages: [],
+      URL: 'https://example.invalid/out-of-stock',
+    };
+
+    const [normalized] = await new JSONAdapter({ initialStock: 25 }).parse(JSON.stringify([rawProduct]));
+
+    expect(normalized.countInStock).to.equal(0);
+  });
+
+  it('maps the exact crawler schema without inventing category data', async () => {
+    const rawProduct = {
+      Brand: 'Razer',
+      ID: 'source-id-001',
+      Name: 'Product name',
+      SKU: 'SKU-001',
+      Price_VND: 100000,
+      Regular_Price: 120000,
+      InStock: 'In Stock',
+      Categories: 'Headphone',
+      Attributes: '{"Color":"Black"}',
+      Description: 'Source description',
+      MainImage: 'https://example.invalid/main.jpg',
+      GalleryImages: ['https://example.invalid/1.jpg'],
+      URL: 'https://example.invalid/product',
+    };
+
+    const [normalized] = await new JSONAdapter().parse(JSON.stringify([rawProduct]));
+
+    expect(normalized).to.include({
+      brand: 'Razer',
+      name: 'Product name',
+      sku: 'SKU-001',
+      sourceProductId: 'source-id-001',
+      sourceUrl: 'https://example.invalid/product',
+      price: 100000,
+      originalPrice: 120000,
+      countInStock: 1,
+      category: 'Headphone',
+      specs: '{"Color":"Black"}',
+      description: 'Source description',
+      image: 'https://example.invalid/main.jpg',
+      baseCurrencyCode: 'VND',
+    });
+    expect(normalized.images).to.deep.equal(['https://example.invalid/1.jpg']);
+    expect(normalized.ID).to.equal('source-id-001');
+    expect(normalized.URL).to.equal('https://example.invalid/product');
+  });
+});
+
+describe('Product seed image backup', () => {
+  it('creates a stable asset identity from product identity', () => {
+    const firstId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
+    const secondId = getProductImagePublicId({ sku: 'SKU-001' }, 'main');
+    const galleryId = getProductImagePublicId({ sku: 'SKU-001' }, 'gallery', 2);
+
+    expect(firstId).to.equal(secondId);
+    expect(firstId).to.match(/^[a-f0-9]{24}\/main$/);
+    expect(galleryId).to.match(/^[a-f0-9]{24}\/gallery-2$/);
+  });
+
+  it('uses R2 asset roles while keeping a stable product identity key', () => {
+    expect(getProductImagePublicId({ sourceProductId: 'source-1' }, 'main'))
+      .to.match(/^[a-f0-9]{24}\/main$/);
+  });
+
+  it('does not replace a missing main image with a gallery image', async () => {
+    const mainImageError = Object.assign(new Error('Remote asset request failed with status 404'), {
+      code: 'R2_REMOTE_FETCH_FAILED',
+    });
+    const uploadAsset = sinon.stub(r2AssetService, 'uploadAsset').rejects(mainImageError);
+
+    try {
+      await uploadProductImages({
+        name: 'Laptop',
+        sku: 'SKU-1',
+        image: 'https://source.example.test/main.jpg',
+        images: ['https://source.example.test/gallery.jpg'],
+      });
+      expect.fail('Expected the missing main image error');
+    } catch (error) {
+      expect(error).to.equal(mainImageError);
+    } finally {
+      uploadAsset.restore();
+    }
+
+    expect(uploadAsset.calledOnce).to.equal(true);
+  });
+
+  it('does not continue to gallery uploads when the main image upload fails', async () => {
+    const r2Error = Object.assign(new Error('R2 uploads are disabled by policy'), {
+      code: 'R2_UPLOAD_DISABLED',
+    });
+    const uploadAsset = sinon.stub(r2AssetService, 'uploadAsset').rejects(r2Error);
+
+    try {
+      await uploadProductImages({
+        name: 'Laptop',
+        sku: 'SKU-2',
+        image: 'https://source.example.test/main.jpg',
+        images: ['https://source.example.test/gallery.jpg'],
+      });
+      expect.fail('Expected the R2 configuration failure');
+    } catch (error) {
+      expect(error).to.equal(r2Error);
+    } finally {
+      uploadAsset.restore();
+    }
+
+    expect(uploadAsset.calledOnce).to.equal(true);
+  });
+});
+
+describe('Initial product highlights', () => {
+  it('assigns random featured and hot deal products when fields are missing', () => {
+    const products = Array.from({ length: 10 }, (_, index) => ({ name: `Product ${index}` }));
+    const seededProducts = assignInitialHighlights(products);
+
+    expect(seededProducts.filter(product => product.featured === true)).to.have.lengthOf(1);
+    expect(seededProducts.filter(product => product.deal?.discount > 0)).to.have.lengthOf(1);
+    expect(products.every(product => product.featured === undefined && product.deal === undefined)).to.equal(true);
+  });
+
+  it('preserves explicit featured and deal values', () => {
+    const products = [
+      { name: 'Featured product', featured: true, deal: { discount: 25 } },
+      { name: 'Regular product', featured: false, deal: {} },
+    ];
+
+    expect(assignInitialHighlights(products)).to.deep.equal(products);
+  });
+});
+
+describe('Image upload validation', () => {
+  const validateImage = (file) => {
+    const result = { nextCalled: false, status: null, body: null };
+    const res = {
+      status: (status) => {
+        result.status = status;
+        return res;
+      },
+      json: (body) => {
+        result.body = body;
+        return res;
+      },
+    };
+
+    validateImageUpload({ file }, res, () => {
+      result.nextCalled = true;
+    });
+
+    return result;
+  };
+
+  it('accepts a JPEG with matching content, extension, and MIME type', () => {
+    const result = validateImage({
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+      originalname: 'product.jpg',
+      mimetype: 'image/jpeg',
+    });
+
+    expect(result.nextCalled).to.equal(true);
+  });
+
+  it('rejects a JPEG payload disguised with a PNG extension and MIME type', () => {
+    const result = validateImage({
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+      originalname: 'product.png',
+      mimetype: 'image/png',
+    });
+
+    expect(result).to.deep.include({ nextCalled: false, status: 400 });
+    expect(result.body.code).to.equal('IMAGE_FILE_INVALID');
+  });
+
+  it('rejects an image whose MIME type does not match its content', () => {
+    const result = validateImage({
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+      originalname: 'product.jpg',
+      mimetype: 'image/png',
+    });
+
+    expect(result).to.deep.include({ nextCalled: false, status: 400 });
+    expect(result.body.code).to.equal('IMAGE_FILE_INVALID');
+  });
+});

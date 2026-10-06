@@ -1,0 +1,825 @@
+/**
+ * Product Import Validator
+ * Validates product data format khi admin import data mới
+ * Hỗ trợ: JSON, CSV
+ * 
+ * Features:
+ * - Schema validation cho product fields
+ * - Normalize specs format (auto-detect field types)
+ * - Detailed error reporting
+ * - Data cleanup/transformation
+ */
+
+const mongoose = require('mongoose');
+const { sanitizePlainText, sanitizeDescriptionText } = require('./plainTextSanitizer');
+const { getDefaultLanguage } = require('../config/languageInventory');
+const { getMessage } = require('../i18n/messages');
+
+const PLAIN_TEXT_FIELDS = new Set(['name', 'brand', 'category']);
+const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
+const MAX_IMPORT_PRODUCTS = 5000;
+const MAX_IMPORT_OBJECT_DEPTH = 8;
+const MAX_IMPORT_STRING_LENGTH = 100000;
+const MAX_IMPORT_IMAGES = 50;
+const MAX_PRODUCT_PROMOTIONS = 50;
+const PRODUCT_PROMOTION_TYPES = new Set(['Gift', 'Discount']);
+const NUMERIC_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+const isSafeAssetPath = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('assets/images/')) return false;
+  const relativePath = value.slice('assets/images/'.length);
+  if (!relativePath || relativePath.includes('\\') || relativePath.includes(':')) return false;
+  const segments = relativePath.split('/');
+  return !segments.some(segment => !segment || segment === '.' || segment === '..');
+};
+
+const isSafeProductImagePath = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('images/')) return false;
+  const relativePath = value.slice('images/'.length);
+  if (!relativePath || relativePath.includes('\\') || relativePath.includes(':')) return false;
+  const segments = relativePath.split('/');
+  return !segments.some(segment => !segment || segment === '.' || segment === '..');
+};
+
+/**
+ * Required fields khi import products
+ */
+const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode', 'image'];
+const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInStock'];
+
+/**
+ * Optional fields có thể có khi import
+ */
+const OPTIONAL_FIELDS = [
+  'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+  'rating', 'numReviews', 'featured', 'deal', 'technicalDescription', 'descriptionImages', 'promotions', 'imageAsset', 'imageAssets', 'translations'
+];
+
+/**
+ * Validate 1 product object
+ * @param {Object} product - Raw product data từ import
+ * @param {Number} rowIndex - Dòng số (for error reporting)
+ * @returns {Object} { isValid: boolean, errors: [], warnings: [], cleaned: Object }
+ */
+function toStrictNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized || !NUMERIC_PATTERN.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasUnsafeObjectKeys(value, depth = 0) {
+  if (typeof value === 'string') return value.length > MAX_IMPORT_STRING_LENGTH;
+  if (!value || typeof value !== 'object') return false;
+  if (depth > MAX_IMPORT_OBJECT_DEPTH) return true;
+  if (Array.isArray(value)) return value.some(item => hasUnsafeObjectKeys(item, depth + 1));
+  return Object.entries(value).some(([key, nestedValue]) => (
+    UNSAFE_OBJECT_KEYS.has(key) || hasUnsafeObjectKeys(nestedValue, depth + 1)
+  ));
+}
+
+function isBlockedImportHostname(hostname) {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) return true;
+  if (normalized === '::1' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) return true;
+
+  const octets = normalized.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255)) return false;
+  const [first, second] = octets;
+  return first === 0
+    || first === 10
+    || first === 127
+    || (first === 169 && second === 254)
+    || (first === 172 && second >= 16 && second <= 31)
+    || (first === 192 && second === 168);
+}
+
+function validateImportUrl(value) {
+  try {
+    const parsedUrl = new URL(String(value).trim());
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)
+      || parsedUrl.username
+      || parsedUrl.password
+      || isBlockedImportHostname(parsedUrl.hostname)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeProductContentFields(product, rowIndex = 0) {
+  const errors = [];
+  const warnings = [];
+  const cleaned = {};
+
+  if (product.technicalDescription !== undefined && product.technicalDescription !== null) {
+    cleaned.technicalDescription = sanitizeDescriptionText(product.technicalDescription);
+  }
+
+  if (product.descriptionImages !== undefined && product.descriptionImages !== null) {
+    let descriptionImages = product.descriptionImages;
+    if (typeof descriptionImages === 'string') {
+      try {
+        descriptionImages = JSON.parse(descriptionImages);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid descriptionImages JSON, skipped`);
+        descriptionImages = [];
+      }
+    }
+    if (!Array.isArray(descriptionImages)) {
+      warnings.push(`Row ${rowIndex}: descriptionImages must be an array, skipped`);
+    } else if (descriptionImages.length > MAX_IMPORT_IMAGES) {
+      errors.push(`Row ${rowIndex}: Too many description images; maximum is ${MAX_IMPORT_IMAGES}`);
+    } else {
+      const seenImageUrls = new Set();
+      cleaned.descriptionImages = descriptionImages.flatMap((image) => {
+        const entry = typeof image === 'string' ? { url: image } : image;
+        const sourceUrl = String(entry?.url || entry?.sourceUrl || '').trim();
+        const publicUrl = String(entry?.publicUrl || '').trim();
+        if (!sourceUrl || !validateImportUrl(sourceUrl)) {
+          warnings.push(`Row ${rowIndex}: Invalid description image URL, skipped`);
+          return [];
+        }
+        if (publicUrl && !validateImportUrl(publicUrl)) {
+          warnings.push(`Row ${rowIndex}: Invalid description image publicUrl, skipped`);
+          return [];
+        }
+        const url = new URL(sourceUrl).toString();
+        if (seenImageUrls.has(url)) return [];
+        seenImageUrls.add(url);
+        const normalizedImage = {
+          url,
+          alt: sanitizePlainText(entry?.alt || ''),
+        };
+        if (entry?.sourceUrl) normalizedImage.sourceUrl = url;
+        if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
+        if (entry?.assetPath) {
+          if (!isSafeAssetPath(entry.assetPath)) {
+            errors.push(`Row ${rowIndex}: Invalid description image asset path`);
+            return [];
+          }
+          normalizedImage.assetPath = entry.assetPath;
+        }
+        ['storageProvider', 'storageAccount', 'storageKey', 'bucket', 'publicId', 'contentHash', 'mimeType'].forEach((field) => {
+          if (typeof entry?.[field] === 'string' && entry[field].trim()) {
+            normalizedImage[field] = entry[field].trim();
+          }
+        });
+        if (entry?.bytes !== undefined && Number.isSafeInteger(Number(entry.bytes)) && Number(entry.bytes) > 0) {
+          normalizedImage.bytes = Number(entry.bytes);
+        }
+        return [normalizedImage];
+      });
+    }
+  }
+
+  if (product.promotions !== undefined && product.promotions !== null) {
+    let promotions = product.promotions;
+    if (typeof promotions === 'string') {
+      try {
+        promotions = JSON.parse(promotions);
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid promotions JSON, skipped`);
+        promotions = [];
+      }
+    }
+    if (!Array.isArray(promotions)) {
+      warnings.push(`Row ${rowIndex}: promotions must be an array, skipped`);
+    } else if (promotions.length > MAX_PRODUCT_PROMOTIONS) {
+      errors.push(`Row ${rowIndex}: Too many promotions; maximum is ${MAX_PRODUCT_PROMOTIONS}`);
+    } else {
+      const seenPromotions = new Set();
+      cleaned.promotions = promotions.flatMap((promotion) => {
+        if (!promotion || typeof promotion !== 'object' || Array.isArray(promotion)) {
+          warnings.push(`Row ${rowIndex}: Invalid promotion, skipped`);
+          return [];
+        }
+        const title = sanitizePlainText(promotion.title || '');
+        const type = sanitizePlainText(promotion.type || '');
+        if (!title || !type) {
+          warnings.push(`Row ${rowIndex}: Promotion type/title is required, skipped`);
+          return [];
+        }
+        if (!PRODUCT_PROMOTION_TYPES.has(type)) {
+          errors.push(`Row ${rowIndex}: Invalid promotion type "${type}"`);
+          return [];
+        }
+        const cleanedPromotion = { type, title };
+        if (promotion.giftQuantity !== undefined && promotion.giftQuantity !== null && String(promotion.giftQuantity).trim() !== '') {
+          const quantity = toStrictNumber(promotion.giftQuantity);
+          if (quantity === null || !Number.isSafeInteger(quantity) || quantity < 1) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift quantity, skipped`);
+            return [];
+          }
+          cleanedPromotion.giftQuantity = quantity;
+        }
+        if (promotion.giftProductName) cleanedPromotion.giftProductName = sanitizePlainText(promotion.giftProductName);
+        if (promotion.giftProductUrl) {
+          const giftProductUrl = String(promotion.giftProductUrl).trim();
+          if (validateImportUrl(giftProductUrl)) {
+            cleanedPromotion.giftProductUrl = new URL(giftProductUrl).toString();
+          } else {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift URL, skipped`);
+          }
+        }
+        if (promotion.giftValueVND !== undefined && promotion.giftValueVND !== null && String(promotion.giftValueVND).trim() !== '') {
+          const giftValue = toStrictNumber(promotion.giftValueVND);
+          if (giftValue === null || giftValue < 0) {
+            warnings.push(`Row ${rowIndex}: Invalid promotion gift value, skipped`);
+          } else {
+            cleanedPromotion.giftValueVND = giftValue;
+          }
+        }
+        if (promotion.scope) cleanedPromotion.scope = sanitizePlainText(promotion.scope);
+        if (promotion.discountText) cleanedPromotion.discountText = sanitizeDescriptionText(promotion.discountText);
+        const identity = `${type}\u0000${title}\u0000${cleanedPromotion.giftProductUrl || ''}`;
+        if (seenPromotions.has(identity)) return [];
+        seenPromotions.add(identity);
+        return [cleanedPromotion];
+      });
+    }
+  }
+
+  return { errors, warnings, cleaned };
+}
+
+function validateProduct(product, rowIndex = 0, options = {}) {
+  const errors = [];
+  if (!product || typeof product !== 'object' || Array.isArray(product)) {
+    return {
+      isValid: false,
+      errors: [`Row ${rowIndex}: Product must be an object`],
+      warnings: [],
+      cleaned: {},
+    };
+  }
+  if (hasUnsafeObjectKeys(product)) {
+    errors.push(`Row ${rowIndex}: Product contains unsafe object keys, excessive nesting, or oversized text`);
+  }
+  const warnings = [];
+  const cleaned = {};
+
+  // Check required fields
+  const requiredFields = options.requireComplete ? COMPLETE_REQUIRED_FIELDS : REQUIRED_FIELDS;
+  for (const field of requiredFields) {
+    const rawValue = product[field];
+    const value = PLAIN_TEXT_FIELDS.has(field)
+      ? sanitizePlainText(rawValue)
+      : field === 'specs'
+        ? rawValue
+        : String(rawValue ?? '').trim();
+    const isMissing = field === 'specs'
+      ? !value || (typeof value !== 'object' && typeof value !== 'string') || (typeof value === 'object' && Array.isArray(value)) || (typeof value === 'string' && !value.trim())
+      : !value && value !== 0;
+
+    if (isMissing) {
+      errors.push(`Row ${rowIndex}: Missing required field "${field}"`);
+    } else if (field !== 'specs') {
+      cleaned[field] = value;
+    }
+  }
+
+  if (EXCLUDED_BRAND_PATTERN.test(cleaned.brand || '')) {
+    errors.push(`Row ${rowIndex}: Brand is not allowed`);
+  }
+
+  const baseCurrencyCode = String(product.baseCurrencyCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(baseCurrencyCode)) {
+    errors.push(`Row ${rowIndex}: baseCurrencyCode must be a valid 3-letter uppercase currency code`);
+  } else {
+    cleaned.baseCurrencyCode = baseCurrencyCode;
+  }
+
+  if (product.productId !== undefined && product.productId !== null && String(product.productId).trim()) {
+    const productId = String(product.productId).trim();
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      errors.push(`Row ${rowIndex}: productId must be a valid product ID`);
+    } else {
+      cleaned.productId = productId;
+    }
+  }
+
+  if (product.sku !== undefined && product.sku !== null) {
+    const sku = String(product.sku).trim();
+    if (sku && !['n/a', 'na', 'none', 'null', 'unknown'].includes(sku.toLowerCase())) {
+      cleaned.sku = sku;
+    }
+  }
+
+  if (product.sourceProductId !== undefined && product.sourceProductId !== null) {
+    const sourceProductId = String(product.sourceProductId).trim();
+    if (sourceProductId) cleaned.sourceProductId = sourceProductId;
+  }
+
+  if (product.sourceUrl !== undefined && product.sourceUrl !== null) {
+    const sourceUrl = String(product.sourceUrl).trim();
+    if (sourceUrl) {
+      try {
+        if (!validateImportUrl(sourceUrl)) throw new Error('Unsupported or unsafe URL');
+        cleaned.sourceUrl = new URL(sourceUrl).toString();
+      } catch {
+        warnings.push(`Row ${rowIndex}: Invalid sourceUrl, skipped`);
+      }
+    }
+  }
+
+  // Validate price
+  const price = toStrictNumber(product.price);
+  if (price === null || price <= 0) {
+    errors.push(`Row ${rowIndex}: Price must be a number > 0, got: ${product.price}`);
+  } else {
+    cleaned.price = price;
+  }
+
+  // Validate originalPrice nếu có
+  if (product.originalPrice !== undefined && product.originalPrice !== null && String(product.originalPrice).trim() !== '') {
+    const origPrice = toStrictNumber(product.originalPrice);
+    if (origPrice === null || origPrice <= 0) {
+      warnings.push(`Row ${rowIndex}: Invalid originalPrice, skipped`);
+    } else {
+      cleaned.originalPrice = origPrice;
+      if (origPrice < cleaned.price) {
+        warnings.push(`Row ${rowIndex}: originalPrice is less than price`);
+      }
+    }
+  }
+
+  // Validate countInStock
+  if (product.countInStock !== undefined && product.countInStock !== null && String(product.countInStock).trim() !== '') {
+    const stock = toStrictNumber(product.countInStock);
+    if (stock === null || !Number.isSafeInteger(stock) || stock < 0) {
+      warnings.push(`Row ${rowIndex}: Invalid countInStock, defaulting to 0`);
+      cleaned.countInStock = 0;
+    } else {
+      cleaned.countInStock = stock;
+    }
+  } else {
+    cleaned.countInStock = 0;
+  }
+
+  // Process specs - can be string or object
+  // FIX #6: Validate specs structure
+  if (product.specs) {
+    try {
+      let specsObj;
+      if (typeof product.specs === 'string') {
+        // Parse JSON string nếu là string
+        specsObj = JSON.parse(product.specs);
+      } else if (typeof product.specs === 'object') {
+        specsObj = product.specs;
+      } else {
+        throw new Error('Specs must be a JSON object or string');
+      }
+
+      // FIX #6: Validate specs is an object with key-value pairs
+      if (typeof specsObj !== 'object' || Array.isArray(specsObj)) {
+        throw new Error('Specs must be an object, not an array');
+      }
+      // Normalize spec field names using smartNormalizeFieldName
+      cleaned.specs = normalizeSpecNames(specsObj);
+    } catch (err) {
+      if (options.requireComplete) {
+        errors.push(`Row ${rowIndex}: Field "specs" must be a valid JSON object`);
+      } else {
+        warnings.push(`Row ${rowIndex}: Failed to parse specs, skipped. Error: ${err.message}`);
+      }
+      cleaned.specs = {};
+    }
+  } else {
+    cleaned.specs = {};
+  }
+
+  // Validate category - should be valid category name or ID
+  if (product.category) {
+    cleaned.category = String(product.category).trim();
+    // TODO: Check nếu category tồn tại trong DB
+  }
+
+  // Optional fields
+  if (product.image) {
+    cleaned.image = String(product.image).trim();
+  }
+
+  const imageEntries = Array.isArray(product.images) ? product.images : [];
+  const normalizedImageEntries = imageEntries
+    .map(image => (typeof image === 'string' ? { url: image } : image))
+    .filter(image => image && typeof image === 'object');
+  const mainImageEntry = normalizedImageEntries.find(image => image.type === 'main');
+  const galleryImageEntries = normalizedImageEntries.filter(image => image.type !== 'main');
+
+  if (Array.isArray(product.images)) {
+    cleaned.images = galleryImageEntries
+      .map(image => image.url)
+      .filter(Boolean)
+      .map(image => String(image).trim());
+  } else if (product.images && typeof product.images === 'string') {
+    cleaned.images = product.images.split('|').map(img => String(img).trim()).filter(img => img);
+  }
+  if (cleaned.images?.[0] === cleaned.image) cleaned.images.shift();
+
+  const declaredAssetPaths = Array.isArray(product.imageAssetPaths)
+    ? product.imageAssetPaths
+    : typeof product.imageAssetPaths === 'string'
+      ? product.imageAssetPaths.split('|')
+      : [];
+  const objectAssetPaths = normalizedImageEntries.map(image => image.assetPath || '');
+  const assetPaths = objectAssetPaths.some(Boolean) ? objectAssetPaths : declaredAssetPaths;
+  const invalidAssetPath = assetPaths.find(assetPath => assetPath && !isSafeAssetPath(assetPath));
+  if (invalidAssetPath) {
+    errors.push(`Row ${rowIndex}: Invalid image asset path`);
+  }
+  const mainAssetPath = mainImageEntry?.assetPath || assetPaths[0];
+  const galleryAssetPaths = mainImageEntry
+    ? galleryImageEntries.map(image => image.assetPath || '')
+    : assetPaths.slice(1);
+  if (mainAssetPath && isSafeAssetPath(mainAssetPath)) cleaned.imageAssetPath = mainAssetPath;
+  if (galleryAssetPaths.some(Boolean)) {
+    cleaned.imageAssetPaths = galleryAssetPaths.filter(assetPath => isSafeAssetPath(assetPath));
+  }
+
+  const imageUrls = [cleaned.image, ...(cleaned.images || [])].filter(Boolean);
+  if (imageUrls.length > MAX_IMPORT_IMAGES) {
+    errors.push(`Row ${rowIndex}: Too many image URLs; maximum is ${MAX_IMPORT_IMAGES}`);
+  }
+  imageUrls.forEach((imageUrl) => {
+    if (!validateImportUrl(imageUrl) && !isSafeProductImagePath(imageUrl)) {
+      errors.push(`Row ${rowIndex}: Image URL must be a valid public HTTP(S) URL or a safe scraper image path`);
+    }
+  });
+
+  const contentFields = normalizeProductContentFields(product, rowIndex);
+  errors.push(...contentFields.errors);
+  warnings.push(...contentFields.warnings);
+  Object.assign(cleaned, contentFields.cleaned);
+
+  if (product.imagePublicId) {
+    cleaned.imagePublicId = String(product.imagePublicId).trim();
+  }
+
+  if (Array.isArray(product.imagePublicIds)) {
+    cleaned.imagePublicIds = product.imagePublicIds.map(publicId => String(publicId).trim()).filter(Boolean);
+  }
+
+  const normalizeAssetReference = (asset) => {
+    if (!asset || typeof asset !== 'object' || Array.isArray(asset)) return null;
+    const normalized = {};
+    ['sourceUrl', 'storageProvider', 'storageAccount', 'bucket', 'storageKey', 'publicUrl', 'publicId', 'contentHash', 'mimeType']
+      .forEach((field) => {
+        if (typeof asset[field] === 'string' && asset[field].trim()) normalized[field] = asset[field].trim();
+      });
+    if (asset.bytes !== undefined && Number.isSafeInteger(Number(asset.bytes)) && Number(asset.bytes) > 0) {
+      normalized.bytes = Number(asset.bytes);
+    }
+    return Object.keys(normalized).length > 0 ? normalized : null;
+  };
+  if (product.imageAsset) {
+    const normalizedAsset = normalizeAssetReference(product.imageAsset);
+    if (normalizedAsset) cleaned.imageAsset = normalizedAsset;
+  }
+  if (Array.isArray(product.imageAssets)) {
+    cleaned.imageAssets = product.imageAssets.map(normalizeAssetReference).filter(Boolean);
+  }
+
+  if (product.featured !== undefined) {
+    cleaned.featured = Boolean(product.featured === 'true' || product.featured === true || product.featured === 1);
+  }
+
+  // FIX #7: Validate deal object if provided
+  if (product.deal) {
+    try {
+      let dealObj;
+
+      if (typeof product.deal === 'string') {
+        dealObj = JSON.parse(product.deal);
+      } else if (typeof product.deal === 'object') {
+        dealObj = product.deal;
+      } else {
+        throw new Error('Deal must be a JSON object');
+      }
+
+      if (dealObj && typeof dealObj === 'object') {
+        const deal = {};
+
+        // Validate discount (0-100)
+        // Skip empty string from CSV (deal_discount column is empty)
+        if (dealObj.discount !== undefined && dealObj.discount !== '' && dealObj.discount !== null) {
+          const discount = toStrictNumber(dealObj.discount);
+          if (discount === null || discount < 0 || discount > 100) {
+            warnings.push(`Row ${rowIndex}: Deal discount must be 0-100, got: ${dealObj.discount}`);
+          } else {
+            deal.discount = discount;
+          }
+        }
+
+        // Skip empty string from CSV (deal_endTime column is empty)
+        if (dealObj.endTime !== undefined && dealObj.endTime !== '' && dealObj.endTime !== null) {
+          const endTime = new Date(dealObj.endTime);
+          if (isNaN(endTime.getTime())) {
+            warnings.push(`Row ${rowIndex}: Invalid endTime, must be a valid date`);
+          } else {
+            deal.endTime = endTime;
+          }
+        }
+
+        if (Object.keys(deal).length > 0) {
+          cleaned.deal = deal;
+        }
+      }
+    } catch (err) {
+      warnings.push(`Row ${rowIndex}: Failed to parse deal object, skipped. Error: ${err.message}`);
+    }
+  }
+
+  if (product.translations !== undefined) {
+    const defaultLanguage = getDefaultLanguage().code;
+    if (!product.translations || typeof product.translations !== 'object' || Array.isArray(product.translations)) {
+      errors.push(`Row ${rowIndex}: translations must be an object`);
+    } else {
+      const cleanedTranslations = {};
+      Object.entries(product.translations).forEach(([targetLang, translation]) => {
+        if (targetLang === defaultLanguage || !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(targetLang)) return;
+        if (translation?.fallback === true) return;
+        if (!translation || typeof translation !== 'object' || Array.isArray(translation)) {
+          errors.push(`Row ${rowIndex}: Invalid translation for language "${targetLang}"`);
+          return;
+        }
+
+        const cleanedTranslation = {};
+        ['name', 'description', 'brand', 'technicalDescription'].forEach((field) => {
+          if (translation[field] !== undefined && translation[field] !== null) {
+            if (typeof translation[field] !== 'string') {
+              errors.push(`Row ${rowIndex}: Translation field "${field}" must be a string`);
+              return;
+            }
+            cleanedTranslation[field] = ['description', 'technicalDescription'].includes(field)
+              ? sanitizeDescriptionText(translation[field])
+              : sanitizePlainText(translation[field]);
+          }
+        });
+        if (translation.specs !== undefined) {
+          if (!translation.specs || typeof translation.specs !== 'object' || Array.isArray(translation.specs)) {
+            errors.push(`Row ${rowIndex}: Translation specs must be an object`);
+          } else {
+            cleanedTranslation.specs = translation.specs;
+          }
+        }
+        const translatedContent = normalizeProductContentFields({
+          descriptionImages: translation.descriptionImages,
+          promotions: translation.promotions,
+        }, rowIndex);
+        errors.push(...translatedContent.errors);
+        warnings.push(...translatedContent.warnings);
+        if (translatedContent.cleaned.descriptionImages !== undefined) {
+          cleanedTranslation.descriptionImages = translatedContent.cleaned.descriptionImages;
+        }
+        if (translatedContent.cleaned.promotions !== undefined) {
+          cleanedTranslation.promotions = translatedContent.cleaned.promotions;
+        }
+        if (Array.isArray(translation.manualFields)) {
+          cleanedTranslation.manualFields = translation.manualFields.filter(field => (
+            ['name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions'].includes(field)
+          ));
+        }
+        if (Object.keys(cleanedTranslation).some(field => field !== 'manualFields')) {
+          cleanedTranslations[targetLang] = cleanedTranslation;
+        }
+      });
+      cleaned.translations = cleanedTranslations;
+    }
+  }
+
+  // Description is optional, allow empty string
+  if (product.description !== undefined && product.description !== null) {
+    cleaned.description = sanitizeDescriptionText(product.description);
+  } else {
+    cleaned.description = '';
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+    cleaned,
+  };
+}
+
+/**
+ * Normalize spec field names using pattern matching
+ * Convert "Loạichuột" → "mouseType", etc.
+ * @param {Object} specs - Raw specs object
+ * @returns {Object} Normalized specs object
+ */
+function normalizeSpecNames(specs) {
+  if (!specs || typeof specs !== 'object') return {};
+
+  const normalized = {};
+
+  const fieldPatterns = {
+    'connection': /kết.*nối|phương.*thức.*kết.*nối|wireless|wired|bluetooth|dongle/,
+    'weight': /trọng.*lương|weight/,
+    'battery': /pin|thời.*lương.*pin|battery|thời.*gian.*pin|giờ/,
+    'mouseType': /loại.*chuột|mouse.*type|chuột/,
+    'maxDPI': /dpi|cpi|max.*dpi|độ.*nhạy/,
+    'pollRate': /poll.*rate|hz|khz|report.*rate|tốc.*độ.*báo.*cáo/,
+    'buttons': /nút.*bấm|button|lượng.*nút|số.*nút/,
+  };
+
+  for (const [key, value] of Object.entries(specs)) {
+    const normalizedKey = smartNormalizeFieldNameHelper(key, fieldPatterns);
+    normalized[normalizedKey] = typeof value === 'string'
+      ? sanitizePlainText(value)
+      : value;
+  }
+
+  return normalized;
+}
+
+/**
+ * Helper: Smart field name normalization
+ */
+function smartNormalizeFieldNameHelper(fieldName, patterns) {
+  const normalized = fieldName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, '');
+
+  for (const [fieldKey, pattern] of Object.entries(patterns)) {
+    if (pattern.test(normalized)) {
+      return fieldKey;
+    }
+  }
+
+  // Fallback: return as-is
+  return fieldName;
+}
+
+/**
+ * Validate full product array khi import
+ * @param {Array} products - Mảng products từ import
+ * @returns {Object} { isValid, errors, warnings, validProducts: [], invalidProducts: [] }
+ */
+function validateProductArray(products, options = {}) {
+  if (!Array.isArray(products)) {
+    return {
+      isValid: false,
+      errors: ['Import data phải là mảng (array)'],
+      warnings: [],
+      validProducts: [],
+      invalidProducts: [],
+    };
+  }
+
+  if (products.length === 0) {
+    return {
+      isValid: false,
+      errors: ['Import data phải chứa ít nhất một sản phẩm'],
+      warnings: [],
+      validProducts: [],
+      invalidProducts: [],
+    };
+  }
+
+  const validProducts = [];
+  const invalidProducts = [];
+  const allErrors = [];
+  const allWarnings = [];
+  if (products.length > MAX_IMPORT_PRODUCTS) {
+    return {
+      isValid: false,
+      errors: [`Import data cannot contain more than ${MAX_IMPORT_PRODUCTS} products`],
+      warnings: [],
+      totalProducts: products.length,
+      validProducts: [],
+      invalidProducts: [],
+    };
+  }
+
+  products.forEach((product, index) => {
+    const result = validateProduct(product, index + 1, options);
+    const errors = result.errors;
+
+    if (errors.length === 0) {
+      validProducts.push(result.cleaned);
+    } else {
+      invalidProducts.push({
+        rowIndex: index + 1,
+        data: product,
+        errors,
+      });
+    }
+    allErrors.push(...errors);
+    allWarnings.push(...result.warnings);
+  });
+
+  return {
+    isValid: allErrors.length === 0,
+    errors: allErrors,
+    warnings: allWarnings,
+    totalProducts: products.length,
+    validProducts,
+    invalidProducts,
+  };
+}
+
+/**
+ * Validate category name để tránh injection, data pollution
+ *
+ * Rules:
+ * - Length: 1-100 characters
+ * - Allowed: alphanumeric, space, dash, underscore, tiếng Việt
+ * - No special characters: @#$%^&*()+={}[];:"'<>,.?/|\`~
+ * - No leading/trailing spaces
+ * - No multiple consecutive spaces
+ * - No SQL/NoSQL keywords
+ *
+ * @param {String} name - Name to validate
+ * @returns {Object} { isValid, error }
+ */
+function validateCategoryName(name, lang) {
+  const getCategoryMessage = (key, values = {}) => getMessage(
+    lang || getDefaultLanguage().code,
+    `admin-import.${key}`,
+    values
+  );
+
+  // Trim whitespace
+  const trimmed = String(name || '').trim();
+
+  // Check length
+  if (trimmed.length === 0) {
+    return { isValid: false, error: getCategoryMessage('category_name_required') };
+  }
+  if (trimmed.length > 100) {
+    return { isValid: false, error: getCategoryMessage('category_name_too_long') };
+  }
+
+  // Check for multiple consecutive spaces
+  if (/\s{2,}/.test(trimmed)) {
+    return { isValid: false, error: getCategoryMessage('category_name_multiple_spaces') };
+  }
+
+  // Allow only: alphanumeric, space, dash, underscore, tiếng Việt (Unicode)
+  // Pattern: [\w\u0100-\u017F\u1E00-\u1EFF\s-] = word chars + Latin extended + Vietnamese + space + dash
+  const allowedPattern = /^[\w\u0100-\u017F\u1E00-\u1EFF\s\-]+$/;
+  if (!allowedPattern.test(trimmed)) {
+    return {
+      isValid: false,
+      error: getCategoryMessage('category_name_invalid_characters')
+    };
+  }
+
+  // Block dangerous keywords (NoSQL injection prevention)
+  const dangerousKeywords = [
+    '$ne', '$gt', '$lt', '$in', '$nin', '$or', '$and', '$nor',
+    'db.', 'function', 'eval', 'constructor', 'prototype',
+    'exec', 'spawn', 'fork', 'require',
+  ];
+  const lowerTrimmed = trimmed.toLowerCase();
+  for (const keyword of dangerousKeywords) {
+    if (lowerTrimmed.includes(keyword)) {
+      return {
+        isValid: false,
+        error: getCategoryMessage('category_name_forbidden_keyword', { keyword })
+      };
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Sanitize category name
+ * - Trim whitespace
+ * - Normalize multiple spaces to single space
+ * - Remove accents for consistency (optional)
+ *
+ * @param {String} name
+ * @returns {String} Sanitized name
+ */
+function sanitizeCategoryName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+}
+
+module.exports = {
+  validateProduct,
+  normalizeProductContentFields,
+  validateProductArray,
+  normalizeSpecNames,
+  validateCategoryName,
+  sanitizeCategoryName,
+  REQUIRED_FIELDS,
+  COMPLETE_REQUIRED_FIELDS,
+  OPTIONAL_FIELDS,
+  EXCLUDED_BRAND_PATTERN,
+  MAX_IMPORT_PRODUCTS,
+  MAX_IMPORT_OBJECT_DEPTH,
+  MAX_IMPORT_STRING_LENGTH,
+};

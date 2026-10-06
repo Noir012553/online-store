@@ -1,0 +1,366 @@
+/**
+ * Rate Limit Handler Service
+ * 
+ * Chiến lược xử lý 429 (Too Many Requests) cho Layer 2 (Products)
+ * - Chấp nhận dính Rate Limit
+ * - Ghi nhận lỗi với status = 'failed_rate_limit'
+ * - Tự động retry với exponential backoff
+ * - Cho Admin manual override
+ */
+
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const translationValidator = require('../utils/translationValidator');
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const PRODUCT_ENTITY_TYPES = new Set([
+  'product_name',
+  'product_description',
+  'product_brand',
+  'product_spec',
+  'product_technical_description',
+  'product_description_image_alt',
+  'product_promotion',
+]);
+
+const getManualOverrideValidation = async (record, translatedText) => {
+  if (!PRODUCT_ENTITY_TYPES.has(record.entityType)) {
+    return { qualityStatus: 'approved', qualityScore: record.qualityScore, validationErrors: [] };
+  }
+  return translationValidator.validateTranslation(
+    record.originalText,
+    translatedText,
+    record.targetLang,
+    record.entityType,
+  );
+};
+
+class RateLimitHandler {
+  /**
+   * Xử lý lỗi 429 (Rate Limit) từ Cloudflare AI
+   * Ghi nhận vào DB thay vì crash toàn bộ process
+   * 
+   * @param {string} originalText - Text gốc cần dịch
+   * @param {string} targetLang - Ngôn ngữ đích
+   * @param {string} entityId - ID sản phẩm/danh mục
+   * @param {string} entityType - product_name, product_description, etc
+   * @param {string} errorMessage - Chi tiết lỗi từ API
+   * @returns {Promise<Object>} Document được lưu vào DB
+   */
+  static async recordTranslationError(
+    originalText,
+    targetLang,
+    entityId,
+    entityType,
+    errorMessage,
+    status = 'failed_error',
+    sourceLang = null,
+    fieldKey = null,
+  ) {
+    try {
+      const crypto = require('crypto');
+      const hashKey = crypto
+        .createHash('md5')
+        .update(JSON.stringify([entityId, entityType, fieldKey || '', originalText, sourceLang, targetLang]))
+        .digest('hex');
+
+      const cacheEntry = await LiveTranslationCache.findOneAndUpdate(
+        { hashKey },
+        {
+          $set: {
+            originalText,
+            sourceLang,
+            targetLang,
+            translatedText: originalText,
+            entityId,
+            entityType,
+            fieldKey,
+            status,
+            qualityStatus: 'pending',
+            qualityScore: null,
+            validationErrors: ['translation_failed'],
+            lastErrorMessage: errorMessage,
+            lastRetryAt: new Date(),
+          },
+          $setOnInsert: {
+            retryCount: 1,
+          },
+        },
+        { upsert: true, returnDocument: 'after' }
+      );
+
+      console.log(
+        `[RateLimitHandler] ${CLI_SYMBOLS.pin} Ghi nhận ${status}: ${entityType} (${entityId})`
+      );
+
+      return cacheEntry;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi ghi nhận translation error: ${err.message}`);
+      throw err;
+    }
+  }
+
+  static async recordRateLimitError(
+    originalText,
+    targetLang,
+    entityId,
+    entityType,
+    errorMessage,
+    sourceLang = null,
+    fieldKey = null,
+  ) {
+    return this.recordTranslationError(
+      originalText,
+      targetLang,
+      entityId,
+      entityType,
+      errorMessage,
+      'failed_rate_limit',
+      sourceLang,
+      fieldKey,
+    );
+  }
+
+  /**
+   * Exponential Backoff Retry
+   * Chờ lâu hơn mỗi lần retry để tránh spam API
+   * 
+   * @param {number} retryCount - Số lần retry đã cố gắng
+   * @returns {number} Thời gian chờ (ms)
+   */
+  static getBackoffDelay(retryCount) {
+    // Công thức: 2^retryCount * 1000ms (với jitter ngẫu nhiên)
+    // Retry 1: 2000ms
+    // Retry 2: 4000ms
+    // Retry 3: 8000ms
+    // Retry 4: 16000ms
+    const baseDelay = Math.pow(2, retryCount) * 1000;
+    const jitter = Math.random() * 0.1 * baseDelay; // Random 0-10%
+    return Math.min(baseDelay + jitter, 60000); // Max 60 seconds
+  }
+
+  /**
+   * Lấy danh sách translations lỗi để Admin retry
+   * 
+   * @param {string} targetLang - Language code
+   * @param {string} entityType - Filter by entity type (optional)
+   * @param {number} limit - Giới hạn số records
+   * @returns {Promise<Array>} Danh sách lỗi
+   */
+  static async getFailedTranslations(targetLang, entityType = null, limit = 100) {
+    try {
+      const query = {
+        status: { $in: ['failed_rate_limit', 'failed_error', 'pending_retry'] },
+        targetLang,
+      };
+
+      if (entityType) {
+        query.entityType = entityType;
+      }
+
+      const failed = await LiveTranslationCache.find(query)
+        .limit(limit)
+        .sort({ lastRetryAt: -1 })
+        .lean();
+
+      return failed;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi fetch failed translations: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Lấy thống kê lỗi theo từng loại
+   * Dùng để Admin dashboard hiển thị
+   * 
+   * @param {string} targetLang - Language code
+   * @returns {Promise<Object>} Statistics
+   */
+  static async getErrorStatistics(targetLang) {
+    try {
+      const stats = await LiveTranslationCache.aggregate([
+        {
+          $match: {
+            targetLang,
+            status: { $nin: ['success', 'translated_via_libre'] }
+          }
+        },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            entityTypes: { $addToSet: '$entityType' }
+          }
+        },
+        {
+          $sort: { count: -1 }
+        }
+      ]);
+
+      // Format response
+      const formatted = {
+        failed_rate_limit: 0,
+        failed_error: 0,
+        pending_retry: 0,
+        total_failed: 0,
+        by_entity_type: {}
+      };
+
+      for (const stat of stats) {
+        formatted[stat._id] = stat.count;
+        formatted.total_failed += stat.count;
+      }
+
+      return formatted;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi fetch error stats: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Admin bấn nút "Dịch lại các sản phẩm lỗi"
+   * Reset status về pending_retry để Background Job xử lý tiếp
+   * 
+   * @param {string} targetLang - Language code
+   * @param {string} entityType - Filter by entity type (optional)
+   * @returns {Promise<Object>} Updated count
+   */
+  static async resetFailedForRetry(targetLang, entityType = null) {
+    try {
+      const query = {
+        status: { $in: ['failed_rate_limit', 'failed_error'] },
+        targetLang,
+      };
+
+      if (entityType) {
+        query.entityType = entityType;
+      }
+
+      const result = await LiveTranslationCache.updateMany(
+        query,
+        {
+          $set: {
+            status: 'pending_retry',
+            retryCount: 0,
+            lastRetryAt: new Date(),
+          }
+        }
+      );
+
+      console.log(
+        `[RateLimitHandler] ${CLI_SYMBOLS.progress} Reset ${result.modifiedCount} translations để retry`
+      );
+
+      return result;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi reset for retry: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Admin sửa tay bản dịch - Manual Override
+   * Cập nhật translatedText và đánh dấu status = 'success'
+   * 
+   * @param {string} hashKey - Key của translation entry
+   * @param {string} translatedText - Nội dung dịch mới
+   * @returns {Promise<Object>} Updated document
+   */
+  static async manualOverride(hashKey, translatedText) {
+    try {
+      const record = await LiveTranslationCache.findOne({ hashKey }).lean();
+      if (!record) throw new Error(`Translation with hashKey ${hashKey} not found`);
+      const validation = await getManualOverrideValidation(record, translatedText);
+      const updated = await LiveTranslationCache.findOneAndUpdate(
+        { hashKey },
+        {
+          $set: {
+            translatedText,
+            status: 'success',
+            qualityStatus: validation.qualityStatus,
+            qualityScore: validation.qualityScore,
+            validationErrors: validation.validationErrors,
+            lastRetryAt: new Date(),
+            retryCount: 0,
+          }
+        },
+        { returnDocument: 'after' }
+      );
+
+      if (!updated) {
+        throw new Error(`Translation with hashKey ${hashKey} not found`);
+      }
+
+      console.log(
+        `[RateLimitHandler] ${CLI_SYMBOLS.pencil} Admin sửa tay: ${hashKey}`
+      );
+
+      return updated;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi manual override: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Batch update: Admin sửa nhiều translations cùng lúc
+   * 
+   * @param {Array<{hashKey, translatedText}>} updates - List updates
+   * @returns {Promise<Object>} Bulk update result
+   */
+  static async batchManualOverride(updates) {
+    try {
+      const records = await LiveTranslationCache.find({
+        hashKey: { $in: updates.map(({ hashKey }) => hashKey) },
+      }).lean();
+      const recordsByHashKey = new Map(records.map((record) => [record.hashKey, record]));
+      const operations = await Promise.all(updates.map(async ({ hashKey, translatedText }) => {
+        const record = recordsByHashKey.get(hashKey);
+        const validation = record
+          ? await getManualOverrideValidation(record, translatedText)
+          : { qualityStatus: 'approved', qualityScore: null, validationErrors: [] };
+        return {
+          updateOne: {
+            filter: { hashKey },
+            update: {
+              $set: {
+                translatedText,
+                status: 'success',
+                qualityStatus: validation.qualityStatus,
+                qualityScore: validation.qualityScore,
+                validationErrors: validation.validationErrors,
+                lastRetryAt: new Date(),
+                retryCount: 0,
+              }
+            }
+          }
+        };
+      }));
+
+      const result = await LiveTranslationCache.bulkWrite(operations);
+
+      console.log(
+        `[RateLimitHandler] ${CLI_SYMBOLS.edit} Batch sửa tay: ${result.modifiedCount} entries`
+      );
+
+      return result;
+    } catch (err) {
+      console.error(`[RateLimitHandler] Lỗi batch manual override: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Kiểm tra có nên dừng retry hay không (max 3 lần)
+   * 
+   * @param {number} retryCount - Số lần retry hiện tại
+   * @returns {boolean} True nếu nên bỏ cuộc, False nếu tiếp tục
+   */
+  static shouldGiveUp(retryCount) {
+    const MAX_RETRIES = 3;
+    return retryCount >= MAX_RETRIES;
+  }
+}
+
+module.exports = RateLimitHandler;

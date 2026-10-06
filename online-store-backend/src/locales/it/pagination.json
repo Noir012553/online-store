@@ -1,0 +1,16 @@
+{
+  "page": "Pagina",
+  "of": "di",
+  "first": "Prima pagina",
+  "previous": "Pagina precedente",
+  "next": "Pagina successiva",
+  "last": "Ultima pagina",
+  "ellipsis": "...",
+  "pagination_label": "Paginazione",
+  "pagination_previous_page": "Vai alla pagina precedente",
+  "pagination_previous": "Precedente",
+  "pagination_next_page": "Vai alla pagina successiva",
+  "pagination_next": "Successiva",
+  "pagination_more_pages": "Altre pagine",
+  "first_page": "Prima pagina"
+}

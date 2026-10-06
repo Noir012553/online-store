@@ -1,0 +1,11 @@
+{
+  "loading": "Caricamento in corso...",
+  "loading_data": "Caricamento dei dati...",
+  "loading_products": "Caricamento dei prodotti...",
+  "loading_cart": "Caricamento del carrello...",
+  "loading_checkout": "Caricamento del pagamento...",
+  "loading_orders": "Caricamento dei tuoi ordini...",
+  "loading_profile": "Caricamento del profilo...",
+  "loading_admin_ui": "Caricamento dell'interfaccia di amministrazione...",
+  "please_wait": "Si prega di attendere..."
+}

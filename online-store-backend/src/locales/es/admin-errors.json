@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Falló al guardar anulación",
+  "error_saving_override": "Error al guardar anulación",
+  "failed_load_namespace": "Falló al cargar espacio de nombres",
+  "error_fetching_health_data": "Error al obtener datos de salud",
+  "error_fetching_logs": "Error al obtener registros",
+  "error_fetching_languages": "Error al obtener idiomas",
+  "error_fetching_supported_languages": "Error al obtener idiomas soportados",
+  "failed_fetch_products": "Falló al obtener productos",
+  "failed_fetch_deleted_products": "Falló al obtener productos eliminados",
+  "http_error_status": "¡Error HTTP! estado: {status}",
+  "failed_create_shipment": "Falló al crear envío",
+  "failed_update_translation": "Falló al actualizar traducción",
+  "failed_delete_product": "Falló al eliminar producto",
+  "failed_import_products": "Falló al importar productos",
+  "network_timeout": "Tiempo de espera de red"
+}

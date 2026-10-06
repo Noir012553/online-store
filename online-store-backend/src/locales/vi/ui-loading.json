@@ -1,0 +1,11 @@
+{
+  "loading": "Đang tải...",
+  "loading_data": "Đang tải dữ liệu...",
+  "loading_products": "Đang tải sản phẩm...",
+  "loading_cart": "Đang tải giỏ hàng...",
+  "loading_checkout": "Đang tải thanh toán...",
+  "loading_orders": "Đang tải đơn hàng của bạn...",
+  "loading_profile": "Đang tải hồ sơ...",
+  "loading_admin_ui": "Đang tải giao diện quản trị...",
+  "please_wait": "Vui lòng chờ..."
+}

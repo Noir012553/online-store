@@ -1,0 +1,16 @@
+{
+  "required_codes": "Beide Währungscodes sind erforderlich",
+  "required_fields": "Ausgangswährung, Zielwährung und Wechselkurs sind erforderlich",
+  "rate_must_be_positive": "Der Wechselkurs muss größer als null sein",
+  "created_success": "Wechselkurs wurde erfolgreich erstellt",
+  "updated_success": "Wechselkurs wurde erfolgreich aktualisiert",
+  "deleted_success": "Wechselkurs wurde erfolgreich gelöscht",
+  "amount_non_negative": "Der Betrag darf nicht negativ sein",
+  "updated_rates": "{{count}} Wechselkurse wurden aktualisiert",
+  "not_found": "Wechselkurs wurde nicht gefunden",
+  "pair_not_found": "Wechselkurs von {{fromCode}} nach {{toCode}} wurde nicht gefunden",
+  "currencies_match": "Ausgangs- und Zielwährung müssen unterschiedlich sein",
+  "already_exists": "Wechselkurs von {{fromCode}} nach {{toCode}} existiert bereits",
+  "currency_not_found": "Währung {{currencyCode}} wurde nicht gefunden",
+  "operation_failed": "Die Wechselkursanfrage konnte nicht verarbeitet werden"
+}

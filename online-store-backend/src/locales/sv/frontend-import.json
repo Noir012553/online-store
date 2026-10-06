@@ -1,0 +1,17 @@
+{
+  "max_file_size_error": "Maximal filstorlek är 10MB",
+  "invalid_file_error": "Ogiltigt filformat. Endast JSON och CSV stöds",
+  "import_success": "Produkter importerade framgångsrikt",
+  "import_failed": "Fel vid importering av produkter",
+  "upload_failed": "Fel vid filuppladdning",
+  "importing": "Importerar...",
+  "file_format_json": "JSON",
+  "file_format_csv": "CSV",
+  "mode_insert": "Infoga",
+  "mode_update": "Uppdatera",
+  "mode_upsert": "Infoga eller Uppdatera",
+  "dry_run_label": "Förhandsvisning (ingen datamöjliggöring)",
+  "download_template": "Ladda ner mall",
+  "select_file": "Välj fil",
+  "submit_import": "Importera produkter"
+}

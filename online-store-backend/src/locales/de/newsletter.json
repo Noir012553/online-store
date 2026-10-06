@@ -1,0 +1,14 @@
+{
+  "emailLabel": "E-Mail-Adresse",
+  "emailPlaceholder": "email@beispiel.com",
+  "phoneLabel": "Telefonnummer",
+  "phonePlaceholder": "+49 (30) 12345-6789",
+  "subscribe": "Abonnieren",
+  "sending": "Wird gesendet...",
+  "thankYouTitle": "Vielen Dank!",
+  "thankYouMessage": "Wir senden exklusive Angebote an Ihre E-Mail. Überprüfen Sie Ihren Posteingang!",
+  "successMessage": "Danke für das Abonnement!",
+  "errorMessage": "Abonnement fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  "invalidEmail": "Ungültiges E-Mail-Format",
+  "invalidPhone": "Ungültige Telefonnummer"
+}

@@ -1,0 +1,395 @@
+const assert = require('node:assert/strict');
+const {
+  overlayTranslation,
+  overlayTranslationBatchWithFallback,
+  getTranslationWithFallback,
+  TRANSLATABLE_FIELDS,
+  CACHE_MODELS,
+  overlayCouponTranslations,
+  overlayOrderTranslations,
+  overlayBannerTranslations,
+  overlayTestimonialTranslations,
+  getStorefrontVisibleProductIds,
+  localizeProductSpecs,
+} = require('../services/translationHelper');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+
+function createQueryMock() {
+  const mock = (query) => {
+    mock.calls.push(query);
+    const chain = {
+      select: () => chain,
+      maxTimeMS: () => chain,
+      lean: () => mock.result,
+    };
+    return chain;
+  };
+
+  mock.calls = [];
+  mock.result = Promise.resolve(null);
+  return mock;
+}
+
+describe('translationHelper - Entity Type Support', () => {
+  describe('CACHE_MODELS and TRANSLATABLE_FIELDS', () => {
+    it('should support 8+ entity types', () => {
+      const expectedTypes = ['product', 'brand', 'userContent', 'coupon', 'order', 'banner', 'testimonial'];
+      expectedTypes.forEach(type => {
+        assert.notStrictEqual(CACHE_MODELS[type], undefined);
+        assert.notStrictEqual(TRANSLATABLE_FIELDS[type], undefined);
+      });
+    });
+
+    it('should have correct translatable fields for coupon', () => {
+      assert.ok(['name', 'description', 'codeDescription', 'termsAndConditions'].every(field =>
+        TRANSLATABLE_FIELDS.coupon.includes(field)
+      ));
+    });
+
+    it('should have correct translatable fields for order', () => {
+      assert.ok(['customerNotes', 'shippingNotes', 'adminNotes', 'statusMessage'].every(field =>
+        TRANSLATABLE_FIELDS.order.includes(field)
+      ));
+    });
+
+    it('should have correct translatable fields for banner', () => {
+      assert.ok(['title', 'description', 'ctaText', 'altText'].every(field =>
+        TRANSLATABLE_FIELDS.banner.includes(field)
+      ));
+    });
+
+    it('should have correct translatable fields for testimonial', () => {
+      assert.ok(['content', 'authorName', 'authorTitle', 'authorCompany'].every(field =>
+        TRANSLATABLE_FIELDS.testimonial.includes(field)
+      ));
+    });
+  });
+});
+
+describe('translationHelper - Exact-language overlays', () => {
+  let mockCouponCache;
+  let originalCouponCache;
+
+  beforeEach(() => {
+    originalCouponCache = CACHE_MODELS.coupon;
+    mockCouponCache = {
+      findOne: createQueryMock(),
+      find: createQueryMock(),
+    };
+    CACHE_MODELS.coupon = mockCouponCache;
+  });
+
+  afterEach(() => {
+    CACHE_MODELS.coupon = originalCouponCache;
+  });
+
+  describe('getTranslationWithFallback', () => {
+    it('should return null when no translation exists for the requested language', async () => {
+      mockCouponCache.findOne.result = Promise.resolve(null);
+
+      const result = await getTranslationWithFallback('123', 'coupon', 'vi');
+
+      assert.deepStrictEqual(mockCouponCache.findOne.calls, [{
+        entityId: '123',
+        targetLang: 'vi',
+        status: 'success',
+      }]);
+      assert.strictEqual(result, null);
+    });
+
+    it('should query only the requested language', async () => {
+      mockCouponCache.findOne.result = Promise.resolve({
+        entityId: '123',
+        targetLang: 'fr',
+        name: 'Coupon français',
+      });
+
+      const result = await getTranslationWithFallback('123', 'coupon', 'fr');
+
+      assert.deepStrictEqual(mockCouponCache.findOne.calls, [{
+        entityId: '123',
+        targetLang: 'fr',
+        status: 'success',
+      }]);
+      assert.strictEqual(result.appliedLang, 'fr');
+      assert.strictEqual(result.fallbackUsed, false);
+    });
+
+    it('should return null when the requested-language query fails', async () => {
+      mockCouponCache.findOne.result = Promise.reject(new Error('DB error'));
+
+      const result = await getTranslationWithFallback('123', 'coupon', 'fr');
+
+      assert.strictEqual(result, null);
+    });
+
+    it('should return null for unknown entity type', async () => {
+      const result = await getTranslationWithFallback('123', 'unknownType', 'fr');
+      assert.strictEqual(result, null);
+    });
+
+    it('should return null for missing entityId', async () => {
+      const result = await getTranslationWithFallback(null, 'coupon', 'fr');
+      assert.strictEqual(result, null);
+    });
+  });
+
+  describe('overlayTranslationBatchWithFallback', () => {
+    it('should keep source entities when no exact-language translation exists', async () => {
+      const entities = [{ _id: '1', name: 'Item' }];
+      mockCouponCache.find.result = Promise.resolve([]);
+
+      const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'vi');
+
+      assert.deepStrictEqual(result, entities);
+    });
+
+    it('should overlay only exact-language translations', async () => {
+      const entities = [
+        { _id: '1', name: 'Original Name' },
+        { _id: '2', name: 'Original Name 2' },
+      ];
+      mockCouponCache.find.result = Promise.resolve([
+        { entityId: '1', targetLang: 'fr', name: 'Nom français' },
+      ]);
+
+      const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'fr');
+
+      assert.deepStrictEqual(mockCouponCache.find.calls, [{
+        entityId: { $in: ['1', '2'] },
+        targetLang: 'fr',
+        status: 'success',
+      }]);
+      assert.strictEqual(result[0].name, 'Nom français');
+      assert.strictEqual(result[1].name, 'Original Name 2');
+    });
+
+    it('should return original entities on error', async () => {
+      const entities = [{ _id: '1', name: 'Item' }];
+      mockCouponCache.find.result = Promise.reject(new Error('DB error'));
+
+      const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'fr');
+
+      assert.deepStrictEqual(result, entities);
+    });
+  });
+});
+
+describe('translationHelper - Product legacy cache fallback', () => {
+  let mockProductCache;
+  let originalProductCache;
+  let mockLegacyFind;
+  let originalLegacyFind;
+
+  beforeEach(() => {
+    originalProductCache = CACHE_MODELS.product;
+    mockProductCache = {
+      findOne: createQueryMock(),
+      find: createQueryMock(),
+    };
+    CACHE_MODELS.product = mockProductCache;
+    originalLegacyFind = LiveTranslationCache.find;
+    mockLegacyFind = createQueryMock();
+    LiveTranslationCache.find = mockLegacyFind;
+  });
+
+  afterEach(() => {
+    CACHE_MODELS.product = originalProductCache;
+    LiveTranslationCache.find = originalLegacyFind;
+  });
+
+  it('restores source product fields when cached translations contain a no-input response', async () => {
+    const sourceDescription = 'Laptop chơi game';
+    mockProductCache.find.result = Promise.resolve([{
+      entityId: '1',
+      name: "(Note: It seems like there's no text provided. Please provide the text you'd like me to translate, and I'll be happy to assist you.) Once you provide the text, I'll translate it into English.",
+      description: sourceDescription,
+    }]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Máy tính xách tay', description: sourceDescription, brand: 'Brand', specs: {} },
+    ], 'product', 'sv');
+
+    assert.strictEqual(result[0].name, 'Máy tính xách tay');
+    assert.strictEqual(result[0].description, sourceDescription);
+  });
+
+  it('uses legacy translations for a product missing from the catalog cache', async () => {
+    mockProductCache.find.result = Promise.resolve([]);
+    mockLegacyFind.result = Promise.resolve([
+      { entityId: '1', entityType: 'product_name', translatedText: 'Tên legacy' },
+      { entityId: '1', entityType: 'product_spec', specKey: 'CPU', translatedText: 'Bộ xử lý' },
+      { entityId: '1', entityType: 'product_technical_description', translatedText: 'Mô tả kỹ thuật legacy' },
+      { entityId: '1', entityType: 'product_description_image_alt', fieldKey: 'descriptionImages.0.alt', translatedText: 'Ảnh legacy' },
+      { entityId: '1', entityType: 'product_promotion', fieldKey: 'promotions.0.title', translatedText: 'Quà tặng legacy' },
+    ]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      {
+        _id: '1',
+        name: 'Original',
+        specs: { CPU: 'Processor' },
+        technicalDescription: 'Mô tả kỹ thuật gốc',
+        descriptionImages: [{ url: 'https://example.invalid/image.jpg', alt: 'Ảnh gốc' }],
+        promotions: [{ type: 'Gift', title: 'Quà tặng gốc', giftValueVND: 360000 }],
+      },
+    ], 'product', 'en');
+
+    assert.strictEqual(result[0].name, 'Tên legacy');
+    assert.deepStrictEqual(result[0].specs, { cpu: 'Bộ xử lý' });
+    assert.strictEqual(result[0].technicalDescription, 'Mô tả kỹ thuật legacy');
+    assert.deepStrictEqual(result[0].descriptionImages, [{ url: 'https://example.invalid/image.jpg', alt: 'Ảnh legacy' }]);
+    assert.deepStrictEqual(result[0].promotions, [{ type: 'Gift', title: 'Quà tặng legacy', giftValueVND: 360000 }]);
+    assert.deepStrictEqual(mockLegacyFind.calls, [{
+      entityId: { $in: ['1'] },
+      targetLang: 'en',
+      entityType: {
+        $in: [
+          'product_name',
+          'product_description',
+          'product_brand',
+          'product_spec',
+          'product_technical_description',
+          'product_description_image_alt',
+          'product_promotion',
+        ],
+      },
+      status: 'success',
+      qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
+    }]);
+  });
+
+  it('prefers the catalog cache over legacy translations', async () => {
+    mockProductCache.find.result = Promise.resolve([
+      { entityId: '1', name: 'Tên catalog' },
+    ]);
+
+    const result = await overlayTranslationBatchWithFallback([
+      { _id: '1', name: 'Original' },
+    ], 'product', 'en');
+
+    assert.strictEqual(result[0].name, 'Tên catalog');
+    assert.deepStrictEqual(mockLegacyFind.calls, []);
+  });
+
+  it('uses legacy translations for a product detail missing from the catalog cache', async () => {
+    mockProductCache.findOne.result = Promise.resolve(null);
+    mockLegacyFind.result = Promise.resolve([
+      { entityId: '1', entityType: 'product_description', translatedText: 'Mô tả legacy' },
+    ]);
+
+    const result = await overlayTranslation({ _id: '1', description: 'Original' }, 'product', 'en');
+
+    assert.strictEqual(result.description, 'Mô tả legacy');
+  });
+});
+
+describe('translationHelper - Static product specification labels', () => {
+  it('localizes static keys while preserving dynamic values', () => {
+    assert.deepStrictEqual(
+      localizeProductSpecs({ layout: '75%', connection: 'Wireless;USB', keycapMaterial: 'PBT' }, 'en'),
+      { Layout: '75%', Connection: 'Wireless;USB', 'Keycap Material': 'PBT' }
+    );
+  });
+
+  it('recognizes translated source keys before applying the requested locale', () => {
+    assert.deepStrictEqual(
+      localizeProductSpecs({ 'Kích thước/Layout': '75%', 'Phương thức kết nối': 'Có dây' }, 'de'),
+      { Layout: '75%', Verbindung: 'Có dây' }
+    );
+  });
+});
+
+describe('translationHelper - Storefront product visibility', () => {
+  let originalProductCache;
+  let mockProductCache;
+
+  beforeEach(() => {
+    originalProductCache = CACHE_MODELS.product;
+    mockProductCache = { find: createQueryMock() };
+    CACHE_MODELS.product = mockProductCache;
+  });
+
+  afterEach(() => {
+    CACHE_MODELS.product = originalProductCache;
+  });
+
+  const product = {
+    _id: 'product-1',
+    name: 'Laptop',
+    description: 'Mô tả',
+    brand: 'Brand',
+    specs: { CPU: 'Core Ultra' },
+  };
+
+  const createTranslations = (overrides = {}) => (
+    ['en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'].map((targetLang) => ({
+      ...product,
+      entityId: 'product-1',
+      targetLang,
+      sourceHash: getProductTranslationSourceHash(product),
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: [],
+      ...overrides,
+    }))
+  );
+
+  it('shows products only when every required translation is approved and complete', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations());
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('hides approved products that still have validation errors', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations({ validationErrors: ['too_long'] }));
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.strictEqual(result.size, 0);
+  });
+
+  it('hides products when a required translation is missing or not approved', async () => {
+    const translations = createTranslations();
+    translations.pop();
+    translations[0].qualityStatus = 'pending';
+    mockProductCache.find.result = Promise.resolve(translations);
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.strictEqual(result.size, 0);
+  });
+
+  it('shows products whose optional source specs are empty', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations());
+
+    const result = await getStorefrontVisibleProductIds([{ ...product, description: '', specs: {} }]);
+
+    assert.deepStrictEqual([...result], ['product-1']);
+  });
+});
+
+describe('translationHelper - Entity Type Batch Overlays', () => {
+  it('should have batch helper for coupon', () => {
+    assert.strictEqual(typeof overlayCouponTranslations, 'function');
+  });
+
+  it('should have batch helper for order', () => {
+    assert.strictEqual(typeof overlayOrderTranslations, 'function');
+  });
+
+  it('should have batch helper for banner', () => {
+    assert.strictEqual(typeof overlayBannerTranslations, 'function');
+  });
+
+  it('should have batch helper for testimonial', () => {
+    assert.strictEqual(typeof overlayTestimonialTranslations, 'function');
+  });
+});

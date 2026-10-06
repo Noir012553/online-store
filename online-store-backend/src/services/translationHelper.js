@@ -1,0 +1,961 @@
+/**
+ * Translation Helper - Single Source of Truth (SSOT)
+ * 
+ * 🎯 Mục đích: Overlay translation từ cache table lên original data
+ * Áp dụng QUY TẮC #2 (Dynamic Data) - Dữ liệu từ DB phải được dịch trước khi return Client
+ * 
+ * ✅ Cách dùng:
+ * 1. Batch overlay: overlayTranslationBatch(entities, 'product', lang)
+ * 2. Single overlay: overlayTranslation(entity, 'brand', lang)
+ * 3. Advanced: applyTranslationCache({ data, type, lang, cacheFields })
+ */
+
+const Product = require('../models/Product');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
+const BrandCatalogTranslationCache = require('../models/BrandCatalogTranslationCache');
+const UserContentTranslationCache = require('../models/UserContentTranslationCache');
+const CouponTranslationCache = require('../models/CouponTranslationCache');
+const OrderTranslationCache = require('../models/OrderTranslationCache');
+const BannerTranslationCache = require('../models/BannerTranslationCache');
+const TestimonialTranslationCache = require('../models/TestimonialTranslationCache');
+const { withTimeout } = require('../utils/mongooseUtils');
+const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
+const { normalizeSpecFieldName } = require('../utils/specNormalizer');
+const specKeyTranslations = require('../data/specKeyTranslations.json');
+const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
+const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const {
+  containsNoInputTranslationResponse,
+  restoreNoInputTranslationResponses,
+} = require('../utils/translationResponseGuard');
+
+/**
+ * Map entity type → Cache model (8+ entity types supported)
+ */
+const CACHE_MODELS = {
+  product: ProductCatalogTranslationCache,
+  brand: BrandCatalogTranslationCache,
+  userContent: UserContentTranslationCache,
+  coupon: CouponTranslationCache,
+  order: OrderTranslationCache,
+  banner: BannerTranslationCache,
+  testimonial: TestimonialTranslationCache,
+};
+
+/**
+ * Map entity type → Translatable fields
+ */
+const TRANSLATABLE_FIELDS = {
+  product: [
+    'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
+  ],
+  brand: ['name', 'description'],
+  userContent: ['title', 'content'],
+  coupon: ['name', 'description', 'codeDescription', 'termsAndConditions'],
+  order: ['customerNotes', 'shippingNotes', 'adminNotes', 'statusMessage'],
+  banner: ['title', 'description', 'ctaText', 'altText'],
+  testimonial: ['content', 'authorName', 'authorTitle', 'authorCompany'],
+};
+
+const NO_VALIDATION_ERRORS = {
+  $or: [
+    { validationErrors: { $exists: false } },
+    { validationErrors: { $size: 0 } },
+  ],
+};
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const hasRequiredProductFields = (product) => (
+  hasText(product?.name)
+  && hasText(product?.brand)
+);
+
+const hasValidSourceProductFields = (product) => hasRequiredProductFields(product);
+
+const getSpecEntries = (specs) => {
+  if (specs instanceof Map) return [...specs.entries()];
+  if (specs && typeof specs === 'object') return Object.entries(specs);
+  return [];
+};
+
+const getSpecKeyLookup = (lang) => Object.entries(specKeyTranslations).reduce((lookup, [canonicalKey, labels]) => {
+  const localizedLabel = labels[lang] || labels.vi || canonicalKey;
+  lookup.set(canonicalKey, localizedLabel);
+  Object.values(labels).forEach((label) => lookup.set(label, localizedLabel));
+  return lookup;
+}, new Map());
+
+const localizeProductSpecs = (specs, lang) => {
+  const keyLookup = getSpecKeyLookup(lang);
+  const localizedSpecs = {};
+
+  getSpecEntries(specs).forEach(([rawKey, value]) => {
+    const key = String(rawKey || '').trim();
+    if (!key) return;
+
+    const translatedKey = keyLookup.get(key)
+      || keyLookup.get(normalizeSpecFieldName(key))
+      || key;
+    localizedSpecs[translatedKey] = value;
+  });
+
+  return localizedSpecs;
+};
+
+const getStaticSpecLabels = (specs, lang) => {
+  const labels = {};
+  getSpecEntries(specs).forEach(([rawKey]) => {
+    const canonicalKey = getCanonicalSpecKey(rawKey);
+    if (!canonicalKey) return;
+    const translation = specKeyTranslations[canonicalKey];
+    labels[canonicalKey] = translation?.[lang] || translation?.vi || translation?.en || canonicalKey;
+  });
+  return labels;
+};
+
+const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
+  await registerUnknownSpecKeys(specs);
+  const labels = preloadedLabels || await getSpecKeyLabels(specs, lang);
+  const localizedSpecs = {};
+  const specLabels = {};
+
+  getSpecEntries(specs).forEach(([rawKey, value]) => {
+    const key = String(rawKey || '').trim();
+    const canonicalKey = getCanonicalSpecKey(key);
+    if (!key || !canonicalKey) return;
+
+    localizedSpecs[canonicalKey] = value;
+    specLabels[canonicalKey] = labels[canonicalKey] || key;
+  });
+
+  return { specs: localizedSpecs, specLabels };
+};
+
+const localizeProductSpecFields = async (entity, lang, preloadedLabels = null) => {
+  if (!entity || !lang) return entity;
+
+  try {
+    const localizedSpecData = await localizeProductSpecData(entity.specs, lang, preloadedLabels);
+    return {
+      ...entity,
+      ...localizedSpecData,
+    };
+  } catch (error) {
+    return {
+      ...entity,
+      specs: localizeProductSpecs(entity.specs, lang),
+      specLabels: getStaticSpecLabels(entity.specs, lang),
+    };
+  }
+};
+
+const getBatchSpecLabels = async (entities, targetLang) => {
+  const specs = {};
+  entities.forEach((entity) => {
+    getSpecEntries(entity?.specs).forEach(([key, value]) => {
+      specs[key] = value;
+    });
+  });
+  return getSpecKeyLabels(specs, targetLang);
+};
+
+const hasCompleteProductTranslation = (sourceProduct, translation) => {
+  if ((Array.isArray(translation?.validationErrors) && translation.validationErrors.length > 0)
+    || containsNoInputTranslationResponse(translation)
+    || !hasRequiredProductFields(translation)) return false;
+  if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
+
+  const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
+    .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
+  const translatedSpecKeys = new Set(getSpecEntries(translation?.specs)
+    .filter(([, value]) => hasText(value))
+    .map(([key]) => getCanonicalSpecKey(key))
+    .filter(Boolean));
+
+  return [...sourceSpecKeys].every((key) => translatedSpecKeys.has(key));
+};
+
+const hasValidProductTranslation = (translation, sourceProduct) => (
+  translation?.status === 'success'
+  && translation?.qualityStatus === 'approved'
+  && translation?.sourceHash === getProductTranslationSourceHash(sourceProduct)
+  && hasCompleteProductTranslation(sourceProduct, translation)
+);
+
+async function getStorefrontVisibleProductIds(products, options = {}) {
+  const { maxTimeMS = 5000, timeoutMs = 7000 } = options;
+  const requiredLanguages = SUPPORTED_LANGUAGES.map(({ code }) => code);
+  const productsById = new Map(
+    products
+      .map((product) => [product._id?.toString() || product.id, product])
+      .filter(([productId]) => Boolean(productId))
+  );
+  const productIds = [...productsById.keys()];
+
+  if (productIds.length === 0) return new Set();
+
+  const translations = await withTimeout(
+    CACHE_MODELS.product.find({
+      entityId: { $in: productIds },
+      targetLang: { $in: requiredLanguages },
+      status: 'success',
+      qualityStatus: 'approved',
+      ...NO_VALIDATION_ERRORS,
+    })
+      .select('entityId targetLang status qualityStatus sourceHash name brand description specs -_id')
+      .maxTimeMS(maxTimeMS)
+      .lean(),
+    timeoutMs
+  );
+  const validLanguagesByProduct = new Map();
+
+  translations
+    .filter((translation) => hasValidProductTranslation(translation, productsById.get(String(translation.entityId))))
+    .forEach((translation) => {
+    const productId = String(translation.entityId);
+    const languages = validLanguagesByProduct.get(productId) || new Set();
+    languages.add(translation.targetLang);
+    validLanguagesByProduct.set(productId, languages);
+  });
+
+  return new Set(productIds.filter((productId) => {
+    const product = productsById.get(productId);
+    const validLanguages = validLanguagesByProduct.get(productId) || new Set();
+    const hasVietnameseSource = hasValidSourceProductFields(product);
+    const hasVietnameseCache = validLanguages.has('vi');
+
+    return hasRequiredProductFields(product)
+      && (hasVietnameseSource || hasVietnameseCache)
+      && requiredLanguages
+        .filter((language) => language !== 'vi')
+        .every((language) => validLanguages.has(language));
+  }));
+}
+
+const refreshStorefrontReadiness = async (productIds, options = {}) => {
+  const ids = [...new Set((productIds || []).map((id) => String(id)).filter(Boolean))];
+  if (ids.length === 0) return { matchedCount: 0, modifiedCount: 0 };
+
+  const products = await Product.find({ _id: { $in: ids } })
+    .select('_id name description brand specs technicalDescription descriptionImages promotions')
+    .lean();
+  const visibleIds = await getStorefrontVisibleProductIds(products, options);
+  const visibleIdSet = new Set([...visibleIds].map(String));
+
+  const result = await Product.bulkWrite(products.map((product) => ({
+    updateOne: {
+      filter: { _id: product._id },
+      update: {
+        $set: {
+          storefrontReady: visibleIdSet.has(String(product._id)),
+          storefrontReadinessCheckedAt: new Date(),
+        },
+      },
+    },
+  })));
+
+  return {
+    matchedCount: result.matchedCount || 0,
+    modifiedCount: result.modifiedCount || 0,
+  };
+};
+
+/**
+ * Overlay translation cho single entity
+ * @param {Object} entity - Original entity từ DB
+ * @param {String} entityType - 'product' | 'brand' | 'userContent'
+ * @param {String} targetLang - Target language (ví dụ 'en', 'fr')
+ * @param {Object} translation - Translation cache object từ DB
+ * @returns {Object} Entity với translation overlay
+ */
+function buildLegacyProductTranslation(translations, sourceProduct) {
+  if (translations.length === 0) return null;
+
+  const data = { specs: {} };
+  const descriptionImageAlts = new Map();
+  const promotionTexts = new Map();
+
+  translations.forEach((translation) => {
+    switch (translation.entityType) {
+      case 'product_name':
+        data.name = translation.translatedText;
+        break;
+      case 'product_description':
+        data.description = translation.translatedText;
+        break;
+      case 'product_brand':
+        data.brand = translation.translatedText;
+        break;
+      case 'product_spec':
+        if (translation.specKey) data.specs[translation.specKey] = translation.translatedText;
+        break;
+      case 'product_technical_description':
+        data.technicalDescription = translation.translatedText;
+        break;
+      case 'product_description_image_alt':
+        if (/^descriptionImages\.\d+\.alt$/.test(translation.fieldKey || '')) {
+          descriptionImageAlts.set(translation.fieldKey, translation.translatedText);
+        }
+        break;
+      case 'product_promotion':
+        if (/^promotions\.\d+\.(title|giftProductName|scope|discountText)$/.test(translation.fieldKey || '')) {
+          promotionTexts.set(translation.fieldKey, translation.translatedText);
+        }
+        break;
+    }
+  });
+
+  if (descriptionImageAlts.size > 0 && Array.isArray(sourceProduct?.descriptionImages)) {
+    data.descriptionImages = sourceProduct.descriptionImages.map((image, index) => ({
+      ...image,
+      alt: descriptionImageAlts.get(`descriptionImages.${index}.alt`) || image.alt || '',
+    }));
+  }
+  if (promotionTexts.size > 0 && Array.isArray(sourceProduct?.promotions)) {
+    data.promotions = sourceProduct.promotions.map((promotion, index) => {
+      const localized = { ...promotion };
+      ['title', 'giftProductName', 'scope', 'discountText'].forEach((field) => {
+        const translation = promotionTexts.get(`promotions.${index}.${field}`);
+        if (translation) localized[field] = translation;
+      });
+      return localized;
+    });
+  }
+
+  return data;
+}
+
+const getLegacyProductTranslationMap = async (products, targetLang) => {
+  if (!products.length) return new Map();
+
+  const productsById = new Map(products.map((product) => [
+    String(product._id?.toString() || product.id),
+    product,
+  ]));
+  const entityIds = [...productsById.keys()];
+
+  try {
+    const records = await withTimeout(
+      LiveTranslationCache.find({
+        entityId: { $in: entityIds },
+        targetLang,
+        entityType: {
+          $in: [
+            'product_name',
+            'product_description',
+            'product_brand',
+            'product_spec',
+            'product_technical_description',
+            'product_description_image_alt',
+            'product_promotion',
+          ],
+        },
+        status: 'success',
+        qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
+      })
+        .select('entityId entityType specKey fieldKey translatedText -_id')
+        .maxTimeMS(5000)
+        .lean(),
+      7000
+    );
+    const grouped = new Map();
+    records.forEach((record) => {
+      const translations = grouped.get(String(record.entityId)) || [];
+      translations.push(record);
+      grouped.set(String(record.entityId), translations);
+    });
+    return new Map([...grouped].map(([entityId, translations]) => [
+      entityId,
+      buildLegacyProductTranslation(translations, productsById.get(entityId)),
+    ]));
+  } catch (error) {
+    console.error('[translationHelper] Error fetching legacy product translations:', error);
+    return new Map();
+  }
+};
+
+function applyTranslationOverlay(entity, entityType, translation) {
+  // If no translation found, return entity as-is
+  if (!translation) return entity;
+  if (!entity) return entity;
+
+  const result = { ...entity };
+  const translatableFields = TRANSLATABLE_FIELDS[entityType] || [];
+
+  translatableFields.forEach(field => {
+    const value = entityType === 'product'
+      ? restoreNoInputTranslationResponses(translation[field], entity[field])
+      : translation[field];
+    const isEmptyStructuredValue = ['descriptionImages', 'promotions'].includes(field)
+      && Array.isArray(value)
+      && value.length === 0;
+    if (!(field in translation) || !value || isEmptyStructuredValue) return;
+
+    if (field === 'specs' && value instanceof Map) {
+      result[field] = new Map(value);
+    } else {
+      result[field] = value;
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Overlay nested brand translations in a product while preserving its category master data.
+ * @param {Object} product - Product object (có thể chứa nested category/brand)
+ * @param {String} targetLang - Target language
+ * @param {Object} brandTranslationMap - Pre-fetched brand translations
+ * @returns {Object} Product with translated brand name
+ */
+function applyNestedTranslations(product, targetLang, brandTranslationMap = {}) {
+  if (!product) return product;
+
+  const result = { ...product };
+
+  // Translate nested brand if exists (though usually brand is a string)
+  if (result.brand && typeof result.brand === 'object' && result.brand._id) {
+    const brandId = result.brand._id?.toString() || result.brand.id;
+
+    if (brandTranslationMap[brandId]) {
+      result.brand = {
+        ...result.brand,
+        name: brandTranslationMap[brandId].name || result.brand.name,
+      };
+    }
+    // If still no translation, keep the original brand.name (usually Vietnamese)
+  }
+
+  return result;
+}
+
+/**
+ * Overlay translation cho array entities (BATCH MODE)
+ * @param {Array} entities - Array of entities
+ * @param {String} entityType - 'product' | 'brand' | 'userContent'
+ * @param {String} targetLang - Target language
+ * @returns {Promise<Array>} Entities with translation overlay
+ */
+async function overlayTranslationBatch(entities, entityType, targetLang) {
+  if (!entities || entities.length === 0) {
+    return entities;
+  }
+
+  const CacheModel = CACHE_MODELS[entityType];
+  if (!CacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return entities;
+  }
+
+  try {
+    // Query tất cả translation cache cho batch này
+    const entityIds = entities.map(e => e._id?.toString() || e.id);
+    const translations = await CacheModel.find({
+      entityId: { $in: entityIds },
+      targetLang,
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+    }).lean();
+
+    // Debug logging
+    if (entityType === 'product') {
+      console.log(`[translationHelper] Query ${entityType} cache for lang=${targetLang}: found ${translations.length} of ${entityIds.length} entities`);
+    }
+
+    // Map translations by entityId để quick lookup
+    const translationMap = {};
+    translations.forEach(t => {
+      translationMap[t.entityId] = t;
+    });
+    const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
+      ? await getLegacyProductTranslationMap(entities, targetLang)
+      : new Map();
+
+    // For products: pre-fetch nested brand translations.
+    let brandTranslationMap = {};
+
+    if (entityType === 'product') {
+      // Collect all nested brand IDs
+      const brandIds = entities
+        .filter(e => e.brand && typeof e.brand === 'object' && e.brand._id)
+        .map(e => e.brand._id?.toString() || e.brand.id);
+
+      if (brandIds.length > 0) {
+        const brandTranslations = await BrandCatalogTranslationCache.find({
+          entityId: { $in: brandIds },
+          targetLang,
+          status: 'success',
+        qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
+      }).lean();
+
+        brandTranslations.forEach(t => {
+          brandTranslationMap[t.entityId] = t;
+        });
+      }
+    }
+
+    const batchSpecLabels = entityType === 'product'
+      ? await getBatchSpecLabels(entities, targetLang)
+      : null;
+
+    // Overlay translation lên mỗi entity
+    const result = await Promise.all(entities.map(async (entity, idx) => {
+      const entityId = entity._id?.toString() || entity.id;
+      const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
+      let overlayed = applyTranslationOverlay(entity, entityType, translation);
+
+      // Apply nested translations for products
+      if (entityType === 'product') {
+        overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang, batchSpecLabels);
+      }
+
+      // Debug: Log first entity to see structure
+      if (idx === 0 && entityType === 'product') {
+        console.log(`[translationHelper][${entityType}][${targetLang}] First entity keys:`, Object.keys(overlayed));
+      }
+
+      return overlayed;
+    }));
+
+    return result;
+  } catch (error) {
+    console.error(`[translationHelper] Error overlaying ${entityType} translations:`, error);
+    // Fallback: trả về original entities nếu lỗi
+    return entities;
+  }
+}
+
+/**
+ * Overlay translation cho single entity
+ * @param {Object} entity - Single entity
+ * @param {String} entityType - 'product' | 'brand' | 'userContent'
+ * @param {String} targetLang - Target language
+ * @returns {Promise<Object>} Entity with translation overlay
+ */
+async function overlayTranslation(entity, entityType, targetLang) {
+  if (!entity) {
+    return entity;
+  }
+
+  const CacheModel = CACHE_MODELS[entityType];
+  if (!CacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return entity;
+  }
+
+  try {
+    const entityId = entity._id?.toString() || entity.id;
+    let translation = await CacheModel.findOne({
+      entityId,
+      targetLang,
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+    }).lean();
+    if (!translation && entityType === 'product') {
+      translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
+    }
+
+    let overlayed = applyTranslationOverlay(entity, entityType, translation);
+
+    // Apply nested translations for products
+    if (entityType === 'product') {
+      let brandTranslationMap = {};
+
+      // Fetch nested brand translation if exists
+      if (overlayed.brand && typeof overlayed.brand === 'object' && overlayed.brand._id) {
+        const brandId = overlayed.brand._id?.toString() || overlayed.brand.id;
+        const brandTranslation = await BrandCatalogTranslationCache.findOne({
+          entityId: brandId,
+          targetLang,
+          status: 'success',
+        }).lean();
+        if (brandTranslation) {
+          brandTranslationMap[brandId] = brandTranslation;
+        }
+      }
+
+      overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+      overlayed = await localizeProductSpecFields(overlayed, targetLang);
+    }
+
+    return overlayed;
+  } catch (error) {
+    console.error(`[translationHelper] Error overlaying ${entityType} translation:`, error);
+    return entity;
+  }
+}
+
+/**
+ * Overlay translation cho single entity với fallback chain
+ * @param {Object} entity - Single entity
+ * @param {String} entityType - 'product' | 'brand' | 'userContent'
+ * @param {String} targetLang - Target language
+ * @returns {Promise<Object>} Entity with translation overlay (fallback applied)
+ */
+async function overlayTranslationWithFallback(entity, entityType, targetLang) {
+  if (!entity) {
+    return entity;
+  }
+
+  const CacheModel = CACHE_MODELS[entityType];
+  if (!CacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return entity;
+  }
+
+  try {
+    const entityId = entity._id?.toString() || entity.id;
+
+    // No fallback chain - only request exact language
+    let translation = await CacheModel.findOne({
+      entityId,
+      targetLang,
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+    }).lean();
+    if (!translation && entityType === 'product') {
+      translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
+    }
+
+    let overlayed = applyTranslationOverlay(entity, entityType, translation);
+
+    // Apply nested translations for products
+    if (entityType === 'product') {
+      let brandTranslationMap = {};
+
+      // Fetch nested brand translation if exists
+      if (overlayed.brand && typeof overlayed.brand === 'object' && overlayed.brand._id) {
+        const brandId = overlayed.brand._id?.toString() || overlayed.brand.id;
+
+        // Only request exact language for brand
+        const brandTranslation = await BrandCatalogTranslationCache.findOne({
+          entityId: brandId,
+          targetLang,
+          status: 'success',
+        }).lean();
+
+        if (brandTranslation) {
+          brandTranslationMap[brandId] = brandTranslation;
+        }
+      }
+
+      overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+      overlayed = await localizeProductSpecFields(overlayed, targetLang);
+    }
+
+    return overlayed;
+  } catch (error) {
+    console.error(`[translationHelper] Error overlaying ${entityType} translation with fallback:`, error);
+    return entity;
+  }
+}
+
+/**
+ * Advanced: Apply translation cache với custom field mapping
+ * @param {Object} config
+ * @returns {Promise<Object>}
+ */
+async function applyTranslationCache(config) {
+  const { data, type, lang, cacheFields = {} } = config;
+
+  if (!data) return data;
+
+  const CacheModel = CACHE_MODELS[type];
+  if (!CacheModel) return data;
+
+  try {
+    const ids = Array.isArray(data) ? data.map(d => d._id || d.id) : [data._id || data.id];
+    const isBatch = Array.isArray(data);
+
+    const translations = await CacheModel.find({
+      entityId: { $in: ids },
+      targetLang: lang,
+      status: 'success',
+      ...(type === 'product' ? { qualityStatus: 'approved' } : {}),
+    }).lean();
+
+    const translationMap = {};
+    translations.forEach(t => {
+      translationMap[t.entityId] = t;
+    });
+
+    const mapTranslation = (entity) => {
+      const entityId = entity._id?.toString() || entity.id;
+      const translation = translationMap[entityId];
+
+      if (!translation) return entity;
+
+      const result = { ...entity };
+      Object.entries(cacheFields).forEach(([originalField, translationField]) => {
+        if (translation[translationField]) {
+          result[originalField] = translation[translationField];
+        }
+      });
+
+      return result;
+    };
+
+    return isBatch ? data.map(mapTranslation) : mapTranslation(data);
+  } catch (error) {
+    console.error(`[translationHelper] Error in applyTranslationCache:`, error);
+    return data;
+  }
+}
+
+/**
+ * Batch helper: Popular use case (product list)
+ * @param {Array} products - Products from DB
+ * @param {String} lang - Target language
+ * @returns {Promise<Array>}
+ */
+async function overlayProductTranslations(products, lang) {
+  return overlayTranslationBatch(products, 'product', lang);
+}
+
+/**
+ * Batch helper: Brand list
+ */
+async function overlayBrandTranslations(brands, lang) {
+  return overlayTranslationBatch(brands, 'brand', lang);
+}
+
+/**
+ * Batch helper: User Content (orders, banners, etc)
+ */
+async function overlayUserContentTranslations(items, lang) {
+  return overlayTranslationBatch(items, 'userContent', lang);
+}
+
+/**
+ * Batch helpers for new entity types
+ */
+async function overlayCouponTranslations(coupons, lang) {
+  return overlayTranslationBatch(coupons, 'coupon', lang);
+}
+
+async function overlayOrderTranslations(orders, lang) {
+  return overlayTranslationBatch(orders, 'order', lang);
+}
+
+async function overlayBannerTranslations(banners, lang) {
+  return overlayTranslationBatch(banners, 'banner', lang);
+}
+
+async function overlayTestimonialTranslations(testimonials, lang) {
+  return overlayTranslationBatch(testimonials, 'testimonial', lang);
+}
+
+/**
+ * Fallback chain: [requestedLang, ...otherLanguages]
+ * Dynamic fallback supporting all 9 languages: VI, EN, PT, FR, DE, IT, ES, NL, SV
+ * Returns translation from first available language in chain
+ * @param {String} entityId - Entity ID
+ * @param {String} entityType - Entity type
+ * @param {String} requestedLang - Requested language
+ * @returns {Promise<Object>} Translation object or null
+ */
+async function getTranslationWithFallback(entityId, entityType, requestedLang) {
+  if (!entityId || !entityType) {
+    return null;
+  }
+
+  const CacheModel = CACHE_MODELS[entityType];
+  if (!CacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return null;
+  }
+
+  // No fallback chain - only request exact language
+  try {
+    const translation = await CacheModel.findOne({
+      entityId: String(entityId),
+      targetLang: requestedLang,
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+    }).lean();
+
+    if (translation) {
+      return {
+        ...translation,
+        appliedLang: requestedLang,
+        fallbackUsed: false,
+      };
+    }
+
+    // No translation found for requested language
+    return null;
+  } catch (error) {
+    console.error(`[translationHelper] Error fetching translation with fallback:`, error);
+    return null;
+  }
+}
+
+/**
+ * Overlay with fallback chain support
+ * @param {Array} entities - Entities to overlay
+ * @param {String} entityType - Entity type
+ * @param {String} targetLang - Target language
+ * @returns {Promise<Array>} Entities with translations (fallback applied)
+ */
+async function overlayTranslationBatchWithFallback(entities, entityType, targetLang) {
+  if (!entities || entities.length === 0) {
+    return entities;
+  }
+
+  const CacheModel = CACHE_MODELS[entityType];
+  if (!CacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return entities;
+  }
+
+  try {
+    const entityIds = entities.map(e => e._id?.toString() || e.id);
+
+    const translations = await withTimeout(
+      CacheModel.find({
+        entityId: { $in: entityIds },
+        targetLang,
+        status: 'success',
+        ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+      })
+        .select('entityId targetLang status qualityStatus name brand description specs technicalDescription descriptionImages promotions -_id')
+        .maxTimeMS(5000)
+        .lean(),
+      7000
+    );
+
+    const translationMap = {};
+    translations.forEach(t => {
+      translationMap[t.entityId] = {
+        ...t,
+        appliedLang: targetLang,
+        fallbackUsed: false,
+      };
+    });
+    const legacyTranslationMap = entityType === 'product' && translations.length < entities.length
+      ? await getLegacyProductTranslationMap(entities, targetLang)
+      : new Map();
+
+    // For products: pre-fetch nested brand translations.
+    let brandTranslationMap = {};
+
+    if (entityType === 'product') {
+      // Collect all nested brand IDs
+      const brandIds = entities
+        .filter(e => e.brand && typeof e.brand === 'object' && e.brand._id)
+        .map(e => e.brand._id?.toString() || e.brand.id);
+
+      if (brandIds.length > 0) {
+        // Only request exact language for brands
+        const brandTranslations = await BrandCatalogTranslationCache.find({
+          entityId: { $in: brandIds },
+          targetLang,
+          status: 'success',
+        qualityStatus: 'approved',
+        ...NO_VALIDATION_ERRORS,
+      }).lean();
+
+        brandTranslations.forEach(t => {
+          brandTranslationMap[t.entityId] = t;
+        });
+      }
+    }
+
+    const batchSpecLabels = entityType === 'product'
+      ? await getBatchSpecLabels(entities, targetLang)
+      : null;
+
+    // Overlay translations
+    const result = await Promise.all(entities.map(async (entity) => {
+      const entityId = entity._id?.toString() || entity.id;
+      const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
+      let overlayed = translation ? applyTranslationOverlay(entity, entityType, translation) : entity;
+
+      // Apply nested translations for products
+      if (entityType === 'product') {
+        overlayed = applyNestedTranslations(overlayed, targetLang, brandTranslationMap);
+        overlayed = await localizeProductSpecFields(overlayed, targetLang, batchSpecLabels);
+      }
+
+      return overlayed;
+    }));
+
+    return result;
+  } catch (error) {
+    console.error(`[translationHelper] Error overlaying ${entityType} translations with fallback:`, error);
+    return entities;
+  }
+}
+
+/**
+ * Get localized entity by ID
+ */
+async function getLocalizedEntity(entityId, entityType, locale) {
+  if (!entityId || !entityType || !locale) {
+    return null;
+  }
+
+  const cacheModel = CACHE_MODELS[entityType];
+  if (!cacheModel) {
+    console.warn(`[translationHelper] Unknown entity type: ${entityType}`);
+    return null;
+  }
+
+  try {
+    const cache = await cacheModel.findOne({
+      entityId: String(entityId),
+      targetLang: locale,
+      status: 'success',
+      ...(entityType === 'product' ? { qualityStatus: 'approved', ...NO_VALIDATION_ERRORS } : {}),
+    }).lean();
+
+    if (!cache) {
+      return null;
+    }
+
+    return cache.toObject ? cache.toObject() : cache;
+  } catch (error) {
+    console.error(`[translationHelper] Error fetching localized entity:`, error);
+    return null;
+  }
+}
+
+module.exports = {
+  // Batch overlay (original 4 types)
+  overlayTranslationBatch,
+  overlayProductTranslations,
+  overlayBrandTranslations,
+  overlayUserContentTranslations,
+
+  // Batch overlay (new 4 types)
+  overlayCouponTranslations,
+  overlayOrderTranslations,
+  overlayBannerTranslations,
+  overlayTestimonialTranslations,
+
+  // Fallback chain
+  getTranslationWithFallback,
+  overlayTranslationBatchWithFallback,
+  overlayTranslationWithFallback,
+
+  // Single overlay
+  overlayTranslation,
+  getLocalizedEntity,
+  localizeProductSpecs,
+  localizeProductSpecFields,
+
+  // Advanced
+  applyTranslationCache,
+
+  // Constants
+  CACHE_MODELS,
+  TRANSLATABLE_FIELDS,
+  getStorefrontVisibleProductIds,
+  refreshStorefrontReadiness,
+};

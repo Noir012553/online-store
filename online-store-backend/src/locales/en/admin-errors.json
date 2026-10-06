@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Failed to save override",
+  "error_saving_override": "Error saving override",
+  "failed_load_namespace": "Failed to load namespace",
+  "error_fetching_health_data": "Error fetching health data",
+  "error_fetching_logs": "Error fetching logs",
+  "error_fetching_languages": "Error fetching languages",
+  "error_fetching_supported_languages": "Error fetching supported languages",
+  "failed_fetch_products": "Failed to fetch products",
+  "failed_fetch_deleted_products": "Failed to fetch deleted products",
+  "http_error_status": "HTTP error! status: {status}",
+  "failed_create_shipment": "Failed to create shipment",
+  "failed_update_translation": "Failed to update translation",
+  "failed_delete_product": "Failed to delete product",
+  "failed_import_products": "Failed to import products",
+  "network_timeout": "Network request timeout"
+}

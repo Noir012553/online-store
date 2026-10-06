@@ -1,0 +1,7 @@
+{
+  "server_error": "Serverfout",
+  "network_error": "Netwerkfout",
+  "too_many_requests": "Te veel verzoeken",
+  "request_timeout": "Time-out van verzoek",
+  "request_processing": "Verzoek wordt verwerkt..."
+}

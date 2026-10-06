@@ -1,0 +1,20 @@
+{
+  "keyboard": "Teclado",
+  "keyboard_desc": "Teclados de computador de alta qualidade com design moderno e recursos avançados",
+  "mouse": "Mouse",
+  "mouse_desc": "Mouses de computador ergonômicos com alta precisão",
+  "headphones": "Fones de Ouvido",
+  "headphones_desc": "Fones de ouvido de computador com som vibrante e microfone de qualidade",
+  "cooling": "Resfriamento",
+  "cooling_desc": "Soluções eficazes de resfriamento de computador para gerenciar problemas de calor",
+  "gaming_laptop": "Laptop para Jogos",
+  "gaming_laptop_desc": "Laptops para jogos de alto desempenho com GPUs poderosos",
+  "office_laptop": "Laptop para Escritório",
+  "office_laptop_desc": "Laptops leves para escritório com longa duração de bateria",
+  "category_keyboard": "Teclado",
+  "category_mouse": "Mouse",
+  "category_headphones": "Fones de Ouvido",
+  "category_cooling": "Resfriamento",
+  "category_gaming_laptop": "Laptop para Jogos",
+  "category_office_laptop": "Laptop para Escritório"
+}

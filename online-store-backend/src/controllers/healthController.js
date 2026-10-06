@@ -1,0 +1,105 @@
+const cloudflareAiService = require('../services/cloudflareAiService');
+
+const { getMessage } = require('../i18n/messages');
+
+class HealthController {
+  static async checkCloudflareHealth(req, res) {
+    try {
+      const health = cloudflareAiService.getHealth();
+      const statusCode = health.status === 'healthy' ? 200 : 503;
+
+      res.status(statusCode).json({
+        service: 'cloudflare-ai',
+        ...health,
+      });
+    } catch (error) {
+      res.status(500).json({
+        service: 'cloudflare-ai',
+        status: 'error',
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
+      });
+    }
+  }
+
+  static async getCloudflareStats(req, res) {
+    try {
+      const stats = cloudflareAiService.getStats();
+
+      res.json({
+        service: 'cloudflare-ai',
+        timestamp: new Date().toISOString(),
+        ...stats,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
+      });
+    }
+  }
+
+  static async resetCloudflareStats(req, res) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          message: getMessage(req.lang, 'admin-controllers-messages.only_admins_reset_stats'),
+        });
+      }
+
+      cloudflareAiService.resetStats();
+
+      res.json({
+        message: getMessage(req.lang, 'admin-controllers-messages.cloudflare_stats_reset_success'),
+        stats: cloudflareAiService.getStats(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
+      });
+    }
+  }
+
+  static async getSystemHealth(req, res) {
+    try {
+      const uptime = process.uptime();
+      const memoryUsage = process.memoryUsage();
+      const cloudflareHealth = cloudflareAiService.getHealth();
+      const configInfo = cloudflareAiService.getConfigInfo();
+
+      res.json({
+        service: 'backend',
+        status: cloudflareHealth.status === 'healthy' ? 'healthy' : 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: {
+          seconds: Math.floor(uptime),
+          hours: Math.floor(uptime / 3600),
+          days: Math.floor(uptime / 86400),
+        },
+        memory: {
+          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+          rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+        },
+        cloudflare: cloudflareHealth,
+        cloudflareConfig: configInfo,
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
+      });
+    }
+  }
+
+  static async getCloudflareConfig(req, res) {
+    try {
+      const configInfo = cloudflareAiService.getConfigInfo();
+      res.json(configInfo);
+    } catch (error) {
+      res.status(500).json({
+        error: getMessage(req.lang, 'api-errors.health_check_failed'),
+      });
+    }
+  }
+}
+
+module.exports = HealthController;

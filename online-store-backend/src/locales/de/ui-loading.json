@@ -1,0 +1,11 @@
+{
+  "loading": "Wird geladen...",
+  "loading_data": "Daten werden geladen...",
+  "loading_products": "Produkte werden geladen...",
+  "loading_cart": "Warenkorb wird geladen...",
+  "loading_checkout": "Kasse wird geladen...",
+  "loading_orders": "Ihre Bestellungen werden geladen...",
+  "loading_profile": "Profil wird geladen...",
+  "loading_admin_ui": "Verwaltungsschnittstelle wird geladen...",
+  "please_wait": "Bitte warten..."
+}

@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Không thể lưu ghi đè",
+  "error_saving_override": "Lỗi lưu ghi đè",
+  "failed_load_namespace": "Không thể tải namespace",
+  "error_fetching_health_data": "Lỗi lấy dữ liệu sức khỏe",
+  "error_fetching_logs": "Lỗi lấy logs",
+  "error_fetching_languages": "Lỗi lấy danh sách ngôn ngữ",
+  "error_fetching_supported_languages": "Lỗi lấy ngôn ngữ được hỗ trợ",
+  "failed_fetch_products": "Không thể lấy danh sách sản phẩm",
+  "failed_fetch_deleted_products": "Không thể lấy sản phẩm đã xóa",
+  "http_error_status": "Lỗi HTTP! mã: {status}",
+  "failed_create_shipment": "Không thể tạo vận đơn",
+  "failed_update_translation": "Không thể cập nhật bản dịch",
+  "failed_delete_product": "Không thể xóa sản phẩm",
+  "failed_import_products": "Không thể nhập sản phẩm",
+  "network_timeout": "Yêu cầu mạng hết thời gian chờ"
+}

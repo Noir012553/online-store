@@ -1,0 +1,105 @@
+const fs = require('fs');
+const path = require('path');
+
+const rootDir = path.join(__dirname, '..');
+const checkedFiles = [
+  'src/controllers/languageController.js',
+  'src/controllers/productImportController.js',
+  'src/controllers/shippingProviderController.js',
+  'src/controllers/shipmentController.js',
+  'src/adapters/payment/VnpayAdapter.js',
+  'src/services/ghnService.js',
+  'src/i18n/messages.js',
+  'src/seeds/seedRegistry.js',
+  'src/test/test-runner.js',
+  'src/test/test-registry.js',
+  'src/utils/fileCleanup.js',
+  'src/utils/translationReporter.js',
+  'scripts/backup-livetranslationcache.js',
+  'scripts/diagnose-old-schema.js',
+  'scripts/fix-fallback-translations.js',
+  'scripts/init-uploads.js',
+  'scripts/rebuild-critical-indexes.js',
+  'scripts/force-regenerate-translations.js',
+  'scripts/clear-and-migrate.js',
+  'scripts/setup-production-indexes.js',
+  'scripts/setup-i18n-indexes.js',
+  'scripts/health-check-i18n.js',
+  'src/scripts/performance-benchmark.js',
+  'src/scripts/rebuild-critical-indexes.js',
+  'src/scripts/verify-language-completeness.js',
+  'src/seeds/addressSeeder.js',
+  'src/seeds/brandTranslationsSeeder.js',
+  'src/seeds/exchangeRateHistorySeeder.js',
+  'src/seeds/locationSeeder.js',
+  'src/seeds/retranslateSeeder.js',
+  'src/seeds/bannerSlotLabelsSeeder.js',
+  'src/seeds/testimonialLabelsSeeder.js',
+  'src/seeds/i18nOnlySeeder.js',
+  'src/seeds/languageSeeder.js',
+  'src/seeds/shippingProviderSeeder.js',
+  'src/seeds/specTranslationSeeder.js',
+  'src/services/orderCustomerRepairService.js',
+  'src/seeds/reviewSeeder.js',
+  'src/services/cloudflareAiService.js',
+  'src/services/distributedLockService.js',
+  'src/scripts/check-sync-status.js',
+  'src/scripts/verify-language-inventory.js',
+  'src/scripts/verify-translations-loaded.js',
+  'src/scripts/translate-history.js',
+  'src/scripts/translate-locales.js',
+  'src/scripts/seed-with-version-control.js',
+  'src/scripts/check-translation-cache.js',
+  'src/scripts/check-live-cache.js',
+  'src/scripts/check-translation-names.js',
+  'src/scripts/find-missing-en-keys.js',
+  'src/scripts/translate-approve.js',
+  'src/scripts/translate-reject-all.js',
+  'src/scripts/translate-approve-all.js',
+  'src/scripts/fix-category-names.js',
+  'src/scripts/verify-no-english-fallback.js',
+  'src/scripts/migrate-translations.js',
+  'src/scripts/translate-report.js',
+  'src/scripts/find-english-fallbacks.js',
+  'src/scripts/analyze-files.js',
+  'src/scripts/analyze-translation-status.js',
+  'src/scripts/verify-key-consistency.js',
+  'src/scripts/test-translation-quality.js',
+  'src/scripts/fix-category-translations.js',
+  'src/scripts/retranslate.js',
+  'src/scripts/translate-reject.js',
+  'src/scripts/setup-production-indexes.js',
+  'src/test/db-brands.test.js',
+  'src/test/shadow-writes.test.js',
+  'src/test/language-setup-blueprint.test.js',
+  'src/test/db-state.test.js',
+  'src/test/brands.test.js',
+  'src/test/translation-e2e.test.js',
+  'src/test/language-sync.test.js',
+  'src/scripts/fix-product-prices.js',
+  'src/scripts/quick-generate-translations.js',
+  'src/test/translation-migration-smoke.test.js',
+  'src/scripts/clear-and-migrate.js',
+  'src/services/rateLimitHandler.js',
+  'src/services/productTranslationSeederService.js',
+  'src/services/translationSeederService.js',
+  'src/services/translationSeederHelper.js',
+];
+const cliSymbolPattern = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2500-\u259F\u2600-\u27BF]/u;
+const consoleOutputPattern = /console\.(?:log|warn|error|time|timeEnd)\(/;
+const testTitlePattern = /(?:describe|it)\s*\(/;
+
+const findings = checkedFiles
+  .filter((filePath) => fs.existsSync(path.join(rootDir, filePath)))
+  .filter((filePath) => fs.readFileSync(path.join(rootDir, filePath), 'utf8')
+    .split(/\r?\n/)
+    .some((line) => cliSymbolPattern.test(line)
+      && (consoleOutputPattern.test(line) || testTitlePattern.test(line))));
+
+if (findings.length > 0) {
+  console.error('CLI symbols must be referenced from src/utils/cliSymbols.js:');
+  findings.forEach((filePath) => console.error(`- ${filePath}`));
+  process.exit(1);
+}
+
+console.log('No hard-coded CLI symbols found in enforced runtime entry points.');

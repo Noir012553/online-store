@@ -1,0 +1,245 @@
+const redis = require('redis');
+
+const { CLI_SYMBOLS } = require('../utils/cliSymbols');
+
+const formatRedisError = error => error?.message?.trim()
+  || [error?.code, error?.address, error?.port].filter(Boolean).join(' ')
+  || 'Unknown Redis connection error';
+
+class DistributedLockService {
+  constructor() {
+    this.client = null;
+    this.locks = new Map();
+    this.initialized = false;
+    this.initializationPromise = null;
+    this.useMemoryFallback = false;
+  }
+
+  async initialize() {
+    if (this.initialized || this.useMemoryFallback) return;
+
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeOnce();
+    }
+
+    try {
+      await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  async initializeOnce() {
+    if (process.env.PRODUCT_SEED_LOCK_MODE === 'memory') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('PRODUCT_SEED_LOCK_MODE=memory is not allowed in production');
+      }
+      this.useMemoryFallback = true;
+      this.initialized = true;
+      console.log('[DistributedLock] Product seed đang dùng lock trong bộ nhớ');
+      return;
+    }
+
+    try {
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      this.client = redis.createClient({
+        url: redisUrl,
+        password: process.env.REDIS_PASSWORD || undefined,
+        socket: {
+          reconnectStrategy: false,
+        },
+      });
+
+      this.client.on('error', (error) => {
+        const detail = error.message?.trim()
+          || [error.code, error.address, error.port].filter(Boolean).join(' ')
+          || 'Unknown Redis connection error';
+        console.error('[DistributedLock] Redis error:', detail);
+      });
+
+      await this.client.connect();
+      this.initialized = true;
+      console.log(`[DistributedLock] ${CLI_SYMBOLS.success} Redis connected`);
+    } catch (error) {
+      this.client = null;
+      const detail = error.message?.trim()
+        || [error.code, error.address, error.port].filter(Boolean).join(' ')
+        || 'Unknown Redis connection error';
+      if (process.env.NODE_ENV === 'production') {
+        this.initialized = false;
+        throw new Error(`Redis is required for distributed product locks: ${detail}`);
+      }
+      this.useMemoryFallback = true;
+      this.initialized = true;
+      console.warn(`[DistributedLock] ${CLI_SYMBOLS.warning} Redis not available (${detail}), using in-memory fallback`);
+    }
+  }
+
+  async acquireLock(key, ttlSeconds = 60) {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const lockId = `${key}:${Date.now()}:${Math.random()}`;
+
+    try {
+      if (this.useMemoryFallback) {
+        const now = Date.now();
+        for (const [lockKey, lock] of this.locks) {
+          if (lock.expiresAt <= now) {
+            this.locks.delete(lockKey);
+          }
+        }
+
+        const existingLock = this.locks.get(key);
+        if (existingLock) {
+          return null;
+        }
+        this.locks.set(key, { lockId, expiresAt: now + ttlSeconds * 1000 });
+        return lockId;
+      }
+
+      const isLocked = await this.client.set(
+        `lock:${key}`,
+        lockId,
+        {
+          EX: ttlSeconds,
+          NX: true,
+        }
+      );
+
+      if (isLocked) {
+        console.log(`[DistributedLock] ${CLI_SYMBOLS.lock} Acquired lock: ${key}`);
+        return lockId;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`[DistributedLock] Error acquiring lock ${key}:`, error.message);
+      return null;
+    }
+  }
+
+  async extendLock(key, lockId, ttlSeconds = 60) {
+    if (!this.initialized) return false;
+
+    try {
+      if (this.useMemoryFallback) {
+        const lock = this.locks.get(key);
+        if (!lock || lock.lockId !== lockId || lock.expiresAt <= Date.now()) return false;
+        lock.expiresAt = Date.now() + ttlSeconds * 1000;
+        return true;
+      }
+
+      const script = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("EXPIRE", KEYS[1], ARGV[2])
+        else
+          return 0
+        end
+      `;
+      const result = await this.client.eval(script, {
+        keys: [`lock:${key}`],
+        arguments: [lockId, String(ttlSeconds)],
+      });
+      return result === 1;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[DistributedLock] Error extending lock ${key}:`, error.message);
+      }
+      return false;
+    }
+  }
+
+  async releaseLock(key, lockId) {
+    if (!this.initialized) {
+      return false;
+    }
+
+    try {
+      if (this.useMemoryFallback) {
+        const lock = this.locks.get(key);
+        if (lock && lock.lockId === lockId) {
+          this.locks.delete(key);
+          return true;
+        }
+        return false;
+      }
+
+      const script = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+      `;
+
+      const result = await this.client.eval(script, {
+        keys: [`lock:${key}`],
+        arguments: [lockId],
+      });
+
+      if (result === 1) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[DistributedLock] ${CLI_SYMBOLS.unlock} Released lock: ${key}`);
+        }
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[DistributedLock] Error releasing lock ${key}:`, error.message);
+      }
+      return false;
+    }
+  }
+
+  async withLock(key, fn, ttlSeconds = 60) {
+    const lockId = await this.acquireLock(key, ttlSeconds);
+
+    if (!lockId) {
+      throw new Error(`Failed to acquire lock for ${key}. Already locked.`);
+    }
+
+    try {
+      return await fn();
+    } finally {
+      await this.releaseLock(key, lockId);
+    }
+  }
+
+  async isLocked(key) {
+    if (!this.initialized) {
+      return false;
+    }
+
+    try {
+      if (this.useMemoryFallback) {
+        const lock = this.locks.get(key);
+        if (lock && lock.expiresAt > Date.now()) {
+          return true;
+        }
+        this.locks.delete(key);
+        return false;
+      }
+
+      const isLocked = await this.client.exists(`lock:${key}`);
+      return isLocked === 1;
+    } catch (error) {
+      console.error(`[DistributedLock] Error checking lock ${key}:`, error.message);
+      return false;
+    }
+  }
+
+  async close() {
+    if (this.client) {
+      await this.client.quit();
+      this.client = null;
+    }
+    this.initialized = false;
+    this.useMemoryFallback = false;
+  }
+}
+
+module.exports = new DistributedLockService();

@@ -1,0 +1,15 @@
+{
+  "alreadyExists": "Gebruiker bestaat al",
+  "invalidData": "Ongeldige gebruikersgegevens",
+  "notFound": "Gebruiker niet gevonden",
+  "registrationSuccess": "Gebruiker succesvol geregistreerd",
+  "emailVerifiedSuccess": "E-mail succesvol geverifieerd",
+  "emailAlreadyVerified": "E-mail al geverifieerd",
+  "passwordChangedSuccess": "Wachtwoord succesvol gewijzigd",
+  "passwordResetEmailSent": "Wachtwoord reset e-mail verzonden",
+  "logoutSuccess": "Succesvol afgemeld",
+  "verificationEmailResent": "Verificatie-e-mail opnieuw verzonden",
+  "restoreSuccess": "Gebruiker succesvol hersteld",
+  "notDeleted": "Gebruiker kon niet worden verwijderd",
+  "hardDeleteSuccess": "Gebruiker permanent verwijderd"
+}

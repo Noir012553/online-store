@@ -1,0 +1,21 @@
+{
+  "same_district_free_shipping": "Stesso distretto - Spedizione gratuita",
+  "province_id_required": "L'ID provincia è obbligatorio",
+  "district_id_required": "L'ID del distretto è obbligatorio",
+  "weight_must_be_positive": "Il peso deve essere maggiore di 0",
+  "shipping_address_required": "L'indirizzo di spedizione è obbligatorio",
+  "invalid_shipping_data": "Dati di spedizione non validi",
+  "ghnDistrictError": "Errore nel recupero dei dati del distretto da GHN: {{error}}",
+  "ghnWardError": "Errore nel recupero dei dati del quartiere da GHN: {{error}}",
+  "missingParametersService": "Parametri del servizio di spedizione mancanti",
+  "noProvidersConfigured": "Nessun corriere è configurato",
+  "cannotCalculateFee": "Impossibile calcolare le spese di spedizione",
+  "provinceIdRequired": "L'ID della provincia o della città è obbligatorio",
+  "districtIdRequired": "L'ID del distretto è obbligatorio",
+  "sameDistrictFree": "Stesso distretto - Spedizione gratuita",
+  "standardServiceName": "Servizio standard",
+  "standardServiceDesc": "Consegna in 3–5 giorni",
+  "expressServiceName": "Servizio espresso",
+  "expressServiceDesc": "Consegna in 1–2 giorni",
+  "calculateFeeFailed": "Impossibile calcolare le spese di spedizione: {{error}}"
+}
