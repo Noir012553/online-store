@@ -134,6 +134,31 @@ class ScraperPathsTest(unittest.TestCase):
             ],
         )
 
+    def test_prefers_browser_selected_or_src_url_over_stale_lazy_load_url(self):
+        soup = BeautifulSoup(
+            """
+            <div class="news-html-content">
+              <img src="//cdn.example.com/active.jpg" data-src="//file.example.com/stale.jpg">
+              <img src="//file.example.com/fallback.jpg" data-scraper-current-src="//cdn.example.com/selected.jpg">
+            </div>
+            """,
+            "html.parser",
+        )
+
+        self.assertEqual(
+            extract_product_description_images(soup),
+            [
+                {
+                    "ProductDescriptionImageURL": "https://cdn.example.com/active.jpg",
+                    "ProductDescriptionImageAlt": "",
+                },
+                {
+                    "ProductDescriptionImageURL": "https://cdn.example.com/selected.jpg",
+                    "ProductDescriptionImageAlt": "",
+                },
+            ],
+        )
+
     def test_skips_description_images_inside_related_product_sections(self):
         soup = BeautifulSoup(
             """

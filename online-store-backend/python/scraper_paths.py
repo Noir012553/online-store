@@ -491,15 +491,17 @@ def extract_product_promotions(soup):
 
 
 def _image_url_from_tag(image):
-    """Return the best URL from an image tag, including lazy-load variants."""
-    for attribute in ("data-src", "data-original", "src"):
+    for attribute in (
+        "data-scraper-current-src",
+        "src",
+        "srcset",
+        "data-src",
+        "data-srcset",
+        "data-original",
+    ):
         value = str(image.get(attribute) or "").strip()
         if value:
-            return value
-
-    srcset = str(image.get("data-srcset") or image.get("srcset") or "").strip()
-    if srcset:
-        return srcset.split(",")[-1].strip().split()[0]
+            return value.split(",")[-1].strip().split()[0] if "srcset" in attribute else value
     return ""
 
 

@@ -35,7 +35,12 @@ const isNavigationTimeout = error => /timeout|ERR_(?:TIMED_OUT|CONNECTION_TIMED_
 
 const getPageContent = async page => {
   if (!page || page.isClosed()) return '';
-  return page.content().catch(() => '');
+  return page.evaluate(() => {
+    for (const image of document.images) {
+      if (image.currentSrc) image.setAttribute('data-scraper-current-src', image.currentSrc);
+    }
+    return document.documentElement.outerHTML;
+  }).catch(() => page.content()).catch(() => '');
 };
 
 const clickExpandableButtons = async page => {
