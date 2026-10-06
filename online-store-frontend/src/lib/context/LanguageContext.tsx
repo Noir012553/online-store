@@ -14,7 +14,6 @@ import { type Locale, type Namespace, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '
 import { translationService } from '../translationService';
 import { setApiErrorTranslator } from '../errorHandler';
 import { fetchActiveLocaleConfig, type ActiveLocaleConfig } from '../services/localeConfigService';
-import uiFallbacks from '../../locales/uiFallbacks.json';
 
 interface LanguageContextValue {
   locale: Locale;
@@ -31,8 +30,6 @@ interface LanguageContextValue {
 
 const LANGUAGE_CONFIG_UPDATED_EVENT = 'language-config-updated';
 const LANGUAGE_CONFIG_UPDATED_STORAGE_KEY = 'laptopstore_language_config_updated';
-
-const LOCAL_UI_FALLBACKS = uiFallbacks as Partial<Record<Locale, Record<string, string>>>;
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
@@ -102,7 +99,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const namespacesToLoadRef = useRef<Set<Namespace>>(new Set());
   const missingTranslationWarningsRef = useRef(new Set<string>());
   const pendingLoadRef = useRef(false);
-  const prevLocaleRef = useRef<Locale>(DEFAULT_LOCALE);
 
   const applyLocaleConfig = useCallback((defaultLocale: string, locales: ActiveLocaleConfig[], preferredLocale: Locale | undefined) => {
     const available = locales.map((item) => item.code as Locale);
@@ -258,9 +254,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
       setIsChangingLocale(true);
 
-      // Save previous locale for SWR fallback
-      prevLocaleRef.current = locale;
-
       try {
         // Update locale immediately (SWR: keep old data, show loading indicator)
         setLocaleState(newLocale);
@@ -271,7 +264,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        // Clear namespace loading states (but KEEP translations from old locale as fallback)
+        // Clear namespace loading states
         setLoadingNamespaces({});
         loadingRef.current = {};
         namespacesToLoadRef.current.clear();
@@ -324,7 +317,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         console.warn(`[i18n] Missing ${locale}/${namespace}:${keyPath}; resolved from ${source}.`);
       };
 
-      const localFallback = LOCAL_UI_FALLBACKS[locale]?.[keyPath];
       let namespaceData = loadedTranslations[cacheKey];
       const commonData = loadedTranslations[commonCacheKey];
 
@@ -357,10 +349,10 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       }
 
       if (namespaceData || commonData) {
-        warnMissingTranslation(localFallback === undefined ? 'the translation key itself' : 'the locale dictionary');
+        warnMissingTranslation('the translation key itself');
       }
 
-      return localFallback ?? keyPath;
+      return keyPath;
     },
     [locale, loadedTranslations, loadingNamespaces]
   );

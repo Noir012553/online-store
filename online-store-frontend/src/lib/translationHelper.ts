@@ -272,20 +272,6 @@ class TranslationHelper {
     return typeof current === 'string' ? current : undefined;
   }
 
-  /**
-   * Get all fallback translations for offline support
-   * Useful for progressive enhancement when API is unavailable
-   * @param lang - Language code
-   * @returns All translations for language or empty object
-   */
-  async getFallbackTranslations(lang: string): Promise<Record<string, Record<string, string>>> {
-    try {
-      return await translationService.getFallbackTranslations(lang);
-    } catch (error) {
-      console.error(`[TranslationHelper] Error getting fallback translations:`, error);
-      return {};
-    }
-  }
 }
 
 // Singleton instance

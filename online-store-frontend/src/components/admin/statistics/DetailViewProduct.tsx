@@ -2,8 +2,8 @@ import { useLanguage, useTranslation } from '../../../lib/i18n';
 import { Star } from 'lucide-react';
 import { getProductCategoryName, getProductName } from '../../../lib/data';
 
-function StatisticsCategoryName({ product }: { product: any }) {
-  return <>{getProductCategoryName(product)}</>;
+function StatisticsCategoryName({ product, locale }: { product: any; locale: string }) {
+  return <>{getProductCategoryName(product, locale)}</>;
 }
 
 interface ProductDetail {
@@ -60,8 +60,8 @@ export function DetailViewProduct({ detail }: DetailViewProductProps) {
             {t('detail_category_label')}
           </div>
           <div className="mt-1 font-semibold text-gray-900">
-            <StatisticsCategoryName product={detail.item} />
-            {!getProductCategoryName(detail.item) && t('not_available')}
+            <StatisticsCategoryName product={detail.item} locale={locale} />
+            {!getProductCategoryName(detail.item, locale) && t('not_available')}
           </div>
         </div>
         {detail.item.image && (

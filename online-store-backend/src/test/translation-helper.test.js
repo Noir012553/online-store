@@ -116,12 +116,10 @@ describe('translationHelper - Exact-language overlays', () => {
       assert.strictEqual(result.fallbackUsed, false);
     });
 
-    it('should return null when the requested-language query fails', async () => {
+    it('should propagate requested-language query failures', async () => {
       mockCouponCache.findOne.result = Promise.reject(new Error('DB error'));
 
-      const result = await getTranslationWithFallback('123', 'coupon', 'fr');
-
-      assert.strictEqual(result, null);
+      await assert.rejects(getTranslationWithFallback('123', 'coupon', 'fr'), /DB error/);
     });
 
     it('should return null for unknown entity type', async () => {
@@ -136,13 +134,23 @@ describe('translationHelper - Exact-language overlays', () => {
   });
 
   describe('overlayTranslationBatchWithFallback', () => {
-    it('should keep source entities when no exact-language translation exists', async () => {
+    it('should preserve source entities for the default language', async () => {
       const entities = [{ _id: '1', name: 'Item' }];
       mockCouponCache.find.result = Promise.resolve([]);
 
       const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'vi');
 
       assert.deepStrictEqual(result, entities);
+    });
+
+    it('should clear untranslated content for a missing exact locale', async () => {
+      mockCouponCache.find.result = Promise.resolve([]);
+
+      const result = await overlayTranslationBatchWithFallback([
+        { _id: '1', name: 'Original', description: 'Source text' },
+      ], 'coupon', 'fr');
+
+      assert.deepStrictEqual(result[0], { _id: '1', name: '', description: '' });
     });
 
     it('should overlay only exact-language translations', async () => {
@@ -162,16 +170,16 @@ describe('translationHelper - Exact-language overlays', () => {
         status: 'success',
       }]);
       assert.strictEqual(result[0].name, 'Nom français');
-      assert.strictEqual(result[1].name, 'Original Name 2');
+      assert.strictEqual(result[1].name, '');
     });
 
-    it('should return original entities on error', async () => {
-      const entities = [{ _id: '1', name: 'Item' }];
+    it('should propagate overlay query errors', async () => {
       mockCouponCache.find.result = Promise.reject(new Error('DB error'));
 
-      const result = await overlayTranslationBatchWithFallback(entities, 'coupon', 'fr');
-
-      assert.deepStrictEqual(result, entities);
+      await assert.rejects(
+        overlayTranslationBatchWithFallback([{ _id: '1', name: 'Item' }], 'coupon', 'fr'),
+        /DB error/,
+      );
     });
   });
 });
@@ -211,7 +219,7 @@ describe('translationHelper - Product legacy cache fallback', () => {
       { _id: '1', name: 'Máy tính xách tay', description: sourceDescription, brand: 'Brand', specs: {} },
     ], 'product', 'sv');
 
-    assert.strictEqual(result[0].name, 'Máy tính xách tay');
+    assert.strictEqual(result[0].name, '');
     assert.strictEqual(result[0].description, sourceDescription);
   });
 

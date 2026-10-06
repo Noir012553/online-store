@@ -70,7 +70,7 @@ class RateLimitHandler {
             originalText,
             sourceLang,
             targetLang,
-            translatedText: originalText,
+            translatedText: '',
             entityId,
             entityType,
             fieldKey,

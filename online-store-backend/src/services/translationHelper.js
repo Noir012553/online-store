@@ -21,14 +21,10 @@ const BannerTranslationCache = require('../models/BannerTranslationCache');
 const TestimonialTranslationCache = require('../models/TestimonialTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { getActiveLangCodes, SUPPORTED_LANGUAGES } = require('../config/languageInventory');
-const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
-const {
-  containsNoInputTranslationResponse,
-  restoreNoInputTranslationResponses,
-} = require('../utils/translationResponseGuard');
+const { containsNoInputTranslationResponse } = require('../utils/translationResponseGuard');
 
 /**
  * Map entity type → Cache model (8+ entity types supported)
@@ -79,39 +75,19 @@ const getSpecEntries = (specs) => {
   return [];
 };
 
-const getSpecKeyLookup = (lang) => Object.entries(specKeyTranslations).reduce((lookup, [canonicalKey, labels]) => {
-  const localizedLabel = labels[lang] || labels.vi || canonicalKey;
-  lookup.set(canonicalKey, localizedLabel);
-  Object.values(labels).forEach((label) => lookup.set(label, localizedLabel));
-  return lookup;
-}, new Map());
-
 const localizeProductSpecs = (specs, lang) => {
-  const keyLookup = getSpecKeyLookup(lang);
   const localizedSpecs = {};
 
   getSpecEntries(specs).forEach(([rawKey, value]) => {
     const key = String(rawKey || '').trim();
     if (!key) return;
 
-    const translatedKey = keyLookup.get(key)
-      || keyLookup.get(normalizeSpecFieldName(key))
-      || key;
-    localizedSpecs[translatedKey] = value;
+    const canonicalKey = getCanonicalSpecKey(key);
+    const localizedLabel = specKeyTranslations[canonicalKey]?.[lang];
+    localizedSpecs[localizedLabel || canonicalKey] = value;
   });
 
   return localizedSpecs;
-};
-
-const getStaticSpecLabels = (specs, lang) => {
-  const labels = {};
-  getSpecEntries(specs).forEach(([rawKey]) => {
-    const canonicalKey = getCanonicalSpecKey(rawKey);
-    if (!canonicalKey) return;
-    const translation = specKeyTranslations[canonicalKey];
-    labels[canonicalKey] = translation?.[lang] || translation?.vi || translation?.en || canonicalKey;
-  });
-  return labels;
 };
 
 const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
@@ -126,7 +102,7 @@ const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
     if (!key || !canonicalKey) return;
 
     localizedSpecs[canonicalKey] = value;
-    specLabels[canonicalKey] = labels[canonicalKey] || key;
+    specLabels[canonicalKey] = labels[canonicalKey] || '';
   });
 
   return { specs: localizedSpecs, specLabels };
@@ -135,19 +111,11 @@ const localizeProductSpecData = async (specs, lang, preloadedLabels = null) => {
 const localizeProductSpecFields = async (entity, lang, preloadedLabels = null) => {
   if (!entity || !lang) return entity;
 
-  try {
-    const localizedSpecData = await localizeProductSpecData(entity.specs, lang, preloadedLabels);
-    return {
-      ...entity,
-      ...localizedSpecData,
-    };
-  } catch (error) {
-    return {
-      ...entity,
-      specs: localizeProductSpecs(entity.specs, lang),
-      specLabels: getStaticSpecLabels(entity.specs, lang),
-    };
-  }
+  const localizedSpecData = await localizeProductSpecData(entity.specs, lang, preloadedLabels);
+  return {
+    ...entity,
+    ...localizedSpecData,
+  };
 };
 
 const getBatchSpecLabels = async (entities, targetLang) => {
@@ -378,28 +346,62 @@ const getLegacyProductTranslationMap = async (products, targetLang) => {
   }
 };
 
-function applyTranslationOverlay(entity, entityType, translation) {
-  // If no translation found, return entity as-is
-  if (!translation) return entity;
+function getEmptyTranslatedField(entity, field) {
+  if (field === 'specs') return {};
+  if (field === 'brand' && entity.brand && typeof entity.brand === 'object') {
+    return { ...entity.brand, name: '', description: '' };
+  }
+  if (field === 'descriptionImages') {
+    return (entity.descriptionImages || []).map((image) => ({ ...image, alt: '' }));
+  }
+  if (field === 'promotions') {
+    return (entity.promotions || []).map((promotion) => ({
+      ...promotion,
+      title: '',
+      giftProductName: '',
+      scope: '',
+      discountText: '',
+    }));
+  }
+  return '';
+}
+
+function applyTranslationOverlay(entity, entityType, translation, targetLang) {
   if (!entity) return entity;
+  if (targetLang === getDefaultLanguage().code && !translation) return entity;
 
   const result = { ...entity };
   const translatableFields = TRANSLATABLE_FIELDS[entityType] || [];
 
-  translatableFields.forEach(field => {
-    const value = entityType === 'product'
-      ? restoreNoInputTranslationResponses(translation[field], entity[field])
-      : translation[field];
-    const isEmptyStructuredValue = ['descriptionImages', 'promotions'].includes(field)
-      && Array.isArray(value)
-      && value.length === 0;
-    if (!(field in translation) || !value || isEmptyStructuredValue) return;
-
-    if (field === 'specs' && value instanceof Map) {
-      result[field] = new Map(value);
-    } else {
-      result[field] = value;
+  translatableFields.forEach((field) => {
+    if (!translation || !Object.prototype.hasOwnProperty.call(translation, field)
+      || containsNoInputTranslationResponse(translation[field])) {
+      result[field] = getEmptyTranslatedField(entity, field);
+      return;
     }
+
+    const value = translation[field];
+    if (field === 'descriptionImages' && Array.isArray(value)) {
+      result[field] = (entity.descriptionImages || []).map((image, index) => ({
+        ...image,
+        alt: typeof value[index]?.alt === 'string' ? value[index].alt : '',
+      }));
+      return;
+    }
+    if (field === 'promotions' && Array.isArray(value)) {
+      result[field] = (entity.promotions || []).map((promotion, index) => {
+        const translatedPromotion = value[index] || {};
+        return {
+          ...promotion,
+          title: translatedPromotion.title || '',
+          giftProductName: translatedPromotion.giftProductName || '',
+          scope: translatedPromotion.scope || '',
+          discountText: translatedPromotion.discountText || '',
+        };
+      });
+      return;
+    }
+    result[field] = field === 'specs' && value instanceof Map ? new Map(value) : value;
   });
 
   return result;
@@ -416,18 +418,15 @@ function applyNestedTranslations(product, targetLang, brandTranslationMap = {}) 
   if (!product) return product;
 
   const result = { ...product };
-
-  // Translate nested brand if exists (though usually brand is a string)
   if (result.brand && typeof result.brand === 'object' && result.brand._id) {
     const brandId = result.brand._id?.toString() || result.brand.id;
-
-    if (brandTranslationMap[brandId]) {
+    if (targetLang !== getDefaultLanguage().code) {
       result.brand = {
         ...result.brand,
-        name: brandTranslationMap[brandId].name || result.brand.name,
+        name: brandTranslationMap[brandId]?.name || '',
+        description: brandTranslationMap[brandId]?.description || '',
       };
     }
-    // If still no translation, keep the original brand.name (usually Vietnamese)
   }
 
   return result;
@@ -507,7 +506,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
     const result = await Promise.all(entities.map(async (entity, idx) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
-      let overlayed = applyTranslationOverlay(entity, entityType, translation);
+      let overlayed = applyTranslationOverlay(entity, entityType, translation, targetLang);
 
       // Apply nested translations for products
       if (entityType === 'product') {
@@ -526,8 +525,7 @@ async function overlayTranslationBatch(entities, entityType, targetLang) {
     return result;
   } catch (error) {
     console.error(`[translationHelper] Error overlaying ${entityType} translations:`, error);
-    // Fallback: trả về original entities nếu lỗi
-    return entities;
+    throw error;
   }
 }
 
@@ -561,7 +559,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
       translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
     }
 
-    let overlayed = applyTranslationOverlay(entity, entityType, translation);
+    let overlayed = applyTranslationOverlay(entity, entityType, translation, targetLang);
 
     // Apply nested translations for products
     if (entityType === 'product') {
@@ -574,6 +572,8 @@ async function overlayTranslation(entity, entityType, targetLang) {
           entityId: brandId,
           targetLang,
           status: 'success',
+          qualityStatus: 'approved',
+          ...NO_VALIDATION_ERRORS,
         }).lean();
         if (brandTranslation) {
           brandTranslationMap[brandId] = brandTranslation;
@@ -587,7 +587,7 @@ async function overlayTranslation(entity, entityType, targetLang) {
     return overlayed;
   } catch (error) {
     console.error(`[translationHelper] Error overlaying ${entityType} translation:`, error);
-    return entity;
+    throw error;
   }
 }
 
@@ -623,7 +623,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
       translation = (await getLegacyProductTranslationMap([entity], targetLang)).get(String(entityId));
     }
 
-    let overlayed = applyTranslationOverlay(entity, entityType, translation);
+    let overlayed = applyTranslationOverlay(entity, entityType, translation, targetLang);
 
     // Apply nested translations for products
     if (entityType === 'product') {
@@ -638,6 +638,8 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
           entityId: brandId,
           targetLang,
           status: 'success',
+          qualityStatus: 'approved',
+          ...NO_VALIDATION_ERRORS,
         }).lean();
 
         if (brandTranslation) {
@@ -652,7 +654,7 @@ async function overlayTranslationWithFallback(entity, entityType, targetLang) {
     return overlayed;
   } catch (error) {
     console.error(`[translationHelper] Error overlaying ${entityType} translation with fallback:`, error);
-    return entity;
+    throw error;
   }
 }
 
@@ -688,23 +690,19 @@ async function applyTranslationCache(config) {
     const mapTranslation = (entity) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId];
-
-      if (!translation) return entity;
+      if (!translation && lang === getDefaultLanguage().code) return entity;
 
       const result = { ...entity };
       Object.entries(cacheFields).forEach(([originalField, translationField]) => {
-        if (translation[translationField]) {
-          result[originalField] = translation[translationField];
-        }
+        result[originalField] = translation?.[translationField] || '';
       });
-
       return result;
     };
 
     return isBatch ? data.map(mapTranslation) : mapTranslation(data);
   } catch (error) {
     console.error(`[translationHelper] Error in applyTranslationCache:`, error);
-    return data;
+    throw error;
   }
 }
 
@@ -792,7 +790,7 @@ async function getTranslationWithFallback(entityId, entityType, requestedLang) {
     return null;
   } catch (error) {
     console.error(`[translationHelper] Error fetching translation with fallback:`, error);
-    return null;
+    throw error;
   }
 }
 
@@ -875,7 +873,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
     const result = await Promise.all(entities.map(async (entity) => {
       const entityId = entity._id?.toString() || entity.id;
       const translation = translationMap[entityId] || legacyTranslationMap.get(String(entityId));
-      let overlayed = translation ? applyTranslationOverlay(entity, entityType, translation) : entity;
+      let overlayed = applyTranslationOverlay(entity, entityType, translation, targetLang);
 
       // Apply nested translations for products
       if (entityType === 'product') {
@@ -889,7 +887,7 @@ async function overlayTranslationBatchWithFallback(entities, entityType, targetL
     return result;
   } catch (error) {
     console.error(`[translationHelper] Error overlaying ${entityType} translations with fallback:`, error);
-    return entities;
+    throw error;
   }
 }
 

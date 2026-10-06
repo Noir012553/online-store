@@ -1,8 +1,9 @@
 const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTranslationCache');
+const { getDefaultLanguage } = require('../config/languageInventory');
 const { withTimeout } = require('../utils/mongooseUtils');
 
 const localizeCategories = async (categories, lang) => {
-  if (!Array.isArray(categories) || categories.length === 0 || !lang) {
+  if (!Array.isArray(categories) || categories.length === 0 || !lang || lang === getDefaultLanguage().code) {
     return categories;
   }
 
@@ -27,12 +28,10 @@ const localizeCategories = async (categories, lang) => {
 
   return categories.map(category => {
     const translation = translationsById.get(category._id.toString());
-    if (!translation) return category;
-
     return {
       ...category,
-      name: translation.name || category.name,
-      description: translation.description || category.description,
+      name: translation?.name || '',
+      description: translation?.description || '',
     };
   });
 };
@@ -61,7 +60,7 @@ const localizeProductCategories = async (products, lang) => {
   return products.map(product => ({
     ...product,
     category: product.category?._id && product.category !== product.category._id
-      ? localizedById.get(product.category._id.toString()) || product.category
+      ? localizedById.get(product.category._id.toString()) || { ...product.category, name: '', description: '' }
       : product.category,
   }));
 };

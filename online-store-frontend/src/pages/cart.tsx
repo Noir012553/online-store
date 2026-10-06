@@ -6,8 +6,6 @@ import { useCart } from "../lib/context/CartContext";
 import { useTranslation } from "../lib/i18n";
 import { useLanguage } from "../lib/i18n";
 import { useProductTranslation } from "../hooks/useProductTranslation";
-import { getTranslatedValue } from "../lib/data";
-import { DEFAULT_LOCALE } from "../lib/i18n/types";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -27,10 +25,7 @@ function CartItemName({ itemLaptop }: { itemLaptop: any }) {
   const { locale } = useLanguage();
   const { translation } = useProductTranslation(itemLaptop.id || itemLaptop._id);
 
-  const displayName = translation?.name || getTranslatedValue(
-    typeof itemLaptop.name === 'object' ? itemLaptop.name : { [DEFAULT_LOCALE]: itemLaptop.name },
-    locale
-  ) || '';
+  const displayName = translation?.name || '';
 
   return <>{displayName}</>;
 }
@@ -38,7 +33,6 @@ function CartItemName({ itemLaptop }: { itemLaptop: any }) {
 export default function Cart() {
   const { items, removeFromCart, updateQuantity } = useCart();
   const { t, loadNamespace } = useTranslation();
-  const { locale } = useLanguage();
   const { summary } = useCartSummary();
   const router = useRouter();
   const [viewerImage, setViewerImage] = useState<{
@@ -130,14 +124,14 @@ export default function Cart() {
                         type="button"
                         onClick={() => setViewerImage({
                           src: item.laptop.image,
-                          alt: typeof item.laptop.name === 'object' && item.laptop.name !== null && DEFAULT_LOCALE in item.laptop.name ? (item.laptop.name as any)[DEFAULT_LOCALE] || '' : (item.laptop.name as any) || '',
+                          alt: '',
                           images: item.laptop.images,
                         })}
                         className="cursor-zoom-in"
                       >
                         <ImageWithFallback
                           src={item.laptop.image}
-                          alt={typeof item.laptop.name === 'object' && item.laptop.name !== null && DEFAULT_LOCALE in item.laptop.name ? (item.laptop.name as any)[DEFAULT_LOCALE] || '' : (item.laptop.name as any) || ''}
+                          alt=""
                           loading="lazy"
                           className="w-28 h-28 object-cover rounded border hover:shadow-md transition-shadow"
                         />

@@ -207,50 +207,7 @@ const getConfiguredExportLocales = () => (
     .filter(Boolean)
 );
 
-const getExportFallbacks = () => {
-  const rawFallbacks = process.env.EXPORT_TRANSLATION_FALLBACKS;
-  if (!rawFallbacks) return {};
-
-  try {
-    const parsedFallbacks = JSON.parse(rawFallbacks);
-    if (!parsedFallbacks || typeof parsedFallbacks !== 'object' || Array.isArray(parsedFallbacks)) {
-      throw new TypeError('EXPORT_TRANSLATION_FALLBACKS must be a JSON object');
-    }
-
-    return Object.fromEntries(Object.entries(parsedFallbacks)
-      .map(([locale, fallbacks]) => [
-        normalizeExportLocale(locale),
-        Array.isArray(fallbacks)
-          ? fallbacks.map(normalizeExportLocale).filter(isSupportedLanguage)
-          : [],
-      ])
-      .filter(([locale]) => locale && isSupportedLanguage(locale)));
-  } catch (error) {
-    console.error('[EXPORT_TRANSLATION_FALLBACK_CONFIG_INVALID]', { message: error.message });
-    return {};
-  }
-};
-
-const getTranslationWithFallback = (translations, locale, fallbacks, defaultLocale) => {
-  const fallbackChain = uniqueValues([
-    locale,
-    ...(fallbacks[locale] || []),
-    defaultLocale,
-  ]);
-
-  for (const candidate of fallbackChain) {
-    const translation = translations.get(candidate);
-    if (!translation) continue;
-
-    return {
-      ...translation,
-      appliedLocale: candidate,
-      fallback: candidate !== locale,
-    };
-  }
-
-  return null;
-};
+const getTranslationForLocale = (translations, locale) => translations.get(locale) || null;
 
 const toExportTranslation = (translation) => ({
   name: translation.name,
@@ -271,22 +228,16 @@ const toExportTranslation = (translation) => ({
   lastRetryAt: translation.lastRetryAt,
 });
 
-const getTranslationLookupLocales = (locales, fallbacks, defaultLocale) => uniqueValues(
-  locales.flatMap(locale => [locale, ...(fallbacks[locale] || []), defaultLocale])
-);
-
 const getProductTranslationsForExport = async (
   products,
   locales,
-  fallbacks,
   defaultLocale,
   { exportId, batchIndex } = {},
 ) => {
   if (products.length === 0) return [];
 
   const productIds = products.map(product => product._id.toString());
-  const lookupLocales = getTranslationLookupLocales(locales, fallbacks, defaultLocale)
-    .filter(locale => locale !== defaultLocale);
+  const lookupLocales = locales.filter(locale => locale !== defaultLocale);
   let translationDocuments = [];
   const translationStartedAt = Date.now();
 
@@ -311,6 +262,7 @@ const getProductTranslationsForExport = async (
         localeCount: lookupLocales.length,
         message: error.message,
       });
+      throw error;
     }
   }
 
@@ -348,7 +300,7 @@ const getProductTranslationsForExport = async (
       product,
       translations: Object.fromEntries(locales.map(locale => [
         locale,
-        getTranslationWithFallback(productTranslations, locale, fallbacks, defaultLocale),
+        getTranslationForLocale(productTranslations, locale),
       ]).filter(([, translation]) => translation)),
     };
   });
@@ -2483,7 +2435,6 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
   await assertExportJobActive(req);
   const { locales, defaultLocale } = await getRequestedExportLocales(requestedLocales);
   await assertExportJobActive(req);
-  const fallbacks = getExportFallbacks();
   debugExport('EXPORT_CONTEXT_READY', {
     exportId,
     contentFormat,
@@ -2515,7 +2466,6 @@ const createExportContext = async (req, { category, brand, parsedLimit, requeste
         const productsWithTranslations = await getProductTranslationsForExport(
           batch,
           locales,
-          fallbacks,
           defaultLocale,
           { exportId, batchIndex },
         );
@@ -2795,7 +2745,9 @@ const getExportStats = asyncHandler(async (req, res) => {
     }
     const processedCategories = categoriesWithCounts.map(category => ({
       categoryId: category.categoryId.toString(),
-      category: translationMap.get(category.categoryId.toString()) || category.categoryName,
+      category: lang === defaultLang
+        ? category.categoryName
+        : translationMap.get(category.categoryId.toString()) || '',
       count: category.count,
     }));
 
@@ -2819,7 +2771,7 @@ module.exports = {
   buildUpsertProductUpdate,
   getProductLookupFilter,
   findDuplicateImportIssues,
-  getTranslationWithFallback,
+  getTranslationForLocale,
   serializeProductForExport,
   convertProductsToCSV,
   importProducts,

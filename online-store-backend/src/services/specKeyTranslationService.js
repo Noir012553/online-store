@@ -33,8 +33,8 @@ const getCanonicalSpecKey = (rawKey) => {
 
 const getStaticLabel = (canonicalKey, targetLang) => {
   const labels = specKeyTranslations[canonicalKey];
-  if (!labels) return humanizeSpecKey(canonicalKey);
-  return labels[targetLang] || labels.vi || labels.en || humanizeSpecKey(canonicalKey);
+  if (!labels) return targetLang === getDefaultLanguage().code ? humanizeSpecKey(canonicalKey) : '';
+  return labels[targetLang] || '';
 };
 
 const isValidTranslatedLabel = (label) => (
@@ -84,7 +84,7 @@ const warmDynamicTranslation = (canonicalKey, targetLang, fallbackLabel) => {
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       ).lean();
     })
-    .catch(() => fallbackLabel)
+    .catch(() => '')
     .finally(() => {
       pendingTranslations.delete(cacheKey);
     });
@@ -176,6 +176,7 @@ const getSpecKeyLabels = async (specs, targetLang) => {
     }).lean();
   } catch (error) {
     console.error('[SpecKeyTranslationService] Cache read failed:', error.message);
+    throw error;
   }
   const databaseCache = new Map(cachedRows.map((row) => [row.canonicalKey, row.translatedLabel]));
   const labels = {};

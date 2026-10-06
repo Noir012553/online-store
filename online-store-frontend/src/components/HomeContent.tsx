@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type UIEvent } from "react";
 import { useLanguage } from "../lib/i18n";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
+import { DEFAULT_LOCALE } from "../lib/i18n/types";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2, PackageSearch } from "lucide-react";
 import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
@@ -269,16 +269,10 @@ export default function Home() {
   });
 
   const getTextByLang = (field: any, currentLang: string): string => {
-    if (typeof field === 'object') {
-      if (field[currentLang]) return field[currentLang] || '';
-      const fallbackChain = [currentLang, ...SUPPORTED_LOCALES.filter(l => l !== currentLang)];
-      for (const lang of fallbackChain) {
-        if (lang !== currentLang && field[lang]) return field[lang];
-      }
-      const firstLang = Object.keys(field)[0];
-      if (firstLang) return field[firstLang] || '';
+    if (typeof field === 'object' && field !== null) {
+      return typeof field[currentLang] === 'string' ? field[currentLang] : '';
     }
-    return field || '';
+    return typeof field === 'string' ? field : '';
   };
 
   const adminHeroSlides: HeroSlide[] = homepageHeroBanners.map((banner, index) => {

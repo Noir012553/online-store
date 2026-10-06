@@ -1,5 +1,3 @@
-import { DEFAULT_LOCALE } from './i18n/types';
-
 // Data types for the laptop store
 
 export interface AssetReference {
@@ -105,12 +103,12 @@ export interface Review {
 /**
  * Get translated value from an object with locale keys.
  */
-export const getTranslatedValue = (value: any, locale: string = DEFAULT_LOCALE): string => {
+export const getTranslatedValue = (value: any, locale?: string): string => {
   if (!value) return '';
 
   // If it's an object with locale-specific values
   if (typeof value === 'object' && value !== null) {
-    const localizedValue = value[locale];
+    const localizedValue = locale ? value[locale] : undefined;
     return typeof localizedValue === 'string' ? localizedValue.trim() : '';
   }
 
@@ -123,8 +121,8 @@ export const getTranslatedValue = (value: any, locale: string = DEFAULT_LOCALE):
  * @param product - Product object with category info
  * @returns Category name
  */
-export const getProductCategoryName = (product: any): string => {
-  return getCategoryName(product?.category);
+export const getProductCategoryName = (product: any, locale?: string): string => {
+  return getCategoryName(product?.category, locale);
 };
 
 /**
@@ -149,16 +147,16 @@ export const getCategoryName = (categoryValue: any, locale?: string): string => 
 export const getProductName = (productValue: any, locale?: string): string => {
   if (!productValue) return '';
 
-  const lang = locale || DEFAULT_LOCALE;
+  const lang = locale;
 
   // If it's an object with locale-specific names
   if (typeof productValue === 'object' && productValue !== null) {
     // Handle product translations object (multilingual: { vi: "...", en: "..." })
-    if (productValue[lang]) {
+    if (lang && productValue[lang]) {
       const localizedValue = productValue[lang];
       // If the localized value is still an object, recursively resolve it
       if (typeof localizedValue === 'object') {
-        return String(localizedValue.name || localizedValue).trim();
+        return typeof localizedValue.name === 'string' ? localizedValue.name.trim() : '';
       }
       return String(localizedValue).trim();
     }
@@ -166,21 +164,14 @@ export const getProductName = (productValue: any, locale?: string): string => {
     if (productValue.name) {
       // If name is itself a multilingual object, resolve it recursively
       if (typeof productValue.name === 'object' && productValue.name !== null) {
-        // Try locale-specific first
-        if (productValue.name[lang]) {
-          return String(productValue.name[lang]).trim();
-        }
+        return lang && typeof productValue.name[lang] === 'string' ? productValue.name[lang].trim() : '';
       }
-      // Otherwise treat name as string
-      const nameValue = productValue.name;
-      if (typeof nameValue === 'string') {
-        return nameValue.trim();
-      }
+      return typeof productValue.name === 'string' ? productValue.name.trim() : '';
     }
+    return '';
   }
 
-  // Fallback to string conversion
-  return String(productValue).trim();
+  return typeof productValue === 'string' ? productValue.trim() : '';
 };
 
 export const features = [

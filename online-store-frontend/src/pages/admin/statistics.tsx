@@ -122,7 +122,8 @@ function StatisticsProductName({ product }: { product: any }) {
 }
 
 function StatisticsCategoryName({ product }: { product: any }) {
-  return <>{getProductCategoryName(product)}</>;
+  const { locale } = useLanguage();
+  return <>{getProductCategoryName(product, locale)}</>;
 }
 
 function StatisticsContent() {
@@ -340,7 +341,7 @@ function StatisticsContent() {
     const categoryMap = new Map<string, { label: string; count: number }>();
 
     products.forEach((product) => {
-      const label = getProductCategoryName(product) || t('not_updated');
+      const label = getProductCategoryName(product, locale) || t('not_updated');
       const current = categoryMap.get(label) || { label, count: 0 };
       current.count += 1;
       categoryMap.set(label, current);
@@ -818,7 +819,7 @@ function StatisticsContent() {
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900 line-clamp-2"><StatisticsProductName product={product} /></p>
-                    <p className="text-sm text-gray-500">{getProductCategoryName(product)}</p>
+                    <p className="text-sm text-gray-500">{getProductCategoryName(product, locale)}</p>
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-red-600">{product.count || product.sold || 0}</p>

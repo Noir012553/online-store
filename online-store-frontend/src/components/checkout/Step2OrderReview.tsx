@@ -3,9 +3,7 @@ import { useCheckout, type CheckoutSummary } from '../../context/CheckoutContext
 import { useCart } from '../../lib/context/CartContext';
 import { useTranslation } from '../../lib/i18n';
 import { useLanguage } from '../../lib/i18n';
-import { DEFAULT_LOCALE } from '../../lib/i18n/types';
 import { useProductTranslation } from '../../hooks/useProductTranslation';
-import { getTranslatedValue } from '../../lib/data';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -20,10 +18,7 @@ function OrderItemName({ itemLaptop }: { itemLaptop: any }) {
   const { locale } = useLanguage();
   const { translation } = useProductTranslation(itemLaptop.id || itemLaptop._id);
 
-  const displayName = translation?.name || getTranslatedValue(
-    typeof itemLaptop.name === 'object' ? itemLaptop.name : { [DEFAULT_LOCALE]: itemLaptop.name },
-    locale
-  ) || '';
+  const displayName = translation?.name || '';
 
   return <>{displayName}</>;
 }
@@ -300,7 +295,7 @@ export function Step2OrderReview() {
                 {item.laptop.image && (
                   <img
                     src={item.laptop.image}
-                    alt={typeof item.laptop.name === 'object' && item.laptop.name !== null && DEFAULT_LOCALE in item.laptop.name ? (item.laptop.name as any)[DEFAULT_LOCALE] || '' : (item.laptop.name as any) || ''}
+                    alt=""
                     className="w-16 h-16 object-cover rounded-lg"
                   />
                 )}

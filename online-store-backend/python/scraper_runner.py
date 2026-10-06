@@ -361,15 +361,6 @@ def _node_command():
     return os.getenv("SCRAPER_NODE_COMMAND") or ("node.exe" if sys.platform == "win32" else "node")
 
 
-def _is_recoverable_dynamic_render_error(error):
-    detail = str(error).casefold()
-    return any(marker in detail for marker in (
-        "timeout",
-        "err_timed_out",
-        "err_connection_timed_out",
-    ))
-
-
 def render_product_html(url, timeout=None):
     timeout = timeout or SCRAPER_CONFIG["dynamic_render_timeout_seconds"]
     completed = subprocess.run(
@@ -397,17 +388,17 @@ def _load_product_soup(url, response_text):
     try:
         with _dynamic_render_lock:
             rendered_html = render_product_html(url)
-        rendered_soup = BeautifulSoup(rendered_html, "html.parser")
-        if (
-            extract_product_description(rendered_soup)
-            or extract_product_specs(rendered_soup)
-            or extract_product_description_images(rendered_soup)
-        ):
-            return rendered_soup
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-        if not _is_recoverable_dynamic_render_error(error):
-            print(f"Cảnh báo dynamic render {url}: {error}")
-    return soup
+        raise RuntimeError(f"Dynamic render failed for {url}") from error
+
+    rendered_soup = BeautifulSoup(rendered_html, "html.parser")
+    if not (
+        extract_product_description(rendered_soup)
+        or extract_product_specs(rendered_soup)
+        or extract_product_description_images(rendered_soup)
+    ):
+        raise RuntimeError(f"Dynamic render returned no usable product content for {url}")
+    return rendered_soup
 
 
 def _scrape_product(url, brand, categories):
@@ -450,11 +441,7 @@ def run_scraper(script_path, collection_slug):
     if not collection_complete:
         raise RuntimeError("Không thể hoàn tất việc đọc collection; output cũ được giữ nguyên")
     if not product_urls:
-        print(
-            f"⚠️ Collection {collection_slug} không có sản phẩm; "
-            "giữ nguyên output cũ và bỏ qua scraper này."
-        )
-        return
+        raise RuntimeError(f"Collection {collection_slug} không có sản phẩm; không dùng output cũ")
 
     records, failed_urls = scrape_products(
         product_urls,

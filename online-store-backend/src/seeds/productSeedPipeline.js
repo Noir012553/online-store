@@ -594,12 +594,10 @@ const runProductSeedPipeline = async (options = {}) => {
     ? path.resolve(backendRoot, options.directory)
     : getProductDataDirectory();
   const existingFiles = options.file ? [] : chooseProductFiles(inputDirectory);
-  const forceScrape = Boolean(options.forceScrape || options.scrapeTarget);
   const skipScrape = Boolean(
     dryRun
       || options.skipScrape
-      || hasExplicitInput
-      || (!forceScrape && existingFiles.length > 0),
+      || hasExplicitInput,
   );
   const batchSize = Number(options.batchSize || 50);
 

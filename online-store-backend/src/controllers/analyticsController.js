@@ -43,6 +43,11 @@ const formatReportingAmountFields = async (data, reportingCurrency, lang, fields
   return formatAmountFields(data, currencies.get(reportingCurrency), lang, fields);
 };
 
+const getExactProductName = (value, locale) => {
+  if (typeof value === 'string') return locale === getDefaultLanguage().code ? value : '';
+  return typeof value?.[locale] === 'string' ? value[locale] : '';
+};
+
 const formatReportingProducts = async (products, reportingCurrency, lang) => {
   const activeRates = await getActiveExchangeRates();
   const convertedProducts = products.map((product) => ({
@@ -608,43 +613,25 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
   const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
   const productIds = topProducts.map(p => p._id.toString());
 
-  // Get ALL translations for all products (for all languages, not just requested lang)
-  const translations = await ProductCatalogTranslationCache.find({
+  const translations = lang === defaultLang ? [] : await ProductCatalogTranslationCache.find({
     entityId: { $in: productIds },
+    targetLang: lang,
     status: 'success',
+    qualityStatus: 'approved',
+    validationErrors: { $size: 0 },
   }).lean();
+  const translationMap = Object.fromEntries(
+    translations.map(translation => [translation.entityId.toString(), translation.name]),
+  );
 
-  // Build translation map: productId -> { lang: name, ... }
-  const translationMap = {};
-  translations.forEach(t => {
-    if (!translationMap[t.entityId]) {
-      translationMap[t.entityId] = {};
-    }
-    translationMap[t.entityId][t.targetLang] = t.name;
-  });
-
-  // Build multilingual name object for each product
   const processedProducts = topProducts.map(product => {
-    const productTranslations = translationMap[product._id.toString()] || {};
-    let nameValue = product.productName;
-
-    // Build multilingual name object from:
-    // 1. All translations from database
-    // 2. Original product name (fallback for default language if not in translations)
-    let nameObj = {
-      [defaultLang]: nameValue, // Always default to original name for default language
-      ...productTranslations, // Merge all translations, overriding if exists
-    };
-
-    // Ensure requested language is available (fallback chain)
-    if (!nameObj[lang]) {
-      // nameValue is a string, so fallback is simple: use vi for all languages until translations exist
-      nameObj[lang] = nameValue;
-    }
+    const name = lang === defaultLang
+      ? getExactProductName(product.productName, lang)
+      : translationMap[product._id.toString()] || '';
 
     return {
       _id: product._id,
-      name: nameObj,
+      name: { [lang]: name },
       price: product.price,
       baseCurrencyCode: product.baseCurrencyCode,
       image: product.image,
@@ -862,8 +849,10 @@ const getSlowSellingProducts = asyncHandler(async (req, res) => {
     const productIds = slowProducts.map(p => p._id.toString());
     const translations = await ProductCatalogTranslationCache.find({
       entityId: { $in: productIds },
-      entityType: { $ne: 'category' },
       targetLang: lang,
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: { $size: 0 },
     }).lean();
 
     const translationMap = {};
@@ -873,46 +862,20 @@ const getSlowSellingProducts = asyncHandler(async (req, res) => {
 
     processedProducts = slowProducts.map(product => {
       const translation = translationMap[product._id.toString()];
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      if (translation && translation.name) {
-        nameObj[lang] = translation.name;
-      } else if (typeof nameValue === 'object' && nameValue !== null) {
-        const fallbackChain = [lang, defaultLang];
-        let fallbackValue = '';
-        for (const fallbackLang of fallbackChain) {
-          if (nameValue[fallbackLang]) {
-            fallbackValue = nameValue[fallbackLang];
-            break;
-          }
-        }
-        nameObj[lang] = fallbackValue;
-      }
+      const name = lang === defaultLang
+        ? getExactProductName(product.name, lang)
+        : translation?.name || '';
 
       return {
         ...product,
-        name: nameObj,
+        name: { [lang]: name },
       };
     });
   } else {
-    processedProducts = slowProducts.map(product => {
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      return {
-        ...product,
-        name: nameObj,
-      };
-    });
+    processedProducts = slowProducts.map(product => ({
+      ...product,
+      name: { [lang]: getExactProductName(product.name, lang) },
+    }));
   }
 
   const reportingCurrency = await getReportingCurrency(req.query.currencyCode);
@@ -1242,7 +1205,10 @@ const getLowInventoryProducts = asyncHandler(async (req, res) => {
     const productIds = (products || []).map(p => p._id.toString());
     const translations = await ProductCatalogTranslationCache.find({
       entityId: { $in: productIds },
-      targetLang: lang
+      targetLang: lang,
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: { $size: 0 },
     }).lean();
 
     const translationMap = {};
@@ -1252,46 +1218,20 @@ const getLowInventoryProducts = asyncHandler(async (req, res) => {
 
     processedProducts = (products || []).map(product => {
       const translation = translationMap[product._id.toString()];
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      if (translation && translation.name) {
-        nameObj[lang] = translation.name;
-      } else if (typeof nameValue === 'object' && nameValue !== null) {
-        const fallbackChain = [lang, defaultLang];
-        let fallbackValue = '';
-        for (const fallbackLang of fallbackChain) {
-          if (nameValue[fallbackLang]) {
-            fallbackValue = nameValue[fallbackLang];
-            break;
-          }
-        }
-        nameObj[lang] = fallbackValue;
-      }
+      const name = lang === defaultLang
+        ? getExactProductName(product.name, lang)
+        : translation?.name || '';
 
       return {
         ...product,
-        name: nameObj,
+        name: { [lang]: name },
       };
     });
   } else {
-    processedProducts = (products || []).map(product => {
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      return {
-        ...product,
-        name: nameObj,
-      };
-    });
+    processedProducts = (products || []).map(product => ({
+      ...product,
+      name: { [lang]: getExactProductName(product.name, lang) },
+    }));
   }
 
   res.json({
@@ -1368,7 +1308,10 @@ const getLowRatingProducts = asyncHandler(async (req, res) => {
     const productIds = (products || []).map(p => p._id.toString());
     const translations = await ProductCatalogTranslationCache.find({
       entityId: { $in: productIds },
-      targetLang: lang
+      targetLang: lang,
+      status: 'success',
+      qualityStatus: 'approved',
+      validationErrors: { $size: 0 },
     }).lean();
 
     const translationMap = {};
@@ -1378,46 +1321,20 @@ const getLowRatingProducts = asyncHandler(async (req, res) => {
 
     processedProducts = (products || []).map(product => {
       const translation = translationMap[product._id.toString()];
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      if (translation && translation.name) {
-        nameObj[lang] = translation.name;
-      } else if (typeof nameValue === 'object' && nameValue !== null) {
-        const fallbackChain = [lang, defaultLang];
-        let fallbackValue = '';
-        for (const fallbackLang of fallbackChain) {
-          if (nameValue[fallbackLang]) {
-            fallbackValue = nameValue[fallbackLang];
-            break;
-          }
-        }
-        nameObj[lang] = fallbackValue;
-      }
+      const name = lang === defaultLang
+        ? getExactProductName(product.name, lang)
+        : translation?.name || '';
 
       return {
         ...product,
-        name: nameObj,
+        name: { [lang]: name },
       };
     });
   } else {
-    processedProducts = (products || []).map(product => {
-      let nameValue = product.name;
-
-      // Build multilingual name object
-      let nameObj = typeof nameValue === 'object' && nameValue !== null
-        ? { ...nameValue }
-        : { [defaultLang]: nameValue };
-
-      return {
-        ...product,
-        name: nameObj,
-      };
-    });
+    processedProducts = (products || []).map(product => ({
+      ...product,
+      name: { [lang]: getExactProductName(product.name, lang) },
+    }));
   }
 
   res.json({

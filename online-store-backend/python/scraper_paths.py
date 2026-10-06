@@ -588,11 +588,7 @@ def extract_product_prices(soup, fallback_price="N/A"):
 
 
 def extract_product_image_urls(soup):
-    """Extract product images in main/gallery order without scanning unrelated images.
-
-    GearVN's explicit main image and thumbnail selectors are preferred. The semantic
-    gallery selectors are only used when those selectors do not produce any images.
-    """
+    """Extract product images from product gallery markup and structured product data."""
     urls = []
     seen = set()
 
@@ -622,12 +618,5 @@ def extract_product_image_urls(soup):
         if url not in seen:
             seen.add(url)
             urls.append(url)
-
-    if not urls:
-        og_image = soup.select_one('meta[property="og:image"], meta[property="og:image:secure_url"]')
-        if og_image:
-            url = _absolute_image_url(og_image.get("content"))
-            if url:
-                urls.append(url)
 
     return urls
