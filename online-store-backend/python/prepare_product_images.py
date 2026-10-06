@@ -356,10 +356,17 @@ def get_target_files(output_root, file_arg, since):
             target = output_root / target
         return [target.resolve()]
 
-    return sorted(
-        path for path in output_root.glob('*.json')
-        if since is None or path.stat().st_mtime >= since
-    )
+    excluded_directories = {'images', 'manifests', 'staging'}
+    files = []
+    for current_directory, directories, filenames in os.walk(output_root):
+        directories[:] = [name for name in directories if name not in excluded_directories]
+        for filename in filenames:
+            if Path(filename).suffix.lower() != '.json':
+                continue
+            file_path = Path(current_directory) / filename
+            if since is None or file_path.stat().st_mtime >= since:
+                files.append(file_path)
+    return sorted(files)
 
 
 def main():

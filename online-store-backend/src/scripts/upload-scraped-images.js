@@ -12,11 +12,23 @@ const getArgument = (name) => {
   return index >= 0 ? process.argv[index + 1] : null;
 };
 
-const getRecentJsonFiles = (directory, startedAt) => fs.readdirSync(directory, { withFileTypes: true })
-  .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.json')
-  .map(entry => path.join(directory, entry.name))
-  .filter(filePath => fs.statSync(filePath).mtimeMs >= startedAt)
-  .sort();
+const getRecentJsonFiles = (directory, startedAt) => {
+  const excludedDirectories = new Set(['images', 'manifests', 'staging']);
+  const files = [];
+  const visit = (currentDirectory) => {
+    for (const entry of fs.readdirSync(currentDirectory, { withFileTypes: true })) {
+      const entryPath = path.join(currentDirectory, entry.name);
+      if (entry.isDirectory() && !excludedDirectories.has(entry.name)) {
+        visit(entryPath);
+      } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.json') {
+        files.push(entryPath);
+      }
+    }
+  };
+
+  visit(directory);
+  return files.filter(filePath => fs.statSync(filePath).mtimeMs >= startedAt).sort();
+};
 
 const toManifestAsset = ({ asset, role, position, sourcePath }) => ({
   role,

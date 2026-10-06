@@ -356,9 +356,22 @@ def _embedded_description_container(soup):
     return container if container.get_text(" ", strip=True) or container.select_one("img") else None
 
 
+def _is_excluded_description_content(content):
+    current = content
+    for _ in range(8):
+        if current is None or not getattr(current, "name", None):
+            break
+        if any(marker in _container_signature(current) for marker in _EXCLUDED_CONTAINER_MARKERS):
+            return True
+        current = current.parent
+    return False
+
+
 def _description_container(soup):
     for selector in _DESCRIPTION_SELECTORS:
         for content in soup.select(selector):
+            if _is_excluded_description_content(content):
+                continue
             if content.get_text(" ", strip=True) or content.select_one("img"):
                 return content
     return _embedded_description_container(soup)

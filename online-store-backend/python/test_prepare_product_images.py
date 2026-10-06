@@ -5,10 +5,23 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from prepare_product_images import process_file
+from prepare_product_images import get_target_files, process_file
 
 
 class PrepareProductImagesTest(unittest.TestCase):
+    def test_discovers_nested_product_json_without_scanning_asset_directories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            product_file = output_root / 'Razer_Headphone' / 'Razer_Headphone.json'
+            product_file.parent.mkdir()
+            product_file.write_text('[]', encoding='utf-8')
+            for excluded in ('images', 'manifests', 'staging'):
+                excluded_file = output_root / excluded / 'generated.json'
+                excluded_file.parent.mkdir()
+                excluded_file.write_text('[]', encoding='utf-8')
+
+            self.assertEqual(get_target_files(output_root, None, None), [product_file])
+
     def test_downloads_description_images_and_rewrites_json_path(self):
         with tempfile.TemporaryDirectory() as directory:
             output_root = Path(directory)

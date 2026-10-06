@@ -134,6 +134,32 @@ class ScraperPathsTest(unittest.TestCase):
             ],
         )
 
+    def test_skips_description_images_inside_related_product_sections(self):
+        soup = BeautifulSoup(
+            """
+            <section class="related-products">
+              <div class="news-html-content">
+                <p><img src="https://cdn.example.com/related.jpg"></p>
+              </div>
+            </section>
+            <section class="product-detail">
+              <div class="news-html-content">
+                <p>Mô tả sản phẩm hiện tại</p>
+                <img src="https://cdn.example.com/current.jpg">
+              </div>
+            </section>
+            """,
+            "html.parser",
+        )
+
+        self.assertEqual(
+            extract_product_description_images(soup),
+            [{
+                "ProductDescriptionImageURL": "https://cdn.example.com/current.jpg",
+                "ProductDescriptionImageAlt": "",
+            }],
+        )
+
     def test_supports_alternative_description_and_json_ld_gallery(self):
         soup = BeautifulSoup(
             """
