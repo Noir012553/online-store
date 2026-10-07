@@ -331,10 +331,6 @@ const uploadProductImages = async (product) => {
       }
     }
 
-    if (String(product.description || '').trim() && descriptionImages.length === 0) {
-      throw new Error('Không upload được ảnh mô tả nào cho sản phẩm có mô tả');
-    }
-
     return {
       ...product,
       image: mainImage.url,
@@ -512,7 +508,7 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
   await ensureSourceCategories(parsedProducts, filePath, dryRun);
   const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts);
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
-  const validation = await manager.validate(dedupedProducts, format, { requireDescriptionImage: true });
+  const validation = await manager.validate(dedupedProducts, format);
   const productsToImport = initializeHighlights && !dryRun
     ? assignInitialHighlights(validation.validProducts)
     : validation.validProducts;

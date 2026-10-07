@@ -605,10 +605,6 @@ function validateProduct(product, rowIndex = 0, options = {}) {
   } else {
     cleaned.description = '';
   }
-  if (options.requireDescriptionImage && cleaned.description.trim() && !cleaned.descriptionImages?.length) {
-    errors.push(`Row ${rowIndex}: Description requires at least one image`);
-  }
-
   return {
     isValid: errors.length === 0,
     errors,

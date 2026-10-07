@@ -85,7 +85,7 @@ describe('Canonical scraper contract', () => {
       }],
     };
     const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
-    const result = validateProduct(parsed, 1, { requireDescriptionImage: true });
+    const result = validateProduct(parsed, 1);
 
     expect(result.isValid).to.equal(true);
     expect(result.errors).to.deep.equal([]);
@@ -109,12 +109,29 @@ describe('Canonical scraper contract', () => {
       ],
     };
     const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
-    const result = validateProduct(parsed, 1, { requireDescriptionImage: true });
+    const result = validateProduct(parsed, 1);
 
     expect(result.isValid).to.equal(true);
     expect(result.errors).to.deep.equal([]);
     expect(result.warnings).to.deep.equal(['Row 1: Failed to prepare description 2 image']);
     expect(result.cleaned.descriptionImages).to.have.length(1);
+  });
+
+  it('allows described products when every description image failed to download', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductDescriptionImages: [{
+        ...canonicalProduct.ProductDescriptionImages[0],
+        ProductDescriptionImageLocalPath: '',
+      }],
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+    const result = validateProduct(parsed, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.warnings).to.deep.equal(['Row 1: Failed to prepare description 1 image']);
+    expect(result.cleaned.descriptionImages).to.deep.equal([]);
   });
 
   it('maps canonical JSON fields and keeps nullable optional fields valid', async () => {
@@ -784,20 +801,14 @@ describe('Product payload validation', () => {
     image: 'https://example.com/laptop.jpg',
   };
 
-  it('requires a description image only when the crawler seed policy is enabled', () => {
-    const missingImage = validateProduct({
+  it('allows a product description without description images', () => {
+    const result = validateProduct({
       ...validProduct,
       description: 'Product description',
-    }, 1, { requireDescriptionImage: true });
-    const withImage = validateProduct({
-      ...validProduct,
-      description: 'Product description',
-      descriptionImages: [{ url: 'https://example.com/description.jpg' }],
-    }, 1, { requireDescriptionImage: true });
+    });
 
-    expect(missingImage.errors).to.include('Row 1: Description requires at least one image');
-    expect(withImage.isValid).to.equal(true);
-    expect(validateProduct({ ...validProduct, description: 'Product description' }).isValid).to.equal(true);
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.descriptionImages).to.deep.equal([]);
   });
 
   it('rejects incomplete products in ZIP imports', () => {
@@ -1147,7 +1158,7 @@ describe('Product seed image backup', () => {
     expect(deleteR2Assets.calledOnceWithExactly([mainAsset])).to.equal(true);
   });
 
-  it('skips a described product when all description uploads fail and cleans its new assets', async () => {
+  it('keeps a described product when every description image upload fails', async () => {
     const mainAsset = { publicUrl: 'https://cdn.example.test/main.jpg' };
     const uploadAsset = sinon.stub(r2AssetService, 'uploadAsset').callsFake(async (source, options) => {
       if (source.endsWith('/main.jpg')) {
@@ -1159,7 +1170,7 @@ describe('Product seed image backup', () => {
     const deleteR2Assets = sinon.stub(r2AssetService, 'deleteR2Assets').resolves([]);
 
     try {
-      await uploadProductImages({
+      const uploaded = await uploadProductImages({
         name: 'Keyboard',
         description: 'Product description',
         sku: 'SKU-5',
@@ -1167,15 +1178,15 @@ describe('Product seed image backup', () => {
         images: [],
         descriptionImages: [{ url: 'https://source.example.test/missing-description.jpg' }],
       });
-      expect.fail('Expected all description image uploads to fail');
-    } catch (error) {
-      expect(error.message).to.equal('Không upload được ảnh mô tả nào cho sản phẩm có mô tả');
+
+      expect(uploaded.image).to.equal(mainAsset.publicUrl);
+      expect(uploaded.descriptionImages).to.deep.equal([]);
     } finally {
       uploadAsset.restore();
       deleteR2Assets.restore();
     }
 
-    expect(deleteR2Assets.calledOnce).to.equal(true);
+    expect(deleteR2Assets.notCalled).to.equal(true);
   });
 
   it('keeps successful description uploads when another description image fails', async () => {
