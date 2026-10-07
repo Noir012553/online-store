@@ -14,6 +14,7 @@ import {
 import { Button } from "../ui/button";
 import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
+import { HamsterLoader } from '../HamsterLoader';
 import {
   Dialog,
   DialogContent,
@@ -176,7 +177,7 @@ export function NotificationBell() {
           <div className="p-4 bg-white">
             {isLoading ? (
               <div className="text-center py-8 text-gray-500 text-sm">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+                <HamsterLoader size={64} className="mx-auto mb-2" />
                 <p>{t('loading', 'notifications')}</p>
               </div>
             ) : unreadCount === 0 ? (

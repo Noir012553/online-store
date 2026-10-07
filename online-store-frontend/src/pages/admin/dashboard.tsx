@@ -10,6 +10,7 @@ import { analyticsAPI } from "../../lib/api";
 import { onOrderDeleted, offEvent } from "../../lib/socket";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { DateRangePickerModal } from "../../components/admin/DateRangePickerModal";
+import { HamsterLoader } from "../../components/HamsterLoader";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
 
 // In-memory cache manager (safe, TTL-based, no localStorage)
@@ -450,9 +451,7 @@ function DashboardContent() {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="text-center">
-          <div className="inline-block relative w-12 h-12 mb-4">
-            <div className="absolute inset-0 rounded-full border-4 border-gray-200 border-t-red-600 animate-spin"></div>
-          </div>
+          <HamsterLoader size={96} className="mx-auto mb-4" />
           <p className="text-gray-600 font-medium">{t('loading', 'common')}</p>
         </div>
       </div>

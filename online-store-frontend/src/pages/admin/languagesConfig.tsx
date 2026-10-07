@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { Plus, AlertCircle, Loader2, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, AlertCircle, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { HamsterLoader } from '../../components/HamsterLoader';
 import { useTranslation as useLanguageTranslation } from '../../lib/i18n';
 import { AddLanguageModal } from '../../components/admin/AddLanguageModal';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
@@ -279,7 +280,7 @@ const LanguagesConfigContent = () => {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <HamsterLoader size={96} className="mx-auto mb-2" />
           <p>{t('admin_loading_data', 'admin-translation')}</p>
         </div>
       </div>

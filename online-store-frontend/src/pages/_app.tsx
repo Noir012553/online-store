@@ -12,7 +12,8 @@ import { CurrencyProvider } from "../lib/context/CurrencyContext";
 import { LoadingGate } from "../components/LoadingGate";
 import { useRouter } from 'next/router';
 import { AnimatePresence } from 'framer-motion';
-import { PageTransition, PandaRolling } from "../components/PageTransition";
+import { PageTransition } from "../components/PageTransition";
+import { HamsterLoader } from "../components/HamsterLoader";
 import AdminLayout from "../components/admin/_AdminLayout";
 import { ProtectedAdminPage, type PagePermission } from "../components/admin/ProtectedAdminPage";
 
@@ -156,7 +157,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
           <AnimatePresence mode="wait">
             {showLoadingOverlay && (
               <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                <PandaRolling />
+                <HamsterLoader size={144} />
               </div>
             )}
           </AnimatePresence>
@@ -177,7 +178,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
         <AnimatePresence mode="wait">
           {showLoadingOverlay && (
             <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-white/50 backdrop-blur-sm">
-              <PandaRolling />
+              <HamsterLoader size={144} />
             </div>
           )}
         </AnimatePresence>

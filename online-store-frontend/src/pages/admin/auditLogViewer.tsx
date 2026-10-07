@@ -6,6 +6,7 @@ import { getIntlLocale } from '../../lib/localeUtils';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
+import { HamsterLoader } from '../../components/HamsterLoader';
 
 interface AuditLogRecord {
   _id: string;
@@ -359,7 +360,7 @@ const AuditLogViewerContent = () => {
       <div className="audit-log-content">
         {loading && !logs.length ? (
           <div className="audit-log-loading">
-            <div className="audit-log-spinner"></div>
+            <HamsterLoader size={96} className="mb-4" />
             <p>{t('admin_audit_log_loading')}</p>
           </div>
         ) : logs.length === 0 ? (
@@ -715,16 +716,6 @@ const AuditLogViewerContent = () => {
           justify-content: center;
           padding: 60px 20px;
           color: #666;
-        }
-
-        .audit-log-spinner {
-          border: 3px solid #f3f3f3;
-          border-top: 3px solid #007bff;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          animation: spin 1s linear infinite;
-          margin-bottom: 16px;
         }
 
         .audit-log-table-wrapper {

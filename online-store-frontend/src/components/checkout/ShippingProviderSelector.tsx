@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { HamsterLoader } from '../HamsterLoader';
 import { toast } from 'sonner';
 import { shippingAPI } from '../../lib/api';
 import { useTranslation, useLanguage } from '../../lib/i18n';
@@ -167,8 +167,8 @@ export function ShippingProviderSelector({
         </div>
 
         {isLoadingProviders ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <div className="flex flex-col items-center justify-center gap-2 py-6">
+            <HamsterLoader size={64} />
             <span>{t('shipping_provider_loading')}</span>
           </div>
         ) : providers.length === 0 ? (
@@ -222,8 +222,8 @@ export function ShippingProviderSelector({
           </div>
 
           {isLoadingServices ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <div className="flex flex-col items-center justify-center gap-2 py-6">
+              <HamsterLoader size={64} />
               <span>{t('calculating_shipping_fee')}</span>
             </div>
           ) : services.length === 0 ? (

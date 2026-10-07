@@ -28,6 +28,7 @@ import { Button } from "../../components/ui/button";
 import { RoleBadge } from "./RoleBadge";
 import { Header } from "../Header";
 import { Footer } from "../Footer";
+import { HamsterLoader } from "../HamsterLoader";
 
 const NotificationBell = dynamic(() => import("../../components/admin/NotificationBell").then((mod) => mod.NotificationBell), {
   ssr: false,
@@ -230,9 +231,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {isLoadingNamespace('admin-common') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="text-center">
-            <div className="inline-block relative w-12 h-12 mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-200 border-t-red-600 animate-spin"></div>
-            </div>
+            <HamsterLoader size={96} className="mx-auto mb-4" />
             <p className="text-gray-600 font-medium">{t('loading_admin_ui', 'admin')}</p>
           </div>
         </div>

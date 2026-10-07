@@ -6,6 +6,7 @@ import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
+import { HamsterLoader } from '../../components/HamsterLoader';
 
 interface HealthMetrics {
   timestamp: string;
@@ -115,7 +116,7 @@ const I18nMonitoringContent = () => {
   if (loading) {
     return (
       <div className="monitoring-loading">
-        <div className="monitoring-spinner"></div>
+        <HamsterLoader size={96} className="mb-4" />
         <p>{t('admin_monitoring_loading', 'admin-i18n-monitoring')}</p>
       </div>
     );
@@ -609,16 +610,6 @@ const I18nMonitoringContent = () => {
           justify-content: center;
           padding: 60px 20px;
           color: #666;
-        }
-
-        .monitoring-spinner {
-          border: 3px solid #f3f3f3;
-          border-top: 3px solid #007bff;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          animation: spin 1s linear infinite;
-          margin-bottom: 16px;
         }
 
         .monitoring-retry-btn {
