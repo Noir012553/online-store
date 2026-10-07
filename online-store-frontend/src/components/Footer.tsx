@@ -204,11 +204,11 @@ export function Footer() {
             <div className="md:flex-3">
               <Link href="/" className="mb-4 inline-flex">
                 <Image
-                  src="/assets/branding/logo.png"
+                  src="/assets/branding/logo-cropped.png"
                   alt={t('brand_name', 'footer')}
-                  width={220}
-                  height={80}
-                  className="logo-image h-16 w-auto max-w-full object-contain object-left sm:h-20"
+                  width={260}
+                  height={146}
+                  className="logo-image h-20 w-auto max-w-full object-contain object-left sm:h-24"
                 />
               </Link>
               <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 leading-relaxed">
