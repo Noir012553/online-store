@@ -327,12 +327,12 @@ describe('translationHelper - Storefront product visibility', () => {
     specs: { CPU: 'Core Ultra' },
   };
 
-  const createTranslations = (overrides = {}) => (
+  const createTranslations = (overrides = {}, sourceProduct = product) => (
     ['en', 'pt', 'fr', 'de', 'it', 'es', 'nl', 'sv'].map((targetLang) => ({
-      ...product,
+      ...sourceProduct,
       entityId: 'product-1',
       targetLang,
-      sourceHash: getProductTranslationSourceHash(product),
+      sourceHash: getProductTranslationSourceHash(sourceProduct),
       status: 'success',
       qualityStatus: 'approved',
       validationErrors: [],
@@ -368,9 +368,10 @@ describe('translationHelper - Storefront product visibility', () => {
   });
 
   it('shows products whose optional source specs are empty', async () => {
-    mockProductCache.find.result = Promise.resolve(createTranslations());
+    const sourceProduct = { ...product, description: '', specs: {} };
+    mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
 
-    const result = await getStorefrontVisibleProductIds([{ ...product, description: '', specs: {} }]);
+    const result = await getStorefrontVisibleProductIds([sourceProduct]);
 
     assert.deepStrictEqual([...result], ['product-1']);
   });
