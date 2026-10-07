@@ -76,6 +76,24 @@ describe('Canonical scraper contract', () => {
     ProductURL: 'https://example.invalid/products/acer-001',
   };
 
+  it('accepts prepared description images from the scraper images directory', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductDescriptionImages: [{
+        ...canonicalProduct.ProductDescriptionImages[0],
+        ProductDescriptionImageLocalPath: 'images/run-1/Acer_Laptop/abc123/description-01.jpg',
+      }],
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+    const result = validateProduct(parsed, 1, { requireDescriptionImage: true });
+
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.cleaned.descriptionImages[0].assetPath).to.equal(
+      'images/run-1/Acer_Laptop/abc123/description-01.jpg',
+    );
+  });
+
   it('maps canonical JSON fields and keeps nullable optional fields valid', async () => {
     const adapter = new JSONAdapter();
     const [parsed] = await adapter.parse(JSON.stringify([canonicalProduct]));

@@ -159,7 +159,7 @@ function normalizeProductContentFields(product, rowIndex = 0) {
         if (entry?.sourceUrl) normalizedImage.sourceUrl = url;
         if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
         if (entry?.assetPath) {
-          if (!isSafeAssetPath(entry.assetPath)) {
+          if (!isSafeAssetPath(entry.assetPath) && !isSafeProductImagePath(entry.assetPath)) {
             errors.push(`Row ${rowIndex}: Invalid description image asset path`);
             return [];
           }
