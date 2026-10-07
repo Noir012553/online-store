@@ -85,7 +85,7 @@ export function CurrencyList({ onEdit, onRefresh }: CurrencyListProps) {
       />
 
       <div className="overflow-x-auto border rounded-lg">
-        <table className="w-full min-w-[620px] text-sm">
+        <table className="w-full min-w-155 text-sm">
           <thead className="bg-gray-100 border-b">
             <tr>
               <th className="px-4 py-3 text-left">{t('admin_currency_code', 'admin')}</th>

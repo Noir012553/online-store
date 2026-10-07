@@ -370,7 +370,7 @@ export function BannerManagementPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[600px] divide-y divide-gray-200">
+            <table className="min-w-150 divide-y divide-gray-200">
               <thead className="bg-white">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('banner_table_image', 'admin-banners')}</th>

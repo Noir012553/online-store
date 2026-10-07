@@ -34,7 +34,7 @@ export function LanguageSwitcher() {
         )}
       </Button>
       {languageMenuOpen && (
-        <div className="absolute right-0 top-full mt-1 z-[150] min-w-[140px] rounded-md border bg-white border-gray-200 p-1 shadow-md" role="menu">
+        <div className="absolute right-0 top-full mt-1 z-[150] min-w-35 rounded-md border bg-white border-gray-200 p-1 shadow-md" role="menu">
           {availableLocales.map((loc) => (
             <button
               key={loc}

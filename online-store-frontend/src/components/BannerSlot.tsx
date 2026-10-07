@@ -95,10 +95,10 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
       ? 'relative overflow-hidden bg-gray-900 shadow-lg'
       : 'relative overflow-hidden rounded-2xl bg-gray-900 shadow-lg';
   const heightClassName = effectiveVariant === 'hero'
-    ? 'min-h-[320px] md:min-h-[420px]'
+    ? 'min-h-80 md:min-h-105'
     : variant === 'strip'
-      ? 'min-h-[30px] md:min-h-[70px]'
-      : 'min-h-[160px] md:min-h-[220px]';
+      ? 'min-h-7.5 md:min-h-17.5'
+      : 'min-h-40 md:min-h-55';
   const contentPaddingClassName = effectiveVariant === 'hero'
     ? 'layout-gutter-wide'
     : 'layout-gutter';

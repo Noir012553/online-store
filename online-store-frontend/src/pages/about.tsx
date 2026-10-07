@@ -130,7 +130,7 @@ function AboutContent() {
             playsInline
             preload="metadata"
             poster={aboutMedia.hero.poster || undefined}
-            className="absolute inset-0 w-full h-full object-cover blur-[4px] scale-110"
+            className="absolute inset-0 w-full h-full object-cover blur-xs scale-110"
           >
             <source src={aboutMedia.hero.url} type="video/mp4" />
           </video>

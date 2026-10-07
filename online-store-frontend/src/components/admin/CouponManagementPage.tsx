@@ -109,7 +109,7 @@ function MultiSelectDropdown({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[calc(100vw-2rem)] max-w-[420px] overflow-hidden rounded-2xl border border-slate-300 bg-white p-0 shadow-2xl ring-1 ring-black/5">
+      <PopoverContent align="start" className="w-[calc(100vw-2rem)] max-w-105 overflow-hidden rounded-2xl border border-slate-300 bg-white p-0 shadow-2xl ring-1 ring-black/5">
         <div className="border-b border-slate-200 bg-slate-50/80 p-3">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="min-w-0">

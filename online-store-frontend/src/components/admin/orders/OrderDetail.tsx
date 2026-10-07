@@ -185,7 +185,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             {t('product_list', 'admin')}
           </h2>
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full min-w-[560px]">
+            <table className="w-full min-w-140">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">{t('product', 'admin')}</th>

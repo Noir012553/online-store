@@ -287,7 +287,7 @@ const TranslationsManagementPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
+            <table className="w-full min-w-160">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">

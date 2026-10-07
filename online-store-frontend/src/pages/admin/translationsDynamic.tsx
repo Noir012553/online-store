@@ -984,7 +984,7 @@ function TranslationField({
               }}
               onInput={handleAutoResize}
               placeholder={placeholderText}
-              className="mt-1 min-h-[208px] w-full resize-none overflow-hidden rounded border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+              className="mt-1 min-h-52 w-full resize-none overflow-hidden rounded border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
           ) : (
             <Input

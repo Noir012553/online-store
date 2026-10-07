@@ -534,7 +534,7 @@ export default function ProductDetail() {
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
   return (
-    <div className="container relative mx-auto max-w-[1440px] px-4 py-8 animate-in fade-in duration-300 sm:py-10">
+    <div className="container relative mx-auto max-w-360 px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs
         links={[
           { label: t('breadcrumb_products', 'products'), href: "/products" },
