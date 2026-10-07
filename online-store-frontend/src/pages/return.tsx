@@ -10,6 +10,7 @@ import { orderAPI } from '../lib/api';
 import { useLanguage } from '@/lib/i18n';
 import { useCurrencyContext } from '@/lib/context/CurrencyContext';
 import { getIntlLocale } from '@/lib/localeUtils';
+import { HamsterLoader } from '../components/HamsterLoader';
 
 export const getServerSideProps = async () => {
   return {
@@ -202,7 +203,7 @@ export default function PaymentResultPage() {
     return (
       <div className="min-h-screen bg-white py-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
+          <HamsterLoader size={96} className="mx-auto mb-4" />
           <p className="text-gray-600">{t('processing_payment_result', 'payment')}</p>
         </div>
       </div>

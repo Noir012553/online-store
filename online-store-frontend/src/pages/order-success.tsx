@@ -13,6 +13,7 @@ import { useCurrencyContext } from '../lib/context/CurrencyContext';
 import { getIntlLocale } from '../lib/localeUtils';
 import { interpolateTranslation } from '../lib/translationInterpolate';
 import { getUserFriendlyErrorMessage } from '../lib/errorHandler';
+import { HamsterLoader } from '../components/HamsterLoader';
 
 export const getServerSideProps = async () => {
   return {
@@ -129,7 +130,7 @@ export default function OrderSuccess() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <HamsterLoader size={96} className="mx-auto mb-4" />
           <p className="text-gray-600">{t('loading', 'order-success')}</p>
         </div>
       </div>

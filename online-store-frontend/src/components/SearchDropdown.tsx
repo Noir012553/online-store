@@ -12,6 +12,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
+import { HamsterLoader } from './HamsterLoader';
 
 function SearchResultItem({
   product,
@@ -321,7 +322,7 @@ export function SearchDropdown({
         >
           {isLoading ? (
             <div className="p-4 text-center text-gray-500 text-sm">
-              <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mb-2"></div>
+              <HamsterLoader size={48} className="mx-auto mb-2" />
               <p>{t('loading')}</p>
             </div>
           ) : hasError ? (
