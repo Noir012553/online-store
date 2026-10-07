@@ -149,6 +149,7 @@ describe('Canonical scraper contract', () => {
     expect(result.isValid).to.equal(true);
     expect(result.cleaned.descriptionImages).to.deep.equal([{
       url: 'https://example.invalid/description.jpg',
+      sourceUrl: 'https://example.invalid/description.jpg',
       alt: 'Ảnh mô tả',
     }]);
     expect(result.cleaned.promotions).to.deep.equal([{
@@ -225,7 +226,12 @@ describe('Canonical scraper contract', () => {
     expect(findDuplicateImportIssues([
       { name: 'A', brand: 'B', sourceProductId: 'same' },
       { name: 'C', brand: 'D', sourceProductId: 'same' },
-    ])).to.deep.include({ field: 'sourceProductId', value: 'same' });
+    ])).to.deep.equal([{
+      index: 2,
+      code: 'IMPORT_DUPLICATE_INPUT',
+      field: 'sourceProductId',
+      value: 'same',
+    }]);
   });
 
   it('accepts safe local image paths produced by the scraper image preparation step', () => {
@@ -808,7 +814,7 @@ describe('Product payload validation', () => {
     });
 
     expect(result.isValid).to.equal(true);
-    expect(result.cleaned.descriptionImages).to.deep.equal([]);
+    expect(result.cleaned.descriptionImages).to.be.undefined;
   });
 
   it('rejects incomplete products in ZIP imports', () => {
@@ -953,8 +959,14 @@ describe('Seed initial stock configuration', () => {
 describe('Crawler product field mapping', () => {
   it('treats a failed description download as a warning while preserving main and gallery failures', async () => {
     const rawProduct = {
-      ...canonicalProduct,
-      ProductMainImageLocalPath: 'images/batch/main.jpg',
+      ProductBrand: 'Acer',
+      ProductName: 'Acer Aspire',
+      ProductPriceVND: 1000000,
+      ProductCategory: 'Laptop',
+      ProductDescription: 'Product description',
+      ProductMainImage: 'https://example.invalid/main.jpg',
+      ProductMainImageLocalPath: '',
+      ProductGalleryImages: ['https://example.invalid/gallery.jpg'],
       ProductGalleryImageLocalPaths: [''],
       ProductDescriptionImages: [{
         ProductDescriptionImageURL: 'https://example.invalid/description.jpg',
@@ -966,11 +978,15 @@ describe('Crawler product field mapping', () => {
     const result = validateProduct(normalized);
 
     expect(normalized.imagePreparationFailures).to.deep.equal([
+      { role: 'main', sourceUrl: 'https://example.invalid/main.jpg' },
       { role: 'gallery', index: 0, sourceUrl: 'https://example.invalid/gallery.jpg' },
       { role: 'description', index: 0, sourceUrl: 'https://example.invalid/description.jpg' },
     ]);
     expect(result.isValid).to.equal(false);
-    expect(result.errors).to.deep.equal(['Row 0: Failed to prepare gallery 1 image']);
+    expect(result.errors).to.deep.equal([
+      'Row 0: Failed to prepare main image',
+      'Row 0: Failed to prepare gallery 1 image',
+    ]);
     expect(result.warnings).to.deep.equal(['Row 0: Failed to prepare description 1 image']);
     expect(result.cleaned.descriptionImages).to.deep.equal([]);
   });
