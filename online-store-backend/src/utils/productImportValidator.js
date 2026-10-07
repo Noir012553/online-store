@@ -265,7 +265,9 @@ function validateProduct(product, rowIndex = 0, options = {}) {
   const cleaned = {};
   for (const failure of Array.isArray(product.imagePreparationFailures) ? product.imagePreparationFailures : []) {
     const slot = failure.index === undefined ? failure.role : `${failure.role} ${failure.index + 1}`;
-    errors.push(`Row ${rowIndex}: Failed to prepare ${slot} image`);
+    const message = `Row ${rowIndex}: Failed to prepare ${slot} image`;
+    if (failure.role === 'description') warnings.push(message);
+    else errors.push(message);
   }
 
   // Check required fields

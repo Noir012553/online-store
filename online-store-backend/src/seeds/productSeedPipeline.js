@@ -312,19 +312,27 @@ const uploadProductImages = async (product) => {
       const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
       const source = descriptionEntry.assetPath || descriptionEntry.url || descriptionEntry.sourceUrl;
       if (!source) continue;
-      const uploadedImage = await uploadProductImage(
-        source,
-        getProductImagePublicId(product, 'description', index),
-        'description',
-        product,
-        createdAssets,
-      );
-      descriptionImages.push({
-        ...descriptionEntry,
-        ...uploadedImage,
-        url: uploadedImage.url,
-        publicUrl: uploadedImage.publicUrl,
-      });
+      try {
+        const uploadedImage = await uploadProductImage(
+          source,
+          getProductImagePublicId(product, 'description', index),
+          'description',
+          product,
+          createdAssets,
+        );
+        descriptionImages.push({
+          ...descriptionEntry,
+          ...uploadedImage,
+          url: uploadedImage.url,
+          publicUrl: uploadedImage.publicUrl,
+        });
+      } catch (error) {
+        console.warn(`[ProductPipeline] Bỏ ảnh mô tả ${index + 1} của "${product.name}" (${source}): ${getProductImageErrorMessage(error)}`);
+      }
+    }
+
+    if (String(product.description || '').trim() && descriptionImages.length === 0) {
+      throw new Error('Không upload được ảnh mô tả nào cho sản phẩm có mô tả');
     }
 
     return {
