@@ -76,6 +76,64 @@ describe('Canonical scraper contract', () => {
     ProductURL: 'https://example.invalid/products/acer-001',
   };
 
+  it('accepts prepared description images from the scraper images directory', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductDescriptionImages: [{
+        ...canonicalProduct.ProductDescriptionImages[0],
+        ProductDescriptionImageLocalPath: 'images/run-1/Acer_Laptop/abc123/description-01.jpg',
+      }],
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+    const result = validateProduct(parsed, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.cleaned.descriptionImages[0].assetPath).to.equal(
+      'images/run-1/Acer_Laptop/abc123/description-01.jpg',
+    );
+  });
+
+  it('keeps prepared description images when another local download failed', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductDescriptionImages: [
+        {
+          ...canonicalProduct.ProductDescriptionImages[0],
+          ProductDescriptionImageLocalPath: 'images/run-1/Acer_Laptop/abc123/description-01.jpg',
+        },
+        {
+          ProductDescriptionImageURL: 'https://example.invalid/missing.jpg',
+          ProductDescriptionImageLocalPath: '',
+        },
+      ],
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+    const result = validateProduct(parsed, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.warnings).to.deep.equal(['Row 1: Failed to prepare description 2 image']);
+    expect(result.cleaned.descriptionImages).to.have.length(1);
+  });
+
+  it('allows described products when every description image failed to download', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductDescriptionImages: [{
+        ...canonicalProduct.ProductDescriptionImages[0],
+        ProductDescriptionImageLocalPath: '',
+      }],
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+    const result = validateProduct(parsed, 1);
+
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.warnings).to.deep.equal(['Row 1: Failed to prepare description 1 image']);
+    expect(result.cleaned.descriptionImages).to.deep.equal([]);
+  });
+
   it('maps canonical JSON fields and keeps nullable optional fields valid', async () => {
     const adapter = new JSONAdapter();
     const [parsed] = await adapter.parse(JSON.stringify([canonicalProduct]));
@@ -91,6 +149,7 @@ describe('Canonical scraper contract', () => {
     expect(result.isValid).to.equal(true);
     expect(result.cleaned.descriptionImages).to.deep.equal([{
       url: 'https://example.invalid/description.jpg',
+      sourceUrl: 'https://example.invalid/description.jpg',
       alt: 'Ảnh mô tả',
     }]);
     expect(result.cleaned.promotions).to.deep.equal([{
@@ -167,7 +226,12 @@ describe('Canonical scraper contract', () => {
     expect(findDuplicateImportIssues([
       { name: 'A', brand: 'B', sourceProductId: 'same' },
       { name: 'C', brand: 'D', sourceProductId: 'same' },
-    ])).to.deep.include({ field: 'sourceProductId', value: 'same' });
+    ])).to.deep.equal([{
+      index: 2,
+      code: 'IMPORT_DUPLICATE_INPUT',
+      field: 'sourceProductId',
+      value: 'same',
+    }]);
   });
 
   it('accepts safe local image paths produced by the scraper image preparation step', () => {
@@ -743,20 +807,14 @@ describe('Product payload validation', () => {
     image: 'https://example.com/laptop.jpg',
   };
 
-  it('requires a description image only when the crawler seed policy is enabled', () => {
-    const missingImage = validateProduct({
+  it('allows a product description without description images', () => {
+    const result = validateProduct({
       ...validProduct,
       description: 'Product description',
-    }, 1, { requireDescriptionImage: true });
-    const withImage = validateProduct({
-      ...validProduct,
-      description: 'Product description',
-      descriptionImages: [{ url: 'https://example.com/description.jpg' }],
-    }, 1, { requireDescriptionImage: true });
+    });
 
-    expect(missingImage.errors).to.include('Row 1: Description requires at least one image');
-    expect(withImage.isValid).to.equal(true);
-    expect(validateProduct({ ...validProduct, description: 'Product description' }).isValid).to.equal(true);
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.descriptionImages).to.be.undefined;
   });
 
   it('rejects incomplete products in ZIP imports', () => {
@@ -899,10 +957,16 @@ describe('Seed initial stock configuration', () => {
 });
 
 describe('Crawler product field mapping', () => {
-  it('retains failed preprocessed image slots as product validation failures', async () => {
+  it('treats a failed description download as a warning while preserving main and gallery failures', async () => {
     const rawProduct = {
-      ...canonicalProduct,
-      ProductMainImageLocalPath: 'images/batch/main.jpg',
+      ProductBrand: 'Acer',
+      ProductName: 'Acer Aspire',
+      ProductPriceVND: 1000000,
+      ProductCategory: 'Laptop',
+      ProductDescription: 'Product description',
+      ProductMainImage: 'https://example.invalid/main.jpg',
+      ProductMainImageLocalPath: '',
+      ProductGalleryImages: ['https://example.invalid/gallery.jpg'],
       ProductGalleryImageLocalPaths: [''],
       ProductDescriptionImages: [{
         ProductDescriptionImageURL: 'https://example.invalid/description.jpg',
@@ -914,14 +978,17 @@ describe('Crawler product field mapping', () => {
     const result = validateProduct(normalized);
 
     expect(normalized.imagePreparationFailures).to.deep.equal([
+      { role: 'main', sourceUrl: 'https://example.invalid/main.jpg' },
       { role: 'gallery', index: 0, sourceUrl: 'https://example.invalid/gallery.jpg' },
       { role: 'description', index: 0, sourceUrl: 'https://example.invalid/description.jpg' },
     ]);
     expect(result.isValid).to.equal(false);
     expect(result.errors).to.deep.equal([
+      'Row 0: Failed to prepare main image',
       'Row 0: Failed to prepare gallery 1 image',
-      'Row 0: Failed to prepare description 1 image',
     ]);
+    expect(result.warnings).to.deep.equal(['Row 0: Failed to prepare description 1 image']);
+    expect(result.cleaned.descriptionImages).to.deep.equal([]);
   });
 
   it('uses configured initial stock for crawler products marked in stock', async () => {
@@ -1105,6 +1172,72 @@ describe('Product seed image backup', () => {
     }
 
     expect(deleteR2Assets.calledOnceWithExactly([mainAsset])).to.equal(true);
+  });
+
+  it('keeps a described product when every description image upload fails', async () => {
+    const mainAsset = { publicUrl: 'https://cdn.example.test/main.jpg' };
+    const uploadAsset = sinon.stub(r2AssetService, 'uploadAsset').callsFake(async (source, options) => {
+      if (source.endsWith('/main.jpg')) {
+        options.onAssetCreated(mainAsset);
+        return mainAsset;
+      }
+      throw new Error('Remote asset request failed with status 404');
+    });
+    const deleteR2Assets = sinon.stub(r2AssetService, 'deleteR2Assets').resolves([]);
+
+    try {
+      const uploaded = await uploadProductImages({
+        name: 'Keyboard',
+        description: 'Product description',
+        sku: 'SKU-5',
+        image: 'https://source.example.test/main.jpg',
+        images: [],
+        descriptionImages: [{ url: 'https://source.example.test/missing-description.jpg' }],
+      });
+
+      expect(uploaded.image).to.equal(mainAsset.publicUrl);
+      expect(uploaded.descriptionImages).to.deep.equal([]);
+    } finally {
+      uploadAsset.restore();
+      deleteR2Assets.restore();
+    }
+
+    expect(deleteR2Assets.notCalled).to.equal(true);
+  });
+
+  it('keeps successful description uploads when another description image fails', async () => {
+    const mainAsset = {
+      publicUrl: 'https://cdn.example.test/main.jpg',
+      storageKey: 'products/product/main.jpg',
+    };
+    const descriptionAsset = {
+      publicUrl: 'https://cdn.example.test/description.jpg',
+      storageKey: 'products/product/description.jpg',
+    };
+    const uploadAsset = sinon.stub(r2AssetService, 'uploadAsset').callsFake(async (source, options) => {
+      if (source.endsWith('/main.jpg')) return mainAsset;
+      if (source.endsWith('/valid-description.jpg')) return descriptionAsset;
+      throw new Error('Remote asset request failed with status 404');
+    });
+
+    try {
+      const uploaded = await uploadProductImages({
+        name: 'Keyboard',
+        description: 'Product description',
+        sku: 'SKU-4',
+        image: 'https://source.example.test/main.jpg',
+        images: [],
+        descriptionImages: [
+          { url: 'https://source.example.test/valid-description.jpg' },
+          { url: 'https://source.example.test/missing-description.jpg' },
+        ],
+      });
+
+      expect(uploaded.descriptionImages).to.have.length(1);
+      expect(uploaded.descriptionImages[0].url).to.equal('https://cdn.example.test/description.jpg');
+    } finally {
+      uploadAsset.restore();
+    }
   });
 });
 

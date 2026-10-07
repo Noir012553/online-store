@@ -136,9 +136,10 @@ describe('Export job workflow', () => {
           url: 'https://example.com/product.jpg',
           position: 0,
           type: 'main',
-          assetPath: 'assets/images/product-id-0.jpg',
+          assetPath: 'assets/images/product-id-main-0.jpg',
         }],
-        imageAssetPaths: ['assets/images/product-id-0.jpg'],
+        descriptionImages: [],
+        imageAssetPaths: ['assets/images/product-id-main-0.jpg'],
         translations: { vi: { name: 'Bàn phím Pro' } },
       }]);
       expect(updateOne.calledOnce).to.equal(true);

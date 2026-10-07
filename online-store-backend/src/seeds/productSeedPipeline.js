@@ -312,19 +312,23 @@ const uploadProductImages = async (product) => {
       const descriptionEntry = typeof descriptionImage === 'string' ? { url: descriptionImage } : descriptionImage || {};
       const source = descriptionEntry.assetPath || descriptionEntry.url || descriptionEntry.sourceUrl;
       if (!source) continue;
-      const uploadedImage = await uploadProductImage(
-        source,
-        getProductImagePublicId(product, 'description', index),
-        'description',
-        product,
-        createdAssets,
-      );
-      descriptionImages.push({
-        ...descriptionEntry,
-        ...uploadedImage,
-        url: uploadedImage.url,
-        publicUrl: uploadedImage.publicUrl,
-      });
+      try {
+        const uploadedImage = await uploadProductImage(
+          source,
+          getProductImagePublicId(product, 'description', index),
+          'description',
+          product,
+          createdAssets,
+        );
+        descriptionImages.push({
+          ...descriptionEntry,
+          ...uploadedImage,
+          url: uploadedImage.url,
+          publicUrl: uploadedImage.publicUrl,
+        });
+      } catch (error) {
+        console.warn(`[ProductPipeline] Bỏ ảnh mô tả ${index + 1} của "${product.name}" (${source}): ${getProductImageErrorMessage(error)}`);
+      }
     }
 
     return {
@@ -504,7 +508,7 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
   await ensureSourceCategories(parsedProducts, filePath, dryRun);
   const { acceptedProducts, rejectedProducts } = filterSeedProducts(parsedProducts);
   const { unique: dedupedProducts, duplicateCount } = dedupeProducts(acceptedProducts);
-  const validation = await manager.validate(dedupedProducts, format, { requireDescriptionImage: true });
+  const validation = await manager.validate(dedupedProducts, format);
   const productsToImport = initializeHighlights && !dryRun
     ? assignInitialHighlights(validation.validProducts)
     : validation.validProducts;

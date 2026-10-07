@@ -159,7 +159,7 @@ function normalizeProductContentFields(product, rowIndex = 0) {
         if (entry?.sourceUrl) normalizedImage.sourceUrl = url;
         if (publicUrl) normalizedImage.publicUrl = new URL(publicUrl).toString();
         if (entry?.assetPath) {
-          if (!isSafeAssetPath(entry.assetPath)) {
+          if (!isSafeAssetPath(entry.assetPath) && !isSafeProductImagePath(entry.assetPath)) {
             errors.push(`Row ${rowIndex}: Invalid description image asset path`);
             return [];
           }
@@ -265,7 +265,9 @@ function validateProduct(product, rowIndex = 0, options = {}) {
   const cleaned = {};
   for (const failure of Array.isArray(product.imagePreparationFailures) ? product.imagePreparationFailures : []) {
     const slot = failure.index === undefined ? failure.role : `${failure.role} ${failure.index + 1}`;
-    errors.push(`Row ${rowIndex}: Failed to prepare ${slot} image`);
+    const message = `Row ${rowIndex}: Failed to prepare ${slot} image`;
+    if (failure.role === 'description') warnings.push(message);
+    else errors.push(message);
   }
 
   // Check required fields
@@ -603,10 +605,6 @@ function validateProduct(product, rowIndex = 0, options = {}) {
   } else {
     cleaned.description = '';
   }
-  if (options.requireDescriptionImage && cleaned.description.trim() && !cleaned.descriptionImages?.length) {
-    errors.push(`Row ${rowIndex}: Description requires at least one image`);
-  }
-
   return {
     isValid: errors.length === 0,
     errors,

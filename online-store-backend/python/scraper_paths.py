@@ -356,9 +356,22 @@ def _embedded_description_container(soup):
     return container if container.get_text(" ", strip=True) or container.select_one("img") else None
 
 
+def _is_excluded_description_content(content):
+    current = content
+    for _ in range(8):
+        if current is None or not getattr(current, "name", None):
+            break
+        if any(marker in _container_signature(current) for marker in _EXCLUDED_CONTAINER_MARKERS):
+            return True
+        current = current.parent
+    return False
+
+
 def _description_container(soup):
     for selector in _DESCRIPTION_SELECTORS:
         for content in soup.select(selector):
+            if _is_excluded_description_content(content):
+                continue
             if content.get_text(" ", strip=True) or content.select_one("img"):
                 return content
     return _embedded_description_container(soup)
@@ -377,6 +390,28 @@ def extract_product_description(soup):
     if parts:
         return "\n\n".join(parts)
     return content.get_text(" ", strip=True)
+
+
+def has_competing_description_image_sources(soup):
+    content = _description_container(soup)
+    if not content:
+        return False
+
+    for image in content.select('img'):
+        candidates = set()
+        for attribute in ("src", "srcset", "data-src", "data-srcset", "data-original"):
+            value = str(image.get(attribute) or "").strip()
+            if not value:
+                continue
+            values = (
+                [candidate.strip().split()[0] for candidate in value.split(",") if candidate.strip()]
+                if "srcset" in attribute
+                else [value]
+            )
+            candidates.update(_absolute_image_url(candidate) for candidate in values)
+        if len(candidates) > 1:
+            return True
+    return False
 
 
 def extract_product_description_images(soup):
@@ -478,15 +513,17 @@ def extract_product_promotions(soup):
 
 
 def _image_url_from_tag(image):
-    """Return the best URL from an image tag, including lazy-load variants."""
-    for attribute in ("data-src", "data-original", "src"):
+    for attribute in (
+        "data-scraper-current-src",
+        "src",
+        "srcset",
+        "data-src",
+        "data-srcset",
+        "data-original",
+    ):
         value = str(image.get(attribute) or "").strip()
         if value:
-            return value
-
-    srcset = str(image.get("data-srcset") or image.get("srcset") or "").strip()
-    if srcset:
-        return srcset.split(",")[-1].strip().split()[0]
+            return value.split(",")[-1].strip().split()[0] if "srcset" in attribute else value
     return ""
 
 

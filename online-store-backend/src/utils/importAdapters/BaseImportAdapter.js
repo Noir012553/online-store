@@ -130,15 +130,18 @@ class BaseImportAdapter {
       : product.Description;
     normalized.descriptionImages = isNewCrawlerProduct
       ? (Array.isArray(product.ProductDescriptionImages)
-        ? product.ProductDescriptionImages.map(image => {
+        ? product.ProductDescriptionImages.flatMap(image => {
           const sourceUrl = image?.ProductDescriptionImageURL || image?.url || image?.sourceUrl;
           const assetPath = image?.ProductDescriptionImageLocalPath;
-          return {
+          const hasPreparedPath = image && typeof image === 'object'
+            && Object.hasOwn(image, 'ProductDescriptionImageLocalPath');
+          if (hasPreparedPath && !String(assetPath || '').trim()) return [];
+          return [{
             url: sourceUrl,
             sourceUrl,
             ...(assetPath ? { assetPath } : {}),
             alt: image?.ProductDescriptionImageAlt || image?.alt || '',
-          };
+          }];
         })
         : product.ProductDescriptionImages)
       : undefined;

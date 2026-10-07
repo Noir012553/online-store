@@ -22,6 +22,7 @@ from scraper_paths import (
     extract_product_description,
     extract_product_description_images,
     extract_product_image_urls,
+    has_competing_description_image_sources,
     extract_product_prices,
     extract_product_promotions,
     get_output_directory,
@@ -391,7 +392,11 @@ def _load_product_soup(url, response_text):
     soup = BeautifulSoup(response_text, "html.parser")
     if not _dynamic_render_enabled():
         return soup
-    if extract_product_description(soup) and extract_product_specs(soup):
+    if (
+        extract_product_description(soup)
+        and extract_product_specs(soup)
+        and not has_competing_description_image_sources(soup)
+    ):
         return soup
 
     try:

@@ -14,11 +14,13 @@ describe('PHASE 4: E2E Verification Tests', function() {
   this.timeout(30000);
 
   before(async function() {
-    await mongoose.connect(process.env.MONGO_URI);
+    if (process.env.RUN_TRANSLATION_MIGRATION_SMOKE_TESTS !== 'true') this.skip();
+    if (!process.env.TEST_MONGO_URI) throw new Error('TEST_MONGO_URI is required for migration smoke tests');
+    await mongoose.connect(process.env.TEST_MONGO_URI, { autoIndex: false });
   });
 
   after(async function() {
-    await mongoose.disconnect();
+    if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
   });
 
   // ============ TEST 1: Migration Data Integrity ============
