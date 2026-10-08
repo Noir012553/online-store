@@ -843,7 +843,7 @@ export default function Home() {
       <section
         ref={heroCarouselRef}
         id="homepage-hero"
-        className="relative flex h-80 snap-x snap-mandatory overflow-x-auto hide-scrollbar bg-gray-900 sm:h-96 lg:h-[min(560px,calc(100svh-80px))] lg:block lg:overflow-hidden"
+        className="relative flex h-105 snap-x snap-mandatory overflow-x-auto hide-scrollbar bg-gray-900 sm:h-[calc(100vh-80px)] lg:block lg:overflow-hidden"
         role="region"
         aria-roledescription={t('carousel_role', 'common')}
         aria-label={t('banner_homepage_hero', 'banner')}
