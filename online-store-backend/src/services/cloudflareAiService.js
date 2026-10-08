@@ -553,6 +553,7 @@ class CloudflareAiService {
       const statusCode = error.response?.status;
       const isServerError = statusCode >= 500 && statusCode < 600;
       const isRetryable = (
+        error.code === 'CLOUDFLARE_RESPONSE_INVALID' ||
         isDnsError ||
         isNetworkUnreachable ||
         (isRateLimited && !config && error.retryAfterMs !== undefined && !error.cloudflarePoolExhausted) ||

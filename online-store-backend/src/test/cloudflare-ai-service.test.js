@@ -142,6 +142,31 @@ describe('Cloudflare AI rotation', () => {
     }
   });
 
+  it('retries a malformed provider response and succeeds with the next configuration', async () => {
+    sandbox.stub(axios, 'post')
+      .onFirstCall().resolves({ data: { success: true, result: {} } })
+      .onSecondCall().resolves({ data: { success: true, result: { response: 'Traduzione' } } });
+
+    const translated = await cloudflareAiService._doTranslate('Test', 'vi', 'it', null, 1, 0);
+
+    expect(translated).to.equal('Traduzione');
+    expect(axios.post.callCount).to.equal(2);
+    expect(axios.post.secondCall.args[0]).to.equal('https://example.invalid/2');
+  });
+
+  it('preserves the malformed-response error when retries are exhausted', async () => {
+    sandbox.stub(axios, 'post').resolves({ data: { success: true, result: {} } });
+
+    try {
+      await cloudflareAiService._doTranslate('Test', 'vi', 'it', null, 1, 0);
+      expect.fail('Expected malformed provider responses to fail');
+    } catch (error) {
+      expect(error.code).to.equal('CLOUDFLARE_RESPONSE_INVALID');
+    }
+
+    expect(axios.post.callCount).to.equal(2);
+  });
+
   it('tries each configuration once then stops on HTTP 420', async () => {
     const error = providerError({ status: 420, message: 'Rate limit exceeded' });
     sandbox.stub(axios, 'post').rejects(error);
