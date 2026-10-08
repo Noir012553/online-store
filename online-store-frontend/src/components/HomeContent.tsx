@@ -1316,7 +1316,7 @@ export default function Home() {
                       <Link
                         key={`${brand._id}-${index}`}
                         href={`/products?brand=${encodeURIComponent(brand.name)}`}
-                        className="group flex min-w-[9.5rem] flex-[0_0_42%] snap-start items-center justify-center rounded-xl border border-gray-200 bg-white p-4 transition-all duration-300 hover:border-red-200 hover:shadow-md sm:min-w-[11rem] sm:flex-[0_0_30%] sm:p-5 lg:min-w-[12rem] lg:flex-[0_0_20%] lg:p-6"
+                        className="group flex min-w-0 flex-[0_0_calc((100%_-_16px)_/_2)] snap-start items-center justify-center rounded-xl border border-gray-200 bg-white p-4 transition-all duration-300 hover:border-red-200 hover:shadow-md sm:flex-[0_0_calc((100%_-_48px)_/_3)] sm:p-5 lg:flex-[0_0_calc((100%_-_72px)_/_4)] lg:p-6"
                       >
                         <div className="relative flex h-16 w-full items-center justify-center sm:h-20">
                           {logo ? (
