@@ -52,11 +52,11 @@ function HeaderComponent() {
           {/* Left: Logo */}
           <Link href="/" className="flex items-center shrink-0">
             <Image
-              src="/assets/branding/logo.png"
+              src="/assets/branding/logo-cropped.png"
               alt={t('brand_name', 'common')}
-              width={220}
-              height={80}
-              className="h-11 w-auto max-w-[140px] object-contain sm:max-w-[200px]"
+              width={260}
+              height={146}
+              className="h-16 w-auto max-w-[220px] object-contain sm:h-18 sm:max-w-[260px]"
             />
           </Link>
 

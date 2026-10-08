@@ -134,11 +134,11 @@ export default function Login() {
         <div className="bg-white rounded-lg border p-8">
           <div className="mb-6 flex justify-center">
             <Image
-              src="/assets/branding/logo.png"
+              src="/assets/branding/logo-cropped.png"
               alt={t('brand_name', 'login')}
-              width={220}
-              height={80}
-              className="h-16 w-auto max-w-full object-contain"
+              width={260}
+              height={146}
+              className="h-24 w-auto max-w-full object-contain"
             />
           </div>
 

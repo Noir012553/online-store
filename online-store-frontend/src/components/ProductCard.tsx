@@ -164,7 +164,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 type="button"
                 onClick={handleQuickView}
                 size="sm"
-                className="min-h-11 w-full max-w-[13rem] justify-center rounded-full bg-white/95 text-black shadow-lg shadow-black/20 transition-all duration-300 hover:bg-white sm:min-h-10 sm:w-auto sm:translate-y-2 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"
+                className="min-h-11 w-full max-w-52 justify-center rounded-full bg-white/95 text-black shadow-lg shadow-black/20 transition-all duration-300 hover:bg-white sm:min-h-10 sm:w-auto sm:translate-y-2 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"
               >
                 <Eye className="mr-2 h-4 w-4" />
                 {t('quick_view', 'products')}

@@ -327,7 +327,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px]">
+          <table className="w-full min-w-140">
             <thead className="bg-white">
               <tr>
                 <th className="px-4 py-3 sm:px-6 text-left text-xs uppercase">{t('admin_product_name', 'admin')}</th>

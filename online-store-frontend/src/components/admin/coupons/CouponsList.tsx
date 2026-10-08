@@ -297,7 +297,7 @@ export function CouponsList({ title, description, mode = 'all' }: CouponsListPro
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[900px] divide-y divide-gray-200">
+              <table className="min-w-225 divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{t('admin_coupon_code', 'admin')}</th>

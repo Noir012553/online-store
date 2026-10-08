@@ -121,7 +121,7 @@ function AboutContent() {
 
   return (
     <div>
-      <section className="relative h-[calc(100vh-80px)] overflow-hidden">
+      <section className="relative flex min-h-[calc(100svh-80px)] items-center overflow-hidden">
         {aboutMedia?.hero.url && (
           <video
             autoPlay
@@ -130,13 +130,13 @@ function AboutContent() {
             playsInline
             preload="metadata"
             poster={aboutMedia.hero.poster || undefined}
-            className="absolute inset-0 w-full h-full object-cover blur-[4px] scale-110"
+            className="absolute inset-0 w-full h-full object-cover blur-xs scale-110"
           >
             <source src={aboutMedia.hero.url} type="video/mp4" />
           </video>
         )}
         <div className="absolute inset-0 bg-black/75" />
-        <div className="relative container mx-auto px-4 h-full flex items-center">
+        <div className="relative container mx-auto px-4 py-16 sm:py-20">
           <div className="text-white max-w-2xl">
             <h1 className="text-white mb-4">{t('page_title', 'about')}</h1>
             <p className="text-xl">
