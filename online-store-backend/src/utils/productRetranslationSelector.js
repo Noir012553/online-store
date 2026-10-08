@@ -32,7 +32,7 @@ const getQualityConditions = qualityStatuses => [
 const buildLiveProductRetranslationQuery = (filter = {}) => ({
   ...filter,
   provider: { $in: LiveTranslationCache.schema.path('provider').enumValues },
-  status: { $in: [...LiveTranslationCache.schema.path('status').enumValues, 'fallback_libretranslate'] },
+  status: { $in: LiveTranslationCache.schema.path('status').enumValues },
   qualityStatus: { $ne: 'retranslated' },
   $or: [
     { status: { $in: FAILED_TRANSLATION_STATUSES } },
@@ -64,10 +64,7 @@ const isProductRetranslatable = (translation, retryableStatuses, qualityStatuses
 
 const isLiveProductRetranslatable = (translation) => (
   LiveTranslationCache.schema.path('provider').enumValues.includes(translation?.provider)
-  && [
-    ...LiveTranslationCache.schema.path('status').enumValues,
-    'fallback_libretranslate',
-  ].includes(translation?.status)
+  && LiveTranslationCache.schema.path('status').enumValues.includes(translation?.status)
   && translation?.qualityStatus !== 'retranslated'
   && isProductRetranslatable(
     translation,

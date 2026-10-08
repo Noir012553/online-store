@@ -7,7 +7,6 @@
  * - Concurrency: Có thể cấu hình, mặc định 1 sản phẩm đồng thời
  * - Throttling: Có thể cấu hình, mặc định 1000ms giữa các chunk
  * - 429 Error Handling: Ghi nhận status='failed_rate_limit' thay vì crash
- * - Failover: Dùng LibreTranslate khi Cloudflare quá tải và failover được bật
  */
 
 const Product = require('../models/Product');
@@ -279,7 +278,8 @@ class ProductTranslationSeederService {
       LiveTranslationCache.find({
         entityId: { $in: productIds },
         targetLang,
-        status: { $in: ['success', 'translated_via_libre'] },
+        status: 'success',
+        provider: 'cloudflare',
         qualityStatus: 'approved',
         $or: [
           { validationErrors: { $exists: false } },
@@ -701,9 +701,9 @@ class ProductTranslationSeederService {
           const memoryTranslation = getTranslationMemoryValue(memoryKey);
           let cached = null;
           if (!memoryTranslation) {
-            cached = await LiveTranslationCache.findOne({ hashKey }).lean();
+            cached = await LiveTranslationCache.findOne({ hashKey, provider: 'cloudflare' }).lean();
           }
-          const hasApprovedCache = ['success', 'translated_via_libre'].includes(cached?.status)
+          const hasApprovedCache = cached?.status === 'success'
             && cached.qualityStatus === 'approved'
             && !cached.validationErrors?.includes('missing_brand');
           if (hasApprovedCache) {
@@ -752,7 +752,6 @@ class ProductTranslationSeederService {
             qualityScore: validationResult.qualityScore,
             validationErrors: validationResult.validationErrors,
             retryCount: 0,
-            failoverReason: translation.failoverReason || null,
           };
           cacheWrites.push({
             updateOne: {

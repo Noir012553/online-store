@@ -1,7 +1,6 @@
 const path = require('node:path');
 const mongoose = require('mongoose');
 const { createClient } = require('redis');
-const LiveTranslationCache = require('../models/LiveTranslationCache');
 
 try {
   require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -110,7 +109,6 @@ const checkConfiguration = () => {
 const checkRuntimeDependencies = async (checks, lockMode) => {
   if (!process.env.MONGO_URI) {
     addCheck(checks, 'MongoDB connection', false, 'MONGO_URI is not configured');
-    addCheck(checks, 'Legacy failover migration', false, 'skipped because MongoDB is unavailable');
   } else {
     try {
       await mongoose.connect(process.env.MONGO_URI, {
@@ -118,16 +116,8 @@ const checkRuntimeDependencies = async (checks, lockMode) => {
       });
       addCheck(checks, 'MongoDB connection', true, 'connected');
 
-      const legacyCount = await LiveTranslationCache.countDocuments({ status: 'fallback_libretranslate' });
-      addCheck(
-        checks,
-        'Legacy failover migration',
-        legacyCount === 0,
-        legacyCount === 0 ? 'no legacy status records found' : `${legacyCount} legacy record(s) require migration`,
-      );
     } catch (error) {
       addCheck(checks, 'MongoDB connection', false, error.message);
-      addCheck(checks, 'Legacy failover migration', false, 'skipped because MongoDB connection failed');
     } finally {
       if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
     }

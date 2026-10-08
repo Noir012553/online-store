@@ -375,7 +375,6 @@ class RetranslateSeeder {
               retryCount: 0,
               version: (translation.version || 1) + 1,
               previousVersion: translation._id,
-              failoverReason: null,
               providerSource: 'primary',
               metadata: {},
               qualityStatus: newQualityStatus,

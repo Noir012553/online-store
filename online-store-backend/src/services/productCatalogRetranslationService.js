@@ -295,7 +295,6 @@ const retranslateProductUnlocked = async (
       provider: 'cloudflare',
       providersUsed: ['cloudflare'],
       providerSource: 'primary',
-      failoverReason: null,
       lastTranslatedAt: new Date(),
     });
   }

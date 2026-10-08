@@ -1128,7 +1128,6 @@ describe('Product translation cache controller', () => {
     expect(savedCatalog).to.include({
       provider: 'cloudflare',
       providerSource: 'primary',
-      failoverReason: null,
     });
     expect(syncQuery).to.include({ entityId: productId, targetLang });
     expect(syncUpdate).to.include({ qualityStatus: 'retranslated' });
@@ -1277,9 +1276,24 @@ describe('Product translation cache controller', () => {
 
   it('reads only successful approved product translations', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
     const findOne = sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
       lean: sandbox.stub().resolves({
+        sourceHash: getProductTranslationSourceHash(sourceProduct),
         name: 'Laptop',
         description: 'Translated description',
         brand: 'Brand',
@@ -1372,12 +1386,29 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].data.translatedText).to.equal('Fresh translation');
   });
 
-  it('uses only successful approved legacy translations as a fallback', async () => {
+  it('uses only successful approved Cloudflare translations from the live cache', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves({
+        _id: new mongoose.Types.ObjectId(productId),
+        name: 'Laptop source',
+        brand: 'Source brand',
+        description: '',
+        specs: {},
+        technicalDescription: '',
+        descriptionImages: [],
+        promotions: [],
+      }),
+    });
     const find = sandbox.stub(LiveTranslationCache, 'find').returns({
-      lean: sandbox.stub().resolves([{ entityType: 'product_name', translatedText: 'Legacy laptop' }]),
+      lean: sandbox.stub().resolves([{
+        entityType: 'product_name',
+        originalText: 'Laptop source',
+        translatedText: 'Legacy laptop',
+      }]),
     });
     const res = createResponse();
 
@@ -1390,8 +1421,13 @@ describe('Product translation cache controller', () => {
     expect(find.calledOnceWith({
       entityId: productId,
       targetLang: 'en',
+      provider: 'cloudflare',
       status: 'success',
       qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Legacy laptop');
   });
@@ -1758,7 +1794,6 @@ describe('Product translation cache controller', () => {
     expect(update.provider).to.equal('cloudflare');
     expect(update.providersUsed).to.deep.equal(['cloudflare']);
     expect(update.providerSource).to.equal('primary');
-    expect(update.failoverReason).to.equal(null);
   });
 
   it('keeps manual fields unchanged while retranslating remaining fields in bounded parallel', async () => {

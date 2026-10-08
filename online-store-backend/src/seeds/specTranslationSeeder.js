@@ -70,7 +70,8 @@ async function seedSpecTranslations(repairAttempt = 0) {
             'product_promotion',
           ],
         },
-        status: { $in: ['success', 'translated_via_libre'] },
+        status: 'success',
+        provider: 'cloudflare',
         qualityStatus: 'approved',
         $or: [
           { validationErrors: { $exists: false } },
@@ -326,6 +327,7 @@ async function seedSpecTranslations(repairAttempt = 0) {
         entityId: { $in: productIds },
         targetLang: lang,
         status: 'success',
+        provider: 'cloudflare',
         qualityStatus: 'approved',
       });
       verifyByLang[lang] = count;

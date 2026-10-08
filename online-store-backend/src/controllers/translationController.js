@@ -762,11 +762,12 @@ exports.getProductCatalogTranslations = async (req, res) => {
       return res.json({ success: true, data: result });
     }
 
-    // Fallback: Read from OLD schema
+    // Read approved live-cache translations when catalog data is unavailable.
     const translations = (await LiveTranslationCache.find({
       entityId: productId,
       targetLang: resolvedLang,
-      status: { $in: ['success', 'translated_via_libre'] },
+      provider: 'cloudflare',
+      status: 'success',
       qualityStatus: 'approved',
       $or: [
         { validationErrors: { $exists: false } },
@@ -1165,6 +1166,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const legacyQuery = {
     entityId: productId,
     targetLang,
+    provider: 'cloudflare',
     entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
   };
   if (!includeNonSuccess) {
@@ -1174,7 +1176,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
       { validationErrors: { $exists: false } },
       { validationErrors: { $size: 0 } },
     ];
-    legacyQuery.status = { $in: ['success', 'translated_via_libre'] };
+    legacyQuery.status = 'success';
     legacyQuery.qualityStatus = 'approved';
     legacyQuery.$or = [
       { validationErrors: { $exists: false } },
@@ -1264,6 +1266,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
       ? await LiveTranslationCache.find({
         entityId: { $in: missingCatalogProductIds },
         targetLang: lang,
+        provider: 'cloudflare',
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean()
       : [];
@@ -1316,7 +1319,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
         ? 'needs_retranslate'
         : currentLegacyRecords.some((record) => (
           record.qualityStatus === 'rejected'
-          || !['success', 'translated_via_libre'].includes(record.status)
+          || record.status !== 'success'
         ))
           ? 'rejected'
           : validationErrors.length > 0
@@ -2662,7 +2665,8 @@ exports.getTranslationStatus = async (req, res) => {
     const expectedProductTranslations = totalProducts * 5;
     const actualProductTranslations = await LiveTranslationCache.countDocuments({
       targetLang: lang,
-      status: { $in: ['success', 'translated_via_libre'] },
+      provider: 'cloudflare',
+      status: 'success',
       entityType: { $regex: '^product_' }
     });
 
@@ -2675,7 +2679,8 @@ exports.getTranslationStatus = async (req, res) => {
       {
         $match: {
           targetLang: lang,
-          status: { $nin: ['success', 'translated_via_libre'] }
+          provider: 'cloudflare',
+          status: { $ne: 'success' }
         }
       },
       {

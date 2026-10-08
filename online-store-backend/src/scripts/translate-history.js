@@ -77,8 +77,8 @@ async function main() {
         console.log(`${CLI_SYMBOLS.branch} Reviewed:    ${new Date(v.reviewedAt).toLocaleString()} by ${v.reviewedBy}`);
       }
 
-      if (v.failoverReason || v.retranslateReason) {
-        console.log(`${CLI_SYMBOLS.branch} Reason:      ${v.failoverReason || v.retranslateReason}`);
+      if (v.retranslateReason) {
+        console.log(`${CLI_SYMBOLS.branch} Reason:      ${v.retranslateReason}`);
       }
 
       if (v.reviewNotes) {
