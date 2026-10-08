@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { withAdminLayout } from "../../components/admin/withAdminLayout";
-import { Search, Globe, Save, ChevronDown, RotateCcw } from "lucide-react";
+import { Search, Globe, Save, ChevronDown, RotateCcw, Download, Upload } from "lucide-react";
 import { getImageUrl } from "../../lib/utils";
 import { getAuthToken } from "../../lib/api";
 import { Button } from "../../components/ui/button";
@@ -41,9 +41,12 @@ interface ProductTranslation {
 
 interface TranslationStatus {
   status: 'missing' | 'pending' | 'approved' | 'needs_retranslate' | 'rejected';
+  provider?: string;
+  providerSource?: string;
   manualFields: string[];
   updatedAt: string | null;
   validationErrors: string[];
+  canApprove?: boolean;
   canRetranslate?: boolean;
 }
 
@@ -70,6 +73,10 @@ export function ProductsTranslationsAdminContent() {
   const [statusFilter, setStatusFilter] = useState<'all' | TranslationStatus['status']>('all');
   const [retranslatingProductId, setRetranslatingProductId] = useState<string | null>(null);
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
+  const [assistantBatchPreview, setAssistantBatchPreview] = useState<any | null>(null);
+  const [assistantProductToApprove, setAssistantProductToApprove] = useState<any | null>(null);
+  const [isAssistantBatchProcessing, setIsAssistantBatchProcessing] = useState(false);
+  const assistantBatchInputRef = useRef<HTMLInputElement>(null);
   const itemsPerPage = 10;
 
   // Fetch products with app locale language (left side follows global language)
@@ -168,6 +175,131 @@ export function ProductsTranslationsAdminContent() {
       statusFetchRequestRef.current++;
     };
   }, [fetchStatuses]);
+
+  const handleAssistantBatchExport = async () => {
+    if (products.length === 0 || isAssistantBatchProcessing) return;
+    setIsAssistantBatchProcessing(true);
+    try {
+      const params = new URLSearchParams({
+        productIds: products.map((product) => product._id).join(','),
+        languages: selectedLanguage,
+      });
+      const response = await fetch(`/api/translations/admin/products/assistant-batch/export?${params}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || t('assistant_batch_export_failed', 'productsTranslations'));
+      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `assistant-translation-${selectedLanguage}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('assistant_batch_export_success', 'productsTranslations').replace('{count}', String(data.data.records.length)));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('assistant_batch_export_failed', 'productsTranslations'));
+    } finally {
+      setIsAssistantBatchProcessing(false);
+    }
+  };
+
+  const handleAssistantBatchFile = async (file?: File) => {
+    if (!file || isAssistantBatchProcessing) return;
+    setIsAssistantBatchProcessing(true);
+    try {
+      const parsed = JSON.parse(await file.text());
+      const records = parsed?.records;
+      if (parsed?.workflow !== 'assistant_batch' || !Array.isArray(records) || records.length === 0) {
+        throw new Error(t('assistant_batch_invalid_file', 'productsTranslations'));
+      }
+      const payloadRecords = records.map((record: any) => {
+        if (!/^[a-f\d]{24}$/i.test(record?.productId || '')
+          || !SUPPORTED_LOCALES.includes(record?.targetLang)
+          || record.targetLang === DEFAULT_LOCALE
+          || !/^[a-f\d]{64}$/i.test(record?.sourceHash || '')
+          || !record?.translations || typeof record.translations !== 'object' || Array.isArray(record.translations)) {
+          throw new Error(t('assistant_batch_invalid_file', 'productsTranslations'));
+        }
+        return {
+          productId: record.productId,
+          targetLang: record.targetLang,
+          sourceHash: record.sourceHash,
+          translations: record.translations,
+        };
+      });
+      const payload = {
+        records: payloadRecords,
+        idempotencyKey: `assistant-batch-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        assistantBatch: true,
+        dryRun: true,
+      };
+      const response = await fetch('/api/translations/admin/products/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || t('assistant_batch_preview_failed', 'productsTranslations'));
+      setAssistantBatchPreview({ ...payload, preview: data.data });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('assistant_batch_invalid_file', 'productsTranslations'));
+    } finally {
+      setIsAssistantBatchProcessing(false);
+      if (assistantBatchInputRef.current) assistantBatchInputRef.current.value = '';
+    }
+  };
+
+  const handleAssistantBatchImport = async () => {
+    if (!assistantBatchPreview || isAssistantBatchProcessing) return;
+    setIsAssistantBatchProcessing(true);
+    try {
+      const response = await fetch('/api/translations/admin/products/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ ...assistantBatchPreview, dryRun: false }),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || t('assistant_batch_import_failed', 'productsTranslations'));
+      setAssistantBatchPreview(null);
+      await fetchStatusesRef.current();
+      toast.success(t('assistant_batch_import_success', 'productsTranslations').replace('{count}', String(data.data.importedCount)));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('assistant_batch_import_failed', 'productsTranslations'));
+    } finally {
+      setIsAssistantBatchProcessing(false);
+    }
+  };
+
+  const handleAssistantApprove = async () => {
+    if (!assistantProductToApprove || isAssistantBatchProcessing) return;
+    setIsAssistantBatchProcessing(true);
+    try {
+      const response = await fetch(`/api/translations/admin/products/${assistantProductToApprove._id}/assistant-approve?lang=${selectedLanguage}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || t('assistant_batch_approval_failed', 'productsTranslations'));
+      setAssistantProductToApprove(null);
+      await fetchStatusesRef.current();
+      toast.success(t('assistant_batch_approved', 'productsTranslations'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('assistant_batch_approval_failed', 'productsTranslations'));
+    } finally {
+      setIsAssistantBatchProcessing(false);
+    }
+  };
 
   if (!isAdmin) {
     return <PermissionDenied feature="translations_dynamic" />;
@@ -341,6 +473,39 @@ export function ProductsTranslationsAdminContent() {
         </select>
       </div>
 
+      <section className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="mr-auto text-sm text-indigo-900">{t('assistant_batch_help', 'productsTranslations')}</p>
+          <Button variant="outline" onClick={handleAssistantBatchExport} disabled={products.length === 0 || isAssistantBatchProcessing}>
+            <Download className="mr-2 h-4 w-4" />{t('assistant_batch_export', 'productsTranslations')}
+          </Button>
+          <input
+            ref={assistantBatchInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => handleAssistantBatchFile(event.target.files?.[0])}
+          />
+          <Button variant="outline" onClick={() => assistantBatchInputRef.current?.click()} disabled={isAssistantBatchProcessing}>
+            <Upload className="mr-2 h-4 w-4" />{t('assistant_batch_upload', 'productsTranslations')}
+          </Button>
+        </div>
+        {assistantBatchPreview && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-white p-3">
+            <p className="mr-auto text-sm text-amber-900">
+              {t('assistant_batch_preview', 'productsTranslations')
+                .replace('{count}', String(assistantBatchPreview.preview?.totalRecords || 0))}
+            </p>
+            <Button variant="outline" onClick={() => setAssistantBatchPreview(null)} disabled={isAssistantBatchProcessing}>
+              {t('cancel_button', 'productsTranslations')}
+            </Button>
+            <Button onClick={handleAssistantBatchImport} disabled={isAssistantBatchProcessing || !assistantBatchPreview.preview?.validRecords}>
+              {isAssistantBatchProcessing ? t('assistant_batch_importing', 'productsTranslations') : t('assistant_batch_import', 'productsTranslations')}
+            </Button>
+          </div>
+        )}
+      </section>
+
       {/* Products List */}
       <div className="space-y-4">
         {isLoading ? (
@@ -365,6 +530,7 @@ export function ProductsTranslationsAdminContent() {
               onEdit={() => setEditingProductId(product._id)}
               onCancel={() => setEditingProductId(null)}
               onSave={(translations) => handleSaveTranslations(product._id, translations)}
+              onApproveAssistant={() => setAssistantProductToApprove(product)}
               isSubmitting={isSubmitting}
               translationStatus={translationStatuses[product._id]}
               isRetranslating={retranslatingProductId === product._id}
@@ -374,6 +540,25 @@ export function ProductsTranslationsAdminContent() {
           ))
         )}
       </div>
+
+      <Dialog open={Boolean(assistantProductToApprove)} onOpenChange={(open) => !open && setAssistantProductToApprove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('assistant_batch_approve', 'productsTranslations')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            {t('assistant_batch_approve_confirm', 'productsTranslations').replace('{name}', assistantProductToApprove?.name || '')}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssistantProductToApprove(null)} disabled={isAssistantBatchProcessing}>
+              {t('cancel_button', 'productsTranslations')}
+            </Button>
+            <Button onClick={handleAssistantApprove} disabled={isAssistantBatchProcessing}>
+              {isAssistantBatchProcessing ? t('assistant_batch_approving', 'productsTranslations') : t('assistant_batch_approve', 'productsTranslations')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(productToRetranslate)} onOpenChange={(open) => !open && setProductToRetranslate(null)}>
         <DialogContent>
@@ -416,6 +601,7 @@ interface ProductTranslationCardProps {
   onEdit: () => void;
   onCancel: () => void;
   onSave: (translations: ProductTranslation) => void;
+  onApproveAssistant: () => void;
   isSubmitting: boolean;
   translationStatus?: TranslationStatus;
   isRetranslating: boolean;
@@ -431,6 +617,7 @@ function ProductTranslationCard({
   onEdit,
   onCancel,
   onSave,
+  onApproveAssistant,
   isSubmitting,
   translationStatus,
   isRetranslating,
@@ -441,6 +628,7 @@ function ProductTranslationCard({
   const [translations, setTranslations] = useState<ProductTranslation>({});
   const [loadingTranslation, setLoadingTranslation] = useState(false);
   const [loadedTranslationLanguage, setLoadedTranslationLanguage] = useState<string | null>(null);
+  const [translationSnapshot, setTranslationSnapshot] = useState<string | null>(null);
   const [translationLoadFailed, setTranslationLoadFailed] = useState(false);
 
   useEffect(() => {
@@ -448,6 +636,7 @@ function ProductTranslationCard({
       setTranslations({});
       setLoadingTranslation(false);
       setLoadedTranslationLanguage(null);
+      setTranslationSnapshot(null);
       setTranslationLoadFailed(false);
       return;
     }
@@ -458,6 +647,7 @@ function ProductTranslationCard({
         setLoadingTranslation(true);
         setLoadedTranslationLanguage(null);
         setTranslationLoadFailed(false);
+        setTranslationSnapshot(null);
         setTranslations({});
 
         const response = await fetch(
@@ -480,7 +670,7 @@ function ProductTranslationCard({
 
         const translatedImages = Array.isArray(data.data?.descriptionImages) ? data.data.descriptionImages : [];
         const translatedPromotions = Array.isArray(data.data?.promotions) ? data.data.promotions : [];
-        setTranslations({
+        const initialTranslations = {
           name: data.data?.name || '',
           description: data.data?.description || '',
           brand: data.data?.brand || '',
@@ -497,7 +687,9 @@ function ProductTranslationCard({
             scope: translatedPromotions[index]?.scope || '',
             discountText: translatedPromotions[index]?.discountText || '',
           })),
-        });
+        };
+        setTranslations(initialTranslations);
+        setTranslationSnapshot(JSON.stringify(initialTranslations));
         setLoadedTranslationLanguage(selectedLanguage);
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -619,6 +811,9 @@ function ProductTranslationCard({
           onPromotionTextChange={handlePromotionTextChange}
           onCancel={onCancel}
           onSave={() => onSave(translations)}
+          onApproveAssistant={onApproveAssistant}
+          canApproveAssistant={Boolean(translationStatus?.canApprove && translationSnapshot === JSON.stringify(translations))}
+          hasUnsavedAssistantChanges={Boolean(translationStatus?.canApprove && translationSnapshot !== JSON.stringify(translations))}
           isSubmitting={isSubmitting}
           isLoadError={translationLoadFailed}
           isLoading={loadingTranslation || loadedTranslationLanguage !== selectedLanguage}
@@ -652,6 +847,11 @@ function TranslationStatusBadge({ status }: { status?: TranslationStatus }) {
       <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClasses[statusName]}`}>
         {t(`status_${statusName}`, 'productsTranslations')}
       </span>
+      {status?.providerSource === 'assistant_batch' && (
+        <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-800">
+          {t('assistant_batch_pending_label', 'productsTranslations')}
+        </span>
+      )}
       {(status?.manualFields.length || 0) > 0 && (
         <span className="text-xs text-gray-500">{t('manual_translation', 'productsTranslations')}</span>
       )}
@@ -724,6 +924,9 @@ interface EditViewProps {
   onPromotionTextChange: (index: number, field: 'title' | 'giftProductName' | 'scope' | 'discountText', value: string) => void;
   onCancel: () => void;
   onSave: () => void;
+  onApproveAssistant: () => void;
+  canApproveAssistant: boolean;
+  hasUnsavedAssistantChanges: boolean;
   isSubmitting: boolean;
 }
 
@@ -739,6 +942,9 @@ function EditView({
   onPromotionTextChange,
   onCancel,
   onSave,
+  onApproveAssistant,
+  canApproveAssistant,
+  hasUnsavedAssistantChanges,
   isSubmitting,
 }: EditViewProps) {
   const { t } = useTranslation();
@@ -906,6 +1112,14 @@ function EditView({
         >
           {t('cancel_button', 'productsTranslations')}
         </Button>
+        {hasUnsavedAssistantChanges && (
+          <p className="self-center text-xs text-amber-700">{t('assistant_batch_save_before_approve', 'productsTranslations')}</p>
+        )}
+        {canApproveAssistant && (
+          <Button variant="outline" onClick={onApproveAssistant} disabled={isSubmitting}>
+            {t('assistant_batch_approve', 'productsTranslations')}
+          </Button>
+        )}
         <Button
           onClick={onSave}
           disabled={isSubmitting}

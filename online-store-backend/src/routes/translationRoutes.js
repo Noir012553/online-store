@@ -44,6 +44,20 @@ router.get(
 );
 
 router.get(
+  '/admin/products/assistant-batch/export',
+  protect,
+  admin,
+  translationController.exportAssistantProductTranslationBatch
+);
+
+router.post(
+  '/admin/products/:id/assistant-approve',
+  protect,
+  admin,
+  translationController.approveAssistantProductTranslation
+);
+
+router.get(
   '/admin/products/export',
   protect,
   admin,
