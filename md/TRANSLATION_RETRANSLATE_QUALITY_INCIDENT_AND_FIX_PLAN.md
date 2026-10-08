@@ -204,3 +204,58 @@ npm run translate:retry -- --products-only --languages=en,de
 ```
 
 Sau khi chạy, cần đối chiếu report/cache theo từng ngôn ngữ để xác nhận số bản dịch được duyệt và số lỗi không phải rate limit; không xem lệnh kết thúc là bảo đảm toàn bộ catalog đã hoàn tất.
+
+## Đề xuất — Dùng trợ lý để bổ sung bản dịch từ nguồn sản phẩm
+
+**Trạng thái: chỉ là kế hoạch; chưa xuất dữ liệu, dịch, gọi provider hay cập nhật MongoDB.**
+
+### Mục tiêu và số liệu đầu vào
+
+Kết quả người dùng kiểm tra gần nhất là 588 sản phẩm đang hoạt động, 4.704 vị trí dịch cho 8 ngôn ngữ đích, 4.704 cache ở trạng thái `success`, nhưng chỉ 231 cache được `approved`; hiện 1/588 sản phẩm đủ điều kiện storefront. Điều này chưa chứng minh 4.473 vị trí bị thiếu bản dịch: trước tiên cần biết chúng `pending`, `needs_retranslate`, lỗi validator hay có `sourceHash` cũ.
+
+### Giai đoạn A — Audit chỉ đọc
+
+1. Lấy trường nguồn tiếng Việt của sản phẩm đang hoạt động cùng `sourceHash`, ngôn ngữ đích, `qualityStatus`, `qualityScore` và `validationErrors` của cache.
+2. Đối chiếu nguồn trong MongoDB với JSON scraper tương ứng nếu file còn tồn tại; không dùng nội dung hoặc URL bên ngoài làm nguồn thay thế khi chưa xác minh.
+3. Thống kê từng nhóm lý do chưa đạt theo ngôn ngữ và product ID; lấy mẫu nhỏ để xác nhận quy tắc validator trước khi tính số lượng cần dịch.
+4. Chỉ đưa vào candidate các trường thiếu, stale hoặc không đạt; giữ nguyên bản dịch approved, field thủ công và mọi cache sạch. Không gửi `.env`, thông tin kết nối hay dữ liệu người dùng vào batch.
+
+### Giai đoạn B — Chốt nguồn gốc và nơi lưu kết quả
+
+Bản dịch do trợ lý tạo **không phải bản dịch Cloudflare**. Schema hiện tại giới hạn provider ở `cloudflare`; vì vậy không ghi bản dịch của trợ lý vào cache rồi gắn nhãn Cloudflare hoặc tự đặt `approved`.
+
+Trước khi áp dụng production cần chọn một cách rõ ràng:
+
+- Dùng bản dịch của trợ lý làm bản nháp để rà soát; Cloudflare vẫn là provider duy nhất tạo bản dịch production. Cách này giữ nguyên chính sách hiện tại nhưng không thay thế được rate limit.
+- Cho phép một luồng bản dịch thủ công có nguồn gốc riêng, được review và validate trước khi nhập. Cách này cần thay đổi schema/import/readiness và ghi nhận provenance trung thực; chỉ làm sau khi được duyệt riêng.
+
+### Giai đoạn C — Pilot giới hạn credit
+
+1. Sau audit, chọn một sản phẩm đại diện có tên, mô tả và thông số kỹ thuật; thử 1–2 ngôn ngữ trước, trong đó có một ngôn ngữ đang có nhiều lỗi. Không bắt đầu với cả 588 sản phẩm.
+2. Xuất candidate tối thiểu gồm `productId`, `targetLang`, `sourceHash`, các trường nguồn cần dịch và lỗi validator; bỏ toàn bộ secret.
+3. Dịch theo schema cache hiện tại, giữ nguyên brand, model/SKU, số liệu, đơn vị, giá trị spec và cấu trúc markup; không suy đoán phần thiếu trong nguồn.
+4. Ghi số credit hiển thị trước/sau pilot. Chưa có quy đổi đáng tin từ credit sang số ký tự; chỉ mở rộng nếu mức dùng thực tế nằm trong ngân sách 15 credits do người dùng xác nhận.
+5. Đối chiếu bản dịch với nguồn, chạy validator và review nội dung. Nếu sai model/spec, sai ý hoặc không đạt validator thì dừng pilot và phân tích, không tăng batch.
+
+### Giai đoạn D — Batch có kiểm soát
+
+1. Chỉ sau khi pilot đạt, chia candidate thành batch nhỏ theo độ dài; giới hạn ngân sách credit và chờ xác nhận trước mỗi đợt mở rộng.
+2. Mỗi kết quả cần giữ `productId`, ngôn ngữ, `sourceHash`, trường dịch, trạng thái kiểm định và nguồn tạo bản dịch để phát hiện stale data hoặc sai provenance.
+3. Không dịch lại mọi trường của product-language khi chỉ một field có lỗi; không ghi đè field thủ công hay bản approved hiện hành.
+4. Xuất preview/report trước khi ghi; tổng hợp số candidate, dịch xong, đạt validator, cần review, lỗi và credit tiêu thụ theo batch.
+
+### Giai đoạn E — Nhập và xác nhận storefront
+
+1. Chỉ thực hiện sau khi thống nhất phương án lưu ở Giai đoạn B, có backup các product/cache liên quan và chấp thuận ghi DB.
+2. Validate `sourceHash`, nội dung bắt buộc, spec/model/SKU và mọi lỗi blocking; không duyệt hàng loạt chỉ vì `status: success`.
+3. Ghi theo batch có thể rollback; cập nhật readiness cho các product bị tác động rồi kiểm tra lại số sản phẩm đạt đủ 8 ngôn ngữ và một mẫu trên storefront.
+4. Dừng nếu số lỗi tăng, số liệu không khớp, có thay đổi spec/model, vượt ngân sách credit hoặc readiness giảm ngoài dự kiến.
+
+### Điều kiện bắt đầu
+
+- Hoàn tất audit chỉ đọc và xác định lý do cụ thể của nhóm chưa approved.
+- Người dùng chọn rõ giữa bản nháp trợ lý và luồng nhập thủ công có provenance riêng.
+- Pilot nhỏ được review và ngân sách 15 credits được xác nhận bằng mức tiêu thụ thực tế.
+- Có backup và chấp thuận riêng trước mọi lần ghi dữ liệu production.
+
+Không có bản dịch, lệnh seed/retranslate, lời gọi Cloudflare hay thay đổi MongoDB nào được thực hiện khi soạn kế hoạch này.
