@@ -58,6 +58,21 @@ const getMaxOutputTokens = () => {
   return value;
 };
 
+const getProviderResponseMetadata = (response) => {
+  const result = response.data?.result;
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    data: {
+      success: response.data?.success,
+      ...(typeof response.data?.message === 'string' ? { message: response.data.message } : {}),
+      ...(Array.isArray(response.data?.errors) ? { errors: response.data.errors } : {}),
+      resultKeys: result && typeof result === 'object' ? Object.keys(result) : [],
+      responseType: typeof result?.response,
+    },
+  };
+};
+
 const isRateLimitOrQuotaError = (error) => {
   if (RATE_LIMIT_STATUS_CODES.has(error.response?.status)) return true;
 
@@ -455,6 +470,7 @@ class CloudflareAiService {
       if (typeof result.response !== 'string') {
         throw Object.assign(new Error('Cloudflare AI response is missing result.response text'), {
           code: 'CLOUDFLARE_RESPONSE_INVALID',
+          response: getProviderResponseMetadata(response),
         });
       }
 

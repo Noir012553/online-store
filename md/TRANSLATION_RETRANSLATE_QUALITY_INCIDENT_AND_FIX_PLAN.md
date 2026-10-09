@@ -204,3 +204,175 @@ npm run translate:retry -- --products-only --languages=en,de
 ```
 
 Sau khi chạy, cần đối chiếu report/cache theo từng ngôn ngữ để xác nhận số bản dịch được duyệt và số lỗi không phải rate limit; không xem lệnh kết thúc là bảo đảm toàn bộ catalog đã hoàn tất.
+
+## Đề xuất — Dùng trợ lý để bổ sung bản dịch từ nguồn sản phẩm
+
+**Trạng thái: chỉ là kế hoạch; chưa xuất dữ liệu, dịch, gọi provider hay cập nhật MongoDB.**
+
+### Mục tiêu và số liệu đầu vào
+
+Kết quả người dùng kiểm tra gần nhất là 588 sản phẩm đang hoạt động, 4.704 vị trí dịch cho 8 ngôn ngữ đích, 4.704 cache ở trạng thái `success`, nhưng chỉ 231 cache được `approved`; hiện 1/588 sản phẩm đủ điều kiện storefront. Điều này chưa chứng minh 4.473 vị trí bị thiếu bản dịch: trước tiên cần biết chúng `pending`, `needs_retranslate`, lỗi validator hay có `sourceHash` cũ.
+
+### Giai đoạn A — Audit chỉ đọc
+
+1. Lấy trường nguồn tiếng Việt của sản phẩm đang hoạt động cùng `sourceHash`, ngôn ngữ đích, `qualityStatus`, `qualityScore` và `validationErrors` của cache.
+2. Đối chiếu nguồn trong MongoDB với JSON scraper tương ứng nếu file còn tồn tại; không dùng nội dung hoặc URL bên ngoài làm nguồn thay thế khi chưa xác minh.
+3. Thống kê từng nhóm lý do chưa đạt theo ngôn ngữ và product ID; lấy mẫu nhỏ để xác nhận quy tắc validator trước khi tính số lượng cần dịch.
+4. Chỉ đưa vào candidate các trường thiếu, stale hoặc không đạt; giữ nguyên bản dịch approved, field thủ công và mọi cache sạch. Không gửi `.env`, thông tin kết nối hay dữ liệu người dùng vào batch.
+
+### Giai đoạn B — Chốt nguồn gốc và nơi lưu kết quả
+
+Bản dịch do trợ lý tạo **không phải bản dịch Cloudflare**. Schema hiện tại giới hạn provider ở `cloudflare`; vì vậy không ghi bản dịch của trợ lý vào cache rồi gắn nhãn Cloudflare hoặc tự đặt `approved`.
+
+Trước khi áp dụng production cần chọn một cách rõ ràng:
+
+- Dùng bản dịch của trợ lý làm bản nháp để rà soát; Cloudflare vẫn là provider duy nhất tạo bản dịch production. Cách này giữ nguyên chính sách hiện tại nhưng không thay thế được rate limit.
+- Cho phép một luồng bản dịch thủ công có nguồn gốc riêng, được review và validate trước khi nhập. Cách này cần thay đổi schema/import/readiness và ghi nhận provenance trung thực; chỉ làm sau khi được duyệt riêng.
+
+### Giai đoạn C — Pilot giới hạn credit
+
+1. Sau audit, chọn một sản phẩm đại diện có tên, mô tả và thông số kỹ thuật; thử 1–2 ngôn ngữ trước, trong đó có một ngôn ngữ đang có nhiều lỗi. Không bắt đầu với cả 588 sản phẩm.
+2. Xuất candidate tối thiểu gồm `productId`, `targetLang`, `sourceHash`, các trường nguồn cần dịch và lỗi validator; bỏ toàn bộ secret.
+3. Dịch theo schema cache hiện tại, giữ nguyên brand, model/SKU, số liệu, đơn vị, giá trị spec và cấu trúc markup; không suy đoán phần thiếu trong nguồn.
+4. Ghi số credit hiển thị trước/sau pilot. Chưa có quy đổi đáng tin từ credit sang số ký tự; chỉ mở rộng nếu mức dùng thực tế nằm trong ngân sách 15 credits do người dùng xác nhận.
+5. Đối chiếu bản dịch với nguồn, chạy validator và review nội dung. Nếu sai model/spec, sai ý hoặc không đạt validator thì dừng pilot và phân tích, không tăng batch.
+
+### Giai đoạn D — Batch có kiểm soát
+
+1. Chỉ sau khi pilot đạt, chia candidate thành batch nhỏ theo độ dài; giới hạn ngân sách credit và chờ xác nhận trước mỗi đợt mở rộng.
+2. Mỗi kết quả cần giữ `productId`, ngôn ngữ, `sourceHash`, trường dịch, trạng thái kiểm định và nguồn tạo bản dịch để phát hiện stale data hoặc sai provenance.
+3. Không dịch lại mọi trường của product-language khi chỉ một field có lỗi; không ghi đè field thủ công hay bản approved hiện hành.
+4. Xuất preview/report trước khi ghi; tổng hợp số candidate, dịch xong, đạt validator, cần review, lỗi và credit tiêu thụ theo batch.
+
+### Giai đoạn E — Nhập và xác nhận storefront
+
+1. Chỉ thực hiện sau khi thống nhất phương án lưu ở Giai đoạn B, có backup các product/cache liên quan và chấp thuận ghi DB.
+2. Validate `sourceHash`, nội dung bắt buộc, spec/model/SKU và mọi lỗi blocking; không duyệt hàng loạt chỉ vì `status: success`.
+3. Ghi theo batch có thể rollback; cập nhật readiness cho các product bị tác động rồi kiểm tra lại số sản phẩm đạt đủ 8 ngôn ngữ và một mẫu trên storefront.
+4. Dừng nếu số lỗi tăng, số liệu không khớp, có thay đổi spec/model, vượt ngân sách credit hoặc readiness giảm ngoài dự kiến.
+
+### Điều kiện bắt đầu
+
+- Hoàn tất audit chỉ đọc và xác định lý do cụ thể của nhóm chưa approved.
+- Người dùng chọn rõ giữa bản nháp trợ lý và luồng nhập thủ công có provenance riêng.
+- Pilot nhỏ được review và ngân sách 15 credits được xác nhận bằng mức tiêu thụ thực tế.
+- Có backup và chấp thuận riêng trước mọi lần ghi dữ liệu production.
+
+Không có bản dịch, lệnh seed/retranslate, lời gọi Cloudflare hay thay đổi MongoDB nào được thực hiện khi soạn kế hoạch này.
+
+## Cập nhật — Luồng trợ lý dịch bổ sung theo lô có duyệt
+
+### Vấn đề
+
+Số cache có `status: success` không đồng nghĩa với số bản dịch được duyệt hoặc sản phẩm có thể hiển thị trên storefront. Một bản dịch chỉ đóng góp vào readiness khi nội dung hiện hành đầy đủ, đạt kiểm tra chất lượng, không có lỗi blocking và `sourceHash` còn khớp. Sản phẩm vẫn cần đạt điều kiện ở tất cả ngôn ngữ đích bắt buộc; dịch xong một ngôn ngữ không tự làm sản phẩm sẵn sàng.
+
+Chờ Cloudflare hết rate limit không giải quyết được nhu cầu bổ sung bản dịch trong lúc đó. Tuy nhiên, không được ghi bản dịch do trợ lý tạo thành bản Cloudflare hoặc tự đánh dấu approved: cần provenance riêng, preview, review và thao tác duyệt rõ ràng.
+
+### Cách xử lý đã triển khai
+
+Đã thêm luồng riêng **trợ lý dịch → bản nháp → review → duyệt**, tách khỏi luồng Cloudflare:
+
+1. Trong trang quản trị bản dịch sản phẩm, export các sản phẩm/ngôn ngữ cần bổ sung. File có nguồn sản phẩm, `productId`, `targetLang` và `sourceHash` để giữ đúng danh tính và phát hiện nguồn đã thay đổi.
+2. Gửi JSON export cho trợ lý theo prompt mẫu bên dưới. Chỉ điền các trường nội dung cần dịch; giữ nguyên ID, hash, cấu trúc, thông số kỹ thuật, SKU/model, đơn vị và giá trị số. Không đoán phần thiếu trong nguồn.
+3. Upload JSON đã dịch lên trang quản trị để chạy preview/validation. Preview là chỉ đọc; chưa ghi cache.
+4. Khi preview hợp lệ, admin chủ động nhập bản dịch thành draft. Draft có `provider: assistant`, `providerSource: assistant_batch`, trạng thái `pending`; không bị nhận nhầm thành bản Cloudflare và không được Cloudflare retry selector lấy xử lý lại.
+5. Review nội dung trong editor. Chỉ dùng thao tác approve khi bản dịch đạt yêu cầu. Backend kiểm tra provenance, trạng thái, chất lượng, tính đầy đủ, lỗi validation và `sourceHash` hiện tại trước khi duyệt.
+6. Sau khi duyệt, readiness được tính lại. Sản phẩm chỉ đủ điều kiện storefront khi đáp ứng đủ điều kiện của tất cả ngôn ngữ bắt buộc; approval một bản dịch riêng lẻ không bảo đảm sản phẩm sẽ hiển thị.
+
+Import assistant mặc định là dry-run; chỉ thao tác nhập draft riêng biệt mới ghi dữ liệu. Bản dịch có `sourceHash` cũ phải được export/dịch lại từ nguồn hiện hành. Các field thủ công tiếp tục được bảo vệ.
+
+### Prompt mẫu cho lần dịch sau
+
+Trước tiên export một lô nhỏ từ trang quản trị, rồi gửi file JSON export kèm prompt sau. Thay các phần trong ngoặc vuông cho phù hợp:
+
+> Hãy dịch bổ sung theo lô cho storefront từ JSON nguồn đính kèm. Dịch sang các ngôn ngữ được chỉ định trong từng record: [ngôn ngữ hoặc mã ngôn ngữ]. Chỉ dịch các trường nội dung nằm trong cấu trúc JSON; giữ nguyên chính xác `productId`, `targetLang`, `sourceHash`, tên key, cấu trúc mảng/object và các metadata khác. Không tự thêm hoặc bỏ record, không đổi model/SKU, thông số kỹ thuật, số liệu, đơn vị, tên thương hiệu hay ý nghĩa từ nguồn. Dịch tự nhiên, đúng thuật ngữ ngành hàng và đầy đủ ý cho storefront; không suy đoán thông tin nguồn bị thiếu. Trả về JSON hoàn chỉnh đúng schema đầu vào, không kèm Markdown hoặc lời giải thích bên ngoài JSON. Nếu có nội dung nguồn mơ hồ/thiếu khiến không thể dịch chính xác, giữ nguyên record đó và báo riêng `productId`, ngôn ngữ, field cùng lý do. Chỉ tạo nội dung để review; không import, approve, gọi API dịch bên ngoài hoặc ghi database.
+
+Khuyến nghị bắt đầu với 5–10 sản phẩm và 1–2 ngôn ngữ, kiểm tra preview và review chất lượng trước khi mở rộng lô. Chọn các ngôn ngữ cần dịch ngay trong trang quản trị và prompt; không mặc định rằng một batch đã bao phủ đủ toàn bộ 8 ngôn ngữ.
+
+### Phạm vi và kiểm chứng
+
+- Đã thêm provenance assistant, metadata approval, export batch, import draft có preview, approval có kiểm tra freshness, giao diện admin và test tương ứng.
+- Bản dịch do trợ lý tạo không được gắn nhãn Cloudflare. Assistant draft vẫn là `pending` cho đến khi admin duyệt.
+- Không có dữ liệu bản dịch production nào được dịch/import/approve trong lúc triển khai luồng này.
+- Các kiểm tra đã chạy: 9 test mục tiêu pass; frontend typecheck pass; JavaScript syntax, JSON parse và `git diff --check` pass. Không chạy `npm run build`.
+- Chưa xác minh giao diện bằng browser vì preview không khả dụng trong phiên đó.
+
+### Các điểm vào code
+
+- `online-store-backend/src/controllers/translationController.js`: export, import draft, validation, approval và readiness.
+- `online-store-backend/src/routes/translationRoutes.js`: các endpoint admin cho export và approval.
+- `online-store-backend/src/models/ProductCatalogTranslationCache.js`: provider/provenance và metadata duyệt.
+- `online-store-backend/src/utils/productRetranslationSelector.js`: loại assistant draft khỏi Cloudflare catalog retry.
+- `online-store-frontend/src/pages/admin/translationsDynamic.tsx`: export/upload/preview/import/review/approval trong trang quản trị.
+- `online-store-backend/src/test/translation-product-cache.test.js`: kiểm thử các quy tắc an toàn của luồng.
+
+Các nội dung kế hoạch ở trên vẫn mô tả incident và hướng xử lý Cloudflare riêng; luồng trợ lý theo lô có duyệt là bổ sung, không thay thế provider Cloudflare hay tự động dịch toàn bộ catalog.
+
+## Kế hoạch: Kiểm định bản dịch bằng AI vòng hai và duyệt có kiểm soát
+
+**Trạng thái: đề xuất, chưa triển khai; chưa gọi Cloudflare để kiểm tra, chưa ghi cache hoặc approve dữ liệu.**
+
+### Mục tiêu
+
+Dùng Cloudflare AI như một bộ kiểm định thứ hai để rà bản dịch sản phẩm đã có, tìm lỗi nghĩa và lỗi bảo toàn thông số trước khi admin quyết định duyệt. Đây là luồng kiểm định riêng, không phải dịch lại và không thay đổi ý nghĩa của `provider`/provenance hiện có.
+
+Theo lần kiểm tra gần nhất của người dùng, 588 sản phẩm active có đủ 4.704 slot (`success` hiện hành ở 8 ngôn ngữ), nhưng chỉ 432 slot được báo `approvedCurrent` và chỉ 1 sản phẩm đủ điều kiện storefront. Các slot approved không nhất thiết thuộc cùng một tập sản phẩm; mục tiêu là xác định chính xác vấn đề theo từng product-language, không chỉ tăng tổng số approved.
+
+### Nguyên tắc an toàn
+
+- Không chạy lại seed/retranslate để thực hiện audit.
+- Chỉ đưa candidate có source hash hiện hành vào kiểm tra; source stale hoặc thiếu dữ liệu phải được báo riêng.
+- Giai đoạn audit chỉ đọc: không sửa translation, không đổi `qualityStatus`, không ghi kết quả vào cache và không tự approve.
+- Giữ nguyên validator, kiểm tra completeness và yêu cầu storefront hiện có. Kết quả AI không thể bỏ qua lỗi blocking, sai model/SKU/spec/số liệu, field thiếu hoặc hash stale.
+- Tính và giới hạn riêng ngân sách request/input characters cho judge; không vượt budget Cloudflare đã cấu hình. Không retry vô hạn; dừng khi rate limit, lỗi response rỗng hoặc đạt giới hạn pilot.
+- Ghi provenance rõ trong report rằng đây là AI second-pass judge, không phải bản dịch hoặc approval của Cloudflare.
+
+### Giai đoạn 1 — Audit chỉ đọc và chọn candidate
+
+1. Xuất danh sách product-language chưa approved cùng `productId`, `targetLang`, source hash hiện tại, source text, translated text, validation errors và score; loại secret và dữ liệu không liên quan.
+2. Chia nhóm theo ngôn ngữ, loại lỗi, độ dài và trường dịch. Ưu tiên kiểm tra mẫu có lỗi validator hoặc technical/spec để hiểu nguyên nhân trước khi mở rộng.
+3. Loại bản dịch đã approved, source stale, field thủ công không được kiểm tra và record không có đủ nguồn đối chiếu; giữ một lý do loại rõ ràng trong report.
+4. Đếm số request/input characters dự kiến trước khi gọi provider. Nếu không thể xác định ngân sách an toàn thì dừng tại bước export.
+
+### Giai đoạn 2 — Thiết kế judge riêng
+
+1. Tạo prompt chuyên kiểm định, không dùng prompt dịch hiện có. Đưa vào judge ngôn ngữ nguồn/đích, nguồn, bản dịch, field type và spec/model liên quan khi cần.
+2. Yêu cầu verdict có cấu trúc: `pass`, `review` hoặc `fail`; danh sách issue theo mức độ; cờ riêng cho sai nghĩa, bỏ sót, thêm thông tin, sai brand/model/SKU/spec/số liệu/đơn vị và độ tự nhiên; giải thích ngắn dựa trên đoạn nguồn/bản dịch.
+3. Chỉ chấp nhận response JSON đúng schema. Response rỗng, malformed, thiếu verdict hoặc lỗi provider là `review/error`, tuyệt đối không coi là `pass`.
+4. Giữ judge ở chế độ stateless, không có quyền gọi API ghi cache/approve. Thực hiện kiểm tra hash/completeness/validator bằng code trước khi gọi AI để không trả quota cho candidate vốn đã stale hoặc không đủ field.
+5. Nếu dùng cùng model đã dịch để kiểm tra, ghi nhận nguy cơ hai lượt cùng mắc một lỗi. So sánh model judge khác chỉ khi được cấu hình/cho phép và budget đủ; không tự đổi model production.
+
+### Giai đoạn 3 — Pilot không ghi database
+
+1. Bắt đầu bằng 10–20 product-language records trên 1–2 ngôn ngữ; lấy mẫu đại diện, gồm mô tả dài, field ngắn/spec, bản bị validator chặn và bản có nhiều technical token.
+2. Chạy judge chỉ đọc, lưu report cục bộ theo batch; không cập nhật cache hay readiness.
+3. Người review đối chiếu từng verdict với nguồn. Ghi nhận AI false-pass, false-fail, bất đồng người-review, lỗi kỹ thuật và quota thực tế.
+4. Dừng ngay nếu có false-pass về model/SKU/spec/số liệu, judge trả JSON sai, source hash không khớp, mức dùng vượt budget hoặc Cloudflare rate limit.
+
+### Giai đoạn 4 — Đánh giá và quyết định
+
+- Không dùng tỉ lệ đồng thuận tổng thể để che lấp lỗi nghiêm trọng: tiêu chí bắt buộc là **không có false-pass về thông số kỹ thuật trong pilot**.
+- Phân tích false-pass/false-fail theo ngôn ngữ và loại field; chỉnh prompt hoặc thu hẹp phạm vi rồi chạy lại pilot chỉ khi được chấp thuận.
+- Kết quả `review` không tự chuyển thành `approved`; chuyển cho admin review thủ công.
+- Chỉ đề xuất mở rộng khi pilot đạt tiêu chí, report/quota khớp và người dùng chấp thuận batch tiếp theo. Không tự chạy toàn bộ 4.272 slot còn chưa approved.
+
+### Giai đoạn 5 — Duyệt sau kiểm định
+
+1. AI `pass` chỉ tạo candidate để xem xét, không phải lệnh approve.
+2. Backend phải chạy lại các điều kiện hiện hành: source hash mới nhất, status thành công, nội dung đủ, validator không có lỗi blocking, chất lượng đạt ngưỡng và manual-field protection.
+3. Chỉ admin mới thực hiện thao tác approve tường minh; mọi thao tác ghi cần batch scope, report trước/sau và log người duyệt/thời điểm.
+4. Sau khi duyệt, tính lại storefront readiness theo từng product ID. Không suy luận readiness từ tổng số slot approved; một sản phẩm cần đủ mọi ngôn ngữ bắt buộc.
+5. Dừng batch nếu xuất hiện sai technical token, freshness conflict, readiness giảm hoặc số liệu report không khớp.
+
+### Report tối thiểu
+
+Mỗi dòng ghi `productId`, `targetLang`, field, source hash, verdict, lỗi validator gốc, AI issues, trạng thái review của admin và số request/input characters tiêu thụ. Report tổng hợp candidate, pass/review/fail/error, false-pass/false-fail, số lỗi kỹ thuật, số slot/product được admin approve và readiness sau batch. Không ghi API token hoặc secret.
+
+### Điều kiện trước khi bắt đầu
+
+- Có prompt/schema judge riêng và test cho JSON rỗng/sai cấu trúc, lỗi provider, rate limit, technical-token mismatch và stale hash.
+- Có giới hạn budget rõ ràng cùng cách dừng an toàn khi quota hết.
+- Pilot được chạy chỉ đọc và được người dùng xem xét trước mọi thao tác ghi.
+- Approval vẫn là thao tác admin; nếu muốn tự động approve ở giai đoạn sau phải có quyết định và kế hoạch kiểm soát riêng.
+
+Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiểm định bản dịch bằng AI vòng hai**.

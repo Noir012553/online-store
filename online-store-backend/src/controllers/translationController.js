@@ -5,6 +5,7 @@ const CategoryCatalogTranslationCache = require('../models/CategoryCatalogTransl
 const Product = require('../models/Product');
 const productCatalogRetranslationService = require('../services/productCatalogRetranslationService');
 const translationValidator = require('../utils/translationValidator');
+const translationValidationConfig = require('../config/translationValidation');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const productTranslationService = require('../services/productTranslationService');
 const LanguageService = require('../services/languageService');
@@ -762,11 +763,12 @@ exports.getProductCatalogTranslations = async (req, res) => {
       return res.json({ success: true, data: result });
     }
 
-    // Fallback: Read from OLD schema
+    // Read approved live-cache translations when catalog data is unavailable.
     const translations = (await LiveTranslationCache.find({
       entityId: productId,
       targetLang: resolvedLang,
-      status: { $in: ['success', 'translated_via_libre'] },
+      provider: 'cloudflare',
+      status: 'success',
       qualityStatus: 'approved',
       $or: [
         { validationErrors: { $exists: false } },
@@ -1142,12 +1144,11 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
   if ((Array.isArray(translation?.validationErrors) && translation.validationErrors.length > 0)
     || containsNoInputTranslationResponse(translation)) return false;
   const requiredFields = ['name', 'brand'];
-  if (typeof sourceProduct?.description === 'string' && sourceProduct.description.trim()) {
-    requiredFields.push('description');
+  if (typeof sourceProduct?.description === 'string' && sourceProduct.description.trim()) requiredFields.push('description');
+  if (typeof sourceProduct?.technicalDescription === 'string' && sourceProduct.technicalDescription.trim()) {
+    requiredFields.push('technicalDescription');
   }
-  if (requiredFields.some((field) => typeof translation?.[field] !== 'string' || !translation[field].trim())) {
-    return false;
-  }
+  if (requiredFields.some((field) => typeof translation?.[field] !== 'string' || !translation[field].trim())) return false;
 
   const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
@@ -1157,7 +1158,18 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
     .filter(([, value]) => typeof value === 'string' && value.trim())
     .map(([key]) => getCanonicalSpecKey(key))
     .filter(Boolean));
-  return [...sourceSpecKeys].every((key) => translatedSpecKeys.has(key));
+  if (![...sourceSpecKeys].every((key) => translatedSpecKeys.has(key))) return false;
+
+  const translatedImages = Array.isArray(translation?.descriptionImages) ? translation.descriptionImages : [];
+  if ((sourceProduct?.descriptionImages || []).some((image, index) => (
+    image?.alt?.trim() && !translatedImages[index]?.alt?.trim()
+  ))) return false;
+  const translatedPromotions = Array.isArray(translation?.promotions) ? translation.promotions : [];
+  return (sourceProduct?.promotions || []).every((promotion, index) => (
+    ['title', 'giftProductName', 'scope', 'discountText'].every((field) => (
+      !promotion?.[field]?.trim() || translatedPromotions[index]?.[field]?.trim()
+    ))
+  ));
 };
 
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
@@ -1165,6 +1177,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   const legacyQuery = {
     entityId: productId,
     targetLang,
+    provider: 'cloudflare',
     entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
   };
   if (!includeNonSuccess) {
@@ -1174,7 +1187,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
       { validationErrors: { $exists: false } },
       { validationErrors: { $size: 0 } },
     ];
-    legacyQuery.status = { $in: ['success', 'translated_via_libre'] };
+    legacyQuery.status = 'success';
     legacyQuery.qualityStatus = 'approved';
     legacyQuery.$or = [
       { validationErrors: { $exists: false } },
@@ -1222,8 +1235,20 @@ exports.getProductTranslationForAdmin = async (req, res) => {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_TARGET_INVALID', 'product_target_invalid');
     }
 
-    const data = await getProductTranslationData(productId, lang, true);
-    return res.json({ success: true, data });
+    const [data, catalogTranslation] = await Promise.all([
+      getProductTranslationData(productId, lang, true),
+      ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang: lang }).lean(),
+    ]);
+    return res.json({
+      success: true,
+      data: data ? {
+        ...data,
+        provider: catalogTranslation?.provider,
+        providerSource: catalogTranslation?.providerSource,
+        sourceHash: catalogTranslation?.sourceHash,
+        qualityStatus: catalogTranslation?.qualityStatus,
+      } : data,
+    });
   } catch (error) {
     console.error('[TranslationController] Error fetching product translation for admin:', error);
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_FETCH_FAILED', 'product_fetch_failed');
@@ -1264,6 +1289,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
       ? await LiveTranslationCache.find({
         entityId: { $in: missingCatalogProductIds },
         targetLang: lang,
+        provider: 'cloudflare',
         entityType: { $in: PRODUCT_TRANSLATION_ENTITY_TYPES },
       }).lean()
       : [];
@@ -1290,8 +1316,15 @@ exports.getProductTranslationStatuses = async (req, res) => {
         return {
           productId,
           status: productTranslationStatus(catalogTranslation),
-          canRetranslate: catalogCandidates.has(productId)
-            || liveCandidateProductIds.has(productId),
+          provider: catalogTranslation.provider,
+          providerSource: catalogTranslation.providerSource,
+          canApprove: catalogTranslation.provider === 'assistant'
+            && catalogTranslation.providerSource === 'assistant_batch'
+            && catalogTranslation.qualityStatus === 'pending'
+            && (catalogTranslation.qualityScore ?? -1) >= translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
+            && hasCompleteProductTranslation(productsById.get(productId), catalogTranslation),
+          canRetranslate: catalogTranslation.provider !== 'assistant'
+            && (catalogCandidates.has(productId) || liveCandidateProductIds.has(productId)),
           manualFields: catalogTranslation.manualFields || [],
           updatedAt: catalogTranslation.updatedAt || catalogTranslation.lastTranslatedAt || null,
           validationErrors: catalogTranslation.validationErrors || [],
@@ -1316,7 +1349,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
         ? 'needs_retranslate'
         : currentLegacyRecords.some((record) => (
           record.qualityStatus === 'rejected'
-          || !['success', 'translated_via_libre'].includes(record.status)
+          || record.status !== 'success'
         ))
           ? 'rejected'
           : validationErrors.length > 0
@@ -1450,11 +1483,14 @@ exports.saveProductTranslation = async (req, res) => {
     const qualityScore = validationResults.length
       ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
       : null;
-    const qualityStatus = validationResults.some(({ qualityStatus: status }) => status === 'needs_retranslate')
+    const validatedQualityStatus = validationResults.some(({ qualityStatus: status }) => status === 'needs_retranslate')
       ? 'needs_retranslate'
       : validationResults.some(({ qualityStatus: status }) => status === 'pending')
         ? 'pending'
         : 'approved';
+    const qualityStatus = existing?.provider === 'assistant' && validatedQualityStatus === 'approved'
+      ? 'pending'
+      : validatedQualityStatus;
 
     const manualFields = [...new Set([...(existing?.manualFields || []), ...fields])];
     const allowedTranslations = Object.fromEntries(fields.map((field) => [
@@ -1474,6 +1510,7 @@ exports.saveProductTranslation = async (req, res) => {
       qualityStatus,
       qualityScore,
       validationErrors,
+      ...(existing?.provider === 'assistant' ? { approvedBy: null, approvedAt: null } : {}),
       manualFields,
       lastTranslatedAt: new Date(),
     };
@@ -1493,6 +1530,68 @@ exports.saveProductTranslation = async (req, res) => {
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_SAVE_FAILED', 'product_save_failed');
   } finally {
     await releaseProductLock?.();
+  }
+};
+
+exports.approveAssistantProductTranslation = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const targetLang = req.query.lang;
+    if (!isProductId(productId) || typeof targetLang !== 'string' || !SUPPORTED_LANG_CODES.includes(targetLang)
+      || targetLang === getDefaultLanguage().code) {
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_PRODUCT_TARGET_INVALID', 'product_target_invalid');
+    }
+
+    const [product, translation] = await Promise.all([
+      Product.findById(productId)
+        .select('name description brand specs technicalDescription descriptionImages promotions')
+        .lean(),
+      ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
+    ]);
+    if (!product || !translation) {
+      return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
+    }
+    if (translation.provider !== 'assistant' || translation.providerSource !== 'assistant_batch'
+      || translation.status !== 'success' || translation.qualityStatus !== 'pending'
+      || translation.sourceHash !== getProductTranslationSourceHash(product)
+      || (translation.qualityScore ?? -1) < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
+      || !hasCompleteProductTranslation(product, translation)) {
+      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_ASSISTANT_REVIEW_REQUIRED', 'operation_failed');
+    }
+
+    const approved = await ProductCatalogTranslationCache.findOneAndUpdate(
+      {
+        entityId: productId,
+        targetLang,
+        provider: 'assistant',
+        providerSource: 'assistant_batch',
+        status: 'success',
+        qualityStatus: 'pending',
+        sourceHash: getProductTranslationSourceHash(product),
+        ...(translation.updatedAt ? { updatedAt: translation.updatedAt } : {}),
+        $or: [
+          { validationErrors: { $exists: false } },
+          { validationErrors: { $size: 0 } },
+        ],
+      },
+      {
+        $set: {
+          qualityStatus: 'approved',
+          approvedBy: String(req.user?.id || req.user?._id || ''),
+          approvedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' }
+    ).lean();
+    if (!approved) {
+      return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_ASSISTANT_REVIEW_REQUIRED', 'operation_failed');
+    }
+
+    await refreshStorefrontReadiness([productId]);
+    return res.json({ success: true, data: { qualityStatus: approved.qualityStatus, approvedAt: approved.approvedAt } });
+  } catch (error) {
+    console.error('[TranslationController] Error approving assistant product translation:', error);
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_SAVE_FAILED', 'product_save_failed');
   }
 };
 
@@ -1525,11 +1624,99 @@ exports.exportProductTranslationCache = async (req, res) => {
   }
 };
 
+exports.exportAssistantProductTranslationBatch = async (req, res) => {
+  try {
+    const productIds = [...new Set((req.query.productIds || '').split(',').filter(isProductId))];
+    const targetLangs = [...new Set((req.query.languages || '').split(',').filter((lang) => (
+      SUPPORTED_LANG_CODES.includes(lang) && lang !== getDefaultLanguage().code
+    )))];
+    if (productIds.length === 0 || productIds.length > 50 || targetLangs.length === 0) {
+      return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_EXPORT_FILTER_INVALID', 'operation_failed');
+    }
+
+    const [products, existingTranslations] = await Promise.all([
+      Product.find({ _id: { $in: productIds }, isDeleted: false })
+        .select('name description brand specs technicalDescription descriptionImages promotions')
+        .lean(),
+      ProductCatalogTranslationCache.find({ entityId: { $in: productIds }, targetLang: { $in: targetLangs } }).lean(),
+    ]);
+    const translationsByKey = new Map(existingTranslations.map((translation) => [
+      `${translation.entityId}:${translation.targetLang}`,
+      translation,
+    ]));
+    const records = products.flatMap((product) => {
+      const productId = product._id.toString();
+      const sourceHash = getProductTranslationSourceHash(product);
+      return targetLangs.flatMap((targetLang) => {
+        const existing = translationsByKey.get(`${productId}:${targetLang}`);
+        if (existing?.sourceHash === sourceHash
+          && existing.status === 'success'
+          && existing.qualityStatus === 'approved'
+          && Array.isArray(existing.validationErrors)
+          && existing.validationErrors.length === 0
+          && hasCompleteProductTranslation(product, existing)) return [];
+
+        const currentTranslation = existing?.sourceHash === sourceHash ? existing : null;
+        const sourceImages = (product.descriptionImages || []).map(({ url, alt }) => ({ url, alt: alt || '' }));
+        const sourcePromotions = (product.promotions || []).map((promotion) => ({
+          type: promotion.type,
+          title: promotion.title || '',
+          giftQuantity: promotion.giftQuantity,
+          giftProductName: promotion.giftProductName || '',
+          giftProductUrl: promotion.giftProductUrl,
+          giftValueVND: promotion.giftValueVND,
+          scope: promotion.scope || '',
+          discountText: promotion.discountText || '',
+        }));
+        return [{
+          productId,
+          targetLang,
+          sourceHash,
+          fields: PRODUCT_TRANSLATION_FIELDS,
+          source: {
+            name: product.name || '',
+            description: product.description || '',
+            brand: product.brand || '',
+            specs: product.specs || {},
+            technicalDescription: product.technicalDescription || '',
+            descriptionImages: sourceImages,
+            promotions: sourcePromotions,
+          },
+          translations: {
+            name: currentTranslation?.name || '',
+            description: currentTranslation?.description || '',
+            brand: currentTranslation?.brand || '',
+            specs: currentTranslation?.specs || {},
+            technicalDescription: currentTranslation?.technicalDescription || '',
+            descriptionImages: sourceImages.map((image, index) => ({
+              ...image,
+              alt: currentTranslation?.descriptionImages?.[index]?.alt || '',
+            })),
+            promotions: sourcePromotions.map((promotion, index) => ({
+              ...promotion,
+              title: currentTranslation?.promotions?.[index]?.title || '',
+              giftProductName: currentTranslation?.promotions?.[index]?.giftProductName || '',
+              scope: currentTranslation?.promotions?.[index]?.scope || '',
+              discountText: currentTranslation?.promotions?.[index]?.discountText || '',
+            })),
+          },
+        }];
+      });
+    });
+
+    return res.json({ success: true, data: { workflow: 'assistant_batch', records } });
+  } catch (error) {
+    console.error('[TranslationController] Error exporting assistant product translation batch:', error);
+    return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_EXPORT_FAILED', 'operation_failed');
+  }
+};
+
 exports.importProductTranslationCache = async (req, res) => {
   let batchRequest;
   try {
     const { records, idempotencyKey } = req.body || {};
-    const dryRun = req.body?.dryRun === true;
+    const assistantBatch = req.body?.assistantBatch === true;
+    const dryRun = req.body?.dryRun === true || (assistantBatch && req.body?.dryRun !== false);
     const replaceManualTranslations = req.body?.replaceManualTranslations === true;
     if (!Array.isArray(records) || records.length === 0 || records.length > MAX_PRODUCT_TRANSLATION_RECORDS) {
       return sendTranslationError(res, 400, getRequestLanguage(req), 'TRANSLATION_IMPORT_RECORDS_INVALID', 'operation_failed');
@@ -1547,10 +1734,13 @@ exports.importProductTranslationCache = async (req, res) => {
       const fields = translations && typeof translations === 'object' && !Array.isArray(translations)
         ? Object.keys(translations).filter((field) => PRODUCT_TRANSLATION_FIELDS.includes(field))
         : [];
-      const manualFields = Array.isArray(record?.manualFields)
-        ? record.manualFields.filter((field) => fields.includes(field))
-        : fields;
-      return { line: index + 1, productId, targetLang, translations, fields, manualFields };
+      const manualFields = assistantBatch
+        ? []
+        : Array.isArray(record?.manualFields)
+          ? record.manualFields.filter((field) => fields.includes(field))
+          : fields;
+      const sourceHash = typeof record?.sourceHash === 'string' ? record.sourceHash : null;
+      return { line: index + 1, productId, targetLang, translations, fields, manualFields, sourceHash };
     });
     const recordKeys = new Set();
     const invalidRecords = [];
@@ -1560,6 +1750,7 @@ exports.importProductTranslationCache = async (req, res) => {
       if (recordKeys.has(key)) reasons.push('duplicate_product_language');
       recordKeys.add(key);
       if (!isProductId(productId)) reasons.push('invalid_product_id');
+      if (assistantBatch && (!/^[a-f\d]{64}$/i.test(normalizedRecords[line - 1].sourceHash || ''))) reasons.push('source_hash_required');
       if (targetLang === getDefaultLanguage().code) reasons.push('default_language_not_allowed');
       if (!SUPPORTED_LANG_CODES.includes(targetLang)) reasons.push('unsupported_language');
       if (fields.length === 0) reasons.push('translation_fields_required');
@@ -1598,7 +1789,7 @@ exports.importProductTranslationCache = async (req, res) => {
     }
 
     const userId = req.user?.id || req.user?._id?.toString() || 'anonymous';
-    const payloadHash = crypto.createHash('sha256').update(JSON.stringify({ normalizedRecords, replaceManualTranslations })).digest('hex');
+    const payloadHash = crypto.createHash('sha256').update(JSON.stringify({ normalizedRecords, replaceManualTranslations, assistantBatch })).digest('hex');
     if (!dryRun) {
       try {
         batchRequest = await TranslationBatchRequest.create({ userId, idempotencyKey, payloadHash });
@@ -1641,6 +1832,22 @@ exports.importProductTranslationCache = async (req, res) => {
             .map(({ line, productId }) => ({ line, productId })),
         }
       );
+    }
+    if (assistantBatch) {
+      const staleSourceRecords = normalizedRecords
+        .filter(({ productId, sourceHash }) => sourceHash !== getProductTranslationSourceHash(sourceProducts.get(productId)));
+      if (staleSourceRecords.length > 0) {
+        if (batchRequest) await batchRequest.deleteOne();
+        return sendTranslationError(
+          res,
+          409,
+          getRequestLanguage(req),
+          'TRANSLATION_SOURCE_CHANGED',
+          'operation_failed',
+          {},
+          { records: staleSourceRecords.map(({ line, productId, targetLang }) => ({ line, productId, targetLang })) }
+        );
+      }
     }
     const translationContentErrors = normalizedRecords.flatMap(({ line, productId, translations }) => {
       const normalizedContent = normalizeProductContentFields({
@@ -1768,9 +1975,11 @@ exports.importProductTranslationCache = async (req, res) => {
     const operations = importPlans.flatMap(({ productId, targetLang, translations, manualFields, existing, importableFields }) => {
       if (importableFields.length === 0) return [];
       const validation = validationByKey.get(`${productId}:${targetLang}`);
-      const sourceHash = importableFields.length === PRODUCT_TRANSLATION_FIELDS.length
+      const sourceHash = assistantBatch
         ? getProductTranslationSourceHash(sourceProducts.get(productId))
-        : existing?.sourceHash || null;
+        : importableFields.length === PRODUCT_TRANSLATION_FIELDS.length
+          ? getProductTranslationSourceHash(sourceProducts.get(productId))
+          : existing?.sourceHash || null;
       const normalizedContent = normalizeProductContentFields({
         descriptionImages: translations.descriptionImages,
         promotions: translations.promotions,
@@ -1797,7 +2006,14 @@ exports.importProductTranslationCache = async (req, res) => {
               name: importedFields.name ?? existing?.name ?? productNames.get(productId),
               brand: importedFields.brand ?? existing?.brand ?? productBrands.get(productId),
               status: 'success',
-              qualityStatus: validation?.qualityStatus || 'pending',
+              ...((assistantBatch || existing?.provider === 'assistant') ? {
+                provider: 'assistant',
+                providersUsed: [...new Set([...(existing?.providersUsed || (existing?.provider ? [existing.provider] : [])), 'assistant'])],
+                providerSource: 'assistant_batch',
+                approvedBy: null,
+                approvedAt: null,
+              } : {}),
+              qualityStatus: (assistantBatch || existing?.provider === 'assistant') ? 'pending' : (validation?.qualityStatus || 'pending'),
               qualityScore: validation?.qualityScore ?? null,
               validationErrors: validation?.validationErrors || [],
               manualFields: [...new Set([...(existing?.manualFields || []), ...manualFields])],
@@ -1817,6 +2033,7 @@ exports.importProductTranslationCache = async (req, res) => {
       importedCount: result.modifiedCount + result.upsertedCount,
     };
     if (skippedManualFields > 0) responseData.skippedManualFields = skippedManualFields;
+    if (assistantBatch) responseData.qualityStatus = 'pending';
     if (replaceManualTranslations) responseData.replaceManualTranslations = true;
     const response = {
       success: true,
@@ -2662,7 +2879,8 @@ exports.getTranslationStatus = async (req, res) => {
     const expectedProductTranslations = totalProducts * 5;
     const actualProductTranslations = await LiveTranslationCache.countDocuments({
       targetLang: lang,
-      status: { $in: ['success', 'translated_via_libre'] },
+      provider: 'cloudflare',
+      status: 'success',
       entityType: { $regex: '^product_' }
     });
 
@@ -2675,7 +2893,8 @@ exports.getTranslationStatus = async (req, res) => {
       {
         $match: {
           targetLang: lang,
-          status: { $nin: ['success', 'translated_via_libre'] }
+          provider: 'cloudflare',
+          status: { $ne: 'success' }
         }
       },
       {

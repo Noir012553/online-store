@@ -27,13 +27,12 @@ async function main() {
 
     const filter = {};
     const failedStatuses = ['failed_rate_limit', 'failed_error', 'pending_retry'];
-    const secondaryProviderStatuses = ['translated_via_libre'];
 
     // Parse status
     const statusArg = args.find(arg => arg.startsWith('--status='));
     if (statusArg) {
       options.status = statusArg.split('=')[1];
-      if (failedStatuses.includes(options.status) || secondaryProviderStatuses.includes(options.status)) {
+      if (failedStatuses.includes(options.status)) {
         filter.status = options.status;
       } else {
         filter.qualityStatus = options.status;
@@ -42,14 +41,6 @@ async function main() {
       filter.$or = [
         { status: { $in: failedStatuses } },
         { qualityStatus: 'needs_retranslate' },
-        {
-          provider: 'libretranslate',
-          status: { $in: secondaryProviderStatuses },
-          $or: [
-            { qualityScore: { $lt: 70 } },
-            { validationErrors: { $exists: true, $ne: [] } },
-          ],
-        },
       ];
     }
 

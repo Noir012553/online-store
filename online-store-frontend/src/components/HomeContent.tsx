@@ -20,6 +20,29 @@ import { EmptyState } from "../components/EmptyState";
 import { getImageUrl } from "../lib/utils";
 
 
+const BRAND_LOGO_ASSETS: Record<string, string> = {
+  acer: '/assets/brands/Acer.png',
+  akko: '/assets/brands/Akko.png',
+  asus: '/assets/brands/Asus.png',
+  aula: '/assets/brands/Aula.png',
+  corsair: '/assets/brands/Corsair.png',
+  dareu: '/assets/brands/DareU.png',
+  dell: '/assets/brands/Dell.png',
+  edifier: '/assets/brands/Edifier.png',
+  flesports: '/assets/brands/FLEsports.png',
+  gigabyte: '/assets/brands/Gigabyte.png',
+  hp: '/assets/brands/HP.png',
+  hyperx: '/assets/brands/HyperX.png',
+  keychron: '/assets/brands/Keychron.png',
+  lenovo: '/assets/brands/Lenovo.png',
+  leobog: '/assets/brands/Leobog.png',
+  leopold: '/assets/brands/Leopold.png',
+  logitech: '/assets/brands/Logitech.png',
+  msi: '/assets/brands/MSI.png',
+  rapoo: '/assets/brands/Rapoo.png',
+  razer: '/assets/brands/Razer.png',
+};
+
 const iconMap = {
   Gamepad2,
   LaptopMinimal,
@@ -1284,26 +1307,33 @@ export default function Home() {
                   className="hide-scrollbar flex min-w-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 touch-pan-x sm:gap-6"
                   onScroll={(event) => handleInfiniteCarouselScroll(event, brands.length)}
                 >
-                  {getRepeatedItems(brands).map((brand, index) => (
-                    <Link
-                      key={`${brand._id}-${index}`}
-                      href={`/products?brand=${encodeURIComponent(brand.name)}`}
-                      className="group flex min-w-[11rem] flex-[0_0_11rem] snap-start items-center justify-center rounded-lg border-2 border-gray-100 bg-white p-6 transition-all duration-300 animate-in fade-in zoom-in hover:border-red-200 hover:shadow-xl sm:min-w-[13rem] sm:flex-[0_0_13rem] lg:min-w-[15rem] lg:flex-[0_0_15rem]"
-                    >
-                      <div className="relative flex h-20 w-full items-center justify-center">
-                        {brand.logoAsset?.publicUrl || brand.logo ? (
-                          <ImageWithFallback
-                            src={getImageUrl(brand.logoAsset || brand.logo)}
-                            alt={brand.name || t('brand', 'common')}
-                            loading="lazy"
-                            className="max-h-full max-w-full object-contain grayscale transition-all duration-300 group-hover:scale-110 group-hover:grayscale-0"
-                          />
-                        ) : (
-                          <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                  {getRepeatedItems(brands).map((brand, index) => {
+                    const remoteLogo = getImageUrl(brand.logoAsset || brand.logo);
+                    const localLogo = BRAND_LOGO_ASSETS[brand.name.trim().toLowerCase().replace(/[^a-z0-9]/g, '')];
+                    const logo = remoteLogo || localLogo;
+
+                    return (
+                      <Link
+                        key={`${brand._id}-${index}`}
+                        href={`/products?brand=${encodeURIComponent(brand.name)}`}
+                        className="group flex min-w-0 flex-[0_0_calc((100%_-_16px)_/_2)] snap-start items-center justify-center rounded-xl border border-gray-200 bg-white p-4 transition-all duration-300 hover:border-red-200 hover:shadow-md sm:flex-[0_0_calc((100%_-_48px)_/_3)] sm:p-5 lg:flex-[0_0_calc((100%_-_72px)_/_4)] lg:p-6"
+                      >
+                        <div className="relative flex h-16 w-full items-center justify-center sm:h-20">
+                          {logo ? (
+                            <ImageWithFallback
+                              src={logo}
+                              fallbackSrc={remoteLogo ? localLogo : undefined}
+                              alt={brand.name || t('brand', 'common')}
+                              loading="lazy"
+                              className="max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
+                            />
+                          ) : (
+                            <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
                 <button
                   type="button"

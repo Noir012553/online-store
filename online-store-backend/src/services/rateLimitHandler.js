@@ -182,7 +182,8 @@ class RateLimitHandler {
         {
           $match: {
             targetLang,
-            status: { $nin: ['success', 'translated_via_libre'] }
+            provider: 'cloudflare',
+            status: { $ne: 'success' }
           }
         },
         {

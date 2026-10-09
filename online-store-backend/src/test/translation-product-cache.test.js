@@ -25,6 +25,7 @@ const ProductTranslationSeederService = require('../services/productTranslationS
 const translationSeederHelper = require('../services/translationSeederHelper');
 const retranslateProgress = require('../utils/retranslateProgress');
 const {
+  buildCatalogProductRetranslationQuery,
   isCatalogProductRetranslatable,
   isLiveProductRetranslatable,
 } = require('../utils/productRetranslationSelector');
@@ -46,7 +47,9 @@ const {
   translateText,
   saveProductTranslation,
   exportProductTranslationCache,
+  exportAssistantProductTranslationBatch,
   importProductTranslationCache,
+  approveAssistantProductTranslation,
   retranslateProduct,
 } = require('../controllers/translationController');
 
@@ -218,6 +221,7 @@ describe('Product translation cache controller', () => {
   });
 
   it('uses the same retranslation eligibility for catalog and legacy records', () => {
+    expect(buildCatalogProductRetranslationQuery({ entityId: 'product-id' }).provider).to.deep.equal({ $ne: 'assistant' });
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'approved', qualityScore: 100, validationErrors: [] })).to.be.false;
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'needs_retranslate', validationErrors: [] })).to.be.true;
     expect(isCatalogProductRetranslatable({
@@ -1128,7 +1132,6 @@ describe('Product translation cache controller', () => {
     expect(savedCatalog).to.include({
       provider: 'cloudflare',
       providerSource: 'primary',
-      failoverReason: null,
     });
     expect(syncQuery).to.include({ entityId: productId, targetLang });
     expect(syncUpdate).to.include({ qualityStatus: 'retranslated' });
@@ -1277,9 +1280,24 @@ describe('Product translation cache controller', () => {
 
   it('reads only successful approved product translations', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
     const findOne = sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
       lean: sandbox.stub().resolves({
+        sourceHash: getProductTranslationSourceHash(sourceProduct),
         name: 'Laptop',
         description: 'Translated description',
         brand: 'Brand',
@@ -1372,12 +1390,29 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].data.translatedText).to.equal('Fresh translation');
   });
 
-  it('uses only successful approved legacy translations as a fallback', async () => {
+  it('uses only successful approved Cloudflare translations from the live cache', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     sandbox.stub(LanguageService, 'isSupportedLanguage').resolves(true);
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves({
+        _id: new mongoose.Types.ObjectId(productId),
+        name: 'Laptop source',
+        brand: 'Source brand',
+        description: '',
+        specs: {},
+        technicalDescription: '',
+        descriptionImages: [],
+        promotions: [],
+      }),
+    });
     const find = sandbox.stub(LiveTranslationCache, 'find').returns({
-      lean: sandbox.stub().resolves([{ entityType: 'product_name', translatedText: 'Legacy laptop' }]),
+      lean: sandbox.stub().resolves([{
+        entityType: 'product_name',
+        originalText: 'Laptop source',
+        translatedText: 'Legacy laptop',
+      }]),
     });
     const res = createResponse();
 
@@ -1390,8 +1425,13 @@ describe('Product translation cache controller', () => {
     expect(find.calledOnceWith({
       entityId: productId,
       targetLang: 'en',
+      provider: 'cloudflare',
       status: 'success',
       qualityStatus: 'approved',
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
     })).to.be.true;
     expect(res.json.firstCall.args[0].data.name).to.equal('Legacy laptop');
   });
@@ -1758,7 +1798,6 @@ describe('Product translation cache controller', () => {
     expect(update.provider).to.equal('cloudflare');
     expect(update.providersUsed).to.deep.equal(['cloudflare']);
     expect(update.providerSource).to.equal('primary');
-    expect(update.failoverReason).to.equal(null);
   });
 
   it('keeps manual fields unchanged while retranslating remaining fields in bounded parallel', async () => {
@@ -2072,6 +2111,246 @@ describe('Product translation cache controller', () => {
     }]);
   });
 
+  it('exports current source fields for missing or unapproved target languages', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: 'Source description',
+      specs: { ram: '16GB' },
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      lean: sandbox.stub().resolves([]),
+    });
+    const res = createResponse();
+
+    await exportAssistantProductTranslationBatch({
+      query: { productIds: productId, languages: 'en' },
+      lang: 'en',
+    }, res);
+
+    const record = res.json.firstCall.args[0].data.records[0];
+    expect(record).to.include({ productId, targetLang: 'en' });
+    expect(record.sourceHash).to.equal(getProductTranslationSourceHash(sourceProduct));
+    expect(record.source).to.include({ name: 'Source laptop', brand: 'Acer' });
+    expect(record.translations).to.include({ name: '', brand: '', description: '' });
+    expect(record.translations.specs).to.deep.equal({});
+  });
+
+  it('keeps assistant batch preview read-only by default', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    const batchCreate = sandbox.stub(TranslationBatchRequest, 'create').resolves({});
+    const cacheWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({});
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    const res = createResponse();
+
+    await importProductTranslationCache({
+      body: {
+        assistantBatch: true,
+        records: [{
+          productId,
+          targetLang: 'en',
+          sourceHash: getProductTranslationSourceHash(sourceProduct),
+          translations: { name: 'Laptop source' },
+        }],
+        idempotencyKey: 'assistant-preview-batch-0001',
+      },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(res.json.firstCall.args[0].dryRun).to.equal(true);
+    expect(batchCreate.notCalled).to.equal(true);
+    expect(cacheWrite.notCalled).to.equal(true);
+  });
+
+  it('stores explicitly imported assistant translations as pending with separate provenance', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(TranslationBatchRequest, 'create').resolves({ _id: 'assistant-batch' });
+    sandbox.stub(TranslationBatchRequest, 'updateOne').resolves();
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').callsFake(() => ({
+      select() { return this; },
+      maxTimeMS() { return this; },
+      lean: sandbox.stub().resolves([]),
+    }));
+    const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({ modifiedCount: 1, upsertedCount: 0 });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+    const res = createResponse();
+
+    await importProductTranslationCache({
+      body: {
+        assistantBatch: true,
+        dryRun: false,
+        records: [{
+          productId,
+          targetLang: 'en',
+          sourceHash: getProductTranslationSourceHash(sourceProduct),
+          translations: { name: 'Laptop' },
+        }],
+        idempotencyKey: 'assistant-import-batch-0001',
+      },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(bulkWrite.firstCall.args[0][0].updateOne.update.$set).to.include({
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+      qualityStatus: 'pending',
+      sourceHash: getProductTranslationSourceHash(sourceProduct),
+    });
+    expect(res.json.firstCall.args[0].data.qualityStatus).to.equal('pending');
+  });
+
+  it('rejects assistant imports when the source hash is stale', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Current laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    const res = createResponse();
+
+    await importProductTranslationCache({
+      body: {
+        assistantBatch: true,
+        dryRun: true,
+        records: [{
+          productId,
+          targetLang: 'en',
+          sourceHash: '0'.repeat(64),
+          translations: { name: 'Laptop' },
+        }],
+        idempotencyKey: 'assistant-stale-batch-0001',
+      },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(res.status.calledWith(409)).to.equal(true);
+  });
+
+  it('approves a complete assistant draft only after its current source hash passes', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const sourceHash = getProductTranslationSourceHash(sourceProduct);
+    const draft = {
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash,
+      name: 'Laptop',
+      brand: 'Acer',
+      specs: {},
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 100,
+      validationErrors: [],
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(draft) });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({ ...draft, qualityStatus: 'approved' }),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([{ ...draft, qualityStatus: 'approved' }]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    const res = createResponse();
+
+    await approveAssistantProductTranslation({
+      params: { id: productId },
+      query: { lang: 'en' },
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(ProductCatalogTranslationCache.findOneAndUpdate.firstCall.args[0]).to.include({
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash,
+    });
+    expect(ProductCatalogTranslationCache.findOneAndUpdate.firstCall.args[1].$set.qualityStatus).to.equal('approved');
+    expect(res.json.firstCall.args[0].data.qualityStatus).to.equal('approved');
+  });
+
   it('rejects imports without a valid idempotency key before changing the cache', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
     const res = createResponse();
@@ -2183,6 +2462,11 @@ describe('Product translation cache controller', () => {
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves({ modifiedCount: 1, upsertedCount: 0 });
     sandbox.stub(TranslationBatchRequest, 'updateOne').resolves();
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
     const res = createResponse();
 
     await importProductTranslationCache({
