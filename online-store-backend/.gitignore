@@ -44,6 +44,7 @@ next-env.d.ts
 /backups/
 /.retranslate-progress/
 /reports/translation/
+/reports/storefront-readiness/
 /reports/seed/
 /reports/import-export/
 /reports/cleanup/

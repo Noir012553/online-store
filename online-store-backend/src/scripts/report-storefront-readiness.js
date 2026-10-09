@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 
@@ -20,6 +21,18 @@ const parseArgs = (args) => {
 };
 
 const formatStatus = (value) => value || '(missing)';
+
+const saveReport = (report) => {
+  const reportDirectory = path.resolve(__dirname, '../../reports/storefront-readiness');
+  const generatedAt = new Date();
+  const timestamp = generatedAt.toISOString().replace(/[:.]/g, '-');
+  const reportPath = path.join(reportDirectory, `storefront-readiness-${timestamp}.json`);
+  const reportData = { generatedAt: generatedAt.toISOString(), ...report };
+
+  fs.mkdirSync(reportDirectory, { recursive: true });
+  fs.writeFileSync(reportPath, `${JSON.stringify(reportData, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+  return { reportData, reportPath: path.relative(process.cwd(), reportPath) };
+};
 
 const printHumanReport = (report, limit) => {
   console.log('Storefront readiness report (read-only)');
@@ -71,9 +84,15 @@ const run = async () => {
       .select('entityId targetLang status qualityStatus validationErrors sourceHash name brand description specs')
       .lean();
   const report = analyzeStorefrontReadiness(products, translations, requiredLanguages);
+  const savedReport = saveReport(report);
 
-  if (json) console.log(JSON.stringify(report, null, 2));
-  else printHumanReport(report, limit);
+  if (json) {
+    console.error(`Report saved: ${savedReport.reportPath}`);
+    console.log(JSON.stringify(savedReport.reportData, null, 2));
+  } else {
+    printHumanReport(report, limit);
+    console.log(`Report file: ${savedReport.reportPath}`);
+  }
 };
 
 run()
