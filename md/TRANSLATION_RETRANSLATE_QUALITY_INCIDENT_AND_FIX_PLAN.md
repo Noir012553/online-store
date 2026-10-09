@@ -259,3 +259,51 @@ Trước khi áp dụng production cần chọn một cách rõ ràng:
 - Có backup và chấp thuận riêng trước mọi lần ghi dữ liệu production.
 
 Không có bản dịch, lệnh seed/retranslate, lời gọi Cloudflare hay thay đổi MongoDB nào được thực hiện khi soạn kế hoạch này.
+
+## Cập nhật — Luồng trợ lý dịch bổ sung theo lô có duyệt
+
+### Vấn đề
+
+Số cache có `status: success` không đồng nghĩa với số bản dịch được duyệt hoặc sản phẩm có thể hiển thị trên storefront. Một bản dịch chỉ đóng góp vào readiness khi nội dung hiện hành đầy đủ, đạt kiểm tra chất lượng, không có lỗi blocking và `sourceHash` còn khớp. Sản phẩm vẫn cần đạt điều kiện ở tất cả ngôn ngữ đích bắt buộc; dịch xong một ngôn ngữ không tự làm sản phẩm sẵn sàng.
+
+Chờ Cloudflare hết rate limit không giải quyết được nhu cầu bổ sung bản dịch trong lúc đó. Tuy nhiên, không được ghi bản dịch do trợ lý tạo thành bản Cloudflare hoặc tự đánh dấu approved: cần provenance riêng, preview, review và thao tác duyệt rõ ràng.
+
+### Cách xử lý đã triển khai
+
+Đã thêm luồng riêng **trợ lý dịch → bản nháp → review → duyệt**, tách khỏi luồng Cloudflare:
+
+1. Trong trang quản trị bản dịch sản phẩm, export các sản phẩm/ngôn ngữ cần bổ sung. File có nguồn sản phẩm, `productId`, `targetLang` và `sourceHash` để giữ đúng danh tính và phát hiện nguồn đã thay đổi.
+2. Gửi JSON export cho trợ lý theo prompt mẫu bên dưới. Chỉ điền các trường nội dung cần dịch; giữ nguyên ID, hash, cấu trúc, thông số kỹ thuật, SKU/model, đơn vị và giá trị số. Không đoán phần thiếu trong nguồn.
+3. Upload JSON đã dịch lên trang quản trị để chạy preview/validation. Preview là chỉ đọc; chưa ghi cache.
+4. Khi preview hợp lệ, admin chủ động nhập bản dịch thành draft. Draft có `provider: assistant`, `providerSource: assistant_batch`, trạng thái `pending`; không bị nhận nhầm thành bản Cloudflare và không được Cloudflare retry selector lấy xử lý lại.
+5. Review nội dung trong editor. Chỉ dùng thao tác approve khi bản dịch đạt yêu cầu. Backend kiểm tra provenance, trạng thái, chất lượng, tính đầy đủ, lỗi validation và `sourceHash` hiện tại trước khi duyệt.
+6. Sau khi duyệt, readiness được tính lại. Sản phẩm chỉ đủ điều kiện storefront khi đáp ứng đủ điều kiện của tất cả ngôn ngữ bắt buộc; approval một bản dịch riêng lẻ không bảo đảm sản phẩm sẽ hiển thị.
+
+Import assistant mặc định là dry-run; chỉ thao tác nhập draft riêng biệt mới ghi dữ liệu. Bản dịch có `sourceHash` cũ phải được export/dịch lại từ nguồn hiện hành. Các field thủ công tiếp tục được bảo vệ.
+
+### Prompt mẫu cho lần dịch sau
+
+Trước tiên export một lô nhỏ từ trang quản trị, rồi gửi file JSON export kèm prompt sau. Thay các phần trong ngoặc vuông cho phù hợp:
+
+> Hãy dịch bổ sung theo lô cho storefront từ JSON nguồn đính kèm. Dịch sang các ngôn ngữ được chỉ định trong từng record: [ngôn ngữ hoặc mã ngôn ngữ]. Chỉ dịch các trường nội dung nằm trong cấu trúc JSON; giữ nguyên chính xác `productId`, `targetLang`, `sourceHash`, tên key, cấu trúc mảng/object và các metadata khác. Không tự thêm hoặc bỏ record, không đổi model/SKU, thông số kỹ thuật, số liệu, đơn vị, tên thương hiệu hay ý nghĩa từ nguồn. Dịch tự nhiên, đúng thuật ngữ ngành hàng và đầy đủ ý cho storefront; không suy đoán thông tin nguồn bị thiếu. Trả về JSON hoàn chỉnh đúng schema đầu vào, không kèm Markdown hoặc lời giải thích bên ngoài JSON. Nếu có nội dung nguồn mơ hồ/thiếu khiến không thể dịch chính xác, giữ nguyên record đó và báo riêng `productId`, ngôn ngữ, field cùng lý do. Chỉ tạo nội dung để review; không import, approve, gọi API dịch bên ngoài hoặc ghi database.
+
+Khuyến nghị bắt đầu với 5–10 sản phẩm và 1–2 ngôn ngữ, kiểm tra preview và review chất lượng trước khi mở rộng lô. Chọn các ngôn ngữ cần dịch ngay trong trang quản trị và prompt; không mặc định rằng một batch đã bao phủ đủ toàn bộ 8 ngôn ngữ.
+
+### Phạm vi và kiểm chứng
+
+- Đã thêm provenance assistant, metadata approval, export batch, import draft có preview, approval có kiểm tra freshness, giao diện admin và test tương ứng.
+- Bản dịch do trợ lý tạo không được gắn nhãn Cloudflare. Assistant draft vẫn là `pending` cho đến khi admin duyệt.
+- Không có dữ liệu bản dịch production nào được dịch/import/approve trong lúc triển khai luồng này.
+- Các kiểm tra đã chạy: 9 test mục tiêu pass; frontend typecheck pass; JavaScript syntax, JSON parse và `git diff --check` pass. Không chạy `npm run build`.
+- Chưa xác minh giao diện bằng browser vì preview không khả dụng trong phiên đó.
+
+### Các điểm vào code
+
+- `online-store-backend/src/controllers/translationController.js`: export, import draft, validation, approval và readiness.
+- `online-store-backend/src/routes/translationRoutes.js`: các endpoint admin cho export và approval.
+- `online-store-backend/src/models/ProductCatalogTranslationCache.js`: provider/provenance và metadata duyệt.
+- `online-store-backend/src/utils/productRetranslationSelector.js`: loại assistant draft khỏi Cloudflare catalog retry.
+- `online-store-frontend/src/pages/admin/translationsDynamic.tsx`: export/upload/preview/import/review/approval trong trang quản trị.
+- `online-store-backend/src/test/translation-product-cache.test.js`: kiểm thử các quy tắc an toàn của luồng.
+
+Các nội dung kế hoạch ở trên vẫn mô tả incident và hướng xử lý Cloudflare riêng; luồng trợ lý theo lô có duyệt là bổ sung, không thay thế provider Cloudflare hay tự động dịch toàn bộ catalog.
