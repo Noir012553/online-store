@@ -307,3 +307,72 @@ Khuyến nghị bắt đầu với 5–10 sản phẩm và 1–2 ngôn ngữ, ki
 - `online-store-backend/src/test/translation-product-cache.test.js`: kiểm thử các quy tắc an toàn của luồng.
 
 Các nội dung kế hoạch ở trên vẫn mô tả incident và hướng xử lý Cloudflare riêng; luồng trợ lý theo lô có duyệt là bổ sung, không thay thế provider Cloudflare hay tự động dịch toàn bộ catalog.
+
+## Kế hoạch: Kiểm định bản dịch bằng AI vòng hai và duyệt có kiểm soát
+
+**Trạng thái: đề xuất, chưa triển khai; chưa gọi Cloudflare để kiểm tra, chưa ghi cache hoặc approve dữ liệu.**
+
+### Mục tiêu
+
+Dùng Cloudflare AI như một bộ kiểm định thứ hai để rà bản dịch sản phẩm đã có, tìm lỗi nghĩa và lỗi bảo toàn thông số trước khi admin quyết định duyệt. Đây là luồng kiểm định riêng, không phải dịch lại và không thay đổi ý nghĩa của `provider`/provenance hiện có.
+
+Theo lần kiểm tra gần nhất của người dùng, 588 sản phẩm active có đủ 4.704 slot (`success` hiện hành ở 8 ngôn ngữ), nhưng chỉ 432 slot được báo `approvedCurrent` và chỉ 1 sản phẩm đủ điều kiện storefront. Các slot approved không nhất thiết thuộc cùng một tập sản phẩm; mục tiêu là xác định chính xác vấn đề theo từng product-language, không chỉ tăng tổng số approved.
+
+### Nguyên tắc an toàn
+
+- Không chạy lại seed/retranslate để thực hiện audit.
+- Chỉ đưa candidate có source hash hiện hành vào kiểm tra; source stale hoặc thiếu dữ liệu phải được báo riêng.
+- Giai đoạn audit chỉ đọc: không sửa translation, không đổi `qualityStatus`, không ghi kết quả vào cache và không tự approve.
+- Giữ nguyên validator, kiểm tra completeness và yêu cầu storefront hiện có. Kết quả AI không thể bỏ qua lỗi blocking, sai model/SKU/spec/số liệu, field thiếu hoặc hash stale.
+- Tính và giới hạn riêng ngân sách request/input characters cho judge; không vượt budget Cloudflare đã cấu hình. Không retry vô hạn; dừng khi rate limit, lỗi response rỗng hoặc đạt giới hạn pilot.
+- Ghi provenance rõ trong report rằng đây là AI second-pass judge, không phải bản dịch hoặc approval của Cloudflare.
+
+### Giai đoạn 1 — Audit chỉ đọc và chọn candidate
+
+1. Xuất danh sách product-language chưa approved cùng `productId`, `targetLang`, source hash hiện tại, source text, translated text, validation errors và score; loại secret và dữ liệu không liên quan.
+2. Chia nhóm theo ngôn ngữ, loại lỗi, độ dài và trường dịch. Ưu tiên kiểm tra mẫu có lỗi validator hoặc technical/spec để hiểu nguyên nhân trước khi mở rộng.
+3. Loại bản dịch đã approved, source stale, field thủ công không được kiểm tra và record không có đủ nguồn đối chiếu; giữ một lý do loại rõ ràng trong report.
+4. Đếm số request/input characters dự kiến trước khi gọi provider. Nếu không thể xác định ngân sách an toàn thì dừng tại bước export.
+
+### Giai đoạn 2 — Thiết kế judge riêng
+
+1. Tạo prompt chuyên kiểm định, không dùng prompt dịch hiện có. Đưa vào judge ngôn ngữ nguồn/đích, nguồn, bản dịch, field type và spec/model liên quan khi cần.
+2. Yêu cầu verdict có cấu trúc: `pass`, `review` hoặc `fail`; danh sách issue theo mức độ; cờ riêng cho sai nghĩa, bỏ sót, thêm thông tin, sai brand/model/SKU/spec/số liệu/đơn vị và độ tự nhiên; giải thích ngắn dựa trên đoạn nguồn/bản dịch.
+3. Chỉ chấp nhận response JSON đúng schema. Response rỗng, malformed, thiếu verdict hoặc lỗi provider là `review/error`, tuyệt đối không coi là `pass`.
+4. Giữ judge ở chế độ stateless, không có quyền gọi API ghi cache/approve. Thực hiện kiểm tra hash/completeness/validator bằng code trước khi gọi AI để không trả quota cho candidate vốn đã stale hoặc không đủ field.
+5. Nếu dùng cùng model đã dịch để kiểm tra, ghi nhận nguy cơ hai lượt cùng mắc một lỗi. So sánh model judge khác chỉ khi được cấu hình/cho phép và budget đủ; không tự đổi model production.
+
+### Giai đoạn 3 — Pilot không ghi database
+
+1. Bắt đầu bằng 10–20 product-language records trên 1–2 ngôn ngữ; lấy mẫu đại diện, gồm mô tả dài, field ngắn/spec, bản bị validator chặn và bản có nhiều technical token.
+2. Chạy judge chỉ đọc, lưu report cục bộ theo batch; không cập nhật cache hay readiness.
+3. Người review đối chiếu từng verdict với nguồn. Ghi nhận AI false-pass, false-fail, bất đồng người-review, lỗi kỹ thuật và quota thực tế.
+4. Dừng ngay nếu có false-pass về model/SKU/spec/số liệu, judge trả JSON sai, source hash không khớp, mức dùng vượt budget hoặc Cloudflare rate limit.
+
+### Giai đoạn 4 — Đánh giá và quyết định
+
+- Không dùng tỉ lệ đồng thuận tổng thể để che lấp lỗi nghiêm trọng: tiêu chí bắt buộc là **không có false-pass về thông số kỹ thuật trong pilot**.
+- Phân tích false-pass/false-fail theo ngôn ngữ và loại field; chỉnh prompt hoặc thu hẹp phạm vi rồi chạy lại pilot chỉ khi được chấp thuận.
+- Kết quả `review` không tự chuyển thành `approved`; chuyển cho admin review thủ công.
+- Chỉ đề xuất mở rộng khi pilot đạt tiêu chí, report/quota khớp và người dùng chấp thuận batch tiếp theo. Không tự chạy toàn bộ 4.272 slot còn chưa approved.
+
+### Giai đoạn 5 — Duyệt sau kiểm định
+
+1. AI `pass` chỉ tạo candidate để xem xét, không phải lệnh approve.
+2. Backend phải chạy lại các điều kiện hiện hành: source hash mới nhất, status thành công, nội dung đủ, validator không có lỗi blocking, chất lượng đạt ngưỡng và manual-field protection.
+3. Chỉ admin mới thực hiện thao tác approve tường minh; mọi thao tác ghi cần batch scope, report trước/sau và log người duyệt/thời điểm.
+4. Sau khi duyệt, tính lại storefront readiness theo từng product ID. Không suy luận readiness từ tổng số slot approved; một sản phẩm cần đủ mọi ngôn ngữ bắt buộc.
+5. Dừng batch nếu xuất hiện sai technical token, freshness conflict, readiness giảm hoặc số liệu report không khớp.
+
+### Report tối thiểu
+
+Mỗi dòng ghi `productId`, `targetLang`, field, source hash, verdict, lỗi validator gốc, AI issues, trạng thái review của admin và số request/input characters tiêu thụ. Report tổng hợp candidate, pass/review/fail/error, false-pass/false-fail, số lỗi kỹ thuật, số slot/product được admin approve và readiness sau batch. Không ghi API token hoặc secret.
+
+### Điều kiện trước khi bắt đầu
+
+- Có prompt/schema judge riêng và test cho JSON rỗng/sai cấu trúc, lỗi provider, rate limit, technical-token mismatch và stale hash.
+- Có giới hạn budget rõ ràng cùng cách dừng an toàn khi quota hết.
+- Pilot được chạy chỉ đọc và được người dùng xem xét trước mọi thao tác ghi.
+- Approval vẫn là thao tác admin; nếu muốn tự động approve ở giai đoạn sau phải có quyết định và kế hoạch kiểm soát riêng.
+
+Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiểm định bản dịch bằng AI vòng hai**.
