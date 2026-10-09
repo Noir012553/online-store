@@ -154,14 +154,22 @@ describe('Cloudflare AI rotation', () => {
     expect(axios.post.secondCall.args[0]).to.equal('https://example.invalid/2');
   });
 
-  it('preserves the malformed-response error when retries are exhausted', async () => {
-    sandbox.stub(axios, 'post').resolves({ data: { success: true, result: {} } });
+  it('preserves provider response metadata when retries are exhausted', async () => {
+    sandbox.stub(axios, 'post').resolves({
+      status: 200,
+      statusText: 'OK',
+      data: { success: true, result: {} },
+    });
 
     try {
       await cloudflareAiService._doTranslate('Test', 'vi', 'it', null, 1, 0);
       expect.fail('Expected malformed provider responses to fail');
     } catch (error) {
       expect(error.code).to.equal('CLOUDFLARE_RESPONSE_INVALID');
+      expect(error.response.status).to.equal(200);
+      expect(error.response.data.success).to.equal(true);
+      expect(error.response.data.resultKeys).to.deep.equal([]);
+      expect(error.response.data.responseType).to.equal('undefined');
     }
 
     expect(axios.post.callCount).to.equal(2);
