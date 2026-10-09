@@ -42,6 +42,7 @@ const buildLiveProductRetranslationQuery = (filter = {}) => ({
 
 const buildCatalogProductRetranslationQuery = (filter = {}) => ({
   ...filter,
+  provider: { $ne: 'assistant' },
   $or: [
     { status: { $in: CATALOG_RETRYABLE_STATUSES } },
     ...getQualityConditions(CATALOG_RETRANSLATE_QUALITY_STATUSES),

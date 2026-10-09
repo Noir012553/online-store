@@ -1568,6 +1568,7 @@ exports.approveAssistantProductTranslation = async (req, res) => {
         status: 'success',
         qualityStatus: 'pending',
         sourceHash: getProductTranslationSourceHash(product),
+        ...(translation.updatedAt ? { updatedAt: translation.updatedAt } : {}),
         $or: [
           { validationErrors: { $exists: false } },
           { validationErrors: { $size: 0 } },

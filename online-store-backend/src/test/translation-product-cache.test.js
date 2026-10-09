@@ -25,6 +25,7 @@ const ProductTranslationSeederService = require('../services/productTranslationS
 const translationSeederHelper = require('../services/translationSeederHelper');
 const retranslateProgress = require('../utils/retranslateProgress');
 const {
+  buildCatalogProductRetranslationQuery,
   isCatalogProductRetranslatable,
   isLiveProductRetranslatable,
 } = require('../utils/productRetranslationSelector');
@@ -220,6 +221,7 @@ describe('Product translation cache controller', () => {
   });
 
   it('uses the same retranslation eligibility for catalog and legacy records', () => {
+    expect(buildCatalogProductRetranslationQuery({ entityId: 'product-id' }).provider).to.deep.equal({ $ne: 'assistant' });
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'approved', qualityScore: 100, validationErrors: [] })).to.be.false;
     expect(isCatalogProductRetranslatable({ status: 'success', qualityStatus: 'needs_retranslate', validationErrors: [] })).to.be.true;
     expect(isCatalogProductRetranslatable({
