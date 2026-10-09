@@ -60,6 +60,7 @@ const TEST_SUITES = {
       'r2-asset-service.test.js',
       'export-job-service.test.js',
       'translation-helper.test.js',
+      'storefront-readiness-report.test.js',
       'products.test.js',
     ],
   },
