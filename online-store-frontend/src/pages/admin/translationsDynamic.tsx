@@ -47,6 +47,7 @@ interface TranslationStatus {
   updatedAt: string | null;
   validationErrors: string[];
   canApprove?: boolean;
+  requiresInconsistencyConfirmation?: boolean;
   canRetranslate?: boolean;
 }
 
@@ -75,6 +76,8 @@ export function ProductsTranslationsAdminContent() {
   const [productToRetranslate, setProductToRetranslate] = useState<any | null>(null);
   const [assistantBatchPreview, setAssistantBatchPreview] = useState<any | null>(null);
   const [assistantProductToApprove, setAssistantProductToApprove] = useState<any | null>(null);
+  const [confirmInconsistentApproval, setConfirmInconsistentApproval] = useState(false);
+  const [inconsistencyReviewNote, setInconsistencyReviewNote] = useState('');
   const [isAssistantBatchProcessing, setIsAssistantBatchProcessing] = useState(false);
   const assistantBatchInputRef = useRef<HTMLInputElement>(null);
   const itemsPerPage = 10;
@@ -284,14 +287,24 @@ export function ProductsTranslationsAdminContent() {
     if (!assistantProductToApprove || isAssistantBatchProcessing) return;
     setIsAssistantBatchProcessing(true);
     try {
+      const requiresConfirmation = translationStatuses[assistantProductToApprove._id]?.requiresInconsistencyConfirmation;
       const response = await fetch(`/api/translations/admin/products/${assistantProductToApprove._id}/assistant-approve?lang=${selectedLanguage}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getAuthToken()}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify(requiresConfirmation ? {
+          confirmInconsistent: confirmInconsistentApproval,
+          note: inconsistencyReviewNote,
+        } : {}),
         credentials: 'include',
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || t('assistant_batch_approval_failed', 'productsTranslations'));
       setAssistantProductToApprove(null);
+      setConfirmInconsistentApproval(false);
+      setInconsistencyReviewNote('');
       await fetchStatusesRef.current();
       toast.success(t('assistant_batch_approved', 'productsTranslations'));
     } catch (error) {
@@ -530,7 +543,11 @@ export function ProductsTranslationsAdminContent() {
               onEdit={() => setEditingProductId(product._id)}
               onCancel={() => setEditingProductId(null)}
               onSave={(translations) => handleSaveTranslations(product._id, translations)}
-              onApproveAssistant={() => setAssistantProductToApprove(product)}
+              onApproveAssistant={() => {
+                setConfirmInconsistentApproval(false);
+                setInconsistencyReviewNote('');
+                setAssistantProductToApprove(product);
+              }}
               isSubmitting={isSubmitting}
               translationStatus={translationStatuses[product._id]}
               isRetranslating={retranslatingProductId === product._id}
@@ -541,7 +558,13 @@ export function ProductsTranslationsAdminContent() {
         )}
       </div>
 
-      <Dialog open={Boolean(assistantProductToApprove)} onOpenChange={(open) => !open && setAssistantProductToApprove(null)}>
+      <Dialog open={Boolean(assistantProductToApprove)} onOpenChange={(open) => {
+        if (!open) {
+          setAssistantProductToApprove(null);
+          setConfirmInconsistentApproval(false);
+          setInconsistencyReviewNote('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('assistant_batch_approve', 'productsTranslations')}</DialogTitle>
@@ -549,11 +572,37 @@ export function ProductsTranslationsAdminContent() {
           <p className="text-sm text-gray-600">
             {t('assistant_batch_approve_confirm', 'productsTranslations').replace('{name}', assistantProductToApprove?.name || '')}
           </p>
+          {translationStatuses[assistantProductToApprove?._id]?.requiresInconsistencyConfirmation && (
+            <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              <p>{t('assistant_batch_inconsistency_warning', 'productsTranslations')}</p>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={confirmInconsistentApproval}
+                  onChange={(event) => setConfirmInconsistentApproval(event.target.checked)}
+                />
+                <span>{t('assistant_batch_inconsistency_confirm', 'productsTranslations')}</span>
+              </label>
+              <Input
+                value={inconsistencyReviewNote}
+                onChange={(event) => setInconsistencyReviewNote(event.target.value)}
+                placeholder={t('assistant_batch_inconsistency_note', 'productsTranslations')}
+                aria-label={t('assistant_batch_inconsistency_note', 'productsTranslations')}
+                maxLength={500}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssistantProductToApprove(null)} disabled={isAssistantBatchProcessing}>
               {t('cancel_button', 'productsTranslations')}
             </Button>
-            <Button onClick={handleAssistantApprove} disabled={isAssistantBatchProcessing}>
+            <Button
+              onClick={handleAssistantApprove}
+              disabled={isAssistantBatchProcessing || (
+                Boolean(translationStatuses[assistantProductToApprove?._id]?.requiresInconsistencyConfirmation)
+                && (!confirmInconsistentApproval || inconsistencyReviewNote.trim().length < 10)
+              )}
+            >
               {isAssistantBatchProcessing ? t('assistant_batch_approving', 'productsTranslations') : t('assistant_batch_approve', 'productsTranslations')}
             </Button>
           </DialogFooter>

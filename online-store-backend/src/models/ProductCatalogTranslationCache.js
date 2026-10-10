@@ -73,6 +73,12 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    approvalReview: {
+      overriddenErrors: { type: [String], default: undefined },
+      note: { type: String, default: undefined },
+      reviewedBy: { type: String, default: undefined },
+      reviewedAt: { type: Date, default: undefined },
+    },
     status: {
       type: String,
       enum: ['success', 'failed_rate_limit', 'failed_error', 'pending_retry'],
