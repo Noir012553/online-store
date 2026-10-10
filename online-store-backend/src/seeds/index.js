@@ -25,6 +25,7 @@ const { runProductSeedPipeline, runScraper } = require('./productSeedPipeline');
  * npm run seed -- --dry-run                     - Seed nền và preview import, không ghi Product hoặc gọi crawler
  * npm run seed -- --incremental                 - Only translate missing items
  * npm run seed -- --skip-translate              - Skip translation API calls across seed modules
+ * npm run seed -- --skip-reviewer-avatars      - Skip remote reviewer avatar uploads
  * npm run seed:post-products                    - Seed dữ liệu phụ thuộc sau khi import Product
  * npm run seed -- --i18n-only                   - Seed ONLY i18n (Layer 1: languages + translations)
  * npm run seed -- --shutdown-machine            - Shutdown Windows after report generation
@@ -113,6 +114,7 @@ function parseCliArgs() {
     skipScrape: args.includes('--skip-scrape'),
     forceScrape: args.includes('--force-scrape'),
     skipTranslate: args.includes('--skip-translate'),
+    skipReviewerAvatars: args.includes('--skip-reviewer-avatars'),
     shutdownMachine: args.includes('--shutdown-machine'),
   };
 }
@@ -320,6 +322,7 @@ const seed = async () => {
           }
           result = await seederFn(seedContext.products, seedContext.users, {
             skipTranslate: cliArgs.skipTranslate,
+            skipReviewerAvatars: cliArgs.skipReviewerAvatars,
           });
         } else if (moduleName === 'orders') {
           if (!seedContext.products || !seedContext.users || !seedContext.customers) {

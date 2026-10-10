@@ -19,7 +19,7 @@ const { seedAboutReviewers } = require('./aboutMediaSeeder');
  * @param {Array} products - Danh sách products
  * @param {Array} users - Danh sách users
  */
-const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
+const seedReviews = async (products, users, { skipTranslate = false, skipReviewerAvatars = false } = {}) => {
   if (!Array.isArray(products) || products.length === 0) {
     throw new Error('Cannot seed reviews without products');
   }
@@ -27,8 +27,6 @@ const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
   if (!Array.isArray(users) || users.length === 0) {
     throw new Error('Cannot seed reviews without users');
   }
-
-  await Review.deleteMany({});
 
   const reviews = [];
   const ratings = [3, 4, 4.5, 5, 3.5];
@@ -42,7 +40,14 @@ const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
     'As a student, LaptopStore helped me get a great laptop at an affordable price.',
     'In-depth consultation, 24/7 support, LaptopStore is truly a trusted address for tech enthusiasts.',
   ];
-  const reviewerAssets = await seedAboutReviewers();
+  let reviewerAssets = [];
+  if (!skipReviewerAvatars) {
+    try {
+      reviewerAssets = await seedAboutReviewers();
+    } catch (error) {
+      console.warn(`${CLI_SYMBOLS.warning} Reviewer avatar assets unavailable; reviews will use initials: ${error.message}`);
+    }
+  }
   const testimonialReviewers = ABOUT_MEDIA.reviewers.map((reviewer, index) => ({
     ...reviewer,
     asset: reviewerAssets[index],
@@ -74,14 +79,11 @@ const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
     });
   }
 
-  const createdReviews = await Review.create(reviews);
-  const reviewIdsByProduct = new Map();
-  createdReviews.forEach((review) => {
-    const productId = review.product.toString();
-    const reviewIds = reviewIdsByProduct.get(productId) || [];
-    reviewIds.push(review._id);
-    reviewIdsByProduct.set(productId, reviewIds);
+  await Review.deleteMany({
+    product: { $in: products.map(({ _id }) => _id) },
+    comment: { $in: testimonialComments },
   });
+  const createdReviews = await Review.create(reviews);
 
   // 🚀 OPTIMIZED: Use MongoDB Aggregation Pipeline to calculate ratings
   // BEFORE: Loop N products × 1 find = N DB queries + N save = 2N operations
@@ -98,6 +100,7 @@ const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
         _id: '$product',
         avgRating: { $avg: '$rating' },
         reviewCount: { $sum: 1 },
+        reviewIds: { $push: '$_id' },
       }},
     ]);
 
@@ -112,7 +115,7 @@ const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
             $set: {
               rating: Number(stat.avgRating.toFixed(1)),
               numReviews: stat.reviewCount,
-              reviews: reviewIdsByProduct.get(stat._id.toString()) || [],
+              reviews: stat.reviewIds,
             },
           },
         },
