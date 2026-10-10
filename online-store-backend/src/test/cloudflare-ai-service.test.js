@@ -144,7 +144,7 @@ describe('Cloudflare AI rotation', () => {
 
   it('retries a malformed provider response and succeeds with the next configuration', async () => {
     sandbox.stub(axios, 'post')
-      .onFirstCall().resolves({ data: { success: true, result: {} } })
+      .onFirstCall().resolves({ data: { success: true, result: { response: '' } } })
       .onSecondCall().resolves({ data: { success: true, result: { response: 'Traduzione' } } });
 
     const translated = await cloudflareAiService._doTranslate('Test', 'vi', 'it', null, 1, 0);
@@ -152,6 +152,8 @@ describe('Cloudflare AI rotation', () => {
     expect(translated).to.equal('Traduzione');
     expect(axios.post.callCount).to.equal(2);
     expect(axios.post.secondCall.args[0]).to.equal('https://example.invalid/2');
+    expect(axios.post.secondCall.args[1].messages[1].content)
+      .to.include('Always return a non-empty translation');
   });
 
   it('preserves provider response metadata when retries are exhausted', async () => {
