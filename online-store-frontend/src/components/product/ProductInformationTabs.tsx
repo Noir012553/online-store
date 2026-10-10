@@ -71,7 +71,11 @@ export function ProductInformationTabs({
         </TabsTrigger>
       </TabsList>
       <TabsContent value="description" id="product-description-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
-        <ProductDescriptionFormatter text={product.description} />
+        <ProductDescriptionFormatter
+          text={product.description}
+          specs={product.specs}
+          specLabels={product.specLabels}
+        />
         {descriptionImages.length > 0 && (
           <section className="mt-6 border-t border-slate-100 pt-6" aria-label={t('description_images', 'products')}>
             <h3 className="mb-4 text-lg font-semibold text-gray-900">{t('description_images', 'products')}</h3>

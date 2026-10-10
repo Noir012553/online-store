@@ -90,12 +90,17 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
   const { t } = useTranslation();
 
   const sanitizedText = sanitizeDescription(text || "");
-  const embeddedSpecsPattern = /(?:^|\n)\s*(?:Thông số|Specifications?)\s*:\s*\{[\s\S]*?\}(?=\s|$)/i;
+  const embeddedSpecsPattern = /(?:^|\n)\s*(?:Thông số(?: kỹ thuật)?|Specifications?)\s*:\s*\{[\s\S]*?\}(?=\s|$)/i;
+  const leadingSpecsHeadingPattern = /^\s*(?:Thông số(?: kỹ thuật)?|Specifications?)\s*:?\s*(?:\n|$)/i;
   const specEntries = Object.entries(specs || {});
-  const hasEmbeddedSpecs = embeddedSpecsPattern.test(sanitizedText) && specEntries.length > 0;
-  const descriptionIntro = sanitizedText.replace(embeddedSpecsPattern, '').trim();
+  const hasSpecsHeading = leadingSpecsHeadingPattern.test(sanitizedText);
+  const hasSpecsSection = (embeddedSpecsPattern.test(sanitizedText) || hasSpecsHeading) && specEntries.length > 0;
+  const descriptionIntro = sanitizedText
+    .replace(embeddedSpecsPattern, '')
+    .replace(leadingSpecsHeadingPattern, '')
+    .trim();
 
-  if (hasEmbeddedSpecs) {
+  if (hasSpecsSection) {
 
     return (
       <div className={className}>
