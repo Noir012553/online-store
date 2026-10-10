@@ -4,7 +4,7 @@
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái tài liệu:** đã triển khai một phần các bảo vệ trong code cho checkpoint, accounting/report và technical token. Chưa chạy migration, chưa truy cập/cập nhật database, chưa chạy retranslate hoặc canary. Luồng candidate-before-commit và kiểm thử đầy đủ vẫn còn tiếp tục.
+**Trạng thái tài liệu:** đã triển khai một phần các bảo vệ trong code cho checkpoint, accounting/report và technical token. Câu “chưa truy cập/cập nhật database, chưa chạy retranslate hoặc canary” mô tả trạng thái tại thời điểm ghi phần incident ban đầu; kết quả pilot trợ lý và thao tác DB có kiểm soát được cập nhật ở cuối tài liệu.
 
 ## Số liệu ghi nhận
 
@@ -207,7 +207,7 @@ Sau khi chạy, cần đối chiếu report/cache theo từng ngôn ngữ để 
 
 ## Đề xuất — Dùng trợ lý để bổ sung bản dịch từ nguồn sản phẩm
 
-**Trạng thái: chỉ là kế hoạch; chưa xuất dữ liệu, dịch, gọi provider hay cập nhật MongoDB.**
+**Trạng thái lúc lập đề xuất:** chưa xuất dữ liệu, dịch, gọi provider hay cập nhật MongoDB. Kết quả pilot được thực hiện sau đó được ghi tại mục cập nhật cuối tài liệu.
 
 ### Mục tiêu và số liệu đầu vào
 
@@ -293,7 +293,7 @@ Khuyến nghị bắt đầu với 5–10 sản phẩm và 1–2 ngôn ngữ, ki
 
 - Đã thêm provenance assistant, metadata approval, export batch, import draft có preview, approval có kiểm tra freshness, giao diện admin và test tương ứng.
 - Bản dịch do trợ lý tạo không được gắn nhãn Cloudflare. Assistant draft vẫn là `pending` cho đến khi admin duyệt.
-- Không có dữ liệu bản dịch production nào được dịch/import/approve trong lúc triển khai luồng này.
+- Tại thời điểm kiểm chứng luồng code, chưa có dữ liệu bản dịch production nào được dịch/import/approve; pilot DB có kiểm soát được thực hiện sau đó và ghi tại mục cập nhật 2026-10-10.
 - Các kiểm tra đã chạy: 9 test mục tiêu pass; frontend typecheck pass; JavaScript syntax, JSON parse và `git diff --check` pass. Không chạy `npm run build`.
 - Chưa xác minh giao diện bằng browser vì preview không khả dụng trong phiên đó.
 
@@ -376,3 +376,31 @@ Mỗi dòng ghi `productId`, `targetLang`, field, source hash, verdict, lỗi va
 - Approval vẫn là thao tác admin; nếu muốn tự động approve ở giai đoạn sau phải có quyết định và kế hoạch kiểm soát riêng.
 
 Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiểm định bản dịch bằng AI vòng hai**.
+
+## Cập nhật 2026-10-10 — Kết quả pilot trợ lý và bài học
+
+### Vấn đề gặp phải
+
+- Candidate cũ gồm 5 sản phẩm × 8 locale được lưu trong `reports/`, thư mục bị ignore khỏi Git. Sau khi workspace được làm mới, các file không còn trong cây dự án và không thể khôi phục từ nhánh đã push. Không được coi các candidate cũ là đã import.
+- Khi dựng lại pilot từ nguồn DB, một số nguồn ban đầu có mô tả quá ngắn hoặc lẫn nội dung sản phẩm khác; các nguồn đó bị loại, không dịch hoặc duyệt.
+- Validator phát hiện technical token bị đổi định dạng trong bản nháp đầu, gồm `Φ13mm`, `Bluetooth v5.4` và `60ms`. Candidate được sửa để giữ nguyên token theo nguồn trước khi import.
+- Lỗi `inconsistent` phát sinh do bản dịch khác chuỗi với bản approved cũ; đây không tự chứng minh bản dịch mới sai. Chỉ các locale được admin xem xét và xác nhận riêng mới được approve có audit.
+
+### Kết quả đã xác minh
+
+- Phạm vi thực tế là **1 sản phẩm**: Edifier True Wireless X1 Lite White; không phải toàn bộ pilot 5 sản phẩm.
+- Import 4 assistant draft cho `en`, `fr`, `de`, `nl`. Các locale `pt`, `it`, `es`, `sv` đã approved trước đó nên được giữ nguyên, không ghi đè.
+- Cả 4 draft đạt ngưỡng điểm và không còn lỗi blocking ngoài `inconsistent`; `en`, `de`, `nl` được duyệt sau xác nhận có ghi audit, `fr` được duyệt không cần override.
+- Kiểm tra sau duyệt xác nhận đủ 8/8 locale bắt buộc, `sourceHash` hiện hành, không còn validation error, readiness tính lại và cờ lưu đều là `true`. Sản phẩm đạt điều kiện hiển thị storefront.
+- Chưa dịch hoặc duyệt 4 sản phẩm còn lại từ kế hoạch pilot ban đầu. Kết quả của sản phẩm này không đại diện cho readiness toàn catalog.
+
+### Bài học vận hành
+
+1. Candidate trong thư mục bị ignore không phải bằng chứng lưu trữ bền vững. Cần giữ export/candidate ở nơi có thể khôi phục hoặc tạo lại từ nguồn DB và kiểm tra `sourceHash` trước khi tiếp tục.
+2. Trước khi dịch, kiểm tra nguồn có khớp sản phẩm, mô tả đủ nghĩa và thông số nhất quán; loại nguồn lẫn sản phẩm hoặc thiếu dữ liệu thay vì tự suy đoán.
+3. Bảo toàn model/SKU, số liệu, đơn vị và technical token nguyên dạng, gồm cả ký hiệu Unicode và khoảng trắng có ý nghĩa; chạy validator và dry-run trước khi import.
+4. Chỉ dịch locale thiếu hoặc lỗi; giữ nguyên locale đã approved, field thủ công và hash còn mới.
+5. Phân biệt lỗi nội dung với `inconsistent` do khác chuỗi so với cache cũ. Override chỉ áp dụng khi các điều kiện khác đều đạt và phải có xác nhận cùng ghi chú audit.
+6. Approval từng locale không đồng nghĩa storefront-ready. Sau cùng phải kiểm tra completeness, validation errors, source hash và cờ readiness tính lại trên sản phẩm.
+
+Không chạy `npm run build` trong lần cập nhật này.
