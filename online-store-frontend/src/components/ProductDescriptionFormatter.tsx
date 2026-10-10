@@ -67,10 +67,16 @@ const sanitizeDescription = (text: string): string => {
   return cleaned;
 };
 
+const getDescriptionParagraphs = (text: string): string[] => text
+  .replace(/[\u200B-\u200D\uFEFF]/g, '')
+  .replace(/##/g, '\n\n')
+  .split(/\n\s*\n+/)
+  .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim())
+  .filter(Boolean);
+
 /**
  * Component để hiển thị mô tả sản phẩm với xuống dòng tự động
- * - Xuống dòng sau dấu kết thúc câu, không tách số thập phân
- * - Thay thế "##" bằng xuống dòng
+ * - Tách đoạn theo dòng trống
  * - Chức năng "Xem chi tiết" / "Thu lại"
  */
 export const ProductDescriptionFormatter: React.FC<Props> = ({
@@ -93,9 +99,13 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
 
     return (
       <div className={className}>
-        {descriptionIntro && (
-          <p className="mb-4 leading-relaxed text-gray-700">{descriptionIntro}</p>
-        )}
+        <div className="mb-4 space-y-4">
+          {getDescriptionParagraphs(descriptionIntro).map((paragraph, index) => (
+            <p key={`${index}-${paragraph.slice(0, 32)}`} className="break-words leading-7 text-gray-700">
+              {paragraph}
+            </p>
+          ))}
+        </div>
         <section className="rounded-xl border border-red-100 bg-red-50/50 p-4 sm:p-5">
           <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg">
             <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden="true" />
@@ -126,74 +136,25 @@ export const ProductDescriptionFormatter: React.FC<Props> = ({
     return <p className={className}>{t('no_description', 'products')}</p>;
   }
 
-  let processedText = sanitizedText.replace(/##/g, '\n');
-
-  // Tìm tất cả break positions
-  const breakPositions: number[] = [];
-  
-  for (let i = 0; i < processedText.length;) {
-    const char = String.fromCodePoint(processedText.codePointAt(i)!);
-
-    // Break sau dấu chấm kết thúc câu, không tách số thập phân.
-    if (char === '.') {
-      const previousChar = i > 0 ? processedText[i - 1] : '';
-      const nextChar = processedText[i + 1] || '';
-      const isDecimalPoint = /\d/.test(previousChar) && /\d/.test(nextChar);
-      const isSentenceEnd = !nextChar || /\s/.test(nextChar);
-
-      if (!isDecimalPoint && isSentenceEnd) {
-        breakPositions.push(nextChar === ' ' ? i + 2 : i + 1);
-      }
-    }
-
-    i += char.length;
-  }
-
-  // Nếu không có break points, hiển thị text bình thường
-  if (breakPositions.length === 0) {
-    return <p className={className}>{processedText}</p>;
-  }
-
-  // Sắp xếp và loại bỏ duplicate
-  const uniquePositions = [...new Set(breakPositions)].sort((a, b) => a - b);
-
-  // Tạo tất cả các dòng
-  const lines: string[] = [];
-  let lastPos = 0;
-
-  uniquePositions.forEach((breakPos) => {
-    const part = processedText.substring(lastPos, breakPos).trim();
-    if (part) {
-      lines.push(part);
-    }
-    lastPos = breakPos;
-  });
-
-  // Thêm phần còn lại
-  const remaining = processedText.substring(lastPos).trim();
-  if (remaining) {
-    lines.push(remaining);
-  }
-
-  // Kiểm tra có cần expand/collapse không
-  const needsExpand = maxLines !== undefined && lines.length > maxLines;
-  const visibleLines = isExpanded || maxLines === undefined ? lines : lines.slice(0, maxLines);
+  const paragraphs = getDescriptionParagraphs(sanitizedText);
+  const needsExpand = maxLines !== undefined && paragraphs.length > maxLines;
+  const visibleParagraphs = isExpanded || maxLines === undefined ? paragraphs : paragraphs.slice(0, maxLines);
 
   return (
-    <div className={className}>
-      <p className="whitespace-pre-line leading-relaxed text-gray-700">
-        {visibleLines.join('\n')}
-      </p>
+    <div className={`${className} space-y-4`}>
+      {visibleParagraphs.map((paragraph, index) => (
+        <p key={`${index}-${paragraph.slice(0, 32)}`} className="break-words leading-7 text-gray-700">
+          {paragraph}
+        </p>
+      ))}
       {needsExpand && (
-        <>
-          <br />
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-red-600 hover:text-red-800 hover:underline font-medium mt-2 inline-block"
-          >
-            {isExpanded ? t('show_less', 'common') : t('show_more', 'common')}
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mt-2 inline-block font-medium text-red-600 hover:text-red-800 hover:underline"
+        >
+          {isExpanded ? t('show_less', 'common') : t('show_more', 'common')}
+        </button>
       )}
     </div>
   );
