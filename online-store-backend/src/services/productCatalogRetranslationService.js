@@ -47,7 +47,7 @@ const mapWithConcurrency = async (items, mapper, concurrency) => {
 const retranslateProductUnlocked = async (
   productId,
   targetLang,
-  { checkpoint = null, parallelProducts = 1 } = {},
+  { checkpoint = null, parallelProducts = 1, retryMixedLanguage = false } = {},
 ) => {
   const configuredConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 1);
   if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1) {
@@ -139,18 +139,39 @@ const retranslateProductUnlocked = async (
     const currentCanonical = await useApprovedCanonical(currentValidation);
     if (currentCanonical) return currentCanonical;
 
-    const result = await productTranslationService.translateWithCloudflare(
-      sourceText,
-      getDefaultLanguage().code,
-      targetLang,
-    );
+    const retryableCheckpointCandidate = retryMixedLanguage
+      && completed?.payload?.validation?.validationErrors?.includes('mixed_language');
+    let result = retryableCheckpointCandidate
+      ? {
+        translatedText: completed.payload.value,
+        providersUsed: completed.payload.providersUsed || ['cloudflare'],
+      }
+      : await productTranslationService.translateWithCloudflare(
+        sourceText,
+        getDefaultLanguage().code,
+        targetLang,
+      );
     providerUsed = true;
-    const validation = await translationValidator.validateTranslation(
+    let validation = await translationValidator.validateTranslation(
       sourceText,
       result.translatedText,
       targetLang,
       entityType,
     );
+    if (retryMixedLanguage && validation.validationErrors?.includes('mixed_language')) {
+      result = await productTranslationService.translateWithCloudflare(
+        sourceText,
+        getDefaultLanguage().code,
+        targetLang,
+        'Remove all untranslated Vietnamese words and phrases. Preserve every brand, model, SKU, technical value, number, unit, and markup token exactly as in the source. Return only the complete translation.',
+      );
+      validation = await translationValidator.validateTranslation(
+        sourceText,
+        result.translatedText,
+        targetLang,
+        entityType,
+      );
+    }
     if (!isApproved(validation)) {
       const canonical = await useApprovedCanonical(validation);
       if (canonical) return canonical;
