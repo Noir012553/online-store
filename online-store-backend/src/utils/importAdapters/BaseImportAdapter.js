@@ -207,6 +207,23 @@ class BaseImportAdapter {
     }
     normalized.baseCurrencyCode = 'VND';
 
+    if (normalized.sku === 'TAI-RAZ-BLACK-SHARK-V2-X') {
+      normalized.description = String(normalized.description || '')
+        .replace(/^\s*Thông số kỹ thuật\s*:?\s*/i, '')
+        .replace(/khả năngnhận/gi, 'khả năng nhận')
+        .replace(/thiếtkế/gi, 'thiết kế');
+      if (normalized.specs?.['Phương thức kết nối'] === 'Công nghệ Driver loa') {
+        normalized.specs = {
+          ...normalized.specs,
+          'Phương thức kết nối': 'Có dây (jack 3,5 mm)',
+        };
+      }
+      normalized.technicalDescription = String(normalized.technicalDescription || '').replace(
+        /("Phương thức kết nối"\s*:\s*)"Công nghệ Driver loa"/,
+        '$1"Có dây (jack 3,5 mm)"',
+      );
+    }
+
     return normalized;
   }
 

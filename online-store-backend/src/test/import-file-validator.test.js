@@ -158,6 +158,29 @@ describe('Canonical scraper contract', () => {
     }]);
   });
 
+  it('corrects known BlackShark V2 X scrape defects during import', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductName: 'Tai nghe Razer BlackShark V2 X',
+      ProductSKU: 'TAI-RAZ-BLACK-SHARK-V2-X',
+      ProductDescription: 'Thông số kỹ thuật:\n\nĐánh giá chi tiết: khả năngnhận giọng nói tốt hơn, thiết kế nhẹ.',
+      ProductTechnicalDescription: 'Thông số: {"Phương thức kết nối": "Công nghệ Driver loa"}',
+      ProductSpecifications: { 'Phương thức kết nối': 'Công nghệ Driver loa' },
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+
+    expect(parsed.description).to.equal('Đánh giá chi tiết: khả năng nhận giọng nói tốt hơn, thiết kế nhẹ.');
+    expect(parsed.specs['Phương thức kết nối']).to.equal('Có dây (jack 3,5 mm)');
+    expect(parsed.technicalDescription).to.equal('Thông số: {"Phương thức kết nối": "Có dây (jack 3,5 mm)"}');
+
+    const [unrelatedProduct] = await new JSONAdapter().parse(JSON.stringify([{
+      ...product,
+      ProductSKU: 'ANOTHER-HEADSET',
+    }]));
+    expect(unrelatedProduct.description).to.equal(product.ProductDescription);
+    expect(unrelatedProduct.specs['Phương thức kết nối']).to.equal('Công nghệ Driver loa');
+  });
+
   it('deduplicates structured content and rejects unknown promotion types', () => {
     const normalized = normalizeProductContentFields({
       descriptionImages: [
