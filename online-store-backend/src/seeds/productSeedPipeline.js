@@ -679,14 +679,17 @@ const runProductSeedPipeline = async (options = {}) => {
     );
   }
 
-  if (dryRun || options.skipTranslate) {
+  if (dryRun) {
     console.log('[ProductPipeline] Kết thúc ở bước import preview');
     return { files, imports, translations: {}, initializeHighlights };
   }
 
-  const translations = await translateProducts(options.languages);
+  const translations = options.skipTranslate
+    ? {}
+    : await translateProducts(options.languages);
   const productIds = await Product.find({ isDeleted: false }).distinct('_id');
   const storefrontReadiness = await refreshStorefrontReadiness(productIds);
+  console.log(`[ProductPipeline] Storefront readiness: ${storefrontReadiness.readyCount} ready, ${storefrontReadiness.notReadyCount} not ready`);
   return { files, imports, translations, storefrontReadiness, initializeHighlights };
 };
 
