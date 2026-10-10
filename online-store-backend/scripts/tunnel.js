@@ -58,10 +58,10 @@ const resolveExecutable = () => {
   const bundledExecutable = path.join(backendRoot, 'cloudflared.exe');
   const bundledLfsPointer = isGitLfsPointer(bundledExecutable);
   const reason = bundledLfsPointer
-    ? 'The bundled cloudflared.exe is a Git LFS pointer, not a Windows executable. '
+    ? 'The bundled cloudflared.exe is a Git LFS pointer, not a Windows executable. From the repository root, run `git lfs install` and `git lfs pull --include="online-store-backend/cloudflared.exe"`. '
     : '';
   throw new Error(
-    `${reason}Install a valid cloudflared.exe, set CLOUDFLARED_BIN to its path, or add it to PATH.`,
+    `${reason}Alternatively, install a valid cloudflared.exe, set CLOUDFLARED_BIN to its path, or add it to PATH.`,
   );
 };
 
