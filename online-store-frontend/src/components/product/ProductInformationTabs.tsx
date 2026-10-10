@@ -1,8 +1,10 @@
 import { useLanguage } from '../../lib/i18n';
 import { FileText, Gift, MessageCircle } from 'lucide-react';
 import { Laptop } from '../../lib/data';
+import { getImageUrl } from '../../lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ProductDescriptionFormatter } from '../ProductDescriptionFormatter';
+import { ImageWithFallback } from '../image/ImageWithFallback';
 import { ProductReviews, type ProductReview, type ProductReviewForm } from './ProductReviews';
 
 interface ProductInformationTabsProps {
@@ -47,6 +49,10 @@ export function ProductInformationTabs({
   onOpenImage,
 }: ProductInformationTabsProps) {
   const { t } = useLanguage();
+  const descriptionImages = (product.descriptionImages || []).flatMap((image) => {
+    const src = getImageUrl(image.asset?.publicUrl || image.url);
+    return src ? [{ src, alt: image.alt?.trim() || product.name, caption: image.alt?.trim() }] : [];
+  });
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mb-10 sm:mb-14">
@@ -66,6 +72,33 @@ export function ProductInformationTabs({
       </TabsList>
       <TabsContent value="description" id="product-description-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         <ProductDescriptionFormatter text={product.description} />
+        {descriptionImages.length > 0 && (
+          <section className="mt-6 border-t border-slate-100 pt-6" aria-label={t('description_images', 'products')}>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">{t('description_images', 'products')}</h3>
+            <div className="space-y-5">
+              {descriptionImages.map((image, index) => (
+                <figure key={`${image.src}-${index}`} className="mx-auto w-full max-w-4xl">
+                  <button
+                    type="button"
+                    onClick={() => onOpenImage(image.src, image.alt)}
+                    className="relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-xl bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    aria-label={image.alt}
+                  >
+                    <ImageWithFallback
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 896px"
+                      loading="lazy"
+                      className="object-contain"
+                    />
+                  </button>
+                  {image.caption && <figcaption className="mt-2 text-center text-sm text-slate-600">{image.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          </section>
+        )}
       </TabsContent>
       <TabsContent value="promotions" id="product-promotions-container" className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.45)] sm:mt-4 sm:p-6">
         {product.promotions && product.promotions.length > 0 ? (
