@@ -19,7 +19,7 @@ const { seedAboutReviewers } = require('./aboutMediaSeeder');
  * @param {Array} products - Danh sách products
  * @param {Array} users - Danh sách users
  */
-const seedReviews = async (products, users) => {
+const seedReviews = async (products, users, { skipTranslate = false } = {}) => {
   if (!Array.isArray(products) || products.length === 0) {
     throw new Error('Cannot seed reviews without products');
   }
@@ -128,23 +128,26 @@ const seedReviews = async (products, users) => {
     throw error;
   }
 
-  // Tầng 2: Translate reviews to other supported languages
-  console.log(`\n[Step 2/2] Starting automatic translation of ${createdReviews.length} reviews to supported languages...`);
-  console.time(`${CLI_SYMBOLS.duration} Batch review translation`);
+  if (skipTranslate) {
+    console.log(`${CLI_SYMBOLS.skip} Review translation skipped`);
+  } else {
+    console.log(`\n[Step 2/2] Starting automatic translation of ${createdReviews.length} reviews to supported languages...`);
+    console.time(`${CLI_SYMBOLS.duration} Batch review translation`);
 
-  try {
-    const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
-    const defaultLang = getDefaultLanguage().code;
-    const targetLangs = getActiveLangCodes().filter(l => l !== defaultLang);
-    await translationSeederHelper.translateReviewsBatch(createdReviews, targetLangs);
-  } catch (translationError) {
-    console.warn(
-      `${CLI_SYMBOLS.warning} Review translation failed (non-blocking): ${translationError.message}`
-    );
-    console.log(`${CLI_SYMBOLS.idea} Translations can be added manually later via translation API`);
+    try {
+      const { getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
+      const defaultLang = getDefaultLanguage().code;
+      const targetLangs = getActiveLangCodes().filter(l => l !== defaultLang);
+      await translationSeederHelper.translateReviewsBatch(createdReviews, targetLangs);
+    } catch (translationError) {
+      console.warn(
+        `${CLI_SYMBOLS.warning} Review translation failed (non-blocking): ${translationError.message}`
+      );
+      console.log(`${CLI_SYMBOLS.idea} Translations can be added manually later via translation API`);
+    }
+
+    console.timeEnd(`${CLI_SYMBOLS.duration} Batch review translation`);
   }
-
-  console.timeEnd(`${CLI_SYMBOLS.duration} Batch review translation`);
   console.log(`\n${CLI_SYMBOLS.chartUp} REVIEW SEEDING COMPLETE:\n   ${CLI_SYMBOLS.bullet} Reviews created: ${createdReviews.length}\n   ${CLI_SYMBOLS.bullet} Products rated: ${ratingStats.length}`);
 
   return createdReviews;

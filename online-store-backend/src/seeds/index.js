@@ -24,6 +24,7 @@ const { runProductSeedPipeline, runScraper } = require('./productSeedPipeline');
  * npm run seed                                  - Cào dữ liệu trước, sau đó seed, import, dịch và post-products
  * npm run seed -- --dry-run                     - Seed nền và preview import, không ghi Product hoặc gọi crawler
  * npm run seed -- --incremental                 - Only translate missing items
+ * npm run seed -- --skip-translate              - Skip translation API calls across seed modules
  * npm run seed:post-products                    - Seed dữ liệu phụ thuộc sau khi import Product
  * npm run seed -- --i18n-only                   - Seed ONLY i18n (Layer 1: languages + translations)
  * npm run seed -- --shutdown-machine            - Shutdown Windows after report generation
@@ -179,6 +180,11 @@ const seed = async () => {
       process.env.INCREMENTAL_SEED = 'true';
     }
 
+    if (cliArgs.skipTranslate) {
+      process.env.ENABLE_DYNAMIC_SPEC_KEY_TRANSLATION = 'false';
+      seedLogger.log(`${CLI_SYMBOLS.skip} SKIP TRANSLATE MODE: All seed translation calls are disabled\n`);
+    }
+
     if (cliArgs.i18nOnly) {
       seedLogger.log(`${CLI_SYMBOLS.globe} i18n ONLY (LAYER 1): Seeding languages, translations and spec labels\n`);
     }
@@ -223,7 +229,8 @@ const seed = async () => {
       if (runFullPipeline) {
         modulesToRun.push('__product-pipeline__');
         if (!cliArgs.dryRun) modulesToRun.push(...SEED_PHASES.postProducts);
-        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: crawler -> baseline -> import -> translation -> post-products\n`);
+        const translationStep = cliArgs.skipTranslate ? 'skip translation' : 'translation';
+        seedLogger.log(`${CLI_SYMBOLS.package} FULL MODE: crawler -> baseline -> import -> ${translationStep} -> post-products\n`);
       } else {
         seedLogger.log(`${CLI_SYMBOLS.package} PRE-PRODUCTS MODE: Running baseline modules before product import\n`);
       }
@@ -311,7 +318,9 @@ const seed = async () => {
             seedContext.products = await Product.find().lean();
             seedContext.users = await User.find().lean();
           }
-          result = await seederFn(seedContext.products, seedContext.users);
+          result = await seederFn(seedContext.products, seedContext.users, {
+            skipTranslate: cliArgs.skipTranslate,
+          });
         } else if (moduleName === 'orders') {
           if (!seedContext.products || !seedContext.users || !seedContext.customers) {
             const Product = require('../models/Product');
@@ -330,6 +339,8 @@ const seed = async () => {
             seedContext.categories = await Category.find().lean();
           }
           result = await seederFn(seedContext.products, seedContext.categories);
+        } else if (moduleName === 'specTranslations') {
+          result = await seederFn({ skipTranslate: cliArgs.skipTranslate });
         } else if (moduleName === 'locations') {
           if (!seedContext.shippingProviders) {
             // locations depends on shippingProviders being configured

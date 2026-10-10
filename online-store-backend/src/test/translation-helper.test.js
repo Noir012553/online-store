@@ -10,9 +10,11 @@ const {
   overlayBannerTranslations,
   overlayTestimonialTranslations,
   getStorefrontVisibleProductIds,
+  refreshStorefrontReadiness,
   localizeProductSpecs,
 } = require('../services/translationHelper');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
+const Product = require('../models/Product');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 
 function createQueryMock() {
@@ -307,16 +309,22 @@ describe('translationHelper - Static product specification labels', () => {
 
 describe('translationHelper - Storefront product visibility', () => {
   let originalProductCache;
+  let originalProductFind;
+  let originalProductBulkWrite;
   let mockProductCache;
 
   beforeEach(() => {
     originalProductCache = CACHE_MODELS.product;
+    originalProductFind = Product.find;
+    originalProductBulkWrite = Product.bulkWrite;
     mockProductCache = { find: createQueryMock() };
     CACHE_MODELS.product = mockProductCache;
   });
 
   afterEach(() => {
     CACHE_MODELS.product = originalProductCache;
+    Product.find = originalProductFind;
+    Product.bulkWrite = originalProductBulkWrite;
   });
 
   const product = {
@@ -374,6 +382,27 @@ describe('translationHelper - Storefront product visibility', () => {
     const result = await getStorefrontVisibleProductIds([sourceProduct]);
 
     assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('returns readiness totals after updating stored storefront flags', async () => {
+    Product.find = () => {
+      const query = {
+        select: () => query,
+        lean: async () => [product],
+      };
+      return query;
+    };
+    Product.bulkWrite = async () => ({ matchedCount: 1, modifiedCount: 1 });
+    mockProductCache.find.result = Promise.resolve(createTranslations());
+
+    const result = await refreshStorefrontReadiness(['product-1']);
+
+    assert.deepStrictEqual(result, {
+      matchedCount: 1,
+      modifiedCount: 1,
+      readyCount: 1,
+      notReadyCount: 0,
+    });
   });
 });
 

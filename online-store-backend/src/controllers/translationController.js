@@ -1172,6 +1172,45 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
   ));
 };
 
+const getAssistantApprovalEligibility = (sourceProduct, translation) => {
+  const validationErrors = [...new Set(Array.isArray(translation?.validationErrors) ? translation.validationErrors : [])];
+  const requiresInconsistencyConfirmation = validationErrors.length > 0
+    && validationErrors.every((error) => error === 'inconsistent');
+  const hasReviewableErrors = validationErrors.length === 0 || requiresInconsistencyConfirmation;
+  const completeTranslation = hasReviewableErrors
+    && hasCompleteProductTranslation(sourceProduct, { ...translation, validationErrors: [] });
+  const canApprove = translation?.provider === 'assistant'
+    && translation?.providerSource === 'assistant_batch'
+    && translation?.status === 'success'
+    && translation?.qualityStatus === 'pending'
+    && (translation?.qualityScore ?? -1) >= translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
+    && completeTranslation;
+
+  return {
+    canApprove,
+    requiresInconsistencyConfirmation: canApprove && requiresInconsistencyConfirmation,
+    validationErrors,
+  };
+};
+
+const hasValidInconsistencyReview = (review) => (
+  review?.confirmInconsistent === true
+  && typeof review?.note === 'string'
+  && review.note.trim().length >= 10
+  && review.note.trim().length <= 500
+);
+
+const getInconsistencyValidationFilter = (validationErrors) => (
+  validationErrors.length > 0
+    ? { validationErrors: { $all: validationErrors, $size: validationErrors.length } }
+    : {
+      $or: [
+        { validationErrors: { $exists: false } },
+        { validationErrors: { $size: 0 } },
+      ],
+    }
+);
+
 const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
   const catalogQuery = { entityId: productId, targetLang };
   const legacyQuery = {
@@ -1313,21 +1352,19 @@ exports.getProductTranslationStatuses = async (req, res) => {
       const catalogTranslation = catalogByProductId.get(productId);
       const legacyRecords = legacyByProductId.get(productId) || [];
       if (catalogTranslation) {
+        const approvalEligibility = getAssistantApprovalEligibility(productsById.get(productId), catalogTranslation);
         return {
           productId,
           status: productTranslationStatus(catalogTranslation),
           provider: catalogTranslation.provider,
           providerSource: catalogTranslation.providerSource,
-          canApprove: catalogTranslation.provider === 'assistant'
-            && catalogTranslation.providerSource === 'assistant_batch'
-            && catalogTranslation.qualityStatus === 'pending'
-            && (catalogTranslation.qualityScore ?? -1) >= translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
-            && hasCompleteProductTranslation(productsById.get(productId), catalogTranslation),
+          canApprove: approvalEligibility.canApprove,
+          requiresInconsistencyConfirmation: approvalEligibility.requiresInconsistencyConfirmation,
           canRetranslate: catalogTranslation.provider !== 'assistant'
             && (catalogCandidates.has(productId) || liveCandidateProductIds.has(productId)),
           manualFields: catalogTranslation.manualFields || [],
           updatedAt: catalogTranslation.updatedAt || catalogTranslation.lastTranslatedAt || null,
-          validationErrors: catalogTranslation.validationErrors || [],
+          validationErrors: approvalEligibility.validationErrors,
         };
       }
 
@@ -1510,7 +1547,7 @@ exports.saveProductTranslation = async (req, res) => {
       qualityStatus,
       qualityScore,
       validationErrors,
-      ...(existing?.provider === 'assistant' ? { approvedBy: null, approvedAt: null } : {}),
+      ...(existing?.provider === 'assistant' ? { approvedBy: null, approvedAt: null, approvalReview: null } : {}),
       manualFields,
       lastTranslatedAt: new Date(),
     };
@@ -1551,11 +1588,17 @@ exports.approveAssistantProductTranslation = async (req, res) => {
     if (!product || !translation) {
       return sendTranslationError(res, 404, getRequestLanguage(req), 'TRANSLATION_PRODUCT_NOT_FOUND', 'product_not_found');
     }
-    if (translation.provider !== 'assistant' || translation.providerSource !== 'assistant_batch'
-      || translation.status !== 'success' || translation.qualityStatus !== 'pending'
-      || translation.sourceHash !== getProductTranslationSourceHash(product)
-      || (translation.qualityScore ?? -1) < translationValidationConfig.QUALITY_THRESHOLD_FOR_APPROVAL
-      || !hasCompleteProductTranslation(product, translation)) {
+
+    const validationErrors = [...new Set(Array.isArray(translation.validationErrors) ? translation.validationErrors : [])];
+    const requiresInconsistencyConfirmation = validationErrors.length > 0
+      && validationErrors.every((error) => error === 'inconsistent');
+    const inconsistencyReview = req.body || {};
+    const confirmedInconsistency = requiresInconsistencyConfirmation
+      && hasValidInconsistencyReview(inconsistencyReview);
+    const eligible = getAssistantApprovalEligibility(product, translation).canApprove;
+    if (!eligible || translation.sourceHash !== getProductTranslationSourceHash(product)
+      || (requiresInconsistencyConfirmation && !confirmedInconsistency)
+      || (validationErrors.length > 0 && !requiresInconsistencyConfirmation)) {
       return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_ASSISTANT_REVIEW_REQUIRED', 'operation_failed');
     }
 
@@ -1569,16 +1612,20 @@ exports.approveAssistantProductTranslation = async (req, res) => {
         qualityStatus: 'pending',
         sourceHash: getProductTranslationSourceHash(product),
         ...(translation.updatedAt ? { updatedAt: translation.updatedAt } : {}),
-        $or: [
-          { validationErrors: { $exists: false } },
-          { validationErrors: { $size: 0 } },
-        ],
+        ...getInconsistencyValidationFilter(validationErrors),
       },
       {
         $set: {
           qualityStatus: 'approved',
+          validationErrors: [],
           approvedBy: String(req.user?.id || req.user?._id || ''),
           approvedAt: new Date(),
+          approvalReview: confirmedInconsistency ? {
+            overriddenErrors: validationErrors,
+            note: inconsistencyReview.note.trim(),
+            reviewedBy: String(req.user?.id || req.user?._id || ''),
+            reviewedAt: new Date(),
+          } : null,
         },
       },
       { returnDocument: 'after' }
@@ -1588,7 +1635,14 @@ exports.approveAssistantProductTranslation = async (req, res) => {
     }
 
     await refreshStorefrontReadiness([productId]);
-    return res.json({ success: true, data: { qualityStatus: approved.qualityStatus, approvedAt: approved.approvedAt } });
+    return res.json({
+      success: true,
+      data: {
+        qualityStatus: approved.qualityStatus,
+        approvedAt: approved.approvedAt,
+        overriddenErrors: approved.approvalReview?.overriddenErrors || [],
+      },
+    });
   } catch (error) {
     console.error('[TranslationController] Error approving assistant product translation:', error);
     return sendTranslationError(res, 500, getRequestLanguage(req), 'TRANSLATION_PRODUCT_SAVE_FAILED', 'product_save_failed');
@@ -2012,6 +2066,7 @@ exports.importProductTranslationCache = async (req, res) => {
                 providerSource: 'assistant_batch',
                 approvedBy: null,
                 approvedAt: null,
+                approvalReview: null,
               } : {}),
               qualityStatus: (assistantBatch || existing?.provider === 'assistant') ? 'pending' : (validation?.qualityStatus || 'pending'),
               qualityScore: validation?.qualityScore ?? null,

@@ -237,7 +237,9 @@ async function getStorefrontVisibleProductIds(products, options = {}) {
 
 const refreshStorefrontReadiness = async (productIds, options = {}) => {
   const ids = [...new Set((productIds || []).map((id) => String(id)).filter(Boolean))];
-  if (ids.length === 0) return { matchedCount: 0, modifiedCount: 0 };
+  if (ids.length === 0) {
+    return { matchedCount: 0, modifiedCount: 0, readyCount: 0, notReadyCount: 0 };
+  }
 
   const products = await Product.find({ _id: { $in: ids } })
     .select('_id name description brand specs technicalDescription descriptionImages promotions')
@@ -260,6 +262,8 @@ const refreshStorefrontReadiness = async (productIds, options = {}) => {
   return {
     matchedCount: result.matchedCount || 0,
     modifiedCount: result.modifiedCount || 0,
+    readyCount: visibleIds.size,
+    notReadyCount: products.length - visibleIds.size,
   };
 };
 

@@ -321,6 +321,53 @@ describe('Product translation cache controller', () => {
     expect(res.json.firstCall.args[0].data[0].validationErrors).to.deep.equal(['too_long']);
   });
 
+  it('exposes an explicit review gate for otherwise complete inconsistent assistant drafts', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: 'Source description',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const draft = {
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash: getProductTranslationSourceHash(product),
+      name: 'Laptop',
+      description: 'Translated description',
+      brand: 'Brand',
+      specs: {},
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 80,
+      validationErrors: ['inconsistent'],
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+    };
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([draft]) });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([product]),
+    });
+    sandbox.stub(LiveTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    const res = createResponse();
+
+    await getProductTranslationStatuses({
+      query: { lang: 'en', productIds: productId },
+      lang: 'en',
+    }, res);
+
+    expect(res.json.firstCall.args[0].data[0]).to.include({
+      canApprove: true,
+      requiresInconsistencyConfirmation: true,
+    });
+    expect(res.json.firstCall.args[0].data[0].validationErrors).to.deep.equal(['inconsistent']);
+  });
+
   it('selects retryable translations from both product cache layers', async () => {
     const liveQuery = {
       sort: sandbox.stub().returnsThis(),
@@ -2349,6 +2396,179 @@ describe('Product translation cache controller', () => {
     });
     expect(ProductCatalogTranslationCache.findOneAndUpdate.firstCall.args[1].$set.qualityStatus).to.equal('approved');
     expect(res.json.firstCall.args[0].data.qualityStatus).to.equal('approved');
+  });
+
+  it('requires an explicit reviewed note to approve inconsistent assistant text', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const draft = {
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash: getProductTranslationSourceHash(sourceProduct),
+      name: 'Laptop',
+      brand: 'Acer',
+      specs: {},
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 80,
+      validationErrors: ['inconsistent'],
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(draft) });
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate');
+    const res = createResponse();
+
+    await approveAssistantProductTranslation({
+      params: { id: productId },
+      query: { lang: 'en' },
+      body: {},
+      lang: 'en',
+      user: { id: 'admin' },
+    }, res);
+
+    expect(res.status.calledWith(409)).to.be.true;
+    expect(findOneAndUpdate.called).to.be.false;
+  });
+
+  it('audits a confirmed inconsistency and clears only that blocking error on approval', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const draft = {
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash: getProductTranslationSourceHash(sourceProduct),
+      name: 'Laptop',
+      brand: 'Acer',
+      specs: {},
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 80,
+      validationErrors: ['inconsistent'],
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(draft) });
+    const approvedDraft = {
+      ...draft,
+      qualityStatus: 'approved',
+      validationErrors: [],
+      approvalReview: {
+        overriddenErrors: ['inconsistent'],
+        note: 'Reviewed against existing approved translation.',
+        reviewedBy: 'admin-1',
+      },
+    };
+    sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves(approvedDraft),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([approvedDraft]),
+    });
+    sandbox.stub(Product, 'find').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([sourceProduct]),
+    });
+    sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    const res = createResponse();
+
+    await approveAssistantProductTranslation({
+      params: { id: productId },
+      query: { lang: 'en' },
+      body: { confirmInconsistent: true, note: 'Reviewed against existing approved translation.' },
+      lang: 'en',
+      user: { id: 'admin-1' },
+    }, res);
+
+    const [filter, update] = ProductCatalogTranslationCache.findOneAndUpdate.firstCall.args;
+    expect(filter.validationErrors).to.deep.equal({ $all: ['inconsistent'], $size: 1 });
+    expect(update.$set.validationErrors).to.deep.equal([]);
+    expect(update.$set.approvalReview).to.include({
+      note: 'Reviewed against existing approved translation.',
+      reviewedBy: 'admin-1',
+    });
+    expect(update.$set.approvalReview.overriddenErrors).to.deep.equal(['inconsistent']);
+    expect(res.json.firstCall.args[0].data.overriddenErrors).to.deep.equal(['inconsistent']);
+  });
+
+  it('does not allow confirmed inconsistency to bypass other validation errors', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      brand: 'Acer',
+      description: '',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const draft = {
+      entityId: productId,
+      targetLang: 'en',
+      sourceHash: getProductTranslationSourceHash(sourceProduct),
+      name: 'Laptop',
+      brand: 'Acer',
+      specs: {},
+      status: 'success',
+      qualityStatus: 'pending',
+      qualityScore: 65,
+      validationErrors: ['inconsistent', 'too_short'],
+      provider: 'assistant',
+      providerSource: 'assistant_batch',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(draft) });
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate');
+    const res = createResponse();
+
+    await approveAssistantProductTranslation({
+      params: { id: productId },
+      query: { lang: 'en' },
+      body: { confirmInconsistent: true, note: 'Reviewed the translation carefully.' },
+      lang: 'en',
+      user: { id: 'admin-1' },
+    }, res);
+
+    expect(res.status.calledWith(409)).to.be.true;
+    expect(findOneAndUpdate.called).to.be.false;
   });
 
   it('rejects imports without a valid idempotency key before changing the cache', async () => {
