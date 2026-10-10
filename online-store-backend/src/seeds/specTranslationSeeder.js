@@ -42,7 +42,7 @@ const TRANSLATED_LANG_CODES = SUPPORTED_LANGUAGES
  * Aggregate product specs từ multiple LiveTranslationCache rows
  * thành 1 ProductCatalogTranslationCache document
  */
-async function seedSpecTranslations(repairAttempt = 0) {
+async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttempt = 0) {
   const timerLabel = `${CLI_SYMBOLS.duration} seedSpecTranslations - Total Time${repairAttempt ? ` (repair ${repairAttempt})` : ''}`;
   const batchTimerLabel = `  ${CLI_SYMBOLS.duration} Batch insertion${repairAttempt ? ` (repair ${repairAttempt})` : ''}`;
   console.time(timerLabel);
@@ -251,7 +251,7 @@ async function seedSpecTranslations(repairAttempt = 0) {
     });
 
     const incompleteEntries = entries.filter((entry) => entry.qualityStatus !== 'approved');
-    if (incompleteEntries.length > 0 && repairAttempt === 0) {
+    if (incompleteEntries.length > 0 && repairAttempt === 0 && !skipTranslate) {
       console.log(`  ${CLI_SYMBOLS.progress} Retrying ${incompleteEntries.length} incomplete product-language translation(s)...`);
       for (const entry of incompleteEntries) {
         const sourceProduct = sourceProductById.get(entry.entityId);
@@ -264,7 +264,11 @@ async function seedSpecTranslations(repairAttempt = 0) {
           );
         }
       }
-      return seedSpecTranslations(1);
+      return seedSpecTranslations({ skipTranslate }, 1);
+    }
+
+    if (incompleteEntries.length > 0 && skipTranslate) {
+      console.log(`  ${CLI_SYMBOLS.skip} Skipping translation repair for ${incompleteEntries.length} incomplete product-language records`);
     }
 
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
@@ -339,7 +343,11 @@ async function seedSpecTranslations(repairAttempt = 0) {
       console.log(`    ${lang.padEnd(4)} ${CLI_SYMBOLS.arrowRight} ${total}/${products.length}`);
     });
 
-    if (incompleteEntries.length > 0 || TRANSLATED_LANG_CODES.some((lang) => verifyByLang[lang] !== products.length)) {
+    const catalogIncomplete = incompleteEntries.length > 0
+      || TRANSLATED_LANG_CODES.some((lang) => verifyByLang[lang] !== products.length);
+    if (catalogIncomplete && skipTranslate) {
+      console.warn(`  ${CLI_SYMBOLS.warning} Existing translation catalog remains incomplete; no repair translations were requested.`);
+    } else if (catalogIncomplete) {
       const error = `Product translation catalog incomplete: ${incompleteEntries.length}/${entries.length} product-language records need attention`;
       console.error(`  ${CLI_SYMBOLS.error} ${error}`);
       console.error(`  ${CLI_SYMBOLS.warning} Seed không được coi là thành công khi thiếu bản dịch hoặc validation chưa đạt.`);
