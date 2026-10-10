@@ -388,11 +388,10 @@ Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiể
 
 ### Kết quả đã xác minh
 
-- Phạm vi thực tế là **1 sản phẩm**: Edifier True Wireless X1 Lite White; không phải toàn bộ pilot 5 sản phẩm.
+- Tại thời điểm cập nhật này, phạm vi đã hoàn tất mới là **1 sản phẩm**: Edifier True Wireless X1 Lite White; 4 sản phẩm còn lại được xử lý riêng trong cập nhật tiếp theo bên dưới.
 - Import 4 assistant draft cho `en`, `fr`, `de`, `nl`. Các locale `pt`, `it`, `es`, `sv` đã approved trước đó nên được giữ nguyên, không ghi đè.
 - Cả 4 draft đạt ngưỡng điểm và không còn lỗi blocking ngoài `inconsistent`; `en`, `de`, `nl` được duyệt sau xác nhận có ghi audit, `fr` được duyệt không cần override.
-- Kiểm tra sau duyệt xác nhận đủ 8/8 locale bắt buộc, `sourceHash` hiện hành, không còn validation error, readiness tính lại và cờ lưu đều là `true`. Sản phẩm đạt điều kiện hiển thị storefront.
-- Chưa dịch hoặc duyệt 4 sản phẩm còn lại từ kế hoạch pilot ban đầu. Kết quả của sản phẩm này không đại diện cho readiness toàn catalog.
+- Kiểm tra tại thời điểm đó xác nhận đủ 8/8 locale bắt buộc, `sourceHash` hiện hành, không còn validation error và sản phẩm đạt storefront readiness. Kết quả tổng hợp cả 5 sản phẩm được ghi ở cập nhật tiếp theo.
 
 ### Bài học vận hành
 
@@ -402,5 +401,19 @@ Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiể
 4. Chỉ dịch locale thiếu hoặc lỗi; giữ nguyên locale đã approved, field thủ công và hash còn mới.
 5. Phân biệt lỗi nội dung với `inconsistent` do khác chuỗi so với cache cũ. Override chỉ áp dụng khi các điều kiện khác đều đạt và phải có xác nhận cùng ghi chú audit.
 6. Approval từng locale không đồng nghĩa storefront-ready. Sau cùng phải kiểm tra completeness, validation errors, source hash và cờ readiness tính lại trên sản phẩm.
+
+## Cập nhật 2026-10-10 — Hoàn tất 4 sản phẩm còn lại của pilot
+
+- Audit lại nguồn và trạng thái locale hiện hành trước khi ghi; hash nguồn khớp, không có manual field bị ghi đè. Các locale approved/current được giữ nguyên.
+- Import và duyệt thêm **17 assistant draft**: Razer Huntsman V3 Pro Mini (`pt`, `fr`, `de`, `it`, `nl`); Edifier W830NB Gray (`fr`, `de`); Edifier W830NB Black (`fr`, `de`); Logitech M650 Signature Graphite (đủ 8 locale do các slot đều cần bổ sung nội dung/spec).
+- Candidate đạt 17/17 record hợp lệ ở dry-run, đạt ngưỡng điểm và không còn lỗi validation ngoài `inconsistent`; technical token của Razer được giữ nguyên trước khi import. Các override `inconsistent` được xác nhận riêng và ghi audit.
+- Kiểm tra cuối với đầy đủ fields xác nhận cả **5/5 sản phẩm** có đủ 8/8 locale approved hiện hành, hash mới, không blocker và stored `storefrontReady = true`. Cả 5 đạt điều kiện storefront; điều này không đại diện cho readiness của toàn catalog.
+- Tổng cộng pilot có 21 assistant draft được duyệt trong 5 sản phẩm; các slot approved có sẵn không bị ghi đè. Không gọi Cloudflare AI trong các thao tác pilot này.
+
+### Bổ sung bài học
+
+- Dry-run cần kiểm tra cả payload hoàn chỉnh lẫn phép tính readiness sau import; truy vấn xác minh phải chọn đủ source và translation fields mà classifier sử dụng.
+- Với validator đếm số lần xuất hiện của technical token, giữ đủ số lần token model trong nội dung dịch; không loại token để làm câu văn ngắn hơn.
+- Khi mở rộng pilot, cập nhật rõ tổng scope, số draft mới, số slot được giữ nguyên và trạng thái từng sản phẩm để không nhầm một sản phẩm đã ready với toàn bộ batch.
 
 Không chạy `npm run build` trong lần cập nhật này.
