@@ -307,8 +307,12 @@ class CloudflareAiService {
     this.requestTimestamps.push(now);
   }
 
-  getIdempotencyKey(text, targetLang) {
-    return crypto.createHash('md5').update(`${text}:${targetLang}`).digest('hex');
+  getIdempotencyKey(text, targetLang, additionalInstructions = '') {
+    return crypto.createHash('md5')
+      .update(additionalInstructions
+        ? JSON.stringify([text, targetLang, additionalInstructions])
+        : `${text}:${targetLang}`)
+      .digest('hex');
   }
 
   getUsagePolicy() {
@@ -345,7 +349,7 @@ class CloudflareAiService {
     this.usageInputChars += inputChars;
   }
 
-  async translate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000) {
+  async translate(text, sourceLang, targetLang, signal = null, retries = 3, baseDelay = 2000, additionalInstructions = '') {
     // Validate required parameters
     if (typeof text !== 'string' || text.trim() === '') {
       throw new Error('Translation text must be a non-empty string');
@@ -357,14 +361,14 @@ class CloudflareAiService {
       throw new Error('Target language (targetLang) is required');
     }
     if (sourceLang === targetLang) return text;
-    const idempotencyKey = this.getIdempotencyKey(text, targetLang);
+    const idempotencyKey = this.getIdempotencyKey(text, targetLang, additionalInstructions);
 
     if (this.pendingRequests.has(idempotencyKey)) {
       return this.pendingRequests.get(idempotencyKey);
     }
 
     const promise = this.queue.add(async () => {
-      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay, new Set(), true);
+      return this._doTranslate(text, sourceLang, targetLang, signal, retries, baseDelay, new Set(), true, false, additionalInstructions);
     });
 
     this.pendingRequests.set(idempotencyKey, promise);
@@ -387,6 +391,7 @@ class CloudflareAiService {
     attemptedConfigIndexes = new Set(),
     enforceBudget = false,
     useExplicitOutputPrompt = false,
+    additionalInstructions = '',
   ) {
     // Validate required parameters
     if (!sourceLang) {
@@ -432,9 +437,13 @@ class CloudflareAiService {
       const startTime = Date.now();
       const sourceLanguage = getLanguageByCode(sourceLang)?.name || sourceLang;
       const targetLanguage = getLanguageByCode(targetLang)?.name || targetLang;
-      const userPrompt = useExplicitOutputPrompt
+      const promptInstruction = additionalInstructions.trim()
+        ? `\n\nAdditional requirements:\n${additionalInstructions.trim()}`
+        : '';
+      const userPrompt = (useExplicitOutputPrompt
         ? `Translate the source text below from ${sourceLanguage} to ${targetLanguage}. It may be very short, a single word, or a technical value. Always return a non-empty translation; if it should remain unchanged, copy it exactly. Return only the translated text.\n\n${text}`
-        : `Translate this text from ${sourceLanguage} to ${targetLanguage}. Return only the translation.\n\n${text}`;
+        : `Translate this text from ${sourceLanguage} to ${targetLanguage}. Return only the translation.\n\n${text}`)
+        + promptInstruction;
       const response = await axios.post(
         config.baseUrl,
         {
@@ -555,6 +564,7 @@ class CloudflareAiService {
             attemptedConfigs,
             enforceBudget,
             useExplicitOutputPrompt,
+            additionalInstructions,
           );
         }
 
@@ -627,6 +637,7 @@ class CloudflareAiService {
           retryAttemptedConfigs,
           enforceBudget,
           useExplicitOutputPrompt || error.code === 'CLOUDFLARE_RESPONSE_INVALID',
+          additionalInstructions,
         );
       }
 

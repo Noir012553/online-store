@@ -909,6 +909,94 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('retries a mixed-language field once with targeted instructions before commit', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-mixed-language-'));
+    const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: 'Source Vietnamese description',
+      brand: 'Brand',
+      specs: { RAM: '16GB' },
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const descriptionKey = getProductFieldWorkKey({
+      productId,
+      targetLang: 'pt',
+      field: 'description',
+      source: product.description,
+    });
+    markCompleted(checkpoint, descriptionKey, {
+      fixed: false,
+      validationErrors: ['mixed_language'],
+      payload: {
+        value: 'Portuguese with Vietnamese words',
+        validation: { qualityStatus: 'pending', qualityScore: 80, validationErrors: ['mixed_language'] },
+        providersUsed: ['cloudflare'],
+      },
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({
+        entityId: productId,
+        targetLang: 'pt',
+        sourceHash: getProductTranslationSourceHash(product),
+        name: 'Translated laptop',
+        description: 'Previous Portuguese description',
+        brand: 'Brand',
+        specs: { RAM: '16GB' },
+        manualFields: [],
+        qualityStatus: 'pending',
+        validationErrors: ['mixed_language'],
+      }),
+    });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({}),
+    });
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
+      .resolves({ translatedText: 'Complete Portuguese translation', providersUsed: ['cloudflare'] });
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
+      ['Previous Portuguese description', 'Portuguese with Vietnamese words'].includes(translated)
+        ? { qualityStatus: 'pending', qualityScore: 80, validationErrors: ['mixed_language'] }
+        : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
+    ));
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+
+    try {
+      const result = await productCatalogRetranslationService.retranslateProduct(productId, 'pt', {
+        checkpoint,
+        retryMixedLanguage: true,
+      });
+
+      expect(translate.calledOnce).to.equal(true);
+      expect(translate.firstCall.args[3]).to.include('Remove all untranslated Vietnamese words');
+      expect(result.committed).to.equal(true);
+      expect(findOneAndUpdate.calledOnce).to.equal(true);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('does not match a Vietnamese phrase inside a Portuguese word', () => {
+    const source = 'DareU A960 Yellow Ultralight sử dụng bộ chuyển mạch vi mô.';
+
+    expect(translationValidator.checkSourceLanguageLeak(
+      source,
+      'O DareU A960 Yellow Ultralight surgiu de forma inesperada.',
+      'pt',
+      'product_description',
+    )).to.equal(null);
+    expect(translationValidator.checkSourceLanguageLeak(
+      source,
+      'O Yellow Ultralight sử dụng tecnologia de sensor.',
+      'pt',
+      'product_description',
+    )).to.include({ error: 'mixed_language' });
+  });
+
   it('retranslates a field when its checkpoint payload did not pass validation', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-invalid-field-'));
     const productId = new mongoose.Types.ObjectId().toString();

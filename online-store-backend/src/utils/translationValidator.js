@@ -29,6 +29,10 @@ const normalizeTechnicalToken = token => token
   .replace(/\s+/g, '')
   .replace(/,/g, '.');
 const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTERN) || [];
+const containsWholePhrase = (value, phrase) => {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u').test(value);
+};
 
 class TranslationValidator {
   checkEmpty(translated) {
@@ -123,7 +127,8 @@ class TranslationValidator {
         const hasDiacritics = sourceWords.slice(index, index + length).some((word) => VIETNAMESE_DIACRITICS.test(word));
         const isKnownPhrase = config.VIETNAMESE_DOMAIN_PHRASES.includes(normalizedPhrase);
         if (phrase.length >= 6 && (hasDiacritics || isKnownPhrase)
-          && (translatedText.includes(phrase) || normalizedTranslatedText.includes(normalizedPhrase))) {
+          && (containsWholePhrase(translatedText, phrase)
+            || containsWholePhrase(normalizedTranslatedText, normalizedPhrase))) {
           return { error: 'mixed_language', phrase };
         }
       }

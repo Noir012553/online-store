@@ -76,7 +76,7 @@ const stripTranslationPrefix = text => (
   text.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '').trim()
 );
 
-const translateChunkSafely = async (chunk, sourceLang, targetLang, splitDepth = 0) => {
+const translateChunkSafely = async (chunk, sourceLang, targetLang, splitDepth = 0, additionalInstructions = '') => {
   try {
     const translatedText = stripTranslationPrefix(await cloudflareAiService.translate(
       chunk,
@@ -85,6 +85,7 @@ const translateChunkSafely = async (chunk, sourceLang, targetLang, splitDepth = 
       null,
       3,
       2000,
+      additionalInstructions,
     ));
     joinTranslatedChunks([chunk], [translatedText]);
     return translatedText;
@@ -94,18 +95,24 @@ const translateChunkSafely = async (chunk, sourceLang, targetLang, splitDepth = 
     const sourceChunks = splitText(chunk, Math.max(256, Math.floor(chunk.length / 2)));
     const translatedChunks = [];
     for (const sourceChunk of sourceChunks) {
-      translatedChunks.push(await translateChunkSafely(sourceChunk, sourceLang, targetLang, splitDepth + 1));
+      translatedChunks.push(await translateChunkSafely(
+        sourceChunk,
+        sourceLang,
+        targetLang,
+        splitDepth + 1,
+        additionalInstructions,
+      ));
     }
     return joinTranslatedChunks(sourceChunks, translatedChunks);
   }
 };
 
-const translateWithCloudflare = async (text, sourceLang, targetLang) => {
+const translateWithCloudflare = async (text, sourceLang, targetLang, additionalInstructions = '') => {
   const chunks = splitText(text, getChunkSize());
   const translatedChunks = [];
 
   for (const chunk of chunks) {
-    translatedChunks.push(await translateChunkSafely(chunk, sourceLang, targetLang));
+    translatedChunks.push(await translateChunkSafely(chunk, sourceLang, targetLang, 0, additionalInstructions));
   }
 
   return {
