@@ -54,6 +54,17 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Chẩn đoán `spawn UNKNOWN` là do `cloudflared.exe` trong thư mục làm việc thực chất là Git LFS pointer dạng văn bản, không phải file thực thi.
 - Người dùng đã tải binary Windows chính thức thay thế. Chưa có kết quả `--version` hoặc xác nhận `npm run tunnel` chạy thành công, nên chưa ghi nhận tunnel đã được khắc phục hoàn toàn.
 
+### Sửa dữ liệu mô tả sản phẩm scrape
+
+- Không coi JSON scrape, document Product trong MongoDB, ProductCatalogTranslationCache và LiveTranslationCache là cùng một bản dữ liệu. Trước khi sửa, cần đối chiếu đúng sản phẩm bằng cả `sku` và `sourceProductId`, rồi đọc riêng `description`, `technicalDescription`, `specs` và bản dịch.
+- Schema lưu specs có thể dùng key chuẩn hóa như `connection`, trong khi dữ liệu crawler dùng nhãn tiếng Việt như `Phương thức kết nối`; không giả định key/value giữa hai nguồn giống nhau. `description` và `technicalDescription` cũng là hai trường riêng.
+- Product pipeline có thể loại sản phẩm trước upsert nếu thiếu ảnh main/gallery đã chuẩn bị, kể cả khi mục tiêu chỉ là sửa văn bản. Không bỏ qua validation ảnh hoặc chạy seed toàn bộ để ép cập nhật một bản ghi; dùng cập nhật đúng một document sau preview và giữ nguyên các field ảnh.
+- Dry-run có thể kết thúc exit code 0 dù `read: 0`, `invalid: 1` hoặc `ready to import: 0`. Luôn đọc số lượng và lỗi validation trong log; không xem thông báo hoàn tất chung là bằng chứng đã import.
+- Khi dùng PowerShell, kiểm tra shape ngay sau `ConvertFrom-Json`. Root JSON dạng array, property access trên array có thể trả các property từ nhiều item; khi tạo JSON tạm một sản phẩm, xác minh lại array/count và SKU trước khi đưa vào importer.
+- Khi pipe JavaScript chứa tiếng Việt từ Windows PowerShell sang `node -`, code page có thể làm hỏng ký tự. Dùng escape Unicode cho literal trong script hoặc giữ nội dung UTF-8 trong file; không nới guard dữ liệu chỉ để vượt lỗi encoding.
+- Sửa nguồn sản phẩm phải đồng bộ trạng thái bản dịch: đánh dấu machine-managed translations `needs_retranslate`, giữ các field dịch thủ công, và đặt storefront readiness về chưa xác nhận. Không tự đánh dấu bản dịch mới là approved.
+- Trong sự cố BlackShark V2 X, seed preview bị chặn bởi lỗi asset nên không ghi Product. Người dùng sau đó chạy local transaction có preview/đối chiếu SKU, cập nhật đúng document và nhận output báo hoàn tất; phiên này không xác nhận lại document bằng một lượt đọc độc lập sau transaction. Không ghi giá trị bí mật hoặc URI vào báo cáo.
+
 ## Những việc chưa hoàn tất hoặc chưa xác nhận
 
 - Chưa xác nhận quota Neurons còn lại của các tài khoản Cloudflare; trạng thái token/API không thay thế được kiểm tra usage.
