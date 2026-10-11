@@ -158,6 +158,29 @@ describe('Canonical scraper contract', () => {
     }]);
   });
 
+  it('corrects known BlackShark V2 X scrape defects during import', async () => {
+    const product = {
+      ...canonicalProduct,
+      ProductName: 'Tai nghe Razer BlackShark V2 X',
+      ProductSKU: 'TAI-RAZ-BLACK-SHARK-V2-X',
+      ProductDescription: 'Thông số kỹ thuật:\n\nĐánh giá chi tiết: khả năngnhận giọng nói tốt hơn, thiết kế nhẹ.',
+      ProductTechnicalDescription: 'Thông số: {"Phương thức kết nối": "Công nghệ Driver loa"}',
+      ProductSpecifications: { 'Phương thức kết nối': 'Công nghệ Driver loa' },
+    };
+    const [parsed] = await new JSONAdapter().parse(JSON.stringify([product]));
+
+    expect(parsed.description).to.equal('Đánh giá chi tiết: khả năng nhận giọng nói tốt hơn, thiết kế nhẹ.');
+    expect(parsed.specs['Phương thức kết nối']).to.equal('Có dây (jack 3,5 mm)');
+    expect(parsed.technicalDescription).to.equal('Thông số: {"Phương thức kết nối": "Có dây (jack 3,5 mm)"}');
+
+    const [unrelatedProduct] = await new JSONAdapter().parse(JSON.stringify([{
+      ...product,
+      ProductSKU: 'ANOTHER-HEADSET',
+    }]));
+    expect(unrelatedProduct.description).to.equal(product.ProductDescription);
+    expect(unrelatedProduct.specs['Phương thức kết nối']).to.equal('Công nghệ Driver loa');
+  });
+
   it('deduplicates structured content and rejects unknown promotion types', () => {
     const normalized = normalizeProductContentFields({
       descriptionImages: [
@@ -957,7 +980,7 @@ describe('Seed initial stock configuration', () => {
 });
 
 describe('Crawler product field mapping', () => {
-  it('treats a failed description download as a warning while preserving main and gallery failures', async () => {
+  it('retries failed main and gallery image preparation from source URLs', async () => {
     const rawProduct = {
       ProductBrand: 'Acer',
       ProductName: 'Acer Aspire',
@@ -978,15 +1001,12 @@ describe('Crawler product field mapping', () => {
     const result = validateProduct(normalized);
 
     expect(normalized.imagePreparationFailures).to.deep.equal([
-      { role: 'main', sourceUrl: 'https://example.invalid/main.jpg' },
-      { role: 'gallery', index: 0, sourceUrl: 'https://example.invalid/gallery.jpg' },
       { role: 'description', index: 0, sourceUrl: 'https://example.invalid/description.jpg' },
     ]);
-    expect(result.isValid).to.equal(false);
-    expect(result.errors).to.deep.equal([
-      'Row 0: Failed to prepare main image',
-      'Row 0: Failed to prepare gallery 1 image',
-    ]);
+    expect(normalized.image).to.equal('https://example.invalid/main.jpg');
+    expect(normalized.images).to.deep.equal(['https://example.invalid/gallery.jpg']);
+    expect(result.isValid).to.equal(true);
+    expect(result.errors).to.deep.equal([]);
     expect(result.warnings).to.deep.equal(['Row 0: Failed to prepare description 1 image']);
     expect(result.cleaned.descriptionImages).to.deep.equal([]);
   });

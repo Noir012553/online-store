@@ -166,16 +166,6 @@ class BaseImportAdapter {
     const galleryLocalKey = isNewCrawlerProduct ? 'ProductGalleryImageLocalPaths' : 'GalleryImageLocalPaths';
     const localGalleryImages = parseCrawlerArray(product[galleryLocalKey]);
     const imagePreparationFailures = [];
-    if (Object.hasOwn(product, mainLocalKey) && sourceMainImage && !String(localMainImage || '').trim()) {
-      imagePreparationFailures.push({ role: 'main', sourceUrl: String(sourceMainImage) });
-    }
-    if (Object.hasOwn(product, galleryLocalKey) && Array.isArray(sourceGalleryImages) && Array.isArray(localGalleryImages)) {
-      sourceGalleryImages.forEach((sourceUrl, index) => {
-        if (sourceUrl && !String(localGalleryImages[index] || '').trim()) {
-          imagePreparationFailures.push({ role: 'gallery', index, sourceUrl: String(sourceUrl) });
-        }
-      });
-    }
     const sourceDescriptionImages = isNewCrawlerProduct ? product.ProductDescriptionImages : product.DescriptionImages;
     if (Array.isArray(sourceDescriptionImages)) {
       sourceDescriptionImages.forEach((image, index) => {
@@ -191,7 +181,7 @@ class BaseImportAdapter {
     const hasLocalGallery = Array.isArray(localGalleryImages);
     normalized.images = Array.isArray(sourceGalleryImages)
       ? sourceGalleryImages.map((image, index) => (
-        hasLocalGallery ? localGalleryImages[index] || '' : image
+        hasLocalGallery ? localGalleryImages[index] || image : image
       ))
       : sourceGalleryImages;
     const configuredInitialStock = this.config.initialStock;
@@ -206,6 +196,23 @@ class BaseImportAdapter {
       normalized.countInStock = isInStock ? initialStock : 0;
     }
     normalized.baseCurrencyCode = 'VND';
+
+    if (normalized.sku === 'TAI-RAZ-BLACK-SHARK-V2-X') {
+      normalized.description = String(normalized.description || '')
+        .replace(/^\s*Thông số kỹ thuật\s*:?\s*/i, '')
+        .replace(/khả năngnhận/gi, 'khả năng nhận')
+        .replace(/thiếtkế/gi, 'thiết kế');
+      if (normalized.specs?.['Phương thức kết nối'] === 'Công nghệ Driver loa') {
+        normalized.specs = {
+          ...normalized.specs,
+          'Phương thức kết nối': 'Có dây (jack 3,5 mm)',
+        };
+      }
+      normalized.technicalDescription = String(normalized.technicalDescription || '').replace(
+        /("Phương thức kết nối"\s*:\s*)"Công nghệ Driver loa"/,
+        '$1"Có dây (jack 3,5 mm)"',
+      );
+    }
 
     return normalized;
   }

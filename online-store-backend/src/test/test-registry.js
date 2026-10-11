@@ -64,6 +64,13 @@ const TEST_SUITES = {
       'products.test.js',
     ],
   },
+  seeding: {
+    name: 'Seed Module Tests',
+    category: 'LAYER 2',
+    importance: 'HIGH',
+    tags: ['seeding', 'reviews'],
+    files: ['review-seeder.test.js'],
+  },
 
   orders: {
     name: 'Orders & Payment Flow Tests',

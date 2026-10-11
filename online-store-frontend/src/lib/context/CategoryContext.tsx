@@ -16,6 +16,8 @@ interface Category {
 interface CategoryContextType {
   categories: Category[];
   isLoading: boolean;
+  hasError: boolean;
+  retry: () => void;
 }
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
@@ -25,6 +27,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const requestIdRef = useRef(0);
   const { locale, isHydrated } = useLanguage();
 
@@ -40,6 +44,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const fetchCategories = async () => {
       setIsLoading(true);
+      setHasError(false);
 
       try {
         let response;
@@ -76,6 +81,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         if (requestId !== requestIdRef.current || controller.signal.aborted) return;
         setCategories([]);
+        setHasError(true);
       } finally {
         if (requestId === requestIdRef.current) {
           setIsLoading(false);
@@ -85,10 +91,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
 
     void fetchCategories();
     return () => controller.abort();
-  }, [locale, isHydrated]);
+  }, [locale, isHydrated, retryCount]);
 
   return (
-    <CategoryContext.Provider value={{ categories, isLoading }}>
+    <CategoryContext.Provider value={{
+      categories,
+      isLoading,
+      hasError,
+      retry: () => setRetryCount(count => count + 1),
+    }}>
       {children}
     </CategoryContext.Provider>
   );
@@ -97,7 +108,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useCategories = () => {
   const context = useContext(CategoryContext);
   if (!context) {
-    return { categories: [], isLoading: false };
+    return { categories: [], isLoading: false, hasError: false, retry: () => {} };
   }
   return context;
 };
