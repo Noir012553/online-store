@@ -54,8 +54,11 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Đối chiếu chỉ đọc sau đó cho thấy catalog tiếng Anh mới cập nhật nhất là `approved`, không có validation errors và source hash khớp Product. Sản phẩm đó vẫn chưa ready: `en` và `sv` đạt; `pt`, `fr`, `de`, `it`, `es`, `nl` còn pending với lỗi/incomplete specs. Các khóa spec bị thiếu gồm `pollRate`, `sensor`, `maxDPI`, `weight`, `connection`, `color` tùy locale; French còn thiếu name/description/technical description. Điều này giải thích readiness vẫn bị chặn dù bản tiếng Anh đạt.
 - Số `Fixed successfully: 1` của retranslate không đảm bảo tổng số catalog approved tăng: một catalog đã approved có thể được đồng bộ/ghi lại từ các trường đã đạt sẵn, trong khi vấn đề storefront nằm ở locale khác. Chưa chạy thêm retranslate diện rộng.
 - Đã thêm `--product-id=<24-char-id>` vào `npm run retranslate` để giới hạn truy vấn theo đúng sản phẩm. `--retry-unresolved` có thể kết hợp với `--product-id`, `--lang` và `--limit` để chỉ mở lại checkpoint chưa đạt trong đúng phạm vi đó; không xóa checkpoint của sản phẩm khác.
-- Có thể dùng PowerShell inline để lặp `--dry-run` qua các locale cần kiểm tra, không cần tạo file `.ps1`. Dry-run không dịch hoặc cập nhật cache, nhưng tiến trình hiện vẫn dùng distributed run lock trong MongoDB. Chưa chạy lệnh mới trên production.
-- Lượt PowerShell trực tiếp là một yêu cầu AI riêng; lượt retranslate một nhóm tiếp theo và đợt 10 nhóm cũng gọi Cloudflare. Không ghi token hoặc nội dung response vào tài liệu.
+- Người dùng xác nhận bằng PowerShell trên local mới rằng `--product-id` cùng `--lang` lọc đúng: dry-run cho sản phẩm `6ac654f40069aece85a13500` tìm thấy đúng 1 job cho `pt` và đúng 1 cho `fr`; mỗi lần có 1 catalog record và 9 field-cache records. Dry-run không dịch hoặc cập nhật cache, nhưng tiến trình vẫn kết nối MongoDB và dùng distributed run lock.
+- Người dùng chạy thật job `pt` giới hạn đúng sản phẩm: `Fixed successfully: 1`, không có lỗi; log Cloudflare ghi nhận 1 request thành công. Đây là kết quả validator tự chấp nhận, không phải admin duyệt thủ công. Locale `fr` mới chỉ dry-run, chưa chạy dịch thật.
+- Bài học về thời gian thao tác: phải gọi dry-run và lệnh thật riêng cho từng locale hiện khá vụn. Đã đề xuất thêm `--langs=<locale,...>` để xem trước hoặc chạy theo nhiều locale trong một lần, bắt buộc kèm `--product-id`; tính năng này chưa được triển khai. Khi chạy thật nhiều locale một lần, cần nêu rõ phạm vi và số lần gọi AI có thể phát sinh.
+- `--limit=1` giới hạn một nhóm sản phẩm-ngôn ngữ, không đảm bảo chỉ có một lần gọi AI; một job có thể phát sinh nhiều request theo các trường cần dịch. Không ghi token hoặc nội dung response vào tài liệu.
+- Các lượt trước đó gồm PowerShell gọi AI trực tiếp và retranslate tiếng Anh; kết quả chi tiết được ghi ở trên. Không coi dry-run là lệnh chỉ đọc hoàn toàn vì nó vẫn kết nối MongoDB và lấy run lock.
 
 ### Giới hạn upload R2
 
@@ -102,7 +105,7 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Chưa xác nhận quota Neurons còn lại của các tài khoản Cloudflare; trạng thái token/API không thay thế được kiểm tra usage.
 - Chưa xác nhận kết quả cuối cùng của lượt seed thứ ba hoặc số bản dịch được hoàn tất sau lượt đó.
 - Chưa khôi phục hoặc xác minh upstream backend trả API Categories/products thành công sau lỗi Cloudflare 530/1033; vì vậy chưa xác nhận lại sản phẩm trên `/products/headphones` sau seed.
-- Storefront readiness tại báo cáo mới nhất sau revalidation là 2/588 sản phẩm ready; 586 sản phẩm chưa đạt yêu cầu. Revalidation không giải quyết nội dung thiếu hoặc các bản dịch cần dịch lại. Chưa chạy retranslate hàng loạt; cần xác nhận parser Cloudflare mới bằng một nhóm nhỏ trước khi quyết định tiếp tục.
+- Storefront readiness tại báo cáo gần nhất trước lượt xử lý theo `productId` là 2/588 sản phẩm ready; 586 sản phẩm chưa đạt yêu cầu. Revalidation không giải quyết nội dung thiếu hoặc các bản dịch cần dịch lại. Đã xác nhận parser và lọc sản phẩm bằng một job tiếng Bồ Đào Nha; chưa chạy lại `storefront:report` để xác nhận readiness sau cập nhật. Chưa chạy retranslate hàng loạt.
 - Các URL ảnh mô tả Razer trả 404 vẫn cần được thay bằng file/URL nguồn còn tồn tại nếu muốn hiển thị lại các ảnh đó.
 - Chưa xác nhận tunnel hoạt động sau khi tải binary cloudflared.
 - Chưa thực hiện upload logo thương hiệu lên R2 hoặc cập nhật dữ liệu thương hiệu.
