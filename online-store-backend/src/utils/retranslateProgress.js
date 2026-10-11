@@ -297,12 +297,19 @@ const clearProductFieldCheckpoint = async (checkpoint, productId, targetLang) =>
 
 const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter = {} } = {}) => {
   if (!checkpoint) return 0;
+  const productId = filter.entityId ? String(filter.entityId) : null;
+  const matchesProduct = key => {
+    if (!productId) return true;
+    const [type, , keyProductId] = key.split(':');
+    return ['catalog', 'product-field'].includes(type) && keyProductId === productId;
+  };
   const unresolvedKeys = [...checkpoint.completed]
     .filter(([key, result]) => (
       !key.startsWith('product-field:')
       && !result.fixed
       && (!lang || key.startsWith(`catalog:${lang}:`))
-      && (!filter.validationErrors || (result.validationErrors || []).includes(filter.validationErrors))
+      && matchesProduct(key)
+      && (productId || !filter.validationErrors || (result.validationErrors || []).includes(filter.validationErrors))
     ))
     .map(([key]) => key);
   const productJobs = [...new Set(unresolvedKeys
@@ -314,7 +321,9 @@ const clearUnfixedCheckpointEntries = async (checkpoint, { lang = null, filter =
   const fieldPrefixes = productJobs.map(([productId, targetLang]) => `product-field:${targetLang}:${productId}:`);
   const fieldKeys = [...checkpoint.completed]
     .filter(([key, result]) => {
-      if (!key.startsWith('product-field:') || (lang && !key.startsWith(`product-field:${lang}:`))) {
+      if (!key.startsWith('product-field:')
+        || (lang && !key.startsWith(`product-field:${lang}:`))
+        || !matchesProduct(key)) {
         return false;
       }
       const isUnresolvedJobField = fieldPrefixes.some(prefix => key.startsWith(prefix))

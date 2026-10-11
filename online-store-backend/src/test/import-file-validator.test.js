@@ -16,8 +16,14 @@ const { validateImageUpload } = require('../middleware/uploadValidationMiddlewar
 const { errorHandler } = require('../middleware/errorMiddleware');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
+const Product = require('../models/Product');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const LiveTranslationCache = require('../models/LiveTranslationCache');
 const {
   buildUpsertProductUpdate,
+  invalidateChangedProductTranslations,
+  getChangedTranslatableFields,
+  getLiveTranslationInvalidationFilters,
   getProductLookupFilter,
   findDuplicateImportIssues,
   serializeProductForExport,
@@ -48,6 +54,53 @@ const {
   getSeedIdentityKey,
   dedupeProducts,
 } = require('../seeds/productSeedPipeline');
+
+describe('Product translation invalidation', () => {
+  it('ignores object key order when comparing source fields', () => {
+    expect(getChangedTranslatableFields(
+      { specs: { CPU: 'Intel', RAM: '16 GB' } },
+      { specs: { RAM: '16 GB', CPU: 'Intel' } },
+    )).to.deep.equal([]);
+  });
+
+  it('invalidates only live translation types whose source fields changed', () => {
+    expect(getLiveTranslationInvalidationFilters([
+      { productId: 'product-1', fields: ['description'] },
+      { productId: 'product-2', fields: ['name', 'specs'] },
+    ])).to.deep.equal([
+      { entityId: 'product-1', entityType: { $in: ['product_description'] } },
+      { entityId: 'product-2', entityType: { $in: ['product_name', 'product_spec'] } },
+    ]);
+  });
+
+  it('keeps the previous catalog source hash when marking an imported translation stale', async () => {
+    const sandbox = sinon.createSandbox();
+    const cache = { _id: 'cache-1', entityId: 'product-1', manualFields: [] };
+    const find = sandbox.stub(ProductCatalogTranslationCache, 'find').returns({
+      lean: sandbox.stub().resolves([cache]),
+    });
+    const bulkWrite = sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').resolves();
+    const liveUpdate = sandbox.stub(LiveTranslationCache, 'updateMany').resolves();
+    const productUpdate = sandbox.stub(Product, 'updateMany').resolves();
+
+    try {
+      await invalidateChangedProductTranslations([
+        { productId: 'product-1', fields: ['description'] },
+      ]);
+      expect(find.calledOnce).to.be.true;
+      expect(bulkWrite.firstCall.args[0][0].updateOne.update.$set).to.deep.equal({
+        qualityStatus: 'needs_retranslate',
+        validationErrors: ['source_content_changed'],
+      });
+      expect(liveUpdate.firstCall.args[0]).to.deep.equal({
+        $or: [{ entityId: 'product-1', entityType: { $in: ['product_description'] } }],
+      });
+      expect(productUpdate.calledOnce).to.be.true;
+    } finally {
+      sandbox.restore();
+    }
+  });
+});
 
 describe('Canonical scraper contract', () => {
   const canonicalProduct = {

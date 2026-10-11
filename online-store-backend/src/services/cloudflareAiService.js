@@ -60,6 +60,8 @@ const getMaxOutputTokens = () => {
 
 const getProviderResponseMetadata = (response) => {
   const result = response.data?.result;
+  const choices = Array.isArray(result?.choices) ? result.choices : [];
+  const choiceContent = choices.find(choice => typeof choice?.message?.content === 'string')?.message?.content;
   return {
     status: response.status,
     statusText: response.statusText,
@@ -69,6 +71,8 @@ const getProviderResponseMetadata = (response) => {
       ...(Array.isArray(response.data?.errors) ? { errors: response.data.errors } : {}),
       resultKeys: result && typeof result === 'object' ? Object.keys(result) : [],
       responseType: typeof result?.response,
+      choiceCount: choices.length,
+      choiceContentType: typeof choiceContent,
     },
   };
 };
@@ -482,14 +486,20 @@ class CloudflareAiService {
           code: 'TRANSLATION_OUTPUT_INCOMPLETE',
         });
       }
-      if (typeof result.response !== 'string') {
-        throw Object.assign(new Error('Cloudflare AI response is missing result.response text'), {
+      const choiceContent = Array.isArray(result.choices)
+        ? result.choices.find(choice => typeof choice?.message?.content === 'string')?.message?.content
+        : undefined;
+      const responseText = typeof result.response === 'string' && result.response.trim()
+        ? result.response
+        : choiceContent;
+      if (typeof responseText !== 'string') {
+        throw Object.assign(new Error('Cloudflare AI response is missing translation text'), {
           code: 'CLOUDFLARE_RESPONSE_INVALID',
           response: getProviderResponseMetadata(response),
         });
       }
 
-      const normalizedTranslation = stripTranslationPrefix(result.response);
+      const normalizedTranslation = stripTranslationPrefix(responseText);
 
       if (!normalizedTranslation) {
         throw Object.assign(new Error('Cloudflare AI response contains no translation text'), {

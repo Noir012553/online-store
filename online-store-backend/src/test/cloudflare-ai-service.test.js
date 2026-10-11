@@ -156,6 +156,25 @@ describe('Cloudflare AI rotation', () => {
       .to.include('Always return a non-empty translation');
   });
 
+  it('reads translated text from chat-completion choices when result.response is not text', async () => {
+    sandbox.stub(axios, 'post').resolves({
+      status: 200,
+      statusText: 'OK',
+      data: {
+        success: true,
+        result: {
+          response: 100,
+          choices: [{ message: { role: 'assistant', content: '100' } }],
+        },
+      },
+    });
+
+    const translated = await cloudflareAiService._doTranslate('100', 'vi', 'en', null, 0, 0);
+
+    expect(translated).to.equal('100');
+    expect(axios.post.calledOnce).to.equal(true);
+  });
+
   it('preserves provider response metadata when retries are exhausted', async () => {
     sandbox.stub(axios, 'post').resolves({
       status: 200,

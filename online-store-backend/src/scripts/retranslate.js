@@ -16,6 +16,7 @@ const {
   getRetranslationLockKey,
 } = require('../utils/retranslateProgress');
 const { getMillisecondsUntilNextUtcMidnight } = require('../utils/utcSchedule');
+const { parseProductId } = require('../utils/retranslateProductFilter');
 
 const execFileAsync = promisify(execFile);
 
@@ -69,6 +70,11 @@ async function main() {
       options.filter.validationErrors = filterValue;
     }
 
+    const productIdArg = args.find(arg => arg.startsWith('--product-id='));
+    if (productIdArg) {
+      options.filter.entityId = parseProductId(productIdArg.slice('--product-id='.length));
+    }
+
     // Parse language
     const langArg = args.find(arg => arg.startsWith('--lang='));
     if (langArg) {
@@ -101,11 +107,14 @@ async function main() {
     if (resetProgress && options.lang) {
       throw new Error('--reset-progress cannot be combined with --lang because checkpoint progress is shared across languages');
     }
-    if (options.retryUnresolved && options.lang) {
-      throw new Error('--retry-unresolved cannot be combined with --lang; retry unresolved work without a language filter');
+    if (options.retryUnresolved && options.lang && !options.filter.entityId) {
+      throw new Error('--retry-unresolved can only be combined with --lang when --product-id is also set');
     }
-    if (options.retryUnresolved && options.limit > 0) {
-      throw new Error('--retry-unresolved cannot be combined with --limit');
+    if (options.retryUnresolved && options.filter.entityId && !options.lang) {
+      throw new Error('--retry-unresolved with --product-id requires --lang');
+    }
+    if (options.retryUnresolved && options.limit > 0 && !options.filter.entityId) {
+      throw new Error('--retry-unresolved can only be combined with --limit when --product-id is also set');
     }
     if (!options.dryRun) {
       releaseProgressLock = acquireProgressLock();
