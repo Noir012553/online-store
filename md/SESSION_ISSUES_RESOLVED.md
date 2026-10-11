@@ -54,6 +54,13 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Dòng `Storefront readiness: 4 ready, 584 not ready` là kết quả refresh trên 588 sản phẩm trong database, không phải số sản phẩm của riêng file Razer. `--skip-translate` không dịch hoặc duyệt bản dịch; các file locale được load là dữ liệu giao diện, không phải bản dịch sản phẩm.
 - HTTP 530 / Cloudflare 1033 khi gọi Categories/API storefront là lỗi kết nối upstream backend, khác với lỗi category slug và lỗi ảnh mô tả. Frontend đã đổi trạng thái category để không báo nhầm “không tìm thấy danh mục” khi API lỗi, đồng thời có nút thử lại; danh sách sản phẩm vẫn cần API backend hoạt động.
 
+### Thiết lập môi trường và phạm vi quyền thao tác
+
+- Backend local nạp cấu hình từ `.env`; seed log xác nhận biến môi trường đã được nạp. Frontend có thể cần `NEXT_PUBLIC_API_BASE_URL` để trỏ API tới backend đang chạy thay vì URL mặc định.
+- Trước lệnh đọc/ghi MongoDB, xác nhận `MONGO_URI` trỏ đúng database local/dev. Không chép URI, password, token, API key hoặc giá trị của biến môi trường vào Markdown, log chia sẻ hay lệnh minh họa; chỉ ghi tên biến hoặc dùng placeholder.
+- Người dùng đã cho phép dùng cấu hình môi trường, MongoDB, terminal và PowerShell cho các bước kiểm tra/sửa dữ liệu trong phạm vi công việc này. Do dữ liệu và `.env` nằm trên máy Windows local, một số thao tác không truy cập được từ môi trường assistant; khi đó người dùng chạy lệnh PowerShell cục bộ và gửi lại output.
+- Quyền này không bao gồm xóa database, chạy `npm run clear`, thay đổi dữ liệu rộng ngoài mục tiêu, hoặc vượt qua giới hạn ACL. Xác nhận riêng trước thao tác phá hủy hoặc có phạm vi lớn; quyền truy cập thực tế phụ thuộc ACL của môi trường.
+
 ### Cloudflared tunnel
 
 - Chẩn đoán `spawn UNKNOWN` là do `cloudflared.exe` trong thư mục làm việc thực chất là Git LFS pointer dạng văn bản, không phải file thực thi.
