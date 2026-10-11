@@ -7,6 +7,8 @@ import { CategoryProductsList } from "../../components/CategoryProductsList";
 import { useCategories } from "../../lib/context/CategoryContext";
 import { useLanguage } from "../../lib/i18n";
 import { getCategoryName } from "../../lib/data";
+import { EmptyState } from "../../components/EmptyState";
+import { PackageSearch } from "lucide-react";
 
 interface Category {
   _id: string;
@@ -16,7 +18,12 @@ interface Category {
 export default function CategoryProductsPage() {
   const router = useRouter();
   const { categorySlug } = router.query;
-  const { categories, isLoading: categoriesLoading } = useCategories();
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    hasError: categoriesError,
+    retry: retryCategories,
+  } = useCategories();
   const { t, locale, loadNamespace } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -40,10 +47,16 @@ export default function CategoryProductsPage() {
       } else {
         setNotFound(true);
       }
-    } else if (categorySlug && typeof categorySlug === 'string' && !categoriesLoading && categories.length === 0) {
+    } else if (
+      categorySlug
+      && typeof categorySlug === 'string'
+      && !categoriesLoading
+      && !categoriesError
+      && categories.length === 0
+    ) {
       setNotFound(true);
     }
-  }, [categorySlug, categories, categoriesLoading]);
+  }, [categorySlug, categories, categoriesLoading, categoriesError]);
 
   if (!isReady || categoriesLoading) {
     return (
@@ -52,6 +65,20 @@ export default function CategoryProductsPage() {
           <div className="h-8 bg-gray-200 rounded w-1/3"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (categoriesError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <EmptyState
+          icon={PackageSearch}
+          title={t('products_unavailable_title')}
+          description={t('products_unavailable_description')}
+          actionLabel={t('retry', 'common')}
+          onAction={retryCategories}
+        />
       </div>
     );
   }
