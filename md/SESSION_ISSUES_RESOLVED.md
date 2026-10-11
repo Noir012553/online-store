@@ -48,7 +48,9 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Lượt retranslate thử `--filter=translation_failed --lang=en --limit=1` trước khi cập nhật parser đã thất bại: 0 bản dịch được sửa, 1 tác vụ lỗi `CLOUDFLARE_RESPONSE_INVALID` sau các lần thử lại. Không tiếp tục chạy backlog bằng phiên bản parser cũ.
 - Đã cập nhật `online-store-backend/src/services/cloudflareAiService.js` để ưu tiên `result.response` khi đó là chuỗi không rỗng, nếu không thì đọc `result.choices[].message.content` dạng chuỗi. Thêm kiểm tra hồi quy vào `online-store-backend/src/test/cloudflare-ai-service.test.js` cho trường hợp `response` là số nhưng `choices` chứa văn bản.
 - `node --check` cho service và test, cùng `git diff --check`, đã đạt. Chưa chạy được test runtime trong môi trường trợ lý vì thiếu package `axios`; không gọi Cloudflare thật trong bước kiểm tra code.
-- Bước tiếp theo: lấy code mới về bản local rồi thử lại đúng một nhóm tiếng Anh bằng `npm run retranslate -- --filter=translation_failed --lang=en --limit=1`. Chỉ tăng phạm vi nếu lượt thử thành công và được kiểm tra; không chạy cả 662 nhóm ngay.
+- Sau khi lấy code mới, người dùng chạy lại một nhóm tiếng Anh: Cloudflare trả thành công và validator chấp nhận 1 nhóm, còn 91 nhóm chưa xử lý. Storefront report vẫn 2/588 ready; số translation records tiếng Anh approved tăng 73→74, còn pending giảm 515→514.
+- Đợt tiếp theo với `--lang=en --limit=10` hoàn tất 10 nhóm: 1 được chấp nhận, 9 còn lỗi validator (`missing_technical_token`, `unexpected_technical_token`, `too_long` trong các ví dụ log); tổng còn lại là 90 nhóm. Đây không còn là lỗi định dạng phản hồi Cloudflare. Chưa chạy retranslate diện rộng; cần xem report/readiness và quyết định cách xử lý nhóm validator chưa đạt trước khi tiếp tục.
+- Lượt PowerShell trực tiếp là một yêu cầu AI riêng; lượt retranslate một nhóm tiếp theo và đợt 10 nhóm cũng gọi Cloudflare. Không ghi token hoặc nội dung response vào tài liệu.
 
 ### Giới hạn upload R2
 
