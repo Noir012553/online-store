@@ -19,21 +19,24 @@ const PRODUCT_ENTITY_TYPES = [
   'product_description_image_alt',
   'product_promotion',
 ];
-const MAX_APPLY_LIMIT = 200;
+const BATCH_SIZE = 200;
+const VALIDATION_CONCURRENCY = 5;
 const MAX_PREVIEW_LIMIT = 1000;
 
 const parseOptions = (args) => {
   const limitArg = args.find(arg => arg.startsWith('--limit='));
-  const limit = limitArg ? Number(limitArg.slice('--limit='.length)) : 100;
+  const all = args.includes('--all');
   const apply = args.includes('--apply');
-  if (!Number.isInteger(limit) || limit < 1) throw new Error('--limit must be a positive integer');
-  if (apply && limit > MAX_APPLY_LIMIT) {
-    throw new Error(`--apply is limited to ${MAX_APPLY_LIMIT} records per run`);
+  const limit = limitArg ? Number(limitArg.slice('--limit='.length)) : 100;
+  if (all && limitArg) throw new Error('--all cannot be combined with --limit');
+  if (!all && (!Number.isInteger(limit) || limit < 1)) {
+    throw new Error('--limit must be a positive integer');
   }
+  if (!apply && all) throw new Error('Use --apply with --all to process the entire backlog');
   if (!apply && limit > MAX_PREVIEW_LIMIT) {
     throw new Error(`Preview is limited to ${MAX_PREVIEW_LIMIT} records per run`);
   }
-  return { apply, limit };
+  return { all, apply, limit };
 };
 
 const canonicalSpecKey = key => normalizeSpecFieldName(String(key || '')) || sanitizeUnknownSpecKey(String(key || ''));
@@ -65,114 +68,156 @@ const getCurrentSourceText = (translation, product) => {
 
 const addCount = (map, key) => map.set(key, (map.get(key) || 0) + 1);
 
+const summarizeCountMap = counts => [...counts]
+  .map(([group, count]) => ({ group, count }))
+  .sort((a, b) => a.group.localeCompare(b.group));
+
 const main = async () => {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI is required');
-  const { apply, limit } = parseOptions(process.argv.slice(2));
+  const { all, apply, limit } = parseOptions(process.argv.slice(2));
   await mongoose.connect(process.env.MONGO_URI);
 
   try {
-    const candidates = await LiveTranslationCache.find({
+    const baseQuery = {
       validationErrors: SOURCE_CHANGED,
       entityType: { $in: PRODUCT_ENTITY_TYPES },
       status: 'success',
       provider: 'cloudflare',
-    })
-      .select('_id entityId targetLang entityType specKey fieldKey originalText translatedText provider status')
-      .sort({ _id: 1 })
-      .limit(limit)
-      .lean();
-    const productIds = [...new Set(candidates.map(({ entityId }) => entityId).filter(Boolean))];
-    const products = await Product.find({ _id: { $in: productIds }, isDeleted: false })
-      .select('name description brand specs technicalDescription descriptionImages promotions')
-      .lean();
-    const productsById = new Map(products.map(product => [String(product._id), product]));
+    };
     const counts = new Map();
-    const approvedByLocale = new Map();
-    const updates = [];
-    const auditLogs = [];
+    let candidatesRead = 0;
+    let validatedAndApproved = 0;
+    let eligibleWrites = 0;
+    let lastId = null;
+    let batchNumber = 0;
 
-    for (const translation of candidates) {
-      const product = productsById.get(String(translation.entityId));
-      const currentSource = product ? getCurrentSourceText(translation, product) : undefined;
-      let outcome = !product ? 'product_missing' : 'source_differs';
-      let validation = null;
+    while (all || candidatesRead < limit) {
+      const batchLimit = all ? BATCH_SIZE : Math.min(BATCH_SIZE, limit - candidatesRead);
+      const batchQuery = lastId ? { ...baseQuery, _id: { $gt: lastId } } : baseQuery;
+      const candidates = await LiveTranslationCache.find(batchQuery)
+        .select('_id entityId targetLang entityType specKey fieldKey originalText translatedText provider status')
+        .sort({ _id: 1 })
+        .limit(batchLimit)
+        .lean();
+      if (candidates.length === 0) break;
 
-      if (typeof currentSource === 'string'
-        && currentSource.trim()
-        && currentSource === translation.originalText) {
-        validation = await translationValidator.validateTranslation(
-          String(currentSource ?? ''),
-          String(translation.translatedText ?? ''),
-          translation.targetLang,
-          translation.entityType,
-        );
-        outcome = validation.qualityStatus === 'approved' ? 'source_match_approved' : 'source_match_needs_review';
-        if (validation.qualityStatus === 'approved') {
-          const productIdsForLocale = approvedByLocale.get(translation.targetLang) || new Set();
-          productIdsForLocale.add(String(translation.entityId));
-          approvedByLocale.set(translation.targetLang, productIdsForLocale);
-          updates.push({
-            updateOne: {
-              filter: {
-                _id: translation._id,
-                validationErrors: SOURCE_CHANGED,
-                originalText: translation.originalText,
-                translatedText: translation.translatedText,
-              },
-              update: {
-                $set: {
-                  qualityStatus: validation.qualityStatus,
-                  qualityScore: validation.qualityScore,
-                  validationErrors: validation.validationErrors,
+      lastId = candidates[candidates.length - 1]._id;
+      candidatesRead += candidates.length;
+      batchNumber += 1;
+      const productIds = [...new Set(candidates.map(({ entityId }) => entityId).filter(Boolean))];
+      const products = await Product.find({ _id: { $in: productIds }, isDeleted: false })
+        .select('name description brand specs technicalDescription descriptionImages promotions')
+        .lean();
+      const productsById = new Map(products.map(product => [String(product._id), product]));
+      const approvedByLocale = new Map();
+      const updates = [];
+      const auditLogs = [];
+      const batchCounts = new Map();
+      let nextCandidateIndex = 0;
+      const validateNext = async () => {
+        while (true) {
+          const index = nextCandidateIndex++;
+          if (index >= candidates.length) return;
+          const translation = candidates[index];
+          const product = productsById.get(String(translation.entityId));
+          const currentSource = product ? getCurrentSourceText(translation, product) : undefined;
+          let outcome = !product ? 'product_missing' : 'source_differs';
+
+          if (typeof currentSource === 'string'
+            && currentSource.trim()
+            && currentSource === translation.originalText) {
+            const validation = await translationValidator.validateTranslation(
+              currentSource,
+              String(translation.translatedText ?? ''),
+              translation.targetLang,
+              translation.entityType,
+            );
+            outcome = validation.qualityStatus === 'approved' ? 'source_match_approved' : 'source_match_needs_review';
+            if (validation.qualityStatus === 'approved') {
+              validatedAndApproved += 1;
+              const ids = approvedByLocale.get(translation.targetLang) || new Set();
+              ids.add(String(translation.entityId));
+              approvedByLocale.set(translation.targetLang, ids);
+              updates.push({
+                updateOne: {
+                  filter: {
+                    _id: translation._id,
+                    validationErrors: SOURCE_CHANGED,
+                    originalText: translation.originalText,
+                    translatedText: translation.translatedText,
+                  },
+                  update: {
+                    $set: {
+                      qualityStatus: validation.qualityStatus,
+                      qualityScore: validation.qualityScore,
+                      validationErrors: validation.validationErrors,
+                    },
+                  },
                 },
-              },
-            },
+              });
+              auditLogs.push({
+                translationId: translation._id,
+                action: 'validated',
+                actor: 'source-revalidation',
+                reason: 'source_content_unchanged_and_validator_approved',
+                metadata: {
+                  targetLang: translation.targetLang,
+                  entityType: translation.entityType,
+                  qualityScore: validation.qualityScore,
+                },
+              });
+            }
+          }
+          const group = `${translation.targetLang || 'unknown'}:${translation.entityType}:${outcome}`;
+          addCount(counts, group);
+          addCount(batchCounts, group);
+        }
+      };
+      await Promise.all(Array.from(
+        { length: Math.min(VALIDATION_CONCURRENCY, candidates.length) },
+        validateNext,
+      ));
+
+      if (apply && updates.length > 0) {
+        const session = await mongoose.startSession();
+        try {
+          await session.withTransaction(async () => {
+            const writeResult = await LiveTranslationCache.bulkWrite(updates, { ordered: false, session });
+            if (writeResult.matchedCount !== updates.length) {
+              throw new Error('Some translations changed during validation; this batch was rolled back');
+            }
+            await TranslationQualityLog.insertMany(auditLogs, { ordered: false, session });
           });
-          auditLogs.push({
-            translationId: translation._id,
-            action: 'validated',
-            actor: 'source-revalidation',
-            reason: 'source_content_unchanged_and_validator_approved',
-            metadata: {
-              targetLang: translation.targetLang,
-              entityType: translation.entityType,
-              qualityScore: validation.qualityScore,
-            },
-          });
+        } finally {
+          await session.endSession();
+        }
+        eligibleWrites += updates.length;
+        for (const [targetLang, ids] of approvedByLocale) {
+          await ProductTranslationSeederService._syncProductCatalogTranslations(targetLang, [...ids]);
         }
       }
-      addCount(counts, `${translation.targetLang || 'unknown'}:${translation.entityType}:${outcome}`);
+
+      console.log(JSON.stringify({
+        batch: batchNumber,
+        candidatesRead,
+        validatedAndApproved,
+        eligibleWrites,
+        batchResults: summarizeCountMap(batchCounts),
+      }));
+      if (!all && candidatesRead >= limit) break;
     }
 
-    if (apply && updates.length > 0) {
-      const session = await mongoose.startSession();
-      try {
-        await session.withTransaction(async () => {
-          await LiveTranslationCache.bulkWrite(updates, { ordered: false, session });
-          await TranslationQualityLog.insertMany(auditLogs, { ordered: false, session });
-        });
-      } finally {
-        await session.endSession();
-      }
-      for (const [targetLang, ids] of approvedByLocale) {
-        await ProductTranslationSeederService._syncProductCatalogTranslations(targetLang, [...ids]);
-      }
-    }
-
-    const summary = {
+    console.log(JSON.stringify({
       mode: apply ? 'apply' : 'preview',
       readOnly: !apply,
-      candidateLimit: limit,
-      candidatesRead: candidates.length,
-      validatedAndApproved: [...counts].filter(([key]) => key.endsWith(':source_match_approved'))
-        .reduce((sum, [, count]) => sum + count, 0),
-      eligibleWrites: updates.length,
-      countByLocaleTypeAndResult: [...counts]
-        .map(([group, count]) => ({ group, count }))
-        .sort((a, b) => a.group.localeCompare(b.group)),
+      processedAll: all,
+      candidateLimit: all ? 'all' : limit,
+      candidatesRead,
+      validatedAndApproved,
+      eligibleWrites,
+      countByLocaleTypeAndResult: summarizeCountMap(counts),
       cloudflareCalls: 0,
-    };
-    console.log(JSON.stringify(summary, null, 2));
+    }, null, 2));
   } finally {
     await mongoose.disconnect();
   }
