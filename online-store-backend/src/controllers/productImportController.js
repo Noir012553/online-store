@@ -55,7 +55,6 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManager');
 const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
-const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
 const { getMessage } = require('../i18n/messages');
 const {
@@ -844,15 +843,7 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     affectedProducts.map(({ productId, fields }) => [productId.toString(), fields])
   );
   const productIds = [...affectedFieldsByProduct.keys()];
-  const [caches, products] = await Promise.all([
-    ProductCatalogTranslationCache.find({ entityId: { $in: productIds } }).lean(),
-    Product.find({ _id: { $in: productIds } })
-      .select('name description brand specs technicalDescription descriptionImages promotions')
-      .lean(),
-  ]);
-  const sourceHashesByProduct = new Map(
-    products.map(product => [String(product._id), getProductTranslationSourceHash(product)]),
-  );
+  const caches = await ProductCatalogTranslationCache.find({ entityId: { $in: productIds } }).lean();
   const operations = [];
   let preservedManualTranslations = 0;
 
@@ -871,7 +862,6 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
           $set: {
             qualityStatus: 'needs_retranslate',
             validationErrors: ['source_content_changed'],
-            sourceHash: sourceHashesByProduct.get(cache.entityId) || null,
           },
         },
       },
@@ -2824,6 +2814,7 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  invalidateChangedProductTranslations,
   getChangedTranslatableFields,
   getLiveTranslationInvalidationFilters,
   getProductLookupFilter,

@@ -246,6 +246,7 @@ describe('Product Controller', () => {
       expect(res.json.calledOnce).to.be.true;
       expect(catalogUpdate.firstCall.args[1].$set.qualityStatus).to.equal('needs_retranslate');
       expect(catalogUpdate.firstCall.args[1].$set.validationErrors).to.deep.equal(['source_content_changed']);
+      expect(catalogUpdate.firstCall.args[1].$set).not.to.have.property('sourceHash');
       expect(liveUpdate.calledOnce).to.be.true;
     });
 
