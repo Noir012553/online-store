@@ -37,6 +37,19 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Con số khoảng 4.367/4.704 bản ghi cần chú ý là trạng thái được báo trong log, không tự nó chứng minh có bản ghi trùng hoặc xác nhận số sản phẩm duy nhất còn thiếu.
 - Ước tính 0,5–1 triệu Neurons cho khoảng 600 sản phẩm chỉ là khoảng dự trù sơ bộ cho phần dịch sản phẩm. Với 8 ngôn ngữ đích, có khoảng 4.800 cặp sản phẩm-ngôn ngữ trước khi tính độ dài và số trường. Đây không phải số đo quota thực tế và chưa bao gồm review, category hay nội dung khác.
 
+### Đối soát bản dịch và kiểm tra định dạng phản hồi (2026-10-11)
+
+- Người dùng chạy `translation:revalidate-source-changed -- --apply --all` trên production. Kết quả cuối: đã đọc 50.166 bản dịch; 38.885 bản khớp nguồn và đạt validator được cập nhật; phần còn lại không tự duyệt. Lệnh này không gọi Cloudflare AI.
+- Storefront report sau đó ghi nhận 588 sản phẩm active, chỉ 2 ready và 586 not ready. Các lý do là thiếu mô tả (3.753 slot), thiếu specs (2.310 slot), quality chưa approved/validation errors (4.189 slot mỗi nhóm; các nhóm có thể chồng nhau). Sản phẩm phải đạt yêu cầu trên cả 8 locale `en, pt, fr, de, it, es, nl, sv`.
+- Audit chỉ đọc ghi nhận 106.408 LiveTranslationCache: 59.685 `needs_retranslate`, 43.129 `approved`, 3.575 `pending`, 19 `retranslated`; có 59.592 lỗi `source_content_changed` và 2.872 lỗi `translation_failed`. Catalog cache có 4.189 `pending`, 515 `approved`. Audit không sửa dữ liệu.
+- Dry-run `retranslate -- --dry-run --filter=translation_failed --limit=100` tìm thấy 662 nhóm sản phẩm-ngôn ngữ, gom từ 2.860 bản ghi field cache. Theo locale: `en` 92 nhóm/541 field; `pt` 91/530; `fr` 89/518; `de` 92/549; `it` 86/222; `es` 72/155; `nl` 72/181; `sv` 68/164. Dry-run không gọi AI và không ghi DB.
+- Người dùng kiểm tra Cloudflare trực tiếp bằng PowerShell inline, không tạo file `.ps1`. Lệnh dùng Node `dotenv` để đọc `.env` trong backend, gửi một yêu cầu thử với nội dung `100` tới cấu hình đầu tiên, rồi chỉ in metadata, không in token hoặc nội dung trả về. Đây là một yêu cầu AI thật, độc lập với DB và lệnh retranslate.
+- Kết quả PowerShell: HTTP 200, `success: true`; `result.response` là `Int32`, nhưng `result.choices[0].message.content` là chuỗi dài 3 ký tự. Như vậy API có trả văn bản, nhưng khác cấu trúc mà parser cũ của ứng dụng mong đợi.
+- Lượt retranslate thử `--filter=translation_failed --lang=en --limit=1` trước khi cập nhật parser đã thất bại: 0 bản dịch được sửa, 1 tác vụ lỗi `CLOUDFLARE_RESPONSE_INVALID` sau các lần thử lại. Không tiếp tục chạy backlog bằng phiên bản parser cũ.
+- Đã cập nhật `online-store-backend/src/services/cloudflareAiService.js` để ưu tiên `result.response` khi đó là chuỗi không rỗng, nếu không thì đọc `result.choices[].message.content` dạng chuỗi. Thêm kiểm tra hồi quy vào `online-store-backend/src/test/cloudflare-ai-service.test.js` cho trường hợp `response` là số nhưng `choices` chứa văn bản.
+- `node --check` cho service và test, cùng `git diff --check`, đã đạt. Chưa chạy được test runtime trong môi trường trợ lý vì thiếu package `axios`; không gọi Cloudflare thật trong bước kiểm tra code.
+- Bước tiếp theo: lấy code mới về bản local rồi thử lại đúng một nhóm tiếng Anh bằng `npm run retranslate -- --filter=translation_failed --lang=en --limit=1`. Chỉ tăng phạm vi nếu lượt thử thành công và được kiểm tra; không chạy cả 662 nhóm ngay.
+
 ### Giới hạn upload R2
 
 - Phân biệt được giới hạn do cấu hình ứng dụng (`R2_MAX_UPLOAD_COUNT`, `R2_MAX_UPLOAD_BYTES`) với usage/quota hiển thị trong Cloudflare Dashboard.
@@ -82,7 +95,7 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Chưa xác nhận quota Neurons còn lại của các tài khoản Cloudflare; trạng thái token/API không thay thế được kiểm tra usage.
 - Chưa xác nhận kết quả cuối cùng của lượt seed thứ ba hoặc số bản dịch được hoàn tất sau lượt đó.
 - Chưa khôi phục hoặc xác minh upstream backend trả API Categories/products thành công sau lỗi Cloudflare 530/1033; vì vậy chưa xác nhận lại sản phẩm trên `/products/headphones` sau seed.
-- Storefront readiness tại lần chạy gần nhất là 4/588 sản phẩm ready; 584 sản phẩm chưa đạt yêu cầu. Không chạy retranslate hàng loạt khi chưa xem readiness report và kế hoạch review/approval.
+- Storefront readiness tại báo cáo mới nhất sau revalidation là 2/588 sản phẩm ready; 586 sản phẩm chưa đạt yêu cầu. Revalidation không giải quyết nội dung thiếu hoặc các bản dịch cần dịch lại. Chưa chạy retranslate hàng loạt; cần xác nhận parser Cloudflare mới bằng một nhóm nhỏ trước khi quyết định tiếp tục.
 - Các URL ảnh mô tả Razer trả 404 vẫn cần được thay bằng file/URL nguồn còn tồn tại nếu muốn hiển thị lại các ảnh đó.
 - Chưa xác nhận tunnel hoạt động sau khi tải binary cloudflared.
 - Chưa thực hiện upload logo thương hiệu lên R2 hoặc cập nhật dữ liệu thương hiệu.
