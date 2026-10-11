@@ -28,7 +28,6 @@ const getErrorMessage = error => error?.message || String(error || 'Unknown R2 e
 
 const assertAboutMediaPreflight = () => {
   const heroSource = resolveMediaSource(process.env.ABOUT_HERO_SOURCE, getLocalHeroSource());
-  if (!heroSource) throw new Error('ABOUT_HERO_SOURCE is required when the local hero video is missing');
 
   getR2Accounts();
   const policy = getR2UploadPolicy();
@@ -121,23 +120,26 @@ const seedAboutMedia = async ({ dryRun = false } = {}) => {
     }
   }
 
-  let heroAsset;
-  try {
-    heroAsset = await ensureAsset({ source: heroSource, role: 'about-hero', stableKey: 'about-hero' });
-  } catch (error) {
-    throw new Error(`About hero media failed: ${getErrorMessage(error)}`, { cause: error });
-  }
+  let heroRecord = null;
+  if (heroSource) {
+    let heroAsset;
+    try {
+      heroAsset = await ensureAsset({ source: heroSource, role: 'about-hero', stableKey: 'about-hero' });
+    } catch (error) {
+      throw new Error(`About hero media failed: ${getErrorMessage(error)}`, { cause: error });
+    }
 
-  const heroRecord = {
-    key: 'about-hero',
-    kind: 'hero',
-    ...toRecordAsset(heroAsset),
-    posterUrl: null,
-    sourceUrl: process.env.ABOUT_HERO_SOURCE || null,
-    sortOrder: 0,
-  };
+    heroRecord = {
+      key: 'about-hero',
+      kind: 'hero',
+      ...toRecordAsset(heroAsset),
+      posterUrl: null,
+      sourceUrl: process.env.ABOUT_HERO_SOURCE || null,
+      sortOrder: 0,
+    };
+  }
   const loadingRecord = await seedLoadingMedia({ dryRun });
-  const records = [...teamRecords, heroRecord, ...(loadingRecord ? [loadingRecord] : [])];
+  const records = [...teamRecords, ...(heroRecord ? [heroRecord] : []), ...(loadingRecord ? [loadingRecord] : [])];
 
   await AboutMedia.bulkWrite(records.map(record => ({
     updateOne: {
