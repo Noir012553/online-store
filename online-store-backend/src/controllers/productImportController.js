@@ -35,6 +35,7 @@ if (!createZipArchive) {
   throw new TypeError('The archiver package does not expose a ZIP archive factory');
 }
 const crypto = require('crypto');
+const { isDeepStrictEqual } = require('node:util');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const os = require('os');
@@ -454,6 +455,15 @@ const MAX_NEW_CATEGORIES_PER_IMPORT = 10;
 const TRANSLATABLE_PRODUCT_FIELDS = [
   'name', 'description', 'brand', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
 ];
+const TRANSLATION_ENTITY_TYPES_BY_PRODUCT_FIELD = {
+  name: ['product_name'],
+  description: ['product_description'],
+  brand: ['product_brand'],
+  specs: ['product_spec'],
+  technicalDescription: ['product_technical_description'],
+  descriptionImages: ['product_description_image_alt'],
+  promotions: ['product_promotion'],
+};
 
 const isDryRun = (value) => value === true || value === 'true';
 const IMPORT_MODES = new Set(['insert', 'update', 'upsert']);
@@ -663,9 +673,16 @@ const getProductLookupFilter = (product) => {
 
 const getChangedTranslatableFields = (existing, product) => (
   TRANSLATABLE_PRODUCT_FIELDS.filter((field) => (
-    JSON.stringify(existing[field] ?? null) !== JSON.stringify(product[field] ?? null)
+    !isDeepStrictEqual(existing[field] ?? null, product[field] ?? null)
   ))
 );
+
+const getLiveTranslationInvalidationFilters = affectedProducts => affectedProducts.flatMap(({ productId, fields }) => {
+  const entityTypes = [...new Set(fields.flatMap(field => TRANSLATION_ENTITY_TYPES_BY_PRODUCT_FIELD[field] || []))];
+  return entityTypes.length > 0
+    ? [{ entityId: productId.toString(), entityType: { $in: entityTypes } }]
+    : [];
+});
 
 const withoutImportProductId = (product) => {
   const { productId, translations, ...productData } = product;
@@ -865,23 +882,13 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
     await ProductCatalogTranslationCache.bulkWrite(operations);
   }
 
-  await LiveTranslationCache.updateMany(
-    {
-      entityId: { $in: productIds },
-      entityType: {
-        $in: [
-          'product_name',
-          'product_description',
-          'product_brand',
-          'product_spec',
-          'product_technical_description',
-          'product_description_image_alt',
-          'product_promotion',
-        ],
-      },
-    },
-    { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
-  );
+  const liveTranslationFilters = getLiveTranslationInvalidationFilters(affectedProducts);
+  if (liveTranslationFilters.length > 0) {
+    await LiveTranslationCache.updateMany(
+      { $or: liveTranslationFilters },
+      { $set: { qualityStatus: 'needs_retranslate', validationErrors: ['source_content_changed'] } },
+    );
+  }
 
   await Product.updateMany(
     { _id: { $in: productIds } },
@@ -2817,6 +2824,8 @@ const getExportStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   buildUpsertProductUpdate,
+  getChangedTranslatableFields,
+  getLiveTranslationInvalidationFilters,
   getProductLookupFilter,
   findDuplicateImportIssues,
   getTranslationWithFallback,
