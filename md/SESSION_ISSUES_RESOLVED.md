@@ -48,6 +48,11 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Lượt chạy được xem trong log đã thực sự bắt đầu `scrape:all`. Để chạy seed mà không scrape lại, đã xác định tùy chọn `npm run seed -- --skip-scrape`.
 - Product import dùng kiểu upsert nên không đồng nghĩa với xóa toàn bộ sản phẩm. Tuy nhiên, review seeder có gọi `Review.deleteMany({})` trước khi tạo lại review.
 - Kiểm tra `npm run clear` cho thấy lệnh này xóa dữ liệu các collection MongoDB, index, tài nguyên R2 của dự án và file upload cục bộ. Đã khuyến nghị không chạy lệnh này để xử lý lỗi dịch hoặc rate limit.
+- `npm run seed -- --only-module=__product-pipeline__ --skip-scrape --skip-translate --file="..."` chỉ chạy product pipeline trên đúng file chỉ định. File `Razer_Headphone.json` có 13 sản phẩm nên output `updated: 13`, `inserted: 0` là hoàn tất đúng phạm vi, không phải seed bị treo. `inserted: 0` cho biết các sản phẩm đã tồn tại và được upsert.
+- Muốn import tất cả file hiện có trong `data/scraped-products/current` mà không cào/dịch, bỏ `--file=...` nhưng giữ `--only-module=__product-pipeline__ --skip-scrape --skip-translate`. Bỏ thêm `--only-module` sẽ chạy các seed module khác, không chỉ sản phẩm; cần xác nhận `MONGO_URI` trước khi chạy.
+- Lỗi HTTP 404 ở ảnh mô tả Razer là URL nguồn đã mất. Pipeline bỏ từng ảnh mô tả lỗi nhưng vẫn import sản phẩm nếu ảnh chính/gallery hợp lệ; không tự suy đoán URL thay thế. Nếu ảnh chính/gallery không chuẩn bị được, sản phẩm vẫn có thể bị từ chối.
+- Dòng `Storefront readiness: 4 ready, 584 not ready` là kết quả refresh trên 588 sản phẩm trong database, không phải số sản phẩm của riêng file Razer. `--skip-translate` không dịch hoặc duyệt bản dịch; các file locale được load là dữ liệu giao diện, không phải bản dịch sản phẩm.
+- HTTP 530 / Cloudflare 1033 khi gọi Categories/API storefront là lỗi kết nối upstream backend, khác với lỗi category slug và lỗi ảnh mô tả. Frontend đã đổi trạng thái category để không báo nhầm “không tìm thấy danh mục” khi API lỗi, đồng thời có nút thử lại; danh sách sản phẩm vẫn cần API backend hoạt động.
 
 ### Cloudflared tunnel
 
@@ -69,6 +74,9 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 
 - Chưa xác nhận quota Neurons còn lại của các tài khoản Cloudflare; trạng thái token/API không thay thế được kiểm tra usage.
 - Chưa xác nhận kết quả cuối cùng của lượt seed thứ ba hoặc số bản dịch được hoàn tất sau lượt đó.
+- Chưa khôi phục hoặc xác minh upstream backend trả API Categories/products thành công sau lỗi Cloudflare 530/1033; vì vậy chưa xác nhận lại sản phẩm trên `/products/headphones` sau seed.
+- Storefront readiness tại lần chạy gần nhất là 4/588 sản phẩm ready; 584 sản phẩm chưa đạt yêu cầu. Không chạy retranslate hàng loạt khi chưa xem readiness report và kế hoạch review/approval.
+- Các URL ảnh mô tả Razer trả 404 vẫn cần được thay bằng file/URL nguồn còn tồn tại nếu muốn hiển thị lại các ảnh đó.
 - Chưa xác nhận tunnel hoạt động sau khi tải binary cloudflared.
 - Chưa thực hiện upload logo thương hiệu lên R2 hoặc cập nhật dữ liệu thương hiệu.
 - Chưa xác nhận giới hạn `R2_MAX_UPLOAD_COUNT` đã được thay đổi.
