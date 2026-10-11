@@ -166,16 +166,6 @@ class BaseImportAdapter {
     const galleryLocalKey = isNewCrawlerProduct ? 'ProductGalleryImageLocalPaths' : 'GalleryImageLocalPaths';
     const localGalleryImages = parseCrawlerArray(product[galleryLocalKey]);
     const imagePreparationFailures = [];
-    if (Object.hasOwn(product, mainLocalKey) && sourceMainImage && !String(localMainImage || '').trim()) {
-      imagePreparationFailures.push({ role: 'main', sourceUrl: String(sourceMainImage) });
-    }
-    if (Object.hasOwn(product, galleryLocalKey) && Array.isArray(sourceGalleryImages) && Array.isArray(localGalleryImages)) {
-      sourceGalleryImages.forEach((sourceUrl, index) => {
-        if (sourceUrl && !String(localGalleryImages[index] || '').trim()) {
-          imagePreparationFailures.push({ role: 'gallery', index, sourceUrl: String(sourceUrl) });
-        }
-      });
-    }
     const sourceDescriptionImages = isNewCrawlerProduct ? product.ProductDescriptionImages : product.DescriptionImages;
     if (Array.isArray(sourceDescriptionImages)) {
       sourceDescriptionImages.forEach((image, index) => {
@@ -191,7 +181,7 @@ class BaseImportAdapter {
     const hasLocalGallery = Array.isArray(localGalleryImages);
     normalized.images = Array.isArray(sourceGalleryImages)
       ? sourceGalleryImages.map((image, index) => (
-        hasLocalGallery ? localGalleryImages[index] || '' : image
+        hasLocalGallery ? localGalleryImages[index] || image : image
       ))
       : sourceGalleryImages;
     const configuredInitialStock = this.config.initialStock;
