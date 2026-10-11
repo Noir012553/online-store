@@ -53,6 +53,8 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Storefront report chạy sau đợt 10 vẫn giữ nguyên 2/588 ready, 74 bản dịch tiếng Anh approved, 4.188 quality/validation blockers và 2.309 slot thiếu specs so với report sau pilot.
 - Đối chiếu chỉ đọc sau đó cho thấy catalog tiếng Anh mới cập nhật nhất là `approved`, không có validation errors và source hash khớp Product. Sản phẩm đó vẫn chưa ready: `en` và `sv` đạt; `pt`, `fr`, `de`, `it`, `es`, `nl` còn pending với lỗi/incomplete specs. Các khóa spec bị thiếu gồm `pollRate`, `sensor`, `maxDPI`, `weight`, `connection`, `color` tùy locale; French còn thiếu name/description/technical description. Điều này giải thích readiness vẫn bị chặn dù bản tiếng Anh đạt.
 - Số `Fixed successfully: 1` của retranslate không đảm bảo tổng số catalog approved tăng: một catalog đã approved có thể được đồng bộ/ghi lại từ các trường đã đạt sẵn, trong khi vấn đề storefront nằm ở locale khác. Chưa chạy thêm retranslate diện rộng.
+- Đã thêm `--product-id=<24-char-id>` vào `npm run retranslate` để giới hạn truy vấn theo đúng sản phẩm. `--retry-unresolved` có thể kết hợp với `--product-id`, `--lang` và `--limit` để chỉ mở lại checkpoint chưa đạt trong đúng phạm vi đó; không xóa checkpoint của sản phẩm khác.
+- Có thể dùng PowerShell inline để lặp `--dry-run` qua các locale cần kiểm tra, không cần tạo file `.ps1`. Dry-run không dịch hoặc cập nhật cache, nhưng tiến trình hiện vẫn dùng distributed run lock trong MongoDB. Chưa chạy lệnh mới trên production.
 - Lượt PowerShell trực tiếp là một yêu cầu AI riêng; lượt retranslate một nhóm tiếp theo và đợt 10 nhóm cũng gọi Cloudflare. Không ghi token hoặc nội dung response vào tài liệu.
 
 ### Giới hạn upload R2
