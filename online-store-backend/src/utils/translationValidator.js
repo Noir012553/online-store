@@ -11,7 +11,7 @@ const PRODUCT_ENTITY_TYPES = new Set([
   'product_promotion',
 ]);
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
-const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
+const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
 const removeVietnameseDiacritics = (value) => value
   .normalize('NFD')
@@ -28,15 +28,15 @@ const normalizeTechnicalToken = token => token
   .toLocaleLowerCase()
   .replace(/\s+/g, '')
   .replace(/,/g, '.');
-const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])(?!\p{L})/giu;
-const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])(?!\p{L})$/iu;
+const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])(?!\p{L})/giu;
+const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])(?!\p{L})$/iu;
 const TECHNICAL_KEYWORD_PATTERN = /(?<!\p{L})(?:SSD|NVMe|HDD|SATA|PCIe|IPS|OLED|FHD|QHD|UHD|DDR[345]?)(?!\p{L})/giu;
 const getCountMap = (values, normalizeToken = normalizeTechnicalToken) => values.reduce((counts, value) => {
   const token = normalizeToken(value);
   counts.set(token, (counts.get(token) || 0) + 1);
   return counts;
 }, new Map());
-const normalizeTechnicalUnit = token => normalizeTechnicalToken(token).replace(/(?:["″]|in)$/, 'inch');
+const normalizeTechnicalUnit = token => normalizeTechnicalToken(token).replace(/(?:["″]|inches?|in)$/, 'inch');
 const getTechnicalUnitCounts = value => getCountMap(
   String(value || '').match(TECHNICAL_UNIT_PATTERN) || [],
   normalizeTechnicalUnit,
@@ -50,7 +50,7 @@ const isTechnicalUnitPrefix = token => (
 );
 const getEmbeddedUnitPrefixCounts = value => getCountMap(
   getTechnicalTokens(value)
-    .map(token => token.match(/^([A-Za-z]+)\s*\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])$/iu)?.[1])
+    .map(token => token.match(/^([A-Za-z]+)\s*\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])$/iu)?.[1])
     .filter(token => token && isTechnicalUnitPrefix(token)),
 );
 const countWholePhrase = (value, phrase) => {
