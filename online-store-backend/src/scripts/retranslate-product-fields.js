@@ -136,8 +136,8 @@ const inspectFields = async fields => {
 
     results.push({
       field: field.label,
-      status: 'needs_retry',
-      errors: validation?.validationErrors || field.checkpoint?.validationErrors || ['missing_candidate'],
+      status: candidate ? 'needs_retry' : 'missing_translation',
+      errors: validation?.validationErrors || field.checkpoint?.validationErrors || ['missing_translation'],
       technicalTokenCheck: candidate
         ? translationValidator.checkTechnicalTokens(field.source, candidate)
         : null,
@@ -181,7 +181,7 @@ const run = async () => {
 
     const inspect = async (state, mode) => {
       const results = await inspectFields(buildFields(state.product, state.catalog, state.checkpointRecords));
-      const needsRetry = results.filter(result => result.status === 'needs_retry');
+      const needsRetry = results.filter(result => result.status !== 'approved');
       console.log(JSON.stringify({
         mode,
         productId,
