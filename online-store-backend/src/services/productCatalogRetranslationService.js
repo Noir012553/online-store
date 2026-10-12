@@ -100,9 +100,27 @@ const retranslateProductUnlocked = async (
       source: sourceText,
     });
     const completed = getCompletedResult(checkpoint, workKey);
-    if (completed?.payload && isApproved(completed.payload.validation)) {
-      providerUsed = true;
-      return { value: completed.payload.value, validation: completed.payload.validation };
+    let checkpointValidation = null;
+    if (completed?.payload) {
+      checkpointValidation = await translationValidator.validateTranslation(
+        sourceText,
+        completed.payload.value,
+        targetLang,
+        entityType,
+      );
+      if (isApproved(checkpointValidation)) {
+        providerUsed = true;
+        await markCompletedDurably(checkpoint, workKey, {
+          fixed: true,
+          validationErrors: [],
+          payload: {
+            ...completed.payload,
+            validation: checkpointValidation,
+            catalogWorkKey,
+          },
+        }, true);
+        return { value: completed.payload.value, validation: checkpointValidation };
+      }
     }
     const useApprovedCanonical = async validation => {
       if (!validation?.validationErrors?.includes('inconsistent')) return null;
@@ -140,7 +158,7 @@ const retranslateProductUnlocked = async (
     if (currentCanonical) return currentCanonical;
 
     const retryableCheckpointCandidate = retryMixedLanguage
-      && completed?.payload?.validation?.validationErrors?.includes('mixed_language');
+      && checkpointValidation?.validationErrors?.includes('mixed_language');
     let result = retryableCheckpointCandidate
       ? {
         translatedText: completed.payload.value,
@@ -152,12 +170,30 @@ const retranslateProductUnlocked = async (
         targetLang,
       );
     providerUsed = true;
-    let validation = await translationValidator.validateTranslation(
-      sourceText,
-      result.translatedText,
-      targetLang,
-      entityType,
-    );
+    let validation = retryableCheckpointCandidate
+      ? checkpointValidation
+      : await translationValidator.validateTranslation(
+        sourceText,
+        result.translatedText,
+        targetLang,
+        entityType,
+      );
+    if (validation.validationErrors?.some(error => (
+      error === 'missing_technical_token' || error === 'unexpected_technical_token'
+    ))) {
+      result = await productTranslationService.translateWithCloudflare(
+        sourceText,
+        getDefaultLanguage().code,
+        targetLang,
+        'Preserve every technical token, model, number, and unit from the source. Do not omit or change storage types such as SSD or NVMe, or their capacity. Keep a space between ordinary words and nearby units; never join them (write "the 144Hz", not "the144Hz"). Do not infer or add values. Return the complete translation.',
+      );
+      validation = await translationValidator.validateTranslation(
+        sourceText,
+        result.translatedText,
+        targetLang,
+        entityType,
+      );
+    }
     if (retryMixedLanguage && validation.validationErrors?.includes('mixed_language')) {
       result = await productTranslationService.translateWithCloudflare(
         sourceText,

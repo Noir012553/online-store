@@ -997,7 +997,7 @@ describe('Product translation cache controller', () => {
     )).to.include({ error: 'mixed_language' });
   });
 
-  it('retranslates a field when its checkpoint payload did not pass validation', async () => {
+  it('retries a technical-token failure with targeted preservation instructions', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-invalid-field-'));
     const productId = new mongoose.Types.ObjectId().toString();
     const product = {
@@ -1031,22 +1031,29 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves({}),
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
-    sandbox.stub(translationValidator, 'validateTranslation').resolves({
-      qualityStatus: 'approved',
-      qualityScore: 100,
-      validationErrors: [],
-    });
-    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
-      translatedText: 'Fresh translated laptop',
-      providersUsed: ['cloudflare'],
-    });
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
+      ['Wrong cached laptop', 'Fresh translated laptop'].includes(translated)
+        ? { qualityStatus: 'pending', qualityScore: 50, validationErrors: ['missing_technical_token'] }
+        : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
+    ));
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
+      .onFirstCall().resolves({
+        translatedText: 'Fresh translated laptop',
+        providersUsed: ['cloudflare'],
+      })
+      .onSecondCall().resolves({
+        translatedText: 'Fresh laptop with preserved tokens',
+        providersUsed: ['cloudflare'],
+      });
 
     try {
       await productCatalogRetranslationService.retranslateProduct(productId, 'en', { checkpoint });
-      expect(translate.calledOnceWith('Source laptop', 'vi', 'en')).to.be.true;
-      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh translated laptop');
+      expect(translate.calledTwice).to.be.true;
+      expect(translate.firstCall.args.slice(0, 3)).to.deep.equal(['Source laptop', 'vi', 'en']);
+      expect(translate.secondCall.args[3]).to.include('Preserve every technical token');
+      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh laptop with preserved tokens');
       expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
-        .to.equal('Fresh translated laptop');
+        .to.equal('Fresh laptop with preserved tokens');
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
@@ -1068,6 +1075,24 @@ describe('Product translation cache controller', () => {
       .to.include({ error: 'missing_technical_token' });
     expect(translationValidator.checkTechnicalTokens('1.5GHz', '15GHz'))
       .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB 144Hz',
+      'The 512GB NVMe SSD on a 144Hz display',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('SSD512GB', '512GB SSD')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('15.6"', '15.6 inch')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB 144Hz',
+      'The512GB NVMe on a 144Hz display',
+    )).to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens(
+      '144Hz 512GB',
+      'the144Hz and and512GB',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB',
+      'NVMe SSD 1TB',
+    )).to.include({ error: 'missing_technical_token' });
   });
 
   it('includes job accounting in saved retranslation reports', async () => {

@@ -28,6 +28,35 @@ const normalizeTechnicalToken = token => token
   .toLocaleLowerCase()
   .replace(/\s+/g, '')
   .replace(/,/g, '.');
+const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])/giu;
+const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])$/iu;
+const TECHNICAL_KEYWORD_PATTERN = /(?<!\p{L})(?:SSD|NVMe|HDD|SATA|PCIe|IPS|OLED|FHD|QHD|UHD|DDR[345]?)(?!\p{L})/giu;
+const getCountMap = (values, normalizeToken = normalizeTechnicalToken) => values.reduce((counts, value) => {
+  const token = normalizeToken(value);
+  counts.set(token, (counts.get(token) || 0) + 1);
+  return counts;
+}, new Map());
+const normalizeTechnicalUnit = token => normalizeTechnicalToken(token).replace(/(?:["″]|in)$/, 'inch');
+const getTechnicalUnitCounts = value => getCountMap(
+  String(value || '').match(TECHNICAL_UNIT_PATTERN) || [],
+  normalizeTechnicalUnit,
+);
+const getTechnicalKeywordCounts = value => getCountMap(String(value || '').match(TECHNICAL_KEYWORD_PATTERN) || []);
+const getPlainTechnicalTokenCounts = value => getCountMap(
+  getTechnicalTokens(value).filter(token => !TECHNICAL_UNIT_SUFFIX_PATTERN.test(token)),
+);
+const isTechnicalUnitPrefix = token => (
+  token === token.toUpperCase() || (token.match(/[A-Z]/g) || []).length >= 2
+);
+const getEmbeddedUnitPrefixCounts = value => getCountMap(
+  getTechnicalTokens(value)
+    .map(token => token.match(/^([A-Za-z]+)\s*\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])$/iu)?.[1])
+    .filter(token => token && isTechnicalUnitPrefix(token)),
+);
+const countWholePhrase = (value, phrase) => {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [...String(value || '').matchAll(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu'))].length;
+};
 const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTERN) || [];
 const containsWholePhrase = (value, phrase) => {
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
@@ -68,17 +97,13 @@ class TranslationValidator {
 
   checkTechnicalTokens(original, translated) {
     if (typeof original !== 'string' || typeof translated !== 'string') return null;
-    const sourceCounts = new Map();
-    getTechnicalTokens(original).forEach((token) => {
-      const normalized = normalizeTechnicalToken(token);
-      sourceCounts.set(normalized, (sourceCounts.get(normalized) || 0) + 1);
-    });
-
-    const translatedCounts = new Map();
-    getTechnicalTokens(translated).forEach((token) => {
-      const normalized = normalizeTechnicalToken(token);
-      translatedCounts.set(normalized, (translatedCounts.get(normalized) || 0) + 1);
-    });
+    const sourceCounts = getPlainTechnicalTokenCounts(original);
+    const translatedCounts = getPlainTechnicalTokenCounts(translated);
+    const sourceUnitCounts = getTechnicalUnitCounts(original);
+    const translatedUnitCounts = getTechnicalUnitCounts(translated);
+    const sourceKeywordCounts = getTechnicalKeywordCounts(original);
+    const translatedKeywordCounts = getTechnicalKeywordCounts(translated);
+    const sourcePrefixCounts = getEmbeddedUnitPrefixCounts(original);
 
     for (const [token, count] of sourceCounts) {
       if ((translatedCounts.get(token) || 0) < count) {
@@ -88,6 +113,31 @@ class TranslationValidator {
     for (const [token, count] of translatedCounts) {
       if (count > (sourceCounts.get(token) || 0)) {
         return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourceUnitCounts) {
+      if ((translatedUnitCounts.get(token) || 0) < count) {
+        return { error: 'missing_technical_token', token };
+      }
+    }
+    for (const [token, count] of translatedUnitCounts) {
+      if (count > (sourceUnitCounts.get(token) || 0)) {
+        return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourceKeywordCounts) {
+      if ((translatedKeywordCounts.get(token) || 0) < count) {
+        return { error: 'missing_technical_token', token };
+      }
+    }
+    for (const [token, count] of translatedKeywordCounts) {
+      if (count > (sourceKeywordCounts.get(token) || 0)) {
+        return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourcePrefixCounts) {
+      if (countWholePhrase(translated, token) < count) {
+        return { error: 'missing_technical_token', token };
       }
     }
     return null;
