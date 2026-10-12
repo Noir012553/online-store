@@ -175,6 +175,7 @@ const run = async () => {
   let releaseProgressLock;
   let databaseLock;
   let exitCode = 0;
+  let needsReviewCount = 0;
 
   try {
     await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 });
@@ -203,9 +204,8 @@ const run = async () => {
           parallelProducts: fieldConcurrency,
         });
         if (!result.committed) {
+          needsReviewCount++;
           console.log(`Needs review: ${job.productId} ${job.targetLang} (${result.candidate?.validationErrors?.join(', ') || 'quality validation'})`);
-          exitCode = 1;
-          break;
         }
         await databaseLock.renew();
       } catch (error) {
@@ -221,6 +221,7 @@ const run = async () => {
       readyForStorefront: finalBacklog.readyIds.size,
       notReady: finalBacklog.products.length - finalBacklog.readyIds.size,
       remainingJobs: finalBacklog.jobs.length,
+      needsReviewCount,
       sourceBlockedProducts: finalBacklog.blockedSources.length,
     }, null, 2));
     if (finalBacklog.jobs.length > 0 || finalBacklog.blockedSources.length > 0) exitCode ||= 1;
