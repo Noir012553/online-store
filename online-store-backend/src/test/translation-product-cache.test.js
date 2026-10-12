@@ -1033,7 +1033,11 @@ describe('Product translation cache controller', () => {
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
       ['Wrong cached laptop', 'Fresh translated laptop'].includes(translated)
-        ? { qualityStatus: 'pending', qualityScore: 50, validationErrors: ['missing_technical_token', 'truncated'] }
+        ? {
+          qualityStatus: 'pending',
+          qualityScore: 50,
+          validationErrors: ['missing_technical_token', 'truncated', 'extra_commentary'],
+        }
         : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
     ));
     const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
@@ -1052,6 +1056,7 @@ describe('Product translation cache controller', () => {
       expect(translate.firstCall.args.slice(0, 3)).to.deep.equal(['Source laptop', 'vi', 'en']);
       expect(translate.secondCall.args[3]).to.include('Preserve every technical token');
       expect(translate.secondCall.args[3]).to.include('do not add notes');
+      expect(translate.secondCall.args[3]).to.include('Translate all source content, including short interjections.');
       expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh laptop with preserved tokens');
       expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
         .to.equal('Fresh laptop with preserved tokens');
@@ -1076,6 +1081,15 @@ describe('Product translation cache controller', () => {
       .to.include({ error: 'missing_technical_token' });
     expect(translationValidator.checkTechnicalTokens('1.5GHz', '15GHz'))
       .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens(
+      'Bộ xử lý thế hệ 12',
+      '12th Generation processor',
+    )).to.equal(null);
+    expect(translationValidator.checkExtraCommentary(
+      'GearVN offers great service. Nothing to translate, it is just an interjection.',
+    )).to.include({ error: 'extra_commentary' });
+    expect(translationValidator.checkExtraCommentary('GearVN offers great after-sales service.'))
+      .to.equal(null);
     expect(translationValidator.checkTechnicalTokens(
       'SSD NVMe 512GB 144Hz',
       'The 512GB NVMe SSD on a 144Hz display',

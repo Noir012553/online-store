@@ -11,8 +11,9 @@ const PRODUCT_ENTITY_TYPES = new Set([
   'product_promotion',
 ]);
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
-const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
+const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+(?!(?:st|nd|rd|th)(?![\p{L}\d]))[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
+const TRANSLATION_COMMENTARY_PATTERN = /\b(?:nothing to translate\b|the translation of\b[\s\S]{0,100}\bis not provided\b)/i;
 const removeVietnameseDiacritics = (value) => value
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -162,6 +163,13 @@ class TranslationValidator {
     return { error: 'truncated' };
   }
 
+  checkExtraCommentary(translated) {
+    if (typeof translated !== 'string') return null;
+    return TRANSLATION_COMMENTARY_PATTERN.test(translated)
+      ? { error: 'extra_commentary' }
+      : null;
+  }
+
   checkSourceLanguageLeak(original, translated, targetLang, entityType) {
     if (targetLang === 'vi' || !PRODUCT_ENTITY_TYPES.has(entityType)) return null;
     if (typeof original !== 'string' || typeof translated !== 'string') return null;
@@ -264,6 +272,9 @@ class TranslationValidator {
 
     const truncatedCheck = this.checkTruncated(original, translated);
     if (truncatedCheck) errors.push(truncatedCheck.error);
+
+    const extraCommentaryCheck = this.checkExtraCommentary(translated);
+    if (extraCommentaryCheck) errors.push(extraCommentaryCheck.error);
 
     const sourceLanguageLeakCheck = this.checkSourceLanguageLeak(
       original,

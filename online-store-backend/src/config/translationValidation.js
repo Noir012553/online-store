@@ -35,6 +35,7 @@ module.exports = {
     unexpected_technical_token: -50,
     markup_mismatch: -50,
     truncated: -50,
+    extra_commentary: -50,
   },
 
   // ========== THRESHOLDS ==========
@@ -53,6 +54,7 @@ module.exports = {
     'unexpected_technical_token',
     'markup_mismatch',
     'truncated',
+    'extra_commentary',
   ],
   NON_BLOCKING_ERRORS: [],
 
