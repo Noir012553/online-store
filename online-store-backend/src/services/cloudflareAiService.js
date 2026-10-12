@@ -442,12 +442,11 @@ class CloudflareAiService {
       const sourceLanguage = getLanguageByCode(sourceLang)?.name || sourceLang;
       const targetLanguage = getLanguageByCode(targetLang)?.name || targetLang;
       const promptInstruction = additionalInstructions.trim()
-        ? `\n\nAdditional requirements:\n${additionalInstructions.trim()}`
+        ? `Additional requirements:\n${additionalInstructions.trim()}\n\n`
         : '';
-      const userPrompt = (useExplicitOutputPrompt
+      const userPrompt = promptInstruction + (useExplicitOutputPrompt
         ? `Translate the source text below from ${sourceLanguage} to ${targetLanguage}. It may be very short, a single word, or a technical value. Always return a non-empty translation; if it should remain unchanged, copy it exactly. Return only the translated text.\n\n${text}`
-        : `Translate this text from ${sourceLanguage} to ${targetLanguage}. Return only the translation.\n\n${text}`)
-        + promptInstruction;
+        : `Translate this text from ${sourceLanguage} to ${targetLanguage}. Return only the translation.\n\n${text}`);
       const response = await axios.post(
         config.baseUrl,
         {
