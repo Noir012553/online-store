@@ -1084,6 +1084,10 @@ describe('Product translation cache controller', () => {
     expect(translationValidator.checkTechnicalTokens('SSD512GB', '512GB SSD')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens('15.6"', '15.6 inch')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens(
+      'Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )',
+      'Give away 1 x Acer Predator SUV Backpack (worth 2,000,000 VND)',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
       'SSD NVMe 512GB 144Hz',
       'The512GB NVMe on a 144Hz display',
     )).to.include({ error: 'missing_technical_token' });

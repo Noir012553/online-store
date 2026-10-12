@@ -154,7 +154,7 @@ const retranslateProductUnlocked = async (
       }, true);
       return { value: canonical.translatedText, validation: canonicalValidation };
     };
-    const currentCanonical = await useApprovedCanonical(currentValidation);
+    const currentCanonical = await useApprovedCanonical(checkpointValidation || currentValidation);
     if (currentCanonical) return currentCanonical;
 
     const retryableCheckpointCandidate = retryMixedLanguage

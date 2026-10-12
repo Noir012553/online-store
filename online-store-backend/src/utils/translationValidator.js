@@ -28,8 +28,8 @@ const normalizeTechnicalToken = token => token
   .toLocaleLowerCase()
   .replace(/\s+/g, '')
   .replace(/,/g, '.');
-const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])/giu;
-const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])$/iu;
+const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])(?!\p{L})/giu;
+const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])(?!\p{L})$/iu;
 const TECHNICAL_KEYWORD_PATTERN = /(?<!\p{L})(?:SSD|NVMe|HDD|SATA|PCIe|IPS|OLED|FHD|QHD|UHD|DDR[345]?)(?!\p{L})/giu;
 const getCountMap = (values, normalizeToken = normalizeTechnicalToken) => values.reduce((counts, value) => {
   const token = normalizeToken(value);
