@@ -169,19 +169,21 @@ const run = async () => {
       await hydrateCheckpoint(checkpoint);
     }
 
-    const [product, catalog] = await Promise.all([
-      Product.findById(productId).select('name description specs technicalDescription descriptionImages promotions').lean(),
-      ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
-    ]);
-    if (!product) throw new Error(`Product not found: ${productId}`);
-    const checkpointRecords = apply ? checkpoint.completed : await getCheckpointRecords();
+    const loadState = async () => {
+      const [product, catalog, checkpointRecords] = await Promise.all([
+        Product.findById(productId).select('name description specs technicalDescription descriptionImages promotions').lean(),
+        ProductCatalogTranslationCache.findOne({ entityId: productId, targetLang }).lean(),
+        getCheckpointRecords(),
+      ]);
+      if (!product) throw new Error(`Product not found: ${productId}`);
+      return { product, catalog, checkpointRecords };
+    };
 
-    const inspect = async () => {
-      const fields = buildFields(product, catalog, checkpointRecords);
-      const results = await inspectFields(fields);
+    const inspect = async (state, mode) => {
+      const results = await inspectFields(buildFields(state.product, state.catalog, state.checkpointRecords));
       const needsRetry = results.filter(result => result.status === 'needs_retry');
       console.log(JSON.stringify({
-        mode: apply ? 'apply' : 'dry-run',
+        mode,
         productId,
         targetLang,
         approvedFields: results.length - needsRetry.length,
@@ -190,7 +192,7 @@ const run = async () => {
       return needsRetry;
     };
 
-    const needsRetry = await inspect();
+    const needsRetry = await inspect(await loadState(), apply ? 'apply' : 'dry-run');
     if (!apply || needsRetry.length === 0) return;
 
     const concurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 1);
@@ -204,7 +206,7 @@ const run = async () => {
       retryMixedLanguage: true,
     });
     await databaseLock.renew();
-    const remainingFields = await inspect();
+    const remainingFields = await inspect(await loadState(), 'post-apply');
     console.log(JSON.stringify({
       mode: 'apply-complete',
       committed: result.committed,
