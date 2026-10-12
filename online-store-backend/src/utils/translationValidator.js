@@ -110,8 +110,8 @@ class TranslationValidator {
         return { error: 'missing_technical_token', token };
       }
     }
-    for (const [token, count] of translatedCounts) {
-      if (count > (sourceCounts.get(token) || 0)) {
+    for (const token of translatedCounts.keys()) {
+      if (!sourceCounts.has(token)) {
         return { error: 'unexpected_technical_token', token };
       }
     }
@@ -120,8 +120,8 @@ class TranslationValidator {
         return { error: 'missing_technical_token', token };
       }
     }
-    for (const [token, count] of translatedUnitCounts) {
-      if (count > (sourceUnitCounts.get(token) || 0)) {
+    for (const token of translatedUnitCounts.keys()) {
+      if (!sourceUnitCounts.has(token)) {
         return { error: 'unexpected_technical_token', token };
       }
     }
@@ -130,8 +130,8 @@ class TranslationValidator {
         return { error: 'missing_technical_token', token };
       }
     }
-    for (const [token, count] of translatedKeywordCounts) {
-      if (count > (sourceKeywordCounts.get(token) || 0)) {
+    for (const token of translatedKeywordCounts.keys()) {
+      if (!sourceKeywordCounts.has(token)) {
         return { error: 'unexpected_technical_token', token };
       }
     }

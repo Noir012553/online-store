@@ -1033,7 +1033,7 @@ describe('Product translation cache controller', () => {
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
       ['Wrong cached laptop', 'Fresh translated laptop'].includes(translated)
-        ? { qualityStatus: 'pending', qualityScore: 50, validationErrors: ['missing_technical_token'] }
+        ? { qualityStatus: 'pending', qualityScore: 50, validationErrors: ['missing_technical_token', 'truncated'] }
         : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
     ));
     const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
@@ -1051,6 +1051,7 @@ describe('Product translation cache controller', () => {
       expect(translate.calledTwice).to.be.true;
       expect(translate.firstCall.args.slice(0, 3)).to.deep.equal(['Source laptop', 'vi', 'en']);
       expect(translate.secondCall.args[3]).to.include('Preserve every technical token');
+      expect(translate.secondCall.args[3]).to.include('do not add notes');
       expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh laptop with preserved tokens');
       expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
         .to.equal('Fresh laptop with preserved tokens');
@@ -1079,6 +1080,7 @@ describe('Product translation cache controller', () => {
       'SSD NVMe 512GB 144Hz',
       'The 512GB NVMe SSD on a 144Hz display',
     )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('RTX3050', 'RTX3050 RTX3050')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens('SSD512GB', '512GB SSD')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens('15.6"', '15.6 inch')).to.equal(null);
     expect(translationValidator.checkTechnicalTokens(

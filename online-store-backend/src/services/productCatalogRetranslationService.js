@@ -178,14 +178,22 @@ const retranslateProductUnlocked = async (
         targetLang,
         entityType,
       );
-    if (validation.validationErrors?.some(error => (
+    const hasTechnicalTokenError = validation.validationErrors?.some(error => (
       error === 'missing_technical_token' || error === 'unexpected_technical_token'
-    ))) {
+    ));
+    const hasTruncationError = validation.validationErrors?.includes('truncated');
+    if (hasTechnicalTokenError || hasTruncationError) {
+      const retryInstructions = [
+        'Translate the entire source through its final sentence. Return only the translation; do not add notes, explanations, apologies, or comments.',
+        hasTechnicalTokenError
+          ? 'Preserve every technical token, model, number, and unit from the source with the same count. Do not omit or change storage types such as SSD or NVMe, or their capacity. Keep a space between ordinary words and nearby units; never join them (write "the 144Hz", not "the144Hz"). Do not infer or add values.'
+          : '',
+      ].filter(Boolean).join(' ');
       result = await productTranslationService.translateWithCloudflare(
         sourceText,
         getDefaultLanguage().code,
         targetLang,
-        'Preserve every technical token, model, number, and unit from the source. Do not omit or change storage types such as SSD or NVMe, or their capacity. Keep a space between ordinary words and nearby units; never join them (write "the 144Hz", not "the144Hz"). Do not infer or add values. Return the complete translation.',
+        retryInstructions,
       );
       validation = await translationValidator.validateTranslation(
         sourceText,
