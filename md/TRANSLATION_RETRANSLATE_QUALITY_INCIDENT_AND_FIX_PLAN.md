@@ -109,7 +109,7 @@ Do đó 4.896 record catalog không tương đương 4.896 sản phẩm sẵn s�
 1. Tách bước sinh output khỏi bước commit catalog: dịch và validate xong, chỉ ghi đè catalog khi đạt tiêu chí đã thống nhất; nếu không đạt, giữ bản đang dùng và lưu ứng viên/lỗi vào nơi review phù hợp.
 2. Dịch theo field lỗi khi có thể; với product catalog cần bảo đảm các field còn lại không bị thay đổi ngoài ý muốn. Respect `manualFields`.
 3. Trích xuất và bảo toàn chính xác model, SKU, CPU/GPU, RAM, storage, kích thước, tần số, chuẩn kết nối và số liệu từ nguồn. Nếu output đổi/xóa/thêm giá trị kỹ thuật thì từ chối ghi.
-4. Bổ sung kiểm tra cấu trúc theo field: name không được bịa model; specs phải giữ nguyên giá trị nguồn; description phải đủ ý và không trộn ngôn ngữ; markup phải khớp.
+4. Bổ sung kiểm tra cấu trúc theo field: name không được bịa model; specs phải giữ nguyên giá trị nguồn; nếu source description có nội dung thì bản dịch phải đủ ý và không trộn ngôn ngữ; markup phải khớp.
 5. Rà lại validator `inconsistent`: phân biệt bất nhất thực sự với cách diễn đạt khác nhau; giữ yêu cầu nhất quán ở mức phù hợp với field và ngôn ngữ.
 6. Gắn version/chính sách validator vào checkpoint signature khi thay đổi cách dịch/kiểm tra để tránh tái sử dụng payload từ chính sách cũ.
 7. Kiểm tra trạng thái khi lỗi provider: 429 phải dừng nhận việc mới, không ghi giả `success`, bảo toàn bản trước và tính remaining theo danh sách job thực sự chưa hoàn thành.
