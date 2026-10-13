@@ -1160,10 +1160,6 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
     .filter(Boolean));
   if (![...sourceSpecKeys].every((key) => translatedSpecKeys.has(key))) return false;
 
-  const translatedImages = Array.isArray(translation?.descriptionImages) ? translation.descriptionImages : [];
-  if ((sourceProduct?.descriptionImages || []).some((image, index) => (
-    image?.alt?.trim() && !translatedImages[index]?.alt?.trim()
-  ))) return false;
   const translatedPromotions = Array.isArray(translation?.promotions) ? translation.promotions : [];
   return (sourceProduct?.promotions || []).every((promotion, index) => (
     ['title', 'giftProductName', 'scope', 'discountText'].every((field) => (
@@ -1365,34 +1361,48 @@ exports.getProductTranslationStatuses = async (req, res) => {
           manualFields: catalogTranslation.manualFields || [],
           updatedAt: catalogTranslation.updatedAt || catalogTranslation.lastTranslatedAt || null,
           validationErrors: approvalEligibility.validationErrors,
+          optionalFieldWarnings: catalogTranslation.optionalFieldWarnings || [],
         };
       }
 
       const currentLegacyRecords = legacyRecords.filter((record) => record.qualityStatus !== 'retranslated');
-      const translatedTypes = new Set(currentLegacyRecords.map((record) => record.entityType));
       const product = productsById.get(productId);
+      const optionalAltRecords = currentLegacyRecords.filter((record) => (
+        record.entityType === 'product_description_image_alt'
+        && (record.status !== 'success'
+          || record.qualityStatus !== 'approved'
+          || (Array.isArray(record.validationErrors) && record.validationErrors.length > 0))
+      ));
+      const blockingLegacyRecords = currentLegacyRecords.filter((record) => record.entityType !== 'product_description_image_alt');
+      const translatedTypes = new Set(blockingLegacyRecords.map((record) => record.entityType));
       const expectedSpecKeys = Object.keys(product?.specs || {});
       const translatedSpecKeys = new Set(
         currentLegacyRecords
           .filter((record) => record.entityType === 'product_spec' && record.specKey)
           .map((record) => record.specKey)
       );
-      const isComplete = ['product_name', 'product_description', 'product_brand'].every((type) => translatedTypes.has(type))
+      const requiredTypes = ['product_name', 'product_brand'];
+      if (product?.description?.trim()) requiredTypes.push('product_description');
+      const isComplete = requiredTypes.every((type) => translatedTypes.has(type))
         && expectedSpecKeys.every((key) => translatedSpecKeys.has(key));
-      const validationErrors = [...new Set(currentLegacyRecords.flatMap((record) => (
+      const validationErrors = [...new Set(blockingLegacyRecords.flatMap((record) => (
         Array.isArray(record.validationErrors) ? record.validationErrors : []
       )))];
-      const legacyStatus = currentLegacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
+      const legacyStatus = blockingLegacyRecords.some((record) => record.qualityStatus === 'needs_retranslate')
         ? 'needs_retranslate'
-        : currentLegacyRecords.some((record) => (
+        : blockingLegacyRecords.some((record) => (
           record.qualityStatus === 'rejected'
           || record.status !== 'success'
         ))
           ? 'rejected'
           : validationErrors.length > 0
-            || currentLegacyRecords.some((record) => record.qualityStatus === 'pending')
+            || blockingLegacyRecords.some((record) => record.qualityStatus === 'pending')
             ? 'pending'
             : isComplete ? 'approved' : 'missing';
+      const optionalFieldWarnings = optionalAltRecords.map((record) => ({
+        fieldKey: record.fieldKey,
+        validationErrors: record.validationErrors?.length ? record.validationErrors : ['not_approved'],
+      }));
       const updatedAt = currentLegacyRecords.reduce((latest, record) => {
         const current = record.updatedAt || record.lastTranslatedAt || record.createdAt || null;
         return current && (!latest || new Date(current) > new Date(latest)) ? current : latest;
@@ -1405,6 +1415,7 @@ exports.getProductTranslationStatuses = async (req, res) => {
         manualFields: [],
         updatedAt,
         validationErrors,
+        optionalFieldWarnings,
       };
     });
 
@@ -1474,6 +1485,7 @@ exports.saveProductTranslation = async (req, res) => {
       ...normalizedContent.cleaned,
     });
     const validationResults = [];
+    const optionalFieldWarnings = [];
     const validateField = async (source, translated, entityType) => {
       if (typeof source !== 'string' || !source.trim()) return;
       validationResults.push(await translationValidator.validateTranslation(
@@ -1503,8 +1515,22 @@ exports.saveProductTranslation = async (req, res) => {
         'product_spec',
       );
     }
-    for (const [index, image] of (product.descriptionImages || []).entries()) {
-      await validateField(image?.alt, translatedContent.descriptionImages?.[index]?.alt, 'product_description_image_alt');
+    if (fields.includes('descriptionImages')) {
+      for (const [index, image] of (product.descriptionImages || []).entries()) {
+        if (typeof image?.alt !== 'string' || !image.alt.trim()) continue;
+        const validation = await translationValidator.validateTranslation(
+          image.alt,
+          translatedContent.descriptionImages?.[index]?.alt || '',
+          lang,
+          'product_description_image_alt',
+        );
+        if (validation.validationErrors.length > 0) {
+          optionalFieldWarnings.push({
+            fieldKey: `descriptionImages.${index}.alt`,
+            validationErrors: validation.validationErrors,
+          });
+        }
+      }
     }
     for (const [index, promotion] of (product.promotions || []).entries()) {
       for (const field of ['title', 'giftProductName', 'scope', 'discountText']) {
@@ -1547,6 +1573,9 @@ exports.saveProductTranslation = async (req, res) => {
       qualityStatus,
       qualityScore,
       validationErrors,
+      optionalFieldWarnings: fields.includes('descriptionImages')
+        ? optionalFieldWarnings
+        : existing?.optionalFieldWarnings || [],
       ...(existing?.provider === 'assistant' ? { approvedBy: null, approvedAt: null, approvalReview: null } : {}),
       manualFields,
       lastTranslatedAt: new Date(),
@@ -1932,6 +1961,7 @@ exports.importProductTranslationCache = async (req, res) => {
         promotions: translations.promotions,
       }).cleaned;
       const validationResults = [];
+      const optionalFieldWarnings = [];
       const validateField = async (source, translated, entityType) => {
         if (typeof source !== 'string' || !source.trim() || typeof translated !== 'string') return;
         validationResults.push(await translationValidator.validateTranslation(source, translated, targetLang, entityType));
@@ -1953,7 +1983,19 @@ exports.importProductTranslationCache = async (req, res) => {
       }
       if (fields.includes('descriptionImages')) {
         for (const [index, image] of (sourceProduct.descriptionImages || []).entries()) {
-          await validateField(image?.alt, normalizedContent.descriptionImages?.[index]?.alt, 'product_description_image_alt');
+          if (typeof image?.alt !== 'string' || !image.alt.trim()) continue;
+          const validation = await translationValidator.validateTranslation(
+            image.alt,
+            normalizedContent.descriptionImages?.[index]?.alt || '',
+            targetLang,
+            'product_description_image_alt',
+          );
+          if (validation.validationErrors.length > 0) {
+            optionalFieldWarnings.push({
+              fieldKey: `descriptionImages.${index}.alt`,
+              validationErrors: validation.validationErrors,
+            });
+          }
         }
       }
       if (fields.includes('promotions')) {
@@ -1979,6 +2021,7 @@ exports.importProductTranslationCache = async (req, res) => {
           ? Math.min(...validationResults.map(({ qualityScore: score }) => score))
           : null,
         validationErrors,
+        optionalFieldWarnings,
       });
     }
 
@@ -2071,6 +2114,9 @@ exports.importProductTranslationCache = async (req, res) => {
               qualityStatus: (assistantBatch || existing?.provider === 'assistant') ? 'pending' : (validation?.qualityStatus || 'pending'),
               qualityScore: validation?.qualityScore ?? null,
               validationErrors: validation?.validationErrors || [],
+              optionalFieldWarnings: importableFields.includes('descriptionImages')
+                ? validation?.optionalFieldWarnings || []
+                : existing?.optionalFieldWarnings || [],
               manualFields: [...new Set([...(existing?.manualFields || []), ...manualFields])],
               lastTranslatedAt: new Date(),
             },

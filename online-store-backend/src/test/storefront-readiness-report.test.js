@@ -88,6 +88,23 @@ describe('storefront readiness report', () => {
     expect(report.products[0].locales[0].missingSpecKeys).to.deep.equal(['ram']);
   });
 
+  it('reports optional image-alt warnings without blocking readiness', () => {
+    const product = makeProduct();
+    const translations = makeTranslations(product).map((translation) => ({
+      ...translation,
+      optionalFieldWarnings: [{
+        fieldKey: 'descriptionImages.0.alt',
+        validationErrors: ['mixed_language'],
+      }],
+    }));
+    const report = analyzeStorefrontReadiness([product], translations, requiredLanguages);
+
+    expect(report.readyCount).to.equal(1);
+    expect(report.reasonCounts).to.deep.equal({});
+    expect(report.optionalWarningCounts['descriptionImages.0.alt:mixed_language']).to.equal(2);
+    expect(report.products[0].locales[0].optionalFieldWarnings).to.deep.equal(translations[0].optionalFieldWarnings);
+  });
+
   it('does not require source or translated description when source description is absent', () => {
     const product = makeProduct({ description: '' });
     const translations = makeTranslations(product).map((translation) => ({ ...translation, description: '' }));

@@ -118,6 +118,7 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
           qualityStatus: 'pending',
           qualityScore: 0,
           validationErrors: ['missing_translation_records'],
+          optionalFieldWarnings: [],
           retryCount: 0,
           lastErrorMessage: null,
           lastRetryAt: null,
@@ -213,6 +214,7 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
         !translatedSpecKeys.has(getCanonicalSpecKey(key))
       ));
       const validationErrors = [];
+      const optionalFieldWarnings = [];
       const hasSourceDescription = typeof sourceProduct?.description === 'string'
         && sourceProduct.description.trim();
       const hasTechnicalDescription = typeof sourceProduct?.technicalDescription === 'string'
@@ -231,7 +233,10 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
       if (Array.isArray(sourceProduct?.descriptionImages)) {
         sourceProduct.descriptionImages.forEach((image, index) => {
           if (image?.alt?.trim() && !entry.descriptionImages[index]?.alt?.trim()) {
-            validationErrors.push('incomplete_description_images');
+            optionalFieldWarnings.push({
+              fieldKey: `descriptionImages.${index}.alt`,
+              validationErrors: ['missing_translation'],
+            });
           }
         });
       }
@@ -246,6 +251,7 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
       }
 
       entry.validationErrors = validationErrors;
+      entry.optionalFieldWarnings = optionalFieldWarnings;
       entry.qualityStatus = validationErrors.length > 0 ? 'pending' : 'approved';
       entry.qualityScore = validationErrors.length > 0 ? 0 : 100;
     });

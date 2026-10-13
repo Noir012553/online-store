@@ -101,6 +101,10 @@ const ProductCatalogTranslationCacheSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    optionalFieldWarnings: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
     manualFields: {
       type: [String],
       default: [],

@@ -71,7 +71,7 @@ const retranslateProductUnlocked = async (
   const sourceHashMatches = catalogTranslation?.sourceHash === sourceHash;
   let providerUsed = false;
   let allFieldsVerified = true;
-  const translateSourceText = async (source, entityType, field, currentValue, manual = false) => {
+  const translateSourceText = async (source, entityType, field, currentValue, manual = false, optional = false) => {
     const sourceText = source == null ? '' : String(source);
     const existingValue = currentValue ?? sourceText;
     if (!sourceText.trim()) {
@@ -225,7 +225,7 @@ const retranslateProductUnlocked = async (
       if (canonical) return canonical;
     }
     const accepted = isApproved(validation);
-    if (!accepted) allFieldsVerified = false;
+    if (!accepted && !optional) allFieldsVerified = false;
     await markCompletedDurably(checkpoint, workKey, {
       fixed: accepted,
       validationErrors: validation.validationErrors || [],
@@ -266,6 +266,7 @@ const retranslateProductUnlocked = async (
     descResult.validation,
     technicalDescriptionResult.validation,
   ].filter(Boolean);
+  const optionalFieldWarnings = [];
   const specResults = await mapWithConcurrency(Object.entries(product.specs || {}), async ([key, value]) => {
     const { value: translated, validation } = await translateField(
       'specs',
@@ -287,17 +288,35 @@ const retranslateProductUnlocked = async (
   const imageResults = manualFields.includes('descriptionImages')
     ? null
     : await mapWithConcurrency(product.descriptionImages || [], async (image, index) => {
+      const manualImageAlt = manualFields.includes('descriptionImages');
       const { value: alt, validation } = await translateSourceText(
         image?.alt,
         'product_description_image_alt',
         ['descriptionImages', index, 'alt'],
         catalogTranslation?.descriptionImages?.[index]?.alt,
+        manualImageAlt,
+        true,
       );
-      return { image, alt: alt ?? image?.alt ?? '', validation };
+      const optionalValidation = validation || (manualImageAlt
+        && typeof image?.alt === 'string'
+        && image.alt.trim()
+        ? await translationValidator.validateTranslation(
+          image.alt,
+          alt ?? image.alt,
+          targetLang,
+          'product_description_image_alt',
+        )
+        : null);
+      return { image, alt: alt ?? image?.alt ?? '', validation: optionalValidation, index };
     }, fieldConcurrency);
   const descriptionImages = imageResults
-    ? imageResults.map(({ image, alt, validation }) => {
-      if (validation) validationResults.push(validation);
+    ? imageResults.map(({ image, alt, validation, index }) => {
+      if (validation?.validationErrors?.length) {
+        optionalFieldWarnings.push({
+          fieldKey: `descriptionImages.${index}.alt`,
+          validationErrors: validation.validationErrors,
+        });
+      }
       return { ...image, alt };
     })
     : catalogTranslation?.descriptionImages || product.descriptionImages || [];
@@ -357,6 +376,7 @@ const retranslateProductUnlocked = async (
     qualityStatus,
     qualityScore,
     validationErrors,
+    optionalFieldWarnings,
     manualFields,
   };
   if (providerUsed) {

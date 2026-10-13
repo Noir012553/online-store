@@ -376,6 +376,7 @@ class ProductTranslationSeederService {
         })
         : [];
       const validationErrors = [];
+      const optionalFieldWarnings = [];
       const sourceSpecKeys = Object.entries(product.specs || {})
         .filter(([, value]) => typeof value === 'string' && value.trim())
         .map(([key]) => getCanonicalSpecKey(key));
@@ -393,7 +394,10 @@ class ProductTranslationSeederService {
       if (Array.isArray(product.descriptionImages)) {
         product.descriptionImages.forEach((image, index) => {
           if (image?.alt?.trim() && !translated.descriptionImageAlts.get(`descriptionImages.${index}.alt`)) {
-            validationErrors.push('incomplete_description_images');
+            optionalFieldWarnings.push({
+              fieldKey: `descriptionImages.${index}.alt`,
+              validationErrors: ['missing_translation'],
+            });
           }
         });
       }
@@ -422,6 +426,7 @@ class ProductTranslationSeederService {
         qualityStatus: validationErrors.length === 0 ? 'approved' : 'pending',
         qualityScore: validationErrors.length === 0 ? 100 : 0,
         validationErrors,
+        optionalFieldWarnings,
         lastTranslatedAt: new Date(),
       };
     });

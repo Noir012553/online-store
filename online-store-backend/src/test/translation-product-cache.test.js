@@ -909,6 +909,46 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('commits required translations while storing image-alt validation as a warning', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [{ url: 'https://example.invalid/product.jpg', alt: 'Product image' }],
+      promotions: [],
+    };
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves({ manualFields: [] }) });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({ qualityStatus: 'approved', validationErrors: [] }),
+    });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => ({
+      translatedText: source === 'Product image' ? 'Product image' : 'Translated laptop',
+      providersUsed: ['cloudflare'],
+    }));
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, _translated, _lang, entityType) => (
+      entityType === 'product_description_image_alt'
+        ? { qualityStatus: 'pending', qualityScore: 40, validationErrors: ['wrong_language'] }
+        : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
+    ));
+
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+    const update = findOneAndUpdate.firstCall.args[1].$set;
+
+    expect(result.committed).to.equal(true);
+    expect(update.qualityStatus).to.equal('approved');
+    expect(update.validationErrors).to.deep.equal([]);
+    expect(update.optionalFieldWarnings).to.deep.equal([{
+      fieldKey: 'descriptionImages.0.alt',
+      validationErrors: ['wrong_language'],
+    }]);
+  });
+
   it('retries a mixed-language field once with targeted instructions before commit', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-mixed-language-'));
     const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);

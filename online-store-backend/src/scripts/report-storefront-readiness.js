@@ -50,6 +50,25 @@ const printHumanReport = (report, limit) => {
   if (reasons.length === 0) console.log('  none');
   reasons.forEach(([reason, count]) => console.log(`  ${reason}: ${count}`));
 
+  console.log('Optional field warnings (non-blocking):');
+  const optionalWarnings = Object.entries(report.optionalWarningCounts || {}).sort(([a], [b]) => a.localeCompare(b));
+  if (optionalWarnings.length === 0) console.log('  none');
+  optionalWarnings.forEach(([warning, count]) => console.log(`  ${warning}: ${count}`));
+
+  const productsWithWarnings = report.products.filter((product) => product.locales.some(
+    ({ optionalFieldWarnings }) => optionalFieldWarnings?.length > 0,
+  ));
+  console.log(`Optional warning details (IDs only, ${Math.min(limit, productsWithWarnings.length)} of ${productsWithWarnings.length}):`);
+  productsWithWarnings.slice(0, limit).forEach((product) => {
+    const warnings = product.locales
+      .filter(({ optionalFieldWarnings }) => optionalFieldWarnings?.length > 0)
+      .flatMap(({ targetLang, optionalFieldWarnings }) => optionalFieldWarnings.map((warning) => (
+        `${targetLang}:${warning.fieldKey}:${(warning.validationErrors || []).join('+')}`
+      )))
+      .join('; ');
+    console.log(`  ${product.productId} | ${warnings}`);
+  });
+
   const blockedProducts = report.products.filter((product) => !product.ready);
   console.log(`Product details (IDs only, ${Math.min(limit, blockedProducts.length)} of ${blockedProducts.length}):`);
   blockedProducts.slice(0, limit).forEach((product) => {
@@ -81,7 +100,7 @@ const run = async () => {
       entityId: { $in: productIds },
       targetLang: { $in: requiredLanguages },
     })
-      .select('entityId targetLang status qualityStatus validationErrors sourceHash name brand description specs')
+      .select('entityId targetLang status qualityStatus validationErrors optionalFieldWarnings sourceHash name brand description specs')
       .lean();
   const report = analyzeStorefrontReadiness(products, translations, requiredLanguages);
   const savedReport = saveReport(report);
