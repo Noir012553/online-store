@@ -17,6 +17,9 @@ const getMissingProductSourceFields = (product) => ['name', 'brand']
 
 const getTranslationReasons = (product, translation) => {
   const reasons = [];
+  const optionalFieldWarnings = Array.isArray(translation.optionalFieldWarnings)
+    ? translation.optionalFieldWarnings
+    : [];
   if (translation.sourceHash !== getProductTranslationSourceHash(product)) reasons.push('stale_source_hash');
   if (translation.status !== 'success') reasons.push('status_not_success');
   if (translation.qualityStatus !== 'approved') reasons.push('quality_not_approved');
@@ -35,7 +38,7 @@ const getTranslationReasons = (product, translation) => {
     .filter((key) => key && !translatedSpecKeys.has(key));
 
   if (missingSpecKeys.length > 0) reasons.push('missing_specs');
-  return { reasons, missingSpecKeys: [...new Set(missingSpecKeys)] };
+  return { reasons, missingSpecKeys: [...new Set(missingSpecKeys)], optionalFieldWarnings };
 };
 
 const analyzeStorefrontReadiness = (products, translations, requiredLanguages) => {
@@ -64,6 +67,13 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
   });
 
   const reasonCounts = {};
+  const optionalWarningCounts = {};
+  const countOptionalWarnings = (warnings) => warnings.forEach(({ fieldKey, validationErrors = [] }) => {
+    validationErrors.forEach((error) => {
+      const key = `${fieldKey}:${error}`;
+      optionalWarningCounts[key] = (optionalWarningCounts[key] || 0) + 1;
+    });
+  });
   const productResults = products.map((product) => {
     const productId = getId(product);
     const missingSourceFields = getMissingProductSourceFields(product);
@@ -76,14 +86,22 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
 
       const evaluations = translationsForLanguage.map((translation) => getTranslationReasons(product, translation));
       const validTranslation = evaluations.find(({ reasons }) => reasons.length === 0);
-      if (validTranslation) return { targetLang, reasons: [], missingSpecKeys: [] };
+      const warnings = validTranslation
+        ? validTranslation.optionalFieldWarnings
+        : evaluations.flatMap(({ optionalFieldWarnings: currentWarnings }) => currentWarnings);
+      const optionalFieldWarnings = [...new Map(warnings.map((warning) => [
+        `${warning.fieldKey}:${(warning.validationErrors || []).join(',')}`,
+        warning,
+      ])).values()];
+      countOptionalWarnings(optionalFieldWarnings);
+      if (validTranslation) return { targetLang, reasons: [], missingSpecKeys: [], optionalFieldWarnings };
 
       const reasons = [...new Set(evaluations.flatMap(({ reasons }) => reasons))];
       const missingSpecKeys = [...new Set(evaluations.flatMap(({ missingSpecKeys: keys }) => keys))];
       reasons.forEach((reason) => {
         reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
       });
-      return { targetLang, reasons, missingSpecKeys };
+      return { targetLang, reasons, missingSpecKeys, optionalFieldWarnings };
     });
 
     if (missingSourceFields.length > 0) {
@@ -95,7 +113,9 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
       productId,
       ready,
       missingSourceFields,
-      locales: locales.filter(({ reasons }) => reasons.length > 0),
+      locales: locales.filter(({ reasons, optionalFieldWarnings }) => (
+        reasons.length > 0 || optionalFieldWarnings.length > 0
+      )),
     };
   });
 
@@ -114,6 +134,7 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
     )).length,
     requiredLanguages,
     reasonCounts,
+    optionalWarningCounts,
     translationCounts: [...translationCounts.values()]
       .map(({ productIds, ...count }) => ({ ...count, uniqueProducts: productIds.size }))
       .sort((a, b) => a.targetLang.localeCompare(b.targetLang)

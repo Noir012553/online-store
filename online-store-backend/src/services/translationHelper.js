@@ -163,9 +163,8 @@ const getBatchSpecLabels = async (entities, targetLang) => {
 const hasCompleteProductTranslation = (sourceProduct, translation) => {
   if ((Array.isArray(translation?.validationErrors) && translation.validationErrors.length > 0)
     || containsNoInputTranslationResponse(translation)
-    || !hasRequiredProductFields(translation)) return false;
-  if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
-
+    || !hasRequiredProductFields(translation)
+    || (hasText(sourceProduct?.description) && !hasText(translation?.description))) return false;
   const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
     .map(([key]) => getCanonicalSpecKey(key))

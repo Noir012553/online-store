@@ -375,13 +375,30 @@ describe('translationHelper - Storefront product visibility', () => {
     assert.strictEqual(result.size, 0);
   });
 
-  it('shows products whose optional source specs are empty', async () => {
-    const sourceProduct = { ...product, description: '', specs: {} };
+  it('shows products whose source specs are empty when the description is present', async () => {
+    const sourceProduct = { ...product, specs: {} };
     mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
 
     const result = await getStorefrontVisibleProductIds([sourceProduct]);
 
     assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('shows products without a source description when other required data is complete', async () => {
+    const sourceProduct = { ...product, description: '' };
+    mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
+
+    const result = await getStorefrontVisibleProductIds([sourceProduct]);
+
+    assert.deepStrictEqual([...result], ['product-1']);
+  });
+
+  it('hides products with a missing translated description while specs are complete', async () => {
+    mockProductCache.find.result = Promise.resolve(createTranslations({ description: '' }));
+
+    const result = await getStorefrontVisibleProductIds([product]);
+
+    assert.strictEqual(result.size, 0);
   });
 
   it('returns readiness totals after updating stored storefront flags', async () => {

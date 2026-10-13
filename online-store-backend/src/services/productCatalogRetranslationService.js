@@ -71,7 +71,7 @@ const retranslateProductUnlocked = async (
   const sourceHashMatches = catalogTranslation?.sourceHash === sourceHash;
   let providerUsed = false;
   let allFieldsVerified = true;
-  const translateSourceText = async (source, entityType, field, currentValue, manual = false) => {
+  const translateSourceText = async (source, entityType, field, currentValue, manual = false, optional = false) => {
     const sourceText = source == null ? '' : String(source);
     const existingValue = currentValue ?? sourceText;
     if (!sourceText.trim()) {
@@ -100,9 +100,27 @@ const retranslateProductUnlocked = async (
       source: sourceText,
     });
     const completed = getCompletedResult(checkpoint, workKey);
-    if (completed?.payload && isApproved(completed.payload.validation)) {
-      providerUsed = true;
-      return { value: completed.payload.value, validation: completed.payload.validation };
+    let checkpointValidation = null;
+    if (completed?.payload) {
+      checkpointValidation = await translationValidator.validateTranslation(
+        sourceText,
+        completed.payload.value,
+        targetLang,
+        entityType,
+      );
+      if (isApproved(checkpointValidation)) {
+        providerUsed = true;
+        await markCompletedDurably(checkpoint, workKey, {
+          fixed: true,
+          validationErrors: [],
+          payload: {
+            ...completed.payload,
+            validation: checkpointValidation,
+            catalogWorkKey,
+          },
+        }, true);
+        return { value: completed.payload.value, validation: checkpointValidation };
+      }
     }
     const useApprovedCanonical = async validation => {
       if (!validation?.validationErrors?.includes('inconsistent')) return null;
@@ -136,11 +154,11 @@ const retranslateProductUnlocked = async (
       }, true);
       return { value: canonical.translatedText, validation: canonicalValidation };
     };
-    const currentCanonical = await useApprovedCanonical(currentValidation);
+    const currentCanonical = await useApprovedCanonical(checkpointValidation || currentValidation);
     if (currentCanonical) return currentCanonical;
 
     const retryableCheckpointCandidate = retryMixedLanguage
-      && completed?.payload?.validation?.validationErrors?.includes('mixed_language');
+      && checkpointValidation?.validationErrors?.includes('mixed_language');
     let result = retryableCheckpointCandidate
       ? {
         translatedText: completed.payload.value,
@@ -152,12 +170,42 @@ const retranslateProductUnlocked = async (
         targetLang,
       );
     providerUsed = true;
-    let validation = await translationValidator.validateTranslation(
-      sourceText,
-      result.translatedText,
-      targetLang,
-      entityType,
-    );
+    let validation = retryableCheckpointCandidate
+      ? checkpointValidation
+      : await translationValidator.validateTranslation(
+        sourceText,
+        result.translatedText,
+        targetLang,
+        entityType,
+      );
+    const hasTechnicalTokenError = validation.validationErrors?.some(error => (
+      error === 'missing_technical_token' || error === 'unexpected_technical_token'
+    ));
+    const hasTruncationError = validation.validationErrors?.includes('truncated');
+    const hasExtraCommentaryError = validation.validationErrors?.includes('extra_commentary');
+    if (hasTechnicalTokenError || hasTruncationError || hasExtraCommentaryError) {
+      const retryInstructions = [
+        'Translate the entire source through its final sentence. Return only the translation; do not add notes, explanations, apologies, or comments.',
+        hasTechnicalTokenError
+          ? 'Preserve every technical token, model, number, and unit from the source with the same count. Do not omit or change storage types such as SSD or NVMe, or their capacity. Keep a space between ordinary words and nearby units; never join them (write "the 144Hz", not "the144Hz"). Do not infer or add values.'
+          : '',
+        hasExtraCommentaryError
+          ? 'Translate all source content, including short interjections. Do not explain, classify, or comment on any word in the source.'
+          : '',
+      ].filter(Boolean).join(' ');
+      result = await productTranslationService.translateWithCloudflare(
+        sourceText,
+        getDefaultLanguage().code,
+        targetLang,
+        retryInstructions,
+      );
+      validation = await translationValidator.validateTranslation(
+        sourceText,
+        result.translatedText,
+        targetLang,
+        entityType,
+      );
+    }
     if (retryMixedLanguage && validation.validationErrors?.includes('mixed_language')) {
       result = await productTranslationService.translateWithCloudflare(
         sourceText,
@@ -177,7 +225,7 @@ const retranslateProductUnlocked = async (
       if (canonical) return canonical;
     }
     const accepted = isApproved(validation);
-    if (!accepted) allFieldsVerified = false;
+    if (!accepted && !optional) allFieldsVerified = false;
     await markCompletedDurably(checkpoint, workKey, {
       fixed: accepted,
       validationErrors: validation.validationErrors || [],
@@ -218,6 +266,7 @@ const retranslateProductUnlocked = async (
     descResult.validation,
     technicalDescriptionResult.validation,
   ].filter(Boolean);
+  const optionalFieldWarnings = [];
   const specResults = await mapWithConcurrency(Object.entries(product.specs || {}), async ([key, value]) => {
     const { value: translated, validation } = await translateField(
       'specs',
@@ -239,17 +288,35 @@ const retranslateProductUnlocked = async (
   const imageResults = manualFields.includes('descriptionImages')
     ? null
     : await mapWithConcurrency(product.descriptionImages || [], async (image, index) => {
+      const manualImageAlt = manualFields.includes('descriptionImages');
       const { value: alt, validation } = await translateSourceText(
         image?.alt,
         'product_description_image_alt',
         ['descriptionImages', index, 'alt'],
         catalogTranslation?.descriptionImages?.[index]?.alt,
+        manualImageAlt,
+        true,
       );
-      return { image, alt: alt ?? image?.alt ?? '', validation };
+      const optionalValidation = validation || (manualImageAlt
+        && typeof image?.alt === 'string'
+        && image.alt.trim()
+        ? await translationValidator.validateTranslation(
+          image.alt,
+          alt ?? image.alt,
+          targetLang,
+          'product_description_image_alt',
+        )
+        : null);
+      return { image, alt: alt ?? image?.alt ?? '', validation: optionalValidation, index };
     }, fieldConcurrency);
   const descriptionImages = imageResults
-    ? imageResults.map(({ image, alt, validation }) => {
-      if (validation) validationResults.push(validation);
+    ? imageResults.map(({ image, alt, validation, index }) => {
+      if (validation?.validationErrors?.length) {
+        optionalFieldWarnings.push({
+          fieldKey: `descriptionImages.${index}.alt`,
+          validationErrors: validation.validationErrors,
+        });
+      }
       return { ...image, alt };
     })
     : catalogTranslation?.descriptionImages || product.descriptionImages || [];
@@ -309,6 +376,7 @@ const retranslateProductUnlocked = async (
     qualityStatus,
     qualityScore,
     validationErrors,
+    optionalFieldWarnings,
     manualFields,
   };
   if (providerUsed) {

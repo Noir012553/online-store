@@ -11,8 +11,9 @@ const PRODUCT_ENTITY_TYPES = new Set([
   'product_promotion',
 ]);
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
-const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
+const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Za-z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+(?!(?:st|nd|rd|th)(?![\p{L}\d]))[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
+const TRANSLATION_COMMENTARY_PATTERN = /\b(?:nothing to translate\b|the translation of\b[\s\S]{0,100}\bis not provided\b)/i;
 const removeVietnameseDiacritics = (value) => value
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -28,6 +29,35 @@ const normalizeTechnicalToken = token => token
   .toLocaleLowerCase()
   .replace(/\s+/g, '')
   .replace(/,/g, '.');
+const TECHNICAL_UNIT_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])(?!\p{L})/giu;
+const TECHNICAL_UNIT_SUFFIX_PATTERN = /\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])(?!\p{L})$/iu;
+const TECHNICAL_KEYWORD_PATTERN = /(?<!\p{L})(?:SSD|NVMe|HDD|SATA|PCIe|IPS|OLED|FHD|QHD|UHD|DDR[345]?)(?!\p{L})/giu;
+const getCountMap = (values, normalizeToken = normalizeTechnicalToken) => values.reduce((counts, value) => {
+  const token = normalizeToken(value);
+  counts.set(token, (counts.get(token) || 0) + 1);
+  return counts;
+}, new Map());
+const normalizeTechnicalUnit = token => normalizeTechnicalToken(token).replace(/(?:["″]|inches?|in)$/, 'inch');
+const getTechnicalUnitCounts = value => getCountMap(
+  String(value || '').match(TECHNICAL_UNIT_PATTERN) || [],
+  normalizeTechnicalUnit,
+);
+const getTechnicalKeywordCounts = value => getCountMap(String(value || '').match(TECHNICAL_KEYWORD_PATTERN) || []);
+const getPlainTechnicalTokenCounts = value => getCountMap(
+  getTechnicalTokens(value).filter(token => !TECHNICAL_UNIT_SUFFIX_PATTERN.test(token)),
+);
+const isTechnicalUnitPrefix = token => (
+  token === token.toUpperCase() || (token.match(/[A-Z]/g) || []).length >= 2
+);
+const getEmbeddedUnitPrefixCounts = value => getCountMap(
+  getTechnicalTokens(value)
+    .map(token => token.match(/^([A-Za-z]+)\s*\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inches?|in|W|V|%|["″])$/iu)?.[1])
+    .filter(token => token && isTechnicalUnitPrefix(token)),
+);
+const countWholePhrase = (value, phrase) => {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [...String(value || '').matchAll(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu'))].length;
+};
 const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTERN) || [];
 const containsWholePhrase = (value, phrase) => {
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
@@ -68,26 +98,47 @@ class TranslationValidator {
 
   checkTechnicalTokens(original, translated) {
     if (typeof original !== 'string' || typeof translated !== 'string') return null;
-    const sourceCounts = new Map();
-    getTechnicalTokens(original).forEach((token) => {
-      const normalized = normalizeTechnicalToken(token);
-      sourceCounts.set(normalized, (sourceCounts.get(normalized) || 0) + 1);
-    });
-
-    const translatedCounts = new Map();
-    getTechnicalTokens(translated).forEach((token) => {
-      const normalized = normalizeTechnicalToken(token);
-      translatedCounts.set(normalized, (translatedCounts.get(normalized) || 0) + 1);
-    });
+    const sourceCounts = getPlainTechnicalTokenCounts(original);
+    const translatedCounts = getPlainTechnicalTokenCounts(translated);
+    const sourceUnitCounts = getTechnicalUnitCounts(original);
+    const translatedUnitCounts = getTechnicalUnitCounts(translated);
+    const sourceKeywordCounts = getTechnicalKeywordCounts(original);
+    const translatedKeywordCounts = getTechnicalKeywordCounts(translated);
+    const sourcePrefixCounts = getEmbeddedUnitPrefixCounts(original);
 
     for (const [token, count] of sourceCounts) {
       if ((translatedCounts.get(token) || 0) < count) {
         return { error: 'missing_technical_token', token };
       }
     }
-    for (const [token, count] of translatedCounts) {
-      if (count > (sourceCounts.get(token) || 0)) {
+    for (const token of translatedCounts.keys()) {
+      if (!sourceCounts.has(token)) {
         return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourceUnitCounts) {
+      if ((translatedUnitCounts.get(token) || 0) < count) {
+        return { error: 'missing_technical_token', token };
+      }
+    }
+    for (const token of translatedUnitCounts.keys()) {
+      if (!sourceUnitCounts.has(token)) {
+        return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourceKeywordCounts) {
+      if ((translatedKeywordCounts.get(token) || 0) < count) {
+        return { error: 'missing_technical_token', token };
+      }
+    }
+    for (const token of translatedKeywordCounts.keys()) {
+      if (!sourceKeywordCounts.has(token)) {
+        return { error: 'unexpected_technical_token', token };
+      }
+    }
+    for (const [token, count] of sourcePrefixCounts) {
+      if (countWholePhrase(translated, token) < count) {
+        return { error: 'missing_technical_token', token };
       }
     }
     return null;
@@ -110,6 +161,13 @@ class TranslationValidator {
     const result = translated.trim();
     if (source.length < 40 || !/[.!?:]$/.test(source) || /[.!?:]$/.test(result)) return null;
     return { error: 'truncated' };
+  }
+
+  checkExtraCommentary(translated) {
+    if (typeof translated !== 'string') return null;
+    return TRANSLATION_COMMENTARY_PATTERN.test(translated)
+      ? { error: 'extra_commentary' }
+      : null;
   }
 
   checkSourceLanguageLeak(original, translated, targetLang, entityType) {
@@ -214,6 +272,9 @@ class TranslationValidator {
 
     const truncatedCheck = this.checkTruncated(original, translated);
     if (truncatedCheck) errors.push(truncatedCheck.error);
+
+    const extraCommentaryCheck = this.checkExtraCommentary(translated);
+    if (extraCommentaryCheck) errors.push(extraCommentaryCheck.error);
 
     const sourceLanguageLeakCheck = this.checkSourceLanguageLeak(
       original,

@@ -909,6 +909,46 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('commits required translations while storing image-alt validation as a warning', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const product = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [{ url: 'https://example.invalid/product.jpg', alt: 'Product image' }],
+      promotions: [],
+    };
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves({ manualFields: [] }) });
+    stubCatalogRetranslationReads(sandbox, product);
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate').returns({
+      lean: sandbox.stub().resolves({ qualityStatus: 'approved', validationErrors: [] }),
+    });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => ({
+      translatedText: source === 'Product image' ? 'Product image' : 'Translated laptop',
+      providersUsed: ['cloudflare'],
+    }));
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, _translated, _lang, entityType) => (
+      entityType === 'product_description_image_alt'
+        ? { qualityStatus: 'pending', qualityScore: 40, validationErrors: ['wrong_language'] }
+        : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
+    ));
+
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+    const update = findOneAndUpdate.firstCall.args[1].$set;
+
+    expect(result.committed).to.equal(true);
+    expect(update.qualityStatus).to.equal('approved');
+    expect(update.validationErrors).to.deep.equal([]);
+    expect(update.optionalFieldWarnings).to.deep.equal([{
+      fieldKey: 'descriptionImages.0.alt',
+      validationErrors: ['wrong_language'],
+    }]);
+  });
+
   it('retries a mixed-language field once with targeted instructions before commit', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-mixed-language-'));
     const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
@@ -997,7 +1037,7 @@ describe('Product translation cache controller', () => {
     )).to.include({ error: 'mixed_language' });
   });
 
-  it('retranslates a field when its checkpoint payload did not pass validation', async () => {
+  it('retries a technical-token failure with targeted preservation instructions', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-invalid-field-'));
     const productId = new mongoose.Types.ObjectId().toString();
     const product = {
@@ -1031,22 +1071,35 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves({}),
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
-    sandbox.stub(translationValidator, 'validateTranslation').resolves({
-      qualityStatus: 'approved',
-      qualityScore: 100,
-      validationErrors: [],
-    });
-    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
-      translatedText: 'Fresh translated laptop',
-      providersUsed: ['cloudflare'],
-    });
+    sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
+      ['Wrong cached laptop', 'Fresh translated laptop'].includes(translated)
+        ? {
+          qualityStatus: 'pending',
+          qualityScore: 50,
+          validationErrors: ['missing_technical_token', 'truncated', 'extra_commentary'],
+        }
+        : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
+    ));
+    const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
+      .onFirstCall().resolves({
+        translatedText: 'Fresh translated laptop',
+        providersUsed: ['cloudflare'],
+      })
+      .onSecondCall().resolves({
+        translatedText: 'Fresh laptop with preserved tokens',
+        providersUsed: ['cloudflare'],
+      });
 
     try {
       await productCatalogRetranslationService.retranslateProduct(productId, 'en', { checkpoint });
-      expect(translate.calledOnceWith('Source laptop', 'vi', 'en')).to.be.true;
-      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh translated laptop');
+      expect(translate.calledTwice).to.be.true;
+      expect(translate.firstCall.args.slice(0, 3)).to.deep.equal(['Source laptop', 'vi', 'en']);
+      expect(translate.secondCall.args[3]).to.include('Preserve every technical token');
+      expect(translate.secondCall.args[3]).to.include('do not add notes');
+      expect(translate.secondCall.args[3]).to.include('Translate all source content, including short interjections.');
+      expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh laptop with preserved tokens');
       expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
-        .to.equal('Fresh translated laptop');
+        .to.equal('Fresh laptop with preserved tokens');
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
@@ -1068,6 +1121,39 @@ describe('Product translation cache controller', () => {
       .to.include({ error: 'missing_technical_token' });
     expect(translationValidator.checkTechnicalTokens('1.5GHz', '15GHz'))
       .to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens(
+      'Bộ xử lý thế hệ 12',
+      '12th Generation processor',
+    )).to.equal(null);
+    expect(translationValidator.checkExtraCommentary(
+      'GearVN offers great service. Nothing to translate, it is just an interjection.',
+    )).to.include({ error: 'extra_commentary' });
+    expect(translationValidator.checkExtraCommentary('GearVN offers great after-sales service.'))
+      .to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB 144Hz',
+      'The 512GB NVMe SSD on a 144Hz display',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('RTX3050', 'RTX3050 RTX3050')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('SSD512GB', '512GB SSD')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('15.6"', '15.6 inch')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('15.6 "', '15.6 inches')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )',
+      'Give away 1 x Acer Predator SUV Backpack (worth 2,000,000 VND)',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB 144Hz',
+      'The512GB NVMe on a 144Hz display',
+    )).to.include({ error: 'missing_technical_token' });
+    expect(translationValidator.checkTechnicalTokens(
+      '144Hz 512GB',
+      'the144Hz and and512GB',
+    )).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens(
+      'SSD NVMe 512GB',
+      'NVMe SSD 1TB',
+    )).to.include({ error: 'missing_technical_token' });
   });
 
   it('includes job accounting in saved retranslation reports', async () => {

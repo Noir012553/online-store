@@ -109,6 +109,31 @@ describe('Cloudflare AI rotation', () => {
       .to.include('from Vietnamese to Swedish');
   });
 
+  it('puts retry instructions before the source so they cannot be translated as source text', async () => {
+    sandbox.stub(axios, 'post').resolves({
+      data: { success: true, result: { response: 'Acer laptop with 144Hz display.' } },
+    });
+    const source = 'Nguồn sản phẩm Acer 144Hz';
+    const instruction = 'Keep 144Hz unchanged and return only the translation.';
+
+    await cloudflareAiService._doTranslate(
+      source,
+      'vi',
+      'en',
+      null,
+      0,
+      0,
+      new Set(),
+      false,
+      false,
+      instruction,
+    );
+
+    const prompt = axios.post.firstCall.args[1].messages[1].content;
+    expect(prompt.indexOf(instruction)).to.be.lessThan(prompt.indexOf(source));
+    expect(prompt.trimEnd().endsWith(source)).to.equal(true);
+  });
+
   it('rejects conversational no-input responses instead of treating them as translations', async () => {
     const responses = [
       "(Note: It seems like there's no text provided. Please provide the text you'd like me to translate, and I'll be happy to assist you.) Once you provide the text, I'll translate it into English.",

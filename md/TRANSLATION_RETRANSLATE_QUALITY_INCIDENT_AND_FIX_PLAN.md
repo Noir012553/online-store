@@ -45,7 +45,7 @@ Theo log người dùng:
 
 ### Tình trạng storefront
 
-Kết quả truy vấn cho biết 618 sản phẩm active, trong đó 3 `storefrontReady`, 615 chưa ready và 6 chưa có thời điểm kiểm tra readiness. Đây là cờ readiness hiện tại trong DB, không phải phép join đối chiếu toàn bộ ID sản phẩm với catalog translation.
+Snapshot truy vấn tại thời điểm incident ghi nhận 618 sản phẩm active, trong đó 3 `storefrontReady`, 615 chưa ready và 6 chưa có thời điểm kiểm tra readiness. Đây là số liệu lịch sử theo trạng thái/rule lúc đó, không phải readiness hiện tại sau thay đổi điều kiện description; cần chạy lại report để có số mới và không so trực tiếp với snapshot 588 sản phẩm ở các cập nhật sau.
 
 ## Nguyên nhân và rủi ro đã xác định trong code
 
@@ -82,8 +82,8 @@ Trong log lượt chạy cũ có lúc `Total to retranslate: 531` nhưng `Still 
 
 - `status: success`, `qualityStatus: approved`, không có `validationErrors`;
 - `sourceHash` trùng với hash sản phẩm nguồn hiện tại;
-- đủ trường bắt buộc và đủ các spec source cần thiết;
-- sản phẩm có dữ liệu nguồn hợp lệ;
+- source và translation đều có `name`, `brand`; description không bắt buộc nếu source description rỗng, nhưng translation description phải có nội dung khi source có description;
+- mọi spec có giá trị trong source đều có spec translation tương ứng; specs không thay thế description;
 - mọi ngôn ngữ đích được hỗ trợ (ngoại trừ tiếng Việt nguồn) đều có translation hợp lệ.
 
 Do đó 4.896 record catalog không tương đương 4.896 sản phẩm sẵn sàng storefront. Ngôn ngữ có số approved thấp nhất tạo ra mức trần sơ bộ; chỉ join theo cùng tập product ID active mới xác định được giới hạn thực tế. Điều kiện hash/trường có thể làm số ready thấp hơn nữa.
@@ -109,7 +109,7 @@ Do đó 4.896 record catalog không tương đương 4.896 sản phẩm sẵn s�
 1. Tách bước sinh output khỏi bước commit catalog: dịch và validate xong, chỉ ghi đè catalog khi đạt tiêu chí đã thống nhất; nếu không đạt, giữ bản đang dùng và lưu ứng viên/lỗi vào nơi review phù hợp.
 2. Dịch theo field lỗi khi có thể; với product catalog cần bảo đảm các field còn lại không bị thay đổi ngoài ý muốn. Respect `manualFields`.
 3. Trích xuất và bảo toàn chính xác model, SKU, CPU/GPU, RAM, storage, kích thước, tần số, chuẩn kết nối và số liệu từ nguồn. Nếu output đổi/xóa/thêm giá trị kỹ thuật thì từ chối ghi.
-4. Bổ sung kiểm tra cấu trúc theo field: name không được bịa model; specs phải giữ nguyên giá trị nguồn; description phải đủ ý và không trộn ngôn ngữ; markup phải khớp.
+4. Bổ sung kiểm tra cấu trúc theo field: name không được bịa model; specs phải giữ nguyên giá trị nguồn; nếu source description có nội dung thì bản dịch phải đủ ý và không trộn ngôn ngữ; markup phải khớp.
 5. Rà lại validator `inconsistent`: phân biệt bất nhất thực sự với cách diễn đạt khác nhau; giữ yêu cầu nhất quán ở mức phù hợp với field và ngôn ngữ.
 6. Gắn version/chính sách validator vào checkpoint signature khi thay đổi cách dịch/kiểm tra để tránh tái sử dụng payload từ chính sách cũ.
 7. Kiểm tra trạng thái khi lỗi provider: 429 phải dừng nhận việc mới, không ghi giả `success`, bảo toàn bản trước và tính remaining theo danh sách job thực sự chưa hoàn thành.
@@ -417,3 +417,77 @@ Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiể
 - Khi mở rộng pilot, cập nhật rõ tổng scope, số draft mới, số slot được giữ nguyên và trạng thái từng sản phẩm để không nhầm một sản phẩm đã ready với toàn bộ batch.
 
 Không chạy `npm run build` trong lần cập nhật này.
+
+## Cập nhật tiến độ — Kiểm tra backlog, crawler và storefront readiness
+
+### Tình trạng được ghi nhận
+
+- Một snapshot do người dùng cung cấp ghi nhận **588 sản phẩm**, trong đó **2 ready** và **586 chưa ready**; storefront dry-run xác định **4.186 product-locale jobs**. Đây là số liệu tại thời điểm kiểm tra trước các thay đổi readiness bên dưới, không phải số liệu live đã tính lại.
+- Một lượt Cloudflare thành công không đồng nghĩa sản phẩm đã sẵn sàng storefront. Bản dịch cần có trạng thái/quality được duyệt, không có lỗi blocking, `sourceHash` hiện hành, đủ specs theo nguồn và description đã dịch khi source description có nội dung; description nguồn rỗng không bắt buộc dịch. Các điều kiện này phải đạt trên mọi locale bắt buộc.
+
+### Nguồn crawler và đơn vị dịch
+
+- `online-store-backend/python/scraper_runner.py` tạo **17 khóa cấp cao nhất** cho product record. Đây không phải số field dịch cố định: specs, ảnh mô tả và promotions có số lượng biến đổi theo sản phẩm.
+- `ProductDescription` và `ProductSpecifications` là hai trường nguồn độc lập; `BaseImportAdapter` map chúng riêng, không dùng specs làm fallback description. Seeder tạo job cho description, từng spec value và các field nội dung khác; số translation units phải tính từ dữ liệu từng sản phẩm.
+- Với mẫu Acer được kiểm tra, source description thực tế có khoảng 3.600 ký tự. Candidate thêm nội dung X-Rock/ASUS không có trong nguồn là lỗi chất lượng, không phải dữ liệu crawler.
+
+### Chất lượng dịch và retry
+
+- Đã sửa các false positive technical-token đã gặp: `VND` không bị tách nhầm thành volt, `inch`/`inches` được chuẩn hóa tương đương, và ordinal như `12th` không bị coi là token kỹ thuật cần giữ nguyên.
+- Đã bổ sung chặn lời bình ngoài bản dịch (`extra_commentary`) và retry có hướng dẫn dịch đủ nội dung, không thêm giải thích. Hướng dẫn retry được đặt trước source text trong prompt để giảm nguy cơ model chép chỉ dẫn vào candidate.
+- Các thay đổi liên quan nằm trong `translationValidator.js`, `translationValidation.js`, `productCatalogRetranslationService.js` và `cloudflareAiService.js`; có test hồi quy cho token và thứ tự prompt.
+
+### Tự động hóa field-level
+
+- Đã thêm lệnh `retranslate:product-fields`, mặc định dry-run, giới hạn theo product ID và locale. Lệnh phân loại field approved, thiếu translation hoặc candidate bị validator từ chối; `--apply` mới gọi provider/ghi kết quả.
+- Đã sửa report sau apply để reload catalog/checkpoint thay vì in snapshot cũ. Việc chạy trên máy người dùng và các output cũ từ bản local copy không được xem là xác nhận trạng thái hiện tại của workspace hoặc database.
+
+### Quy tắc storefront hiện tại
+
+- Source `name` và `brand` vẫn bắt buộc. **Description không bắt buộc**: nếu source description vắng/rỗng thì cả source lẫn bản dịch description không chặn readiness; nếu source có nội dung thì translation description vẫn phải có nội dung.
+- Specs được validate riêng theo từng spec có giá trị trong source; không dùng specs làm fallback cho description. `descriptionImages`/ảnh mô tả là tùy chọn, không phải điều kiện storefront.
+- Đã cập nhật `translationHelper.js` và `storefrontReadinessReport.js`; thêm test cho description nguồn vắng, description bản dịch thiếu khi source có nội dung, và phân loại source fields. Chưa chạy lại readiness report trên toàn database sau thay đổi này; các số ready hiện hành cần được tính lại.
+
+### Kết quả kiểm tra local mới nhất (2026-10-13)
+
+- `npm ci` hoàn tất, cài 392 packages và báo 0 vulnerabilities. Lệnh `cd .\\online-store-backend` đầu tiên lỗi vì PowerShell đã ở trong thư mục backend; các lệnh sau chạy đúng từ thư mục hiện tại.
+- `npm run test:all -- --suites=i18n,products` chưa đạt toàn bộ: runner báo 1 file test lỗi. Các test liên quan trực tiếp đến readiness pass: `translation-helper.test.js` 30/30 và `storefront-readiness-report.test.js` 6/6, gồm trường hợp source description rỗng và trường hợp bản dịch description thiếu khi source có nội dung.
+- `translation-product-cache.test.js` có 106 passing, 5 failing: một assertion technical-token cho `15.6\"` so với `15.6 inch`; một assertion về query không tái sử dụng cache chưa approved; ba test timeout khi Mongoose buffer operation ở `retranslationprogresses.updateOne()`/`livetranslationcaches.findOne()`.
+- Hai assertion trên không phải test của rule description storefront. Ba timeout cần kiểm tra test MongoDB/mock và trạng thái kết nối; chưa đủ bằng chứng để kết luận do code readiness.
+- Người dùng chạy `npm run backfill:storefront`: setup-production-indexes kết nối MongoDB, đồng bộ/xác minh các index và backfill readiness cho toàn bộ **588 sản phẩm**; output ghi `588 changed`. Con số này là số document được cập nhật, không phải số sản phẩm ready.
+- Người dùng tiếp tục chạy `npm run storefront:report`. Snapshot report ghi nhận **588 active, 2 ready, 586 not ready**, `Stored ready flag: 2`, `unchecked: 0`, `mismatches: 0`; readiness được backfill theo cùng rule hiện tại. Bắt buộc có 8 locale: `en, pt, fr, de, it, es, nl, sv`.
+- Blocker theo slot: `missing_description: 3.752`, `missing_specs: 2.307`, `quality_not_approved: 4.186` và `validation_errors: 4.186`. Các nhóm có thể chồng nhau. `missing_description` chỉ được báo khi source description có nội dung mà bản dịch locale bị thiếu; source description rỗng không tạo blocker theo code hiện tại.
+- Report được lưu cục bộ ở `reports/storefront-readiness/storefront-readiness-2026-10-13T09-12-01-473Z.json`. Output không tiết lộ database/host đích; cần xác nhận `.env` đã trỏ đúng local/dev, vì backfill trước đó đã cập nhật 588 readiness flags và setup/verify indexes trong database được kết nối.
+- `npm run build` không chạy.
+
+### Cập nhật — Tách warning alt ảnh mô tả khỏi blocker storefront
+
+- Quy tắc hiện hành: source description rỗng thì translated description không bắt buộc; source description có nội dung thì bản dịch phải có nội dung và đạt validation. Specs được đối chiếu riêng theo từng spec có giá trị ở source, không thay thế description.
+- Ảnh mô tả và alt text đều tùy chọn, không quyết định readiness. Validation alt vẫn được ghi thành `optionalFieldWarnings` theo field; không gộp vào `validationErrors`, quality status/score hoặc blocker count. Không có yêu cầu phải hiển thị ảnh mô tả trên storefront.
+- Áp dụng tách warning ở catalog retranslation, model catalog cache, admin save/import, product/spec seed aggregation và storefront readiness report. Admin/report có thể xem warning theo field; warning-only locale vẫn được đánh giá readiness theo các điều kiện bắt buộc khác.
+- Các điều kiện blocking vẫn gồm name/brand, description khi source có nội dung, specs có giá trị và lỗi validation bắt buộc. Lỗi legacy tổng hợp không có field provenance vẫn blocking; không được coi chúng là lỗi alt nếu chưa revalidate theo field.
+- Đã thêm/cập nhật test cho warning alt không chặn readiness, lỗi catalog legacy vẫn blocking, source description rỗng/đầy đủ và retranslation vẫn ghi các field bắt buộc khi alt validation lỗi.
+- File thay đổi chính: `productCatalogRetranslationService.js`, `ProductCatalogTranslationCache.js`, `translationController.js`, `productTranslationSeederService.js`, `specTranslationSeeder.js`, `storefrontReadinessReport.js`, `report-storefront-readiness.js` và các test `translation-product-cache.test.js`, `storefront-readiness-report.test.js`.
+- `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa xác nhận runtime test: lần thử trong workspace dừng vì thiếu dependency `dotenv`; không chạy `npm run build`.
+- Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Sau khi dependencies sẵn sàng, chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
+
+#### Tiêu chí đọc report sau cập nhật
+
+- `readyCount` chỉ dựa trên blocker bắt buộc; `optionalWarningCounts` được xem riêng và không làm giảm số ready.
+- `missing_description` chỉ là blocker khi source description có nội dung nhưng bản dịch thiếu.
+- `validation_errors` tổng hợp cũ vẫn là blocker đến khi được phân loại an toàn theo field.
+- Các số blocker là slot product-locale và có thể chồng lấn; không phải số sản phẩm duy nhất.
+
+#### Kiểm tra còn lại
+
+- Cài/khôi phục dependencies trong đúng bản local, chạy `storefront-readiness-report.test.js` và `translation-product-cache.test.js`, sau đó suite phù hợp rộng hơn.
+- Chỉ chạy `npm run storefront:report` khi đã xác nhận `.env` trỏ đúng database local/dev; đối chiếu riêng blockers và `Optional field warnings (non-blocking)`.
+- Lập phạm vi revalidate các catalog legacy còn `validationErrors` không phân loại; không xóa hoặc hạ mức blocker hàng loạt trước khi có field-level evidence.
+
+---
+
+### Cập nhật 2026-10-13 — Snapshot readiness trước thay đổi optional alt
+
+- Snapshot người dùng cung cấp ghi nhận 588 active, 2 ready, 586 not ready; 3.752 missing-description slots, 2.307 missing-specs slots và 4.186 quality/validation slots. Đây là kết quả tại thời điểm chạy report, không phải kết quả xác minh sau thay đổi tách alt warning.
+- Backfill `588 changed` là số document readiness được cập nhật, không phải số sản phẩm đạt storefront. Cần tạo report mới để xác nhận readiness sau code mới.
+- `npm run build` không chạy.
