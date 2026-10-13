@@ -69,6 +69,7 @@ const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const hasRequiredProductFields = (product) => (
   hasText(product?.name)
   && hasText(product?.brand)
+  && hasText(product?.description)
 );
 
 const hasValidSourceProductFields = (product) => hasRequiredProductFields(product);
@@ -164,8 +165,6 @@ const hasCompleteProductTranslation = (sourceProduct, translation) => {
   if ((Array.isArray(translation?.validationErrors) && translation.validationErrors.length > 0)
     || containsNoInputTranslationResponse(translation)
     || !hasRequiredProductFields(translation)) return false;
-  if (hasText(sourceProduct?.description) && !hasText(translation?.description)) return false;
-
   const sourceSpecKeys = new Set(getSpecEntries(sourceProduct?.specs)
     .filter(([, value]) => value !== null && value !== undefined && String(value).trim())
     .map(([key]) => getCanonicalSpecKey(key))

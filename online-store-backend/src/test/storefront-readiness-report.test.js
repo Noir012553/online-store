@@ -88,6 +88,16 @@ describe('storefront readiness report', () => {
     expect(report.products[0].locales[0].missingSpecKeys).to.deep.equal(['ram']);
   });
 
+  it('reports missing description source data independently of specs', () => {
+    const product = makeProduct({ description: '' });
+    const translations = makeTranslations(product);
+    const report = analyzeStorefrontReadiness([product], translations, requiredLanguages);
+
+    expect(report.reasonCounts.source_missing_required_fields).to.equal(1);
+    expect(report.products[0].missingSourceFields).to.deep.equal(['description']);
+    expect(report.products[0].ready).to.equal(false);
+  });
+
   it('reports source fields missing and detects stored readiness mismatches', () => {
     const product = makeProduct({ name: '' });
     const translations = makeTranslations(product);

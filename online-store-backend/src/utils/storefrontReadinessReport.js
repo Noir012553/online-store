@@ -12,7 +12,7 @@ const hasNoValidationErrors = (translation) => (
   || (Array.isArray(translation.validationErrors) && translation.validationErrors.length === 0)
 );
 
-const getMissingProductSourceFields = (product) => ['name', 'brand']
+const getMissingProductSourceFields = (product) => ['name', 'brand', 'description']
   .filter((field) => !hasText(product?.[field]));
 
 const getTranslationReasons = (product, translation) => {
@@ -23,7 +23,7 @@ const getTranslationReasons = (product, translation) => {
   if (!hasNoValidationErrors(translation)) reasons.push('validation_errors');
   if (containsNoInputTranslationResponse(translation)) reasons.push('invalid_translation_response');
   if (!hasText(translation.name) || !hasText(translation.brand)) reasons.push('missing_required_translation_fields');
-  if (hasText(product.description) && !hasText(translation.description)) reasons.push('missing_description');
+  if (!hasText(translation.description)) reasons.push('missing_description');
 
   const translatedSpecKeys = new Set(getSpecEntries(translation.specs)
     .filter(([, value]) => hasText(value))
