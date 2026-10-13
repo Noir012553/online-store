@@ -77,12 +77,16 @@ const stubCatalogRetranslationReads = (sandbox, product) => {
 
 describe('Product translation cache controller', () => {
   let sandbox;
+  let checkpointDirectory;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
+    checkpointDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'product-cache-test-'));
     sandbox.stub(retranslateProgress, 'acquireDatabaseLock').resolves({ release: async () => {} });
     sandbox.stub(retranslateProgress, 'openProductCheckpoint').returns({
       signature: 'test-product-checkpoint',
+      filePath: path.join(checkpointDirectory, 'progress.jsonl'),
+      legacyFilePaths: [],
       completed: new Map(),
       initialized: false,
     });
@@ -93,6 +97,7 @@ describe('Product translation cache controller', () => {
 
   afterEach(() => {
     sandbox.restore();
+    fs.rmSync(checkpointDirectory, { recursive: true, force: true });
   });
 
   it('accepts the legacy review translation entity types', () => {
@@ -215,6 +220,7 @@ describe('Product translation cache controller', () => {
     const update = bulkWrite.firstCall.args[0][0].updateOne.update.$set;
     expect(update.qualityStatus).to.equal('pending');
     expect(update.validationErrors).to.include('missing_name');
+    expect(update.optionalFieldWarnings).to.deep.equal([]);
     expect(update.sourceHash).to.equal(getProductTranslationSourceHash(product));
     expect(update).not.to.have.property('name');
     expect(Product.bulkWrite.calledOnce).to.be.true;
@@ -1603,10 +1609,10 @@ describe('Product translation cache controller', () => {
       lang: sourceLang,
     }, res);
 
-    expect(findOne.calledOnceWith(sinon.match({
+    expect(findOne.firstCall.args[0]).to.include({
       status: 'success',
       qualityStatus: 'approved',
-    }))).to.be.true;
+    });
     expect(translate.calledOnce).to.be.true;
     expect(res.json.firstCall.args[0].data.translatedText).to.equal('Fresh translation');
   });
@@ -2000,6 +2006,7 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([]),
     });
     sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
@@ -2085,6 +2092,8 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([]),
     });
     sandbox.stub(LiveTranslationCache, 'updateMany').resolves({ modifiedCount: 0 });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
+    sandbox.stub(translationValidator, 'checkInconsistency').resolves(null);
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     const res = createResponse();
 
@@ -2776,6 +2785,7 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves([]),
     });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
+    sandbox.stub(translationValidator, 'checkInconsistency').resolves(null);
     sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').rejects(new Error('Database unavailable'));
     const res = createResponse();
 

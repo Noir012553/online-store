@@ -442,6 +442,7 @@ class ProductTranslationSeederService {
         qualityStatus,
         qualityScore,
         validationErrors,
+        optionalFieldWarnings,
         lastTranslatedAt,
         ...content
       } = entry;

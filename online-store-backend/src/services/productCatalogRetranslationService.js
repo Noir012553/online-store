@@ -33,14 +33,22 @@ const isApproved = validation => (
 
 const mapWithConcurrency = async (items, mapper, concurrency) => {
   const results = new Array(items.length);
-  for (let offset = 0; offset < items.length; offset += concurrency) {
-    const settled = await Promise.allSettled(items.slice(offset, offset + concurrency).map(mapper));
-    const rejected = settled.find((result) => result.status === 'rejected');
-    if (rejected) throw rejected.reason;
-    settled.forEach(({ value }, index) => {
-      results[offset + index] = value;
-    });
-  }
+  let nextIndex = 0;
+  let hasError = false;
+  let firstError;
+  const workers = Array.from({ length: Math.min(items.length, concurrency) }, async () => {
+    while (nextIndex < items.length && !hasError) {
+      const index = nextIndex++;
+      try {
+        results[index] = await mapper(items[index], index, items);
+      } catch (error) {
+        if (!hasError) firstError = error;
+        hasError = true;
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (hasError) throw firstError;
   return results;
 };
 
@@ -334,7 +342,7 @@ const retranslateProductUnlocked = async (
           catalogTranslation?.promotions?.[index]?.[field],
         );
         if (validation) validations.push(validation);
-        if (value !== undefined) translatedPromotion[field] = value;
+        if (promotion?.[field] !== undefined) translatedPromotion[field] = value;
       }
       return { translatedPromotion, validations };
     }, fieldConcurrency);
