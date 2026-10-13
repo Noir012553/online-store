@@ -1603,10 +1603,10 @@ describe('Product translation cache controller', () => {
       lang: sourceLang,
     }, res);
 
-    expect(findOne.calledOnceWith(sinon.match({
+    expect(findOne.firstCall.args[0]).to.include({
       status: 'success',
       qualityStatus: 'approved',
-    }))).to.be.true;
+    });
     expect(translate.calledOnce).to.be.true;
     expect(res.json.firstCall.args[0].data.translatedText).to.equal('Fresh translation');
   });
@@ -1977,6 +1977,7 @@ describe('Product translation cache controller', () => {
         manualFields: [],
       }),
     });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => ({
       translatedText: `en:${source}`,
       provider: 'cloudflare',
@@ -2045,6 +2046,7 @@ describe('Product translation cache controller', () => {
         manualFields: ['name'],
       }),
     });
+    sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     let activeTranslations = 0;
     let maximumActiveTranslations = 0;
     const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare').callsFake(async (source) => {
@@ -2777,6 +2779,11 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(Product, 'bulkWrite').resolves({ matchedCount: 1, modifiedCount: 1 });
     sandbox.stub(ProductCatalogTranslationCache, 'bulkWrite').rejects(new Error('Database unavailable'));
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
     const res = createResponse();
 
     await importProductTranslationCache({

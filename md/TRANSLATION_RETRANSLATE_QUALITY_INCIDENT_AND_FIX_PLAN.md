@@ -470,9 +470,11 @@ Không chạy `npm run build` trong lần cập nhật này.
 - File thay đổi chính: `productCatalogRetranslationService.js`, `ProductCatalogTranslationCache.js`, `translationController.js`, `productTranslationSeederService.js`, `specTranslationSeeder.js`, `storefrontReadinessReport.js`, `report-storefront-readiness.js` và các test `translation-product-cache.test.js`, `storefront-readiness-report.test.js`.
 - `node --check` cho các file sửa và `git diff --check` đã đạt. Không chạy `npm run build`.
 - Người dùng chạy `npm ci` trong `copy 76`: cài 392 packages, audit báo 0 vulnerabilities. Lệnh `cd .\online-store-backend` lỗi do PowerShell đã ở sẵn trong thư mục backend; các lệnh npm sau đó vẫn chạy đúng.
-- Kết quả `npm run test:all -- --suites=i18n,products`: 106 passing, 6 failing trong `translation-product-cache.test.js`. `translation-helper.test.js` pass 30/30 và `storefront-readiness-report.test.js` pass 8/8, gồm test warning alt non-blocking và lỗi legacy vẫn blocking.
-- Một trong sáu lỗi là `ReferenceError: optionalFieldWarnings is not defined` trong `productTranslationSeederService.js` khi cập nhật catalog pending. Đã sửa bằng cách đưa `optionalFieldWarnings` vào destructuring của update mapping. Cần chạy lại test runtime để xác nhận lỗi này đã hết.
-- Năm lỗi còn lại trong lần chạy đó: hai assertion (`preserves repeated technical tokens...`, `does not reuse a non-approved cache record...`) và ba timeout do Mongoose buffer/database (`keeps source nested values...`, `keeps manual fields unchanged...`, `removes the idempotency request...`). Chưa xác minh nguyên nhân hoặc trạng thái sau sửa seeder.
+- Lần test đầu `npm run test:all -- --suites=i18n,products` có 106 passing/6 failing; một lỗi là `ReferenceError: optionalFieldWarnings is not defined` trong cập nhật catalog pending. Đã sửa bằng cách đưa biến vào destructuring update mapping.
+- Người dùng chạy lại suite sau khi nhận patch: **107 passing/5 failing** trong `translation-product-cache.test.js`. Lỗi `ReferenceError` đã hết; test `commits required translations while storing image-alt validation as a warning` pass. `translation-helper.test.js` pass 30/30 và `storefront-readiness-report.test.js` pass 8/8.
+- Điều tra 5 lỗi còn lại: validator không nhận dạng `inch` số ít dù đã chuẩn hóa dấu inch và `inches`; đã mở rộng mẫu unit để coi `15.6\"`, `15.6 inch` và `15.6 inches` tương đương. Assertion cache đổi sang xác minh trực tiếp điều kiện query `status: success` + `qualityStatus: approved`.
+- Hai test retranslate dùng durable field checkpoint nhưng chưa stub `RetranslationProgress.updateOne`; đã bổ sung stub để test không cần MongoDB. Test import cache cần ép lỗi `bulkWrite` để kiểm tra rollback idempotency; đã stub validator để tránh gọi consistency lookup Mongo thật trước lỗi dự kiến.
+- `node --check` cho validator/test và `git diff --check` đạt. Chưa chạy runtime suite sau chỉnh sửa vì workspace trợ lý không cài `mongoose`; cần chạy trong local sau khi đồng bộ patch. Các nguyên nhân sửa ở test isolation/validator cần được xác nhận bằng runtime; chưa tuyên bố suite đã pass.
 - Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
 
 #### Tiêu chí đọc report sau cập nhật
@@ -484,7 +486,7 @@ Không chạy `npm run build` trong lần cập nhật này.
 
 #### Kiểm tra còn lại
 
-- Cài/khôi phục dependencies trong đúng bản local, chạy `storefront-readiness-report.test.js` và `translation-product-cache.test.js`, sau đó suite phù hợp rộng hơn.
+- Sau khi đồng bộ patch mới về local, chạy lại `npm run test:all -- --suites=i18n,products`; xác nhận năm test vừa điều chỉnh và toàn bộ `translation-product-cache.test.js`.
 - Chỉ chạy `npm run storefront:report` khi đã xác nhận `.env` trỏ đúng database local/dev; đối chiếu riêng blockers và `Optional field warnings (non-blocking)`.
 - Lập phạm vi revalidate các catalog legacy còn `validationErrors` không phân loại; không xóa hoặc hạ mức blocker hàng loạt trước khi có field-level evidence.
 
@@ -496,4 +498,4 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Blocker theo slot: `missing_description: 3.752`, `missing_specs: 2.307`, `quality_not_approved: 4.186`, `validation_errors: 4.186`. Các nhóm có thể chồng lấn, không phải số sản phẩm duy nhất. `missing_description` nghĩa là source description có nội dung nhưng bản dịch thiếu; không áp dụng cho source description rỗng.
 - Report hiển thị `Optional field warnings (non-blocking): none` và 0 warning details. Đây chỉ là số warning đang được lưu/đọc từ cache; không chứng minh alt đã được revalidate hoặc không có alt lỗi trong toàn bộ nguồn/catalog cũ.
 - Report file: `reports/storefront-readiness/storefront-readiness-2026-10-13T09-58-06-859Z.json`. Output không xác định database/host đích; cần đối chiếu `.env` nếu chưa xác nhận môi trường. Lệnh report chỉ đọc database và ghi report cục bộ.
-- Việc report thành công không kiểm tra luồng seeder vừa sửa `optionalFieldWarnings`; cần chạy lại test sau khi local đã có patch seeder. `npm run build` không chạy.
+- Report thành công chỉ xác nhận khả năng đọc/đối chiếu report; test runtime sau đó xác nhận lỗi seeder `optionalFieldWarnings` đã hết, nhưng còn 5 test khác fail như ghi ở phần tiến độ. `npm run build` không chạy.
