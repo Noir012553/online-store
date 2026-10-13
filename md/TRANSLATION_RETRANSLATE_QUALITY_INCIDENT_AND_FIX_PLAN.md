@@ -417,3 +417,39 @@ Tên ngắn để tham chiếu: **AI Second-Pass Translation Audit** — **Kiể
 - Khi mở rộng pilot, cập nhật rõ tổng scope, số draft mới, số slot được giữ nguyên và trạng thái từng sản phẩm để không nhầm một sản phẩm đã ready với toàn bộ batch.
 
 Không chạy `npm run build` trong lần cập nhật này.
+
+## Cập nhật tiến độ — Kiểm tra backlog, crawler và storefront readiness
+
+### Tình trạng được ghi nhận
+
+- Một snapshot do người dùng cung cấp ghi nhận **588 sản phẩm**, trong đó **2 ready** và **586 chưa ready**; storefront dry-run xác định **4.186 product-locale jobs**. Đây là số liệu tại thời điểm kiểm tra trước các thay đổi readiness bên dưới, không phải số liệu live đã tính lại.
+- Một lượt Cloudflare thành công không đồng nghĩa sản phẩm đã sẵn sàng storefront. Bản dịch cần có trạng thái/quality được duyệt, không có lỗi blocking, `sourceHash` hiện hành, đủ field/spec theo nguồn và hợp lệ trên mọi locale bắt buộc.
+
+### Nguồn crawler và đơn vị dịch
+
+- `online-store-backend/python/scraper_runner.py` tạo **17 khóa cấp cao nhất** cho product record. Đây không phải số field dịch cố định: specs, ảnh mô tả và promotions có số lượng biến đổi theo sản phẩm.
+- `ProductDescription` và `ProductSpecifications` là hai trường nguồn độc lập; `BaseImportAdapter` map chúng riêng, không dùng specs làm fallback description. Seeder tạo job cho description, từng spec value và các field nội dung khác; số translation units phải tính từ dữ liệu từng sản phẩm.
+- Với mẫu Acer được kiểm tra, source description thực tế có khoảng 3.600 ký tự. Candidate thêm nội dung X-Rock/ASUS không có trong nguồn là lỗi chất lượng, không phải dữ liệu crawler.
+
+### Chất lượng dịch và retry
+
+- Đã sửa các false positive technical-token đã gặp: `VND` không bị tách nhầm thành volt, `inch`/`inches` được chuẩn hóa tương đương, và ordinal như `12th` không bị coi là token kỹ thuật cần giữ nguyên.
+- Đã bổ sung chặn lời bình ngoài bản dịch (`extra_commentary`) và retry có hướng dẫn dịch đủ nội dung, không thêm giải thích. Hướng dẫn retry được đặt trước source text trong prompt để giảm nguy cơ model chép chỉ dẫn vào candidate.
+- Các thay đổi liên quan nằm trong `translationValidator.js`, `translationValidation.js`, `productCatalogRetranslationService.js` và `cloudflareAiService.js`; có test hồi quy cho token và thứ tự prompt.
+
+### Tự động hóa field-level
+
+- Đã thêm lệnh `retranslate:product-fields`, mặc định dry-run, giới hạn theo product ID và locale. Lệnh phân loại field approved, thiếu translation hoặc candidate bị validator từ chối; `--apply` mới gọi provider/ghi kết quả.
+- Đã sửa report sau apply để reload catalog/checkpoint thay vì in snapshot cũ. Việc chạy trên máy người dùng và các output cũ từ bản local copy không được xem là xác nhận trạng thái hiện tại của workspace hoặc database.
+
+### Quy tắc storefront hiện tại
+
+- Source `name` và `brand` vẫn bắt buộc. **Description không bắt buộc**: nếu source description vắng/rỗng thì cả source lẫn bản dịch description không chặn readiness; nếu source có nội dung thì translation description vẫn phải có nội dung.
+- Specs được validate riêng theo từng spec có giá trị trong source; không dùng specs làm fallback cho description. `descriptionImages`/ảnh mô tả là tùy chọn, không phải điều kiện storefront.
+- Đã cập nhật `translationHelper.js` và `storefrontReadinessReport.js`; thêm test cho description nguồn vắng, description bản dịch thiếu khi source có nội dung, và phân loại source fields. Chưa chạy lại readiness report trên toàn database sau thay đổi này; các số ready hiện hành cần được tính lại.
+
+### Kiểm tra và việc còn lại
+
+- `node --check` trên các file JavaScript liên quan và `git diff --check` đã đạt.
+- Chưa chạy được suite runtime vì môi trường thiếu dependency `dotenv`; không chạy `npm run build`.
+- Cần chạy lại hai test suite readiness trong môi trường có dependencies, sau đó chạy report chỉ đọc để xác nhận số ready/not-ready mới và các lý do theo locale. Chưa thực hiện retranslate diện rộng hoặc ghi dữ liệu production trong lần cập nhật này.
