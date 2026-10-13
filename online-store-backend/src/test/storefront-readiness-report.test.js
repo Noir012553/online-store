@@ -88,14 +88,14 @@ describe('storefront readiness report', () => {
     expect(report.products[0].locales[0].missingSpecKeys).to.deep.equal(['ram']);
   });
 
-  it('reports missing description source data independently of specs', () => {
+  it('does not require source or translated description when source description is absent', () => {
     const product = makeProduct({ description: '' });
-    const translations = makeTranslations(product);
+    const translations = makeTranslations(product).map((translation) => ({ ...translation, description: '' }));
     const report = analyzeStorefrontReadiness([product], translations, requiredLanguages);
 
-    expect(report.reasonCounts.source_missing_required_fields).to.equal(1);
-    expect(report.products[0].missingSourceFields).to.deep.equal(['description']);
-    expect(report.products[0].ready).to.equal(false);
+    expect(report.reasonCounts.source_missing_required_fields).to.equal(undefined);
+    expect(report.products[0].missingSourceFields).to.deep.equal([]);
+    expect(report.products[0].ready).to.equal(true);
   });
 
   it('reports source fields missing and detects stored readiness mismatches', () => {

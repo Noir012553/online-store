@@ -384,13 +384,13 @@ describe('translationHelper - Storefront product visibility', () => {
     assert.deepStrictEqual([...result], ['product-1']);
   });
 
-  it('hides products with a missing source description even when specs and translations are complete', async () => {
+  it('shows products without a source description when other required data is complete', async () => {
     const sourceProduct = { ...product, description: '' };
     mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
 
     const result = await getStorefrontVisibleProductIds([sourceProduct]);
 
-    assert.strictEqual(result.size, 0);
+    assert.deepStrictEqual([...result], ['product-1']);
   });
 
   it('hides products with a missing translated description while specs are complete', async () => {
