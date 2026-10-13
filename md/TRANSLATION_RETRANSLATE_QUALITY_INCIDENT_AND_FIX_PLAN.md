@@ -45,7 +45,7 @@ Theo log người dùng:
 
 ### Tình trạng storefront
 
-Kết quả truy vấn cho biết 618 sản phẩm active, trong đó 3 `storefrontReady`, 615 chưa ready và 6 chưa có thời điểm kiểm tra readiness. Đây là cờ readiness hiện tại trong DB, không phải phép join đối chiếu toàn bộ ID sản phẩm với catalog translation.
+Snapshot truy vấn tại thời điểm incident ghi nhận 618 sản phẩm active, trong đó 3 `storefrontReady`, 615 chưa ready và 6 chưa có thời điểm kiểm tra readiness. Đây là số liệu lịch sử theo trạng thái/rule lúc đó, không phải readiness hiện tại sau thay đổi điều kiện description; cần chạy lại report để có số mới và không so trực tiếp với snapshot 588 sản phẩm ở các cập nhật sau.
 
 ## Nguyên nhân và rủi ro đã xác định trong code
 
@@ -423,7 +423,7 @@ Không chạy `npm run build` trong lần cập nhật này.
 ### Tình trạng được ghi nhận
 
 - Một snapshot do người dùng cung cấp ghi nhận **588 sản phẩm**, trong đó **2 ready** và **586 chưa ready**; storefront dry-run xác định **4.186 product-locale jobs**. Đây là số liệu tại thời điểm kiểm tra trước các thay đổi readiness bên dưới, không phải số liệu live đã tính lại.
-- Một lượt Cloudflare thành công không đồng nghĩa sản phẩm đã sẵn sàng storefront. Bản dịch cần có trạng thái/quality được duyệt, không có lỗi blocking, `sourceHash` hiện hành, đủ field/spec theo nguồn và hợp lệ trên mọi locale bắt buộc.
+- Một lượt Cloudflare thành công không đồng nghĩa sản phẩm đã sẵn sàng storefront. Bản dịch cần có trạng thái/quality được duyệt, không có lỗi blocking, `sourceHash` hiện hành, đủ specs theo nguồn và description đã dịch khi source description có nội dung; description nguồn rỗng không bắt buộc dịch. Các điều kiện này phải đạt trên mọi locale bắt buộc.
 
 ### Nguồn crawler và đơn vị dịch
 
