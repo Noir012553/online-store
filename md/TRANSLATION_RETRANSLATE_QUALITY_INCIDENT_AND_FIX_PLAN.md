@@ -490,8 +490,10 @@ Không chạy `npm run build` trong lần cập nhật này.
 
 ---
 
-### Cập nhật 2026-10-13 — Snapshot readiness trước thay đổi optional alt
+### Cập nhật 2026-10-13 — Report storefront sau thay đổi optional alt
 
-- Snapshot người dùng cung cấp ghi nhận 588 active, 2 ready, 586 not ready; 3.752 missing-description slots, 2.307 missing-specs slots và 4.186 quality/validation slots. Đây là kết quả tại thời điểm chạy report, không phải kết quả xác minh sau thay đổi tách alt warning.
-- Backfill `588 changed` là số document readiness được cập nhật, không phải số sản phẩm đạt storefront. Cần tạo report mới để xác nhận readiness sau code mới.
-- `npm run build` không chạy.
+- Người dùng chạy `npm run storefront:report` tại `copy 76`. Report ghi 588 active, 2 ready, 586 not ready; stored ready 2, unchecked 0, mismatches 0. Readiness flags khớp với kết quả tính từ dữ liệu được report.
+- Blocker theo slot: `missing_description: 3.752`, `missing_specs: 2.307`, `quality_not_approved: 4.186`, `validation_errors: 4.186`. Các nhóm có thể chồng lấn, không phải số sản phẩm duy nhất. `missing_description` nghĩa là source description có nội dung nhưng bản dịch thiếu; không áp dụng cho source description rỗng.
+- Report hiển thị `Optional field warnings (non-blocking): none` và 0 warning details. Đây chỉ là số warning đang được lưu/đọc từ cache; không chứng minh alt đã được revalidate hoặc không có alt lỗi trong toàn bộ nguồn/catalog cũ.
+- Report file: `reports/storefront-readiness/storefront-readiness-2026-10-13T09-58-06-859Z.json`. Output không xác định database/host đích; cần đối chiếu `.env` nếu chưa xác nhận môi trường. Lệnh report chỉ đọc database và ghi report cục bộ.
+- Việc report thành công không kiểm tra luồng seeder vừa sửa `optionalFieldWarnings`; cần chạy lại test sau khi local đã có patch seeder. `npm run build` không chạy.
