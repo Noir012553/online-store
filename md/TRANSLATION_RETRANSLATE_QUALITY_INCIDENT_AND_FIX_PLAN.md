@@ -82,8 +82,8 @@ Trong log lượt chạy cũ có lúc `Total to retranslate: 531` nhưng `Still 
 
 - `status: success`, `qualityStatus: approved`, không có `validationErrors`;
 - `sourceHash` trùng với hash sản phẩm nguồn hiện tại;
-- đủ trường bắt buộc và đủ các spec source cần thiết;
-- sản phẩm có dữ liệu nguồn hợp lệ;
+- source và translation đều có `name`, `brand`; description không bắt buộc nếu source description rỗng, nhưng translation description phải có nội dung khi source có description;
+- mọi spec có giá trị trong source đều có spec translation tương ứng; specs không thay thế description;
 - mọi ngôn ngữ đích được hỗ trợ (ngoại trừ tiếng Việt nguồn) đều có translation hợp lệ.
 
 Do đó 4.896 record catalog không tương đương 4.896 sản phẩm sẵn sàng storefront. Ngôn ngữ có số approved thấp nhất tạo ra mức trần sơ bộ; chỉ join theo cùng tập product ID active mới xác định được giới hạn thực tế. Điều kiện hash/trường có thể làm số ready thấp hơn nữa.
