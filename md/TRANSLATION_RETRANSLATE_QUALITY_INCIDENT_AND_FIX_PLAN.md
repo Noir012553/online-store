@@ -448,8 +448,10 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Specs được validate riêng theo từng spec có giá trị trong source; không dùng specs làm fallback cho description. `descriptionImages`/ảnh mô tả là tùy chọn, không phải điều kiện storefront.
 - Đã cập nhật `translationHelper.js` và `storefrontReadinessReport.js`; thêm test cho description nguồn vắng, description bản dịch thiếu khi source có nội dung, và phân loại source fields. Chưa chạy lại readiness report trên toàn database sau thay đổi này; các số ready hiện hành cần được tính lại.
 
-### Kiểm tra và việc còn lại
+### Kết quả kiểm tra local mới nhất (2026-10-13)
 
-- `node --check` trên các file JavaScript liên quan và `git diff --check` đã đạt.
-- Chưa chạy được suite runtime vì môi trường thiếu dependency `dotenv`; không chạy `npm run build`.
-- Cần chạy lại hai test suite readiness trong môi trường có dependencies, sau đó chạy report chỉ đọc để xác nhận số ready/not-ready mới và các lý do theo locale. Chưa thực hiện retranslate diện rộng hoặc ghi dữ liệu production trong lần cập nhật này.
+- `npm ci` hoàn tất, cài 392 packages và báo 0 vulnerabilities. Lệnh `cd .\\online-store-backend` đầu tiên lỗi vì PowerShell đã ở trong thư mục backend; các lệnh sau chạy đúng từ thư mục hiện tại.
+- `npm run test:all -- --suites=i18n,products` chưa đạt toàn bộ: runner báo 1 file test lỗi. Các test liên quan trực tiếp đến readiness pass: `translation-helper.test.js` 30/30 và `storefront-readiness-report.test.js` 6/6, gồm trường hợp source description rỗng và trường hợp bản dịch description thiếu khi source có nội dung.
+- `translation-product-cache.test.js` có 106 passing, 5 failing: một assertion technical-token cho `15.6\"` so với `15.6 inch`; một assertion về query không tái sử dụng cache chưa approved; ba test timeout khi Mongoose buffer operation ở `retranslationprogresses.updateOne()`/`livetranslationcaches.findOne()`.
+- Hai assertion trên không phải test của rule description storefront. Ba timeout cần kiểm tra test MongoDB/mock và trạng thái kết nối; chưa đủ bằng chứng để kết luận do code readiness.
+- `npm run build` không chạy. Chưa chạy storefront report trên database local và chưa xác nhận số lượng sản phẩm ready mới; report cần `MONGO_URI` đúng môi trường.
