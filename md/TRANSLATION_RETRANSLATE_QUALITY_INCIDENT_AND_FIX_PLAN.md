@@ -468,8 +468,12 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Các điều kiện blocking vẫn gồm name/brand, description khi source có nội dung, specs có giá trị và lỗi validation bắt buộc. Lỗi legacy tổng hợp không có field provenance vẫn blocking; không được coi chúng là lỗi alt nếu chưa revalidate theo field.
 - Đã thêm/cập nhật test cho warning alt không chặn readiness, lỗi catalog legacy vẫn blocking, source description rỗng/đầy đủ và retranslation vẫn ghi các field bắt buộc khi alt validation lỗi.
 - File thay đổi chính: `productCatalogRetranslationService.js`, `ProductCatalogTranslationCache.js`, `translationController.js`, `productTranslationSeederService.js`, `specTranslationSeeder.js`, `storefrontReadinessReport.js`, `report-storefront-readiness.js` và các test `translation-product-cache.test.js`, `storefront-readiness-report.test.js`.
-- `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa xác nhận runtime test: lần thử trong workspace dừng vì thiếu dependency `dotenv`; không chạy `npm run build`.
-- Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Sau khi dependencies sẵn sàng, chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
+- `node --check` cho các file sửa và `git diff --check` đã đạt. Không chạy `npm run build`.
+- Người dùng chạy `npm ci` trong `copy 76`: cài 392 packages, audit báo 0 vulnerabilities. Lệnh `cd .\online-store-backend` lỗi do PowerShell đã ở sẵn trong thư mục backend; các lệnh npm sau đó vẫn chạy đúng.
+- Kết quả `npm run test:all -- --suites=i18n,products`: 106 passing, 6 failing trong `translation-product-cache.test.js`. `translation-helper.test.js` pass 30/30 và `storefront-readiness-report.test.js` pass 8/8, gồm test warning alt non-blocking và lỗi legacy vẫn blocking.
+- Một trong sáu lỗi là `ReferenceError: optionalFieldWarnings is not defined` trong `productTranslationSeederService.js` khi cập nhật catalog pending. Đã sửa bằng cách đưa `optionalFieldWarnings` vào destructuring của update mapping. Cần chạy lại test runtime để xác nhận lỗi này đã hết.
+- Năm lỗi còn lại trong lần chạy đó: hai assertion (`preserves repeated technical tokens...`, `does not reuse a non-approved cache record...`) và ba timeout do Mongoose buffer/database (`keeps source nested values...`, `keeps manual fields unchanged...`, `removes the idempotency request...`). Chưa xác minh nguyên nhân hoặc trạng thái sau sửa seeder.
+- Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
 
 #### Tiêu chí đọc report sau cập nhật
 
