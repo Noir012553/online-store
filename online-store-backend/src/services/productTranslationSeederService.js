@@ -457,6 +457,7 @@ class ProductTranslationSeederService {
                 qualityStatus,
                 qualityScore,
                 validationErrors,
+                optionalFieldWarnings,
                 lastTranslatedAt,
               },
               $setOnInsert: content,

@@ -303,6 +303,7 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
                   qualityStatus,
                   qualityScore,
                   validationErrors,
+                  optionalFieldWarnings,
                   lastTranslatedAt,
                 },
                 $setOnInsert: content,

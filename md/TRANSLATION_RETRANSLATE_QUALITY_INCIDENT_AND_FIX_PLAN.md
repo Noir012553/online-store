@@ -459,3 +459,11 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Blocker theo slot: `missing_description: 3.752`, `missing_specs: 2.307`, `quality_not_approved: 4.186` và `validation_errors: 4.186`. Các nhóm có thể chồng nhau. `missing_description` chỉ được báo khi source description có nội dung mà bản dịch locale bị thiếu; source description rỗng không tạo blocker theo code hiện tại.
 - Report được lưu cục bộ ở `reports/storefront-readiness/storefront-readiness-2026-10-13T09-12-01-473Z.json`. Output không tiết lộ database/host đích; cần xác nhận `.env` đã trỏ đúng local/dev, vì backfill trước đó đã cập nhật 588 readiness flags và setup/verify indexes trong database được kết nối.
 - `npm run build` không chạy.
+
+### Cập nhật — Tách warning alt ảnh mô tả khỏi blocker storefront
+
+- Catalog retranslation, lưu bản dịch admin/import và các luồng aggregate cache không còn gộp validation alt `descriptionImages.*.alt` vào `validationErrors`/quality score blocking. Khi alt không đạt, lưu chi tiết trong `optionalFieldWarnings` theo field; ảnh/alt không bắt buộc để catalog translation đạt readiness.
+- Điều kiện completeness/admin approval không còn đòi translated alt. Report giữ warning riêng bằng `optionalWarningCounts` và chi tiết theo product/locale; warnings không làm tăng blocker count hoặc giảm `readyCount`.
+- Các field bắt buộc và lỗi chưa xác định field vẫn blocking: name/brand, description khi source có nội dung, specs có giá trị, cùng validation errors catalog tổng hợp chưa được phân loại. Các cache cũ chỉ có `validationErrors` tổng hợp sẽ không được tự giả định là lỗi alt; cần retranslate/revalidate theo field để phân loại an toàn.
+- Đã thêm test cho warning alt không chặn readiness, lỗi catalog cũ vẫn blocking và retranslation commit các field bắt buộc khi alt validation lỗi.
+- `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa chạy test runtime trong workspace vì thiếu dependency `dotenv`; không chạy `npm run build`.

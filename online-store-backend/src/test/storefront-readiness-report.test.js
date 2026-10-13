@@ -105,6 +105,21 @@ describe('storefront readiness report', () => {
     expect(report.products[0].locales[0].optionalFieldWarnings).to.deep.equal(translations[0].optionalFieldWarnings);
   });
 
+  it('keeps unclassified catalog errors blocking alongside optional warnings', () => {
+    const product = makeProduct();
+    const translations = makeTranslations(product);
+    translations[0].validationErrors = ['legacy_validation_error'];
+    translations[0].optionalFieldWarnings = [{
+      fieldKey: 'descriptionImages.0.alt',
+      validationErrors: ['wrong_language'],
+    }];
+    const report = analyzeStorefrontReadiness([product], translations, requiredLanguages);
+
+    expect(report.readyCount).to.equal(0);
+    expect(report.reasonCounts.validation_errors).to.equal(1);
+    expect(report.optionalWarningCounts['descriptionImages.0.alt:wrong_language']).to.equal(1);
+  });
+
   it('does not require source or translated description when source description is absent', () => {
     const product = makeProduct({ description: '' });
     const translations = makeTranslations(product).map((translation) => ({ ...translation, description: '' }));

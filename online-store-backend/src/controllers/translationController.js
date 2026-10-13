@@ -1282,6 +1282,7 @@ exports.getProductTranslationForAdmin = async (req, res) => {
         providerSource: catalogTranslation?.providerSource,
         sourceHash: catalogTranslation?.sourceHash,
         qualityStatus: catalogTranslation?.qualityStatus,
+        optionalFieldWarnings: catalogTranslation?.optionalFieldWarnings || [],
       } : data,
     });
   } catch (error) {
@@ -1515,21 +1516,19 @@ exports.saveProductTranslation = async (req, res) => {
         'product_spec',
       );
     }
-    if (fields.includes('descriptionImages')) {
-      for (const [index, image] of (product.descriptionImages || []).entries()) {
-        if (typeof image?.alt !== 'string' || !image.alt.trim()) continue;
-        const validation = await translationValidator.validateTranslation(
-          image.alt,
-          translatedContent.descriptionImages?.[index]?.alt || '',
-          lang,
-          'product_description_image_alt',
-        );
-        if (validation.validationErrors.length > 0) {
-          optionalFieldWarnings.push({
-            fieldKey: `descriptionImages.${index}.alt`,
-            validationErrors: validation.validationErrors,
-          });
-        }
+    for (const [index, image] of (product.descriptionImages || []).entries()) {
+      if (typeof image?.alt !== 'string' || !image.alt.trim()) continue;
+      const validation = await translationValidator.validateTranslation(
+        image.alt,
+        translatedContent.descriptionImages?.[index]?.alt || '',
+        lang,
+        'product_description_image_alt',
+      );
+      if (validation.validationErrors.length > 0) {
+        optionalFieldWarnings.push({
+          fieldKey: `descriptionImages.${index}.alt`,
+          validationErrors: validation.validationErrors,
+        });
       }
     }
     for (const [index, promotion] of (product.promotions || []).entries()) {
