@@ -462,8 +462,32 @@ Không chạy `npm run build` trong lần cập nhật này.
 
 ### Cập nhật — Tách warning alt ảnh mô tả khỏi blocker storefront
 
-- Catalog retranslation, lưu bản dịch admin/import và các luồng aggregate cache không còn gộp validation alt `descriptionImages.*.alt` vào `validationErrors`/quality score blocking. Khi alt không đạt, lưu chi tiết trong `optionalFieldWarnings` theo field; ảnh/alt không bắt buộc để catalog translation đạt readiness.
-- Điều kiện completeness/admin approval không còn đòi translated alt. Report giữ warning riêng bằng `optionalWarningCounts` và chi tiết theo product/locale; warnings không làm tăng blocker count hoặc giảm `readyCount`.
-- Các field bắt buộc và lỗi chưa xác định field vẫn blocking: name/brand, description khi source có nội dung, specs có giá trị, cùng validation errors catalog tổng hợp chưa được phân loại. Các cache cũ chỉ có `validationErrors` tổng hợp sẽ không được tự giả định là lỗi alt; cần retranslate/revalidate theo field để phân loại an toàn.
-- Đã thêm test cho warning alt không chặn readiness, lỗi catalog cũ vẫn blocking và retranslation commit các field bắt buộc khi alt validation lỗi.
-- `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa chạy test runtime trong workspace vì thiếu dependency `dotenv`; không chạy `npm run build`.
+- Quy tắc hiện hành: source description rỗng thì translated description không bắt buộc; source description có nội dung thì bản dịch phải có nội dung và đạt validation. Specs được đối chiếu riêng theo từng spec có giá trị ở source, không thay thế description.
+- Ảnh mô tả và alt text đều tùy chọn, không quyết định readiness. Validation alt vẫn được ghi thành `optionalFieldWarnings` theo field; không gộp vào `validationErrors`, quality status/score hoặc blocker count. Không có yêu cầu phải hiển thị ảnh mô tả trên storefront.
+- Áp dụng tách warning ở catalog retranslation, model catalog cache, admin save/import, product/spec seed aggregation và storefront readiness report. Admin/report có thể xem warning theo field; warning-only locale vẫn được đánh giá readiness theo các điều kiện bắt buộc khác.
+- Các điều kiện blocking vẫn gồm name/brand, description khi source có nội dung, specs có giá trị và lỗi validation bắt buộc. Lỗi legacy tổng hợp không có field provenance vẫn blocking; không được coi chúng là lỗi alt nếu chưa revalidate theo field.
+- Đã thêm/cập nhật test cho warning alt không chặn readiness, lỗi catalog legacy vẫn blocking, source description rỗng/đầy đủ và retranslation vẫn ghi các field bắt buộc khi alt validation lỗi.
+- File thay đổi chính: `productCatalogRetranslationService.js`, `ProductCatalogTranslationCache.js`, `translationController.js`, `productTranslationSeederService.js`, `specTranslationSeeder.js`, `storefrontReadinessReport.js`, `report-storefront-readiness.js` và các test `translation-product-cache.test.js`, `storefront-readiness-report.test.js`.
+- `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa xác nhận runtime test: lần thử trong workspace dừng vì thiếu dependency `dotenv`; không chạy `npm run build`.
+- Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Sau khi dependencies sẵn sàng, chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
+
+#### Tiêu chí đọc report sau cập nhật
+
+- `readyCount` chỉ dựa trên blocker bắt buộc; `optionalWarningCounts` được xem riêng và không làm giảm số ready.
+- `missing_description` chỉ là blocker khi source description có nội dung nhưng bản dịch thiếu.
+- `validation_errors` tổng hợp cũ vẫn là blocker đến khi được phân loại an toàn theo field.
+- Các số blocker là slot product-locale và có thể chồng lấn; không phải số sản phẩm duy nhất.
+
+#### Kiểm tra còn lại
+
+- Cài/khôi phục dependencies trong đúng bản local, chạy `storefront-readiness-report.test.js` và `translation-product-cache.test.js`, sau đó suite phù hợp rộng hơn.
+- Chỉ chạy `npm run storefront:report` khi đã xác nhận `.env` trỏ đúng database local/dev; đối chiếu riêng blockers và `Optional field warnings (non-blocking)`.
+- Lập phạm vi revalidate các catalog legacy còn `validationErrors` không phân loại; không xóa hoặc hạ mức blocker hàng loạt trước khi có field-level evidence.
+
+---
+
+### Cập nhật 2026-10-13 — Snapshot readiness trước thay đổi optional alt
+
+- Snapshot người dùng cung cấp ghi nhận 588 active, 2 ready, 586 not ready; 3.752 missing-description slots, 2.307 missing-specs slots và 4.186 quality/validation slots. Đây là kết quả tại thời điểm chạy report, không phải kết quả xác minh sau thay đổi tách alt warning.
+- Backfill `588 changed` là số document readiness được cập nhật, không phải số sản phẩm đạt storefront. Cần tạo report mới để xác nhận readiness sau code mới.
+- `npm run build` không chạy.
