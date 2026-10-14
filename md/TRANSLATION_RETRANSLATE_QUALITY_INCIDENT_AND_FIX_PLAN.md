@@ -468,6 +468,7 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Các điều kiện blocking vẫn gồm name/brand, description khi source có nội dung, specs có giá trị và lỗi validation bắt buộc. Lỗi legacy tổng hợp không có field provenance vẫn blocking; không được coi chúng là lỗi alt nếu chưa revalidate theo field.
 - Đã thêm/cập nhật test cho warning alt không chặn readiness, lỗi catalog legacy vẫn blocking, source description rỗng/đầy đủ và retranslation vẫn ghi các field bắt buộc khi alt validation lỗi.
 - File thay đổi chính: `productCatalogRetranslationService.js`, `ProductCatalogTranslationCache.js`, `translationController.js`, `productTranslationSeederService.js`, `specTranslationSeeder.js`, `storefrontReadinessReport.js`, `report-storefront-readiness.js` và các test `translation-product-cache.test.js`, `storefront-readiness-report.test.js`.
+
 - `node --check` cho các file sửa và `git diff --check` đã đạt. Chưa xác nhận runtime test: lần thử trong workspace dừng vì thiếu dependency `dotenv`; không chạy `npm run build`.
 - Report 588 sản phẩm ở phần trên là snapshot trước khi chạy lại report với phần tách warning này, không xác nhận số readiness/warning hiện hành. Sau khi dependencies sẵn sàng, chạy test liên quan rồi `npm run storefront:report` trên database local/dev đã xác minh; không chạy backfill production chỉ để làm mới report.
 
@@ -491,3 +492,106 @@ Không chạy `npm run build` trong lần cập nhật này.
 - Snapshot người dùng cung cấp ghi nhận 588 active, 2 ready, 586 not ready; 3.752 missing-description slots, 2.307 missing-specs slots và 4.186 quality/validation slots. Đây là kết quả tại thời điểm chạy report, không phải kết quả xác minh sau thay đổi tách alt warning.
 - Backfill `588 changed` là số document readiness được cập nhật, không phải số sản phẩm đạt storefront. Cần tạo report mới để xác nhận readiness sau code mới.
 - `npm run build` không chạy.
+
+## Cập nhật 2026-10-14 — Tách trạng thái sản phẩm, readiness bản dịch và hiển thị trang chủ
+
+### Vấn đề được xác nhận
+
+Người dùng xác nhận sản phẩm thiếu description hoặc ảnh vẫn có thể được chấp nhận trong catalog; sản phẩm thiếu các nội dung này không nên xuất hiện ở trang chủ. Đây là các điều kiện riêng: trạng thái duyệt/đăng bán, readiness của bản dịch và eligibility của trang chủ.
+
+Hiện `Product.storefrontReady` được tính từ chất lượng dịch, source hash, validation, name/brand, description khi nguồn có nội dung, specs và độ phủ mọi locale bắt buộc (`translationHelper.js:163-234`). Cờ này cũng đang chặn public catalog, featured/home, top-rated, brand list và product detail (`productController.js:337-351, 655-687, 715-722, 1354-1368`; `brandController.js:41-43`). Trang chủ gọi endpoint featured và có các filter featured/deal, tồn kho, specs, category; hiện chưa có filter rõ ràng thiếu ảnh chính/description. Model chưa có cờ duyệt/đăng bán riêng; `isDeleted` là soft-delete. `Product.image` bắt buộc trong schema và create controller, còn `description` optional.
+
+Vì vậy translation readiness đang bị dùng như cổng xuất bản/hiển thị chung; sản phẩm translation-pending bị loại khỏi cả catalog và chi tiết, không chỉ home.
+
+### Bằng chứng mới nhất
+
+- Report người dùng chạy ngày 2026-10-14: 588 active, 2 ready, 586 not ready; 4.180 locale slots `quality_not_approved`/`validation_errors`, 3.748 thiếu translated description, 2.304 thiếu translated specs. Blockers là slot product-locale và có thể chồng lặp.
+- Apply Cloudflare dừng ở job 273/4.181 với HTTP 429; còn 4.180 jobs, 271 jobs cần review và vẫn 2 sản phẩm ready. Chưa chạy tiếp apply diện rộng.
+- Readiness theo rule hiện tại không đại diện cho số sản phẩm admin đã duyệt hay số sản phẩm đủ điều kiện trang chủ.
+
+### Kế hoạch đề xuất — chi tiết, tối ưu, chưa triển khai
+
+#### Mục tiêu thiết kế
+
+Tách ba trách nhiệm độc lập, không để một lần đọc request storefront phải join/đánh giá bản dịch:
+
+1. **Product publication/approval:** quyết định sản phẩm có được bán và trả bởi public API hay không.
+2. **Translation readiness:** chất lượng, độ mới, validation và coverage locale; dùng cho report/admin/retranslation, không dùng làm publication gate.
+3. **Homepage eligibility:** điều kiện riêng để sản phẩm vào các khu vực home, gồm publication, ảnh chính và description theo yêu cầu nghiệp vụ, cùng featured/deal và các filter merchandising của từng section.
+
+#### Giai đoạn 0 — Chốt contract, không thay đổi dữ liệu
+
+- Xác nhận trạng thái publication hiện tại sẽ được dùng hay cần thêm `isPublished`/approval workflow. `isDeleted` chỉ là soft-delete; không được mặc định suy ra approval từ đó khi chưa có xác nhận.
+- Xác nhận policy cho sản phẩm thiếu ảnh chính: hiện Product schema và `POST /api/products` bắt buộc ảnh. Nếu muốn chấp nhận sản phẩm thiếu ảnh, phải sửa contract ở create/import/admin và xác định placeholder cho catalog/detail; homepage vẫn loại chúng.
+- Chốt homepage eligibility: ảnh chính không rỗng và source description có nội dung; giữ điều kiện section hiện có như `featured`, active deal, `inStock`, `hasSpecs`, category/price.
+- Ghi nhận localization fallback cần tiếp tục hoạt động với translation pending/missing; không yêu cầu đủ 8 locale để sản phẩm đã publish được xem ở public routes.
+
+#### Giai đoạn 1 — Tách domain và dữ liệu
+
+- Đổi tên khái niệm `storefrontReady` thành `translationReady` trong code/report/schema vì nó mô tả freshness, approval, validation, required fields/specs và locale coverage của bản dịch, không phải product publication hay home eligibility.
+- Tính `translationReady` khi nguồn hoặc translation cache thay đổi và theo report; không chạy translation-cache lookup để quyết định public GET.
+- Dùng publication state riêng làm điều kiện public. Nếu cần approval workflow, tạo trạng thái/metadata và quyền admin tương ứng; nếu không, xác định một rule publication tường minh theo quyết định ở Giai đoạn 0.
+- Khi đổi field/index, thiết kế migration dữ liệu có kiểm tra trước/sau, idempotent và rollback rõ; không chuyển giá trị `storefrontReady` cũ thành trạng thái đã duyệt. Không chạy migration production khi chưa được xác nhận.
+
+#### Giai đoạn 2 — Tách query/filter backend
+
+- Áp publication gate chung cho public catalog, brand facets, top-rated, featured/home và product detail; bỏ gate translation readiness khỏi các route này.
+- Tạo query builder/eligibility riêng cho homepage để điều kiện ảnh chính/description được áp trước pagination và count. Kết hợp publication cùng filter section, không hậu-lọc sau khi đã lấy page để tránh thiếu item/sai total.
+- Giữ các filter request như category, brand, stock, specs, discount/deal, featured và search riêng theo endpoint; tên/nhóm điều kiện rõ ràng, không trộn vào hàm tính translation readiness.
+- Product detail kiểm tra publication và soft-delete trực tiếp; không gọi `getStorefrontVisibleProductIds`/query đủ 8 locale cho từng request detail.
+- Dùng translation overlay/fallback để render ngôn ngữ yêu cầu; không thay đổi cache/provider hay gọi Cloudflare trong request path.
+
+#### Luồng `npm run seed` sau khi tách
+
+Code hiện tại chạy full seed theo thứ tự crawler → seed nền → import sản phẩm → chờ translation queue → gọi dịch sản phẩm theo các locale đích → refresh `storefrontReady` → seed hậu kỳ. `--skip-translate` chỉ bỏ lời gọi translation provider; seed preview/dry-run có hành vi riêng và không tương đương apply.
+
+Sau khi tách, contract đề xuất là:
+
+1. **Import acceptance:** chỉ kiểm tra tính hợp lệ của source/product record theo schema và quy tắc ingestion. Description đã optional; ảnh chính vẫn required cho đến khi được quyết định và sửa đồng bộ schema, importer, API/admin UI.
+2. **Publication:** import không tự suy ra trạng thái approved/published từ translation readiness. Sản phẩm mới nhận publication state theo policy đã chốt; nếu cần admin approval thì seed tạo draft/unpublished cho đến khi được duyệt. Không được mặc định auto-publish mọi record khi chưa có quyết định.
+3. **Translation:** full seed vẫn có thể gọi Cloudflare theo cấu hình hiện hành, trừ khi dùng `--skip-translate`; provider success chỉ là kết quả dịch, không phải product approval. Translation pending, validation fail hoặc HTTP 429 không rollback product hợp lệ, không đổi publication, không làm seed đánh dấu bản dịch approved.
+4. **Readiness:** cập nhật/ghi report translation readiness riêng sau bước dịch, nhưng kết quả ready/not-ready chỉ phục vụ review/backlog; không gate import, publication hoặc seed hậu kỳ.
+5. **Hiển thị:** public API chỉ trả sản phẩm theo publication/soft-delete. Home áp thêm ảnh chính + description và filter section; catalog/detail không bị chặn bởi thiếu bản dịch, dùng localization fallback đã có.
+6. **Báo cáo:** full seed cần tách rõ số source records accepted/rejected, published/draft, translation requests/success/pending/failed, readiness và home-eligible count. Không gộp các số thành một “seed success” hoặc “storefront-ready” tổng.
+
+Nếu provider hết quota, import/publication và translation phải được báo tách bạch; việc retry translation về sau không được tạo lại/nhân đôi product, thay trạng thái publication hoặc re-import các record đã nhận. Chi tiết xử lý lỗi provider phải có test trước khi triển khai; đây là contract mục tiêu, chưa phải hành vi hiện tại.
+
+#### Quyết định đã chốt — kiểm tra ở bước dịch
+
+- Không yêu cầu sản phẩm phải đạt storefront-ready hoặc đủ cả 8 locale mới được dịch; xử lý độc lập theo từng sản phẩm/ngôn ngữ và các trường còn thiếu.
+- Vẫn bắt buộc đối chiếu bản dịch với dữ liệu nguồn về model/SKU, brand, thông số, con số và đơn vị; không được tự thêm hoặc đoán dữ liệu nguồn bị thiếu.
+- Nếu output sai/thiếu thông số, chỉ bản dịch đó chuyển sang pending/review và translation readiness chưa đạt. Không xóa sản phẩm, không chặn import/publication chỉ vì lỗi dịch và không tự gắn approved.
+- Storefront readiness được tính riêng sau đó để báo cáo; không điều khiển việc gọi dịch hoặc việc giữ sản phẩm.
+
+#### Giai đoạn 3 — Tối ưu query và index
+
+- Ưu tiên một Mongo query lọc publication + `isDeleted` + điều kiện home/section trước sort, pagination và count; tránh `$lookup` translation cache hoặc quét toàn bộ locales trên mỗi request.
+- Kiểm tra index hiện có (`featured`, `isDeleted`, category, stock) và query shape thực tế; chỉ thêm/đổi compound index sau khi dùng `explain('executionStats')` trên dataset đại diện. Index candidate phụ thuộc filter phổ biến, ví dụ publication + deleted + category + featured; không tạo index cho mọi tổ hợp tùy chọn.
+- Ảnh/description non-empty có thể vẫn là residual filter nếu index không chọn lọc; đo `docsExamined`, `keysExamined`, latency, count/pagination trước và sau. Không thêm cờ materialized `homeEligible` trừ khi profiling chứng minh query này là bottleneck; nếu thêm thì phải cập nhật nguyên tử khi image/description/publication thay đổi.
+- Bỏ index cũ phụ thuộc translation readiness chỉ sau khi xác nhận không còn query production dùng nó; migration index là bước riêng có kế hoạch và xác minh.
+
+#### Giai đoạn 4 — Test và rollout có giới hạn
+
+- Unit tests: translation pending không đổi publication; translationReady tính đúng mà không sửa publication; home loại thiếu ảnh/description; source description rỗng không đạt home theo policy đã chốt; translation overlay fallback vẫn hoạt động.
+- API tests: catalog/detail/brand/top-rated chỉ dùng publication gate; homepage query áp đủ điều kiện trước pagination/count và giữ featured/deal/stock/spec/category; deleted/unpublished không public.
+- Kiểm tra regression trên product create/import/update: field publication mặc định đúng theo quyết định, thay đổi nguồn cập nhật translation readiness nhưng không tự publish/unpublish; ảnh thiếu dùng fallback ở nơi cho phép.
+- Rollout: chạy test mục tiêu; audit counts chỉ đọc trên database đã xác nhận; deploy code; chạy migration riêng nếu được duyệt; so sánh API totals, candidate counts, p95 latency và `explain` trước/sau. Rollback bằng cách khôi phục query/index theo release trước, không sửa hàng loạt translation quality.
+- Không chạy Cloudflare, retranslate, backfill production hoặc `npm run build` trong bước lập kế hoạch.
+
+#### Tiêu chí chấp nhận
+
+- Translation readiness không còn quyết định public availability.
+- Publication, translation readiness và homepage eligibility được report/kiểm thử riêng.
+- Không có truy vấn translation-cache nhiều locale trên request catalog/home/detail.
+- Pagination/count chính xác với homepage eligibility; existing merchandising filters giữ nguyên.
+- Latency/query execution không tăng đáng kể trên dataset đại diện; index chỉ thay sau đo đạc.
+- Quy tắc missing image, publication default và migration được xác nhận trước khi thay đổi dữ liệu.
+
+### Quyết định chờ người dùng trước triển khai
+
+- Product publication dùng một trạng thái hiện có nào hay cần workflow approval riêng? Nếu trạng thái hiện tại là `isDeleted: false`, xác nhận rõ đây là quyết định business (không phải giả định kỹ thuật).
+- Có cho phép tạo/import sản phẩm thiếu ảnh chính không? Nếu có, chấp nhận placeholder trên catalog/detail và loại sản phẩm đó khỏi home?
+- Xác nhận home bắt buộc có ảnh chính và source description; giữ featured/deal/stock/spec/category filters như hiện tại?
+- Có đồng ý đổi tên dữ liệu/khái niệm `storefrontReady` thành `translationReady` và lập migration riêng sau audit không?
+
+Chưa sửa code/schema/database hoặc gọi provider khi ghi nhận issue này.
