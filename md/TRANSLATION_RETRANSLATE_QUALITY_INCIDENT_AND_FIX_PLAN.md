@@ -518,9 +518,9 @@ Vì vậy translation readiness đang bị dùng như cổng xuất bản/hiển
 - Publication là cờ `isPublished` riêng; sản phẩm hiện có chưa xóa được migration gán published để giữ hành vi public hiện tại. Sản phẩm mới/import cũng mặc định published. Admin có thể unpublish từ form quản lý; trạng thái này độc lập với bản dịch.
 - Ảnh chính vẫn bắt buộc khi tạo/import. Home chỉ nhận sản phẩm published có ảnh và source description không rỗng; các filter merchandising hiện có được giữ lại.
 - `storefrontReady` được đổi thành `translationReady` và timestamp/report/helper được đổi tên tương ứng. Migration dry-run mặc định; apply cần file backup tồn tại và xác nhận `TRANSLATION_READINESS`.
-- Catalog, brand, top-rated, detail và endpoint lấy translation công khai chỉ dùng publication/soft-delete; bản dịch pending hoặc thiếu vẫn dùng source fallback, không cần đủ mọi locale để public.
+- Catalog, brand, top-rated, detail, endpoint lấy translation và danh sách review công khai chỉ dùng publication/soft-delete; không cho tạo review mới cho sản phẩm unpublished. Bản dịch pending hoặc thiếu vẫn dùng source fallback, không cần đủ mọi locale để public.
 
-Migration có thể xem trước bằng `npm run migrate:translation-readiness`; chỉ sau khi xác minh backup và database đích mới chạy apply với `--apply --confirm=TRANSLATION_READINESS --backup-file=<đường dẫn backup>`.
+Migration có thể xem trước bằng `npm run migrate:translation-readiness`. Sau khi xác minh backup có thể restore và database đích, chạy apply với `--apply --confirm=TRANSLATION_READINESS --backup-verified=true --backup-file=<đường dẫn backup>`. Migration giữ các field legacy để rollback; rollback có xác nhận riêng `--rollback --confirm=TRANSLATION_READINESS_ROLLBACK` cùng cờ backup tương tự.
 
 #### Mục tiêu thiết kế
 
@@ -600,6 +600,6 @@ Nếu provider hết quota, import/publication và translation phải được b
 
 ### Trạng thái rollout
 
-Code đã tách publication gate, translation readiness và homepage eligibility; đã thêm route/list/detail quản trị cho phép xem và cập nhật sản phẩm unpublished. Migration chỉ được chuẩn bị, không được thực thi trong phiên này. Trước deploy phải chạy dry-run, xác nhận database đích và backup đọc được, sau đó apply migration riêng; sau rollout cần report readiness mới và kiểm tra pagination/count trên home.
+Code đã tách publication gate, translation readiness và homepage eligibility; đã thêm route/list/detail quản trị cho phép xem và cập nhật sản phẩm unpublished, đồng thời chặn reviews công khai với sản phẩm unpublished. Migration chỉ được chuẩn bị, không được thực thi trong phiên này. Trước deploy phải chạy dry-run, xác nhận database đích và backup restore được, sau đó apply migration riêng; sau rollout cần report readiness mới và kiểm tra pagination/count trên home.
 
 Không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi dữ liệu database trong lần triển khai code này.

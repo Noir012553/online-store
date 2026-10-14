@@ -15,7 +15,7 @@ const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTr
 const LiveTranslationCache = require('../../../models/LiveTranslationCache');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const Currency = require('../../../models/Currency');
-const { getProducts, getFeaturedProducts, getProductById, getAdminProductById, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
+const { getProducts, getFeaturedProducts, getProductById, getAdminProductById, getTopRatedProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
 const createProductQuery = (sandbox, products = []) => ({
   populate: sandbox.stub().returnsThis(),
@@ -182,6 +182,27 @@ describe('Product Controller', () => {
       expect(findOneStub.firstCall.args[0]).not.to.have.property('isPublished');
       expect(String(findOneStub.firstCall.args[0]._id)).to.match(/^[a-f0-9]{24}$/i);
       expect(res.status.calledWith(404)).to.equal(true);
+    });
+  });
+
+  describe('top-rated publication gate', () => {
+    it('returns published products without requiring translation readiness', async () => {
+      const queryChain = {
+        populate: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
+        then: (resolve, reject) => Promise.resolve([]).then(resolve, reject),
+      };
+      const findStub = sandbox.stub(Product, 'find').returns(queryChain);
+      const res = { json: sandbox.stub() };
+
+      await getTopRatedProducts({ query: {}, lang: 'en' }, res);
+
+      expect(findStub.firstCall.args[0]).to.include({ isDeleted: false, isPublished: true });
+      expect(findStub.firstCall.args[0]).not.to.have.property('translationReady');
+      expect(res.json.calledOnceWith([])).to.equal(true);
     });
   });
 

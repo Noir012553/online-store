@@ -8,16 +8,19 @@ const { connectMongo } = require('../config/mongoConnection');
 
 const collection = Product.collection;
 const apply = process.argv.includes('--apply');
+const rollback = process.argv.includes('--rollback');
 const confirmation = process.argv.find((argument) => argument.startsWith('--confirm='))?.slice('--confirm='.length);
 const backupFile = process.argv.find((argument) => argument.startsWith('--backup-file='))?.slice('--backup-file='.length);
+const backupVerified = process.argv.includes('--backup-verified=true');
 
 const run = async () => {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI environment variable is not set');
-  if (apply && confirmation !== 'TRANSLATION_READINESS') {
-    throw new Error('Apply requires --confirm=TRANSLATION_READINESS');
+  if (apply && rollback) throw new Error('Use either --apply or --rollback, not both');
+  if ((apply || rollback) && confirmation !== (rollback ? 'TRANSLATION_READINESS_ROLLBACK' : 'TRANSLATION_READINESS')) {
+    throw new Error(`Operation requires --confirm=${rollback ? 'TRANSLATION_READINESS_ROLLBACK' : 'TRANSLATION_READINESS'}`);
   }
-  if (apply && (!backupFile || !fs.existsSync(backupFile))) {
-    throw new Error('Apply requires an existing --backup-file created before migration');
+  if ((apply || rollback) && (!backupFile || !fs.existsSync(backupFile) || fs.statSync(backupFile).size === 0 || !backupVerified)) {
+    throw new Error('Apply and rollback require a non-empty --backup-file and --backup-verified=true');
   }
 
   await connectMongo();
@@ -63,7 +66,7 @@ const run = async () => {
       );
       await collection.updateMany(
         { storefrontReady: { $exists: true }, translationReady: { $exists: false } },
-        { $rename: { storefrontReady: 'translationReady' } },
+        [{ $set: { translationReady: '$storefrontReady' } }],
       );
       await collection.updateMany(
         { translationReady: { $exists: false } },
@@ -71,17 +74,22 @@ const run = async () => {
       );
       await collection.updateMany(
         { storefrontReadinessCheckedAt: { $exists: true }, translationReadinessCheckedAt: { $exists: false } },
-        { $rename: { storefrontReadinessCheckedAt: 'translationReadinessCheckedAt' } },
+        [{ $set: { translationReadinessCheckedAt: '$storefrontReadinessCheckedAt' } }],
       );
-      await collection.updateMany(
-        {
-          $or: [
-            { storefrontReady: { $exists: true } },
-            { storefrontReadinessCheckedAt: { $exists: true } },
-          ],
+    }
+
+    if (rollback) {
+      await collection.updateMany({}, [{
+        $set: {
+          storefrontReady: {
+            $and: [
+              { $eq: ['$isPublished', true] },
+              { $eq: ['$translationReady', true] },
+            ],
+          },
+          storefrontReadinessCheckedAt: { $ifNull: ['$translationReadinessCheckedAt', '$$NOW'] },
         },
-        { $unset: { storefrontReady: '', storefrontReadinessCheckedAt: '' } },
-      );
+      }]);
     }
 
     const after = {
@@ -97,7 +105,7 @@ const run = async () => {
       translationReady: await collection.countDocuments({ translationReady: true }),
     };
 
-    console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', before, after, applied: apply }, null, 2));
+    console.log(JSON.stringify({ mode: rollback ? 'rollback' : apply ? 'apply' : 'dry-run', before, after, applied: apply || rollback }, null, 2));
   } finally {
     await mongoose.disconnect();
   }
