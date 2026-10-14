@@ -329,7 +329,7 @@ exports.getProductTranslations = async (req, res) => {
       });
     }
 
-    const data = await getProductTranslationData(productId, resolvedLang, false);
+    const data = await getProductTranslationData(productId, resolvedLang, false, sourceProduct);
     if (!data) {
       const sourceSpecs = sourceProduct.specs instanceof Map
         ? Object.fromEntries(sourceProduct.specs)
@@ -1218,7 +1218,7 @@ const getInconsistencyValidationFilter = (validationErrors) => (
     }
 );
 
-const getProductTranslationData = async (productId, targetLang, includeNonSuccess) => {
+const getProductTranslationData = async (productId, targetLang, includeNonSuccess, currentSourceProduct = null) => {
   const catalogQuery = { entityId: productId, targetLang };
   const legacyQuery = {
     entityId: productId,
@@ -1242,7 +1242,7 @@ const getProductTranslationData = async (productId, targetLang, includeNonSucces
   }
 
   const translation = await ProductCatalogTranslationCache.findOne(catalogQuery).lean();
-  const sourceProduct = await Product.findById(productId)
+  const sourceProduct = currentSourceProduct || await Product.findById(productId)
     .select('name description brand specs technicalDescription descriptionImages promotions')
     .lean();
 

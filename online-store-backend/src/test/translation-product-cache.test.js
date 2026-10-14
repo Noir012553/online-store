@@ -1602,10 +1602,7 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves(sourceProduct),
     });
     sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
-    sandbox.stub(Product, 'findById').returns({
-      select: sandbox.stub().returnsThis(),
-      lean: sandbox.stub().resolves(sourceProduct),
-    });
+    const findById = sandbox.stub(Product, 'findById');
     sandbox.stub(LiveTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
     const res = createResponse();
 
@@ -1615,6 +1612,7 @@ describe('Product translation cache controller', () => {
       lang: 'en',
     }, res);
 
+    expect(findById.called).to.equal(false);
     expect(res.json.firstCall.args[0]).to.include({ success: true });
     expect(res.json.firstCall.args[0].data).to.include({
       name: 'Laptop source',

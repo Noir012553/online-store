@@ -34,6 +34,7 @@ const {
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { getMessage } = require('../i18n/messages');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { buildHomepageEligibilityQuery } = require('../utils/homepageEligibility');
 const getProductSourceHash = product => getProductTranslationSourceHash(
   product?.toObject ? product.toObject() : product,
 );
@@ -322,10 +323,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   };
 
   const query = {
-    isDeleted: false,
-    isPublished: true,
-    image: { $type: 'string', $regex: /\S/ },
-    description: { $type: 'string', $regex: /\S/ },
+    ...buildHomepageEligibilityQuery(),
     ...category,
     ...brand,
     ...priceFilter,
