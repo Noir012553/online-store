@@ -556,6 +556,13 @@ Sau khi tách, contract đề xuất là:
 
 Nếu provider hết quota, import/publication và translation phải được báo tách bạch; việc retry translation về sau không được tạo lại/nhân đôi product, thay trạng thái publication hoặc re-import các record đã nhận. Chi tiết xử lý lỗi provider phải có test trước khi triển khai; đây là contract mục tiêu, chưa phải hành vi hiện tại.
 
+#### Quyết định đã chốt — kiểm tra ở bước dịch
+
+- Không yêu cầu sản phẩm phải đạt storefront-ready hoặc đủ cả 8 locale mới được dịch; xử lý độc lập theo từng sản phẩm/ngôn ngữ và các trường còn thiếu.
+- Vẫn bắt buộc đối chiếu bản dịch với dữ liệu nguồn về model/SKU, brand, thông số, con số và đơn vị; không được tự thêm hoặc đoán dữ liệu nguồn bị thiếu.
+- Nếu output sai/thiếu thông số, chỉ bản dịch đó chuyển sang pending/review và translation readiness chưa đạt. Không xóa sản phẩm, không chặn import/publication chỉ vì lỗi dịch và không tự gắn approved.
+- Storefront readiness được tính riêng sau đó để báo cáo; không điều khiển việc gọi dịch hoặc việc giữ sản phẩm.
+
 #### Giai đoạn 3 — Tối ưu query và index
 
 - Ưu tiên một Mongo query lọc publication + `isDeleted` + điều kiện home/section trước sort, pagination và count; tránh `$lookup` translation cache hoặc quét toàn bộ locales trên mỗi request.
