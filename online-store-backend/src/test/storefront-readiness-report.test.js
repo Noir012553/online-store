@@ -88,6 +88,20 @@ describe('storefront readiness report', () => {
     expect(report.products[0].locales[0].missingSpecKeys).to.deep.equal(['ram']);
   });
 
+  it('groups blocking validation errors by locale and unique product', () => {
+    const product = makeProduct();
+    const translations = makeTranslations(product);
+    translations[0].validationErrors = ['empty', 'too_short', 'empty'];
+    translations[1].validationErrors = ['empty'];
+    const report = analyzeTranslationReadiness([product], translations, requiredLanguages);
+
+    expect(report.validationErrorCounts).to.deep.equal([
+      { targetLang: 'en', error: 'empty', records: 1, uniqueProducts: 1 },
+      { targetLang: 'en', error: 'too_short', records: 1, uniqueProducts: 1 },
+      { targetLang: 'fr', error: 'empty', records: 1, uniqueProducts: 1 },
+    ]);
+  });
+
   it('reports optional image-alt warnings without blocking readiness', () => {
     const product = makeProduct();
     const translations = makeTranslations(product).map((translation) => ({

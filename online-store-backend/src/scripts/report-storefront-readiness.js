@@ -50,6 +50,12 @@ const printHumanReport = (report, limit) => {
   if (reasons.length === 0) console.log('  none');
   reasons.forEach(([reason, count]) => console.log(`  ${reason}: ${count}`));
 
+  console.log('Validation errors by locale:');
+  if (report.validationErrorCounts.length === 0) console.log('  none');
+  report.validationErrorCounts.forEach(({ targetLang, error, records, uniqueProducts }) => {
+    console.log(`  ${targetLang} | ${error}: ${records} records, ${uniqueProducts} products`);
+  });
+
   console.log('Optional field warnings (non-blocking):');
   const optionalWarnings = Object.entries(report.optionalWarningCounts || {}).sort(([a], [b]) => a.localeCompare(b));
   if (optionalWarnings.length === 0) console.log('  none');

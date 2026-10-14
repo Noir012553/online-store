@@ -68,6 +68,22 @@ const analyzeTranslationReadiness = (products, translations, requiredLanguages) 
 
   const reasonCounts = {};
   const optionalWarningCounts = {};
+  const validationErrorCounts = new Map();
+  translations.forEach((translation) => {
+    [...new Set(Array.isArray(translation.validationErrors) ? translation.validationErrors : [])]
+      .forEach((error) => {
+        const countKey = `${translation.targetLang}\u0000${error}`;
+        const count = validationErrorCounts.get(countKey) || {
+          targetLang: translation.targetLang,
+          error,
+          records: 0,
+          productIds: new Set(),
+        };
+        count.records += 1;
+        count.productIds.add(String(translation.entityId));
+        validationErrorCounts.set(countKey, count);
+      });
+  });
   const countOptionalWarnings = (warnings) => warnings.forEach(({ fieldKey, validationErrors = [] }) => {
     validationErrors.forEach((error) => {
       const key = `${fieldKey}:${error}`;
@@ -135,6 +151,9 @@ const analyzeTranslationReadiness = (products, translations, requiredLanguages) 
     requiredLanguages,
     reasonCounts,
     optionalWarningCounts,
+    validationErrorCounts: [...validationErrorCounts.values()]
+      .map(({ productIds, ...count }) => ({ ...count, uniqueProducts: productIds.size }))
+      .sort((a, b) => a.targetLang.localeCompare(b.targetLang) || a.error.localeCompare(b.error)),
     translationCounts: [...translationCounts.values()]
       .map(({ productIds, ...count }) => ({ ...count, uniqueProducts: productIds.size }))
       .sort((a, b) => a.targetLang.localeCompare(b.targetLang)
