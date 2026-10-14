@@ -5,6 +5,7 @@ const path = require('node:path');
 const {
   validateMigrationOptions,
   validateTargetDatabase,
+  resolveLatestDatabaseBackup,
   runTranslationReadinessMigration,
 } = require('../utils/translationReadinessMigration');
 
@@ -118,6 +119,28 @@ describe('translation readiness migration', () => {
         backupVerified: true,
         databaseName: 'test-db',
       }), /non-empty regular file/);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('selects the newest non-empty backup for the requested database only', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'readiness-backups-'));
+    const olderBackup = path.join(directory, 'online-store-full-backup-older.archive.gz');
+    const newerBackup = path.join(directory, 'online-store-full-backup-newer.archive.gz');
+    const otherDatabaseBackup = path.join(directory, 'online-store-test-full-backup-latest.archive.gz');
+    const emptyBackup = path.join(directory, 'online-store-full-backup-empty.archive.gz');
+
+    try {
+      fs.writeFileSync(olderBackup, 'older');
+      fs.writeFileSync(newerBackup, 'newer');
+      fs.writeFileSync(otherDatabaseBackup, 'other database');
+      fs.writeFileSync(emptyBackup, '');
+      fs.utimesSync(olderBackup, new Date(1000), new Date(1000));
+      fs.utimesSync(newerBackup, new Date(2000), new Date(2000));
+
+      assert.equal(resolveLatestDatabaseBackup(directory, 'online-store'), newerBackup);
+      assert.throws(() => resolveLatestDatabaseBackup(directory, 'missing-db'), /No non-empty full backup/);
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }

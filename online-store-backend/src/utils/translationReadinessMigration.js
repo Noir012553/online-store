@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 const validateMigrationOptions = ({ mode, confirmation, backupFile, backupVerified, databaseName }) => {
   if (!['dry-run', 'apply', 'rollback'].includes(mode)) {
@@ -37,6 +38,33 @@ const validateTargetDatabase = (expectedDatabaseName, actualDatabaseName, mode) 
   if (mode === 'dry-run' && expectedDatabaseName && expectedDatabaseName !== actualDatabaseName) {
     throw new Error(`Connected database '${actualDatabaseName}' does not match --database-name '${expectedDatabaseName}'`);
   }
+};
+
+const resolveLatestDatabaseBackup = (backupDirectory, databaseName) => {
+  if (!databaseName) throw new Error('Database name is required to select a backup');
+
+  let entries;
+  try {
+    entries = fs.readdirSync(backupDirectory, { withFileTypes: true });
+  } catch {
+    throw new Error(`No backup directory found for database '${databaseName}'`);
+  }
+
+  const prefix = `${databaseName}-full-backup-`;
+  const candidates = entries
+    .filter(entry => entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith('.archive.gz'))
+    .map(({ name }) => {
+      const fullPath = path.join(backupDirectory, name);
+      const stats = fs.statSync(fullPath);
+      return { fullPath, modifiedAt: stats.mtimeMs, size: stats.size };
+    })
+    .filter(({ size }) => size > 0)
+    .sort((left, right) => right.modifiedAt - left.modifiedAt || right.fullPath.localeCompare(left.fullPath));
+
+  if (candidates.length === 0) {
+    throw new Error(`No non-empty full backup found for database '${databaseName}'`);
+  }
+  return candidates[0].fullPath;
 };
 
 const getSnapshot = async (collection) => {
@@ -120,5 +148,6 @@ const runTranslationReadinessMigration = async (collection, mode = 'dry-run') =>
 module.exports = {
   validateMigrationOptions,
   validateTargetDatabase,
+  resolveLatestDatabaseBackup,
   runTranslationReadinessMigration,
 };

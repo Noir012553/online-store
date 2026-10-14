@@ -7,6 +7,7 @@ const { connectMongo } = require('../config/mongoConnection');
 const {
   validateMigrationOptions,
   validateTargetDatabase,
+  resolveLatestDatabaseBackup,
   runTranslationReadinessMigration,
 } = require('../utils/translationReadinessMigration');
 
@@ -21,10 +22,18 @@ const run = async () => {
 
   const mode = rollback ? 'rollback' : apply ? 'apply' : 'dry-run';
   const databaseName = getArgument('database-name');
+  const explicitBackupFile = getArgument('backup-file');
+  const useLatestBackup = hasArgument('backup-latest=true');
+  if (explicitBackupFile && useLatestBackup) {
+    throw new Error('Use either --backup-file or --backup-latest=true, not both');
+  }
+  const backupFile = useLatestBackup
+    ? resolveLatestDatabaseBackup(path.resolve(__dirname, '../../backups'), databaseName)
+    : explicitBackupFile;
   validateMigrationOptions({
     mode,
     confirmation: getArgument('confirm'),
-    backupFile: getArgument('backup-file'),
+    backupFile,
     backupVerified: hasArgument('backup-verified=true'),
     databaseName,
   });
@@ -33,6 +42,7 @@ const run = async () => {
   try {
     validateTargetDatabase(databaseName, mongoose.connection.name, mode);
     const report = await runTranslationReadinessMigration(Product.collection, mode);
+    if (backupFile) console.log(`Backup archive: ${backupFile}`);
     console.log(JSON.stringify({ ...report, databaseName: mongoose.connection.name }, null, 2));
   } finally {
     await mongoose.disconnect();
