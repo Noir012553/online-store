@@ -275,7 +275,7 @@ exports.getStaticTranslations = async (req, res) => {
 /**
  * GET /api/products/:id/translations
  * Fetch translated product data (name, description, brand, specs) for a specific language
- * Returns translated data for target languages and source product data for the default language
+ * Falls back to source product data when no approved translation is available
  */
 exports.getProductTranslations = async (req, res) => {
   try {
@@ -331,13 +331,24 @@ exports.getProductTranslations = async (req, res) => {
 
     const data = await getProductTranslationData(productId, resolvedLang, false);
     if (!data) {
-      return sendTranslationError(
-        res,
-        404,
-        getRequestLanguage(req),
-        'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
-        'product_fetch_failed'
-      );
+      const sourceSpecs = sourceProduct.specs instanceof Map
+        ? Object.fromEntries(sourceProduct.specs)
+        : sourceProduct.specs || {};
+      const localizedSource = await localizeProductSpecFields({ specs: sourceSpecs }, resolvedLang);
+
+      return res.json({
+        success: true,
+        data: {
+          name: sourceProduct.name,
+          description: sourceProduct.description,
+          brand: sourceProduct.brand,
+          specs: localizedSource.specs,
+          specLabels: localizedSource.specLabels,
+          technicalDescription: sourceProduct.technicalDescription || '',
+          descriptionImages: Array.isArray(sourceProduct.descriptionImages) ? sourceProduct.descriptionImages : [],
+          promotions: Array.isArray(sourceProduct.promotions) ? sourceProduct.promotions : [],
+        },
+      });
     }
 
     const localizedSpecData = await localizeProductSpecFields({ specs: data.specs }, resolvedLang);

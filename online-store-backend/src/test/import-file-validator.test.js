@@ -893,15 +893,15 @@ describe('Product payload validation', () => {
     expect(result.cleaned.descriptionImages).to.be.undefined;
   });
 
-  it('rejects incomplete products in ZIP imports', () => {
+  it('accepts products without a description in ZIP imports', () => {
     const result = validateProduct({
       ...validProduct,
       countInStock: 10,
       specs: { connection: 'Wireless' },
     }, 1, { requireComplete: true });
 
-    expect(result.isValid).to.equal(false);
-    expect(result.errors.some(error => error.includes('description'))).to.equal(true);
+    expect(result.isValid).to.equal(true);
+    expect(result.cleaned.description).to.be.undefined;
   });
 
   it('accepts products without specs in ZIP imports', () => {

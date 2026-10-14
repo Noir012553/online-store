@@ -1700,10 +1700,10 @@ const getImportGuide = asyncHandler(async (req, res) => {
       step4: getMessage(req.lang, 'admin-controllers-messages.import_guide_step4'),
       step5: getMessage(req.lang, 'admin-controllers-messages.import_guide_step5'),
     },
-    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'image', 'description', 'countInStock', 'specs'],
+    requiredFields: ['name', 'brand', 'price', 'baseCurrencyCode', 'category', 'image', 'countInStock'],
     optionalFields: [
       'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'imagePublicId', 'imagePublicIds', 'images',
-      'technicalDescription', 'descriptionImages', 'promotions',
+      'description', 'specs', 'technicalDescription', 'descriptionImages', 'promotions',
       'rating', 'numReviews', 'featured', 'deal',
     ],
     fieldDetails: {

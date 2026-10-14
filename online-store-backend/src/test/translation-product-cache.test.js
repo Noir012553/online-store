@@ -1554,17 +1554,16 @@ describe('Product translation cache controller', () => {
 
   it('returns source product data for the default language', async () => {
     const productId = new mongoose.Types.ObjectId().toString();
-    sandbox.stub(Product, 'findById').returns({
-      select: sandbox.stub().returns({
-        lean: sandbox.stub().resolves({
-          name: 'Laptop source',
-          description: 'Source description',
-          brand: 'Source brand',
-          specs: { RAM: '16GB' },
-          technicalDescription: 'Technical source',
-          descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Source image' }],
-          promotions: [{ type: 'Gift', title: 'Source gift' }],
-        }),
+    sandbox.stub(Product, 'findOne').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves({
+        name: 'Laptop source',
+        description: 'Source description',
+        brand: 'Source brand',
+        specs: { RAM: '16GB' },
+        technicalDescription: 'Technical source',
+        descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Source image' }],
+        promotions: [{ type: 'Gift', title: 'Source gift' }],
       }),
     });
     const res = createResponse();
@@ -1585,6 +1584,45 @@ describe('Product translation cache controller', () => {
       descriptionImages: [{ url: 'https://example.invalid/source.jpg', alt: 'Source image' }],
       promotions: [{ type: 'Gift', title: 'Source gift' }],
     });
+  });
+
+  it('falls back to source product data when no approved translation is available', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      specs: {},
+      technicalDescription: 'Technical source',
+      descriptionImages: [],
+      promotions: [],
+    };
+    sandbox.stub(Product, 'findOne').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({ lean: sandbox.stub().resolves(null) });
+    sandbox.stub(Product, 'findById').returns({
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    sandbox.stub(LiveTranslationCache, 'find').returns({ lean: sandbox.stub().resolves([]) });
+    const res = createResponse();
+
+    await getProductTranslations({
+      params: { id: productId },
+      query: { lang: 'en' },
+      lang: 'en',
+    }, res);
+
+    expect(res.json.firstCall.args[0]).to.include({ success: true });
+    expect(res.json.firstCall.args[0].data).to.include({
+      name: 'Laptop source',
+      description: 'Source description',
+      brand: 'Source brand',
+      technicalDescription: 'Technical source',
+    });
+    expect(res.json.firstCall.args[0].data.specs).to.deep.equal({});
   });
 
   it('does not reuse a non-approved cache record for public translation', async () => {
