@@ -541,6 +541,21 @@ Tách ba trách nhiệm độc lập, không để một lần đọc request st
 - Product detail kiểm tra publication và soft-delete trực tiếp; không gọi `getStorefrontVisibleProductIds`/query đủ 8 locale cho từng request detail.
 - Dùng translation overlay/fallback để render ngôn ngữ yêu cầu; không thay đổi cache/provider hay gọi Cloudflare trong request path.
 
+#### Luồng `npm run seed` sau khi tách
+
+Code hiện tại chạy full seed theo thứ tự crawler → seed nền → import sản phẩm → chờ translation queue → gọi dịch sản phẩm theo các locale đích → refresh `storefrontReady` → seed hậu kỳ. `--skip-translate` chỉ bỏ lời gọi translation provider; seed preview/dry-run có hành vi riêng và không tương đương apply.
+
+Sau khi tách, contract đề xuất là:
+
+1. **Import acceptance:** chỉ kiểm tra tính hợp lệ của source/product record theo schema và quy tắc ingestion. Description đã optional; ảnh chính vẫn required cho đến khi được quyết định và sửa đồng bộ schema, importer, API/admin UI.
+2. **Publication:** import không tự suy ra trạng thái approved/published từ translation readiness. Sản phẩm mới nhận publication state theo policy đã chốt; nếu cần admin approval thì seed tạo draft/unpublished cho đến khi được duyệt. Không được mặc định auto-publish mọi record khi chưa có quyết định.
+3. **Translation:** full seed vẫn có thể gọi Cloudflare theo cấu hình hiện hành, trừ khi dùng `--skip-translate`; provider success chỉ là kết quả dịch, không phải product approval. Translation pending, validation fail hoặc HTTP 429 không rollback product hợp lệ, không đổi publication, không làm seed đánh dấu bản dịch approved.
+4. **Readiness:** cập nhật/ghi report translation readiness riêng sau bước dịch, nhưng kết quả ready/not-ready chỉ phục vụ review/backlog; không gate import, publication hoặc seed hậu kỳ.
+5. **Hiển thị:** public API chỉ trả sản phẩm theo publication/soft-delete. Home áp thêm ảnh chính + description và filter section; catalog/detail không bị chặn bởi thiếu bản dịch, dùng localization fallback đã có.
+6. **Báo cáo:** full seed cần tách rõ số source records accepted/rejected, published/draft, translation requests/success/pending/failed, readiness và home-eligible count. Không gộp các số thành một “seed success” hoặc “storefront-ready” tổng.
+
+Nếu provider hết quota, import/publication và translation phải được báo tách bạch; việc retry translation về sau không được tạo lại/nhân đôi product, thay trạng thái publication hoặc re-import các record đã nhận. Chi tiết xử lý lỗi provider phải có test trước khi triển khai; đây là contract mục tiêu, chưa phải hành vi hiện tại.
+
 #### Giai đoạn 3 — Tối ưu query và index
 
 - Ưu tiên một Mongo query lọc publication + `isDeleted` + điều kiện home/section trước sort, pagination và count; tránh `$lookup` translation cache hoặc quét toàn bộ locales trên mỗi request.
