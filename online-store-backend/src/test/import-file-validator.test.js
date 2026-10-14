@@ -901,7 +901,7 @@ describe('Product payload validation', () => {
     }, 1, { requireComplete: true });
 
     expect(result.isValid).to.equal(true);
-    expect(result.cleaned.description).to.be.undefined;
+    expect(result.cleaned.description).to.equal('');
   });
 
   it('accepts products without specs in ZIP imports', () => {
