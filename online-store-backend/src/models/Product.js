@@ -294,12 +294,15 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    storefrontReady: {
+    isPublished: {
+      type: Boolean,
+      default: true,
+    },
+    translationReady: {
       type: Boolean,
       default: false,
-      index: true,
     },
-    storefrontReadinessCheckedAt: {
+    translationReadinessCheckedAt: {
       type: Date,
       default: null,
     },
@@ -322,8 +325,6 @@ productSchema.index({ isDeleted: 1, category: 1, _id: 1 });
 productSchema.index({ price: 1, isDeleted: 1 });
 productSchema.index({ countInStock: 1, isDeleted: 1 });
 productSchema.index({ featured: 1, isDeleted: 1 });
-productSchema.index({ storefrontReady: 1, isDeleted: 1, category: 1, countInStock: 1 });
-productSchema.index({ storefrontReady: 1, isDeleted: 1, category: 1, featured: -1, createdAt: -1, _id: 1 });
 productSchema.index({ isDeleted: 1, 'deal.discount': 1, 'deal.endTime': 1 });
 productSchema.index({ rating: -1, isDeleted: 1 });
 

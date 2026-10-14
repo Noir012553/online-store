@@ -9,8 +9,8 @@ const {
   overlayOrderTranslations,
   overlayBannerTranslations,
   overlayTestimonialTranslations,
-  getStorefrontVisibleProductIds,
-  refreshStorefrontReadiness,
+  getTranslationReadyProductIds,
+  refreshTranslationReadiness,
   localizeProductSpecs,
 } = require('../services/translationHelper');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
@@ -351,7 +351,7 @@ describe('translationHelper - Storefront product visibility', () => {
   it('shows products only when every required translation is approved and complete', async () => {
     mockProductCache.find.result = Promise.resolve(createTranslations());
 
-    const result = await getStorefrontVisibleProductIds([product]);
+    const result = await getTranslationReadyProductIds([product]);
 
     assert.deepStrictEqual([...result], ['product-1']);
   });
@@ -359,7 +359,7 @@ describe('translationHelper - Storefront product visibility', () => {
   it('hides approved products that still have validation errors', async () => {
     mockProductCache.find.result = Promise.resolve(createTranslations({ validationErrors: ['too_long'] }));
 
-    const result = await getStorefrontVisibleProductIds([product]);
+    const result = await getTranslationReadyProductIds([product]);
 
     assert.strictEqual(result.size, 0);
   });
@@ -370,7 +370,7 @@ describe('translationHelper - Storefront product visibility', () => {
     translations[0].qualityStatus = 'pending';
     mockProductCache.find.result = Promise.resolve(translations);
 
-    const result = await getStorefrontVisibleProductIds([product]);
+    const result = await getTranslationReadyProductIds([product]);
 
     assert.strictEqual(result.size, 0);
   });
@@ -379,7 +379,7 @@ describe('translationHelper - Storefront product visibility', () => {
     const sourceProduct = { ...product, specs: {} };
     mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
 
-    const result = await getStorefrontVisibleProductIds([sourceProduct]);
+    const result = await getTranslationReadyProductIds([sourceProduct]);
 
     assert.deepStrictEqual([...result], ['product-1']);
   });
@@ -388,7 +388,7 @@ describe('translationHelper - Storefront product visibility', () => {
     const sourceProduct = { ...product, description: '' };
     mockProductCache.find.result = Promise.resolve(createTranslations({}, sourceProduct));
 
-    const result = await getStorefrontVisibleProductIds([sourceProduct]);
+    const result = await getTranslationReadyProductIds([sourceProduct]);
 
     assert.deepStrictEqual([...result], ['product-1']);
   });
@@ -396,12 +396,12 @@ describe('translationHelper - Storefront product visibility', () => {
   it('hides products with a missing translated description while specs are complete', async () => {
     mockProductCache.find.result = Promise.resolve(createTranslations({ description: '' }));
 
-    const result = await getStorefrontVisibleProductIds([product]);
+    const result = await getTranslationReadyProductIds([product]);
 
     assert.strictEqual(result.size, 0);
   });
 
-  it('returns readiness totals after updating stored storefront flags', async () => {
+  it('returns translation-readiness totals after updating stored flags', async () => {
     Product.find = () => {
       const query = {
         select: () => query,
@@ -412,13 +412,13 @@ describe('translationHelper - Storefront product visibility', () => {
     Product.bulkWrite = async () => ({ matchedCount: 1, modifiedCount: 1 });
     mockProductCache.find.result = Promise.resolve(createTranslations());
 
-    const result = await refreshStorefrontReadiness(['product-1']);
+    const result = await refreshTranslationReadiness(['product-1']);
 
     assert.deepStrictEqual(result, {
       matchedCount: 1,
       modifiedCount: 1,
-      readyCount: 1,
-      notReadyCount: 0,
+      translationReadyCount: 1,
+      translationNotReadyCount: 0,
     });
   });
 });

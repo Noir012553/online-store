@@ -59,24 +59,14 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await productAPI.getProducts(
+      const response = await productAPI.getAdminProducts(
         currentPage,
         searchQuery || undefined,
         filterCategory !== 'all' ? filterCategory : undefined,
         filterBrand !== 'all' ? filterBrand : undefined,
         itemsPerPage,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
         locale,
-        locale,
-        currencyCode
+        currencyCode,
       );
       const fetchedProducts = response.products || [];
       setProducts(fetchedProducts);
@@ -360,6 +350,9 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                         <p className="font-medium">{getTranslatedValue(product.name, locale)}</p>
                         {product.featured && (
                           <Badge className="mt-1 bg-red-600">{t('badge_featured', 'admin')}</Badge>
+                        )}
+                        {product.isPublished === false && (
+                          <Badge className="mt-1" variant="secondary">{t('product_unpublished_label', 'admin')}</Badge>
                         )}
                       </div>
                     </div>

@@ -10,9 +10,11 @@ const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const {
   getProducts,
+  getAdminProducts,
   getAdminTranslationProducts,
   getFeaturedProducts,
   getProductById,
+  getAdminProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -66,6 +68,7 @@ router.get('/featured/list', getFeaturedProducts);
 /**
  * GET /api/products/admin/translations - Lấy toàn bộ sản phẩm cho trang quản lý bản dịch
  */
+router.get('/admin/list', protect, admin, getAdminProducts);
 router.get('/admin/translations', protect, admin, getAdminTranslationProducts);
 router.post('/admin/import-file', protect, admin, uploadLimiter, importConcurrencyLimiter, uploadImport.single('file'), validateImportUpload, importProductsFromFile);
 router.get('/admin/import-guide', protect, admin, getImportGuide);
@@ -73,6 +76,7 @@ router.get('/admin/import-formats', protect, admin, getImportFormats);
 router.get('/admin/export', protect, admin, exportProducts);
 router.get('/admin/export-bundle', protect, admin, exportProductsWithTranslations);
 router.get('/admin/export-stats', protect, admin, getExportStats);
+router.get('/admin/:id', protect, admin, getAdminProductById);
 
 const {
   getExportJob,

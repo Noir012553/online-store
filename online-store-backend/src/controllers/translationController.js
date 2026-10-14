@@ -19,7 +19,7 @@ const seedTranslations = require('../seeds/translationSeeder');
 const retranslateSeeder = require('../seeds/retranslateSeeder');
 const { getMessage } = require('../i18n/messages');
 const { SUPPORTED_LANGUAGES, getActiveLangCodes, getDefaultLanguage } = require('../config/languageInventory');
-const { localizeProductSpecFields, refreshStorefrontReadiness } = require('../services/translationHelper');
+const { localizeProductSpecFields, refreshTranslationReadiness } = require('../services/translationHelper');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { normalizeProductContentFields } = require('../utils/productImportValidator');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
@@ -293,21 +293,21 @@ exports.getProductTranslations = async (req, res) => {
       );
     }
 
+    const sourceProduct = await Product.findOne({ _id: productId, isDeleted: false, isPublished: true })
+      .select('name description brand specs technicalDescription descriptionImages promotions')
+      .lean();
+
+    if (!sourceProduct) {
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
+        'product_fetch_failed'
+      );
+    }
+
     if (resolvedLang === getDefaultLanguage().code) {
-      const sourceProduct = await Product.findById(productId)
-        .select('name description brand specs technicalDescription descriptionImages promotions')
-        .lean();
-
-      if (!sourceProduct) {
-        return sendTranslationError(
-          res,
-          404,
-          getRequestLanguage(req),
-          'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
-          'product_fetch_failed'
-        );
-      }
-
       const localizedSpecData = await localizeProductSpecFields({
         specs: sourceProduct.specs instanceof Map
           ? Object.fromEntries(sourceProduct.specs)
@@ -1584,7 +1584,7 @@ exports.saveProductTranslation = async (req, res) => {
       { $set: update },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     ).lean();
-    await refreshStorefrontReadiness([productId]);
+    await refreshTranslationReadiness([productId]);
 
     return res.json({ success: true, data: translation });
   } catch (error) {
@@ -1662,7 +1662,7 @@ exports.approveAssistantProductTranslation = async (req, res) => {
       return sendTranslationError(res, 409, getRequestLanguage(req), 'TRANSLATION_ASSISTANT_REVIEW_REQUIRED', 'operation_failed');
     }
 
-    await refreshStorefrontReadiness([productId]);
+    await refreshTranslationReadiness([productId]);
     return res.json({
       success: true,
       data: {
@@ -2127,7 +2127,7 @@ exports.importProductTranslationCache = async (req, res) => {
     const result = operations.length > 0
       ? await ProductCatalogTranslationCache.bulkWrite(operations)
       : { modifiedCount: 0, upsertedCount: 0 };
-    await refreshStorefrontReadiness([...new Set(importPlans.map(({ productId }) => productId))]);
+    await refreshTranslationReadiness([...new Set(importPlans.map(({ productId }) => productId))]);
     const responseData = {
       totalProcessed: normalizedRecords.length,
       importedCount: result.modifiedCount + result.upsertedCount,

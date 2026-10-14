@@ -28,7 +28,6 @@ const {
   deleteR2Assets,
 } = require('../services/r2AssetService');
 const {
-  getStorefrontVisibleProductIds,
   overlayTranslationBatchWithFallback,
   overlayTranslation,
 } = require('../services/translationHelper');
@@ -94,18 +93,6 @@ const getProductSort = (sortBy) => {
     default:
       return { featured: -1, createdAt: -1, _id: 1 };
   }
-};
-
-const findStorefrontVisibleProductIds = async (query) => {
-  const products = await withTimeout(
-    Product.find(query)
-      .select('_id name description brand specs')
-      .maxTimeMS(10000)
-      .lean(),
-    12000
-  );
-
-  return getStorefrontVisibleProductIds(products);
 };
 
 const formatProductsForDisplay = async (products, reportingCurrency, locale) => {
@@ -336,7 +323,9 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
 
   const query = {
     isDeleted: false,
-    storefrontReady: true,
+    isPublished: true,
+    image: { $type: 'string', $regex: /\S/ },
+    description: { $type: 'string', $regex: /\S/ },
     ...category,
     ...brand,
     ...priceFilter,
@@ -390,46 +379,14 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     mongoQuery: query,
   });
 
-  req.featuredDebugStage = 'load-candidate-products';
-  const candidateLimit = Math.min(Math.max(page * pageSize, pageSize), 50);
-  const candidateSort = hasDeal
-    ? { 'deal.discount': -1, 'deal.endTime': 1, _id: 1 }
-    : { featured: -1, createdAt: -1, _id: 1 };
-  const candidateProducts = await withTimeout(
-    Product.find(query)
-      .select('_id name description brand specs')
-      .sort(candidateSort)
-      .limit(candidateLimit)
-      .maxTimeMS(12000)
-      .lean(),
-    13000
-  );
-  debugFeatured('query:candidates-loaded', {
-    requestId: req.apiRequestId,
-    candidateLimit,
-    ...summarizeProducts(candidateProducts),
-    candidates: candidateProducts,
-  });
-
-  req.featuredDebugStage = 'filter-storefront-visible-products';
-  const visibleProductIds = [...new Map(
-    candidateProducts.map((product) => [String(product._id), product._id]),
-  ).values()];
-  const count = visibleProductIds.length;
-  const productQuery = { ...query, _id: { $in: visibleProductIds } };
-  debugFeatured('products:visibility-filtered', {
-    requestId: req.apiRequestId,
-    candidateCount: candidateProducts.length,
-    visibleCount: count,
-    visibleIds: visibleProductIds.map((id) => String(id)),
-    productQuery,
-  });
+  req.featuredDebugStage = 'count-home-eligible-products';
+  const count = await withTimeout(Product.countDocuments(query).maxTimeMS(8000), 8000);
   const prioritizeSpecs = req.query.prioritizeSpecs === 'true';
   req.featuredDebugStage = prioritizeSpecs ? 'load-prioritized-products' : 'load-products';
   const products = await withTimeout(
     prioritizeSpecs
       ? Product.aggregate([
-        { $match: productQuery },
+        { $match: query },
         {
           $addFields: {
             hasSpecs: {
@@ -447,7 +404,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
         { $project: { hasSpecs: 0 } },
       ])
         .option({ maxTimeMS: 12000 })
-      : Product.find(productQuery)
+      : Product.find(query)
         .populate('category')
         .lean()
         .sort({ featured: -1, createdAt: -1, _id: 1 })
@@ -534,6 +491,48 @@ const getAdminTranslationProducts = asyncHandler(async (req, res) => {
   const localizedProducts = await localizeProductCategories(translatedProducts, lang);
   res.json({
     products: await formatProductsForDisplay(localizedProducts, null, req.locale),
+    page,
+    pages: Math.ceil(count / pageSize),
+    total: count,
+  });
+});
+
+const getAdminProducts = asyncHandler(async (req, res) => {
+  const pageSize = Math.min(Number(req.query.pageSize) || 10, 500);
+  const page = Number(req.query.pageNumber) || 1;
+  const reportingCurrency = req.query.currencyCode
+    ? await getReportingCurrency(req.query.currencyCode)
+    : null;
+  const query = { isDeleted: false };
+
+  if (typeof req.query.keyword === 'string' && req.query.keyword.trim()) {
+    const searchTerm = req.query.keyword.trim();
+    const safeSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    query.name = { $regex: safeSearchTerm, $options: 'i' };
+  }
+  if (req.query.category && mongoose.Types.ObjectId.isValid(req.query.category)) {
+    query.category = new mongoose.Types.ObjectId(req.query.category);
+  }
+  if (typeof req.query.brand === 'string' && req.query.brand) {
+    query.brand = req.query.brand;
+  }
+
+  const [count, products] = await Promise.all([
+    Product.countDocuments(query),
+    withTimeout(
+      Product.find(query)
+        .populate('category')
+        .lean()
+        .sort({ createdAt: -1 })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1)),
+      20000
+    ),
+  ]);
+  const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', req.lang);
+  const localizedProducts = await localizeProductCategories(translatedProducts, req.lang);
+  res.json({
+    products: await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale),
     page,
     pages: Math.ceil(count / pageSize),
     total: count,
@@ -653,7 +652,7 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   // Build final query
-  const query = { isDeleted: false, storefrontReady: true, ...category, ...brand, ...priceFilter, ...stockFilter, ...EXCLUDED_BRAND_FILTER };
+  const query = { isDeleted: false, isPublished: true, ...category, ...brand, ...priceFilter, ...stockFilter, ...EXCLUDED_BRAND_FILTER };
   if (highlightFilters.length > 0) {
     query.$and = query.$and || [];
     query.$and.push({ $or: highlightFilters });
@@ -693,43 +692,42 @@ const getProducts = asyncHandler(async (req, res) => {
  * @route GET /api/products/:id
  * @access Public
  */
-const getProductById = asyncHandler(async (req, res) => {
+const loadProductById = async (req, res, includeUnpublished) => {
   const lang = req.lang;
   const reportingCurrency = req.query.currencyCode
     ? await getReportingCurrency(req.query.currencyCode)
     : null;
 
-  // Validate MongoDB ObjectId format
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
 
+  const query = {
+    _id: req.params.id,
+    isDeleted: false,
+    ...(includeUnpublished ? {} : { isPublished: true, ...EXCLUDED_BRAND_FILTER }),
+  };
   const product = await withTimeout(
-    Product.findById(req.params.id)
-      .populate({ path: 'reviews', options: { limit: 50 } }) // Limit reviews to prevent memory leak
+    Product.findOne(query)
+      .populate({ path: 'reviews', options: { limit: 50 } })
       .populate('category'),
     15000
   );
 
-  if (product && !product.isDeleted && !EXCLUDED_BRAND_PATTERN.test(product.brand || '')) {
-    let productObj = product.toObject ? product.toObject() : product;
-    const visibleProductIds = await getStorefrontVisibleProductIds([productObj]);
-
-    if (!visibleProductIds.has(productObj._id.toString())) {
-      res.status(404);
-      throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
-    }
-
-    const translatedProduct = await overlayTranslation(productObj, 'product', lang);
-    const localizedProduct = await localizeProductCategory(translatedProduct, lang);
-
-    res.json((await formatProductsForDisplay([localizedProduct], reportingCurrency, req.locale))[0]);
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
-});
+
+  const productObj = product.toObject ? product.toObject() : product;
+  const translatedProduct = await overlayTranslation(productObj, 'product', lang);
+  const localizedProduct = await localizeProductCategory(translatedProduct, lang);
+  res.json((await formatProductsForDisplay([localizedProduct], reportingCurrency, req.locale))[0]);
+};
+
+const getProductById = asyncHandler((req, res) => loadProductById(req, res, false));
+const getAdminProductById = asyncHandler((req, res) => loadProductById(req, res, true));
 
 /**
  * Tạo sản phẩm mới (Admin only)
@@ -741,7 +739,7 @@ const createProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, imageAsset,
+    originalPrice, baseCurrencyCode, featured, isPublished, images, specs, deal, imageAsset,
     technicalDescription, descriptionImages, promotions
   } = req.body;
   const parsedDeal = parseDealInput(deal);
@@ -749,6 +747,10 @@ const createProduct = asyncHandler(async (req, res) => {
   if (!imageAsset && !req.file) {
     res.status(400);
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_image_required'));
+  }
+  if (isPublished !== undefined && ![true, false, 'true', 'false'].includes(isPublished)) {
+    res.status(400);
+    throw new Error('isPublished must be a boolean');
   }
 
   // ==================== VALIDATE PRICE AND STOCK ====================
@@ -845,6 +847,7 @@ const createProduct = asyncHandler(async (req, res) => {
     descriptionImages: contentFields.cleaned.descriptionImages || [],
     promotions: contentFields.cleaned.promotions || [],
     featured: featured || false,
+    isPublished: isPublished === undefined ? true : isPublished === true || isPublished === 'true',
     specs: normalizedSpecs,
     deal: parsedDeal,
     numReviews: 0,
@@ -911,7 +914,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const {
     name, price, description, brand, category, countInStock,
-    originalPrice, baseCurrencyCode, featured, images, specs, deal, imageAsset,
+    originalPrice, baseCurrencyCode, featured, isPublished, images, specs, deal, imageAsset,
     technicalDescription, descriptionImages, promotions
   } = req.body;
   const sourceFieldsSubmitted = [
@@ -1031,6 +1034,14 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.featured = featured;
   }
 
+  if (isPublished !== undefined) {
+    if (![true, false, 'true', 'false'].includes(isPublished)) {
+      res.status(400);
+      throw new Error('isPublished must be a boolean');
+    }
+    product.isPublished = isPublished === true || isPublished === 'true';
+  }
+
   if (images !== undefined) {
     product.images = images;
   }
@@ -1047,8 +1058,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     && previousSourceHash !== getProductSourceHash(product);
 
   if (sourceFieldsChanged) {
-    product.storefrontReady = false;
-    product.storefrontReadinessCheckedAt = null;
+    product.translationReady = false;
+    product.translationReadinessCheckedAt = null;
   }
 
   const previousImageAsset = product.imageAsset?.toObject
@@ -1353,18 +1364,8 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
  */
 const getTopRatedProducts = asyncHandler(async (req, res) => {
   const lang = req.lang;
-  const candidateProducts = await withTimeout(
-    Product.find({ isDeleted: false, storefrontReady: true, ...EXCLUDED_BRAND_FILTER })
-      .select('_id name description brand specs')
-      .sort({ rating: -1, createdAt: -1, _id: 1 })
-      .limit(30)
-      .maxTimeMS(10000)
-      .lean(),
-    11000
-  );
-  const visibleProductIds = new Set(candidateProducts.map((product) => String(product._id)));
   const products = await withTimeout(
-    Product.find({ isDeleted: false, storefrontReady: true, ...EXCLUDED_BRAND_FILTER, _id: { $in: [...visibleProductIds] } })
+    Product.find({ isDeleted: false, isPublished: true, ...EXCLUDED_BRAND_FILTER })
       .populate('category')
       .sort({ rating: -1, createdAt: -1, _id: 1 })
       .limit(3)
@@ -1397,7 +1398,7 @@ const getStatsOverview = asyncHandler(async (req, res) => {
   // Tính stats sản phẩm với aggregation
   const productStats = await withTimeout(
     Product.aggregate([
-      { $match: { isDeleted: false } },
+      { $match: { isDeleted: false, isPublished: true } },
       {
         $group: {
           _id: null,
@@ -1588,9 +1589,11 @@ const getTestimonials = asyncHandler(async (req, res) => {
 
 module.exports = {
   getProducts,
+  getAdminProducts,
   getAdminTranslationProducts,
   getFeaturedProducts,
   getProductById,
+  getAdminProductById,
   createProduct,
   updateProduct,
   deleteProduct,

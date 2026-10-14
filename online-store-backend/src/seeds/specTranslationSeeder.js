@@ -23,7 +23,7 @@ const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const ProductTranslationSeederService = require('../services/productTranslationSeederService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
-const { refreshStorefrontReadiness } = require('../services/translationHelper');
+const { refreshTranslationReadiness } = require('../services/translationHelper');
 
 // Load specKeyTranslations
 let specKeyTranslations = {};
@@ -328,7 +328,7 @@ async function seedSpecTranslations({ skipTranslate = false } = {}, repairAttemp
     console.timeEnd(batchTimerLabel);
 
     const productIds = products.map((product) => product._id.toString());
-    await refreshStorefrontReadiness(productIds);
+    await refreshTranslationReadiness(productIds);
 
     // Step 5: Verify aggregation
     console.log(`\n${CLI_SYMBOLS.success} Step 5: Verification...`);

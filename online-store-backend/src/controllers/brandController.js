@@ -39,7 +39,7 @@ const getBrands = asyncHandler(async (req, res) => {
   );
 
   const productBrands = await withTimeout(
-    Product.distinct('brand', { isDeleted: false, storefrontReady: true }),
+    Product.distinct('brand', { isDeleted: false, isPublished: true }),
     8000
   );
   const brandNames = new Map(brands.map((brand) => [brand.name.trim().toLowerCase(), brand]));

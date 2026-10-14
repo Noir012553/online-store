@@ -56,6 +56,14 @@ const getProductReviews = asyncHandler(async (req, res) => {
           comment: { $regex: req.query.keyword, $options: 'i' },
         }
       : {};
+    const publishedProduct = await withTimeout(
+      Product.exists({ _id: req.params.productId, isDeleted: false, isPublished: true }),
+      8000
+    );
+    if (!publishedProduct) {
+      res.status(404);
+      throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
+    }
 
     const count = await withTimeout(
       Review.countDocuments({ ...keyword, product: req.params.productId, isDeleted: false }),
@@ -93,7 +101,11 @@ const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
   const reviewAvatar = await reserveReviewAvatar(req.body);
 
-  const product = await Product.findById(req.params.productId);
+  const product = await Product.findOne({
+    _id: req.params.productId,
+    isDeleted: false,
+    isPublished: true,
+  });
 
   if (product) {
     const alreadyReviewed = await Review.findOne({ product: req.params.productId, user: req.user._id, isDeleted: false });

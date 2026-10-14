@@ -13,7 +13,7 @@ const {
 } = require('../config/languageInventory');
 const ProductImportController = require('../controllers/productImportController');
 const { waitForPendingTranslations } = require('../services/specKeyTranslationService');
-const { refreshStorefrontReadiness } = require('../services/translationHelper');
+const { refreshTranslationReadiness } = require('../services/translationHelper');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const SeedStatus = require('../models/SeedStatus');
@@ -688,9 +688,9 @@ const runProductSeedPipeline = async (options = {}) => {
     ? {}
     : await translateProducts(options.languages);
   const productIds = await Product.find({ isDeleted: false }).distinct('_id');
-  const storefrontReadiness = await refreshStorefrontReadiness(productIds);
-  console.log(`[ProductPipeline] Storefront readiness: ${storefrontReadiness.readyCount} ready, ${storefrontReadiness.notReadyCount} not ready`);
-  return { files, imports, translations, storefrontReadiness, initializeHighlights };
+  const translationReadiness = await refreshTranslationReadiness(productIds);
+  console.log(`[ProductPipeline] Translation readiness: ${translationReadiness.translationReadyCount} ready, ${translationReadiness.translationNotReadyCount} not ready`);
+  return { files, imports, translations, translationReadiness, initializeHighlights };
 };
 
 module.exports = {

@@ -19,7 +19,7 @@ const LiveTranslationCache = require('../models/LiveTranslationCache');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const Product = require('../models/Product');
-const { refreshStorefrontReadiness } = require('../services/translationHelper');
+const { refreshTranslationReadiness } = require('../services/translationHelper');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 
 const hasSameIndexKeys = (existingKeys, requestedKeys) => {
@@ -73,10 +73,10 @@ const STOREFRONT_BACKFILL_OPTIONS = {
   timeoutMs: 35000,
 };
 
-const backfillStorefrontReadiness = async () => {
+const backfillTranslationReadiness = async () => {
   let lastId = null;
   let processed = 0;
-  let ready = 0;
+  let translationReady = 0;
 
   while (true) {
     const query = lastId ? { _id: { $gt: lastId } } : {};
@@ -88,17 +88,17 @@ const backfillStorefrontReadiness = async () => {
 
     if (products.length === 0) break;
 
-    const result = await refreshStorefrontReadiness(
+    const result = await refreshTranslationReadiness(
       products.map(({ _id }) => _id),
       STOREFRONT_BACKFILL_OPTIONS,
     );
     processed += products.length;
-    ready += result.modifiedCount;
+    translationReady += result.translationReadyCount;
     lastId = products[products.length - 1]._id;
-    console.log(`   ${CLI_SYMBOLS.progress} Readiness batch: ${processed} products processed`);
+    console.log(`   ${CLI_SYMBOLS.progress} Translation-readiness batch: ${processed} products processed`);
   }
 
-  console.log(`   ${CLI_SYMBOLS.check} Storefront readiness backfill completed: ${processed} products processed, ${ready} changed`);
+  console.log(`   ${CLI_SYMBOLS.check} Translation-readiness backfill completed: ${processed} products processed, ${translationReady} ready`);
 };
 
 async function setupIndexes() {
@@ -201,9 +201,9 @@ async function setupIndexes() {
     await Product.createIndexes();
     console.log(`   ${CLI_SYMBOLS.check} Product indexes synchronized`);
 
-    if (process.argv.includes('--backfill-storefront')) {
-      console.log(`\n${CLI_SYMBOLS.location} Backfilling storefront readiness...`);
-      await backfillStorefrontReadiness();
+    if (process.argv.includes('--backfill-translation-readiness')) {
+      console.log(`\n${CLI_SYMBOLS.location} Backfilling translation readiness...`);
+      await backfillTranslationReadiness();
     }
 
     console.log(`\n${CLI_SYMBOLS.sparkles} All production indexes created successfully!\n`);

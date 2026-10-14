@@ -11,7 +11,7 @@ const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
 const { retranslateProduct } = require('../services/productCatalogRetranslationService');
-const { getStorefrontVisibleProductIds } = require('../services/translationHelper');
+const { getTranslationReadyProductIds } = require('../services/translationHelper');
 const { getCanonicalSpecKey } = require('../services/specKeyTranslationService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const { containsNoInputTranslationResponse } = require('../utils/translationResponseGuard');
@@ -116,7 +116,7 @@ const loadBacklog = async () => {
     JSON.stringify([String(translation.entityId), translation.targetLang]),
     translation,
   ]));
-  const readyIds = await getStorefrontVisibleProductIds(products);
+  const readyIds = await getTranslationReadyProductIds(products);
   const jobs = [];
   const blockedSources = [];
 

@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
-import { DEFAULT_LOCALE } from "../../../lib/i18n/types";
-import { useProductTranslation } from "../../../hooks/useProductTranslation";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
@@ -45,18 +43,13 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   const [categoryChoice, setCategoryChoice] = useState<"existing" | "new" | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  // Fetch translation for product being edited
-  const { translation: productTranslation } = useProductTranslation(
-    mode === 'edit' && productId ? String(productId) : ''
-  );
-
   // Fetch product for edit mode
   useEffect(() => {
     if (mode === 'edit' && productId) {
       const fetchProduct = async () => {
         try {
           setIsLoading(true);
-          const response = await productAPI.getProductById(String(productId), locale);
+          const response = await productAPI.getAdminProductById(String(productId), locale);
           const fetchedProduct = response.product || response;
           
           let countInStock = 0;
@@ -97,19 +90,10 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         descriptionImages: [],
         promotions: [],
         featured: false,
+        isPublished: true,
       });
     }
   }, [mode, productId, locale, t, onCancel]);
-
-  // Update editing product name when translation is fetched
-  useEffect(() => {
-    if (mode === 'edit' && product && productTranslation?.name && locale !== DEFAULT_LOCALE) {
-      setProduct((prev: any) => prev ? {
-        ...prev,
-        name: productTranslation.name
-      } : null);
-    }
-  }, [productTranslation, locale, mode]);
 
   const handleSave = async () => {
     try {
@@ -199,6 +183,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("descriptionImages", JSON.stringify(product.descriptionImages || []));
         formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
+        formData.append("isPublished", product.isPublished ? "true" : "false");
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
 
 
@@ -235,6 +220,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("countInStock", String(validCountInStock));
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
         formData.append("featured", product.featured ? "true" : "false");
+        formData.append("isPublished", product.isPublished ? "true" : "false");
         formData.append("image", imageUrl);
         formData.append("imageAsset", JSON.stringify(imageAsset));
 
@@ -724,15 +710,30 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
             ))}
           </div>
 
-          <div className="flex items-center gap-3 p-3 border-l-4 border-blue-600 bg-blue-50 rounded">
-            <Checkbox
-              id="featured"
-              checked={product.featured || false}
-              onCheckedChange={(checked) => setProduct({ ...product, featured: checked })}
-            />
-            <Label htmlFor="featured" className="cursor-pointer font-medium text-sm">
-              {t('admin_mark_featured', 'admin')}
-            </Label>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 p-3 border-l-4 border-blue-600 bg-blue-50 rounded">
+              <Checkbox
+                id="featured"
+                checked={product.featured || false}
+                onCheckedChange={(checked) => setProduct({ ...product, featured: checked })}
+              />
+              <Label htmlFor="featured" className="cursor-pointer font-medium text-sm">
+                {t('admin_mark_featured', 'admin')}
+              </Label>
+            </div>
+            <div className="flex items-start gap-3 p-3 border rounded">
+              <Checkbox
+                id="product-published"
+                checked={product.isPublished !== false}
+                onCheckedChange={(checked) => setProduct({ ...product, isPublished: checked === true })}
+              />
+              <div>
+                <Label htmlFor="product-published" className="cursor-pointer font-medium text-sm">
+                  {t('product_publication_label', 'admin')}
+                </Label>
+                <p className="text-xs text-gray-500">{t('product_publication_help', 'admin')}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

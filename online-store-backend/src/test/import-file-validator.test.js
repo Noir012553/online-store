@@ -473,8 +473,8 @@ describe('Product export serialization', () => {
     user: 'internal-user-id',
     reviews: ['internal-review-id'],
     isDeleted: false,
-    storefrontReady: true,
-    storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
+    translationReady: true,
+    translationReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
   };
 
   it('preserves all product fields and all image data', () => {
@@ -491,8 +491,8 @@ describe('Product export serialization', () => {
     expect(exported).to.include({
       user: 'internal-user-id',
       isDeleted: false,
-      storefrontReady: true,
-      storefrontReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
+      translationReady: true,
+      translationReadinessCheckedAt: '2026-04-01T00:00:00.000Z',
     });
     expect(exported.reviews).to.deep.equal(['internal-review-id']);
   });

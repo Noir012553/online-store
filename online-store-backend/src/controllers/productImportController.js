@@ -684,7 +684,9 @@ const getLiveTranslationInvalidationFilters = affectedProducts => affectedProduc
 });
 
 const withoutImportProductId = (product) => {
-  const { productId, translations, ...productData } = product;
+  const productData = { ...product };
+  ['productId', 'translations', 'isPublished', 'translationReady', 'translationReadinessCheckedAt', 'storefrontReady', 'storefrontReadinessCheckedAt']
+    .forEach((field) => delete productData[field]);
   return productData;
 };
 
@@ -882,7 +884,7 @@ async function invalidateChangedProductTranslations(affectedProducts = []) {
 
   await Product.updateMany(
     { _id: { $in: productIds } },
-    { $set: { storefrontReady: false, storefrontReadinessCheckedAt: null } },
+    { $set: { translationReady: false, translationReadinessCheckedAt: null } },
   );
 
   return {
@@ -1604,6 +1606,7 @@ async function handleUpsertMode(products, preserveExistingStock = false) {
           : getProductLookupFilter(product),
         update: {
           $set: buildUpsertProductUpdate(product, preserveExistingStock && Boolean(existing)),
+          ...(!existing ? { $setOnInsert: { isPublished: true } } : {}),
           $inc: { __v: 1 },
         },
         upsert: true,

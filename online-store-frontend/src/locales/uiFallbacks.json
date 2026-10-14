@@ -157,6 +157,9 @@
     "assistant_batch_approval_failed": "Không thể duyệt bản dịch; hãy kiểm tra độ đầy đủ, chất lượng và phiên bản nguồn.",
     "assistant_batch_approved": "Đã duyệt bản dịch cho ngôn ngữ này.",
     "assistant_batch_approving": "Đang duyệt...",
+    "product_publication_label": "Đăng bán sản phẩm",
+    "product_publication_help": "Tắt để ẩn sản phẩm khỏi catalog công khai và trang chi tiết.",
+    "product_unpublished_label": "Chưa đăng bán",
     "cancel": "Hủy",
     "loading_message": "Đang tải..."
   },
@@ -318,6 +321,9 @@
     "assistant_batch_approval_failed": "Could not approve this translation. Check completeness, quality, and source version.",
     "assistant_batch_approved": "Translation approved for this language.",
     "assistant_batch_approving": "Approving...",
+    "product_publication_label": "Publish product",
+    "product_publication_help": "Turn off to hide this product from the public catalog and detail page.",
+    "product_unpublished_label": "Unpublished",
     "cancel": "Cancel",
     "loading_message": "Loading..."
   }

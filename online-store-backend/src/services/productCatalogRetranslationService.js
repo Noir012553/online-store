@@ -5,7 +5,7 @@ const productTranslationService = require('./productTranslationService');
 const translationValidator = require('../utils/translationValidator');
 const translationValidationConfig = require('../config/translationValidation');
 const { getDefaultLanguage } = require('../config/languageInventory');
-const { refreshStorefrontReadiness } = require('./translationHelper');
+const { refreshTranslationReadiness } = require('./translationHelper');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
 const { acquireProductTranslationLock } = require('../utils/productTranslationLock');
 const {
@@ -435,7 +435,7 @@ const retranslateProductUnlocked = async (
     },
   });
 
-  await refreshStorefrontReadiness([productId]);
+  await refreshTranslationReadiness([productId]);
   return {
     translation,
     candidate: translation,
