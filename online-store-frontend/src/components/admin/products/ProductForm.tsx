@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
-import { DEFAULT_LOCALE } from "../../../lib/i18n/types";
-import { useProductTranslation } from "../../../hooks/useProductTranslation";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
@@ -44,11 +42,6 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   const [imagePreview, setImagePreview] = useState<string>("");
   const [categoryChoice, setCategoryChoice] = useState<"existing" | "new" | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
-
-  // Fetch translation for product being edited
-  const { translation: productTranslation } = useProductTranslation(
-    mode === 'edit' && productId ? String(productId) : ''
-  );
 
   // Fetch product for edit mode
   useEffect(() => {
@@ -101,16 +94,6 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       });
     }
   }, [mode, productId, locale, t, onCancel]);
-
-  // Update editing product name when translation is fetched
-  useEffect(() => {
-    if (mode === 'edit' && product && productTranslation?.name && locale !== DEFAULT_LOCALE) {
-      setProduct((prev: any) => prev ? {
-        ...prev,
-        name: productTranslation.name
-      } : null);
-    }
-  }, [productTranslation, locale, mode]);
 
   const handleSave = async () => {
     try {

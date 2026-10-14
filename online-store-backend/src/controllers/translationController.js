@@ -293,21 +293,21 @@ exports.getProductTranslations = async (req, res) => {
       );
     }
 
+    const sourceProduct = await Product.findOne({ _id: productId, isDeleted: false, isPublished: true })
+      .select('name description brand specs technicalDescription descriptionImages promotions')
+      .lean();
+
+    if (!sourceProduct) {
+      return sendTranslationError(
+        res,
+        404,
+        getRequestLanguage(req),
+        'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
+        'product_fetch_failed'
+      );
+    }
+
     if (resolvedLang === getDefaultLanguage().code) {
-      const sourceProduct = await Product.findById(productId)
-        .select('name description brand specs technicalDescription descriptionImages promotions')
-        .lean();
-
-      if (!sourceProduct) {
-        return sendTranslationError(
-          res,
-          404,
-          getRequestLanguage(req),
-          'TRANSLATION_PRODUCT_TRANSLATION_NOT_AVAILABLE',
-          'product_fetch_failed'
-        );
-      }
-
       const localizedSpecData = await localizeProductSpecFields({
         specs: sourceProduct.specs instanceof Map
           ? Object.fromEntries(sourceProduct.specs)

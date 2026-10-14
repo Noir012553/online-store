@@ -15,7 +15,7 @@ const ProductCatalogTranslationCache = require('../../../models/ProductCatalogTr
 const LiveTranslationCache = require('../../../models/LiveTranslationCache');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const Currency = require('../../../models/Currency');
-const { getProducts, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
+const { getProducts, getFeaturedProducts, getProductById, getAdminProductById, getDeletedProducts, createProduct, updateProduct, deleteProduct, hardDeleteProduct } = require('../../../controllers/productController');
 
 const createProductQuery = (sandbox, products = []) => ({
   populate: sandbox.stub().returnsThis(),
@@ -46,6 +46,17 @@ describe('Product Controller', () => {
   });
 
   describe('getProducts', () => {
+    it('filters public catalog results by publication, not translation readiness', async () => {
+      const mockChain = createProductQuery(sandbox);
+      const findStub = sandbox.stub(Product, 'find').returns(mockChain);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
+
+      await getProducts({ query: { pageNumber: '1' } }, { json: sandbox.stub() });
+
+      expect(findStub.firstCall.args[0]).to.include({ isDeleted: false, isPublished: true });
+      expect(findStub.firstCall.args[0]).not.to.have.property('translationReady');
+    });
+
     it('should fetch all products with pagination and filtering', async () => {
       const mockChain = createProductQuery(sandbox);
       sandbox.stub(Product, 'find').returns(mockChain);
@@ -137,6 +148,68 @@ describe('Product Controller', () => {
       const res = { json: sandbox.stub() };
       await getProducts(req, res);
       expect(res.json.calledOnce).to.be.true;
+    });
+  });
+
+  describe('product detail publication gate', () => {
+    const createMissingProductQuery = (findOneStub) => {
+      const chain = {
+        populate: sandbox.stub().returnsThis(),
+        then: (resolve, reject) => Promise.resolve(null).then(resolve, reject),
+      };
+      findOneStub.returns(chain);
+      return chain;
+    };
+
+    it('requires publication for public detail but not translation readiness', async () => {
+      const findOneStub = sandbox.stub(Product, 'findOne');
+      createMissingProductQuery(findOneStub);
+      const res = { status: sandbox.stub().returnsThis() };
+      await getProductById({ params: { id: new mongoose.Types.ObjectId().toString() }, query: {}, lang: 'en' }, res).catch(() => {});
+
+      expect(findOneStub.firstCall.args[0]).to.include({ isDeleted: false, isPublished: true });
+      expect(findOneStub.firstCall.args[0]).not.to.have.property('translationReady');
+      expect(res.status.calledWith(404)).to.equal(true);
+    });
+
+    it('allows admin detail to read unpublished products', async () => {
+      const findOneStub = sandbox.stub(Product, 'findOne');
+      createMissingProductQuery(findOneStub);
+      const res = { status: sandbox.stub().returnsThis() };
+      await getAdminProductById({ params: { id: new mongoose.Types.ObjectId().toString() }, query: {}, lang: 'en' }, res).catch(() => {});
+
+      expect(findOneStub.firstCall.args[0]).to.include({ isDeleted: false });
+      expect(findOneStub.firstCall.args[0]).not.to.have.property('isPublished');
+      expect(String(findOneStub.firstCall.args[0]._id)).to.match(/^[a-f0-9]{24}$/i);
+      expect(res.status.calledWith(404)).to.equal(true);
+    });
+  });
+
+  describe('getFeaturedProducts', () => {
+    it('applies home eligibility before count and pagination', async () => {
+      const queryChain = {
+        populate: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
+        then: (resolve, reject) => Promise.resolve([]).then(resolve, reject),
+      };
+      const findStub = sandbox.stub(Product, 'find').returns(queryChain);
+      const countQuery = { maxTimeMS: sandbox.stub().resolves(0) };
+      const countStub = sandbox.stub(Product, 'countDocuments').returns(countQuery);
+      const res = { json: sandbox.stub() };
+
+      await getFeaturedProducts({ query: { pageNumber: '1' } }, res);
+
+      const homeQuery = findStub.firstCall.args[0];
+      expect(homeQuery).to.include({ isDeleted: false, isPublished: true });
+      expect(homeQuery.image.$regex.test('main.jpg')).to.equal(true);
+      expect(homeQuery.description.$regex.test('Product details')).to.equal(true);
+      expect(homeQuery).not.to.have.property('translationReady');
+      expect(countStub.firstCall.args[0]).to.deep.equal(homeQuery);
+      expect(res.json.calledOnce).to.equal(true);
     });
   });
 

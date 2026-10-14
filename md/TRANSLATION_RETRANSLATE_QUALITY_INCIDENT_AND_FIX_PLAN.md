@@ -509,7 +509,18 @@ Vì vậy translation readiness đang bị dùng như cổng xuất bản/hiển
 - Apply Cloudflare dừng ở job 273/4.181 với HTTP 429; còn 4.180 jobs, 271 jobs cần review và vẫn 2 sản phẩm ready. Chưa chạy tiếp apply diện rộng.
 - Readiness theo rule hiện tại không đại diện cho số sản phẩm admin đã duyệt hay số sản phẩm đủ điều kiện trang chủ.
 
-### Kế hoạch đề xuất — chi tiết, tối ưu, chưa triển khai
+### Triển khai — Tách trạng thái sản phẩm, readiness bản dịch và điều kiện trang chủ
+
+**Trạng thái:** đã triển khai thay đổi code/schema và test. Migration dữ liệu chưa chạy; chưa kết nối hoặc ghi database. `npm run build` không chạy.
+
+**Quyết định đã áp dụng:**
+
+- Publication là cờ `isPublished` riêng; sản phẩm hiện có chưa xóa được migration gán published để giữ hành vi public hiện tại. Sản phẩm mới/import cũng mặc định published. Admin có thể unpublish từ form quản lý; trạng thái này độc lập với bản dịch.
+- Ảnh chính vẫn bắt buộc khi tạo/import. Home chỉ nhận sản phẩm published có ảnh và source description không rỗng; các filter merchandising hiện có được giữ lại.
+- `storefrontReady` được đổi thành `translationReady` và timestamp/report/helper được đổi tên tương ứng. Migration dry-run mặc định; apply cần file backup tồn tại và xác nhận `TRANSLATION_READINESS`.
+- Catalog, brand, top-rated, detail và endpoint lấy translation công khai chỉ dùng publication/soft-delete; bản dịch pending hoặc thiếu vẫn dùng source fallback, không cần đủ mọi locale để public.
+
+Migration có thể xem trước bằng `npm run migrate:translation-readiness`; chỉ sau khi xác minh backup và database đích mới chạy apply với `--apply --confirm=TRANSLATION_READINESS --backup-file=<đường dẫn backup>`.
 
 #### Mục tiêu thiết kế
 
@@ -519,12 +530,12 @@ Tách ba trách nhiệm độc lập, không để một lần đọc request st
 2. **Translation readiness:** chất lượng, độ mới, validation và coverage locale; dùng cho report/admin/retranslation, không dùng làm publication gate.
 3. **Homepage eligibility:** điều kiện riêng để sản phẩm vào các khu vực home, gồm publication, ảnh chính và description theo yêu cầu nghiệp vụ, cùng featured/deal và các filter merchandising của từng section.
 
-#### Giai đoạn 0 — Chốt contract, không thay đổi dữ liệu
+#### Giai đoạn 0 — Contract đã chốt
 
-- Xác nhận trạng thái publication hiện tại sẽ được dùng hay cần thêm `isPublished`/approval workflow. `isDeleted` chỉ là soft-delete; không được mặc định suy ra approval từ đó khi chưa có xác nhận.
-- Xác nhận policy cho sản phẩm thiếu ảnh chính: hiện Product schema và `POST /api/products` bắt buộc ảnh. Nếu muốn chấp nhận sản phẩm thiếu ảnh, phải sửa contract ở create/import/admin và xác định placeholder cho catalog/detail; homepage vẫn loại chúng.
-- Chốt homepage eligibility: ảnh chính không rỗng và source description có nội dung; giữ điều kiện section hiện có như `featured`, active deal, `inStock`, `hasSpecs`, category/price.
-- Ghi nhận localization fallback cần tiếp tục hoạt động với translation pending/missing; không yêu cầu đủ 8 locale để sản phẩm đã publish được xem ở public routes.
+- Publication dùng `isPublished` riêng; `isDeleted` tiếp tục là soft-delete. Migration giữ các sản phẩm cũ chưa xóa ở trạng thái published.
+- Ảnh chính vẫn bắt buộc trong schema/create/import; không thêm placeholder.
+- Home yêu cầu ảnh chính và source description có nội dung, đồng thời giữ featured/deal/stock/spec/category/price filters hiện hành.
+- Translation pending/missing không chặn sản phẩm published khỏi public routes; localization overlay tiếp tục fallback về source fields.
 
 #### Giai đoạn 1 — Tách domain và dữ liệu
 
@@ -587,11 +598,8 @@ Nếu provider hết quota, import/publication và translation phải được b
 - Latency/query execution không tăng đáng kể trên dataset đại diện; index chỉ thay sau đo đạc.
 - Quy tắc missing image, publication default và migration được xác nhận trước khi thay đổi dữ liệu.
 
-### Quyết định chờ người dùng trước triển khai
+### Trạng thái rollout
 
-- Product publication dùng một trạng thái hiện có nào hay cần workflow approval riêng? Nếu trạng thái hiện tại là `isDeleted: false`, xác nhận rõ đây là quyết định business (không phải giả định kỹ thuật).
-- Có cho phép tạo/import sản phẩm thiếu ảnh chính không? Nếu có, chấp nhận placeholder trên catalog/detail và loại sản phẩm đó khỏi home?
-- Xác nhận home bắt buộc có ảnh chính và source description; giữ featured/deal/stock/spec/category filters như hiện tại?
-- Có đồng ý đổi tên dữ liệu/khái niệm `storefrontReady` thành `translationReady` và lập migration riêng sau audit không?
+Code đã tách publication gate, translation readiness và homepage eligibility; đã thêm route/list/detail quản trị cho phép xem và cập nhật sản phẩm unpublished. Migration chỉ được chuẩn bị, không được thực thi trong phiên này. Trước deploy phải chạy dry-run, xác nhận database đích và backup đọc được, sau đó apply migration riêng; sau rollout cần report readiness mới và kiểm tra pagination/count trên home.
 
-Chưa sửa code/schema/database hoặc gọi provider khi ghi nhận issue này.
+Không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi dữ liệu database trong lần triển khai code này.

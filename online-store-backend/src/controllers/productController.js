@@ -500,10 +500,14 @@ const getAdminTranslationProducts = asyncHandler(async (req, res) => {
 const getAdminProducts = asyncHandler(async (req, res) => {
   const pageSize = Math.min(Number(req.query.pageSize) || 10, 500);
   const page = Number(req.query.pageNumber) || 1;
+  const reportingCurrency = req.query.currencyCode
+    ? await getReportingCurrency(req.query.currencyCode)
+    : null;
   const query = { isDeleted: false };
 
   if (typeof req.query.keyword === 'string' && req.query.keyword.trim()) {
-    const safeSearchTerm = req.query.keyword.trim().replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    const searchTerm = req.query.keyword.trim();
+    const safeSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     query.name = { $regex: safeSearchTerm, $options: 'i' };
   }
   if (req.query.category && mongoose.Types.ObjectId.isValid(req.query.category)) {
@@ -528,7 +532,7 @@ const getAdminProducts = asyncHandler(async (req, res) => {
   const translatedProducts = await overlayTranslationBatchWithFallback(products, 'product', req.lang);
   const localizedProducts = await localizeProductCategories(translatedProducts, req.lang);
   res.json({
-    products: await formatProductsForDisplay(localizedProducts, null, req.locale),
+    products: await formatProductsForDisplay(localizedProducts, reportingCurrency, req.locale),
     page,
     pages: Math.ceil(count / pageSize),
     total: count,

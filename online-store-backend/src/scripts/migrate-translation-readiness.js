@@ -1,4 +1,7 @@
 const fs = require('fs');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
+
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { connectMongo } = require('../config/mongoConnection');
