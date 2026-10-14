@@ -876,6 +876,34 @@ export const productAPI = {
    * @param sortBy - Cách sắp xếp kết quả
    * @param shockDeal - Lọc sản phẩm giảm từ 30% trở lên
    */
+  getAdminProducts: async (
+    page = 1,
+    keyword?: string,
+    category?: string,
+    brand?: string,
+    pageSize = 10,
+    locale: string = getCurrentLang(),
+    currencyCode?: string,
+  ) => {
+    const params = new URLSearchParams({
+      pageNumber: page.toString(),
+      pageSize: pageSize.toString(),
+      lang: locale,
+      locale,
+    });
+    if (keyword) params.append('keyword', keyword);
+    if (category) params.append('category', category);
+    if (brand) params.append('brand', brand);
+    if (currencyCode) params.append('currencyCode', currencyCode);
+
+    return apiCall(`/products/admin/list?${params.toString()}`, {
+      adapter: (data) => ({
+        ...data,
+        products: productAdapter.transformArray(data.products),
+      }),
+    });
+  },
+
   getProducts: async (
     page = 1,
     keyword?: string,
@@ -984,6 +1012,14 @@ export const productAPI = {
   /**
    * Lấy chi tiết sản phẩm
    */
+  getAdminProductById: async (id: string, lang: Locale = getCurrentLang()) => {
+    const params = new URLSearchParams({ lang, locale: lang });
+    return apiCall(`/products/admin/${id}?${params.toString()}`, {
+      adapter: (data) => productAdapter.transform(data),
+      skipCache: true,
+    });
+  },
+
   getProductById: async (
     id: string,
     lang?: Locale,

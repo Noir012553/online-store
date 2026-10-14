@@ -143,7 +143,8 @@ const createProductFixture = async (ownerId) => {
     baseCurrencyCode: 'VND',
     countInStock: 10,
     featured: true,
-    storefrontReady: true,
+    isPublished: true,
+    translationReady: true,
   });
 
   return {

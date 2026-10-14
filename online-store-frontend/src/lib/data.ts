@@ -63,6 +63,7 @@ export interface Laptop {
   descriptionImages?: ProductDescriptionImage[];
   promotions?: ProductPromotion[];
   featured?: boolean;
+  isPublished: boolean;
   deal?: {
     discount: number;
     endTime?: Date | string;

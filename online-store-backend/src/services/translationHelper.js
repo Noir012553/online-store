@@ -184,7 +184,7 @@ const hasValidProductTranslation = (translation, sourceProduct) => (
   && hasCompleteProductTranslation(sourceProduct, translation)
 );
 
-async function getStorefrontVisibleProductIds(products, options = {}) {
+async function getTranslationReadyProductIds(products, options = {}) {
   const { maxTimeMS = 5000, timeoutMs = 7000 } = options;
   const requiredLanguages = SUPPORTED_LANGUAGES.map(({ code }) => code);
   const productsById = new Map(
@@ -234,25 +234,25 @@ async function getStorefrontVisibleProductIds(products, options = {}) {
   }));
 }
 
-const refreshStorefrontReadiness = async (productIds, options = {}) => {
+const refreshTranslationReadiness = async (productIds, options = {}) => {
   const ids = [...new Set((productIds || []).map((id) => String(id)).filter(Boolean))];
   if (ids.length === 0) {
-    return { matchedCount: 0, modifiedCount: 0, readyCount: 0, notReadyCount: 0 };
+    return { matchedCount: 0, modifiedCount: 0, translationReadyCount: 0, translationNotReadyCount: 0 };
   }
 
   const products = await Product.find({ _id: { $in: ids } })
     .select('_id name description brand specs technicalDescription descriptionImages promotions')
     .lean();
-  const visibleIds = await getStorefrontVisibleProductIds(products, options);
-  const visibleIdSet = new Set([...visibleIds].map(String));
+  const readyIds = await getTranslationReadyProductIds(products, options);
+  const readyIdSet = new Set([...readyIds].map(String));
 
   const result = await Product.bulkWrite(products.map((product) => ({
     updateOne: {
       filter: { _id: product._id },
       update: {
         $set: {
-          storefrontReady: visibleIdSet.has(String(product._id)),
-          storefrontReadinessCheckedAt: new Date(),
+          translationReady: readyIdSet.has(String(product._id)),
+          translationReadinessCheckedAt: new Date(),
         },
       },
     },
@@ -261,8 +261,8 @@ const refreshStorefrontReadiness = async (productIds, options = {}) => {
   return {
     matchedCount: result.matchedCount || 0,
     modifiedCount: result.modifiedCount || 0,
-    readyCount: visibleIds.size,
-    notReadyCount: products.length - visibleIds.size,
+    translationReadyCount: readyIds.size,
+    translationNotReadyCount: products.length - readyIds.size,
   };
 };
 
@@ -959,6 +959,6 @@ module.exports = {
   // Constants
   CACHE_MODELS,
   TRANSLATABLE_FIELDS,
-  getStorefrontVisibleProductIds,
-  refreshStorefrontReadiness,
+  getTranslationReadyProductIds,
+  refreshTranslationReadiness,
 };

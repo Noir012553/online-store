@@ -22,7 +22,7 @@ const { getCanonicalSpecKey } = require('./specKeyTranslationService');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const crypto = require('crypto');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
-const { refreshStorefrontReadiness } = require('./translationHelper');
+const { refreshTranslationReadiness } = require('./translationHelper');
 const { getTranslationLockTtlSeconds } = require('../utils/productTranslationLock');
 
 const isRateLimitOrQuotaError = (error) => {
@@ -467,7 +467,7 @@ class ProductTranslationSeederService {
         },
       };
     }));
-    await refreshStorefrontReadiness(productIds);
+    await refreshTranslationReadiness(productIds);
   }
 
   /**

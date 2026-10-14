@@ -41,7 +41,7 @@ const getTranslationReasons = (product, translation) => {
   return { reasons, missingSpecKeys: [...new Set(missingSpecKeys)], optionalFieldWarnings };
 };
 
-const analyzeStorefrontReadiness = (products, translations, requiredLanguages) => {
+const analyzeTranslationReadiness = (products, translations, requiredLanguages) => {
   const translationsByProduct = new Map();
   const translationCounts = new Map();
 
@@ -108,10 +108,10 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
       reasonCounts.source_missing_required_fields = (reasonCounts.source_missing_required_fields || 0) + 1;
     }
 
-    const ready = missingSourceFields.length === 0 && locales.every(({ reasons }) => reasons.length === 0);
+    const translationReady = missingSourceFields.length === 0 && locales.every(({ reasons }) => reasons.length === 0);
     return {
       productId,
-      ready,
+      translationReady,
       missingSourceFields,
       locales: locales.filter(({ reasons, optionalFieldWarnings }) => (
         reasons.length > 0 || optionalFieldWarnings.length > 0
@@ -119,18 +119,18 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
     };
   });
 
-  const storedReadyCount = products.filter((product) => product.storefrontReady === true).length;
-  const computedReadyCount = productResults.filter((product) => product.ready).length;
-  const uncheckedCount = products.filter((product) => !product.storefrontReadinessCheckedAt).length;
+  const storedTranslationReadyCount = products.filter((product) => product.translationReady === true).length;
+  const computedTranslationReadyCount = productResults.filter((product) => product.translationReady).length;
+  const translationUncheckedCount = products.filter((product) => !product.translationReadinessCheckedAt).length;
 
   return {
     productCount: products.length,
-    readyCount: computedReadyCount,
-    notReadyCount: products.length - computedReadyCount,
-    storedReadyCount,
-    uncheckedCount,
-    readinessMismatchCount: productResults.filter((result, index) => (
-      result.ready !== (products[index].storefrontReady === true)
+    translationReadyCount: computedTranslationReadyCount,
+    translationNotReadyCount: products.length - computedTranslationReadyCount,
+    storedTranslationReadyCount,
+    translationUncheckedCount,
+    translationReadinessMismatchCount: productResults.filter((result, index) => (
+      result.translationReady !== (products[index].translationReady === true)
     )).length,
     requiredLanguages,
     reasonCounts,
@@ -144,4 +144,4 @@ const analyzeStorefrontReadiness = (products, translations, requiredLanguages) =
   };
 };
 
-module.exports = { analyzeStorefrontReadiness };
+module.exports = { analyzeTranslationReadiness };

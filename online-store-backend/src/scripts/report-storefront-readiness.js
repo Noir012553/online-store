@@ -11,7 +11,7 @@ try {
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const { SUPPORTED_LANGUAGES } = require('../config/languageInventory');
-const { analyzeStorefrontReadiness } = require('../utils/storefrontReadinessReport');
+const { analyzeTranslationReadiness } = require('../utils/storefrontReadinessReport');
 
 const parseArgs = (args) => {
   const limitArgument = args.find((argument) => argument.startsWith('--limit='));
@@ -23,10 +23,10 @@ const parseArgs = (args) => {
 const formatStatus = (value) => value || '(missing)';
 
 const saveReport = (report) => {
-  const reportDirectory = path.resolve(__dirname, '../../reports/storefront-readiness');
+  const reportDirectory = path.resolve(__dirname, '../../reports/translation-readiness');
   const generatedAt = new Date();
   const timestamp = generatedAt.toISOString().replace(/[:.]/g, '-');
-  const reportPath = path.join(reportDirectory, `storefront-readiness-${timestamp}.json`);
+  const reportPath = path.join(reportDirectory, `translation-readiness-${timestamp}.json`);
   const reportData = { generatedAt: generatedAt.toISOString(), ...report };
 
   fs.mkdirSync(reportDirectory, { recursive: true });
@@ -35,11 +35,11 @@ const saveReport = (report) => {
 };
 
 const printHumanReport = (report, limit) => {
-  console.log('Storefront readiness report (read-only)');
+  console.log('Translation readiness report (read-only)');
   console.log(`Active products: ${report.productCount}`);
-  console.log(`Ready by current rules: ${report.readyCount}`);
-  console.log(`Not ready: ${report.notReadyCount}`);
-  console.log(`Stored ready flag: ${report.storedReadyCount}; unchecked: ${report.uncheckedCount}; mismatches: ${report.readinessMismatchCount}`);
+  console.log(`Translation ready by current rules: ${report.translationReadyCount}`);
+  console.log(`Translation not ready: ${report.translationNotReadyCount}`);
+  console.log(`Stored translation-ready flag: ${report.storedTranslationReadyCount}; unchecked: ${report.translationUncheckedCount}; mismatches: ${report.translationReadinessMismatchCount}`);
   console.log(`Required translated locales: ${report.requiredLanguages.join(', ')}`);
   console.log('Translation records by locale / status / quality:');
   report.translationCounts.forEach((count) => {
@@ -69,7 +69,7 @@ const printHumanReport = (report, limit) => {
     console.log(`  ${product.productId} | ${warnings}`);
   });
 
-  const blockedProducts = report.products.filter((product) => !product.ready);
+  const blockedProducts = report.products.filter((product) => !product.translationReady);
   console.log(`Product details (IDs only, ${Math.min(limit, blockedProducts.length)} of ${blockedProducts.length}):`);
   blockedProducts.slice(0, limit).forEach((product) => {
     const sourceReasons = product.missingSourceFields.length > 0
@@ -88,7 +88,7 @@ const run = async () => {
 
   await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 });
   const products = await Product.find({ isDeleted: false })
-    .select('_id name brand description specs technicalDescription descriptionImages promotions storefrontReady storefrontReadinessCheckedAt')
+    .select('_id name brand description specs technicalDescription descriptionImages promotions translationReady translationReadinessCheckedAt')
     .lean();
   const productIds = products.map((product) => String(product._id));
   const requiredLanguages = SUPPORTED_LANGUAGES
@@ -102,7 +102,7 @@ const run = async () => {
     })
       .select('entityId targetLang status qualityStatus validationErrors optionalFieldWarnings sourceHash name brand description specs')
       .lean();
-  const report = analyzeStorefrontReadiness(products, translations, requiredLanguages);
+  const report = analyzeTranslationReadiness(products, translations, requiredLanguages);
   const savedReport = saveReport(report);
 
   if (json) {
@@ -116,7 +116,7 @@ const run = async () => {
 
 run()
   .catch((error) => {
-    console.error(`Storefront report failed (${error?.name || 'Error'}); database details are hidden.`);
+    console.error(`Translation-readiness report failed (${error?.name || 'Error'}); database details are hidden.`);
     process.exitCode = 1;
   })
   .finally(async () => {
