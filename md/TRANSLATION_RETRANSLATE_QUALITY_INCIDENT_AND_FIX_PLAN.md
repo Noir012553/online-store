@@ -630,4 +630,17 @@ Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết h�
 - `descriptionImages[].alt` có nhiều entry `fixed` và ít hơn `Needs review`; đây là optional warning, không tự chặn commit. Các số `fixed`/`needsReview` là field-entry counts; cột products có thể giao nhau giữa các field/error.
 - Kết quả này củng cố nguyên nhân chính là validator không chấp nhận output ở các nội dung required (đặc biệt description/technical description/specs/promotions), trong khi một số alt có thể tiếp tục như warning. Không nới validator hoặc bulk-approve chỉ dựa trên checkpoint summary.
 
-**Trạng thái và bước kế tiếp:** Không chạy lại `--apply` với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
+#### Đề xuất tiếp theo — Chẩn đoán và sửa offline, không gọi Cloudflare
+
+**Trạng thái:** Kế hoạch; chưa triển khai script sửa, chưa ghi database và không gọi provider.
+
+1. **Audit checkpoint read-only:** Với các field `Needs review`, lấy source hiện tại và candidate mới nhất từ checkpoint theo product/locale/field. Phân loại validation errors, technical tokens và markup; terminal chỉ in ID, field, locale, error code và số lượng. Không in/dump nội dung mô tả hàng loạt.
+2. **Triage theo độ an toàn:**
+   - Candidate có thể sửa bằng phép biến đổi xác định, không làm thay đổi nghĩa (ví dụ lỗi markup có cấu trúc đối sánh duy nhất): tạo đề xuất diff để review, chưa tự ghi.
+   - Technical tokens/specs chỉ sửa tự động khi đối sánh nguồn–candidate là duy nhất, giữ nguyên mọi giá trị và validator local pass; nếu mơ hồ thì đưa vào review thủ công.
+   - `mixed_language`, nội dung thiếu/ngữ nghĩa không rõ: không tự approve hoặc đoán bản dịch; để manual review hoặc quyết định provider/retranslator riêng.
+   - `descriptionImages[].alt` là optional warning: không để lỗi alt chặn required translation readiness; vẫn giữ báo cáo warning riêng.
+3. **Dry-run sửa:** Xuất thống kê và diff đề xuất theo field, kiểm tra validator cục bộ, đếm candidate có thể sửa mà không gọi mạng. Không thay đổi cache, publication hoặc checkpoint trong bước này.
+4. **Apply riêng sau review:** Chỉ với diff được duyệt, tạo backup hiện hành, xác nhận database, cập nhật đúng field translation cache bằng thao tác idempotent; không sửa `isPublished`, không bulk-approve, cập nhật readiness sau commit và so sánh report trước/sau. Nếu không có candidate nào vượt validator an toàn, không apply.
+
+**Trạng thái và bước kế tiếp:** Không chạy lại `--apply` retranslation với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
