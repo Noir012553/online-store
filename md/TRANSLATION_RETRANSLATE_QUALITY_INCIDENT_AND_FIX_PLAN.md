@@ -644,3 +644,15 @@ Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết h�
 4. **Apply riêng sau review:** Chỉ với diff được duyệt, tạo backup hiện hành, xác nhận database, cập nhật đúng field translation cache bằng thao tác idempotent; không sửa `isPublished`, không bulk-approve, cập nhật readiness sau commit và so sánh report trước/sau. Nếu không có candidate nào vượt validator an toàn, không apply.
 
 **Trạng thái và bước kế tiếp:** Không chạy lại `--apply` retranslation với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
+
+#### Hướng dẫn cấp môi trường để audit trực tiếp từ terminal phiên
+
+**Trạng thái:** Chưa đủ điều kiện kết nối từ runtime hiện tại. Lần kiểm tra an toàn gần nhất cho thấy `MONGO_URI` chưa được cấp vào runtime; giá trị không được đọc hoặc in ra.
+
+1. Thêm `MONGO_URI` dưới dạng **secret/environment variable của project** (cần cả tên biến và giá trị thực trong secret store; không gửi value qua chat, Markdown hoặc log). Không cần cấp Cloudflare keys cho audit checkpoint.
+2. Ưu tiên credential MongoDB chỉ có quyền đọc các collection cần audit: `products`, `product_catalog_translation_cache`, `retranslationprogresses` và `retranslationrunlocks`. Network/IP access phải cho phép runtime hiện tại kết nối; không mở MongoDB công khai chỉ để phục vụ audit.
+3. Sau khi owner xác nhận secret đã được cấu hình, kiểm tra presence của biến mà không in value, kết nối read-only, chỉ hiển thị database name và xác nhận DB đúng là `online-store`; nếu không đúng hoặc không kết nối được thì dừng.
+4. Kiểm tra lock trong `retranslationrunlocks` bằng truy vấn đọc. Không lấy/release lock, không xóa lock/checkpoint, không gọi `--apply`, Cloudflare hay migration. Audit candidate từ checkpoint bền vững trong collection `retranslationprogresses` cùng Product source fields; không phụ thuộc đường dẫn local `E:\...`.
+5. Phạm vi mặc định sau khi env sẵn sàng: chỉ tạo thống kê/diff đề xuất read-only; không ghi cache, readiness, publication hoặc checkpoint. Mọi thay đổi dữ liệu cần yêu cầu/xác nhận riêng, backup hiện hành, xác nhận DB đích và kế hoạch rollback.
+
+Credential được cấp trong project secrets không đồng nghĩa cấp quyền xóa database hoặc tự động phê duyệt nội dung. Không chạy `npm run build`.
