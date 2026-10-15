@@ -56,6 +56,7 @@ const TEST_SUITES = {
     tags: ['products', 'entities', 'sources'],
     files: [
       'translation-migration-smoke.test.js',
+      'translation-readiness-migration.test.js',
       'import-file-validator.test.js',
       'r2-asset-service.test.js',
       'export-job-service.test.js',

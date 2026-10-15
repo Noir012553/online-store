@@ -46,13 +46,13 @@ const isSafeProductImagePath = (value) => {
  * Required fields khi import products
  */
 const REQUIRED_FIELDS = ['name', 'brand', 'price', 'category', 'baseCurrencyCode', 'image'];
-const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'description', 'countInStock'];
+const COMPLETE_REQUIRED_FIELDS = [...REQUIRED_FIELDS, 'countInStock'];
 
 /**
  * Optional fields có thể có khi import
  */
 const OPTIONAL_FIELDS = [
-  'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs',
+  'productId', 'sku', 'sourceProductId', 'sourceUrl', 'originalPrice', 'image', 'imagePublicId', 'imagePublicIds', 'images', 'countInStock', 'specs', 'description',
   'rating', 'numReviews', 'featured', 'deal', 'technicalDescription', 'descriptionImages', 'promotions', 'imageAsset', 'imageAssets', 'translations'
 ];
 

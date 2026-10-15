@@ -409,11 +409,19 @@ describe('translationHelper - Storefront product visibility', () => {
       };
       return query;
     };
-    Product.bulkWrite = async () => ({ matchedCount: 1, modifiedCount: 1 });
+    let writeOperations;
+    Product.bulkWrite = async (operations) => {
+      writeOperations = operations;
+      return { matchedCount: 1, modifiedCount: 1 };
+    };
     mockProductCache.find.result = Promise.resolve(createTranslations());
 
     const result = await refreshTranslationReadiness(['product-1']);
 
+    assert.deepStrictEqual(Object.keys(writeOperations[0].updateOne.update.$set).sort(), [
+      'translationReadinessCheckedAt',
+      'translationReady',
+    ]);
     assert.deepStrictEqual(result, {
       matchedCount: 1,
       modifiedCount: 1,

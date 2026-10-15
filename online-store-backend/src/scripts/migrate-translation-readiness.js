@@ -1,111 +1,49 @@
-const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { connectMongo } = require('../config/mongoConnection');
+const {
+  validateMigrationOptions,
+  validateTargetDatabase,
+  resolveLatestDatabaseBackup,
+  runTranslationReadinessMigration,
+} = require('../utils/translationReadinessMigration');
 
-const collection = Product.collection;
-const apply = process.argv.includes('--apply');
-const rollback = process.argv.includes('--rollback');
-const confirmation = process.argv.find((argument) => argument.startsWith('--confirm='))?.slice('--confirm='.length);
-const backupFile = process.argv.find((argument) => argument.startsWith('--backup-file='))?.slice('--backup-file='.length);
-const backupVerified = process.argv.includes('--backup-verified=true');
+const hasArgument = (name) => process.argv.includes(`--${name}`);
+const getArgument = (name) => process.argv.find((argument) => argument.startsWith(`--${name}=`))?.slice(name.length + 3);
 
 const run = async () => {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI environment variable is not set');
+  const apply = hasArgument('apply');
+  const rollback = hasArgument('rollback');
   if (apply && rollback) throw new Error('Use either --apply or --rollback, not both');
-  if ((apply || rollback) && confirmation !== (rollback ? 'TRANSLATION_READINESS_ROLLBACK' : 'TRANSLATION_READINESS')) {
-    throw new Error(`Operation requires --confirm=${rollback ? 'TRANSLATION_READINESS_ROLLBACK' : 'TRANSLATION_READINESS'}`);
+
+  const mode = rollback ? 'rollback' : apply ? 'apply' : 'dry-run';
+  const databaseName = getArgument('database-name');
+  const explicitBackupFile = getArgument('backup-file');
+  const useLatestBackup = hasArgument('backup-latest=true');
+  if (explicitBackupFile && useLatestBackup) {
+    throw new Error('Use either --backup-file or --backup-latest=true, not both');
   }
-  if ((apply || rollback) && (!backupFile || !fs.existsSync(backupFile) || fs.statSync(backupFile).size === 0 || !backupVerified)) {
-    throw new Error('Apply and rollback require a non-empty --backup-file and --backup-verified=true');
-  }
+  const backupFile = useLatestBackup
+    ? resolveLatestDatabaseBackup(path.resolve(__dirname, '../../backups'), databaseName)
+    : explicitBackupFile;
+  validateMigrationOptions({
+    mode,
+    confirmation: getArgument('confirm'),
+    backupFile,
+    backupVerified: hasArgument('backup-verified=true'),
+    databaseName,
+  });
 
   await connectMongo();
-
   try {
-    const conflictingReadiness = await collection.countDocuments({
-      storefrontReady: { $exists: true },
-      translationReady: { $exists: true },
-      $expr: { $ne: ['$storefrontReady', '$translationReady'] },
-    });
-    if (conflictingReadiness > 0) {
-      throw new Error(`${conflictingReadiness} products have conflicting readiness values`);
-    }
-
-    const conflictingReadinessTimestamps = await collection.countDocuments({
-      storefrontReadinessCheckedAt: { $exists: true },
-      translationReadinessCheckedAt: { $exists: true },
-      $expr: { $ne: ['$storefrontReadinessCheckedAt', '$translationReadinessCheckedAt'] },
-    });
-    if (conflictingReadinessTimestamps > 0) {
-      throw new Error(`${conflictingReadinessTimestamps} products have conflicting readiness timestamps`);
-    }
-
-    const before = {
-      products: await collection.countDocuments({}),
-      missingPublication: await collection.countDocuments({ isPublished: { $exists: false } }),
-      missingTranslationReadiness: await collection.countDocuments({
-        translationReady: { $exists: false },
-        storefrontReady: { $exists: false },
-      }),
-      legacyReadiness: await collection.countDocuments({
-        $or: [
-          { storefrontReady: { $exists: true } },
-          { storefrontReadinessCheckedAt: { $exists: true } },
-        ],
-      }),
-    };
-
-    if (apply) {
-      await collection.updateMany(
-        { isPublished: { $exists: false } },
-        { $set: { isPublished: true } },
-      );
-      await collection.updateMany(
-        { storefrontReady: { $exists: true }, translationReady: { $exists: false } },
-        [{ $set: { translationReady: '$storefrontReady' } }],
-      );
-      await collection.updateMany(
-        { translationReady: { $exists: false } },
-        { $set: { translationReady: false } },
-      );
-      await collection.updateMany(
-        { storefrontReadinessCheckedAt: { $exists: true }, translationReadinessCheckedAt: { $exists: false } },
-        [{ $set: { translationReadinessCheckedAt: '$storefrontReadinessCheckedAt' } }],
-      );
-    }
-
-    if (rollback) {
-      await collection.updateMany({}, [{
-        $set: {
-          storefrontReady: {
-            $and: [
-              { $eq: ['$isPublished', true] },
-              { $eq: ['$translationReady', true] },
-            ],
-          },
-          storefrontReadinessCheckedAt: { $ifNull: ['$translationReadinessCheckedAt', '$$NOW'] },
-        },
-      }]);
-    }
-
-    const after = {
-      missingPublication: await collection.countDocuments({ isPublished: { $exists: false } }),
-      missingTranslationReadiness: await collection.countDocuments({ translationReady: { $exists: false } }),
-      legacyReadiness: await collection.countDocuments({
-        $or: [
-          { storefrontReady: { $exists: true } },
-          { storefrontReadinessCheckedAt: { $exists: true } },
-        ],
-      }),
-      published: await collection.countDocuments({ isPublished: true }),
-      translationReady: await collection.countDocuments({ translationReady: true }),
-    };
-
-    console.log(JSON.stringify({ mode: rollback ? 'rollback' : apply ? 'apply' : 'dry-run', before, after, applied: apply || rollback }, null, 2));
+    validateTargetDatabase(databaseName, mongoose.connection.name, mode);
+    const report = await runTranslationReadinessMigration(Product.collection, mode);
+    if (backupFile) console.log(`Backup archive: ${backupFile}`);
+    console.log(JSON.stringify({ ...report, databaseName: mongoose.connection.name }, null, 2));
   } finally {
     await mongoose.disconnect();
   }

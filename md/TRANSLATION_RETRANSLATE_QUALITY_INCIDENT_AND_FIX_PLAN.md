@@ -520,7 +520,7 @@ Vì vậy translation readiness đang bị dùng như cổng xuất bản/hiển
 - `storefrontReady` được đổi thành `translationReady` và timestamp/report/helper được đổi tên tương ứng. Migration dry-run mặc định; apply cần file backup tồn tại và xác nhận `TRANSLATION_READINESS`.
 - Catalog, brand, top-rated, detail, endpoint lấy translation và danh sách review công khai chỉ dùng publication/soft-delete; không cho tạo review mới cho sản phẩm unpublished. Bản dịch pending hoặc thiếu vẫn dùng source fallback, không cần đủ mọi locale để public.
 
-Migration có thể xem trước bằng `npm run migrate:translation-readiness`. Sau khi xác minh backup có thể restore và database đích, chạy apply với `--apply --confirm=TRANSLATION_READINESS --backup-verified=true --backup-file=<đường dẫn backup>`. Migration giữ các field legacy để rollback; rollback có xác nhận riêng `--rollback --confirm=TRANSLATION_READINESS_ROLLBACK` cùng cờ backup tương tự.
+Migration có thể xem trước bằng `npm run migrate:translation-readiness -- --database-name=<database đích>`. Apply/rollback yêu cầu đúng tên database đích, xác nhận riêng và backup file không rỗng đã được người vận hành xác minh có thể restore. Có thể chọn tự động archive mới nhất trong `online-store-backend/backups` có tên khớp database bằng `--backup-latest=true`, hoặc chỉ định `--backup-file=<đường dẫn backup>`; vẫn cần `--backup-verified=true` để xác nhận backup đã được restore-check. Ví dụ apply: `--apply --confirm=TRANSLATION_READINESS --database-name=<database đích> --backup-latest=true --backup-verified=true`. Migration giữ nguyên field legacy; rollback dữ liệu là no-op có kiểm tra vì field cũ không bị xóa hoặc ghi đè.
 
 #### Mục tiêu thiết kế
 
@@ -598,8 +598,61 @@ Nếu provider hết quota, import/publication và translation phải được b
 - Latency/query execution không tăng đáng kể trên dataset đại diện; index chỉ thay sau đo đạc.
 - Quy tắc missing image, publication default và migration được xác nhận trước khi thay đổi dữ liệu.
 
-### Trạng thái rollout
+### Trạng thái rollout tại snapshot 2026-10-14
 
-Code đã tách publication gate, translation readiness và homepage eligibility; đã thêm route/list/detail quản trị cho phép xem và cập nhật sản phẩm unpublished, đồng thời chặn reviews công khai với sản phẩm unpublished. Migration chỉ được chuẩn bị, không được thực thi trong phiên này. Trước deploy phải chạy dry-run, xác nhận database đích và backup restore được, sau đó apply migration riêng; sau rollout cần report readiness mới và kiểm tra pagination/count trên home.
+Code đã tách publication gate, translation readiness và homepage eligibility; seed report cũng thống kê riêng import, publication, translation readiness và số sản phẩm đủ điều kiện homepage. Public translation fallback về source khi không có bản dịch approved/current; import cho phép description rỗng. Tại snapshot 2026-10-14, migration mới được chuẩn bị và kiểm tra unit test, chưa thực thi. Dòng này là trạng thái lịch sử trước lần apply migration ngày 2026-10-14.
 
-Không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi dữ liệu database trong lần triển khai code này.
+Tại lần triển khai code ngày 2026-10-14, không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi DB.
+
+### Cập nhật 2026-10-15 — Migration và batch retranslation thực tế
+
+**Migration readiness/publication:** Người vận hành đã tạo full backup rồi apply migration trên database `online-store`. Sau apply: 588 sản phẩm có `isPublished`, 588 có field readiness được khởi tạo, 2 `translationReady=true`; 588 field legacy readiness được giữ nguyên theo thiết kế. Migration không duyệt hoặc sửa nội dung bản dịch.
+
+**Readiness audit sau migration:** Report read-only trên toàn bộ 588 active products ghi nhận 2 ready, 586 not ready, 0 unchecked và 0 mismatch. Các slot blocker gồm `missing_description=3.748`, `missing_specs=2.304`, `quality_not_approved=4.180` và `validation_errors=4.180`; các nhóm slot có thể chồng lặp. Báo cáo chi tiết theo locale cho thấy đa số cache `status=success` nhưng `qualityStatus=pending`.
+
+**Dry-run retranslation:** Toàn bộ catalog có 4.180 candidate product-locale jobs trên 586 sản phẩm, phân bố qua 8 locale; không có `sourceBlockedProducts`. Đây là job count, không phải 4.180 sản phẩm hay API calls.
+
+**Backup trước batch:** Người vận hành tạo full backup mới của `online-store` ngày 2026-10-15, archive `online-store-full-backup-2026-10-15T02-12-54-698Z.archive.gz`, kích thước 28.836.456 bytes. Backup tool xác nhận archive không rỗng; restore test chưa được báo cáo.
+
+**Apply đã dừng:** Batch `npm run retranslate:storefront -- --apply` được người vận hành dừng thủ công sau khi thấy Cloudflare rate limits/cooldowns và nhiều kết quả `Needs review`. Lần cuối được nhìn thấy trong log là `Processing 1253/4180` (khoảng 30% thứ tự job đã bắt đầu, không đồng nghĩa đã commit). Log có nhiều `missing_technical_token`, `unexpected_technical_token`, `mixed_language` và `markup_mismatch`; lỗi ở required fields làm candidate không được ghi vào catalog cache nếu chưa đạt validation. Validation fail ở `descriptionImages[].alt` là optional warning và không tự chặn commit. `Translation success` chỉ xác nhận provider trả kết quả.
+
+Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết hạn (`dbLockActive=false`). Checkpoint local được ghi tới 15:43:18, kích thước 17.779.205 bytes. Không xóa checkpoint hoặc lock thủ công.
+
+**Kết quả sau batch:** Dry-run read-only kế tiếp ghi nhận `candidateJobs=4.102`, `affectedProducts=586`, `currentlyReady=2/588`, `sourceBlockedProducts=0`. So với dry-run ban đầu, backlog giảm ròng 78 locale slots nhưng chưa có thêm sản phẩm nào đạt đủ 8 locale.
+
+**Audit checkpoint theo field:** PowerShell inline + Node/Mongoose read-only đã ánh xạ 12.243 latest field entries; `unmatchedFieldHashes=0`. Lỗi review tập trung ở `description` (đặc biệt `missing_technical_token`), `technicalDescription`, một số `specs`, và promotion title/discount text; có thêm `mixed_language`, `unexpected_technical_token` và lỗi validator khác. Các counts theo lỗi có thể chồng lặp. Đây là bằng chứng cho thấy batch đang bị chặn bởi chất lượng output/validation, không phải publication gate.
+
+**Kết quả chi tiết checkpoint được người vận hành cung cấp:**
+
+- Report đọc checkpoint `07653fffdfd56054a71e5af92423d5081af9c9c1f641092e.jsonl` trên DB `online-store`: `latestFieldEntries=12.243`, `mappedFieldEntries=12.243`, `unmatchedFieldHashes=0`. Đây là trạng thái mới nhất theo field, không phải số product-locale jobs hoàn tất.
+- `description` là nhóm `Needs review` lớn nhất: 142–154 field entries theo locale trong bảng top fields; `technicalDescription` có 89–92 ở các locale xuất hiện trong top; promotion title/discount text và một số spec fields cũng có lượng fail đáng kể.
+- Các validation nổi bật gồm `missing_technical_token` ở description (cao nhất: DE 129, NL 128, SV 120), technical description (PT/DE 90, FR/ES/SV 89, IT 85), spec storage FR 83 và RAM FR 73. `unexpected_technical_token` và `mixed_language` cũng lặp lại trên description; promotion title/discount text thường fail technical-token validation.
+- `descriptionImages[].alt` có nhiều entry `fixed` và ít hơn `Needs review`; đây là optional warning, không tự chặn commit. Các số `fixed`/`needsReview` là field-entry counts; cột products có thể giao nhau giữa các field/error.
+- Kết quả này củng cố nguyên nhân chính là validator không chấp nhận output ở các nội dung required (đặc biệt description/technical description/specs/promotions), trong khi một số alt có thể tiếp tục như warning. Không nới validator hoặc bulk-approve chỉ dựa trên checkpoint summary.
+
+#### Đề xuất tiếp theo — Chẩn đoán và sửa offline, không gọi Cloudflare
+
+**Trạng thái:** Kế hoạch; chưa triển khai script sửa, chưa ghi database và không gọi provider.
+
+1. **Audit checkpoint read-only:** Với các field `Needs review`, lấy source hiện tại và candidate mới nhất từ checkpoint theo product/locale/field. Phân loại validation errors, technical tokens và markup; terminal chỉ in ID, field, locale, error code và số lượng. Không in/dump nội dung mô tả hàng loạt.
+2. **Triage theo độ an toàn:**
+   - Candidate có thể sửa bằng phép biến đổi xác định, không làm thay đổi nghĩa (ví dụ lỗi markup có cấu trúc đối sánh duy nhất): tạo đề xuất diff để review, chưa tự ghi.
+   - Technical tokens/specs chỉ sửa tự động khi đối sánh nguồn–candidate là duy nhất, giữ nguyên mọi giá trị và validator local pass; nếu mơ hồ thì đưa vào review thủ công.
+   - `mixed_language`, nội dung thiếu/ngữ nghĩa không rõ: không tự approve hoặc đoán bản dịch; để manual review hoặc quyết định provider/retranslator riêng.
+   - `descriptionImages[].alt` là optional warning: không để lỗi alt chặn required translation readiness; vẫn giữ báo cáo warning riêng.
+3. **Dry-run sửa:** Xuất thống kê và diff đề xuất theo field, kiểm tra validator cục bộ, đếm candidate có thể sửa mà không gọi mạng. Không thay đổi cache, publication hoặc checkpoint trong bước này.
+4. **Apply riêng sau review:** Chỉ với diff được duyệt, tạo backup hiện hành, xác nhận database, cập nhật đúng field translation cache bằng thao tác idempotent; không sửa `isPublished`, không bulk-approve, cập nhật readiness sau commit và so sánh report trước/sau. Nếu không có candidate nào vượt validator an toàn, không apply.
+
+**Trạng thái và bước kế tiếp:** Không chạy lại `--apply` retranslation với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
+
+#### Hướng dẫn cấp môi trường để audit trực tiếp từ terminal phiên
+
+**Trạng thái:** Chưa đủ điều kiện kết nối từ runtime hiện tại. Lần kiểm tra an toàn gần nhất cho thấy `MONGO_URI` chưa được cấp vào runtime; giá trị không được đọc hoặc in ra.
+
+1. Thêm `MONGO_URI` dưới dạng **secret/environment variable của project** (cần cả tên biến và giá trị thực trong secret store; không gửi value qua chat, Markdown hoặc log). Không cần cấp Cloudflare keys cho audit checkpoint.
+2. Ưu tiên credential MongoDB chỉ có quyền đọc các collection cần audit: `products`, `product_catalog_translation_cache`, `retranslationprogresses` và `retranslationrunlocks`. Network/IP access phải cho phép runtime hiện tại kết nối; không mở MongoDB công khai chỉ để phục vụ audit.
+3. Sau khi owner xác nhận secret đã được cấu hình, kiểm tra presence của biến mà không in value, kết nối read-only, chỉ hiển thị database name và xác nhận DB đúng là `online-store`; nếu không đúng hoặc không kết nối được thì dừng.
+4. Kiểm tra lock trong `retranslationrunlocks` bằng truy vấn đọc. Không lấy/release lock, không xóa lock/checkpoint, không gọi `--apply`, Cloudflare hay migration. Audit candidate từ checkpoint bền vững trong collection `retranslationprogresses` cùng Product source fields; không phụ thuộc đường dẫn local `E:\...`.
+5. Phạm vi mặc định sau khi env sẵn sàng: chỉ tạo thống kê/diff đề xuất read-only; không ghi cache, readiness, publication hoặc checkpoint. Mọi thay đổi dữ liệu cần yêu cầu/xác nhận riêng, backup hiện hành, xác nhận DB đích và kế hoạch rollback.
+
+Credential được cấp trong project secrets không đồng nghĩa cấp quyền xóa database hoặc tự động phê duyệt nội dung. Không chạy `npm run build`.

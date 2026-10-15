@@ -16,8 +16,10 @@ const { waitForPendingTranslations } = require('../services/specKeyTranslationSe
 const { refreshTranslationReadiness } = require('../services/translationHelper');
 const User = require('../models/User');
 const Product = require('../models/Product');
+const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const SeedStatus = require('../models/SeedStatus');
 const r2AssetService = require('../services/r2AssetService');
+const { buildHomepageEligibilityQuery } = require('../utils/homepageEligibility');
 
 const backendRoot = path.resolve(__dirname, '../..');
 const scraperRoot = backendRoot;
@@ -520,6 +522,8 @@ const importProductFile = async ({ filePath, adminUser, batchSize, dryRun, initi
   const summary = {
     file: filePath,
     read: parsedProducts.length,
+    accepted: unique.length,
+    rejected: validation.invalidProducts.length + rejectedProducts.length + duplicateCount + imagePreparation.skippedProducts,
     invalid: validation.invalidProducts.length,
     warnings: validation.warnings.length,
     filteredOut: rejectedProducts.length,
@@ -689,8 +693,67 @@ const runProductSeedPipeline = async (options = {}) => {
     : await translateProducts(options.languages);
   const productIds = await Product.find({ isDeleted: false }).distinct('_id');
   const translationReadiness = await refreshTranslationReadiness(productIds);
-  console.log(`[ProductPipeline] Translation readiness: ${translationReadiness.translationReadyCount} ready, ${translationReadiness.translationNotReadyCount} not ready`);
-  return { files, imports, translations, translationReadiness, initializeHighlights };
+  const importSummary = imports.reduce((summary, file) => ({
+    sourceRows: summary.sourceRows + file.read,
+    acceptedRows: summary.acceptedRows + file.accepted,
+    rejectedRows: summary.rejectedRows + file.rejected,
+    invalidRows: summary.invalidRows + file.invalid,
+    filteredOutRows: summary.filteredOutRows + file.filteredOut,
+    duplicates: summary.duplicates + file.duplicates,
+    skippedImageProducts: summary.skippedImageProducts + file.skippedImageProducts,
+    inserted: summary.inserted + file.inserted,
+    updated: summary.updated + file.updated,
+    skipped: summary.skipped + file.skipped,
+  }), {
+    sourceRows: 0,
+    acceptedRows: 0,
+    rejectedRows: 0,
+    invalidRows: 0,
+    filteredOutRows: 0,
+    duplicates: 0,
+    skippedImageProducts: 0,
+    inserted: 0,
+    updated: 0,
+    skipped: 0,
+  });
+  const targetLanguages = getActiveLangCodes().filter(language => language !== getDefaultLanguage().code);
+  const [publishedProducts, draftProducts, productsWithoutPublicationState, homepageBaseEligibleProducts, translationCatalogStateCounts] = await Promise.all([
+    Product.countDocuments({ isDeleted: false, isPublished: true }),
+    Product.countDocuments({ isDeleted: false, isPublished: false }),
+    Product.countDocuments({
+      isDeleted: false,
+      $or: [{ isPublished: { $exists: false } }, { isPublished: null }],
+    }),
+    Product.countDocuments(buildHomepageEligibilityQuery()),
+    ProductCatalogTranslationCache.aggregate([
+      { $match: { targetLang: { $in: targetLanguages } } },
+      {
+        $group: {
+          _id: {
+            targetLang: '$targetLang',
+            provider: '$provider',
+            status: '$status',
+            qualityStatus: '$qualityStatus',
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.targetLang': 1, '_id.provider': 1, '_id.status': 1, '_id.qualityStatus': 1 } },
+    ]),
+  ]);
+  const seedReport = {
+    import: importSummary,
+    publication: { publishedProducts, draftProducts, productsWithoutPublicationState },
+    translations,
+    translationCatalogStateCounts,
+    translationReadiness: {
+      readyProducts: translationReadiness.translationReadyCount,
+      notReadyProducts: translationReadiness.translationNotReadyCount,
+    },
+    homepageBaseEligibleProducts,
+  };
+  console.log(`[ProductPipeline] Kết quả các tầng seed: ${JSON.stringify(seedReport)}`);
+  return { files, imports, translations, translationReadiness, seedReport, initializeHighlights };
 };
 
 module.exports = {
