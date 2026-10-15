@@ -622,4 +622,12 @@ Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết h�
 
 **Audit checkpoint theo field:** PowerShell inline + Node/Mongoose read-only đã ánh xạ 12.243 latest field entries; `unmatchedFieldHashes=0`. Lỗi review tập trung ở `description` (đặc biệt `missing_technical_token`), `technicalDescription`, một số `specs`, và promotion title/discount text; có thêm `mixed_language`, `unexpected_technical_token` và lỗi validator khác. Các counts theo lỗi có thể chồng lặp. Đây là bằng chứng cho thấy batch đang bị chặn bởi chất lượng output/validation, không phải publication gate.
 
+**Kết quả chi tiết checkpoint được người vận hành cung cấp:**
+
+- Report đọc checkpoint `07653fffdfd56054a71e5af92423d5081af9c9c1f641092e.jsonl` trên DB `online-store`: `latestFieldEntries=12.243`, `mappedFieldEntries=12.243`, `unmatchedFieldHashes=0`. Đây là trạng thái mới nhất theo field, không phải số product-locale jobs hoàn tất.
+- `description` là nhóm `Needs review` lớn nhất: 142–154 field entries theo locale trong bảng top fields; `technicalDescription` có 89–92 ở các locale xuất hiện trong top; promotion title/discount text và một số spec fields cũng có lượng fail đáng kể.
+- Các validation nổi bật gồm `missing_technical_token` ở description (cao nhất: DE 129, NL 128, SV 120), technical description (PT/DE 90, FR/ES/SV 89, IT 85), spec storage FR 83 và RAM FR 73. `unexpected_technical_token` và `mixed_language` cũng lặp lại trên description; promotion title/discount text thường fail technical-token validation.
+- `descriptionImages[].alt` có nhiều entry `fixed` và ít hơn `Needs review`; đây là optional warning, không tự chặn commit. Các số `fixed`/`needsReview` là field-entry counts; cột products có thể giao nhau giữa các field/error.
+- Kết quả này củng cố nguyên nhân chính là validator không chấp nhận output ở các nội dung required (đặc biệt description/technical description/specs/promotions), trong khi một số alt có thể tiếp tục như warning. Không nới validator hoặc bulk-approve chỉ dựa trên checkpoint summary.
+
 **Trạng thái và bước kế tiếp:** Không chạy lại `--apply` với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
