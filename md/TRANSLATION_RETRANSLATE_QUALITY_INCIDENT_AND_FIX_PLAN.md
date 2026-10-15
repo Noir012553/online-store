@@ -598,8 +598,28 @@ Nếu provider hết quota, import/publication và translation phải được b
 - Latency/query execution không tăng đáng kể trên dataset đại diện; index chỉ thay sau đo đạc.
 - Quy tắc missing image, publication default và migration được xác nhận trước khi thay đổi dữ liệu.
 
-### Trạng thái rollout
+### Trạng thái rollout tại snapshot 2026-10-14
 
-Code đã tách publication gate, translation readiness và homepage eligibility; seed report cũng thống kê riêng import, publication, translation readiness và số sản phẩm đủ điều kiện homepage. Public translation fallback về source khi không có bản dịch approved/current; import cho phép description rỗng. Migration chỉ được chuẩn bị và kiểm tra an toàn bằng unit test, không được thực thi trong phiên này. Trước deploy phải chạy dry-run, xác nhận database đích và backup restore được, sau đó apply migration riêng; sau rollout cần report readiness mới và kiểm tra pagination/count trên home.
+Code đã tách publication gate, translation readiness và homepage eligibility; seed report cũng thống kê riêng import, publication, translation readiness và số sản phẩm đủ điều kiện homepage. Public translation fallback về source khi không có bản dịch approved/current; import cho phép description rỗng. Tại snapshot 2026-10-14, migration mới được chuẩn bị và kiểm tra unit test, chưa thực thi. Dòng này là trạng thái lịch sử trước lần apply migration ngày 2026-10-14.
 
-Không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi dữ liệu database trong lần triển khai code này.
+Tại lần triển khai code ngày 2026-10-14, không gọi Cloudflare, không chạy retranslate, không chạy `npm run build` và không thay đổi DB.
+
+### Cập nhật 2026-10-15 — Migration và batch retranslation thực tế
+
+**Migration readiness/publication:** Người vận hành đã tạo full backup rồi apply migration trên database `online-store`. Sau apply: 588 sản phẩm có `isPublished`, 588 có field readiness được khởi tạo, 2 `translationReady=true`; 588 field legacy readiness được giữ nguyên theo thiết kế. Migration không duyệt hoặc sửa nội dung bản dịch.
+
+**Readiness audit sau migration:** Report read-only trên toàn bộ 588 active products ghi nhận 2 ready, 586 not ready, 0 unchecked và 0 mismatch. Các slot blocker gồm `missing_description=3.748`, `missing_specs=2.304`, `quality_not_approved=4.180` và `validation_errors=4.180`; các nhóm slot có thể chồng lặp. Báo cáo chi tiết theo locale cho thấy đa số cache `status=success` nhưng `qualityStatus=pending`.
+
+**Dry-run retranslation:** Toàn bộ catalog có 4.180 candidate product-locale jobs trên 586 sản phẩm, phân bố qua 8 locale; không có `sourceBlockedProducts`. Đây là job count, không phải 4.180 sản phẩm hay API calls.
+
+**Backup trước batch:** Người vận hành tạo full backup mới của `online-store` ngày 2026-10-15, archive `online-store-full-backup-2026-10-15T02-12-54-698Z.archive.gz`, kích thước 28.836.456 bytes. Backup tool xác nhận archive không rỗng; restore test chưa được báo cáo.
+
+**Apply đã dừng:** Batch `npm run retranslate:storefront -- --apply` được người vận hành dừng thủ công sau khi thấy Cloudflare rate limits/cooldowns và nhiều kết quả `Needs review`. Lần cuối được nhìn thấy trong log là `Processing 1253/4180` (khoảng 30% thứ tự job đã bắt đầu, không đồng nghĩa đã commit). Log có nhiều `missing_technical_token`, `unexpected_technical_token`, `mixed_language` và `markup_mismatch`; lỗi ở required fields làm candidate không được ghi vào catalog cache nếu chưa đạt validation. Validation fail ở `descriptionImages[].alt` là optional warning và không tự chặn commit. `Translation success` chỉ xác nhận provider trả kết quả.
+
+Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết hạn (`dbLockActive=false`). Checkpoint local được ghi tới 15:43:18, kích thước 17.779.205 bytes. Không xóa checkpoint hoặc lock thủ công.
+
+**Kết quả sau batch:** Dry-run read-only kế tiếp ghi nhận `candidateJobs=4.102`, `affectedProducts=586`, `currentlyReady=2/588`, `sourceBlockedProducts=0`. So với dry-run ban đầu, backlog giảm ròng 78 locale slots nhưng chưa có thêm sản phẩm nào đạt đủ 8 locale.
+
+**Audit checkpoint theo field:** PowerShell inline + Node/Mongoose read-only đã ánh xạ 12.243 latest field entries; `unmatchedFieldHashes=0`. Lỗi review tập trung ở `description` (đặc biệt `missing_technical_token`), `technicalDescription`, một số `specs`, và promotion title/discount text; có thêm `mixed_language`, `unexpected_technical_token` và lỗi validator khác. Các counts theo lỗi có thể chồng lặp. Đây là bằng chứng cho thấy batch đang bị chặn bởi chất lượng output/validation, không phải publication gate.
+
+**Trạng thái và bước kế tiếp:** Không chạy lại `--apply` với cùng cấu hình cho tới khi rà soát lỗi validator và chiến lược retry/rate limit. Không dùng `translate:approve-all` để vượt validation. `translationReady` chỉ phục vụ readiness/backlog; không điều khiển `isPublished` hoặc public catalog. Theo yêu cầu, không chạy `npm run build`.
