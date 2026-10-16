@@ -656,3 +656,22 @@ Sau khi dừng, process query trả `ApplyProcessCount=0`; DB lock đã hết h�
 5. Phạm vi mặc định sau khi env sẵn sàng: chỉ tạo thống kê/diff đề xuất read-only; không ghi cache, readiness, publication hoặc checkpoint. Mọi thay đổi dữ liệu cần yêu cầu/xác nhận riêng, backup hiện hành, xác nhận DB đích và kế hoạch rollback.
 
 Credential được cấp trong project secrets không đồng nghĩa cấp quyền xóa database hoặc tự động phê duyệt nội dung. Không chạy `npm run build`.
+
+## Cập nhật 2026-10-16 — Bài học từ hai sản phẩm Acer Aspire 7
+
+Đã xử lý `Acer Aspire 7 A715-59G-59RD` và `Acer Aspire 7 A715-59G-53RH` lần lượt qua 8 locale `en`, `pt`, `fr`, `de`, `it`, `es`, `nl`, `sv`. Cả hai có catalog translation `success`, `qualityStatus: approved`, điểm 100, không có validation errors, source hash hiện hành và `translationReady: true`; các trường nguồn không bị thay đổi. Đây là kết quả đã xác minh cho hai sản phẩm, không dự báo tỷ lệ thành công của batch khác.
+
+### Checklist bắt buộc khi xử lý sản phẩm
+
+1. Chọn đúng `productId`; kiểm tra source đầy đủ, catalog cache, checkpoint và `manualFields`. Tạo snapshot chỉ-scoped trước lần ghi đầu tiên; không dùng snapshot một sản phẩm thay cho full database backup.
+2. Chạy từng locale với concurrency thấp. `Cloudflare Translation success` chỉ xác nhận provider trả output; chỉ commit khi tất cả required fields đạt validator và source hash vẫn hiện hành.
+3. Giữ nguyên model/SKU và đúng số lần xuất hiện. Ví dụ nguồn dùng `Core 5-210H`; không tự đổi thành `Core i5-210H`. Mô tả dài có thể lặp model, GPU hoặc refresh rate nhiều lần; một lần bị bỏ/đổi định dạng cũng đủ làm field fail.
+4. Giữ nguyên giá trị số và đơn vị theo source. `15.6 inch`, `15.6"`, `16GB`, `512GB`, `RTX 4050 6GB` không nên tự chuẩn hóa theo thói quen ngôn ngữ nếu token check của project yêu cầu dạng khác. Dịch nhãn quanh token, không dịch/đổi chính token.
+5. Chú ý token ghép do ngữ pháp hoặc dấu câu: `Core 5-210H-Prozessor`, `144Hz-Bildschirm`, `SSD 512 GB`, `de 1920`, `official 100%` hoặc `worth 370,000` có thể tạo token thiếu/thừa ngoài ý muốn. Dùng dấu câu/khoảng trắng để tách phần giải thích khỏi token, nhưng giữ nguyên giá trị số, đơn vị và ý nghĩa; chạy `checkTechnicalTokens` rồi `validateTranslation` trên candidate cuối.
+6. Không nới validator, không tự thêm thông số để vượt lỗi, không ghi candidate chưa đạt. Nếu lỗi còn lại không thể sửa xác định từ source, giữ field ở checkpoint để review thay vì đoán.
+7. Sau commit, truy vấn lại đủ 8 locale và kiểm tra `status`, `qualityStatus`, `qualityScore`, `validationErrors`, `sourceHash`, các required fields và `translationReady`. Không suy luận readiness từ một locale hoặc từ số request provider thành công.
+8. Phân biệt `approved` do service tự động chấp nhận candidate đã qua kiểm định với việc admin/người review xác nhận nội dung thủ công. Không mô tả auto-validation là human approval; nếu nghiệp vụ yêu cầu duyệt tay thì dùng luồng admin review riêng.
+
+Các ví dụ định dạng ở trên là lỗi thực tế của hai mẫu; không nên áp dụng thay thế chuỗi hàng loạt trên sản phẩm khác nếu chưa đối chiếu source và validator của field đó.
+
+Không chỉnh sửa source product và không chạy `npm run build` trong lần cập nhật này.
