@@ -1153,6 +1153,12 @@ describe('Product translation cache controller', () => {
     }
   });
 
+  it('ignores ordinary words before technical values while preserving uppercase model prefixes', () => {
+    expect(translationValidator.checkTechnicalTokens('Battery 4-cell', '4-cell battery')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('RTX 4060', 'RTX'))
+      .to.include({ error: 'missing_technical_token' });
+  });
+
   it('preserves repeated technical tokens while rejecting missing or introduced specs', () => {
     expect(translationValidator.checkTechnicalTokens(
       'RTX 3050 4GB Core 5-210H SKU-001',
