@@ -1,12 +1,67 @@
-# Sự cố chất lượng retranslate và kế hoạch khắc phục
+# Quy trình dịch lại, kiểm định chất lượng và nhật ký sự cố
 
 ## Tóm tắt
 
 Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạt chuẩn. Các log cho thấy request Cloudflare trả kết quả, nhưng validator vẫn từ chối phần lớn bản dịch; lượt chạy sau tiếp tục bị HTTP 429 và dừng. Chạy lại bằng cùng model/prompt không phải cách xử lý gốc và có nguy cơ ghi thêm kết quả không đạt vào catalog.
 
-**Trạng thái tài liệu:** đã triển khai một phần các bảo vệ trong code cho checkpoint, accounting/report và technical token. Câu “chưa truy cập/cập nhật database, chưa chạy retranslate hoặc canary” mô tả trạng thái tại thời điểm ghi phần incident ban đầu; kết quả pilot trợ lý và thao tác DB có kiểm soát được cập nhật ở cuối tài liệu.
+**Phạm vi:** Đây là nguồn chuẩn về quy trình dịch sản phẩm và nhật ký sự cố dịch. Các số liệu bên dưới là snapshot theo thời điểm, không phải số liệu live. Quy trình hiện hành nằm ở phần đầu; chi tiết backup/restore ở [MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md](MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md), yêu cầu xử lý ảnh ở [PRODUCT_IMAGE_REQUIREMENTS.md](PRODUCT_IMAGE_REQUIREMENTS.md), còn sự cố khác ở [SESSION_ISSUES_RESOLVED.md](SESSION_ISSUES_RESOLVED.md).
 
-## Số liệu ghi nhận
+## Quy trình thao tác hiện hành
+
+### 1. Chọn đúng sản phẩm và bảo vệ dữ liệu
+
+1. Xác nhận database đích mà không in hoặc chia sẻ `MONGO_URI`; kiểm tra sản phẩm bằng `productId` và đối chiếu SKU/tên/model với nguồn.
+2. Đọc `Product`, catalog translation, `manualFields`, source hash, trạng thái locale và checkpoint/lock liên quan. Không chọn sản phẩm chỉ vì có cache cũ hoặc lỗi.
+3. Trước lần ghi đầu tiên, tạo snapshot riêng có phạm vi sản phẩm và các record liên quan. Xác nhận snapshot không rỗng, đọc lại được và lưu SHA-256. Snapshot riêng không thay thế full database backup; xem quy trình backup ở tài liệu chuyên đề.
+4. Nếu có `manualFields`, dừng phần ghi bị ảnh hưởng; không thay thế field thủ công bằng bản máy/assistant.
+
+### 2. Dịch lại qua provider
+
+1. Chạy dry-run cho đúng `productId` và locale; kiểm tra số job, selector, candidate fields và checkpoint trước khi chạy thật. `--limit=1` giới hạn job, không bảo đảm một lần gọi provider.
+2. Chạy tuần tự với concurrency thấp. Tôn trọng quota/rate limit; khi gặp 429 thì dừng theo chính sách retry/backoff, không tăng concurrency hoặc lặp vô hạn.
+3. Đối chiếu candidate với source trước commit: giữ nguyên model/SKU, brand, thông số, số lần xuất hiện của token kỹ thuật, giá trị số, đơn vị và ý nghĩa. Không đoán nội dung nguồn thiếu/sai.
+4. Chỉ commit locale khi mọi required field đạt validator, không có lỗi blocking, field manual được bảo vệ và source hash vẫn khớp ngay trước ghi. Provider `success` không đồng nghĩa quality approval.
+5. Nếu validator từ chối candidate, giữ nguyên bản catalog đang dùng; xem checkpoint/report để xác định field lỗi. Không bulk-approve, không sửa `qualityStatus` trực tiếp và không nới validator chỉ để làm batch xanh.
+
+### 3. Dùng assistant batch khi cần tạo bản nháp
+
+1. Export batch từ trang quản trị theo product/locale cần xử lý. Giữ nguyên `productId`, `targetLang`, `sourceHash`, schema, key, cấu trúc ảnh/promotion và các giá trị spec bất biến.
+2. Sau dịch, xác minh JSON parse được, đúng `workflow: assistant_batch`, đúng số record, đủ locale dự kiến, không trùng product-language, đúng source hash và đầy đủ các trường required. Chỉ thực hiện preview sau khi các kiểm tra này qua; không gửi credential hoặc token vào candidate.
+3. Chạy preview/dry-run trước khi ghi. Kiểm tra `validRecords`, insert/update counts, manual-field skips và lỗi content invariant. Nếu preview lỗi, dừng tại đó; không tiếp tục dùng biến payload rỗng hoặc status của cache cũ.
+4. Import thật bằng luồng assistant riêng. Bản ghi phải mang `provider: assistant`, `providerSource: assistant_batch`, `qualityStatus: pending`; không giả nhãn Cloudflare. Import thành công vẫn chưa phải approval.
+5. Kiểm tra eligibility theo từng locale. Admin review/approve tường minh. Nếu duy nhất lỗi là `inconsistent`, chỉ override khi được ủy quyền rõ ràng; ghi note nói đúng cơ sở quyết định. Không mô tả thao tác delegated là con người đã review. Mọi lỗi khác như token thiếu/thừa, sai ngôn ngữ, field thiếu, hash stale hoặc translation failure đều chặn approval.
+
+### 4. Kiểm chứng sau ghi
+
+1. Đọc lại tất cả locale bắt buộc: `status`, `qualityStatus`, score, `validationErrors`, provenance, source hash, required fields/specs và approval audit.
+2. Xác nhận hash từng locale khớp Product hiện tại; đối chiếu lại SKU/model/giá và các trường nguồn bất biến.
+3. Tính lại `translationReady` bằng rule hiện hành. Chỉ báo sản phẩm ready khi đủ mọi locale bắt buộc cùng đạt; không suy từ số request, số record `success` hoặc một locale.
+4. Báo product ID, các locale approved/bị chặn, override đã audit, readiness, snapshot hash và mọi giới hạn còn lại. Dừng nếu số liệu sau ghi không khớp dự kiến.
+
+### 5. Lưu ý khi thao tác bằng PowerShell interactive
+
+- Validate payload sau `ConvertFrom-Json` bằng workflow, record count, danh sách locale, product ID và source hash trước khi đăng nhập hoặc gọi API ghi.
+- Khi dán lệnh nhiều dòng vào prompt interactive, lỗi `throw` không bảo đảm các dòng tiếp theo đã dán sẽ không chạy. Bọc cả quy trình trong một script block/điều kiện dừng; kiểm tra từng response trước khi gọi bước kế tiếp.
+- Không dùng Base64/payload đã cắt; nếu có dùng payload nén, so độ dài kỳ vọng và xác nhận giải nén lại đúng 8 locale trước HTTP request.
+- Không gửi password, bearer token, Mongo URI hoặc giá trị secret trong chat/log/tài liệu. Nếu thao tác local là cần thiết, để credential được nhập tại máy người vận hành.
+
+## Kết quả thao tác gần nhất — 2026-10-17
+
+- Sản phẩm `6ad0ca970069aece85a8c5dd` (Acer Nitro ProPanel ANV15-52-556L) được snapshot riêng trước lần ghi; SHA-256 snapshot `f949d1c25db2af9704b5f46abc1909fa707ad83bd398938b018754bb29ecc807`.
+- Draft đủ 8 locale, source hash `55824efb37927dfca7ae7300c69213df25287cf24d8af3ec83d722cc5fdfbb33`; preview hợp lệ 8/8, 5 update, 3 insert, không skip manual field.
+- Cả 8 locale sau import có `status: success`, `qualityStatus: approved`, hash hiện hành và không còn validation errors; score: `pt/nl/sv` 100, `en/fr/de/it/es` 80. Năm locale sau được duyệt với override duy nhất `inconsistent`, ghi note rõ là assistant thực hiện theo ủy quyền, không nhận là human review.
+- `translationReady` tính lại và lưu `true`; SKU/giá nguồn không bị thay đổi. Kết quả này chỉ cho một sản phẩm, không đại diện toàn catalog.
+- Lần thử PowerShell trước đó bị từ chối trước import vì chuỗi payload bị cắt và giải nén sai shape. Không có assistant record nào được ghi ở lần thử đó; lần chạy hợp lệ sau đó mới import/approve. Đây là lý do phải kiểm tra payload trước khi gọi API và không tiếp tục sau lỗi.
+
+### Sản phẩm kế tiếp — Acer Aspire 7 A715-59G-53RH
+
+- Product ID `6ad0ca970069aece85a8c5db`, SKU `LAP-ACER-ASPIRE-7-A715-59G-53RH`, giá nguồn `29.990.000 VND`. Snapshot scoped trước ghi: `backups/product-snapshots/product-6ad0ca970069aece85a8c5db-2026-10-17T09-21-14-260Z.json`, SHA-256 `e1825642d4192c8ba317e4fa515de2eeaba34ee0112931518e692cf3de4ea7a3`.
+- Source hash hiện hành `e5f51aae249d4a1ce2a7e1f33d83c664c28cb205602c91abd52dff921cd000f9`. Có 8 cache cũ stale, không có manual fields và không có active retranslation lock.
+- Dịch tuần tự 8 locale với concurrency 1. `en`, `pt`, `it`, `es` commit qua field-level service; `fr`, `de`, `nl`, `sv` cần catalog selector để commit toàn catalog với source hash hiện tại. Không dùng reset checkpoint hoặc override validator.
+- Xác minh cuối: đủ 8/8 locale `status: success`, `qualityStatus: approved`, score 100, không validation error, hash khớp, không manual field/optional warning; `translationReady` tính lại và lưu `true`. SKU/giá nguồn không đổi.
+- Bài học: output “apply-complete” ở field-level không thay thế việc đọc lại catalog cache. Sau mọi lượt phải xác minh `sourceHash` từng locale và readiness; nếu cache vẫn stale, dùng selector/catalog commit chính thức thay vì tự cập nhật hash.
+
+## Số liệu ghi nhận (snapshot lịch sử)
 
 ### Tình trạng catalog trước lượt chạy mới nhất
 
@@ -260,7 +315,7 @@ Trước khi áp dụng production cần chọn một cách rõ ràng:
 
 Không có bản dịch, lệnh seed/retranslate, lời gọi Cloudflare hay thay đổi MongoDB nào được thực hiện khi soạn kế hoạch này.
 
-## Cập nhật — Luồng trợ lý dịch bổ sung theo lô có duyệt
+## Lịch sử triển khai luồng assistant batch — snapshot ban đầu
 
 ### Vấn đề
 

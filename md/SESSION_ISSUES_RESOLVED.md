@@ -1,8 +1,14 @@
-# Tổng kết các vấn đề đã xử lý
+# Nhật ký sự cố và thao tác đã xác minh
 
-Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn đề đã được chẩn đoán trong quá trình làm việc trên Laptop Store. Những mục chỉ mới được phân tích sẽ được ghi rõ, không xem là đã khắc phục hoàn toàn.
+Đây là nhật ký lịch sử theo thời điểm trên Laptop Store, không phải runbook hiện hành. Dùng tài liệu chuyên đề làm nguồn chuẩn cho thao tác; các trạng thái môi trường và số liệu trong nhật ký không phải trạng thái live.
 
-## Thay đổi đã áp dụng
+## Tài liệu chuẩn theo chủ đề
+
+- Dịch sản phẩm, validator, assistant draft, approval và readiness: [TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md](TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md).
+- Backup/restore MongoDB: [MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md](MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md).
+- Contract ảnh sản phẩm khi import/storefront: [PRODUCT_IMAGE_REQUIREMENTS.md](PRODUCT_IMAGE_REQUIREMENTS.md).
+
+## Nhật ký frontend và giao diện
 
 ### Logo và favicon
 
@@ -25,7 +31,7 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Chiều cao hero trang chủ từng bị thay đổi do hiểu nhầm nhận xét “dài quá” là nói về giao diện.
 - Thay đổi đó đã được hoàn tác; class ban đầu tại `online-store-frontend/src/components/HomeContent.tsx` được kiểm tra lại.
 
-## Vấn đề backend và vận hành đã được chẩn đoán
+## Nhật ký backend và vận hành đã chẩn đoán
 
 ### Cloudflare Workers AI và bản dịch
 
@@ -102,7 +108,7 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Sửa nguồn sản phẩm phải đồng bộ trạng thái bản dịch: đánh dấu machine-managed translations `needs_retranslate`, giữ các field dịch thủ công, và đặt storefront readiness về chưa xác nhận. Không tự đánh dấu bản dịch mới là approved.
 - Trong sự cố BlackShark V2 X, seed preview bị chặn bởi lỗi asset nên không ghi Product. Người dùng sau đó chạy local transaction có preview/đối chiếu SKU, cập nhật đúng document và nhận output báo hoàn tất; phiên này không xác nhận lại document bằng một lượt đọc độc lập sau transaction. Không ghi giá trị bí mật hoặc URI vào báo cáo.
 
-## Những việc chưa hoàn tất hoặc chưa xác nhận
+## Những việc còn chưa xác nhận tại thời điểm ghi nhật ký
 
 - Chưa xác nhận quota Neurons còn lại của các tài khoản Cloudflare; trạng thái token/API không thay thế được kiểm tra usage.
 - Report seed ngày 2026-10-15 là từ môi trường Windows local; chưa xác nhận `MONGO_URI` của lượt đó trỏ tới cùng database mà preview hiện tại sử dụng.
@@ -114,9 +120,20 @@ Tài liệu này tổng hợp những thay đổi đã áp dụng và các vấn
 - Chưa xác nhận giới hạn `R2_MAX_UPLOAD_COUNT` đã được thay đổi.
 - Chưa có ảnh chụp xác nhận trực quan cuối cùng cho các thay đổi responsive.
 
+## Snapshot kiểm thử import ảnh (ngày không ghi trong ghi chú nguồn)
+
+Lần chạy `npm test` trên bản tải về ghi nhận 69 test pass; các vấn đề còn lại tập trung ở các file sau. Đây là snapshot cũ, không xác nhận toàn bộ suite đã chạy lại sau sửa đổi.
+
+- `translation-migration-smoke.test.js` cần database test đã migrate và TTL index vật lý; test chỉ chạy khi bật `RUN_TRANSLATION_MIGRATION_SMOKE_TESTS=true` cùng `TEST_MONGO_URI`. Không dùng database shared/production.
+- `export-job-service.test.js` có assertion tên file asset cũ; kỳ vọng được cập nhật theo `product-id-main-0.jpg` và `descriptionImages: []`.
+- `translation-helper.test.js` dùng source hash fixture cũ sau khi đổi description/specs; fixture được đồng bộ.
+- `import-file-validator.test.js` có assertion/fixture không khớp contract. Test ảnh xác nhận lỗi main/gallery là fatal, còn lỗi toàn bộ ảnh mô tả không chặn sản phẩm.
+- Không chạy lại toàn bộ suite sau các cập nhật được ghi ở snapshot này. Không chạy migration, seed hoặc `npm run clear` chỉ để làm test xanh.
+
 ## Phạm vi an toàn
 
 - Không ghi token, API key hoặc giá trị bí mật vào tài liệu này.
 - Không chạy `npm run clear`.
 - Không chạy `npm run build`.
-- Các nhận định về quota và số lượng bản dịch được giữ ở mức phù hợp với log đã xem; không coi số liệu ước tính là kết quả đo.
+- Các nhận định về quota và số lượng bản dịch là snapshot theo log đã xem; không coi số liệu ước tính là kết quả đo hoặc trạng thái hiện hành.
+- Với quy trình thao tác hiện hành, dùng tài liệu chuyên đề ở đầu file thay vì sao chép lệnh/quy trình vào nhật ký này.
