@@ -2,7 +2,25 @@
 
 ## Mục đích
 
-Ghi lại các lỗi trong quá trình tạo, kiểm tra và đánh giá phạm vi backup phục vụ retranslation; phân biệt ZIP sáu collection hiện tại với luồng backup toàn bộ database được bổ sung sau đó.
+Tài liệu chuẩn cho thao tác backup/restore MongoDB, kèm nhật ký các lần chạy đã kiểm chứng. Các tên archive, kích thước và số lượng collection trong phần lịch sử là snapshot theo thời điểm, không khẳng định trạng thái hiện tại. Quy trình dịch sản phẩm nằm ở [TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md](TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md).
+
+## Quy trình thao tác hiện hành
+
+### Backup
+
+1. Xác nhận `MONGO_URI` trỏ đúng database đích; chỉ hiển thị database name, không in URI hoặc credential.
+2. Chọn đúng phạm vi: `backup:full-database` cho mọi collection trong một database ứng dụng; `backup:retranslation` chỉ cho sáu collection nghiệp vụ retranslation.
+3. Trước ghi dữ liệu lớn, migration hoặc batch có ảnh hưởng nhiều record, tạo full backup; với một sản phẩm có thể thêm snapshot scoped nhưng không gọi snapshot đó là full backup.
+4. Kiểm tra file archive tồn tại, không rỗng, gzip/archive đọc được và log xác nhận database/collection scope. Ghi lại thời điểm, tên file, dung lượng và kết quả kiểm tra.
+5. Dump theo từng collection không phải snapshot nguyên tử. Ghi nhận khả năng dữ liệu nguồn thay đổi giữa các collection.
+
+### Restore và kiểm chứng
+
+1. Không restore đè database nguồn, không dùng `--drop` và không chọn target có dữ liệu.
+2. Xem trước target, namespace remap và archive bằng dry-run; xác nhận target là database staging riêng, tên kết thúc bằng `_restore_test`.
+3. Chỉ chạy apply khi target rỗng, archive đã được kiểm tra và thao tác đã được xác nhận rõ.
+4. Sau restore, đối chiếu collection, số lượng document từng collection và index với nguồn tại thời điểm backup. `restore completed` không tự chứng minh hai database giống nhau.
+5. Không xóa backup/checkpoint/lock thủ công để làm cho restore hoặc job chạy tiếp; xác định nguyên nhân và trạng thái trước.
 
 ## Kết luận trạng thái
 
@@ -34,7 +52,7 @@ Lần dump đầu tạo xong dữ liệu sáu collection nhưng ZIP thất bại
 - Full backup ban đầu thất bại với `mongodump ... provide only one MongoDB connection string`. Nguyên nhân xác nhận từ file trong `copy 39`: `--archive` và đường dẫn được truyền tách rời, khiến đường dẫn bị hiểu thành positional argument. Đã cập nhật cả backup/restore sang `--archive=<path>`; sau khi áp dụng sửa đổi trên máy người dùng, full dump chạy thành công.
 - Những lần backup thất bại không tạo archive. Các lệnh PowerShell phía sau nhận `$archive` rỗng và lỗi khi đọc `.FullName`; lệnh restore không bắt đầu và không ghi dữ liệu vào database.
 
-## Phạm vi ZIP sáu collection
+## Lịch sử và phạm vi ZIP sáu collection (2026-10-03)
 
 Script `online-store-backend/scripts/backup-retranslation-data.js` lấy collection name từ các model đã chọn rồi chạy `mongodump` riêng cho từng collection. Kết quả đã kiểm tra:
 
@@ -52,7 +70,7 @@ Người dùng liệt kê 52 collection trong database; ZIP chỉ có sáu colle
 
 Các collection được dump tuần tự, không phải snapshot nguyên tử giữa các collection. Việc parse BSON và khớp số lượng xác nhận tính đọc được và số lượng theo log dump, nhưng không thay cho thử restore.
 
-## Luồng full backup/restore mới trong code
+## Lịch sử triển khai và kiểm chứng full backup/restore
 
 Các lệnh mới trong `online-store-backend/package.json`:
 

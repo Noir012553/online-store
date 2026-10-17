@@ -1,5 +1,9 @@
 # Yêu cầu ảnh sản phẩm giữa import và storefront
 
+## Contract hiện hành
+
+Tài liệu này là nguồn chuẩn cho quy tắc ảnh khi import/seed và hiển thị sản phẩm. Nhật ký sự cố chung nằm ở [SESSION_ISSUES_RESOLVED.md](SESSION_ISSUES_RESOLVED.md); phạm vi backup dữ liệu nằm ở [MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md](MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md).
+
 ## Hiện trạng đã kiểm tra
 
 - **Ảnh sản phẩm chính (`image`)**: bắt buộc trong MongoDB schema (`online-store-backend/src/models/Product.js`) và danh sách trường bắt buộc của import validator (`online-store-backend/src/utils/productImportValidator.js`). Storefront dùng ảnh này cho product card và làm ảnh dự phòng khi danh sách gallery trống. Nếu URL thiếu hoặc ảnh không tải được, card hiển thị placeholder; trang chi tiết hiển thị trạng thái không có ảnh. Vì vậy UI có thể render sản phẩm thiếu ảnh, nhưng dữ liệu import hiện không cho phép thiếu trường `image`.
@@ -14,16 +18,12 @@
 - Ảnh mô tả là tùy chọn; lỗi một ảnh chỉ bỏ ảnh đó. Nếu tất cả ảnh mô tả lỗi hoặc nguồn không có ảnh mô tả, vẫn nhập sản phẩm khi ảnh chính và gallery hợp lệ.
 - Storefront hiện chưa hiển thị `descriptionImages`; nếu cần hiển thị nội dung này cho khách, cần triển khai UI riêng.
 
-## Kết quả kiểm thử gần nhất
+## Kiểm tra khi thay đổi xử lý ảnh
 
-Lần chạy `npm test` trong bản tải về có 69 test pass và các lỗi tập trung ở bốn file:
-
-- `translation-migration-smoke.test.js` đòi hỏi dữ liệu và TTL index đã có sẵn trong MongoDB. Test hiện chỉ chạy khi đặt `RUN_TRANSLATION_MIGRATION_SMOKE_TESTS=true` cùng `TEST_MONGO_URI`; bình thường `npm test` không kết nối DB và bỏ qua smoke test này. Schema TTL đã khai báo trong model; muốn kiểm tra index vật lý thì chỉ bật test với DB test đã migrate, không dùng DB dùng chung/production.
-- `export-job-service.test.js` dùng kỳ vọng tên file asset cũ. Assertion đã được cập nhật theo output hiện tại (`product-id-main-0.jpg`) và `descriptionImages: []`.
-- `translation-helper.test.js` dùng `sourceHash` từ dữ liệu sản phẩm cũ sau khi thay đổi description/specs trong fixture. Fixture đã được đồng bộ với biến thể nguồn đang kiểm tra.
-- `import-file-validator.test.js` có một số assertion/fixture không khớp contract hiện tại. Các kỳ vọng đã được đồng bộ; test ảnh xác nhận gallery/main lỗi là fatal, còn toàn bộ ảnh mô tả lỗi không chặn sản phẩm.
-
-Chưa chạy lại toàn bộ test sau các cập nhật này. Không chạy migration, seed hoặc `npm run clear` để làm test xanh; không cần chạy build.
+- Khi sửa import/seed, kiểm tra contract riêng cho ảnh chính, gallery và ảnh mô tả; không gom ba nhóm vào một quy tắc lỗi chung.
+- Chạy test của import validator và pipeline ảnh trong môi trường phù hợp. Smoke test cần MongoDB chỉ chạy với database test đã migrate; không dùng database production/shared để làm test xanh.
+- Nhật ký kết quả test lịch sử và các assertion/fixture đã sửa được giữ tại [SESSION_ISSUES_RESOLVED.md](SESSION_ISSUES_RESOLVED.md); đó không phải bằng chứng suite hiện tại đã chạy lại.
+- Không chạy migration, seed hoặc `npm run clear` chỉ để làm test xanh; không cần chạy build.
 
 ## Thành phần liên quan
 
