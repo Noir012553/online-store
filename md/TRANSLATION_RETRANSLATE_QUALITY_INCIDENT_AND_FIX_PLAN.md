@@ -53,6 +53,14 @@ Chuyển provider sang Cloudflare AI không tự đảm bảo bản dịch đạ
 - `translationReady` tính lại và lưu `true`; SKU/giá nguồn không bị thay đổi. Kết quả này chỉ cho một sản phẩm, không đại diện toàn catalog.
 - Lần thử PowerShell trước đó bị từ chối trước import vì chuỗi payload bị cắt và giải nén sai shape. Không có assistant record nào được ghi ở lần thử đó; lần chạy hợp lệ sau đó mới import/approve. Đây là lý do phải kiểm tra payload trước khi gọi API và không tiếp tục sau lỗi.
 
+### Sản phẩm kế tiếp — Acer Aspire 7 A715-59G-53RH
+
+- Product ID `6ad0ca970069aece85a8c5db`, SKU `LAP-ACER-ASPIRE-7-A715-59G-53RH`, giá nguồn `29.990.000 VND`. Snapshot scoped trước ghi: `backups/product-snapshots/product-6ad0ca970069aece85a8c5db-2026-10-17T09-21-14-260Z.json`, SHA-256 `e1825642d4192c8ba317e4fa515de2eeaba34ee0112931518e692cf3de4ea7a3`.
+- Source hash hiện hành `e5f51aae249d4a1ce2a7e1f33d83c664c28cb205602c91abd52dff921cd000f9`. Có 8 cache cũ stale, không có manual fields và không có active retranslation lock.
+- Dịch tuần tự 8 locale với concurrency 1. `en`, `pt`, `it`, `es` commit qua field-level service; `fr`, `de`, `nl`, `sv` cần catalog selector để commit toàn catalog với source hash hiện tại. Không dùng reset checkpoint hoặc override validator.
+- Xác minh cuối: đủ 8/8 locale `status: success`, `qualityStatus: approved`, score 100, không validation error, hash khớp, không manual field/optional warning; `translationReady` tính lại và lưu `true`. SKU/giá nguồn không đổi.
+- Bài học: output “apply-complete” ở field-level không thay thế việc đọc lại catalog cache. Sau mọi lượt phải xác minh `sourceHash` từng locale và readiness; nếu cache vẫn stale, dùng selector/catalog commit chính thức thay vì tự cập nhật hash.
+
 ## Số liệu ghi nhận (snapshot lịch sử)
 
 ### Tình trạng catalog trước lượt chạy mới nhất
