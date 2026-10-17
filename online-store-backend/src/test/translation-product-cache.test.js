@@ -955,6 +955,48 @@ describe('Product translation cache controller', () => {
     }]);
   });
 
+  it('does not commit a validated candidate when the source changes before commit', async () => {
+    const productId = new mongoose.Types.ObjectId().toString();
+    const sourceProduct = {
+      _id: new mongoose.Types.ObjectId(productId),
+      name: 'Source laptop',
+      description: '',
+      brand: 'Brand',
+      specs: {},
+      technicalDescription: '',
+      descriptionImages: [],
+      promotions: [],
+    };
+    const changedProduct = { ...sourceProduct, description: 'Changed source' };
+    const findProductById = sandbox.stub(Product, 'findById');
+    findProductById.onFirstCall().returns({
+      lean: sandbox.stub().resolves(sourceProduct),
+    });
+    findProductById.onSecondCall().returns({
+      lean: sandbox.stub().resolves(changedProduct),
+    });
+    sandbox.stub(ProductCatalogTranslationCache, 'findOne').returns({
+      lean: sandbox.stub().resolves({ manualFields: [] }),
+    });
+    sandbox.stub(productTranslationLock, 'acquireProductTranslationLock').resolves(async () => {});
+    const findOneAndUpdate = sandbox.stub(ProductCatalogTranslationCache, 'findOneAndUpdate');
+    sandbox.stub(productTranslationService, 'translateWithCloudflare').resolves({
+      translatedText: 'Translated laptop',
+      providersUsed: ['cloudflare'],
+    });
+    sandbox.stub(translationValidator, 'validateTranslation').resolves({
+      qualityStatus: 'approved',
+      qualityScore: 100,
+      validationErrors: [],
+    });
+
+    const result = await productCatalogRetranslationService.retranslateProduct(productId, 'en');
+
+    expect(result.committed).to.equal(false);
+    expect(result.staleSourceHash).to.equal(true);
+    expect(findOneAndUpdate.called).to.equal(false);
+  });
+
   it('retries a mixed-language field once with targeted instructions before commit', async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'retranslate-mixed-language-'));
     const checkpoint = openCheckpoint({ filter: {}, lang: null, limit: 0 }, directory);
@@ -1109,6 +1151,12 @@ describe('Product translation cache controller', () => {
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it('ignores ordinary words before technical values while preserving uppercase model prefixes', () => {
+    expect(translationValidator.checkTechnicalTokens('Battery 4-cell', '4-cell battery')).to.equal(null);
+    expect(translationValidator.checkTechnicalTokens('RTX 4060', 'RTX'))
+      .to.include({ error: 'missing_technical_token' });
   });
 
   it('preserves repeated technical tokens while rejecting missing or introduced specs', () => {

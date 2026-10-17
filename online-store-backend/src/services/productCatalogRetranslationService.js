@@ -407,6 +407,17 @@ const retranslateProductUnlocked = async (
     };
   }
 
+  const latestProduct = await Product.findById(productId).lean();
+  if (!latestProduct || getProductTranslationSourceHash(latestProduct) !== sourceHash) {
+    return {
+      translation: catalogTranslation,
+      candidate: catalogUpdate,
+      committed: false,
+      staleSourceHash: true,
+      skippedManualFields: manualFields,
+    };
+  }
+
   const translation = await ProductCatalogTranslationCache.findOneAndUpdate(
     { entityId: productId, targetLang },
     { $set: catalogUpdate },
