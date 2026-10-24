@@ -5,6 +5,7 @@
 ## Tài liệu chuẩn theo chủ đề
 
 - Dịch sản phẩm, validator, assistant draft, approval và readiness: [TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md](TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md).
+- Dịch và duyệt thủ công qua tải lên bản dịch (assistant batch): [MANUAL_TRANSLATION_ASSISTANT_BATCH_RUNBOOK.md](MANUAL_TRANSLATION_ASSISTANT_BATCH_RUNBOOK.md).
 - Tổng hợp vấn đề và tiến độ phiên 2026-10-21: [TRANSLATION_SESSION_ISSUES_2026-10-21.md](TRANSLATION_SESSION_ISSUES_2026-10-21.md).
 - Backup/restore MongoDB: [MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md](MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md).
 - Contract ảnh sản phẩm khi import/storefront: [PRODUCT_IMAGE_REQUIREMENTS.md](PRODUCT_IMAGE_REQUIREMENTS.md).
