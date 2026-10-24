@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Falha ao salvar override",
+  "error_saving_override": "Erro ao salvar override",
+  "failed_load_namespace": "Falha ao carregar namespace",
+  "error_fetching_health_data": "Erro ao buscar dados de saúde",
+  "error_fetching_logs": "Erro ao buscar logs",
+  "error_fetching_languages": "Erro ao buscar idiomas",
+  "error_fetching_supported_languages": "Erro ao buscar idiomas suportados",
+  "failed_fetch_products": "Falha ao buscar produtos",
+  "failed_fetch_deleted_products": "Falha ao buscar produtos excluídos",
+  "http_error_status": "Erro HTTP! status: {status}",
+  "failed_create_shipment": "Falha ao criar envio",
+  "failed_update_translation": "Falha ao atualizar tradução",
+  "failed_delete_product": "Falha ao excluir produto",
+  "failed_import_products": "Falha ao importar produtos",
+  "network_timeout": "Tempo limite de solicitação de rede"
+}

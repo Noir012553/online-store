@@ -1,0 +1,22 @@
+{
+  "required_fields": "Faltan campos requeridos",
+  "already_created": "El envío ya ha sido creado para este pedido",
+  "invalid_provider": "Proveedor de envío inválido",
+  "missing_info": "Falta información de envío",
+  "no_service_available": "No hay servicio de envío disponible para esta dirección",
+  "unsupported_carrier": "Empresa de envío no soportada",
+  "create_success": "Envío creado correctamente",
+  "createSuccess": "Envío creado correctamente",
+  "not_found": "Envío no encontrado",
+  "invalid_status": "Estado de envío inválido: {status}",
+  "cancel_success": "Envío cancelado correctamente",
+  "noServiceAvailable": "No hay ningún servicio disponible",
+  "currencyMetadataMissing": "Los metadatos de moneda no están disponibles para {{currencyCode}}",
+  "ratesUnavailable": "Los tipos de cambio no están disponibles temporalmente",
+  "providerRequestFailed": "El proveedor de envío no pudo procesar la solicitud de envío",
+  "invalidFee": "El proveedor de envío devolvió una tarifa de envío no válida",
+  "orderCurrencyUnavailable": "Los datos de moneda del pedido no están disponibles",
+  "printTokenFailed": "No se pudo generar la etiqueta de envío",
+  "locationSyncSuccess": "Datos de ubicación sincronizados correctamente",
+  "locationSyncFailed": "No se pudieron sincronizar los datos de ubicación"
+}

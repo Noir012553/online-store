@@ -1,0 +1,21 @@
+{
+  "same_district_free_shipping": "Hetzelfde district - Gratis verzending",
+  "province_id_required": "Provincie-ID is vereist",
+  "district_id_required": "District-ID is vereist",
+  "weight_must_be_positive": "Het gewicht moet groter zijn dan 0",
+  "shipping_address_required": "Verzendadres vereist",
+  "invalid_shipping_data": "Ongeldige verzendgegevens",
+  "ghnDistrictError": "Fout bij ophalen districtgegevens van GHN: {{error}}",
+  "ghnWardError": "Fout bij ophalen wijkgegevens van GHN: {{error}}",
+  "missingParametersService": "Parameters voor de verzendservice ontbreken",
+  "noProvidersConfigured": "Er zijn geen verzendproviders geconfigureerd",
+  "cannotCalculateFee": "De verzendkosten kunnen niet worden berekend",
+  "provinceIdRequired": "De provincie- of stads-ID is vereist",
+  "districtIdRequired": "De district-ID is vereist",
+  "sameDistrictFree": "Hetzelfde district - Gratis verzending",
+  "standardServiceName": "Standaardservice",
+  "standardServiceDesc": "Levering binnen 3–5 dagen",
+  "expressServiceName": "Expressservice",
+  "expressServiceDesc": "Levering binnen 1–2 dagen",
+  "calculateFeeFailed": "De verzendkosten kunnen niet worden berekend: {{error}}"
+}

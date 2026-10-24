@@ -1,0 +1,228 @@
+[
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-violet",
+    "ScrapeRunID": "20261015T121704Z",
+    "ScrapeCapturedAt": "2026-10-15T12:17:04Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "FLEsports",
+      "ProductID": "ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-violet",
+      "ProductName": "Bàn phím FL-Esports CMK75 Không dây Desert Grey Blue FLCMMK Ice Violet",
+      "ProductSKU": "KB-FLE-CMK75-DESERT-GREY-FLCMMK-ICE-VIOLET",
+      "ProductPriceVND": 1490000,
+      "ProductRegularPriceVND": 2499000,
+      "ProductCategory": "Keyboard",
+      "ProductSpecifications": {
+        "Kích thước/Layout": "75%",
+        "Số lượng phím": "82 phím",
+        "Phương thức kết nối": "Wireless 2.4GHz;Bluetooth;USB-C",
+        "Chất liệu Keycap": "PBT",
+        "Chất liệu vỏ": "Nhựa",
+        "Đèn LED": "RGB"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Kích thước/Layout\": \"75%\", \"Số lượng phím\": \"82 phím\", \"Phương thức kết nối\": \"Wireless 2.4GHz;Bluetooth;USB-C\", \"Chất liệu Keycap\": \"PBT\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"RGB\"}",
+      "ProductDescription": "FL-Esports CMK75 Desert Grey Blue dòng bàn phím cơ sở hữu thiết kế Tenkeyless nhỏ gọn, phối màu độc đáo cùng các chi tiết góc cạnh mạnh mẽ. Nổi bật với việc sử dụng bộ công tắc cơ học cho cảm giác gõ chắc chắn, êm tay. Hứa hẹn đây sẽ là một trong những mẫu bàn phím không dây rất đáng trải nghiệm.\n\nPhối màu độc đáo, đầy sáng tạo\n\nFL-Esports mang đến thị trường dòng sản phẩm bàn phím máy tính chất lượng với thiết kế ấn tượng. Sự mix&match giữa những gam vào nổi bật đen, xám và xanh Neon cùng các chi tiết góc cạnh đầy mạnh mẽ tạo nên tổng thể đầy sáng tạo, tăng thêm phấn khích khi sử dụng. Người chơi có thể xem đây như là một trong những vật trang trí độc đáo khi kết hợp cùng nhiều thiết bị khác như chuột máy tính , tai nghe gaming,...\n\nLayout 75%, 82 nút phím\n\nNgoài việc thiết kế hầm hố đậm chất Gaming, FL-Esports CMK75 Desert Grey Blue còn sở hữu Layout Tenkeyless 75% phím bấm cùng núm xoay tiện lợi, tinh tế và trọng lượng chỉ với 790 gram để người chơi có thể cất gọn trong balo cùng nhiều phụ kiện Gaming Gear như chuột không dây , tai nghe Bluetooth ,..để bạn có thể sử dụng ở bất kỳ đâu khi cần.\n\nHệ thống led RGB\n\nĐể tăng thêm phần nổi bật cho dòng bàn phím máy tính mới nhất của mình, FL-Esports CMK75 Desert Grey Blue được tích hợp LED RGB cùng nhiều hiệu ứng chiếu sáng lấp lánh, độc đáo  tạo ra không gian sống động. Đặc biệt là trong môi trường tối tăng thêm hứng thú, động lực và sự thoải mái trong việc trải nghiệm game yêu thích.\n\n3 mode kết nối khác nhau (USB/2.4/Bluetooth)\n\nĐể người dùng có những trải nghiệm tốt nhất trên nhiều thiết bị khác nhau, người dùng hoàn toàn có thể kết nối bàn phím FL-Esports CMK75 Desert Grey Blue với PC và cả laptop thông qua cổng USB hoặc công nghệ không dây Bluetooth hoặc Wireless 2.4G.\n\nThêm một điểm cộng trên dòng bàn phím FL-Esports chính là khả năng kết nối vô cùng đa dạng. Người dùng có thể kết nối và sử dụng bàn phím cùng với máy tính sử dụng hệ điều hành Windows và MacOS vô cùng đơn giản.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink_df1e99a7e5984d099dea776d994b22c8_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink-1_f1e3a6d6ecc24e248554629ebf910d03_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink-2_1497dac196b941839737b53466d6a962_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/51907_ban_phim_co_fl_esports_cmk75_sam_desert_grey_flcmmk_1_cf27ca3b5e504fe0ac9489bb6cd76549.jpg",
+      "ProductMainImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/51907_ban_phim_co_fl_esports_cmk75_sam_desert_grey_flcmmk_2_39349c7afdf74e30b42310bccb914b6b.jpg",
+        "https://product.hstatic.net/200000722513/product/51907_ban_phim_co_fl_esports_cmk75_sam_desert_grey_flcmmk_3_e691bbc1740f4d7ebcf9498e36713061.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/gallery-01.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/a8b077d335b5bb16b3c26d1b/gallery-02.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-violet"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink",
+    "ScrapeRunID": "20261015T121704Z",
+    "ScrapeCapturedAt": "2026-10-15T12:17:04Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "FLEsports",
+      "ProductID": "ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink",
+      "ProductName": "Bàn phím FL-Esports CMK75 Không dây Desert Grey Blue FLCMMK Ice Pink",
+      "ProductSKU": "KB-FLE-CMK75-DESERT-GREY-FLCMMK-ICE-PINK",
+      "ProductPriceVND": 1490000,
+      "ProductRegularPriceVND": 2499000,
+      "ProductCategory": "Keyboard",
+      "ProductSpecifications": {
+        "Kích thước/Layout": "75%",
+        "Số lượng phím": "82 phím",
+        "Phương thức kết nối": "Wireless 2.4GHz;Bluetooth;USB-C",
+        "Chất liệu Keycap": "PBT double",
+        "Chất liệu vỏ": "Nhựa",
+        "Đèn LED": "RGB"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Kích thước/Layout\": \"75%\", \"Số lượng phím\": \"82 phím\", \"Phương thức kết nối\": \"Wireless 2.4GHz;Bluetooth;USB-C\", \"Chất liệu Keycap\": \"PBT double\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"RGB\"}",
+      "ProductDescription": "FL-Esports CMK75 Desert Grey Blue dòng bàn phím cơ sở hữu thiết kế Tenkeyless nhỏ gọn, phối màu độc đáo cùng các chi tiết góc cạnh mạnh mẽ. Nổi bật với việc sử dụng bộ công tắc cơ học cho cảm giác gõ chắc chắn, êm tay. Hứa hẹn đây sẽ là một trong những mẫu bàn phím FL-Esports rất đáng trải nghiệm.\n\nPhối màu độc đáo, đầy sáng tạo\n\nFL-Esports mang đến thị trường dòng sản phẩm bàn phím máy tính chất lượng với thiết kế ấn tượng. Sự mix&match giữa những gam vào nổi bật đen, xám và xanh Neon cùng các chi tiết góc cạnh đầy mạnh mẽ tạo nên tổng thể đầy sáng tạo, tăng thêm phấn khích khi sử dụng. Người chơi có thể xem đây như là một trong những vật trang trí độc đáo khi kết hợp cùng nhiều thiết bị khác như chuột máy tính , tai nghe gaming,...\n\nLayout 75%, 82 nút phím\n\nNgoài việc thiết kế hầm hố đậm chất Gaming, FL-Esports CMK75 Desert Grey Blue còn sở hữu Layout Tenkeyless 75% phím bấm cùng núm xoay tiện lợi, tinh tế và trọng lượng chỉ với 790 gram để người chơi có thể cất gọn trong balo cùng nhiều phụ kiện Gaming Gear như chuột không dây , tai nghe Bluetooth ,..để bạn có thể sử dụng ở bất kỳ đâu khi cần.\n\nHệ thống led RGB\n\nĐể tăng thêm phần nổi bật cho dòng bàn phím máy tính mới nhất của mình, FL-Esports CMK75 Desert Grey Blue được tích hợp LED RGB cùng nhiều hiệu ứng chiếu sáng lấp lánh, độc đáo  tạo ra không gian sống động. Đặc biệt là trong môi trường tối tăng thêm hứng thú, động lực và sự thoải mái trong việc trải nghiệm game yêu thích.\n\n3 mode kết nối khác nhau (USB/2.4/Bluetooth)\n\nĐể người dùng có những trải nghiệm tốt nhất trên nhiều thiết bị khác nhau, người dùng hoàn toàn có thể kết nối bàn phím FL-Esports CMK75 Desert Grey Blue với PC và cả laptop thông qua cổng USB hoặc công nghệ không dây Bluetooth hoặc Wireless 2.4G.\n\nThêm một điểm cộng trên dòng bàn phím FL-Esports chính là khả năng kết nối vô cùng đa dạng. Người dùng có thể kết nối và sử dụng bàn phím cùng với máy tính sử dụng hệ điều hành Windows và MacOS vô cùng đơn giản.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink_df1e99a7e5984d099dea776d994b22c8_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink-1_f1e3a6d6ecc24e248554629ebf910d03_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink-2_1497dac196b941839737b53466d6a962_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-desert-grey-002-removebg-preview_e7ae2db90a984e9389873e13a92ced60.png",
+      "ProductMainImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-desert-grey-001-removebg-preview_23a18b5201254f4c90b5b495d807bef7.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-desert-grey-1-removebg-preview_02cfabc7391943829c3dbbdf72287af3.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-desert-grey-003-removebg-preview_fd241b02822e47238a15d4f05a808cbc.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/gallery-01.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/gallery-02.png",
+        "images/20261015T121704Z/FLEsports_Keyboard/78f8d3fdd2105f9a7df567b4/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-desert-grey-blue-flcmmk-ice-pink"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+    "ScrapeRunID": "20261015T121704Z",
+    "ScrapeCapturedAt": "2026-10-15T12:17:04Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "FLEsports",
+      "ProductID": "ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+      "ProductName": "Bàn phím FL-Esports CMK75 Không dây Lake Placid Blue FLCMMK Ice Violet",
+      "ProductSKU": "KB-FLE-CMK75-LAKE-PLACID-BLUE-FLCMMK-ICE-VIOLET",
+      "ProductPriceVND": 1490000,
+      "ProductRegularPriceVND": 2499000,
+      "ProductCategory": "Keyboard",
+      "ProductSpecifications": {
+        "Kích thước/Layout": "75%",
+        "Số lượng phím": "82 phím",
+        "Phương thức kết nối": "Wireless 2.4GHz;Bluetooth;USB-C",
+        "Chất liệu Keycap": "PBT",
+        "Chất liệu vỏ": "Nhựa",
+        "Đèn LED": "RGB"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Kích thước/Layout\": \"75%\", \"Số lượng phím\": \"82 phím\", \"Phương thức kết nối\": \"Wireless 2.4GHz;Bluetooth;USB-C\", \"Chất liệu Keycap\": \"PBT\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"RGB\"}",
+      "ProductDescription": "Đặc biệt: Trang bị màn hình có thể customize qua phần mềm (http://flesports.com/en/down/)\n\nĐánh giá chi tiết FL-Esports CMK75 Lake Placid Blue\n\nFL-Esports CMK75 Lake Placid Blue dòng bàn phím cơ sở hữu thiết kế nhỏ gọn với Layout 75%, phối màu Pastel ngọt ngào Lake Placid Blue cùng các chi tiết được gia công tỉ mỉ. Nổi bật với việc sử dụng bộ công tắc cơ học cho cảm giác gõ chắc chắn, êm tay. Hứa hẹn đây sẽ là một trong những mẫu bàn phím FL-Esports rất đáng trải nghiệm.\n\nPhối màu Lake Placid Blue độc đáo\n\nFL-Esports CMK75 dòng bàn phím máy tính sở hữu phối màu vô cùng độc đáo, sự kết hợp hài hòa giữa cáp gam màu Pastel nhẹ nhàng, sang trọng. Để vẻ ngoài thêm phần tinh tế, các chi tiết trên dòng bàn phím FL-Esports CMK75 được gia công vô cùng tỉ mỉ. Người chơi có thể xem đây như là một trong những vật trang trí độc đáo khi kết hợp cùng nhiều thiết bị khác như chuột máy tính , tai nghe gaming ,...tăng thêm thẩm mỹ cho góc máy làm việc & giải trí.\n\nLayout 75% phím tiện lợi\n\nTạo nên góc PC gọn gàng và vô cùng tiện lợi khi di chuyển nhờ vào Layout 75% phím bấm nhưng vẫn giữ nguyên hàng phím Function, tích hợp nhiều phím tắt nhanh cùng núm xoay tiện lợi. Hứa hẹn FL-Esports CMK75 Lake Placid Blue sẽ là sự lựa chọn lý tưởng cho những người cần làm việc từ xa hoặc di chuyển nhiều, nhưng vẫn cần một bàn phím tiện lợi.\n\nHơn thế nữa, trọng lượng vô cùng nhẹ ~ 790g để người chơi có thể cất gọn trong balo cùng nhiều phụ kiện Gaming Gear như chuột không dây , tai nghe Bluetooth ,..để bạn có thể sử dụng ở bất kỳ đâu khi cần.\n\nHiệu ứng chiếu sáng RGB lấp lánh\n\nĐể tăng thêm phần độc đáo cho dòng bàn phím FL-Esports mới nhất trong Series CMK75, hãng đã tích hợp hệ thống chiếu sáng led RGB cùng nhiều hiệu ứng có thể tùy chỉnh theo sở thích giúp hiển thị tốt hơn, tăng thêm thẩm mỹ và tạo trải nghiệm thú vị khi gõ phím hoặc chơi game.\n\nCảm giác bấm chắc chắn, êm tay\n\nMột trong những điểm nổi bật trên dòng bàn phím cơ gaming FL-Esports CMK75 Lake Placid Blue là sở hữu cảm giác gõ phím chắc chắn, êm tay. Nhờ vào việc sử dụng bộ công tắc cơ học FLCMMK người dùng sẽ cảm nhận trải nghiệm gõ phím nhanh và vô cùng chính xác.\n\n3 mode kết nối khác nhau (USB/2.4/Bluetooth)\n\nĐể người dùng có những trải nghiệm tốt nhất trên nhiều thiết bị khác nhau, người dùng hoàn toàn có thể kết nối bàn phím FL-Esports CMK75 Lake Placid Blue với PC và cả laptop thông qua cáp USB rời hoặc công nghệ không dây ( bàn phím Bluetooth hoặc Wireless 2.4G) với độ trễ cực kỳ thấp, phạm vi kết nối rộng lớn.\n\nThêm một điểm cộng trên dòng bàn phím FL-Esports chính là khả năng kết nối vô cùng đa dạng. Người dùng có thể kết nối và sử dụng bàn phím cùng với máy tính sử dụng hệ điều hành Windows / macOS / iOS / Android vô cùng đơn giản.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet-1_abf60735df654017bcc65cfe83312bf4_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet_1e64cc9f91444124a9270397db8a6838_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet-2_8baff623a9ca42298f90ec108e80a859_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-removebg-preview_c609aacc37104f7e88dd1308ddfbf240.png",
+      "ProductMainImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-001-removebg-preview_0842d52a60cb46a088cff3fbd22d8cbc.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-sam-lake-placid-blue-removebg-preview_97484d9acc4042a9b382ddbbebb58484.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-002-removebg-preview_52fa881bebaa4cc2b730c5c6a7a79139.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/gallery-01.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/gallery-02.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/547d858834b5120fd423a3da/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-pink",
+    "ScrapeRunID": "20261015T121704Z",
+    "ScrapeCapturedAt": "2026-10-15T12:17:04Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "FLEsports",
+      "ProductID": "ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-pink",
+      "ProductName": "Bàn phím FL-Esports CMK75 Không dây Lake Placid Blue FLCMMK Ice Pink",
+      "ProductSKU": "KB-FLE-CMK75-LAKE-PLACID-BLUE-FLCMMK-ICE-PINK",
+      "ProductPriceVND": 1490000,
+      "ProductRegularPriceVND": 2499000,
+      "ProductCategory": "Keyboard",
+      "ProductSpecifications": {
+        "Kích thước/Layout": "75%",
+        "Số lượng phím": "82 phím",
+        "Phương thức kết nối": "Wireless 2.4GHz;Bluetooth;USB-C;USB",
+        "Chất liệu Keycap": "ABS",
+        "Chất liệu vỏ": "Nhựa",
+        "Đèn LED": "RGB"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Kích thước/Layout\": \"75%\", \"Số lượng phím\": \"82 phím\", \"Phương thức kết nối\": \"Wireless 2.4GHz;Bluetooth;USB-C;USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"RGB\"}",
+      "ProductDescription": "Đánh giá chi tiết FL-Esports CMK75 Lake Placid Blue\n\nFL-Esports CMK75 Lake Placid Blue dòng bàn phím cơ sở hữu thiết kế nhỏ gọn với Layout 75%, phối màu Pastel ngọt ngào Lake Placid Blue cùng các chi tiết được gia công tỉ mỉ. Nổi bật với việc sử dụng bộ công tắc cơ học cho cảm giác gõ chắc chắn, êm tay. Hứa hẹn đây sẽ là một trong những mẫu bàn phím FL-Esports rất đáng trải nghiệm.\n\nPhối màu Lake Placid Blue độc đáo\n\nFL-Esports CMK75 dòng bàn phím máy tính sở hữu phối màu vô cùng độc đáo, sự kết hợp hài hòa giữa cáp gam màu Pastel nhẹ nhàng, sang trọng. Để vẻ ngoài thêm phần tinh tế, các chi tiết trên dòng bàn phím FL-Esports CMK75 được gia công vô cùng tỉ mỉ. Người chơi có thể xem đây như là một trong những vật trang trí độc đáo khi kết hợp cùng nhiều thiết bị khác như chuột máy tính , tai nghe gaming ,...tăng thêm thẩm mỹ cho góc máy làm việc & giải trí.\n\nLayout 75% phím tiện lợi\n\nTạo nên góc PC gọn gàng và vô cùng tiện lợi khi di chuyển nhờ vào Layout 75% phím bấm nhưng vẫn giữ nguyên hàng phím Function, tích hợp nhiều phím tắt nhanh cùng núm xoay tiện lợi. Hứa hẹn FL-Esports CMK75 Lake Placid Blue sẽ là sự lựa chọn lý tưởng cho những người cần làm việc từ xa hoặc di chuyển nhiều, nhưng vẫn cần một bàn phím tiện lợi.\n\nHơn thế nữa, trọng lượng vô cùng nhẹ ~ 790g để người chơi có thể cất gọn trong balo cùng nhiều phụ kiện Gaming Gear như chuột không dây , tai nghe Bluetooth ,..để bạn có thể sử dụng ở bất kỳ đâu khi cần.\n\nHiệu ứng chiếu sáng RGB lấp lánh\n\nĐể tăng thêm phần độc đáo cho dòng bàn phím FL-Esports mới nhất trong Series CMK75, hãng đã tích hợp hệ thống chiếu sáng led RGB cùng nhiều hiệu ứng có thể tùy chỉnh theo sở thích giúp hiển thị tốt hơn, tăng thêm thẩm mỹ và tạo trải nghiệm thú vị khi gõ phím hoặc chơi game.\n\nCảm giác bấm chắc chắn, êm tay\n\nMột trong những điểm nổi bật trên dòng bàn phím cơ gaming FL-Esports CMK75 Lake Placid Blue là sở hữu cảm giác gõ phím chắc chắn, êm tay. Nhờ vào việc sử dụng bộ công tắc cơ học FLCMMK người dùng sẽ cảm nhận trải nghiệm gõ phím nhanh và vô cùng chính xác.\n\n3 mode kết nối khác nhau (USB/2.4/Bluetooth)\n\nĐể người dùng có những trải nghiệm tốt nhất trên nhiều thiết bị khác nhau, người dùng hoàn toàn có thể kết nối bàn phím FL-Esports CMK75 Lake Placid Blue với PC và cả laptop thông qua cáp USB rời hoặc công nghệ không dây ( bàn phím Bluetooth hoặc Wireless 2.4G) với độ trễ cực kỳ thấp, phạm vi kết nối rộng lớn.\n\nThêm một điểm cộng trên dòng bàn phím FL-Esports chính là khả năng kết nối vô cùng đa dạng. Người dùng có thể kết nối và sử dụng bàn phím cùng với máy tính sử dụng hệ điều hành Windows / macOS / iOS / Android vô cùng đơn giản.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet-1_abf60735df654017bcc65cfe83312bf4_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet_1e64cc9f91444124a9270397db8a6838_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet-2_8baff623a9ca42298f90ec108e80a859_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-violet",
+          "ProductDescriptionImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-removebg-preview_57d2e6f848714dd8a6dd4ee7a2daf6d0.png",
+      "ProductMainImageLocalPath": "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-001-removebg-preview_a8bba20c02d94e1e8941676e0b38cde9.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-lake-placid-blue-002-removebg-preview_e894e5a0693643a19b501e67b0fbdf82.png",
+        "https://product.hstatic.net/200000722513/product/fl-esports-cmk75-sam-lake-placid-blue-removebg-preview_7836c6162f004544973e428868767792.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/gallery-01.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/gallery-02.webp",
+        "images/20261015T121704Z/FLEsports_Keyboard/713a903a3cf83135e6c8dc8a/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/ban-phim-fl-esports-cmk75-lake-placid-blue-flcmmk-ice-pink"
+    }
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "keyboard": "Keyboard",
+  "keyboard_desc": "High-quality computer keyboards with modern design and advanced features",
+  "mouse": "Mouse",
+  "mouse_desc": "Ergonomic computer mice with high precision",
+  "headphones": "Headphones",
+  "headphones_desc": "Computer headphones with vibrant sound and quality microphone",
+  "cooling": "Cooling",
+  "cooling_desc": "Effective computer cooling solutions to manage heat issues",
+  "gaming_laptop": "Gaming Laptop",
+  "gaming_laptop_desc": "High-performance gaming laptops with powerful GPUs",
+  "office_laptop": "Office Laptop",
+  "office_laptop_desc": "Lightweight office laptops with long battery life",
+  "category_keyboard": "Keyboard",
+  "category_mouse": "Mouse",
+  "category_headphones": "Headphones",
+  "category_cooling": "Cooling",
+  "category_gaming_laptop": "Gaming Laptop",
+  "category_office_laptop": "Office Laptop"
+}

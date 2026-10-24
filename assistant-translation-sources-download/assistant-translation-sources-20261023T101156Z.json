@@ -1,0 +1,340 @@
+{
+  "workflow": "assistant_batch",
+  "languages": [
+    "en",
+    "pt",
+    "fr",
+    "de",
+    "it",
+    "es",
+    "nl",
+    "sv"
+  ],
+  "products": [
+    {
+      "productId": "6ad0ca970069aece85a8c5de",
+      "sku": "LAP-ACER-NITRO-V-ANV15-52-50VA",
+      "sourceHash": "151fa53057490b37a1ff8251cecd7a0cdfacd1d48ba6d0613d14dcec3e4c0380",
+      "source": {
+        "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-50VA (Core 5-210H/ RTX 3050/ 16GB/ 512GB/ 15.6\" FHD/ Win 11)",
+        "description": "Khám phá laptop gaming Acer Nitro V 15 ProPanel ANV15-52-50VA\n\nLaptop gaming Acer Nitro V 15 ProPanel ANV15-52-50VA được sinh ra để “chiến game” với vi xử lý Intel Core 5 210H thế hệ mới, xung nhịp tối đa lên tới 4.8GHz, xử lý tốt các tựa game nặng, dựng video hay làm đồ họa mà vẫn giữ được độ mượt mà. Kết hợp cùng card đồ họa NVIDIA GeForce RTX 3050 với 2560 nhân CUDA , laptop gaming dễ dàng cân các game AAA , hỗ trợ ray-tracing cho hình ảnh sống động và đã mắt hơn hẳn.\n\nRAM DDR5, SSD NVMe cho trải nghiệm “nhanh – mượt – nhiều”\n\nMáy được trang bị 16GB RAM DDR5 5200MHz, cho khả năng đa nhiệm linh hoạt. Với đó, bạn có thể vừa chơi game, vừa mở trình duyệt, Discord, Spotify… mà hệ thống vẫn phản hồi nhanh. Ổ cứng 512GB PCIe NVMe SSD giúp vào Windows, mở game và phần mềm nặng cực nhanh, đồng thời hỗ trợ nâng cấp tối đa lên tới 4TB nếu sau này bạn muốn lưu thêm nhiều game hoặc project đồ họa.\n\nMàn hình ProPanel 180Hz chuẩn màu 100% sRGB\n\nNitro V 15 sở hữu màn hình 15.6 inch độ phân giải Full HD , tần số quét đến 180Hz, độ sáng 300 nits đúng chuẩn tạo ra các hình ảnh “mượt mắt” cho cả game lẫn sáng tạo nội dung. Tấm nền LED-backlit TFT LCD với thời gian phản hồi 3ms và góc nhìn rộng giúp hình ảnh rõ, giảm bóng mờ.\n\nThiết kế gaming chắc chắn, bàn phím đèn nền nổi bật\n\nMáy mang phong cách gaming hiện đại với các đường cắt sắc nét, tông màu đen cá tính, tạo cảm giác khỏe khoắn ngay từ cái nhìn đầu tiên. Bàn phím có đèn nền màu hổ phách, giúp thao tác thuận tiện trong điều kiện thiếu sáng, đồng thời tăng “chất” gaming cho góc máy của bạn.\n\nPin 57Wh và cổng kết nối đầy đủ cho game thủ\n\nLaptop đi kèm viên pin 57Wh cùng adapter 135W đủ đáp ứng các buổi làm việc, học tập hoặc giải trí liên tục mà không phải cắm sạc mọi lúc. Hệ thống cổng kết nối phong phú gồm cùng Wi-Fi 6 và Bluetooth 5.2, giúp bạn dễ dàng kết nối màn hình , chuột , tai nghe , mạng LAN ổn định để chơi game “hết mình”.\n\nMua ngay Acer Nitro V 15 ProPanel ANV15-52-50VA tại GearVN\n\nSở hữu Intel Core 5 210H, RTX 3050, RAM DDR5 16GB và SSD NVMe 512GB, Nitro V 15 ProPanel ANV15-52-50VA cho bạn trải nghiệm “nhanh – mượt – nhiều” từ game AAA đến dựng video, làm đồ họa mỗi ngày. Đặt mua ngay tại GearVN để rinh về máy chính hãng, giá tốt, hỗ trợ tận tình và sẵn sàng đồng hành cùng bạn trong mọi trận rank lẫn deadline.",
+        "brand": "Acer",
+        "specs": {
+          "cpu": "Core 5",
+          "ram": "16GB",
+          "storage": "512GB",
+          "gpu": "RTX 3050",
+          "kich_thuoc_man_hinh": "15.6 \"",
+          "o_phan_giai": "Full HD (1920x1080)"
+        },
+        "technicalDescription": "Thông số: {\"Dòng CPU\": \"Core 5\", \"Dung lượng RAM\": \"16 GB\", \"Dung lượng SSD\": \"512 GB\", \"Dòng GPU\": \"RTX 3050\", \"Kích thước màn hình\": \"15.6 inch\", \"Độ phân giải\": \"Full HD (1920x1080)\"}",
+        "descriptionImages": [
+          {
+            "url": "https://cdn.manln.online/products/e4356217c2784cb1462c9995/description/7561757dc9930c9330ef58f51676bed79bc3d2de45986461e25babf07e69cb25.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV15-52-50VA có CPU Intel Core 5 210H"
+          },
+          {
+            "url": "https://cdn.manln.online/products/e4356217c2784cb1462c9995/description/1460a1a07080fed661c2422d95753be42589e9132cdfe913b67ca6fb8dd12eb5.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV15-52-50VA có SSD NVMe với tốc độ lưu trữ cao"
+          },
+          {
+            "url": "https://cdn.manln.online/products/e4356217c2784cb1462c9995/description/7080ae739c6a8e9654b4648d44622f39698692f25f19388e81d9833bb6dcf3a7.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV15-52-50VA có màn hình ProPanel 180Hz"
+          },
+          {
+            "url": "https://cdn.manln.online/products/e4356217c2784cb1462c9995/description/b88d868acc856838130508a4a6a08fba12eca12658347b9f9f5b14f87be269bd.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV15-52-50VA sở hữu thiết kế gaming chắc chắn"
+          },
+          {
+            "url": "https://cdn.manln.online/products/e4356217c2784cb1462c9995/description/e1bee6dd6c35089ea0c70e0c1c45cb7dd553b6cf76f1f737a1220e13ebe2abac.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV15-52-50VA có viên pin 57Wh"
+          }
+        ],
+        "promotions": [
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Balo Acer Predator SUV",
+            "giftProductUrl": "https://gearvn.com/products/balo-acer-gaming-suv",
+            "scope": "",
+            "discountText": ""
+          },
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Chuột Logitech G304 Wireless (trị giá 725.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Chuột Logitech G304 Wireless",
+            "giftProductUrl": "https://gearvn.com/products/chuot-logitech-g304-lightspeed-wireless",
+            "scope": "",
+            "discountText": ""
+          }
+        ]
+      },
+      "existingTranslations": {
+        "en": null,
+        "pt": null,
+        "fr": null,
+        "de": null,
+        "it": null,
+        "es": null,
+        "nl": null,
+        "sv": null
+      }
+    },
+    {
+      "productId": "6ad0ca970069aece85a8c5e3",
+      "sku": "LAP-ACER-NITRO-V-ANV16S-61-R9ZV",
+      "sourceHash": "ac5670b758579f2538005c9878130a358ae6f9b1ca6f15d6a7c59417a65ebfad",
+      "source": {
+        "name": "Laptop gaming Acer Nitro ProPanel ANV16S-61-R9ZV (Ryzen AI 7 350/ RTX 5060 8GB/ 32GB/ 1TB/ 16\" 2K+ IPS 180Hz/ Win 11)",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá Acer Nitro V 16S Propanel ANV16S 61 R9ZV\n\nAcer Nitro V 16S ProPanel ANV16S 61 R9ZV gây ấn tượng mạnh mẽ với người dùng ngay từ cái nhìn đầu tiên nhờ vẻ ngoài thanh lịch và tối giản. Thay vì những đường nét hầm hố quá đà, phiên bản này sở hữu khung máy tinh tế với lớp hoàn thiện màu Obsidian Black sang trọng, giúp hạn chế bám vân tay hiệu quả trong quá trình sử dụng. Với độ dày chỉ khoảng 19.95 mm và trọng lượng nhẹ nhàng 2.1 kg, thiết bị này thiết lập một chuẩn mực mới về tính di động cho dòng laptop gaming 16 inch. Bên cạnh đó, việc sử dụng chất liệu hợp kim nhôm cho phần nắp và mặt đáy không chỉ mang lại cảm giác cao cấp mà còn hỗ trợ tản nhiệt thụ động tốt hơn cho hệ thống.\n\nMàn hình ProPanel chuẩn màu sắc rực rỡ\n\nĐiểm giá trị nhất trên dòng máy này chính là màn hình 16 inch độ phân giải 2K+ (2560 x 1600) với tỉ lệ 16:10 mở rộng không gian hiển thị theo chiều dọc. Độ phủ màu đạt chuẩn 100% sRGB cùng độ sáng 400 nits giúp mọi hình ảnh trở nên sống động, chính xác, cực kỳ phù hợp cho các công việc thiết kế đồ họa hay dựng video chuyên nghiệp. Ngoài ra, tần số quét 180Hz cùng thời gian phản hồi nhanh 3ms giúp triệt tiêu hoàn toàn hiện tượng xé hình hay bóng mờ trong những trận game tốc độ cao. Thông qua đó, game thủ có thể tận hưởng những khung hình mượt mà nhất, đảm bảo lợi thế cạnh tranh trong mọi cuộc đối đầu gay cấn.\n\nHiệu năng AI đột phá từ thế hệ phần cứng mới\n\nSức mạnh bên trong của Acer Nitro V 16S đến từ bộ vi xử lý AMD Ryzen AI 7 350 tích hợp nhân NPU chuyên biệt cho các tác vụ trí tuệ nhân tạo với hiệu suất lên đến 50 TOPS. Kết hợp cùng card đồ họa NVIDIA GeForce RTX 5060 8GB GDDR7 thế hệ mới, máy mang lại khả năng xử lý đồ họa vượt trội và hỗ trợ các công nghệ AI tiên tiến như DLSS 4. Vì vậy, người dùng có thể hoàn toàn yên tâm về khả năng đa nhiệm cũng như tốc độ xử lý nhanh chóng mà chiếc laptop này mang lại.\n\nKhả năng lưu trữ và nâng cấp ấn tượng\n\nĐể đảm bảo trải nghiệm mượt mà lâu dài, Acer đã trang bị sẵn dung lượng RAM lên đến 32GB DDR5 tốc độ 5600MHz, cho phép bạn mở hàng chục tab trình duyệt và ứng dụng nặng cùng lúc mà không lo giật lag. Đi kèm với đó là ổ cứng SSD 1TB PCIe NVMe cung cấp không gian lưu trữ rộng lớn và tốc độ truy xuất dữ liệu cực nhanh cho các tựa game nặng. Acer Nitro V 16S hoàn toàn có thể đáp ứng hoàn hảo nhu cầu của những người dùng khó tính nhất từ giới game thủ đến các nhà sáng tạo nội dung.\n\nHệ thống tản nhiệt và kết nối toàn diện\n\nHệ thống tản nhiệt hai quạt mạnh mẽ được thiết kế tối ưu giúp duy trì nhiệt độ ổn định ngay cả khi máy đang vận hành ở cường độ cao trong thời gian dài. Các cổng kết nối trên máy cũng rất đa dạng với sự xuất hiện của USB4 Type-C hỗ trợ băng thông 40Gbps, HDMI 2.1 và cổng LAN Killer Ethernet E2600 giúp đường truyền Internet luôn ổn định. Ngoài ra, bàn phím RGB vùng rực rỡ không chỉ tăng thêm cảm hứng khi chơi game mà còn giúp người dùng dễ dàng thao tác trong điều kiện thiếu sáng. Nhờ vào sự chăm chút kỹ lưỡng này, Acer Nitro V 16S thực sự là một cỗ máy toàn diện, sẵn sàng đồng hành cùng bạn trong mọi thử thách công việc và giải trí.\n\nMua ngay siêu phẩm Acer Nitro V 16S ProPanel tại GearVN\n\nNếu bạn đang tìm kiếm một người bạn đồng hành mạnh mẽ, hội tụ đầy đủ các yếu tố từ màn hình chuẩn đồ họa đến hiệu năng AI đỉnh cao, thì đây chính là lựa chọn không thể bỏ qua. Đừng chần chừ mà hãy sở hữu ngay chiếc Acer Nitro V 16S ProPanel ANV16S 61 R9ZV để tự mình trải nghiệm sự mượt mà của thế hệ RTX 50 Series cùng chế độ bảo hành 3S1 siêu tốc từ Acer. Chắc chắn rằng vẻ ngoài lịch lãm cùng sức mạnh  bên trong của chiếc máy này sẽ khiến bạn hài lòng ngay từ lần chạm đầu tiên. Ghé ngay website hoặc cửa hàng GearVN gần nhất để nhận những ưu đãi hấp dẫn và sở hữu chiếc laptop gaming Acer Nitro V 16S ProPanel ngay hôm nay bạn nhé!",
+        "brand": "Acer",
+        "specs": {
+          "cpu": "Ryzen AI 7",
+          "ram": "32GB",
+          "storage": "1024GB",
+          "gpu": "RTX 5060",
+          "kich_thuoc_man_hinh": "16 \"",
+          "o_phan_giai": "2K+ (2560x1600)"
+        },
+        "technicalDescription": "Thông số: {\"Dòng CPU\": \"Ryzen AI 7\", \"Dung lượng RAM\": \"32 GB\", \"Dung lượng SSD\": \"1024 GB\", \"Dòng GPU\": \"RTX 5060\", \"Kích thước màn hình\": \"16 inch\", \"Độ phân giải\": \"2K+ (2560x1600)\"}",
+        "descriptionImages": [
+          {
+            "url": "https://cdn.manln.online/products/f8666a5ca9684fc31efe03a0/description/d6bf14021c51d3ff21aefac4d9e30bdb0e44f7b558448b5128374c7e38230dc2.webp",
+            "alt": "Acer Nitro V 16S Propanel được trang bị màn hình 16 inch 2K+"
+          },
+          {
+            "url": "https://cdn.manln.online/products/f8666a5ca9684fc31efe03a0/description/7e5e9d95f625a6a69063d8a51ede8c427a3814fe6cb7b4c8a2cf95d78057aa16.webp",
+            "alt": "Acer Nitro V 16S Propanel sở hữu công nghệ DLSS 4 tối tân"
+          },
+          {
+            "url": "https://cdn.manln.online/products/f8666a5ca9684fc31efe03a0/description/2bca252345c83be55cae4838808d9b9a407635ead00d9953911525b795c7db39.webp",
+            "alt": "Acer Nitro V 16S Propanel có hệ thống tản nhiệt hiện đại"
+          }
+        ],
+        "promotions": [
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Màn hình Acer KG241Y-X1 24\" IPS 200Hz Gsync chuyên game (trị giá 2.390.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Màn hình Acer KG241Y-X1 24\" IPS 200Hz Gsync chuyên game",
+            "giftProductUrl": "https://gearvn.com/products/man-hinh-acer-kg241y-x1-24-ips-200hz-gsync-chuyen-game",
+            "scope": "",
+            "discountText": ""
+          },
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Balo Acer Predator SUV",
+            "giftProductUrl": "https://gearvn.com/products/balo-acer-gaming-suv",
+            "scope": "",
+            "discountText": ""
+          }
+        ]
+      },
+      "existingTranslations": {
+        "en": null,
+        "pt": null,
+        "fr": null,
+        "de": null,
+        "it": null,
+        "es": null,
+        "nl": null,
+        "sv": null
+      }
+    },
+    {
+      "productId": "6ad0ca970069aece85a8c5e4",
+      "sku": "LAP-ACER-NITRO-ANV16S-71-58WQ",
+      "sourceHash": "c5f987afd070952dfa16d2d1bd94fc4e3ffb5f64d6680d252a7a7d51d30661f2",
+      "source": {
+        "name": "Laptop gaming Acer Nitro ProPanel ANV16S-71-58WQ (Core 5-210H/ RTX 5050/ 32GB/ 512GB/ 16\" 2K+ IPS 180Hz/ Win 11)",
+        "description": "Khám phá laptop gaming Acer Nitro ProPanel ANV16S-71-58WQ\n\nLaptop gaming Acer Nitro ProPanel ANV16S-71-58WQ là lựa chọn đáng chú ý cho game thủ và người dùng sáng tạo nội dung cần hiệu năng cao, màn hình đẹp cùng khả năng xử lý AI mạnh mẽ. Máy được trang bị CPU Intel Core 5 , RAM DDR5, GPU RTX 5050 8GB GDDR7 đáp ứng tốt cả nhu cầu chơi game lẫn làm việc đa nhiệm nặng. Với thiết kế gaming hiện đại và nhiều công nghệ mới, đây là mẫu laptop gaming phù hợp cho những ai muốn “bước vào kỷ nguyên AI” trên một thiết bị di động.\n\nCPU Intel Core 5-210H và kỷ nguyên AI 440 TOPS\n\nĐiểm nổi bật về sức mạnh của Acer Nitro ProPanel ANV16S-71-58WQ là bộ vi xử lý Intel Core 5 210H với 8 lõi, 12 luồng cùng với 12MB Intel Smart Cache. CPU này không chỉ mang lại hiệu suất tốt cho các tác vụ chơi game, làm việc văn phòng, chỉnh sửa video mà còn hỗ trợ hiệu năng AI ấn tượng lên đến 440 TOPS từ nền tảng tổng thể. Bên cạnh đó, laptop văn phòng còn tích hợp phím tắt Copilot chuyên dụng, mảng 3 micro và công nghệ Acer Purified Voice giúp khử nhiễu bằng AI, nâng cao chất lượng đàm thoại và hỗ trợ tốt cho họp online hay làm việc từ xa.\n\nGPU RTX 5050 8GB GDDR7 cho trải nghiệm game mượt mà\n\nAcer Nitro ProPanel ANV16S-71-58WQ được trang bị card đồ họa NVIDIA GeForce RTX 5050 với 8GB bộ nhớ GDDR7 hiện đại, mang lại sức mạnh xử lý đồ họa đáng kể cho các tựa game mới và ứng dụng đồ họa. GPU RTX 5050 còn hỗ trợ các công nghệ đồ họa và AI tiên tiến, giúp khung hình mượt hơn, chất lượng hình ảnh sắc nét và hiệu ứng chân thực hơn. Khi kết hợp cùng CPU Intel Core 5 210H, máy đủ khả năng chiến tốt nhiều tựa game nặng, đồng thời xử lý các tác vụ thiết kế, dựng video hoặc render 3D ở mức độ ổn định.\n\nRAM 32GB DDR5 và SSD 512GB mở rộng linh hoạt\n\nMáy được trang bị sẵn 32GB RAM DDR5 với tốc độ lên tới 5600MHz cho khả năng đa nhiệm vượt trội. Hệ thống còn hỗ trợ tối đa 96GB RAM cho người dùng muốn nâng cấp trong tương lai. Về lưu trữ, laptop sở hữu ổ SSD 512GB PCIe NVMe cho tốc độ truy xuất dữ liệu, khởi động Windows và mở ứng dụng nhanh. Ngoài ra, máy còn hỗ trợ hai khe SSD có thể nâng cấp tổng dung lượng lên tới 4TB , phù hợp với người dùng lưu nhiều game, file đồ họa hay dữ liệu công việc.\n\nThiết kế nhôm Aluminum sang trọng, đậm chất gaming\n\nAcer Nitro ProPanel ANV16S-71-58WQ gây ấn tượng với nắp máy bằng Aluminum sang trọng kết hợp khung sườn nhựa bền bỉ nhằm tạo nên tổng thể chắc chắn mà vẫn hiện đại. Tông màu Obsidian Black huyền bí cùng các đường cắt tinh tế mang lại cảm giác cao cấp, phù hợp cả môi trường làm việc lẫn góc gaming cá nhân.\n\nMàn hình 16\" 2K+ 180Hz chân thực\n\nMàn hình 16 inch 2K+ mang đến không gian hiển thị rộng và sắc nét, đặc biệt với tỷ lệ 16:10 cho phép hiển thị thêm nội dung theo chiều dọc, tiện lợi cho cả chơi game và làm việc. Bên cạnh đó, tần số quét 180Hz kết hợp thời gian phản hồi 3ms (GtG qua Overdrive) giúp khung hình chuyển động mượt mà, giảm hiện tượng xé hình , bóng mờ trong các tựa game hành động, bắn súng hoặc esport tốc độ cao.\n\nPin 76Wh và hệ thống cổng kết nối đầy đủ\n\nLaptop gaming Acer Nitro ProPanel ANV16S-71-58WQ sở hữu viên pin 4-cell dung lượng 76Wh cho thời lượng sử dụng ổn định, đủ cho công việc và giải trí di động trong ngày. Về kết nối, máy hỗ trợ 1 cổng USB Type-C, 3 cổng USB Type-A, HDMI 2.1, khe đọc thẻ microSD, cổng LAN RJ-45 và jack tai nghe 3.5mm giúp bạn linh hoạt kết nối màn hình rời, thiết bị lưu trữ và phụ kiện gaming. Cùng với đó, kết nối không dây Killer Wi-Fi 6 AX 1650i còn đảm bảo đường truyền mạng ổn định, giảm độ trễ khi chơi game hay stream nội dung.\n\nMua ngay Acer Nitro ProPanel ANV16S-71-58WQ tại GearVN\n\nBạn đang tìm một chiếc laptop gaming vừa chiến tốt RTX 5050, vừa có màn 16\" 2K+ 180Hz lại thêm sức mạnh AI để chơi game, làm đồ họa, dựng video đều mượt trên một chiếc máy duy nhất? Acer Nitro ProPanel ANV16S-71-58WQ là lựa chọn cực kỳ hợp lý cho bạn. Hãy mua ngay Acer Nitro ProPanel ANV16S-71-58WQ chính hãng tại GearVN để được tư vấn cấu hình, hỗ trợ giao hàng nhanh và tận hưởng chính sách bảo hành - hậu mãi uy tín nhé!",
+        "brand": "Acer",
+        "specs": {
+          "cpu": "Core 5",
+          "ram": "32GB",
+          "storage": "512GB",
+          "gpu": "RTX 5050",
+          "kich_thuoc_man_hinh": "16 \"",
+          "o_phan_giai": "2K+ (2560x1600)"
+        },
+        "technicalDescription": "Thông số: {\"Dòng CPU\": \"Core 5\", \"Dung lượng RAM\": \"32 GB\", \"Dung lượng SSD\": \"512 GB\", \"Dòng GPU\": \"RTX 5050\", \"Kích thước màn hình\": \"16 inch\", \"Độ phân giải\": \"2K+ (2560x1600)\"}",
+        "descriptionImages": [
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/16a0264fe9b29322a0813eb1d5a8f9fb052f9a972532f0e47be2c94646e91382.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ có CPU Intel Core 5-210H"
+          },
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/fb66f4af0706cbb7a3016cc6f0bbdc87220f4351716b750240851ee0b3550d27.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ sở hữu GPU RTX 5050 8GB GDDR7"
+          },
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/3d29aa49e64fef3fa1fa9b1f8789246bf666b35f33521d189feac4113ce2b96b.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ có RAM 32GB DDR5"
+          },
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/5f2c44268edaa6bf52862085e7e6209b714c3d2e79437294ee1c2d37f0d68f66.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ có thiết kế nhôm Aluminum"
+          },
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/8e649f8051ad01d2435b792d7f22f0488894eecdbcad9c925b856cbb52651a61.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ được trang bị màn hình 16"
+          },
+          {
+            "url": "https://cdn.manln.online/products/19c75fa6c218ab8ee470d6cf/description/a356f503eb10596e7a7175c7918bfb78faac67d94c4c3865e523efce7e3edf0a.webp",
+            "alt": "Laptop Acer Nitro ProPanel ANV16S-71-58WQ có hệ thống cổng kết nối đầy đủ"
+          }
+        ],
+        "promotions": [
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Màn hình Acer KG241Y-X1 24\" IPS 200Hz Gsync chuyên game (trị giá 2.390.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Màn hình Acer KG241Y-X1 24\" IPS 200Hz Gsync chuyên game",
+            "giftProductUrl": "https://gearvn.com/products/man-hinh-acer-kg241y-x1-24-ips-200hz-gsync-chuyen-game",
+            "scope": "",
+            "discountText": ""
+          },
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Balo Acer Predator SUV",
+            "giftProductUrl": "https://gearvn.com/products/balo-acer-gaming-suv",
+            "scope": "",
+            "discountText": ""
+          }
+        ]
+      },
+      "existingTranslations": {
+        "en": null,
+        "pt": null,
+        "fr": null,
+        "de": null,
+        "it": null,
+        "es": null,
+        "nl": null,
+        "sv": null
+      }
+    },
+    {
+      "productId": "6ad0ca970069aece85a8c5e7",
+      "sku": "LAP-ACER-PRE-HELI-AI-18-PH18-I71-91UX",
+      "sourceHash": "c291a11e4e7fe92455f55f2e927bc344263c46c634dcdbf7795d72a62f2822f9",
+      "source": {
+        "name": "Laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX (Ultra 9-290HX Plus/ RTX 5080 16GB/ 64GB/ 3TB/ 18\" 2K+ Mini LED 250Hz/ Win 11)",
+        "description": "Khám phá laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX\n\nLaptop gaming Acer Predator Helios 18 AI PH18-I71-91UX là mẫu laptop hiệu năng cao dành cho game thủ, nhà sáng tạo nội dung và người dùng cần sức mạnh xử lý gần với một hệ thống máy bàn. Máy kết hợp Intel Core Ultra 9 290HX Plus, GeForce RTX 5080 Laptop GPU 16GB, màn hình Mini LED 18 inch tần số quét 250Hz và hệ thống SSD tổng dung lượng 3TB.\n\nIntel Core Ultra 9 290HX xử lý tốt tác vụ đa luồng\n\nIntel Core Ultra 9 290HX Plus sở hữu 24 nhân xử lý, bộ nhớ đệm 36MB và xung nhịp tối đa thuộc nhóm cao trên nền tảng laptop gaming Acer . Bộ xử lý phù hợp với các công việc cần nhiều tài nguyên như dựng video, biên dịch dự án, chạy máy ảo, phát trực tiếp và sử dụng nhiều ứng dụng chuyên dụng cùng lúc.\n\nNền tảng Core Ultra còn tích hợp bộ xử lý thần kinh NPU để hỗ trợ những tính năng AI tương thích mà không phải dồn toàn bộ khối lượng công việc lên CPU hoặc GPU. Tuy nhiên, hiệu suất duy trì của CPU vẫn phụ thuộc chế độ vận hành trong PredatorSense, giới hạn công suất và khả năng tản nhiệt khi máy hoạt động liên tục.\n\nRTX 5080 Laptop GPU 16GB cho gaming và sáng tạo\n\nNVIDIA GeForce RTX 5080 Laptop GPU sử dụng bộ nhớ 16GB GDDR7, mang lại không gian phù hợp cho texture độ phân giải cao, cảnh dựng 3D phức tạp và nhiều ứng dụng sáng tạo cần VRAM lớn. GPU thế hệ RTX 50 Series cũng hỗ trợ Ray Tracing, Tensor Core và DLSS 4 trên các trò chơi hoặc phần mềm tương thích.\n\nMàn hình Mini LED 18 inch 2K+ 250Hz\n\nMàn hình 18 inch và độ phân giải 2K+ tạo không gian hiển thị rộng cho trò chơi, timeline dựng phim và các bảng công cụ chuyên dụng. Công nghệ Mini LED hỗ trợ khả năng kiểm soát vùng sáng tốt hơn màn hình LCD thông thường, qua đó cải thiện độ tương phản và chất lượng hiển thị nội dung HDR .\n\nTần số quét 250Hz hướng đến game thủ chơi các tựa game tốc độ cao, nơi khả năng hiển thị nhiều khung hình có thể mang lại cảm giác điều khiển liền mạch hơn. Hiệu quả thực tế vẫn phụ thuộc tốc độ khung hình mà hệ thống đạt được, thời gian phản hồi của tấm nền và từng trò chơi cụ thể.\n\nRAM 16GB và hệ thống lưu trữ SSD 3TB\n\nRAM 16GB đáp ứng gaming, học tập, làm việc văn phòng và nhiều nhu cầu sáng tạo phổ biến ở mức cơ bản. Tuy nhiên, khi sử dụng đồng thời nhiều ứng dụng nặng, chỉnh sửa video độ phân giải cao hoặc chạy máy ảo, dung lượng này có thể trở thành giới hạn sớm hơn CPU và GPU .\n\nHệ thống SSD tổng dung lượng 3TB cung cấp không gian rộng để cài đặt hệ điều hành, thư viện trò chơi và dữ liệu dự án. Do chưa có bảng thông số riêng của mã PH18-I71-91UX, người dùng cần kiểm tra số lượng ổ, chuẩn PCIe và cấu hình lưu trữ thực tế trước khi mặc định toàn bộ 3TB nằm trên một ổ hoặc được thiết lập RAID.\n\nTản nhiệt và khả năng mở rộng cho phần cứng cao cấp\n\nDòng Predator Helios 18 AI PH18-I71 được Acer định hướng với hệ thống tản nhiệt dành cho CPU HX và GPU RTX 50 Series công suất cao. Các cấu hình thuộc dòng máy này sử dụng giải pháp quạt AeroBlade 3D, keo tản nhiệt kim loại lỏng và hệ thống ống dẫn nhiệt nhằm kiểm soát nhiệt lượng khi gaming hoặc làm việc kéo dài.\n\nThiết kế thay thế máy bàn cùng kết nối hiện đại\n\nKích thước màn hình 18 inch mang lại trải nghiệm sử dụng rộng rãi nhưng cũng khiến máy phù hợp hơn với nhu cầu di chuyển giữa các địa điểm cố định thay vì mang theo hằng ngày. Khi sử dụng tại bàn, người dùng có thể kết hợp thêm chuột máy tính , bàn phím , màn hình ngoài và hệ thống âm thanh để xây dựng một góc gaming hoặc làm việc hoàn chỉnh.\n\nMua ngay laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX tại GearVN\n\nĐưa trải nghiệm gaming lên một tầm cao mới nhờ sự kết hợp giữa tần số quét 250Hz siêu tốc và tấm nền Mini LED 18 inch sắc nét. Sức mạnh từ RTX 5080 16GB thế hệ mới giúp giảm thiểu tình trạng giật lag, mang lại những khung hình mượt mà trong các pha giao tranh tốc độ cao.\n\nĐây là thiết bị hỗ trợ đắc lực cho những game thủ muốn kiểm soát thế trận trong từng mili-giây. Đặt mua ngay tại GearVN để nhận những ưu đãi hấp dẫn theo từng giai đoạn cùng dịch vụ giao hàng nhanh chóng trên toàn quốc, giúp bạn sớm bắt đầu những trận chiến đỉnh cao.",
+        "brand": "Acer",
+        "specs": {
+          "cpu": "Core Ultra 9",
+          "ram": "64GB",
+          "storage": "3072GB",
+          "gpu": "RTX 5080",
+          "kich_thuoc_man_hinh": "18 \"",
+          "o_phan_giai": "2K+ (2560x1600)"
+        },
+        "technicalDescription": "Thông số: {\"Dòng CPU\": \"Core Ultra 9\", \"Dung lượng RAM\": \"64 GB\", \"Dung lượng SSD\": \"3072 GB\", \"Dòng GPU\": \"RTX 5080\", \"Kích thước màn hình\": \"18 inch\", \"Độ phân giải\": \"2K+ (2560x1600)\"}",
+        "descriptionImages": [
+          {
+            "url": "https://cdn.manln.online/products/88473b0ff5d4dc3375741030/description/88f375bbdaddf561b3f8ea70fae496c8fc0a7f73e20a9a7b767219c1b9a9fb42.webp",
+            "alt": "Laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX có RTX 5080 Laptop GPU 16GB"
+          },
+          {
+            "url": "https://cdn.manln.online/products/88473b0ff5d4dc3375741030/description/68794431e799d736febfa6ea3ece386d9844632fc2875286f51b219faeba05bb.webp",
+            "alt": "Laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX có RAM 16GB"
+          }
+        ],
+        "promotions": [
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Ghế Acer Predator Gaming PGC331 Black (trị giá 8.990.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Ghế Acer Predator Gaming PGC331 Black",
+            "giftProductUrl": "https://gearvn.com/products/ghe-acer-predator-gaming-pgc331-black",
+            "scope": "",
+            "discountText": ""
+          },
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Balo Acer Predator SUV (trị giá 2.000.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Balo Acer Predator SUV",
+            "giftProductUrl": "https://gearvn.com/products/balo-acer-gaming-suv",
+            "scope": "",
+            "discountText": ""
+          }
+        ]
+      },
+      "existingTranslations": {
+        "en": null,
+        "pt": null,
+        "fr": null,
+        "de": null,
+        "it": null,
+        "es": null,
+        "nl": null,
+        "sv": null
+      }
+    },
+    {
+      "productId": "6ad0ca970069aece85a8c5ea",
+      "sku": "LAP-ACER-NITRO-ANV16-I12-72G0",
+      "sourceHash": "48a957f14a5715d005793b0101486759d207824de0b38071f754c5aecfe6c4a5",
+      "source": {
+        "name": "Laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 (Core 7-230H/ RTX 3050 4GB/ 16GB/ 512GB/ 16\" FHD 165Hz/ Win 11)",
+        "description": "Khám phá laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 (Core 7-230H/ RTX 3050 4GB/ 16GB/ 512GB/ 16\" FHD 165Hz/ Win 11)\n\nLaptop gaming Acer Nitro ProPanel ANV16-I12-72G0 kết hợp Intel Core 7 230H, NVIDIA GeForce RTX 3050 4GB và màn hình 16 inch WUXGA 165Hz trong một cấu hình hướng đến nhu cầu gaming và sử dụng đa nhiệm. Điểm đáng chú ý của mẫu máy còn nằm ở RAM 16GB DDR4 với 2 khe RAM rời cùng 2 khe SSD, tạo dư địa nâng cấp khi nhu cầu lưu trữ và bộ nhớ tăng lên trong quá trình sử dụng.\n\nMàn hình WUXGA 165Hz mở rộng không gian chơi game\n\nAcer Nitro ProPanel ANV16-I12-72G0 sử dụng màn hình 16 inch WUXGA 1920 × 1200, tấm nền IPS và tỷ lệ 16:10. Không gian hiển thị theo chiều dọc được mở rộng so với màn hình Full HD 16:9 thông thường, phù hợp khi vừa chơi game vừa sử dụng các cửa sổ ứng dụng hoặc theo dõi nội dung trên màn hình.\n\nTần số quét 165Hz là điểm nhấn đáng chú ý trên cấu hình này, đặc biệt với những tựa game có chuyển động nhanh. Màn hình còn có độ sáng 400 nits và độ phủ màu 100% sRGB , tạo nền tảng hiển thị phù hợp cho cả gaming, giải trí và các nhu cầu sử dụng nội dung hằng ngày.\n\nIntel Core 7 230H với Turbo tối đa 5.2GHz\n\nBên trong Nitro ProPanel ANV16-I12-72G0 là Intel Core 7 230H với 10 nhân và 16 luồng, gồm các Performance-core có xung nhịp cơ bản 2.5GHz và Efficient-core ở 1.8GHz. Khi cần thêm khả năng xử lý, CPU có thể đạt Max Turbo Frequency lên đến 5.2GHz cùng 24MB Intel Smart Cache.\n\nCấu hình CPU này tạo nền tảng xử lý cho nhiều nhóm tác vụ trên laptop từ phần mềm văn phòng, trình duyệt nhiều tab đến các ứng dụng cần nhiều tài nguyên CPU hơn. Việc kết hợp cùng GPU rời RTX 3050 cũng giúp hệ thống có hai nhóm tài nguyên xử lý riêng cho CPU và đồ họa trong cùng một thiết bị.\n\nRTX 3050 4GB GDDR6 cho nền tảng gaming\n\nNitro ProPanel ANV16-I12-72G0 được trang bị NVIDIA GeForce RTX 3050 với 4GB VRAM GDDR6 chuyên dụng. GPU rời đảm nhiệm phần xử lý đồ họa, phù hợp với định hướng laptop gaming của dòng Nitro và các nhu cầu sử dụng ứng dụng có yêu cầu về đồ họa.\n\nDung lượng 4GB VRAM GDDR6 được tách riêng khỏi bộ nhớ hệ thống, giúp cấu hình có một nguồn tài nguyên dành cho các tác vụ đồ họa. Khi kết hợp với màn hình 165Hz, người dùng có thể khai thác lợi thế của tần số quét cao trong những tựa game và nội dung phù hợp với khả năng xử lý của hệ thống.\n\nKết nối USB-C, HDMI 2.1 và Mini DisplayPort 1.4\n\nNitro ProPanel ANV16-I12-72G0 cung cấp USB Type-C hỗ trợ USB 3.2 Gen 2 với tốc độ truyền dữ liệu tối đa 10Gbps và DisplayPort 1.4 qua GPU rời. Máy còn có hai cổng USB Type-A, trong đó một cổng hỗ trợ USB 3.2 Gen 1 và một cổng USB 3.2 Gen 2 có tính năng sạc USB khi tắt máy.\n\nNgoài hệ thống USB, máy còn sở hữu HDMI 2.1, Mini DisplayPort 1.4, cổng mạng RJ-45, jack tai nghe/loa và cổng DC-in cho adapter AC. Cấu hình kết nối này đáp ứng nhiều nhu cầu sử dụng laptop gaming cùng thiết bị ngoại vi, mạng có dây và màn hình ngoài .\n\n16GB DDR4 với 2 khe RAM rời, nâng cấp tối đa 64GB\n\nAcer trang bị sẵn 16GB RAM DDR4 theo cấu hình 2 × 8GB, hỗ trợ tốc độ lên đến 3200 MT/s. Đáng chú ý hơn, laptop gaming Acer này còn sử dụng 2 khe RAM rời và hỗ trợ nâng cấp tổng dung lượng lên tối đa 64GB thay vì giới hạn ở bộ nhớ cố định trên bo mạch.\n\nCấu trúc này mang lại sự chủ động khi nhu cầu sử dụng thay đổi trong tương lai. Người dùng có thể bắt đầu với 16GB cho các tác vụ hiện tại rồi nâng cấp dung lượng RAM khi cần xử lý nhiều ứng dụng hoặc những công việc yêu cầu không gian bộ nhớ lớn hơn.\n\nHai khe SSD mở rộng dung lượng tối đa 4TB\n\nKhông gian lưu trữ ban đầu của máy là SSD 512GB PCIe NVMe, đáp ứng nhu cầu cài đặt hệ điều hành, phần mềm và lưu trữ dữ liệu cá nhân. Bên cạnh dung lượng có sẵn, máy còn hỗ trợ tổng cộng 2 khe SSD và khả năng nâng cấp dung lượng tối đa lên đến 4TB.\n\nViệc có thêm khe SSD tạo thêm lựa chọn khi người dùng muốn mở rộng bộ nhớ mà không nhất thiết phải thay thế ổ lưu trữ hiện tại. Đây là điểm hữu ích với laptop gaming, nơi dung lượng game và dữ liệu thường tăng lên đáng kể sau một thời gian sử dụng.\n\nMua ngay laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 (Core 7-230H/ RTX 3050 4GB/ 16GB/ 512GB/ 16\" FHD 165Hz/ Win 11) tại GearVN\n\nKhông chỉ dừng lại ở hiệu năng gaming ấn tượng, Acer Nitro ANV16 còn chinh phục các tín đồ sáng tạo nội dung nhờ màn hình ProPanel 16:10 sắc nét, độ sáng 400 nits cùng độ phủ màu 100% sRGB tuyệt đẹp và vi xử lý Turbo tối đa 5.2GHz xử lý mượt mọi tác vụ nặng. Mẫu laptop gaming đa năng này hiện đang được phân phối chính hãng 100% tại GearVN với mức giá tốt cùng các chương trình ưu đãi hấp dẫn theo từng giai đoạn mua sắm!",
+        "brand": "Acer",
+        "specs": {
+          "cpu": "Core 7",
+          "ram": "16GB",
+          "storage": "512GB",
+          "gpu": "RTX 3050",
+          "kich_thuoc_man_hinh": "16 \"",
+          "o_phan_giai": "FHD(1920x1200)"
+        },
+        "technicalDescription": "Thông số: {\"Dòng CPU\": \"Core 7\", \"Dung lượng RAM\": \"16 GB\", \"Dung lượng SSD\": \"512 GB\", \"Dòng GPU\": \"RTX 3050\", \"Kích thước màn hình\": \"16 inch\", \"Độ phân giải\": \"FHD(1920x1200)\"}",
+        "descriptionImages": [
+          {
+            "url": "https://cdn.manln.online/products/144f2dc0da7c196f79393d68/description/517fc890237bf416ffa7109310fb45419d780d6d402ed3561a2968bae990d846.webp",
+            "alt": "Laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 có Intel Core 7 230H"
+          },
+          {
+            "url": "https://cdn.manln.online/products/144f2dc0da7c196f79393d68/description/3ca54e4d1e88e4516c244adf2ca8cd9a01e3e47d4a80a0b836482e4567aaa35f.webp",
+            "alt": "Laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 có kết nối đa dạng"
+          }
+        ],
+        "promotions": [
+          {
+            "type": "Gift",
+            "title": "Tặng ngay 1 x Chuột Logitech G304 Wireless (trị giá 725.000đ )",
+            "giftQuantity": 1,
+            "giftProductName": "Chuột Logitech G304 Wireless",
+            "giftProductUrl": "https://gearvn.com/products/chuot-logitech-g304-lightspeed-wireless",
+            "scope": "",
+            "discountText": ""
+          },
+          {
+            "type": "Discount",
+            "title": "[Laptop] Giảm 1% tối đa 500k cho HSSV khi mua laptop",
+            "giftProductName": "",
+            "scope": "Laptop",
+            "discountText": "[Laptop] Giảm 1% tối đa 500k cho HSSV khi mua laptop"
+          }
+        ]
+      },
+      "existingTranslations": {
+        "en": null,
+        "pt": null,
+        "fr": null,
+        "de": null,
+        "it": null,
+        "es": null,
+        "nl": null,
+        "sv": null
+      }
+    }
+  ]
+}

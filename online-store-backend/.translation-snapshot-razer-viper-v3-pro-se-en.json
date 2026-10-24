@@ -1,0 +1,186 @@
+{
+  "capturedAt": "2026-10-21T02:15:26.987Z",
+  "productId": "6ad0d7c80069aece85a8c917",
+  "targetLang": "en",
+  "sourceHash": "880eca0feaa106468e998b02c695c7c6bbe0189ad2a704c5173d5a08e5ce8786",
+  "product": {
+    "_id": "6ad0d7c80069aece85a8c917",
+    "brand": "Razer",
+    "description": "Khám phá chuột Razer Viper V3 Pro SE siêu nhẹ\n\nRazer Viper V3 Pro SE là chuột gaming không dây đỉnh cao chỉ nặng 54g, mang lại khả năng kiểm soát tuyệt vời và cầm nắm thoải mái cho mọi game thủ. Thiết kế đối xứng thuận tay của chuột máy tính được kế thừa tinh hoa từ Viper V3 Pro sẵn sàng chiến đấu ngay từ những giây phút đầu tiên.\n\nTrọng lượng nhẹ, kiểm soát tối ưu\n\nVới 54g siêu nhẹ, chuột giúp di chuyển linh hoạt mà không mỏi tay, lý tưởng cho grip Claw hoặc Fingertip. Hình dáng cân đối mang đến seamless handling, giúp bạn tự tin xử lý mọi tình huống gay cấn. Form chuột ôm tay vừa vặn, bề mặt bám tốt cho cảm giác kiểm soát tự nhiên trong cả những pha flick nhanh lẫn tracking dài.\n\nCảm biến Focus Pro 35K đỉnh cao\n\nCảm biến quang học Focus Pro 35K Gen-2 đạt độ chính xác 99.8%, hỗ trợ DPI linh hoạt và có thể nâng cấp polling rate lên đến 8000Hz qua HyperPolling Dongle riêng. Tracking mượt mà trên mọi bề mặt, kết hợp onboard memory lưu 1 profile settings.\n\nKết nối HyperSpeed mượt mà\n\nHyperSpeed Wireless 1000Hz đảm bảo độ trễ thấp cho gaming pro cùng kết nối dongle USB trực tiếp. Bạn có thể tắt \"Enhance pointer precision\" trên Windows và dùng Synapse tinh chỉnh, kiểm tra polling rate dễ dàng qua phần mềm chuột Razer . Nhờ đường truyền ổn định và report rate đều, từng cú click đều được ghi nhận chính xác theo từng khung hình, hạn chế tối đa micro‑stutter cho các pha vẩy tâm tốc độ cao.\n\nVũ khí hoàn hảo cho esports\n\nViper V3 Pro SE cân bằng siêu nhẹ, sensor chính xác và kết nối nhanh, dành riêng game thủ chuyên nghiệp. Setup ready-to-play qua Synapse cũng sẽ giúp bạn chinh phục mọi tựa game, đầu tư thông minh cho setup đỉnh cao.\n\nMua ngay chuột Razer Viper V3 Pro SE tại GearVN\n\nBạn đang tìm \"vũ khí\" esports 54g siêu nhẹ với Focus Pro 35K? Razer Viper V3 Pro SE chính là phiên bản tinh gọn hoàn hảo cho rank cao, HyperSpeed 1000Hz + pin 95 giờ mà không lo gián đoạn. Khi đến với GearVN bạn sẽ có thể mua chuột với giá ưu đãi, giao siêu tốc toàn quốc, bảo hành chính hãng - nâng tầm aim headshot ngay hôm nay!",
+    "descriptionImages": [
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "alt": "Chuột không dây Razer Viper V3 Pro SE có trọng lượng nhẹ",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "contentHash": "dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473",
+        "mimeType": "image/webp",
+        "bytes": 12634,
+        "_id": "6ad2d6f91c1ae25e52a86156"
+      },
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "alt": "Chuột không dây Razer Viper V3 Pro SE có cảm biến Focus Pro 35K đỉnh cao",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "contentHash": "4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146",
+        "mimeType": "image/webp",
+        "bytes": 15000,
+        "_id": "6ad2d6f91c1ae25e52a86157"
+      },
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "alt": "Chuột không dây Razer Viper V3 Pro SE có kết nối HyperSpeed mượt mà",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "contentHash": "131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc",
+        "mimeType": "image/webp",
+        "bytes": 15436,
+        "_id": "6ad2d6f91c1ae25e52a86158"
+      }
+    ],
+    "name": "Chuột không dây Razer Viper V3 Pro SE",
+    "promotions": [],
+    "specs": {
+      "color": "Đen",
+      "connection": "Cổng USB, USB Receiver",
+      "sensor": "Focus Pro 35K Gen-2",
+      "maxDPI": "35000 DPI",
+      "pollRate": "8000",
+      "weight": "54 g"
+    },
+    "technicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Cổng USB, USB Receiver\", \"Cảm biến (Sensor)\": \"Focus Pro 35K Gen-2\", \"Độ phân giải (DPI)\": \"35000 DPI\", \"Polling Rate\": \"8000\", \"Trọng lượng\": \"54 g\"}"
+  },
+  "catalogTranslation": {
+    "_id": "6ad263250069aece85ab674c",
+    "entityId": "6ad0d7c80069aece85a8c917",
+    "targetLang": "en",
+    "__v": 0,
+    "approvedAt": null,
+    "approvedBy": null,
+    "brand": "Razer",
+    "createdAt": "2026-10-16T17:47:21.559Z",
+    "description": "Discover the ultra-light Razer Viper V3 Pro SE wireless gaming mouse\n\nThe Razer Viper V3 Pro SE is a high-performance wireless gaming mouse weighing just 54g, delivering excellent control and a comfortable grip for every gamer. Its ambidextrous, symmetrical design inherits the best of the Viper V3 Pro and is ready for action from the moment you pick it up.\n\nLightweight design, optimal control\n\nAt just 54g, the mouse moves nimbly without tiring your hand, making it ideal for Claw or Fingertip grips. Its balanced shape provides smooth handling so you can confidently handle intense situations. The ergonomic shape fits comfortably in your hand, and its grippy surface gives you natural control during quick flicks and long tracking sessions.\n\nHigh-performance Focus Pro 35K sensor\n\nThe Focus Pro 35K Gen-2 optical sensor delivers 99.8% accuracy, supports flexible DPI settings, and can be upgraded to a polling rate of up to 8000Hz with the separate HyperPolling Dongle. It tracks smoothly on any surface and includes onboard memory for 1 profile.\n\nSeamless HyperSpeed connectivity\n\nHyperSpeed Wireless at 1000Hz ensures low latency for pro gaming with a direct USB dongle connection. You can turn off \"Enhance pointer precision\" in Windows and fine-tune settings in Synapse, making it easy to check the polling rate in the Razer mouse software. With a stable connection and consistent report rate, every click is registered accurately frame by frame, minimizing micro-stutter during high-speed flicks.\n\nThe perfect esports weapon\n\nThe Viper V3 Pro SE combines an ultra-lightweight design, an accurate sensor, and fast connectivity for professional gamers. A ready-to-play setup through Synapse also helps you take on any game, making it a smart investment for a top-tier setup.\n\nBuy the Razer Viper V3 Pro SE mouse at GearVN\n\nLooking for a 54g esports \"weapon\" with Focus Pro 35K? The Razer Viper V3 Pro SE is the perfect streamlined version for climbing the ranks, with HyperSpeed at 1000Hz and 95-hour battery life to keep you playing without interruption. At GearVN, you can buy this mouse at a great price, enjoy fast nationwide delivery and official warranty coverage—level up your aim and headshots today!",
+    "descriptionImages": [
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "alt": "Razer Viper V3 Pro SE wireless mouse with an ultra-lightweight design",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473.webp",
+        "contentHash": "dbb69841c54b980623fc4fb6f1343de342782d9c4e63392057d2181ca7787473",
+        "mimeType": "image/webp",
+        "bytes": 12634,
+        "_id": "6ad2d6f91c1ae25e52a86156"
+      },
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "alt": "Razer Viper V3 Pro SE wireless mouse with a high-performance Focus Pro 35K sensor",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146.webp",
+        "contentHash": "4b34099e41fca5b9922046f09cf3467f598946d383174d0928f5ae673fe4a146",
+        "mimeType": "image/webp",
+        "bytes": 15000,
+        "_id": "6ad2d6f91c1ae25e52a86157"
+      },
+      {
+        "url": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "alt": "Razer Viper V3 Pro SE wireless mouse with smooth HyperSpeed connectivity",
+        "sourceUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "publicUrl": "https://cdn.manln.online/products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "storageProvider": "r2",
+        "storageAccount": "1",
+        "storageKey": "products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "bucket": "online-store",
+        "publicId": "products/b6aca5b92bfc62b3c4b8ffe7/description/131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc.webp",
+        "contentHash": "131e17b4887317df086a8054e382c7ddeafd335f29c191516ee32b560d22c4bc",
+        "mimeType": "image/webp",
+        "bytes": 15436,
+        "_id": "6ad2d6f91c1ae25e52a86158"
+      }
+    ],
+    "lastErrorMessage": null,
+    "lastRetryAt": null,
+    "lastTranslatedAt": "2026-10-21T02:09:06.879Z",
+    "manualFields": [
+      "name",
+      "description",
+      "brand",
+      "specs",
+      "technicalDescription",
+      "descriptionImages",
+      "promotions"
+    ],
+    "name": "Razer Viper V3 Pro SE Wireless Gaming Mouse",
+    "optionalFieldWarnings": [],
+    "promotions": [],
+    "provider": "assistant",
+    "providerSource": "assistant_batch",
+    "providersUsed": [
+      "cloudflare",
+      "assistant"
+    ],
+    "qualityScore": 80,
+    "qualityStatus": "pending",
+    "retryCount": 0,
+    "sourceHash": "880eca0feaa106468e998b02c695c7c6bbe0189ad2a704c5173d5a08e5ce8786",
+    "specs": {
+      "color": "Black",
+      "connection": "USB port, USB Receiver",
+      "sensor": "Focus Pro 35K Gen-2",
+      "maxDPI": "35000 DPI",
+      "pollRate": "8000",
+      "weight": "54 g"
+    },
+    "status": "success",
+    "technicalDescription": "Specifications: {\"Color\": \"Black\", \"Connection\": \"USB port, USB Receiver\", \"Sensor\": \"Focus Pro 35K Gen-2\", \"Resolution (DPI)\": \"35000 DPI\", \"Polling Rate\": \"8000\", \"Weight\": \"54 g\"}",
+    "updatedAt": "2026-10-21T02:09:06.879Z",
+    "validationErrors": [
+      "inconsistent"
+    ],
+    "approvalReview": null
+  },
+  "changedFields": [
+    "name",
+    "description",
+    "technicalDescription",
+    "specs"
+  ],
+  "correctedValues": {
+    "name": "Razer Viper V3 Pro SE Wireless Mouse",
+    "description": "Discover the ultra-light Razer Viper V3 Pro SE gaming mouse\n\nThe Razer Viper V3 Pro SE is a high-end wireless gaming mouse weighing only 54g, providing exceptional control and comfortable grip for every gamer. The symmetrical design of the computer mouse is inherited from the Viper V3 Pro, ready to fight from the very first moments.\n\nLightweight, optimal control\n\nWith a weight of 54g, the mouse allows for flexible movement without hand fatigue, ideal for the Claw or Fingertip grip. The balanced design provides seamless handling, allowing you to confidently handle any critical situation. The mouse fits comfortably in the hand, with a good grip surface for a natural feeling of control in both fast flicks and long tracking.\n\nHigh-end Focus Pro 35K sensor\n\nThe Focus Pro 35K Gen-2 optical sensor achieves an accuracy of 99.8%, supports flexible DPI, and can upgrade the polling rate up to 8000Hz via the HyperPolling Dongle. Smooth tracking on any surface, combined with onboard memory storing 1 profile setting.\n\nSmooth HyperSpeed connection\n\nHyperSpeed Wireless 1000Hz ensures low latency for pro gamers and direct USB dongle connection. You can turn off \"Enhance pointer precision\" on Windows and use Synapse to fine-tune, check the polling rate easily via the Razer mouse software. Thanks to the stable transmission and even report rate, each click is accurately recorded frame by frame, minimizing micro-stutter for high-speed flicks.\n\nThe perfect weapon for esports\n\nThe Viper V3 Pro SE is an ultra-light, accurate sensor, and fast connection, designed specifically for professional gamers. The ready-to-play setup via Synapse will also help you conquer any game, making a smart investment in a high-end setup.\n\nBuy the Razer Viper V3 Pro SE now at GearVN\n\nAre you looking for a 54g ultra-light esports weapon with Focus Pro 35K? The Razer Viper V3 Pro SE is the exact version Perfectly compact design for high rank, HyperSpeed 1000Hz + 95-hour battery life without interruption. When you come to GearVN, you will be able to buy a mouse with preferential price, super-fast nationwide shipping, official warranty - upgrade your aim headshot right now!",
+    "technicalDescription": "Specifications: {\"Color\": \"Black\", \"Connectivity\": \"USB Port, USB Receiver\", \"Sensor\": \"Focus Pro 35K Gen-2\", \"Resolution (DPI)\": \"35000 DPI\", \"Polling Rate\": \"8000\", \"Weight\": \"54 g\"}",
+    "specs": {
+      "color": "Black",
+      "connection": "USB Port, USB Receiver",
+      "sensor": "Focus Pro 35K Gen-2",
+      "maxDPI": "35,000 DPI",
+      "pollRate": "8000",
+      "weight": "54 g"
+    }
+  }
+}

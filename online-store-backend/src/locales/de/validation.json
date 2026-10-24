@@ -1,0 +1,34 @@
+{
+  "address": {
+    "maxLength": "Die Adresse darf 500 Zeichen nicht überschreiten"
+  },
+  "cart": {
+    "empty": "Warenkorb ist leer"
+  },
+  "customer": {
+    "nameInvalid": "Der Kundenname ist ungültig"
+  },
+  "email": {
+    "invalid": "Email ist ungültig",
+    "required": "Email ist erforderlich"
+  },
+  "name": {
+    "lengthRange": "Der Name muss zwischen 2 und 100 Zeichen lang sein"
+  },
+  "password": {
+    "minLength": "Das Passwort muss mindestens 6 Zeichen lang sein",
+    "required": "Passwort ist erforderlich"
+  },
+  "phone": {
+    "invalid": "Telefonnummer ist ungültig"
+  },
+  "product": {
+    "idRequired": "Produkt-ID ist erforderlich"
+  },
+  "quantity": {
+    "invalid": "Menge ist ungültig"
+  },
+  "shipping": {
+    "addressRequired": "Lieferadresse ist erforderlich"
+  }
+}

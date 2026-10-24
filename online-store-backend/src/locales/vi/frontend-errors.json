@@ -1,0 +1,7 @@
+{
+  "server_error": "Lỗi máy chủ",
+  "network_error": "Lỗi kết nối",
+  "too_many_requests": "Quá nhiều yêu cầu",
+  "request_timeout": "Yêu cầu hết thời gian chờ",
+  "request_processing": "Yêu cầu đang xử lý..."
+}

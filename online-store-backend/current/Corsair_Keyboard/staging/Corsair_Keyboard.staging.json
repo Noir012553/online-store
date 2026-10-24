@@ -1,0 +1,75 @@
+[
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/ban-phim-co-corsair-k100-rgb-cherry-mx-speed-ch-912a014-na",
+    "ScrapeRunID": "20261015T121435Z",
+    "ScrapeCapturedAt": "2026-10-15T12:14:35Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Corsair",
+      "ProductID": "ban-phim-co-corsair-k100-rgb-cherry-mx-speed-ch-912a014-na",
+      "ProductName": "Bàn phím cơ Corsair K100 RGB Cherry MX Speed (CH-912A014-NA)",
+      "ProductSKU": "KB-COR-K100-RGB-CHERRY-SPEED",
+      "ProductPriceVND": 3590000,
+      "ProductRegularPriceVND": 5990000,
+      "ProductCategory": "Keyboard",
+      "ProductSpecifications": {
+        "Kích thước/Layout": "Full-size (100%)",
+        "Số lượng phím": "100 phím",
+        "Phương thức kết nối": "USB",
+        "Chất liệu Keycap": "PBT",
+        "Chất liệu vỏ": "Kim loại",
+        "Đèn LED": "RGB"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Kích thước/Layout\": \"Full-size (100%)\", \"Số lượng phím\": \"100 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"PBT\", \"Chất liệu vỏ\": \"Kim loại\", \"Đèn LED\": \"RGB\"}",
+      "ProductDescription": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá Bàn phím cơ gaming Corsair K100 RGB\n\nBàn phím cơ gaming Corsair K100 RGB sở hữu bộ khung bàn phím bằng chất liệu kim loại, bề mặt được phủ một lớp nhôm phay xước gia công khéo léo và tinh tế ôm vừa khít các chân switch, tạo cảm giác vừa vặn và chắc chắn, bảo vệ tốt cho bàn phím kích cỡ full size 108 phím với các phím điều khiển media và nút cuộn volume quen thuộc góc trên bên phải.\n\nPhía bên trái bàn phím cơ Corsair K100 RGB vẫn là dãy nút chức năng có thể lập trình tương thích với các công nghệ dành cho streamer của Elgato, tiện lợi cho các game thủ vừa chơi, vừa stream “thành quả” của mình lên các nền tảng quen thuộc.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb_43a892d422794be996e4ae87329fd907.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-1_75083f2d417f43519be5ba0a22b021fb.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-4_ac41157ad54341eab76a842bfa8f3325.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-2_8adf6659bca0467f99f4eb051137a180.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-3_89f9036d5a2d4fe1a73986ee1ce4e7ee.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/-rgb_3fec26f9aeb748e3872c03dfe5439d04_0d1af098b33448b58dc0e7a7048e1f43_06484a8e28474839b15c7177b56b4fbd.png",
+      "ProductMainImageLocalPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/phim_2ceafcd3b71942409b4724616258c73b_d44aa7fb2a70454d99b01bc9c1117f4f_030600be83d043258c9998e4edef6924.png",
+        "https://product.hstatic.net/200000722513/product/gb-4_5f8aa0cb982a4438afec52f8dfb87c12_dae24eebe34349c59588136c8d26d27c_a18d5aca98e94384a1f677e6ee9c6401.png",
+        "https://product.hstatic.net/200000722513/product/gb-2_d6cd7853237a45fe8083b031702eed17_984e477caa1e46f68bb21b0bca425312_18e57fa55d21450c987611bc550a2803.png",
+        "https://product.hstatic.net/200000722513/product/gb-3_c9b8829ce5434c4d9da6b2f0a7874abc_8557b05901e64a6d98d0ab393b3db13b_bb22480c0f894267878497cefb78036d.png",
+        "https://product.hstatic.net/200000722513/product/gb-1_3acef0197e654548a2114db3ae6e69cb_006cb8f68cf3449fb6ff3db593c6cd8b_4e12bc84e2a4436dae3c25bb458249e3.png",
+        "https://product.hstatic.net/200000722513/product/gb-6_f086eb11aece48d597ca227aaa6d6b3c_0e1f2dd10da143449bc4d1e68e8ec897_fe8300b7b42842e992799159aefc59fb.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-01.webp",
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-02.webp",
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-03.webp",
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-04.webp",
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-05.webp",
+        "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-06.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/ban-phim-co-corsair-k100-rgb-cherry-mx-speed-ch-912a014-na"
+    }
+  }
+]

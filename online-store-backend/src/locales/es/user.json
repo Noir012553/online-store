@@ -1,0 +1,15 @@
+{
+  "alreadyExists": "El usuario ya existe",
+  "invalidData": "Datos de usuario inválidos",
+  "notFound": "Usuario no encontrado",
+  "registrationSuccess": "Usuario registrado exitosamente",
+  "emailVerifiedSuccess": "Email verificado exitosamente",
+  "emailAlreadyVerified": "Email ya verificado",
+  "passwordChangedSuccess": "Contraseña cambiada exitosamente",
+  "passwordResetEmailSent": "Email de restablecimiento de contraseña enviado",
+  "logoutSuccess": "Cerrado de sesión exitosamente",
+  "verificationEmailResent": "Email de verificación reenviado",
+  "restoreSuccess": "Usuario restaurado exitosamente",
+  "notDeleted": "El usuario no pudo ser eliminado",
+  "hardDeleteSuccess": "Usuario eliminado permanentemente"
+}

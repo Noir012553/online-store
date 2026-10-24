@@ -1,0 +1,16 @@
+{
+  "required_codes": "Se requieren ambos códigos de moneda",
+  "required_fields": "Se requieren la moneda de origen, la moneda de destino y el tipo de cambio",
+  "rate_must_be_positive": "El tipo de cambio debe ser mayor que cero",
+  "created_success": "Tipo de cambio creado correctamente",
+  "updated_success": "Tipo de cambio actualizado correctamente",
+  "deleted_success": "Tipo de cambio eliminado correctamente",
+  "amount_non_negative": "El importe no puede ser negativo",
+  "updated_rates": "Se actualizaron {{count}} tipos de cambio",
+  "not_found": "No se encontró el tipo de cambio",
+  "pair_not_found": "No se encontró el tipo de cambio de {{fromCode}} a {{toCode}}",
+  "currencies_match": "Las monedas de origen y destino deben ser diferentes",
+  "already_exists": "El tipo de cambio de {{fromCode}} a {{toCode}} ya existe",
+  "currency_not_found": "No se encontró la moneda {{currencyCode}}",
+  "operation_failed": "No se pudo procesar la solicitud de tipo de cambio"
+}

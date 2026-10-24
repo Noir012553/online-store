@@ -1,0 +1,11 @@
+{
+  "loading": "Loading...",
+  "loading_data": "Loading data...",
+  "loading_products": "Loading products...",
+  "loading_cart": "Loading cart...",
+  "loading_checkout": "Loading checkout...",
+  "loading_orders": "Loading your orders...",
+  "loading_profile": "Loading profile...",
+  "loading_admin_ui": "Loading admin interface...",
+  "please_wait": "Please wait..."
+}

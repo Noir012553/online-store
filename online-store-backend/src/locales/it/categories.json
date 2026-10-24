@@ -1,0 +1,20 @@
+{
+  "keyboard": "Tastiera",
+  "keyboard_desc": "Tastiere per computer di alta qualità con design moderno e funzionalità avanzate",
+  "mouse": "Mouse",
+  "mouse_desc": "Mouse per computer ergonomici con alta precisione",
+  "headphones": "Cuffie",
+  "headphones_desc": "Cuffie per computer con suono vibrante e microfono di qualità",
+  "cooling": "Raffreddamento",
+  "cooling_desc": "Soluzioni efficaci di raffreddamento dei computer per gestire i problemi di calore",
+  "gaming_laptop": "Laptop da Gioco",
+  "gaming_laptop_desc": "Laptop da gioco ad alte prestazioni con GPU potenti",
+  "office_laptop": "Laptop da Ufficio",
+  "office_laptop_desc": "Laptop leggeri da ufficio con lunga durata della batteria",
+  "category_keyboard": "Tastiera",
+  "category_mouse": "Mouse",
+  "category_headphones": "Cuffie",
+  "category_cooling": "Raffreddamento",
+  "category_gaming_laptop": "Laptop da Gioco",
+  "category_office_laptop": "Laptop da Ufficio"
+}

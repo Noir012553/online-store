@@ -1,0 +1,14 @@
+{
+  "emailLabel": "E-mailadres",
+  "emailPlaceholder": "email@voorbeeld.com",
+  "phoneLabel": "Telefoonnummer",
+  "phonePlaceholder": "+31 (20) 1234-5678",
+  "subscribe": "Abonneer",
+  "sending": "Verzenden...",
+  "thankYouTitle": "Dank je wel!",
+  "thankYouMessage": "We sturen exclusieve aanbiedingen naar uw e-mail. Controleer uw inbox!",
+  "successMessage": "Bedankt voor het abonnement!",
+  "errorMessage": "Abonnement is mislukt. Probeer het opnieuw.",
+  "invalidEmail": "Ongeldig e-mailformat",
+  "invalidPhone": "Ongeldig telefoonnummer"
+}

@@ -1,0 +1,774 @@
+{
+  "d4582e34ab802c63ce2520e8": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hyperx-cloud-stinger-3-black",
+    "productKey": "d4582e34ab802c63ce2520e8",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-7_9821d069f67f463bb6f827c0236ddbba.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-1_c012ff65d3ee4b2db280bdf407707bdb.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-6_0cb397967d764470a0fef512c3ff5197.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-5_5faa67d8d73b411087872481bf4b6108.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-4_0bd6bce4a4224d2fac860f67f1de14c2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-3_1240a114deed445dbf91afafb836989d.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hyperx-cloud-stinger-3-black-2_3b87e9555d624336a36c90ec6e22a4c0.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/gallery-06.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hyperx-cloud-stinger-3-black-8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hyperx-cloud-stinger-3-black-9.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/d4582e34ab802c63ce2520e8/description-02.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "17dc6ba7eac5a01a7de2a37b": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red",
+    "productKey": "17dc6ba7eac5a01a7de2a37b",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-2_70d9791c7666430db21bf87c87326064.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-1_5ed96c631aa24e8b8f3991eb32c8e12a.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-4_2f02d83afc8441f8a784d6235be57a58.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-3_fd705c1e12e549a382fb00a8ed7ae008.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-5_0f6ba1d6532249b388997931dc29b737.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/gallery-04.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-6.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-7.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-red-8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/17dc6ba7eac5a01a7de2a37b/description-03.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "ef213c9b9902df454c60ab98": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black",
+    "productKey": "ef213c9b9902df454c60ab98",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-4_d6d61193eb364bb3bc505dbfc4365c21.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-1_5405ff4cf42f46b8878950f0964f53d3.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-2_c766a6a28d984dcd981da30710f675ef.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-3_0dba350ffb034dfcb65a4d36040cf3e8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-5_6655fa495f4f42469ed2988f676d32b0.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/gallery-04.jpg",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-6.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-7.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-earbuds-iii-s-black-8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/ef213c9b9902df454c60ab98/description-03.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "cd33d61621f05d8f7fdb14bb": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black",
+    "productKey": "cd33d61621f05d8f7fdb14bb",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_167_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-21_bc25016c979946e2bc68d110068250dd.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_87_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-11_7488aa158eb645de991f51ab745ac43c.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_177_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-27_84861226ddea4f7c8e4e92232dc129ad.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_169_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-22_c810c7772f094df4af36c0d7cdd9f951.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_171_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-24_c0decd5e23294703b6e0856af7b68f12.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_180_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-28_a2ed8141bb504204a063b30d00b03d48.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_173_tai-nghe-khong-day-hyperx-cloud-flight-2-wireless-25_7354e8509fe049149405c0dae0425870.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/gallery-06.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black-1_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black-2_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black-3_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black-4_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/description-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-khong-day-hyperx-cloud-flight-2-wl-black-5_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/cd33d61621f05d8f7fdb14bb/description-05.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "27c944a9da952892ca175daf": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-alpha-2-wireless-black",
+    "productKey": "27c944a9da952892ca175daf",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-10_77fba8ee2d98464c8fb69e46d3a4a546.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-9_e7f8142ae6fa4415b2861f8217cb41b2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-1_ac485718536e491fb29f3c5f224d0fba.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-2_cb00fdd10ef34a60bfca673caea327c6.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-3_94d879e4ba0a4127a80d55f8ce821a67.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-4_70b34ee87cd7415ab860a5e3c152eb74.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-5_9fba5918597c4b438b38a8d8615f1123.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-06.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-6_c386ad8cf78344f3be64e8ddba46fcf7.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-07.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-7_8c9d8c3ede8d4fe7b4ccb77ff0d89739.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-08.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/gearvn-tai-nghe-hp-hyperx-alpha-2-wireless-black-8_3ec14703712f49d2b23a41ad62a64084.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/gallery-09.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-alpha-2-wireless-black-1.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-alpha-2-wireless-black-2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-alpha-2-wireless-black-3.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-alpha-2-wireless-black-4.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/description-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-alpha-2-wireless-black-5.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/27c944a9da952892ca175daf/description-05.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "934443ced36538e92b0a910f": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black",
+    "productKey": "934443ced36538e92b0a910f",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_27_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_5_d346b23267b84af4af53a452b78acb4f.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/download__3__3e4317d4d85744adaeaacab1e69bff9c.png",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_17_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_3_e5f09e0bdbcc491c9173566477fbc391.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_20_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_6_abee0aa9537d411295c33da5d8c7b91e.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_21_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_7_7d235130fcae41239fb91ba5992fcbd9.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_16_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_2_759b46cd18f648638580909a17276bfa.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_18_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_4_5658d9853b5f490a8ba157843b32e45a.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-06.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_22_hyperx_cloud_iii_s_wireless_black_a59yzaa_angle_8_0f27aa9d92614a089f865ec3a40fa9f7.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/gallery-07.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-1.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-3.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-4.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/934443ced36538e92b0a910f/description-04.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "a61b648df9a361540bc511db": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-red",
+    "productKey": "a61b648df9a361540bc511db",
+    "main": {
+      "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_27_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_5_169ced15f1924945a5a7fde431092ce8.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_294_hyperx_cloud_iii_s_wireless_red_a59z0aa_main_1_1500x_a300e57b2765415da8300b34df8174cb.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_25_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_3_191ea93d4d494f80bf24b810aba95714.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_28_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_6_d1b3f1512df44c428d212c148878a765.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_26_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_4_645ca96ce3864c2c9f873afb660487f4.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_29_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_7_31059e8a6a824d5888fddc29c7c0b925.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/products/200000722513/imgi_30_hyperx_cloud_iii_s_wireless_red_a59z0aa_angle_8_29c27e3531a4452b94a478fda9b3030f.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/gallery-06.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-red-1.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-red-2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-red-3.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-s-wireless-black-red-4.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/a61b648df9a361540bc511db/description-04.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "7ab5d3d0d1eec46e949e793f": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-jet-blue",
+    "productKey": "7ab5d3d0d1eec46e949e793f",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/10004_89ad4423b5414507ba68f290ee55661f.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10011_5c718e805d4644df996d28b7327c9423.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10001_20d731be0e574bffa028e17d35a681c8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10002_bad8d64032794a21863917c54a5946cd.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10003_79476dceb188483189040d8161c026b8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/gallery-04.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-jet-blue-6.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-jet-blue-7.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-jet-blue-8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-jet-blue-9.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/description-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-jet-blue-10.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/7ab5d3d0d1eec46e949e793f/description-05.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "c760564489dbf5b41811b686": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-jet-black",
+    "productKey": "c760564489dbf5b41811b686",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/10007_94c4476347894e5f887a1068107cf052.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10005_3c4283e8265546e09eb539736b614a0e.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10006_73c851a7e56a47b089cd7f83745cd250.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10008_b38eea3d8a8542d7aeeef4fb08c9807d.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/10010_ff5bf4da136248a090ea9c2cc95e90f0.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/gallery-04.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://file.hstatic.net/200000722513/file/10001_grande.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/200000722513/file/10005_grande.jpeg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/200000722513/file/10002_grande.jpeg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/200000722513/file/10004_grande.jpeg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/description-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/200000722513/file/10003_grande.jpeg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/c760564489dbf5b41811b686/description-05.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "95b2f80ba0aaa4646b699c98": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-iii-black",
+    "productKey": "95b2f80ba0aaa4646b699c98",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-3-white_37ca3a9b3b704d54979a3110866167f8_e1572536871b428195dedfb3106ae513.gif",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/main.gif",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-1_06b4ca8ba58943b19ace76203ecc8b01_db698b18b73a43a7955f45f105ba989e.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/gallery-01.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-1-white_46ed6d32fabf4f7b99d0604dfc4887ae_fc48ed6a87d74cb1aa3992e3258552b8.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/gallery-02.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-2_295d0d338bab449990526bfe27d5de32_23ad8b69a3094317875c30e91a75bd82.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/gallery-03.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-2-white_2aa42ddbe05f4b36984114f607727da8_5172fa7668ae401cbf7d423c64adb2f7.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/gallery-04.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-3_d0a25889dec3423b8bbb7909ef4262ab_b9b0214f1f664d94b355276855e671df.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/95b2f80ba0aaa4646b699c98/gallery-05.gif",
+        "status": "downloaded"
+      }
+    ],
+    "description": []
+  },
+  "1fc8bc6badb13fbbb6a759b9": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hp-hyperx-cloud-iii-red",
+    "productKey": "1fc8bc6badb13fbbb6a759b9",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/post-24_396a5da2b7424c89b8be87cf8eff19d5.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-1_3b11da8a826f404f886613107278b85e_a86a5f556b154780a4c98035f4e22a68.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-01.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-1-white_6b01ca2fb6824a8ebc6e72d1846ffc82_f5b8bcfd22084d7fadd32a777abb04a3.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-02.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-3_6abf8821a16942c2b5f078e03f2418f4_47d5ef615d43479aa5257310699acdaf.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-03.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-3-white_0fa9049249d547468ed7350a878e2819_876311f021bc4cb893e225d8d06d2c57.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-04.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/hinh-2-white_d881d2373549447fa1d0c2bb972148e4_d09b5db392ce499995ace96ee0dc36c7.gif",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-05.gif",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-01_0df7385e19e345709cbf6f68a261cfb8.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-06.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-07_e14ed32cb0614195bfd8cffb4994534a.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-07.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-08_9bfff38506c94e92a683b095f78d87e6.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-08.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-17_011ae25bcb074fe29148cb77695db149.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-09.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-18_461a509c4afd4cf4b538ec1b662af906.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-10.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-20_c1e5797afb914e17aa9fd2c79d0da5b5.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-11.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-21_5ee5670dee0345fcb0feb4b1d27a3917.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-12.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-22_425c1c7a64134ca7a6584b2fe565329f.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-13.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/post-23_b67969e547724f92b61427fbc7c57675.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/gallery-14.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-red-1.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/description-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-red-2.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/description-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-red-3.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/description-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-red-4.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/description-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://cdn.hstatic.net/files/200000722513/file/tai-nghe-hp-hyperx-cloud-iii-red-5.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/1fc8bc6badb13fbbb6a759b9/description-05.webp",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "caac931c2f41a3cde00b6903": {
+    "batchId": "20261015T123506Z",
+    "productUrl": "https://gearvn.com/products/tai-nghe-hyperx-cloud-stinger-core-ii",
+    "productKey": "caac931c2f41a3cde00b6903",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/perx_cloud_stinger_2_core_6_mute_900x_64c0cf58da2c4bd4a3d47d074f6ac26e_d0fce8d76d6e41b39fb222ef772d25d1.jpg",
+      "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/thumbtainghe_499f42bf16fe47d28ab00bffb7bd5748_47730811ddaf40a0a969f4e4d49c7b27.png",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/_cloud_stinger_2_core_5_extended_900x_e48069d81fed4099aa18b29b624be928_5832fe76ef4e4b7eadad773d5a3726d0.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/rx_cloud_stinger_2_core_4_bottom_900x_ac41e5bfcbc642ebacf444174687e8f6_332f7a4cd6044728b3b86192d8974b0d.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/erx_cloud_stinger_2_core_3_front_900x_5765606303df4fedbfbbb99d947bc72c_1d9ac5b6903c4a5684ccaf76297400ae.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/perx_cloud_stinger_2_core_2_side_900x_2a26f702c7c84715962e3deecc04eae3_1258d82443594739b6137c17c70cfce9.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/oud_stinger_2_core_7_accessories_900x_e3be8509918040f1a028c0086d70bf7b_90c8a81bdc794d5881ab32bc75494f6c.jpg",
+        "localPath": "images/20261015T123506Z/HyperX_Headphone/caac931c2f41a3cde00b6903/gallery-06.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-1_37d72b11a199485ca91bde52c4122383.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-1_37d72b11a199485ca91bde52c4122383.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-4_f0d857daa8bb4450b2c944d47770bc0c.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-4_f0d857daa8bb4450b2c944d47770bc0c.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-5_f829cc26fe6c4f67b9682c889cde7124.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-5_f829cc26fe6c4f67b9682c889cde7124.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-3_dd65645ab1074cedaab8af3f75cbf920.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-3_dd65645ab1074cedaab8af3f75cbf920.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-2_4230f72a15104cc3b311a4d1776d20e0.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-tai-nghe-hyperx-cloud-stinger-core-ii-2_4230f72a15104cc3b311a4d1776d20e0.png"
+      }
+    ]
+  }
+}

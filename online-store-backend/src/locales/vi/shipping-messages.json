@@ -1,0 +1,21 @@
+{
+  "same_district_free_shipping": "Cùng quận - Miễn phí vận chuyển",
+  "province_id_required": "provinceId là bắt buộc",
+  "district_id_required": "districtId là bắt buộc",
+  "weight_must_be_positive": "Cân nặng phải lớn hơn 0",
+  "shipping_address_required": "Địa chỉ giao hàng là bắt buộc",
+  "invalid_shipping_data": "Dữ liệu giao hàng không hợp lệ",
+  "ghnDistrictError": "Lỗi khi lấy dữ liệu quận/huyện từ GHN: {{error}}",
+  "ghnWardError": "Lỗi khi lấy dữ liệu phường/xã từ GHN: {{error}}",
+  "missingParametersService": "Thiếu tham số dịch vụ vận chuyển",
+  "noProvidersConfigured": "Không có nhà cung cấp vận chuyển nào được cấu hình",
+  "cannotCalculateFee": "Không thể tính phí vận chuyển",
+  "provinceIdRequired": "Mã tỉnh/thành phố là bắt buộc",
+  "districtIdRequired": "Mã quận/huyện là bắt buộc",
+  "sameDistrictFree": "Cùng quận - Miễn phí vận chuyển",
+  "standardServiceName": "Dịch vụ tiêu chuẩn",
+  "standardServiceDesc": "Giao hàng trong 3-5 ngày",
+  "expressServiceName": "Dịch vụ nhanh",
+  "expressServiceDesc": "Giao hàng trong 1-2 ngày",
+  "calculateFeeFailed": "Không thể tính phí vận chuyển: {{error}}"
+}

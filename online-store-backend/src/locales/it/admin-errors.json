@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Impossibile salvare l'override",
+  "error_saving_override": "Errore nel salvataggio dell'override",
+  "failed_load_namespace": "Impossibile caricare lo spazio dei nomi",
+  "error_fetching_health_data": "Errore nel recupero dei dati di integrità",
+  "error_fetching_logs": "Errore nel recupero dei log",
+  "error_fetching_languages": "Errore nel recupero delle lingue",
+  "error_fetching_supported_languages": "Errore nel recupero delle lingue supportate",
+  "failed_fetch_products": "Impossibile recuperare i prodotti",
+  "failed_fetch_deleted_products": "Impossibile recuperare i prodotti eliminati",
+  "http_error_status": "Errore HTTP! stato: {status}",
+  "failed_create_shipment": "Impossibile creare la spedizione",
+  "failed_update_translation": "Impossibile aggiornare la traduzione",
+  "failed_delete_product": "Impossibile eliminare il prodotto",
+  "failed_import_products": "Impossibile importare i prodotti",
+  "network_timeout": "Timeout della rete"
+}

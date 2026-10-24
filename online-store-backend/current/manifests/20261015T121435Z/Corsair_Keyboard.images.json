@@ -1,0 +1,71 @@
+{
+  "65f85bff0cba40c8b9dceeaf": {
+    "batchId": "20261015T121435Z",
+    "productUrl": "https://gearvn.com/products/ban-phim-co-corsair-k100-rgb-cherry-mx-speed-ch-912a014-na",
+    "productKey": "65f85bff0cba40c8b9dceeaf",
+    "main": {
+      "sourceUrl": "https://product.hstatic.net/200000722513/product/-rgb_3fec26f9aeb748e3872c03dfe5439d04_0d1af098b33448b58dc0e7a7048e1f43_06484a8e28474839b15c7177b56b4fbd.png",
+      "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/main.webp",
+      "status": "downloaded"
+    },
+    "gallery": [
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/phim_2ceafcd3b71942409b4724616258c73b_d44aa7fb2a70454d99b01bc9c1117f4f_030600be83d043258c9998e4edef6924.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-01.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/gb-4_5f8aa0cb982a4438afec52f8dfb87c12_dae24eebe34349c59588136c8d26d27c_a18d5aca98e94384a1f677e6ee9c6401.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-02.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/gb-2_d6cd7853237a45fe8083b031702eed17_984e477caa1e46f68bb21b0bca425312_18e57fa55d21450c987611bc550a2803.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-03.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/gb-3_c9b8829ce5434c4d9da6b2f0a7874abc_8557b05901e64a6d98d0ab393b3db13b_bb22480c0f894267878497cefb78036d.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-04.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/gb-1_3acef0197e654548a2114db3ae6e69cb_006cb8f68cf3449fb6ff3db593c6cd8b_4e12bc84e2a4436dae3c25bb458249e3.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-05.webp",
+        "status": "downloaded"
+      },
+      {
+        "sourceUrl": "https://product.hstatic.net/200000722513/product/gb-6_f086eb11aece48d597ca227aaa6d6b3c_0e1f2dd10da143449bc4d1e68e8ec897_fe8300b7b42842e992799159aefc59fb.png",
+        "localPath": "images/20261015T121435Z/Corsair_Keyboard/65f85bff0cba40c8b9dceeaf/gallery-06.webp",
+        "status": "downloaded"
+      }
+    ],
+    "description": [
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb_43a892d422794be996e4ae87329fd907.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb_43a892d422794be996e4ae87329fd907.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-1_75083f2d417f43519be5ba0a22b021fb.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-1_75083f2d417f43519be5ba0a22b021fb.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-4_ac41157ad54341eab76a842bfa8f3325.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-4_ac41157ad54341eab76a842bfa8f3325.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-2_8adf6659bca0467f99f4eb051137a180.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-2_8adf6659bca0467f99f4eb051137a180.png"
+      },
+      {
+        "sourceUrl": "https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-3_89f9036d5a2d4fe1a73986ee1ce4e7ee.png",
+        "status": "failed",
+        "error": "404 Client Error: Not Found for url: https://file.hstatic.net/1000026716/file/gearvn-ban-phim-co-corsair-k100-rgb-3_89f9036d5a2d4fe1a73986ee1ce4e7ee.png"
+      }
+    ]
+  }
+}

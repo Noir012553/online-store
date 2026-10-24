@@ -1,0 +1,16 @@
+{
+  "required_codes": "Both currency codes are required",
+  "required_fields": "From currency, to currency, and rate are required",
+  "rate_must_be_positive": "Exchange rate must be greater than zero",
+  "created_success": "Exchange rate created successfully",
+  "updated_success": "Exchange rate updated successfully",
+  "deleted_success": "Exchange rate deleted successfully",
+  "amount_non_negative": "Amount must not be negative",
+  "updated_rates": "Updated {{count}} exchange rates",
+  "not_found": "Exchange rate not found",
+  "pair_not_found": "Exchange rate from {{fromCode}} to {{toCode}} was not found",
+  "currencies_match": "From and to currencies must be different",
+  "already_exists": "Exchange rate from {{fromCode}} to {{toCode}} already exists",
+  "currency_not_found": "Currency {{currencyCode}} was not found",
+  "operation_failed": "Unable to process the exchange rate request"
+}

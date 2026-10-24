@@ -1,0 +1,679 @@
+/**
+ * Express Application Entry Point - Server chính cho hệ thống e-commerce laptop
+ * Quản lý middleware, kết nối database, định tuyến API, xử lý lỗi toàn cục
+ * Chạy trên port 5000 (hoặc PORT env)
+ */
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
+const { Server } = require('socket.io');
+const http = require('http');
+const { connectMongo } = require('./config/mongoConnection');
+
+// ==================== Import Routes ====================
+const userRoutes = require('./routes/userRoutes');
+const productRoutes = require('./routes/productRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const brandRoutes = require('./routes/brandRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const couponRoutes = require('./routes/couponRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const addressRoutes = require('./routes/addressRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
+const shippingProviderRoutes = require('./routes/shippingProviderRoutes');
+const shipmentRoutes = require('./routes/shipmentRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
+const translationRoutes = require('./routes/translationRoutes');
+const languageRoutes = require('./routes/languageRoutes');
+const currencyRoutes = require('./routes/currencyRoutes');
+const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
+const healthRoutes = require('./routes/healthRoutes');
+const r2AssetRoutes = require('./routes/r2AssetRoutes');
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const { globalLimiter } = require('./middleware/rateLimitMiddleware');
+const languageMiddleware = require('./middleware/languageMiddleware');
+const paymentController = require('./controllers/paymentController');
+const asyncHandler = require('express-async-handler');
+const { socketHandler } = require('./socket/socketHandler');
+const expressJSDocSwagger = require('express-jsdoc-swagger');
+const swaggerOptions = require('./config/swagger');
+const { getMessage } = require('./i18n/messages');
+const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
+const { startExportJobWorker } = require('./services/exportJobService');
+const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
+const { getR2StorageStatus } = require('./services/r2AssetService');
+
+// ==================== Initialize Express App ====================
+const app = express();
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI;
+let apiRequestSequence = 0;
+const debugApi = () => {};
+
+
+/**
+ * Express Application Entry Point
+ *
+ * Quản lý:
+ * - Cấu hình middleware
+ * - Kết nối database MongoDB
+ * - Định tuyến API
+ * - Xử lý lỗi toàn cục
+ *
+ * Cấu trúc:
+ * GET /                     - Health check
+ * /api/users               - User authentication & management
+ * /api/products            - Product CRUD operations
+ * /api/orders              - Order management
+ * /api/customers           - Customer management (upsert by phone)
+ * /api/categories          - Category management
+ * /api/reviews             - Product reviews
+ * /api/coupons             - Discount coupon management
+ */
+
+// ==================== Middleware Configuration ====================
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+  });
+
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
+  next();
+});
+
+/**
+ * CORS Middleware
+ * Cho phép frontend từ các domain khác gọi API (Cross-Origin Requests)
+ *
+ * Allowed Origins:
+ * - Production: https://manln.online (Frontend URL)
+ * - Development: http://localhost:3000
+ * - Backend domains are NOT needed (Next.js proxies requests, no direct CORS)
+ */
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allowed origins for CORS requests
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5000', // Cho phép từ chính backend
+      'https://manln.online',
+      'https://backend.manln.online',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+
+    // Allow if:
+    // 1. No origin (same-site or non-browser requests)
+    // 2. In allowed list
+    // 3. Builder.io dev server (*.builderio.xyz or *.builderio.dev)
+    const isBuilderDev = origin && /\.builderio\.(xyz|dev)$/.test(origin);
+    if (!origin || allowedOrigins.includes(origin) || isBuilderDev) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+
+/**
+ * Cookie Parser Middleware
+ * Cho phép Express đọc httpOnly cookies từ request headers
+ * Cần thiết để refresh token được lưu trong secure cookies
+ */
+app.use(cookieParser());
+
+app.use('/api', (req, res, next) => {
+  const requestId = ++apiRequestSequence;
+  const startedAt = Date.now();
+  req.apiRequestId = requestId;
+
+  debugApi('request:start', {
+    requestId,
+    method: req.method,
+    path: req.originalUrl,
+    userAgent: req.get('user-agent') || null,
+    contentLength: req.get('content-length') || null,
+    mongoReadyState: mongoose.connection.readyState,
+  });
+
+  res.on('finish', () => {
+    debugApi('request:finish', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      mongoReadyState: mongoose.connection.readyState,
+    });
+  });
+
+  res.on('close', () => {
+    debugApi('request:close', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      headersSent: res.headersSent,
+      writableEnded: res.writableEnded,
+    });
+  });
+
+  next();
+});
+
+/**
+ * JSON Parser Middleware
+ * Cho phép Express đọc JSON từ request body
+ * Hỗ trợ request headers: Content-Type: application/json
+ * Tăng limit lên 50MB để hỗ trợ description dài và multiple images
+ */
+app.use(express.json({ limit: '50mb' }));
+
+/**
+ * URL-Encoded Parser Middleware
+ * Cho phép Express đọc form data từ request body
+ * Hỗ trợ request headers: Content-Type: application/x-www-form-urlencoded
+ * Tăng limit lên 50MB để hỗ trợ large payloads
+ */
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+/**
+ * Trust Proxy Middleware
+ * Cloudflare Tunnel kết nối từ localhost (loopback)
+ * Nên ta tin tưởng loopback proxy để lấy đúng IP từ cf-connecting-ip header
+ */
+app.set('trust proxy', 'loopback');
+
+/**
+ * Swagger UI Middleware
+ * Tài liệu API trực quan cho dự án
+ */
+expressJSDocSwagger(app)(swaggerOptions);
+
+/**
+ * Global Rate Limiter Middleware
+ * Áp dụng cho tất cả /api/* routes để ngăn DoS/scraping
+ * Limit: 100 requests per 15 minutes per IP
+ */
+app.use('/api/', globalLimiter);
+
+/**
+ * Language Middleware
+ * Extract language from query, body, or Accept-Language header
+ * Attach to req.lang for use in controllers
+ */
+app.use(languageMiddleware);
+
+// ==================== Database Connection ====================
+
+/**
+ * Kết nối MongoDB sử dụng Mongoose với retry logic
+ * - Connection string từ environment variable MONGO_URI
+ * - Sử dụng mặc định trong tests, ngoài production dùng MongoDB Atlas
+ * - Retry logic với exponential backoff cho connection failures
+ */
+let connectionAttempts = 0;
+const maxConnectionAttempts = 3;
+let reconnectTimer = null;
+let connectionInProgress = false;
+let startupReady = false;
+let serverStarted = false;
+
+const scheduleReconnect = (delay) => {
+  if (reconnectTimer) return;
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connectDB();
+  }, delay);
+};
+
+const assertMongoConnected = () => {
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error('MongoDB connection is not ready for startup initialization');
+  }
+};
+
+const runStartupPhase = async (name, task) => {
+  const startedAt = Date.now();
+  try {
+    return await task();
+  } finally {
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[STARTUP] ${name} completed in ${Date.now() - startedAt}ms`);
+    }
+  }
+};
+
+const requireDatabase = (req, res, next) => {
+  const databaseConnected = mongoose.connection.readyState === 1;
+  const testDatabaseReady = process.env.NODE_ENV === 'test' && databaseConnected;
+  if ((startupReady || testDatabaseReady) && databaseConnected) {
+    return next();
+  }
+
+  debugApi('database:blocked', {
+    requestId: req.apiRequestId,
+    method: req.method,
+    path: req.originalUrl,
+    readyState: mongoose.connection.readyState,
+    startupReady,
+  });
+
+  const message = getMessage(req.lang, 'common.error_server_desc');
+  return res.status(503).json({
+    success: false,
+    code: mongoose.connection.readyState === 1 ? 'SERVICE_NOT_READY' : 'DATABASE_UNAVAILABLE',
+    message,
+    error: message,
+    timestamp: new Date().toISOString(),
+  });
+};
+
+const connectDB = async () => {
+  if (connectionInProgress) {
+    return;
+  }
+
+  if (mongoose.connection.readyState === 2 || mongoose.connection.readyState === 3) {
+    scheduleReconnect(3000);
+    return;
+  }
+
+  connectionInProgress = true;
+  startupReady = false;
+
+  try {
+    if (!MONGO_URI) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[CRITICAL] MONGO_URI environment variable is not set');
+        console.error('[HELP] Set MONGO_URI via Cloudflare Tunnel environment variables or in .env file');
+      }
+      return;
+    }
+
+    await runStartupPhase('mongo-connect', () => connectMongo(MONGO_URI));
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    connectionAttempts = 0;
+    assertMongoConnected();
+    assertStorageConfigured();
+    await startServer();
+    startExportJobWorker();
+    startupReady = true;
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[STARTUP] backend ready');
+    }
+  } catch (err) {
+    connectionAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, connectionAttempts - 1), 30000);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[DB_ERROR] Connection attempt ${connectionAttempts} failed:`, {
+        error: err.message,
+        nextRetryIn: `${delay}ms`,
+        uri: MONGO_URI ? '***' : 'NOT_SET',
+      });
+    }
+
+    if (connectionAttempts < maxConnectionAttempts) {
+      scheduleReconnect(delay);
+    } else if (process.env.NODE_ENV === 'development') {
+      console.error('[CRITICAL] Failed to connect to MongoDB after maximum attempts');
+      console.error('[HELP] Check MONGO_URI and MongoDB availability');
+    }
+  } finally {
+    connectionInProgress = false;
+  }
+};
+
+mongoose.connection.on('disconnected', () => {
+  startupReady = false;
+  if (require.main !== module) {
+    return;
+  }
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[DB_WARN] MongoDB disconnected, attempting reconnect...');
+  }
+  scheduleReconnect(3000);
+});
+
+mongoose.connection.on('connected', () => {
+  // MongoDB reconnected - start scheduler, but server was already started after initial seed
+});
+
+mongoose.connection.on('error', (err) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[DB_ERROR] Mongoose error:', err.message);
+  }
+});
+
+
+// ==================== Routes Setup ====================
+
+/**
+ * Favicon Handler
+ * GET /favicon.ico - Trả về empty response để tránh lỗi 404
+ * Trình duyệt tự động yêu cầu favicon, không ghi log lỗi
+ */
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // 204 No Content
+});
+
+/**
+ * Health Check Route
+ * GET / - Kiểm tra server có chạy không
+ * Response: { message: "Laptop Store Backend API is running!" }
+ *
+ * Used by Cloudflare Tunnel to verify container is alive
+ */
+app.get('/', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  }[dbState] || 'unknown';
+
+  // Get language from request or use default
+  const acceptLang = req.headers['accept-language'];
+  let lang = getDefaultLanguage().code.toUpperCase();
+  if (acceptLang) {
+    const primaryLang = acceptLang.split(',')[0].split('-')[0].toUpperCase();
+    const activeLangs = getActiveLangCodes().map(l => l.toUpperCase());
+    if (activeLangs.includes(primaryLang)) {
+      lang = primaryLang;
+    }
+  }
+
+  res.status(200).json({
+    message: getMessage(lang, 'api.backendRunning'),
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: {
+      status: dbStatus,
+      connected: dbState === 1,
+    },
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+/**
+ * Health check endpoint - Memory Status
+ * GET /health/cache - Monitor memory usage
+ */
+app.get('/readyz', (req, res) => {
+  const storage = getStorageStatus();
+  const assetStorage = getR2StorageStatus();
+  const ready = startupReady
+    && mongoose.connection.readyState === 1
+    && storage.configured
+    && assetStorage.configured;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not_ready',
+    databaseConnected: mongoose.connection.readyState === 1,
+    startupReady,
+    storage,
+    assetStorage,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/health/cache', (req, res) => {
+  try {
+    const memUsage = process.memoryUsage();
+    const heapPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+
+    res.json({
+      status: heapPercent > 90 ? 'critical' : heapPercent > 80 ? 'warning' : 'healthy',
+      memory: {
+        heapUsedMB: (memUsage.heapUsed / 1024 / 1024).toFixed(2),
+        heapTotalMB: (memUsage.heapTotal / 1024 / 1024).toFixed(2),
+        heapPercent: heapPercent.toFixed(1),
+        rssMB: (memUsage.rss / 1024 / 1024).toFixed(2),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      code: 'HEALTH_CHECK_FAILED',
+      message: getMessage(req.lang, 'common.error_request_title'),
+    });
+  }
+});
+
+/**
+ * Payment Webhook Routes - Root Level
+ * VNPAY gọi lại: /vnpay-api/webhook/vnpay?vnp_Amount=...&vnp_ResponseCode=...
+ * Route này PHẢI ở trước /api/* routes để tránh bị catch bởi global /api/* rate limiter
+ *
+ * Routes:
+ * - GET/POST /vnpay-api/webhook/vnpay - VNPAY Callback (IPN)
+ * - GET/POST /api/payments/webhook/vnpay - Alias (qua /api/payments)
+ */
+// VNPAY Callback endpoint - phải ở root level, không qua /api/payments
+app.all('/vnpay-api/webhook/:gateway', asyncHandler(paymentController.handleWebhook));
+
+/**
+ * API Routes Mounting
+ * Tất cả routes sử dụng /api/... prefix
+ */
+app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
+app.use('/api', requireDatabase);
+app.use('/api/users', userRoutes);           // User authentication & admin
+app.use('/api/products', productRoutes);     // Product management
+app.use('/api/orders', orderRoutes);         // Order processing
+app.use('/api/payments', paymentRoutes);     // Payment gateway integration (VNPAY, MoMo, Stripe...)
+app.use('/api/customers', customerRoutes);   // Customer management
+app.use('/api/categories', categoryRoutes);  // Category management
+app.use('/api/brands', brandRoutes);         // Brand management
+app.use('/api/reviews', reviewRoutes);       // Product reviews
+app.use('/api/coupons', couponRoutes);       // Coupon system
+app.use('/api/banners', bannerRoutes);       // Marketing banner management
+app.use('/api/analytics', analyticsRoutes);          // Dashboard analytics (optimized)
+app.use('/api/addresses', addressRoutes);            // Customer addresses (shipping)
+app.use('/api/shipping', shippingRoutes);            // Multi-carrier shipping integration
+app.use('/api/shipping-providers', shippingProviderRoutes); // Shipping provider config (admin)
+app.use('/api/shipments', shipmentRoutes);  // Shipment management (create, track, print)
+app.use('/api/newsletter', newsletterRoutes); // Newsletter subscriptions
+app.use('/api/translations', translationRoutes); // Translation service (Cloudflare AI) - Tier 1, 2, 3
+app.use('/api/languages', languageRoutes); // Language management (admin - Tier 3)
+app.use('/api/currencies', currencyRoutes); // Currency management (admin)
+app.use('/api/exchange-rates', exchangeRateRoutes); // Exchange rate management (admin)
+app.use('/api/assets', r2AssetRoutes); // Backend-only Cloudflare R2 asset upload
+
+// ==================== Error Handling Middleware ====================
+
+/**
+ * 404 Not Found Handler
+ * Được gọi khi request đến route không tồn tại
+ * Chuyển sang error handler middleware để xử lý
+ */
+app.use(notFound);
+
+/**
+ * Global Error Handler
+ * Xử lý tất cả lỗi từ controllers
+ * Trong development: trả về full stack trace
+ * Trong production: chỉ trả về error message
+ */
+app.use(errorHandler);
+
+// ==================== Server Startup ====================
+
+/**
+ * Global error handlers cho uncaught exceptions
+ * Ngăn process crash khi có error không được catch
+ */
+process.on('uncaughtException', (err) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[FATAL] Uncaught Exception:', {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  // Continue running instead of crashing
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[FATAL] Unhandled Rejection:', {
+      reason,
+      promise,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  // Continue running instead of crashing
+});
+
+/**
+ * Khởi động Express server với Socket.io
+ * - Tạo HTTP server từ Express app
+ * - Gắn Socket.io vào HTTP server
+ * - Lắng nghe trên cổng PORT
+ * - In ra thông tin server đã khởi động
+ */
+const server = http.createServer(app);
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+
+// ==================== Socket.io Configuration ====================
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'https://manln.online',
+  'https://www.manln.online',
+  'https://backend.manln.online',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      // Allow requests without origin (mobile apps, same-origin requests)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Development mode: allow all origins for easier testing
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[SOCKET.IO] Development mode - allowing origin: ${origin}`);
+        return callback(null, true);
+      }
+
+      // Production: log rejected origins for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[SOCKET.IO] CORS rejected - origin not allowed: ${origin}`);
+      }
+      return callback(new Error('CORS not allowed'), false);
+    },
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowEIO3: true, // Allow Engine.IO 3 clients
+  },
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 5,
+  // Heartbeat settings để tránh disconnect hàng loạt
+  pingInterval: 25000, // Server gửi ping mỗi 25 giây
+  pingTimeout: 20000, // Chờ 20 giây cho pong từ client
+  // Additional options for reliability
+  allowUpgrades: true,
+  upgradeTimeout: 10000,
+  maxHttpBufferSize: 1e6, // 1MB
+});
+
+// Initialize socket handlers
+socketHandler(io);
+
+// Make io accessible to other modules (paymentService, etc.)
+app.set('io', io);
+
+const listenServer = () => {
+  if (!serverStarted) {
+    serverStarted = true;
+    server.listen(PORT, '0.0.0.0');
+  }
+};
+
+const startServer = async () => {
+  const schedulerService = require('./services/exchangeRateSchedulerService');
+  if (!schedulerService.isRunning) {
+    void schedulerService.startScheduler({
+      interval: 24 * 60 * 60 * 1000,
+      externalApi: process.env.EXCHANGE_RATE_API || null,
+    }).catch(error => {
+      console.error('[ExchangeRateScheduler] Startup failed:', error.message);
+    });
+  }
+
+  listenServer();
+};
+
+// Graceful shutdown handler
+server.on('error', (err) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[SERVER_ERROR] Listen error:', err.message);
+  }
+  if (err.code === 'EADDRINUSE') {
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[ERROR] Port ${PORT} is already in use`);
+    }
+    process.exit(1);
+  }
+});
+
+// Handle SIGTERM for graceful shutdown (Railway sends this)
+process.on('SIGTERM', () => {
+  server.close(() => {
+    process.exit(0);
+  });
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[SHUTDOWN] Forced exit after 30 seconds');
+    }
+    process.exit(1);
+  }, 30000);
+});
+
+process.on('SIGINT', () => {
+  server.close(() => {
+    process.exit(0);
+  });
+});
+
+if (require.main === module) {
+  listenServer();
+  connectDB();
+}
+
+module.exports = { app, io, server };

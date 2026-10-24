@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Échec de l'enregistrement du remplacement",
+  "error_saving_override": "Erreur lors de l'enregistrement du remplacement",
+  "failed_load_namespace": "Échec du chargement de l'espace de noms",
+  "error_fetching_health_data": "Erreur lors de la récupération des données de santé",
+  "error_fetching_logs": "Erreur lors de la récupération des journaux",
+  "error_fetching_languages": "Erreur lors de la récupération des langues",
+  "error_fetching_supported_languages": "Erreur lors de la récupération des langues prises en charge",
+  "failed_fetch_products": "Échec de la récupération des produits",
+  "failed_fetch_deleted_products": "Échec de la récupération des produits supprimés",
+  "http_error_status": "Erreur HTTP! statut: {status}",
+  "failed_create_shipment": "Échec de la création de l'expédition",
+  "failed_update_translation": "Échec de la mise à jour de la traduction",
+  "failed_delete_product": "Échec de la suppression du produit",
+  "failed_import_products": "Échec de l'importation des produits",
+  "network_timeout": "Délai d'expiration du réseau"
+}

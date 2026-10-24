@@ -1,0 +1,26 @@
+.env*
+!.env.example
+!.env.local.example
+
+node_modules/
+.next/
+out/
+build/
+coverage/
+reports/
+
+# Packaged archives (large, reproducible from source)
+*.zip
+!assistant-*.zip
+online-store.zip
+
+# Third-party binaries (download separately from vendor)
+*.exe
+
+# Scraped product images (large binary data, stored on CDN/R2 instead)
+current/images/
+online-store-backend/current/images/
+
+# Logs and generated reports
+*.log
+logs/

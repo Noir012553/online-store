@@ -1,0 +1,22 @@
+{
+  "required_fields": "Verplichte velden ontbreken",
+  "already_created": "Verzending is al aangemaakt voor deze bestelling",
+  "invalid_provider": "Ongeldige verzendingsprovider",
+  "missing_info": "Verzendingsinformatie ontbreekt",
+  "no_service_available": "Geen verzendservice beschikbaar voor dit adres",
+  "unsupported_carrier": "Niet-ondersteunde verzendmaatschappij",
+  "create_success": "Verzending succesvol aangemaakt",
+  "createSuccess": "Verzending succesvol aangemaakt",
+  "not_found": "Verzending niet gevonden",
+  "invalid_status": "Ongeldige verzendingsstatus: {status}",
+  "cancel_success": "Verzending succesvol geannuleerd",
+  "noServiceAvailable": "Er is geen dienst beschikbaar",
+  "currencyMetadataMissing": "Valutametadata is niet beschikbaar voor {{currencyCode}}",
+  "ratesUnavailable": "Wisselkoersen zijn tijdelijk niet beschikbaar",
+  "providerRequestFailed": "De verzendprovider kon de verzendaanvraag niet verwerken",
+  "invalidFee": "De verzendprovider heeft ongeldige verzendkosten geretourneerd",
+  "orderCurrencyUnavailable": "Valutagegevens van de bestelling zijn niet beschikbaar",
+  "printTokenFailed": "Het verzendlabel kan niet worden aangemaakt",
+  "locationSyncSuccess": "Locatiegegevens succesvol gesynchroniseerd",
+  "locationSyncFailed": "Locatiegegevens konden niet worden gesynchroniseerd"
+}

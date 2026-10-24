@@ -1,0 +1,312 @@
+{
+  "vi": {
+    "admin": {
+      "no_category": "Chưa phân loại",
+      "product_name_label": "Tên",
+      "product_brand_label": "Thương hiệu",
+      "product_price_label": "Giá",
+      "product_original_price_label": "Giá gốc",
+      "product_stock_label": "Tồn kho",
+      "product_featured_label": "Nổi bật",
+      "product_featured_help": "Hiển thị sản phẩm này trong các phần được đánh dấu",
+      "product_description_label": "Mô tả",
+      "product_image_label": "Hình ảnh",
+      "product_image_help": "Để trống để giữ hình ảnh hiện tại.",
+      "coupon_code_label": "Mã",
+      "coupon_discount_type_label": "Loại chiết khấu",
+      "coupon_discount_type_percentage": "Phần trăm",
+      "coupon_discount_type_fixed": "Cố định",
+      "coupon_discount_value_label": "Giá trị chiết khấu",
+      "coupon_max_uses_label": "Số lần sử dụng tối đa",
+      "coupon_min_order_label": "Số tiền đơn hàng tối thiểu",
+      "coupon_active_label": "Hoạt động",
+      "coupon_active_help": "Cho phép khách hàng sử dụng mã giảm giá này",
+      "coupon_start_date_label": "Ngày bắt đầu",
+      "coupon_end_date_label": "Ngày kết thúc",
+      "coupon_description_label": "Mô tả",
+      "customer_name_label": "Tên",
+      "customer_email_label": "Email",
+      "customer_phone_label": "Điện thoại",
+      "customer_address_label": "Địa chỉ",
+      "detail_price_label": "Giá",
+      "detail_stock_label": "Tồn kho",
+      "detail_rating_label": "Đánh giá",
+      "detail_reviews_label": "Lượt đánh giá",
+      "detail_category_label": "Danh mục",
+      "detail_image_label": "Hình ảnh",
+      "detail_description_label": "Mô tả",
+      "detail_discount_label": "Chiết khấu",
+      "detail_uses_label": "Lần sử dụng",
+      "detail_min_order_label": "Đơn hàng tối thiểu",
+      "detail_active_label": "Hoạt động",
+      "detail_active_yes": "Có",
+      "detail_active_no": "Không",
+      "detail_start_label": "Bắt đầu",
+      "detail_end_label": "Kết thúc",
+      "detail_orders_label": "Đơn hàng",
+      "detail_spent_label": "Số tiền đã chi",
+      "detail_joined_label": "Ngày tham gia",
+      "detail_products": "Sản phẩm",
+      "detail_total": "Tổng cộng",
+      "detail_payment": "Thanh toán",
+      "detail_date": "Ngày tháng",
+      "loading": "Đang tải...",
+      "not_updated": "Chưa cập nhật",
+      "not_available": "N/A",
+      "error_fill_required": "Vui lòng điền tất cả các trường bắt buộc",
+      "error_load_data": "Lỗi tải dữ liệu"
+    },
+    "pagination": {
+      "page_label": "Trang"
+    },
+    "statistics": {
+      "detail_price_label": "Giá",
+      "detail_stock_label": "Tồn kho",
+      "detail_category_label": "Danh mục"
+    }
+  },
+  "en": {
+    "admin": {
+      "no_category": "Uncategorized",
+      "product_name_label": "Name",
+      "product_brand_label": "Brand",
+      "product_price_label": "Price",
+      "product_original_price_label": "Original price",
+      "product_stock_label": "Stock",
+      "product_featured_label": "Featured",
+      "product_featured_help": "Show this product in highlighted sections",
+      "product_description_label": "Description",
+      "product_image_label": "Image",
+      "product_image_help": "Leave empty to keep the current image.",
+      "coupon_code_label": "Code",
+      "coupon_discount_type_label": "Discount type",
+      "coupon_discount_type_percentage": "Percentage",
+      "coupon_discount_type_fixed": "Fixed",
+      "coupon_discount_value_label": "Discount value",
+      "coupon_max_uses_label": "Max uses",
+      "coupon_min_order_label": "Min order amount",
+      "coupon_active_label": "Active",
+      "coupon_active_help": "Allow customers to use this coupon",
+      "coupon_start_date_label": "Start date",
+      "coupon_end_date_label": "End date",
+      "coupon_description_label": "Description",
+      "customer_name_label": "Name",
+      "customer_email_label": "Email",
+      "customer_phone_label": "Phone",
+      "customer_address_label": "Address",
+      "detail_price_label": "Price",
+      "detail_stock_label": "Stock",
+      "detail_rating_label": "Rating",
+      "detail_reviews_label": "Reviews",
+      "detail_category_label": "Category",
+      "detail_image_label": "Image",
+      "detail_description_label": "Description",
+      "detail_discount_label": "Discount",
+      "detail_uses_label": "Uses",
+      "detail_min_order_label": "Min order",
+      "detail_active_label": "Active",
+      "detail_active_yes": "Yes",
+      "detail_active_no": "No",
+      "detail_start_label": "Start",
+      "detail_end_label": "End",
+      "detail_orders_label": "Orders",
+      "detail_spent_label": "Spent",
+      "detail_joined_label": "Joined",
+      "detail_products": "Products",
+      "detail_total": "Total",
+      "detail_payment": "Payment",
+      "detail_date": "Date",
+      "loading": "Loading...",
+      "not_updated": "Not updated",
+      "not_available": "N/A",
+      "error_fill_required": "Please fill in all required fields",
+      "error_load_data": "Error loading data"
+    },
+    "pagination": {
+      "page_label": "Page"
+    },
+    "statistics": {
+      "detail_price_label": "Price",
+      "detail_stock_label": "Stock",
+      "detail_category_label": "Category"
+    }
+  },
+  "de": {
+    "admin": {
+      "no_category": "Unkategorisiert",
+      "product_name_label": "Name",
+      "product_brand_label": "Marke",
+      "product_price_label": "Preis",
+      "product_original_price_label": "Originalpreis",
+      "product_stock_label": "Bestand",
+      "product_featured_label": "Hervorgehoben",
+      "product_featured_help": "Dieses Produkt in hervorgehobenen Abschnitten anzeigen",
+      "product_description_label": "Beschreibung",
+      "product_image_label": "Bild",
+      "product_image_help": "Leer lassen, um das aktuelle Bild zu behalten.",
+      "loading": "Wird geladen...",
+      "not_updated": "Nicht aktualisiert",
+      "not_available": "N/V",
+      "error_fill_required": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "error_load_data": "Fehler beim Laden von Daten"
+    },
+    "pagination": {
+      "page_label": "Seite"
+    },
+    "statistics": {
+      "detail_price_label": "Preis",
+      "detail_stock_label": "Bestand",
+      "detail_category_label": "Kategorie"
+    }
+  },
+  "es": {
+    "admin": {
+      "no_category": "Sin categoría",
+      "product_name_label": "Nombre",
+      "product_brand_label": "Marca",
+      "product_price_label": "Precio",
+      "product_original_price_label": "Precio original",
+      "product_stock_label": "Stock",
+      "product_featured_label": "Destacado",
+      "product_featured_help": "Mostrar este producto en secciones destacadas",
+      "loading": "Cargando...",
+      "not_updated": "No actualizado",
+      "not_available": "N/D",
+      "error_fill_required": "Por favor complete todos los campos requeridos",
+      "error_load_data": "Error al cargar datos"
+    },
+    "pagination": {
+      "page_label": "Página"
+    },
+    "statistics": {
+      "detail_price_label": "Precio",
+      "detail_stock_label": "Stock",
+      "detail_category_label": "Categoría"
+    }
+  },
+  "fr": {
+    "admin": {
+      "no_category": "Sans catégorie",
+      "product_name_label": "Nom",
+      "product_brand_label": "Marque",
+      "product_price_label": "Prix",
+      "product_original_price_label": "Prix original",
+      "product_stock_label": "Stock",
+      "product_featured_label": "En vedette",
+      "product_featured_help": "Afficher ce produit dans les sections en vedette",
+      "loading": "Chargement...",
+      "not_updated": "Non mis à jour",
+      "not_available": "N/D",
+      "error_fill_required": "Veuillez remplir tous les champs obligatoires",
+      "error_load_data": "Erreur lors du chargement des données"
+    },
+    "pagination": {
+      "page_label": "Page"
+    },
+    "statistics": {
+      "detail_price_label": "Prix",
+      "detail_stock_label": "Stock",
+      "detail_category_label": "Catégorie"
+    }
+  },
+  "it": {
+    "admin": {
+      "no_category": "Senza categoria",
+      "product_name_label": "Nome",
+      "product_brand_label": "Marca",
+      "product_price_label": "Prezzo",
+      "product_original_price_label": "Prezzo originale",
+      "product_stock_label": "Magazzino",
+      "product_featured_label": "In evidenza",
+      "product_featured_help": "Mostra questo prodotto in sezioni evidenziate",
+      "loading": "Caricamento...",
+      "not_updated": "Non aggiornato",
+      "not_available": "N/D",
+      "error_fill_required": "Si prega di compilare tutti i campi obbligatori",
+      "error_load_data": "Errore durante il caricamento dei dati"
+    },
+    "pagination": {
+      "page_label": "Pagina"
+    },
+    "statistics": {
+      "detail_price_label": "Prezzo",
+      "detail_stock_label": "Magazzino",
+      "detail_category_label": "Categoria"
+    }
+  },
+  "nl": {
+    "admin": {
+      "no_category": "Geen categorie",
+      "product_name_label": "Naam",
+      "product_brand_label": "Merk",
+      "product_price_label": "Prijs",
+      "product_original_price_label": "Originele prijs",
+      "product_stock_label": "Voorraad",
+      "product_featured_label": "Aanbevolen",
+      "product_featured_help": "Dit product in aanbevolen secties weergeven",
+      "loading": "Bezig met laden...",
+      "not_updated": "Niet bijgewerkt",
+      "not_available": "N/B",
+      "error_fill_required": "Vul alstublieft alle verplichte velden in",
+      "error_load_data": "Fout bij het laden van gegevens"
+    },
+    "pagination": {
+      "page_label": "Pagina"
+    },
+    "statistics": {
+      "detail_price_label": "Prijs",
+      "detail_stock_label": "Voorraad",
+      "detail_category_label": "Categorie"
+    }
+  },
+  "pt": {
+    "admin": {
+      "no_category": "Sem categoria",
+      "product_name_label": "Nome",
+      "product_brand_label": "Marca",
+      "product_price_label": "Preço",
+      "product_original_price_label": "Preço original",
+      "product_stock_label": "Estoque",
+      "product_featured_label": "Destaque",
+      "product_featured_help": "Mostrar este produto em seções destacadas",
+      "loading": "Carregando...",
+      "not_updated": "Não atualizado",
+      "not_available": "N/D",
+      "error_fill_required": "Por favor preencha todos os campos obrigatórios",
+      "error_load_data": "Erro ao carregar dados"
+    },
+    "pagination": {
+      "page_label": "Página"
+    },
+    "statistics": {
+      "detail_price_label": "Preço",
+      "detail_stock_label": "Estoque",
+      "detail_category_label": "Categoria"
+    }
+  },
+  "sv": {
+    "admin": {
+      "no_category": "Utan kategori",
+      "product_name_label": "Namn",
+      "product_brand_label": "Märke",
+      "product_price_label": "Pris",
+      "product_original_price_label": "Originalpris",
+      "product_stock_label": "Lager",
+      "product_featured_label": "Utvald",
+      "product_featured_help": "Visa denna produkt i utvalda avsnitt",
+      "loading": "Laddar...",
+      "not_updated": "Inte uppdaterad",
+      "not_available": "E/T",
+      "error_fill_required": "Vänligen fyll i alla obligatoriska fält",
+      "error_load_data": "Fel vid inläsning av data"
+    },
+    "pagination": {
+      "page_label": "Sida"
+    },
+    "statistics": {
+      "detail_price_label": "Pris",
+      "detail_stock_label": "Lager",
+      "detail_category_label": "Kategori"
+    }
+  }
+}

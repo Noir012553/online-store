@@ -1,0 +1,121 @@
+Batch file: assistant-batch-import-10-products.json
+Batch records: 51 | unique products: 10
+
+--- PRODUCTS (10/10 found) ---
+6ad0d7c80069aece85a8c917 | CHU-RAZER-VIPER-V3-PRO-SE | Chuột không dây Razer Viper V3 Pro SE
+6ad0d7c80069aece85a8c918 | CHU-RAZER-VIPER-V3-PRO-CS2 | Chuột Razer Viper V3 Pro Counter-Strike 2 Edition
+6ad0d7c80069aece85a8c919 | CHU-RAZER-DA-V4-PRO-BLK | Chuột Razer DeathAdder V4 Pro Black
+6ad0d7c80069aece85a8c91a | CHU-RAZER-DA-V4-PRO-WHI | Chuột Razer DeathAdder V4 Pro White
+6ad0d7c80069aece85a8c91b | CHU-RAZER-PRO-CLICK-V2 | Chuột Razer Pro Click V2
+6ad0d7c80069aece85a8c91c | CHU-RAZER-PRO-CLICK-V2-VERTICAL | Chuột Razer Pro Click V2 Vertical
+6ad0d7c80069aece85a8c91d | CHU-RAZER-BASILISK-V3-PRO-35K-BLACK | Chuột Razer Basilisk V3 Pro 35K Black
+6ad0d7c80069aece85a8c91e | CHU-RAZER-DEATHADDER-V3-HP | Chuột Razer DeathAdder V3 Hyperspeed Wireless
+6ad0d7c80069aece85a8c91f | CHU-RAZER-VIPER-V3-PRO-WHITE | Chuột Razer Không dây Viper V3 Pro Trắng
+6ad0d7c80069aece85a8c920 | CHU-RAZER-VIPER-V3-PRO-BLK | Chuột Razer Không dây Viper V3 Pro Đen
+
+--- CATALOG CACHE (product_catalog_translation_cache) ---
+Cache docs found: 80 (batch covers 51 locale slots)
+
+[6ad0d7c80069aece85a8c917] Chuột không dây Razer Viper V3 Pro SE (batch: nl,sv)
+  en: success/approved score:100 prov:assistant/assistant_batch hash:880eca0f upd:2026-10-22T09:03
+  pt: success/approved score:100 prov:cloudflare/primary hash:880eca0f upd:2026-10-22T09:03
+  fr: success/approved score:100 prov:cloudflare/primary hash:880eca0f upd:2026-10-22T09:05
+  de: success/approved score:100 prov:cloudflare/primary hash:880eca0f upd:2026-10-22T09:03
+  it: success/approved score:100 prov:cloudflare/primary hash:880eca0f upd:2026-10-22T09:05
+  es: success/approved score:100 prov:cloudflare/primary hash:880eca0f upd:2026-10-22T09:04
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:880eca0f upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:880eca0f upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c918] Chuột Razer Viper V3 Pro Counter-Strike 2 Edition (batch: en,fr,de,it,es,nl,sv)
+  en: success/approved score:50 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  pt: success/approved score:100 prov:cloudflare/primary hash:6b540654 upd:2026-10-23T05:30
+  fr: success/approved score:80 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  de: success/approved score:80 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  it: success/approved score:80 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  es: success/approved score:100 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:6b540654 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c919] Chuột Razer DeathAdder V4 Pro Black (batch: fr,de,it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:fcc1a15a upd:2026-10-21T05:10
+  pt: success/approved score:100 prov:cloudflare/primary hash:fcc1a15a upd:2026-10-22T11:06
+  fr: success/approved score:50 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+  de: success/approved score:80 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+  it: success/approved score:80 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:fcc1a15a upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91a] Chuột Razer DeathAdder V4 Pro White (batch: en,pt,fr,de,it,es,nl,sv)
+  en: success/approved score:80 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  pt: success/approved score:80 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  fr: success/approved score:50 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  de: success/approved score:80 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  it: success/approved score:100 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  es: success/approved score:100 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:4b1f76c8 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91b] Chuột Razer Pro Click V2 (batch: it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:8bb03493 upd:2026-10-22T10:45
+  pt: success/approved score:100 prov:cloudflare/primary hash:8bb03493 upd:2026-10-22T10:45
+  fr: success/approved score:100 prov:cloudflare/primary hash:8bb03493 upd:2026-10-22T13:49
+  de: success/approved score:100 prov:cloudflare/primary hash:8bb03493 upd:2026-10-22T13:49
+  it: success/approved score:80 prov:assistant/assistant_batch hash:8bb03493 upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:8bb03493 upd:2026-10-24T10:47
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:8bb03493 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:8bb03493 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91c] Chuột Razer Pro Click V2 Vertical (batch: en,de,it,es,nl,sv)
+  en: success/approved score:80 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+  pt: success/approved score:100 prov:cloudflare/primary hash:4ea22141 upd:2026-10-22T11:07
+  fr: success/approved score:100 prov:cloudflare/primary hash:4ea22141 upd:2026-10-22T14:28
+  de: success/approved score:80 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+  it: success/approved score:50 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+  nl: success/approved score:50 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:4ea22141 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91d] Chuột Razer Basilisk V3 Pro 35K Black (batch: de,it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:85743591 upd:2026-10-21T05:15
+  pt: success/approved score:100 prov:cloudflare/primary hash:85743591 upd:2026-10-22T11:07
+  fr: success/approved score:100 prov:cloudflare/primary hash:85743591 upd:2026-10-22T14:29
+  de: success/approved score:80 prov:assistant/assistant_batch hash:85743591 upd:2026-10-24T10:47
+  it: success/approved score:80 prov:assistant/assistant_batch hash:85743591 upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:85743591 upd:2026-10-24T10:47
+  nl: success/approved score:50 prov:assistant/assistant_batch hash:85743591 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:85743591 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91e] Chuột Razer DeathAdder V3 Hyperspeed Wireless (batch: it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:b248967f upd:2026-10-16T17:47
+  pt: success/approved score:100 prov:cloudflare/primary hash:b248967f upd:2026-10-16T17:47
+  fr: success/approved score:100 prov:cloudflare/primary hash:b248967f upd:2026-10-22T14:29
+  de: success/approved score:100 prov:cloudflare/primary hash:b248967f upd:2026-10-16T20:56
+  it: success/approved score:80 prov:assistant/assistant_batch hash:b248967f upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:b248967f upd:2026-10-24T10:47
+  nl: success/approved score:100 prov:assistant/assistant_batch hash:b248967f upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:b248967f upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c91f] Chuột Razer Không dây Viper V3 Pro Trắng (batch: it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:c7e18023 upd:2026-10-21T05:14
+  pt: success/approved score:100 prov:cloudflare/primary hash:c7e18023 upd:2026-10-22T11:07
+  fr: success/approved score:100 prov:cloudflare/primary hash:c7e18023 upd:2026-10-22T14:30
+  de: success/approved score:100 prov:cloudflare/primary hash:c7e18023 upd:2026-10-22T14:30
+  it: success/approved score:80 prov:assistant/assistant_batch hash:c7e18023 upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:c7e18023 upd:2026-10-24T10:47
+  nl: success/approved score:50 prov:assistant/assistant_batch hash:c7e18023 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:c7e18023 upd:2026-10-24T10:47
+
+[6ad0d7c80069aece85a8c920] Chuột Razer Không dây Viper V3 Pro Đen (batch: fr,it,es,nl,sv)
+  en: success/approved score:100 prov:cloudflare/primary hash:16bbf2e9 upd:2026-10-22T13:48
+  pt: success/approved score:100 prov:cloudflare/primary hash:16bbf2e9 upd:2026-10-22T13:48
+  fr: success/approved score:80 prov:assistant/assistant_batch hash:16bbf2e9 upd:2026-10-24T10:47
+  de: success/approved score:100 prov:cloudflare/primary hash:16bbf2e9 upd:2026-10-22T14:29
+  it: success/approved score:80 prov:assistant/assistant_batch hash:16bbf2e9 upd:2026-10-24T10:47
+  es: success/approved score:80 prov:assistant/assistant_batch hash:16bbf2e9 upd:2026-10-24T10:47
+  nl: success/approved score:50 prov:assistant/assistant_batch hash:16bbf2e9 upd:2026-10-24T10:47
+  sv: success/approved score:100 prov:assistant/assistant_batch hash:16bbf2e9 upd:2026-10-24T10:47
+
+--- SUMMARY (expected 80 cache docs = 10 products x 8 locales) ---
+{"approved":80,"pending":0,"other":0,"missing":0,"hashMismatch":0,"lowScore":32}
+translationReady=true: 10/10

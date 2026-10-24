@@ -1,0 +1,433 @@
+===== PRODUCT 6ad0d7c80069aece85a8c917 =====
+LANGS: nl,sv
+NAME: Chuột không dây Razer Viper V3 Pro SE
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Cổng USB, USB Receiver
+  sensor = Focus Pro 35K Gen-2
+  maxDPI = 35000 DPI
+  pollRate = 8000
+  weight = 54 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Cổng USB, USB Receiver", "Cảm biến (Sensor)": "Focus Pro 35K Gen-2", "Độ phân giải (DPI)": "35000 DPI", "Polling Rate": "8000", "Trọng lượng": "54 g"}
+DESCRIPTION (verbatim):
+Khám phá chuột Razer Viper V3 Pro SE siêu nhẹ
+
+Razer Viper V3 Pro SE là chuột gaming không dây đỉnh cao chỉ nặng 54g, mang lại khả năng kiểm soát tuyệt vời và cầm nắm thoải mái cho mọi game thủ. Thiết kế đối xứng thuận tay của chuột máy tính được kế thừa tinh hoa từ Viper V3 Pro sẵn sàng chiến đấu ngay từ những giây phút đầu tiên.
+
+Trọng lượng nhẹ, kiểm soát tối ưu
+
+Với 54g siêu nhẹ, chuột giúp di chuyển linh hoạt mà không mỏi tay, lý tưởng cho grip Claw hoặc Fingertip. Hình dáng cân đối mang đến seamless handling, giúp bạn tự tin xử lý mọi tình huống gay cấn. Form chuột ôm tay vừa vặn, bề mặt bám tốt cho cảm giác kiểm soát tự nhiên trong cả những pha flick nhanh lẫn tracking dài.
+
+Cảm biến Focus Pro 35K đỉnh cao
+
+Cảm biến quang học Focus Pro 35K Gen-2 đạt độ chính xác 99.8%, hỗ trợ DPI linh hoạt và có thể nâng cấp polling rate lên đến 8000Hz qua HyperPolling Dongle riêng. Tracking mượt mà trên mọi bề mặt, kết hợp onboard memory lưu 1 profile settings.
+
+Kết nối HyperSpeed mượt mà
+
+HyperSpeed Wireless 1000Hz đảm bảo độ trễ thấp cho gaming pro cùng kết nối dongle USB trực tiếp. Bạn có thể tắt "Enhance pointer precision" trên Windows và dùng Synapse tinh chỉnh, kiểm tra polling rate dễ dàng qua phần mềm chuột Razer . Nhờ đường truyền ổn định và report rate đều, từng cú click đều được ghi nhận chính xác theo từng khung hình, hạn chế tối đa micro‑stutter cho các pha vẩy tâm tốc độ cao.
+
+Vũ khí hoàn hảo cho esports
+
+Viper V3 Pro SE cân bằng siêu nhẹ, sensor chính xác và kết nối nhanh, dành riêng game thủ chuyên nghiệp. Setup ready-to-play qua Synapse cũng sẽ giúp bạn chinh phục mọi tựa game, đầu tư thông minh cho setup đỉnh cao.
+
+Mua ngay chuột Razer Viper V3 Pro SE tại GearVN
+
+Bạn đang tìm "vũ khí" esports 54g siêu nhẹ với Focus Pro 35K? Razer Viper V3 Pro SE chính là phiên bản tinh gọn hoàn hảo cho rank cao, HyperSpeed 1000Hz + pin 95 giờ mà không lo gián đoạn. Khi đến với GearVN bạn sẽ có thể mua chuột với giá ưu đãi, giao siêu tốc toàn quốc, bảo hành chính hãng - nâng tầm aim headshot ngay hôm nay!
+IMAGE_ALTS:
+  [0] Chuột không dây Razer Viper V3 Pro SE có trọng lượng nhẹ
+  [1] Chuột không dây Razer Viper V3 Pro SE có cảm biến Focus Pro 35K đỉnh cao
+  [2] Chuột không dây Razer Viper V3 Pro SE có kết nối HyperSpeed mượt mà
+
+===== PRODUCT 6ad0d7c80069aece85a8c918 =====
+LANGS: en,fr,de,it,es,nl,sv
+NAME: Chuột Razer Viper V3 Pro Counter-Strike 2 Edition
+BRAND: Razer
+SPECS (key=value):
+  color = CS2 Edition
+  connection = Không dây 2.4GHz
+  sensor = Focus Pro 35K
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "CS2 Edition", "Kết nối": "Không dây 2.4GHz", "Cảm biến (Sensor)": "Focus Pro 35K"}
+DESCRIPTION (verbatim):
+Razer Viper V3 Pro Counter‑Strike 2 Edition là chuột gaming không dây siêu nhẹ, dành cho các game thủ esports cần độ chính xác cao và độ trễ cực thấp. Thiết kế đối xứng cùng trọng lượng chỉ khoảng 54 g giúp bạn aim và vẩy chuột thoải mái trong thời gian dài.
+
+Thiết kế siêu nhẹ 54g
+
+Viper V3 Pro nặng khoảng 54g và thuộc nhóm chuột không dây nhẹ hiện nay. Trọng lượng này giúp giảm mỏi cổ tay, đặc biệt phù hợp với người chơi FPS dùng DPI thấp và thường xuyên thực hiện các pha flick hay swipe rộng.
+
+Cảm biến Razer Focus Pro 35K Gen‑2
+
+Chuột dùng cảm biến quang học Razer Focus Pro 35K Optical Sensor thế hệ thứ 2 với độ phân giải tối đa 35.000 DPI, cho khả năng theo dõi rất chính xác. Cảm biến này giúp tracking ổn định, hạn chế jitter, smoothing và acceleration, nhờ đó mà hướng aim luôn nhất quán trong nhiều tình huống ingame khác nhau.
+
+HyperPolling 8K Hz và HyperSpeed Wireless
+
+Viper V3 Pro hỗ trợ công nghệ Razer HyperPolling với tần số lấy mẫu lên tới 8000Hz, mang lại tín hiệu phản hồi mượt và gần như tức thì. Khi kết hợp với kết nối không dây Razer HyperSpeed Wireless, chuột giữ được độ trễ cực thấp và ổn định, phù hợp cả môi trường thi đấu esports lẫn leo rank cao.
+
+Hình dáng đối xứng cho claw/fingertip
+
+Thiết kế đối xứng của chuột được tối ưu cho kiểu cầm claw grip và fingertip, phổ biến trong cộng đồng game thủ FPS. Với đó, thân chuột thuôn dài, phần hông bo gọn giúp bạn dễ kiểm soát khi di nhanh, đồng thời vẫn thực hiện được các chỉnh aim nhỏ một cách chính xác.
+
+Phiên bản Counter‑Strike 2 Edition đậm chất eSports
+
+Phiên bản Counter‑Strike 2 Edition sở hữu tông màu, logo và họa tiết lấy cảm hứng trực tiếp từ CS2, tạo điểm nhấn nổi bật trên góc chơi game. Khi kết hợp cùng bàn phím, tai nghe, ghế và pad chủ đề CS2, bạn có thể tạo một set‑up đồng bộ, đẹp mắt và mang đậm chất esports chuyên nghiệp.
+IMAGE_ALTS:
+  [0] (none)
+  [1] (none)
+  [2] (none)
+  [3] (none)
+
+===== PRODUCT 6ad0d7c80069aece85a8c919 =====
+LANGS: fr,de,it,es,nl,sv
+NAME: Chuột Razer DeathAdder V4 Pro Black
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Đa kết nối
+  sensor = Focus Pro 45K Gen-2
+  maxDPI = 100 - 45000 DPI
+  pollRate = 4000;1000;2000;8000
+  weight = 56 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Đa kết nối", "Cảm biến (Sensor)": "Focus Pro 45K Gen-2", "Độ phân giải (DPI)": "100 - 45000 DPI", "Polling Rate": "4000;1000;2000;8000", "Trọng lượng": "56 g"}
+DESCRIPTION (verbatim):
+Khám phá chuột Razer DeathAdder V4 Pro Black
+
+Razer DeathAdder V4 Pro Black là thế hệ mới nhất trong dòng chuột gaming DeathAdder với form công thái học quen thuộc. Ở phiên bản này, Razer tập trung nâng cấp toàn bộ “nội thất” với cảm biến đời mới, switch và con lăn quang học nhằm phục vụ chuẩn cho nhu cầu game Esports hiện đại. Sản phẩm hướng tới người chơi cần một chú chuột không dây nhẹ, chính xác và ổn định cho cả luyện tập lẫn thi đấu chuyên nghiệp.
+
+Thiết kế công thái học và trọng lượng siêu nhẹ
+
+DeathAdder V4 Pro Black giữ lại dáng chuột gaming cho tay phải, tối ưu cho kiểu cầm palm hoặc claw quen thuộc của các game thủ dòng DeathAdder. Lớp phủ bề mặt smooth‑touch màu đen còn giúp chuột bám tay hơn, đồng thời tạo cảm giác cầm nắm thoải mái khi sử dụng trong thời gian dài. Bên cạnh đó, trọng lượng chỉ khoảng 56g hỗ trợ những pha vẩy chuột nhanh, chính xác trong các tựa game đòi hỏi phản xạ cao.
+
+Cảm biến Focus Pro 45K Gen 2 hiện đại
+
+Trung tâm hiệu năng của DeathAdder V4 Pro là cảm biến quang học Razer Focus Pro 45K Gen‑2 với thông số tối đa 45.000 DPI, 900 IPS và gia tốc 85G. Cảm biến này cho độ chính xác theo dõi lên đến khoảng 99,8%, đồng thời hoạt động ổn định trên nhiều tấm lót chuột và bàn công thái học khác nhau. Người dùng có thể tinh chỉnh DPI theo từng nấc nhỏ và tận dụng các tính năng như Motion Sync hay Smart Tracking thông qua phần mềm Razer Synapse để tối ưu cảm giác tracking.
+
+Switch quang học Gen 4 và độ bền cao
+
+Chuột sử dụng switch chuột Razer Optical Gen‑4 với tuổi thọ lên đến 100 triệu lần nhấn, giảm thiểu hiện tượng double‑click so với switch cơ truyền thống. Cảm giác bấm được tinh chỉnh để rõ ràng, dứt khoát và tốc độ kích hoạt rất nhanh, phù hợp với các tình huống cần spam chuột liên tục trong game. Nhờ đó, DeathAdder V4 Pro Black vừa đảm bảo độ bền lâu dài, vừa giữ được trải nghiệm bấm nhất quán trong suốt vòng đời sản phẩm.
+
+Con lăn quang học và trải nghiệm cuộn
+
+Razer trang bị cho DeathAdder V4 Pro con lăn sử dụng công nghệ quang học thay thế cơ chế cơ học truyền thống. Thiết kế này giúp việc nhận tín hiệu cuộn chính xác hơn, giảm hao mòn linh kiện và mang lại độ bền cao hơn trong thời gian sử dụng dài. Cảm giác cuộn vẫn được giữ ở mức có điểm khấc rõ.
+
+Dongle 8.000Hz và kết nối HyperSpeed Gen 2
+
+DeathAdder V4 Pro Black hỗ trợ kết nối không dây Razer HyperSpeed Wireless Gen‑2 với độ trễ rất thấp và độ ổn định cao. Đi kèm trong hộp là dongle 8.000Hz dạng “bán cầu” với anten lớn và phần đế nặng, vừa tăng cường độ mạnh tín hiệu vừa hiển thị bằng đèn LED các trạng thái như kết nối, pin và polling rate. Nhờ đó, chuột có thể đạt polling rate lên đến 8.000Hz ở cả chế độ có dây và không dây để cho tín hiệu phản hồi cực nhanh.
+
+Mua ngay Razer DeathAdder V4 Pro Black tại GearVN
+
+Bạn đang tìm một chú chuột không dây siêu nhẹ chỉ khoảng 56g, form công thái học quen tay, cảm biến Focus Pro 45K Gen 2 để mỗi cú vẩy chuột trong game FPS đều nhanh, chuẩn và ổn định? Razer DeathAdder V4 Pro Black là lựa chọn lý tưởng cho game thủ Esports muốn vừa try-hard, vừa yên tâm về độ bền và độ chính xác lâu dài. Đừng chần chờ thêm khoảnh khắc nào và hãy mua ngay Razer DeathAdder V4 Pro Black chính hãng tại GearVN để nâng cấp aim, chuẩn hóa từng cú click và tận hưởng dịch vụ giao hàng nhanh chóng trên toàn quốc nhé!
+IMAGE_ALTS:
+  [0] Chuột Razer DeathAdder V4 Pro Black có thiết kế công thái học
+  [1] Chuột Razer DeathAdder V4 Pro Black có cảm biến Focus Pro 45K Gen 2 hiện đại
+  [2] Chuột Razer DeathAdder V4 Pro Black có switch quang học Gen 4 bền bỉ
+  [3] Chuột Razer DeathAdder V4 Pro Black có con lăn quang học hiện đại
+  [4] Chuột Razer DeathAdder V4 Pro Black có con dongle 8.000Hz
+
+===== PRODUCT 6ad0d7c80069aece85a8c91a =====
+LANGS: en,pt,fr,de,it,es,nl,sv
+NAME: Chuột Razer DeathAdder V4 Pro White
+BRAND: Razer
+SPECS (key=value):
+  color = Trắng
+  connection = Không dây 2.4GHz;Có dây USB
+  sensor = Focus Pro 45K
+  maxDPI = 100 - 45000 DPI
+  pollRate = 8000;1000
+  weight = 56 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Trắng", "Kết nối": "Không dây 2.4GHz;Có dây USB", "Cảm biến (Sensor)": "Focus Pro 45K", "Độ phân giải (DPI)": "100 - 45000 DPI", "Polling Rate": "8000;1000", "Trọng lượng": "56 g"}
+DESCRIPTION (verbatim):
+Khám phá chuột Razer DeathAdder V4 Pro White
+
+Razer DeathAdder V4 Pro White là thế hệ mới trong dòng chuột gaming , tập trung vào thiết kế công thái học quen thuộc và phần cứng tối ưu cho Esports. Phiên bản màu trắng sử dụng hoàn toàn công nghệ quang học từ cảm biến đến switch và con lăn nhằm mang lại độ chính xác cao và độ trễ thấp khi chơi game. Sản phẩm phù hợp với game thủ muốn một con chuột không dây nhẹ, ổn định và dễ kết hợp với nhiều phong cách góc máy khác nhau.
+
+Thiết kế công thái học và lớp phủ trắng
+
+DeathAdder V4 Pro White giữ nguyên dáng công thái học tay phải để tối ưu cho kiểu cầm palm hoặc claw quen thuộc. Bên cạnh đó, chuột còn có bề mặt phủ smooth‑touch màu trắng giúp bám tay hơn và hạn chế trơn trượt kể cả khi sử dụng trong thời gian dài. Chuột có trọng lượng khoảng 57g cho bản màu trắng, hỗ trợ các thao tác vẩy chuột nhanh và chính xác trong những tựa game cạnh tranh cao.
+
+Cảm biến và switch quang học hiện đại
+
+Razer DeathAdder V4 Pro White được trang bị cảm biến quang học Razer Focus Pro 45K Gen‑2 với thông số tối đa 45.000 DPI, tốc độ 900 IPS và gia tốc 85G. Cảm biến cho độ chính xác theo dõi khoảng 99,8% và hoạt động ổn định trên nhiều bề mặt khác nhau như tấm lót chuột , bàn thái công học . Chuột sử dụng switch Razer Optical Mouse Gen‑4 với tuổi thọ lên đến khoảng 100 triệu lần nhấn, làm giảm nguy cơ double‑click và mang lại cảm giác bấm rõ ràng, dứt khoát.
+
+Con lăn quang học và độ bền sử dụng
+
+DeathAdder V4 Pro White sở hữu con lăn quang học giúp việc nhận tín hiệu cuộn chính xác hơn và giảm hao mòn so với cơ chế truyền thống. Công nghệ này hỗ trợ tốt cho thao tác cuộn nhỏ trong game, đồng thời phục vụ các tác vụ thường ngày như đọc tài liệu, duyệt web hay chỉnh sửa timeline video được mượt mà. Sự kết hợp giữa switch và con lăn quang học tạo nên một tổng thể bền bỉ, phù hợp với người dùng có cường độ sử dụng chuột cao.
+
+Dongle 8.000Hz và theo dõi trạng thái chuột
+
+Chuột hỗ trợ polling rate lên đến 8.000Hz thông qua dongle HyperPolling 8K cho cả chế độ có dây và không dây. Dongle có thiết kế dạng bán cầu với anten lớn và đế nặng để kết nối ổn định hơn và hạn chế nhiễu khi sử dụng trong môi trường nhiều thiết bị. Ngoài ra, hệ thống đèn báo trên dongle và phần mềm Razer Synapse còn cho phép người dùng theo dõi nhanh tình trạng kết nối, dung lượng pin và mức polling rate đang sử dụng.
+
+Mua ngay Razer DeathAdder V4 Pro Black tại GearVN
+
+Với switch quang học Gen 4 bền tới 100 triệu lần nhấn, con lăn quang học chính xác và HyperSpeed Wireless Gen 2 độ trễ cực thấp, Razer DeathAdder V4 Pro Black là lựa chọn lý tưởng cho game thủ Esports muốn vừa try-hard, vừa yên tâm về độ bền và độ chính xác lâu dài. Nếu đó đúng là lợi thế bạn đang cần trong mỗi trận rank, đừng chần chờ thêm khoảnh khắc nào nữa và hãy mua ngay Razer DeathAdder V4 Pro Black chính hãng tại GearVN để nâng cấp aim, chuẩn hóa từng cú click và tận hưởng chính sách giao hàng nhanh chóng trên toàn quốc của nhà GearVN nhé!
+IMAGE_ALTS:
+  [0] Chuột Razer DeathAdder V4 Pro White có thiết kế công thái học
+  [1] Chuột Razer DeathAdder V4 Pro White có cảm biến và switch quang học hiện đại
+  [2] Chuột Razer DeathAdder V4 Pro White có con lăn quang học bền bỉ
+  [3] Chuột Razer DeathAdder V4 Pro White có thiết bị theo dõi trạng thái chuột
+
+===== PRODUCT 6ad0d7c80069aece85a8c91b =====
+LANGS: it,es,nl,sv
+NAME: Chuột Razer Pro Click V2
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Đa kết nối
+  sensor = Focus Pro 30K
+  maxDPI = 100 - 30000 DPI
+  pollRate = 1000
+  weight = 110 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Đa kết nối", "Cảm biến (Sensor)": "Focus Pro 30K", "Độ phân giải (DPI)": "100 - 30000 DPI", "Polling Rate": "1000", "Trọng lượng": "110 g"}
+DESCRIPTION (verbatim):
+Khám phá chuột Razer Pro Click V2
+
+Razer Pro Click V2 là chuột máy tính có sự kết hợp thiết kế công thái học, cảm biến hiệu năng cao và khả năng kết nối đa thiết bị để phục vụ tốt cho môi trường làm việc hiện đại. Đây là lựa chọn phù hợp với nhân viên văn phòng, lập trình viên, nhà thiết kế hay người sáng tạo nội dung thường xuyên làm việc với laptop .
+
+Thiết kế công thái học cho những ngày làm việc dài
+
+Razer Pro Click V2 được thiết kế dành cho người thuận tay phải với phần thân ôm sát lòng bàn tay và vị trí đặt ngón cái hợp lý. Kiểu dáng này giúp giảm áp lực lên cổ tay và tạo cảm giác cầm chắc chắn, đặc biệt khi phải sử dụng chuột liên tục trong nhiều giờ. Ngoài ra, chuột Razer còn được trang bị 8 nút có thể lập trình thông qua Razer Synapse, cho phép gán phím tắt, macro hoặc các thao tác thường dùng.
+
+Cảm biến Focus Pro Optical cho độ chính xác cao
+
+Razer Pro Click V2 sử dụng cảm biến quang học Razer Focus Pro Optical với độ phân giải lên đến 30.000 DPI, tốc độ theo dõi 550 IPS và gia tốc 40G. Chính vì vậy mà chuột có thể phản hồi nhanh và chính xác trên nhiều loại bề mặt, phù hợp từ các tác vụ văn phòng đến chỉnh sửa ảnh, dựng video hoặc thiết kế đồ họa.
+
+Ngoài khả năng theo dõi ổn định, cảm biến còn hỗ trợ hoạt động trên mặt kính có độ dày tối thiểu 4mm. Điều này giúp người dùng linh hoạt hơn khi làm việc ở nhiều không gian khác nhau mà không phụ thuộc hoàn toàn vào pad chuột .
+
+Kết nối nhiều thiết bị để làm việc liền mạch
+
+Razer Pro Click V2 hỗ trợ kết nối qua Razer HyperSpeed Wireless, Bluetooth và USB Type-C có dây. Người dùng có thể chuyển đổi nhanh giữa nhiều chế độ kết nối để phù hợp với từng tình huống sử dụng từ làm việc cố định đến di chuyển.
+
+Chuột còn hỗ trợ kết nối đồng thời tối đa 5 thiết bị, giúp việc chuyển đổi giữa máy tính để bàn, laptop hoặc máy tính bảng trở nên thuận tiện hơn. Đây là tính năng hữu ích đối với người thường xuyên làm việc đa nền tảng hoặc sử dụng nhiều thiết bị trong cùng một ngày.
+
+AI Prompt Master hỗ trợ tối ưu quy trình làm việc
+
+Một trong những điểm mới của Razer Pro Click V2 là AI Prompt Master tích hợp trong Razer Synapse. Người dùng có thể kích hoạt nhanh các công cụ AI để hỗ trợ tóm tắt nội dung, soạn thảo văn bản hoặc tạo câu lệnh chỉ với một nút bấm, giúp tiết kiệm thời gian trong quá trình làm việc.
+
+Bên cạnh đó, hệ thống Razer Chroma RGB với 14 vùng chiếu sáng tạo điểm nhấn hiện đại cho góc làm việc. Hiệu ứng ánh sáng có thể đồng bộ với các thiết bị tương thích trong hệ sinh thái Razer để mang đến trải nghiệm sử dụng đồng nhất.
+
+Trải nghiệm sử dụng bền bỉ mỗi ngày
+
+Razer Pro Click V2 sử dụng switch cơ học có tuổi thọ lên đến 60 triệu lần nhấn, đáp ứng tốt nhu cầu sử dụng lâu dài. Feet chuột 100% PTFE hỗ trợ giảm ma sát khi di chuyển, mang lại cảm giác lướt mượt trên nhiều loại bề mặt và hỗ trợ thao tác chính xác hơn.
+
+Mua ngay chuột Razer Pro Click V2 tại GearVN
+
+Hỗ trợ chuyển đổi linh hoạt giữa 5 thiết bị cùng cảm biến Focus Pro 30.000 DPI nhận diện chính xác ngay cả trên mặt kính, Razer Pro Click V2 đáp ứng tốt cho người dùng làm việc đa nền tảng. Mua ngay mẫu chuột này tại GearVN để nhận các ưu đãi hấp dẫn theo từng giai đoạn cùng chính sách bảo hành uy tín bảo vệ thiết bị của bạn!
+IMAGE_ALTS:
+  [0] Chuột Razer Pro Click V2 có thiết kế công thái học
+  [1] Chuột Razer Pro Click V2 có kết nối nhiều thiết bị
+  [2] Chuột Razer Pro Click V2 bền bỉ mỗi ngày
+
+===== PRODUCT 6ad0d7c80069aece85a8c91c =====
+LANGS: en,de,it,es,nl,sv
+NAME: Chuột Razer Pro Click V2 Vertical
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Đa kết nối
+  sensor = Razer Focus Pro
+  maxDPI = 30000 DPI
+  pollRate = 1000
+  weight = 150 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Đa kết nối", "Cảm biến (Sensor)": "Razer Focus Pro", "Độ phân giải (DPI)": "30000 DPI", "Polling Rate": "1000", "Trọng lượng": "150 g"}
+DESCRIPTION (verbatim):
+Khám phá chuột Razer Pro Click V2 Vertical
+
+Razer Pro Click V2 Vertical là mẫu chuột máy tính được phát triển dành cho người dùng thường xuyên làm việc nhiều giờ trước laptop nhưng vẫn cần hiệu năng cao cho các tác vụ sáng tạo và giải trí. Thay vì chỉ tập trung vào tốc độ hay thiết kế bắt mắt, sản phẩm hướng đến trải nghiệm sử dụng lâu dài với kiểu dáng công thái học dạng đứng, giúp giảm áp lực lên cổ tay trong suốt quá trình làm việc.
+
+Thiết kế công thái học dạng đứng giảm mỏi cổ tay
+
+Điểm nổi bật nhất của Razer Pro Click V2 Vertical là thiết kế vertical với góc nghiêng 71,7°, giúp bàn tay duy trì tư thế tự nhiên thay vì phải xoay úp hoàn toàn như trên chuột truyền thống. Kiểu thiết kế này góp phần giảm áp lực lên cổ tay và cẳng tay, đặc biệt phù hợp với những người thường xuyên sử dụng máy tính liên tục trong nhiều giờ mỗi ngày.
+
+Chuột Razer được trang bị 8 nút bấm với khả năng tùy biến tối đa 8 chức năng thông qua phần mềm Razer Synapse. Người dùng có thể gán macro , phím tắt hoặc các thao tác thường dùng để tăng tốc quy trình làm việc, đồng thời tối ưu trải nghiệm khi xử lý các phần mềm.
+
+Kết nối linh hoạt giữa nhiều thiết bị
+
+Razer Pro Click V2 Vertical hỗ trợ ba phương thức kết nối gồm Razer HyperSpeed Wireless 2.4 GHz, Bluetooth và USB Type-C có dây. Với đó, người dùng có thể lựa chọn chế độ phù hợp với từng nhu cầu sử dụng.
+
+Khả năng kết nối đồng thời tối đa 5 thiết bị còn hỗ trợ việc chuyển đổi giữa PC , laptop hoặc máy tính bảng diễn ra nhanh chóng chỉ với vài thao tác. Đây là điểm cộng đáng giá đối với những người thường xuyên làm việc đa nền tảng hoặc cần sử dụng nhiều thiết bị trong cùng một ngày.
+
+Cảm biến Razer Focus Pro Optical theo dõi chính xác
+
+Razer Pro Click V2 Vertical sử dụng cảm biến quang học Razer Focus Pro Optical với độ phân giải tối đa 30.000 DPI, tốc độ theo dõi lên đến 550 IPS cùng gia tốc 50G. Cảm biến mang lại khả năng kiểm soát chính xác cho từng chuyển động, đáp ứng tốt từ các tác vụ văn phòng, chỉnh sửa hình ảnh đến chơi game giải trí sau giờ làm việc.
+
+Ngoài độ chính xác cao, sản phẩm còn có khả năng theo dõi trên bề mặt kính có độ dày tối thiểu 4mm. Điều này giúp sản phẩm hoạt động ổn định trong nhiều môi trường làm việc khác nhau mà không bắt buộc phải sử dụng tấm lót chuột chuyên dụng.
+
+AI Prompt Master hỗ trợ tối ưu công việc
+
+Một trong những điểm mới trên Razer Pro Click V2 Vertical là tính năng AI Prompt Master được tích hợp thông qua phần mềm Razer Synapse 4. Chỉ với một nút bấm, người dùng có thể kích hoạt nhanh các công cụ AI để hỗ trợ soạn thảo văn bản, tóm tắt nội dung hoặc tạo câu lệnh phục vụ công việc hằng ngày, giúp tiết kiệm thời gian trong quá trình xử lý tác vụ.
+
+Bên cạnh đó, hệ thống đèn Razer Chroma RGB với 18 vùng chiếu sáng tạo điểm nhấn hiện đại cho góc làm việc. Người dùng cũng có thể đồng bộ hiệu ứng ánh sáng với các thiết bị khác trong hệ sinh thái Razer để tạo nên không gian làm việc đồng nhất và chuyên nghiệp hơn.
+
+Thời lượng pin bền bỉ cho nhu cầu sử dụng mỗi ngày
+
+Razer Pro Click V2 Vertical sở hữu thời lượng pin lên đến khoảng 6 tháng trong điều kiện sử dụng phù hợp nhằm hạn chế việc sạc thường xuyên và duy trì trải nghiệm liền mạch trong quá trình làm việc. Khi cần, chuột vẫn có thể sử dụng thông qua kết nối dây cáp , hạn chế tối đa sự gián đoạn.
+
+Mua ngay chuột Razer Pro Click V2 Vertical tại GearVN
+
+Razer Pro Click V2 Vertical không chỉ bảo vệ sức khỏe mà còn nâng tầm thẩm mỹ cho góc làm việc nhờ thiết kế đứng thời thượng kết hợp dải đèn Razer Chroma RGB 18 vùng chiếu sáng rực rỡ. Hãy trở thành người sở hữu sớm nhất chiếc chuột công thái học thế hệ mới chính hãng 100% tại GearVN để nhận ngay các chương trình ưu đãi hấp dẫn theo từng thời điểm và biến góc làm việc của bạn trở nên chuyên nghiệp, đẳng cấp hơn bao giờ hết!
+IMAGE_ALTS:
+  [0] Chuột Razer Pro Click V2 Vertical có thiết kế công thái học dạng đứng
+  [1] Chuột Razer Pro Click V2 Vertical có cảm biến chính xác
+  [2] Chuột Razer Pro Click V2 Vertical có thời lượng pin bền bỉ
+
+===== PRODUCT 6ad0d7c80069aece85a8c91d =====
+LANGS: de,it,es,nl,sv
+NAME: Chuột Razer Basilisk V3 Pro 35K Black
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Đa kết nối
+  battery = Pin sạc Li-ion
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Đa kết nối", "Loại pin": "Pin sạc Li-ion"}
+DESCRIPTION (verbatim):
+Nâng tầm trải nghiệm chơi game với Razer Basilisk V3 Pro 35K – chuột chơi game không dây RGB công thái học với khả năng tùy chỉnh và công nghệ tiên tiến nhất. Chuột gaming này với cảm biến chính xác hoàn hảo và con lăn chuột với các tùy chọn cấu hình chuyên sâu, chơi game theo cách của bạn chưa bao giờ thú vị đến thế.
+
+Cuộn lăn Razer™ HyperScroll Tilt Cuộn lăn 4 chiều với 3 chế độ độc đáo
+
+Chọn giữa cuộn khấc Tactile-Cycling và cuộn tự do Free-Spin, hoặc tự động chuyển đổi giữa hai chế độ dựa trên tốc độ cuộn của bạn với chế độ cuộn thông minh Smart-Reel – hiện có thể cấu hình trên Synapse .
+
+Cảm biến quang học Razer™ Focus Pro 35K Gen-2 Độ chính xác hàng đầu
+
+Trải nghiệm hiệu suất theo dõi hàng đầu trên nhiều bề mặt khác nhau, bao gồm cả kính, được hỗ trợ bởi các chức năng thông minh và điều chỉnh từng bước 1-DPI cho khả năng kiểm soát chi tiết và ngắm bắn chính xác hơn.
+
+Lên đến 140 tiếng kết nối không dây Razer™ HyperSpeed Chơi game hiệu suất cao, độ trễ thấp
+
+Tận hưởng hiệu suất mượt mà, không giật lag cho các phiên chơi game liên tục hoặc tận dụng sức mạnh thực sự của tốc độ thăm dò 8000Hz với Razer Mouse Dock Pro hoặc HyperPolling Wireless Dongle (cả hai đều được bán riêng).
+
+13 thao tác điều khiển có thể tùy biến Khả năng tùy chỉnh vô hạn
+
+Gán vô số lệnh và macro trên 13 nút điều khiển ở vị trí dễ tiếp cận – bao gồm cò bấm đa chức năng nổi tiếng – để thực hiện các hành động quan trọng như push-to-talk, ping và nhiều hơn nữa.
+
+Đèn Chroma 13 vùng với dải sáng dưới bao quanh Được hỗ trợ bởi Razer Chroma™ RGB
+
+Tùy chỉnh từng vùng với hơn 16,8 triệu màu và vô số hiệu ứng ánh sáng, và đắm chìm vào những màn game mãn nhãn với sắc màu sống động, chuyển động nhịp nhàng với hơn 200 trò chơi tương thích với Chroma.
+
+Công tắc chuột quang học Razer™ Gen-3 Độ bền và tốc độ vô song
+
+Được nâng cấp với vòng đời 90 triệu lần nhấp mà không gặp vấn đề nhấp đúp, cùng tốc độ kích hoạt 0,2 mili giây không có độ trễ, tận hưởng độ tin cậy và tốc độ vượt trội để sẵn sàng out trình đối thủ.
+
+Thêm vào đó, Razer Không dây Viper V3 Pro Trắng , Razer Deathadder Essential White và Razer Cobra mang đến trải nghiệm cầm nắm thoải mái, phản hồi nhanh và hiệu năng ổn định cho game thủ.
+IMAGE_ALTS:
+  [0] (none)
+  [1] (none)
+  [2] (none)
+  [3] (none)
+  [4] (none)
+  [5] (none)
+
+===== PRODUCT 6ad0d7c80069aece85a8c91e =====
+LANGS: it,es,nl,sv
+NAME: Chuột Razer DeathAdder V3 Hyperspeed Wireless
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Wireless
+  sensor = Focus X 26K Optical
+  maxDPI = 1 - 26000 DPI
+  pollRate = 8000
+  weight = 55 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Wireless", "Cảm biến (Sensor)": "Focus X 26K Optical", "Độ phân giải (DPI)": "1 - 26000 DPI", "Polling Rate": "8000", "Trọng lượng": "55 g"}
+DESCRIPTION (verbatim):
+Thông số kỹ thuật
+
+Dài: 122.2 mm / 4.81 in
+
+Rộng: 64.8 mm / 2.55 in
+
+Cao: 41.3 mm / 1.63 in
+
+Razer DeathAdder V3 HyperSpeed
+
+Razer HyperSpeed Wireless USB Dongle + USB Dongle Adapter
+
+USB Type A to USB Type C cable
+
+Hướng dẫn sử dụng
+IMAGE_ALTS:
+
+===== PRODUCT 6ad0d7c80069aece85a8c91f =====
+LANGS: it,es,nl,sv
+NAME: Chuột Razer Không dây Viper V3 Pro Trắng
+BRAND: Razer
+SPECS (key=value):
+  color = Trắng
+  connection = Wireless
+  sensor = Focus Pro
+  pollRate = 8000
+  weight = 150 g
+  battery = Pin sạc Li-ion
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Trắng", "Kết nối": "Wireless", "Cảm biến (Sensor)": "Focus Pro", "Polling Rate": "8000", "Trọng lượng": "150 g", "Loại pin": "Pin sạc Li-ion"}
+DESCRIPTION (verbatim):
+Trong thế giới gaming, việc lựa chọn thiết bị phụ kiện như chuột, bàn phím là vô cùng quan trọng. Đặc biệt, một con chuột gaming chất lượng cao sẽ giúp bạn nâng cao trải nghiệm và hiệu suất chơi game. GEARVN sẽ giới thiệu đến bạn sản phẩm mới nhất từ Razer - Chuột Razer Không dây Viper V3 Pro Trắng, một trong những con chuột không dây siêu nhẹ và đỉnh cao nhất hiện nay.
+
+Thiết kế siêu nhẹ, tiện lợi
+
+Chuột Razer không dây Viper V3 Pro Trắng nổi bật với thiết kế siêu nhẹ, chỉ 54g. Đây là một trong những con chuột gaming không dây nhẹ nhất trên thị trường, giúp bạn di chuyển nhanh chóng và linh hoạt trong mọi trận đấu. Thiết kế này không chỉ giúp giảm mỏi tay mà còn tăng cường khả năng phản ứng và kiểm soát, cho phép bạn làm chủ mọi tình huống trong game. Ngoài ra, còn được trang bị thiết kế đối xứng, phù hợp cho cả người thuận tay trái và tay phải. Mang lại sự tiện lợi và thoải mái cho mọi game thủ, không phân biệt tay thuận.
+
+Công nghệ hiện đại
+
+Một trong những yếu tố quan trọng nhất của một con chuột gaming chính là được trang bị cảm biến. Chuột Razer Viper V3 Pro Trắng được trang bị cảm biến quang học Razer Focus Pro 35K Gen-2, cung cấp độ chính xác và độ nhạy cao nhất. Công nghệ này cho phép bạn thực hiện những pha tracking và flick chuột mượt mà, chính xác, giúp bạn vượt trội hơn trong các trò chơi yêu cầu phản xạ nhanh.
+
+Tốc độ phản hồi nhanh chóng
+
+Với công nghệ Razer HyperPolling 8KHz, Razer Viper V3 Pro Trắng đảm bảo tốc độ phản hồi nhanh nhất, chỉ 0.125ms. Tốc độ này loại bỏ hoàn toàn độ trễ, mang đến cho bạn lợi thế cạnh tranh trong mọi tình huống. Dù bạn đang chơi game bắn súng FPS hay các trò chơi MOBA, sự phản hồi nhanh chóng của chuột sẽ giúp bạn luôn đi trước đối thủ một bước.
+
+Độ bền vượt trội
+
+Chuột Razer Viper V3 Pro Trắng được trang bị công tắc quang học Razer Gen-3, mang đến độ bền bỉ gấp 75 lần so với công tắc chuột cơ học truyền thống. Công tắc này không chỉ có độ bền cao mà còn cho cảm giác nhấp chuột sắc nét và phản hồi nhanh chóng, giúp bạn kiểm soát trò chơi tốt hơn. Phần mềm Razer Synapse cho phép bạn tùy chỉnh các nút bấm, DPI, RGB và các cài đặt khác theo ý thích. Điều này giúp bạn cá nhân hóa trải nghiệm sử dụng chuột Bluetooth theo nhu cầu và phong cách riêng của mình.
+
+Thời lượng pin lên đến 95 giờ
+
+Một trong những điểm nổi bật của Razer Viper V3 Pro Trắng chính là thời lượng pin lên đến 95 giờ. Bạn có thể thoải mái chơi game trong nhiều giờ liền mà không cần lo lắng về việc hết pin. Đây là một ưu điểm lớn đối với các game thủ thường xuyên chơi game trong thời gian dài mà không cần phải lo lắng vấn đề gián đoạn về pin.
+IMAGE_ALTS:
+  [0] Chuột Razer Không dây Viper V3 Pro Trắng
+  [1] Chuột Razer Không dây Viper V3 Pro Trắng
+  [2] Chuột Razer Không dây Viper V3 Pro Trắng
+
+===== PRODUCT 6ad0d7c80069aece85a8c920 =====
+LANGS: fr,it,es,nl,sv
+NAME: Chuột Razer Không dây Viper V3 Pro Đen
+BRAND: Razer
+SPECS (key=value):
+  color = Đen
+  connection = Wireless
+  sensor = Razer Focus Pro 35K
+  maxDPI = 35000 DPI
+  pollRate = 8000
+  weight = 54 g
+TECH_DESCRIPTION (verbatim):
+Thông số: {"Màu sắc": "Đen", "Kết nối": "Wireless", "Cảm biến (Sensor)": "Razer Focus Pro 35K", "Độ phân giải (DPI)": "35000 DPI", "Polling Rate": "8000", "Trọng lượng": "54 g"}
+DESCRIPTION (verbatim):
+Trong thế giới gaming, việc lựa chọn thiết bị phụ kiện như chuột, bàn phím là vô cùng quan trọng. Đặc biệt, một con chuột gaming chất lượng cao sẽ giúp bạn nâng cao trải nghiệm và hiệu suất chơi game. GEARVN sẽ giới thiệu đến bạn sản phẩm mới nhất từ Razer - Chuột Razer Không dây Viper V3 Pro Đen, một trong những con chuột không dây siêu nhẹ và đỉnh cao nhất hiện nay.
+
+Thiết kế siêu nhẹ, tiện lợi
+
+Chuột Razer không dây Viper V3 Pro Đen nổi bật với thiết kế siêu nhẹ, chỉ 54g. Đây là một trong những con chuột gaming không dây nhẹ nhất trên thị trường, giúp bạn di chuyển nhanh chóng và linh hoạt trong mọi trận đấu. Thiết kế này không chỉ giúp giảm mỏi tay mà còn tăng cường khả năng phản ứng và kiểm soát, cho phép bạn làm chủ mọi tình huống trong game. Ngoài ra, còn được trang bị thiết kế đối xứng, phù hợp cho cả người thuận tay trái và tay phải. Mang lại sự tiện lợi và thoải mái cho mọi game thủ, không phân biệt tay thuận.
+
+Công nghệ hiện đại
+
+Một trong những yếu tố quan trọng nhất của một con chuột gaming chính là được trang bị cảm biến. Chuột Razer Viper V3 Pro Đen được trang bị cảm biến quang học Razer Focus Pro 35K Gen-2, cung cấp độ chính xác và độ nhạy cao nhất. Công nghệ này cho phép bạn thực hiện những pha tracking và flick chuột mượt mà, chính xác, giúp bạn vượt trội hơn trong các trò chơi yêu cầu phản xạ nhanh.
+
+Tốc độ phản hồi nhanh chóng
+
+Với công nghệ Razer HyperPolling 8KHz, Razer Viper V3 Pro Đen đảm bảo tốc độ phản hồi nhanh nhất, chỉ 0.125ms. Tốc độ này loại bỏ hoàn toàn độ trễ, mang đến cho bạn lợi thế cạnh tranh trong mọi tình huống. Dù bạn đang chơi game bắn súng FPS hay các trò chơi MOBA, sự phản hồi nhanh chóng của chuột sẽ giúp bạn luôn đi trước đối thủ một bước.
+
+Độ bền vượt trội
+
+Chuột Razer Viper V3 Pro Đen được trang bị công tắc quang học Razer Gen-3, mang đến độ bền bỉ gấp 75 lần so với công tắc chuột cơ học truyền thống. Công tắc này không chỉ có độ bền cao mà còn cho cảm giác nhấp chuột sắc nét và phản hồi nhanh chóng, giúp bạn kiểm soát trò chơi tốt hơn. Phần mềm Razer Synapse cho phép bạn tùy chỉnh các nút bấm, DPI, RGB và các cài đặt khác theo ý thích. Điều này giúp bạn cá nhân hóa trải nghiệm sử dụng chuột Bluetooth theo nhu cầu và phong cách riêng của mình.
+
+Thời lượng pin lên đến 95 giờ
+
+Một trong những điểm nổi bật của Razer Viper V3 Pro Đen chính là thời lượng pin lên đến 95 giờ. Bạn có thể thoải mái chơi game trong nhiều giờ liền mà không cần lo lắng về việc hết pin. Đây là một ưu điểm lớn đối với các game thủ thường xuyên chơi game trong thời gian dài mà không cần phải lo lắng vấn đề gián đoạn về pin.
+IMAGE_ALTS:
+  [0] (none)
+  [1] (none)
+  [2] (none)

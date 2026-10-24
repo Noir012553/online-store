@@ -1,0 +1,16 @@
+{
+  "page": "Pagina",
+  "of": "van",
+  "first": "Eerste pagina",
+  "previous": "Vorige pagina",
+  "next": "Volgende pagina",
+  "last": "Laatste pagina",
+  "ellipsis": "...",
+  "pagination_label": "Paginering",
+  "pagination_previous_page": "Ga naar de vorige pagina",
+  "pagination_previous": "Vorige",
+  "pagination_next_page": "Ga naar de volgende pagina",
+  "pagination_next": "Volgende",
+  "pagination_more_pages": "Meer pagina’s",
+  "first_page": "Eerste pagina"
+}

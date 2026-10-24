@@ -1,0 +1,130 @@
+import hashlib
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from prepare_product_images import get_target_files, process_file
+
+
+class PrepareProductImagesTest(unittest.TestCase):
+    def test_discovers_nested_product_json_without_scanning_asset_directories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            product_file = output_root / 'Razer_Headphone' / 'Razer_Headphone.json'
+            product_file.parent.mkdir()
+            product_file.write_text('[]', encoding='utf-8')
+            for excluded in ('images', 'manifests', 'staging'):
+                excluded_file = output_root / excluded / 'generated.json'
+                excluded_file.parent.mkdir()
+                excluded_file.write_text('[]', encoding='utf-8')
+
+            self.assertEqual(get_target_files(output_root, None, None), [product_file])
+
+    def test_downloads_description_images_and_rewrites_json_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            json_path = output_root / 'products.json'
+            json_path.write_text(json.dumps([{
+                'ProductSKU': 'SKU-1',
+                'ProductName': 'Example Product',
+                'ProductMainImage': 'images/batch/products/sku/main.jpg',
+                'ProductDescriptionImages': [{
+                    'ProductDescriptionImageURL': 'https://cdn.example.com/description.jpg',
+                    'ProductDescriptionImageAlt': 'Ảnh mô tả',
+                }],
+            }]), encoding='utf-8')
+            downloaded_path = output_root / 'images' / 'batch' / 'products' / 'sku' / 'description-01.jpg'
+
+            with patch('prepare_product_images.download_image_with_retry', return_value=downloaded_path):
+                main_failures, gallery_failures, description_failures = process_file(
+                    json_path,
+                    output_root,
+                    batch_id='batch',
+                )
+
+            self.assertEqual(main_failures, [])
+            self.assertEqual(gallery_failures, [])
+            self.assertEqual(description_failures, [])
+            product = json.loads(json_path.read_text(encoding='utf-8'))[0]
+            self.assertEqual(product['ProductDescriptionImages'], [{
+                'ProductDescriptionImageURL': 'https://cdn.example.com/description.jpg',
+                'ProductDescriptionImageLocalPath': 'images/batch/products/sku/description-01.jpg',
+                'ProductDescriptionImageAlt': 'Ảnh mô tả',
+            }])
+            self.assertEqual(product['ProductMainImageLocalPath'], 'images/batch/products/sku/main.jpg')
+
+
+    def test_preserves_source_urls_and_adds_local_paths_for_all_image_slots(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            json_path = output_root / 'products.json'
+            json_path.write_text(json.dumps([{
+                'ProductSKU': 'SKU-2',
+                'ProductName': 'Example Product 2',
+                'ProductMainImage': 'https://cdn.example.com/main.jpg',
+                'ProductGalleryImages': [
+                    'https://cdn.example.com/gallery-1.jpg',
+                    'https://cdn.example.com/gallery-2.jpg',
+                ],
+                'ProductDescriptionImages': [],
+            }]), encoding='utf-8')
+
+            def fake_download(source_url, destination_base, slot):
+                return destination_base / f'{slot}.jpg'
+
+            with patch('prepare_product_images.download_image_with_retry', side_effect=fake_download):
+                main_failures, gallery_failures, description_failures = process_file(json_path, output_root, batch_id='batch')
+
+            self.assertEqual(main_failures, [])
+            self.assertEqual(gallery_failures, [])
+            self.assertEqual(description_failures, [])
+
+            product = json.loads(json_path.read_text(encoding='utf-8'))[0]
+            self.assertEqual(product['ProductMainImage'], 'https://cdn.example.com/main.jpg')
+            product_key = hashlib.sha256(b'SKU-2').hexdigest()[:24]
+            self.assertEqual(product['ProductMainImageLocalPath'], f'images/batch/products/{product_key}/main.jpg')
+            self.assertEqual(product['ProductGalleryImages'], [
+                'https://cdn.example.com/gallery-1.jpg',
+                'https://cdn.example.com/gallery-2.jpg',
+            ])
+            self.assertEqual(product['ProductGalleryImageLocalPaths'], [
+                f'images/batch/products/{product_key}/gallery-01.jpg',
+                f'images/batch/products/{product_key}/gallery-02.jpg',
+            ])
+
+    def test_reports_failed_description_image_and_preserves_source_url(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_root = Path(directory)
+            json_path = output_root / 'products.json'
+            source_url = 'https://cdn.example.com/missing.jpg'
+            json_path.write_text(json.dumps([{
+                'ProductSKU': 'SKU-3',
+                'ProductName': 'Example Product 3',
+                'ProductMainImage': 'images/batch/products/sku/main.jpg',
+                'ProductDescription': 'Has a description',
+                'ProductDescriptionImages': [{
+                    'ProductDescriptionImageURL': source_url,
+                    'ProductDescriptionImageAlt': 'Description image',
+                }],
+            }]), encoding='utf-8')
+
+            with patch('prepare_product_images.download_image_with_retry', side_effect=RuntimeError('HTTP 404')):
+                main_failures, gallery_failures, description_failures = process_file(
+                    json_path,
+                    output_root,
+                    batch_id='batch',
+                )
+
+            product = json.loads(json_path.read_text(encoding='utf-8'))[0]
+            self.assertEqual(main_failures, [])
+            self.assertEqual(gallery_failures, [])
+            self.assertEqual(len(description_failures), 1)
+            self.assertIn(source_url, description_failures[0])
+            self.assertEqual(product['ProductDescriptionImages'][0]['ProductDescriptionImageURL'], source_url)
+            self.assertEqual(product['ProductDescriptionImages'][0]['ProductDescriptionImageLocalPath'], '')
+
+
+if __name__ == '__main__':
+    unittest.main()

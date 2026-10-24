@@ -1,0 +1,172 @@
+'use client';
+
+import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
+
+interface Props {
+  text?: string;
+  className?: string;
+  maxLines?: number;
+  specs?: Record<string, string | number>;
+  specLabels?: Record<string, string>;
+}
+
+/**
+ * Hàm làm sạch văn bản mô tả sản phẩm
+ * - Loại bỏ các thẻ HTML/XML
+ * - Loại bỏ các khối mã AI (Prompt leaks)
+ * - Loại bỏ các từ khóa thừa
+ */
+const sanitizeDescription = (text: string): string => {
+  if (!text) return "";
+
+  let cleaned = text;
+
+  // 1. Loại bỏ các khối mã (Code blocks) thường gặp từ AI leak
+  cleaned = cleaned.replace(/```[a-z]*[\s\S]*?```/gi, '');
+
+  // 2. Loại bỏ các từ khóa Prompt của AI
+  const promptKeywords = [
+    /STRICT RULES:/gi,
+    /CONTENT TO TRANSLATE:/gi,
+    /DO NOT add any explanations/gi,
+    /Maintain all HTML tags/gi,
+    /Professional and technical tone/gi,
+    /Here is the translation/gi,
+    /Translation:/gi
+  ];
+
+  promptKeywords.forEach(regex => {
+    cleaned = cleaned.replace(regex, '');
+  });
+
+  cleaned = cleaned.replace(/^\s*(?:here(?:'s| is) the translated text|here is the translation|translated text|translation)\s*:\s*/i, '');
+
+  // 3. Decode entities before removing encoded tags
+  cleaned = cleaned
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)));
+
+  // 4. Convert structural tags to line breaks and remove all remaining tags
+  cleaned = cleaned
+    .replace(/<\s*(script|style|iframe|object|embed|template|noscript)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '\n')
+    .replace(/<\s*\/?\s*(?:br|hr|p|div|li|tr|section|article|h[1-6]|ul|ol|table|thead|tbody|dl|dt|dd)\b[^>]*>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(\d)\.\s*\n\s*(\d)/g, '$1.$2')
+    .trim();
+
+  return cleaned;
+};
+
+const getDescriptionParagraphs = (text: string): string[] => text
+  .replace(/[\u200B-\u200D\uFEFF]/g, '')
+  .replace(/##/g, '\n\n')
+  .split(/\n\s*\n+/)
+  .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim())
+  .filter(Boolean);
+
+const DescriptionPoints = ({ paragraphs }: { paragraphs: string[] }) => (
+  <ul className="space-y-3">
+    {paragraphs.map((paragraph, index) => (
+      <li
+        key={`${index}-${paragraph.slice(0, 32)}`}
+        className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3.5 shadow-sm"
+      >
+        <span className="mt-2.5 h-2 w-2 shrink-0 rounded-full bg-red-500" aria-hidden="true" />
+        <p className="min-w-0 break-words leading-7 text-gray-700">{paragraph}</p>
+      </li>
+    ))}
+  </ul>
+);
+
+/**
+ * Component để hiển thị mô tả sản phẩm với xuống dòng tự động
+ * - Tách đoạn theo dòng trống
+ * - Chức năng "Xem chi tiết" / "Thu lại"
+ */
+export const ProductDescriptionFormatter: React.FC<Props> = ({
+  text,
+  className = "mb-4",
+  maxLines,
+  specs,
+  specLabels,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useTranslation();
+
+  const sanitizedText = sanitizeDescription(text || "");
+  const embeddedSpecsPattern = /(?:^|\n)\s*(?:Thông số(?: kỹ thuật)?|Specifications?)\s*:\s*\{[\s\S]*?\}(?=\s|$)/i;
+  const leadingSpecsHeadingPattern = /^\s*(?:Thông số(?: kỹ thuật)?|Specifications?)\s*:?\s*(?:\n|$)/i;
+  const specEntries = Object.entries(specs || {});
+  const hasSpecsHeading = leadingSpecsHeadingPattern.test(sanitizedText);
+  const hasSpecsSection = (embeddedSpecsPattern.test(sanitizedText) || hasSpecsHeading) && specEntries.length > 0;
+  const descriptionIntro = sanitizedText
+    .replace(embeddedSpecsPattern, '')
+    .replace(leadingSpecsHeadingPattern, '')
+    .trim();
+
+  if (hasSpecsSection) {
+
+    return (
+      <div className={className}>
+        <div className="mb-4">
+          <DescriptionPoints paragraphs={getDescriptionParagraphs(descriptionIntro)} />
+        </div>
+        <section className="rounded-xl border border-red-100 bg-red-50/50 p-4 sm:p-5">
+          <h4 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg">
+            <span className="h-2 w-2 rounded-full bg-red-600" aria-hidden="true" />
+            {t('tab_specs', 'products')}
+          </h4>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {specEntries.map(([key, value]) => (
+              <div key={key} className="rounded-lg border border-gray-100 bg-white px-3 py-2.5 shadow-sm">
+                <dt className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {specLabels?.[key] || key}
+                </dt>
+                <dd className="space-y-0.5 break-words text-sm font-semibold leading-5 text-gray-900">
+                  {String(value).split(';').map((item, index) => (
+                    <span key={`${item}-${index}`} className="block">
+                      {item.trim()}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
+    );
+  }
+
+  if (!sanitizedText) {
+    return <p className={className}>{t('no_description', 'products')}</p>;
+  }
+
+  const paragraphs = getDescriptionParagraphs(sanitizedText);
+  const needsExpand = maxLines !== undefined && paragraphs.length > maxLines;
+  const visibleParagraphs = isExpanded || maxLines === undefined ? paragraphs : paragraphs.slice(0, maxLines);
+
+  return (
+    <div className={className}>
+      <DescriptionPoints paragraphs={visibleParagraphs} />
+      {needsExpand && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mt-2 inline-block font-medium text-red-600 hover:text-red-800 hover:underline"
+        >
+          {isExpanded ? t('show_less', 'common') : t('show_more', 'common')}
+        </button>
+      )}
+    </div>
+  );
+};

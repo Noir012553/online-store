@@ -1,0 +1,16 @@
+{
+  "page": "Seite",
+  "of": "von",
+  "first": "Erste Seite",
+  "previous": "Vorherige Seite",
+  "next": "Nächste Seite",
+  "last": "Letzte Seite",
+  "ellipsis": "...",
+  "pagination_label": "Seitennavigation",
+  "pagination_previous_page": "Zur vorherigen Seite",
+  "pagination_previous": "Zurück",
+  "pagination_next_page": "Zur nächsten Seite",
+  "pagination_next": "Weiter",
+  "pagination_more_pages": "Weitere Seiten",
+  "first_page": "Erste Seite"
+}

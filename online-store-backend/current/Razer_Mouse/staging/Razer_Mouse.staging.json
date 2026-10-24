@@ -1,0 +1,1344 @@
+[
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-khong-day-razer-viper-v3-pro-se",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-khong-day-razer-viper-v3-pro-se",
+      "ProductName": "Chuột không dây Razer Viper V3 Pro SE",
+      "ProductSKU": "CHU-RAZER-VIPER-V3-PRO-SE",
+      "ProductPriceVND": 2370000,
+      "ProductRegularPriceVND": 2890000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Cổng USB, USB Receiver",
+        "Cảm biến (Sensor)": "Focus Pro 35K Gen-2",
+        "Độ phân giải (DPI)": "35000 DPI",
+        "Polling Rate": "8000",
+        "Trọng lượng": "54 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Cổng USB, USB Receiver\", \"Cảm biến (Sensor)\": \"Focus Pro 35K Gen-2\", \"Độ phân giải (DPI)\": \"35000 DPI\", \"Polling Rate\": \"8000\", \"Trọng lượng\": \"54 g\"}",
+      "ProductDescription": "Khám phá chuột Razer Viper V3 Pro SE siêu nhẹ\n\nRazer Viper V3 Pro SE là chuột gaming không dây đỉnh cao chỉ nặng 54g, mang lại khả năng kiểm soát tuyệt vời và cầm nắm thoải mái cho mọi game thủ. Thiết kế đối xứng thuận tay của chuột máy tính được kế thừa tinh hoa từ Viper V3 Pro sẵn sàng chiến đấu ngay từ những giây phút đầu tiên.\n\nTrọng lượng nhẹ, kiểm soát tối ưu\n\nVới 54g siêu nhẹ, chuột giúp di chuyển linh hoạt mà không mỏi tay, lý tưởng cho grip Claw hoặc Fingertip. Hình dáng cân đối mang đến seamless handling, giúp bạn tự tin xử lý mọi tình huống gay cấn. Form chuột ôm tay vừa vặn, bề mặt bám tốt cho cảm giác kiểm soát tự nhiên trong cả những pha flick nhanh lẫn tracking dài.\n\nCảm biến Focus Pro 35K đỉnh cao\n\nCảm biến quang học Focus Pro 35K Gen-2 đạt độ chính xác 99.8%, hỗ trợ DPI linh hoạt và có thể nâng cấp polling rate lên đến 8000Hz qua HyperPolling Dongle riêng. Tracking mượt mà trên mọi bề mặt, kết hợp onboard memory lưu 1 profile settings.\n\nKết nối HyperSpeed mượt mà\n\nHyperSpeed Wireless 1000Hz đảm bảo độ trễ thấp cho gaming pro cùng kết nối dongle USB trực tiếp. Bạn có thể tắt \"Enhance pointer precision\" trên Windows và dùng Synapse tinh chỉnh, kiểm tra polling rate dễ dàng qua phần mềm chuột Razer . Nhờ đường truyền ổn định và report rate đều, từng cú click đều được ghi nhận chính xác theo từng khung hình, hạn chế tối đa micro‑stutter cho các pha vẩy tâm tốc độ cao.\n\nVũ khí hoàn hảo cho esports\n\nViper V3 Pro SE cân bằng siêu nhẹ, sensor chính xác và kết nối nhanh, dành riêng game thủ chuyên nghiệp. Setup ready-to-play qua Synapse cũng sẽ giúp bạn chinh phục mọi tựa game, đầu tư thông minh cho setup đỉnh cao.\n\nMua ngay chuột Razer Viper V3 Pro SE tại GearVN\n\nBạn đang tìm \"vũ khí\" esports 54g siêu nhẹ với Focus Pro 35K? Razer Viper V3 Pro SE chính là phiên bản tinh gọn hoàn hảo cho rank cao, HyperSpeed 1000Hz + pin 95 giờ mà không lo gián đoạn. Khi đến với GearVN bạn sẽ có thể mua chuột với giá ưu đãi, giao siêu tốc toàn quốc, bảo hành chính hãng - nâng tầm aim headshot ngay hôm nay!",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-khong-day-razer-viper-v3-pro-se-5.jpg",
+          "ProductDescriptionImageAlt": "Chuột không dây Razer Viper V3 Pro SE có trọng lượng nhẹ",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-khong-day-razer-viper-v3-pro-se-6.jpg",
+          "ProductDescriptionImageAlt": "Chuột không dây Razer Viper V3 Pro SE có cảm biến Focus Pro 35K đỉnh cao",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-khong-day-razer-viper-v3-pro-se-7.jpg",
+          "ProductDescriptionImageAlt": "Chuột không dây Razer Viper V3 Pro SE có kết nối HyperSpeed mượt mà",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://cdn.hstatic.net/products/200000722513/chuot-khong-day-razer-viper-v3-pro-se-4_ace1b2dbf42741c3a7124fe6a5eda77b.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/main.webp",
+      "ProductGalleryImages": [
+        "https://cdn.hstatic.net/products/200000722513/chuot-khong-day-razer-viper-v3-pro-se-1_f6b7429a65424977bd0ca58a7a142d5e.jpg",
+        "https://cdn.hstatic.net/products/200000722513/chuot-khong-day-razer-viper-v3-pro-se-2_fb9fb452690644cab10951dd0668873e.jpg",
+        "https://cdn.hstatic.net/products/200000722513/chuot-khong-day-razer-viper-v3-pro-se-3_abc93a270a314f34b301af20f8b4f341.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/6f04b48ab0fa4ef034f5efb0/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-khong-day-razer-viper-v3-pro-se"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-viper-v3-pro-counter-strike-2-edition",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-viper-v3-pro-counter-strike-2-edition",
+      "ProductName": "Chuột Razer Viper V3 Pro Counter-Strike 2 Edition",
+      "ProductSKU": "CHU-RAZER-VIPER-V3-PRO-CS2",
+      "ProductPriceVND": 4680000,
+      "ProductRegularPriceVND": 4990000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "CS2 Edition",
+        "Kết nối": "Không dây 2.4GHz",
+        "Cảm biến (Sensor)": "Focus Pro 35K"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"CS2 Edition\", \"Kết nối\": \"Không dây 2.4GHz\", \"Cảm biến (Sensor)\": \"Focus Pro 35K\"}",
+      "ProductDescription": "Razer Viper V3 Pro Counter‑Strike 2 Edition là chuột gaming không dây siêu nhẹ, dành cho các game thủ esports cần độ chính xác cao và độ trễ cực thấp. Thiết kế đối xứng cùng trọng lượng chỉ khoảng 54 g giúp bạn aim và vẩy chuột thoải mái trong thời gian dài.\n\nThiết kế siêu nhẹ 54g\n\nViper V3 Pro nặng khoảng 54g và thuộc nhóm chuột không dây nhẹ hiện nay. Trọng lượng này giúp giảm mỏi cổ tay, đặc biệt phù hợp với người chơi FPS dùng DPI thấp và thường xuyên thực hiện các pha flick hay swipe rộng.\n\nCảm biến Razer Focus Pro 35K Gen‑2\n\nChuột dùng cảm biến quang học Razer Focus Pro 35K Optical Sensor thế hệ thứ 2 với độ phân giải tối đa 35.000 DPI, cho khả năng theo dõi rất chính xác. Cảm biến này giúp tracking ổn định, hạn chế jitter, smoothing và acceleration, nhờ đó mà hướng aim luôn nhất quán trong nhiều tình huống ingame khác nhau.\n\nHyperPolling 8K Hz và HyperSpeed Wireless\n\nViper V3 Pro hỗ trợ công nghệ Razer HyperPolling với tần số lấy mẫu lên tới 8000Hz, mang lại tín hiệu phản hồi mượt và gần như tức thì. Khi kết hợp với kết nối không dây Razer HyperSpeed Wireless, chuột giữ được độ trễ cực thấp và ổn định, phù hợp cả môi trường thi đấu esports lẫn leo rank cao.\n\nHình dáng đối xứng cho claw/fingertip\n\nThiết kế đối xứng của chuột được tối ưu cho kiểu cầm claw grip và fingertip, phổ biến trong cộng đồng game thủ FPS. Với đó, thân chuột thuôn dài, phần hông bo gọn giúp bạn dễ kiểm soát khi di nhanh, đồng thời vẫn thực hiện được các chỉnh aim nhỏ một cách chính xác.\n\nPhiên bản Counter‑Strike 2 Edition đậm chất eSports\n\nPhiên bản Counter‑Strike 2 Edition sở hữu tông màu, logo và họa tiết lấy cảm hứng trực tiếp từ CS2, tạo điểm nhấn nổi bật trên góc chơi game. Khi kết hợp cùng bàn phím, tai nghe, ghế và pad chủ đề CS2, bạn có thể tạo một set‑up đồng bộ, đẹp mắt và mang đậm chất esports chuyên nghiệp.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-viper-v3-pro-counter-strike-2-edition-1_grande.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-viper-v3-pro-counter-strike-2-edition-2_grande.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-viper-v3-pro-counter-strike-2-edition-3_grande.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/description-03.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-viper-v3-pro-counter-strike-2-edition-4_grande.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/description-04.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://cdn.hstatic.net/products/200000722513/gearvn-chuot-razer-viper-v3-pro-counter-strike-2-edition-3_e35f5a4c8a544620a747f970ee79b4ca.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/main.webp",
+      "ProductGalleryImages": [
+        "https://cdn.hstatic.net/products/200000722513/gearvn-chuot-razer-viper-v3-pro-counter-strike-2-edition-1_eb69cad95b424e799ecc91e4239d7431.png",
+        "https://cdn.hstatic.net/products/200000722513/-razer-viper-v3-pro-cs2-counter-strike-2-edition-rz01-05120800-r3m1-04_d8426127728a4402978617b7884b7c7a.jpg",
+        "https://cdn.hstatic.net/products/200000722513/gearvn-chuot-razer-viper-v3-pro-counter-strike-2-edition-2_fdd3aa7571cb4f069b6a22955850c7a4.png",
+        "https://cdn.hstatic.net/products/200000722513/-razer-viper-v3-pro-cs2-counter-strike-2-edition-rz01-05120800-r3m1-05_9dbd3361f5994ca2aabac1e6b15ddbca.jpg",
+        "https://cdn.hstatic.net/products/200000722513/-razer-viper-v3-pro-cs2-counter-strike-2-edition-rz01-05120800-r3m1-06_d9d41f7305084de8be6899cccca555b6.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/9b24671b72258d8f47acd6a1/gallery-05.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-viper-v3-pro-counter-strike-2-edition"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-deathadder-v4-pro-black-1",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-deathadder-v4-pro-black-1",
+      "ProductName": "Chuột Razer DeathAdder V4 Pro Black",
+      "ProductSKU": "CHU-RAZER-DA-V4-PRO-BLK",
+      "ProductPriceVND": 3690000,
+      "ProductRegularPriceVND": 4990000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Focus Pro 45K Gen-2",
+        "Độ phân giải (DPI)": "100 - 45000 DPI",
+        "Polling Rate": "4000;1000;2000;8000",
+        "Trọng lượng": "56 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Focus Pro 45K Gen-2\", \"Độ phân giải (DPI)\": \"100 - 45000 DPI\", \"Polling Rate\": \"4000;1000;2000;8000\", \"Trọng lượng\": \"56 g\"}",
+      "ProductDescription": "Khám phá chuột Razer DeathAdder V4 Pro Black\n\nRazer DeathAdder V4 Pro Black là thế hệ mới nhất trong dòng chuột gaming DeathAdder với form công thái học quen thuộc. Ở phiên bản này, Razer tập trung nâng cấp toàn bộ “nội thất” với cảm biến đời mới, switch và con lăn quang học nhằm phục vụ chuẩn cho nhu cầu game Esports hiện đại. Sản phẩm hướng tới người chơi cần một chú chuột không dây nhẹ, chính xác và ổn định cho cả luyện tập lẫn thi đấu chuyên nghiệp.\n\nThiết kế công thái học và trọng lượng siêu nhẹ\n\nDeathAdder V4 Pro Black giữ lại dáng chuột gaming cho tay phải, tối ưu cho kiểu cầm palm hoặc claw quen thuộc của các game thủ dòng DeathAdder. Lớp phủ bề mặt smooth‑touch màu đen còn giúp chuột bám tay hơn, đồng thời tạo cảm giác cầm nắm thoải mái khi sử dụng trong thời gian dài. Bên cạnh đó, trọng lượng chỉ khoảng 56g hỗ trợ những pha vẩy chuột nhanh, chính xác trong các tựa game đòi hỏi phản xạ cao.\n\nCảm biến Focus Pro 45K Gen 2 hiện đại\n\nTrung tâm hiệu năng của DeathAdder V4 Pro là cảm biến quang học Razer Focus Pro 45K Gen‑2 với thông số tối đa 45.000 DPI, 900 IPS và gia tốc 85G. Cảm biến này cho độ chính xác theo dõi lên đến khoảng 99,8%, đồng thời hoạt động ổn định trên nhiều tấm lót chuột và bàn công thái học khác nhau. Người dùng có thể tinh chỉnh DPI theo từng nấc nhỏ và tận dụng các tính năng như Motion Sync hay Smart Tracking thông qua phần mềm Razer Synapse để tối ưu cảm giác tracking.\n\nSwitch quang học Gen 4 và độ bền cao\n\nChuột sử dụng switch chuột Razer Optical Gen‑4 với tuổi thọ lên đến 100 triệu lần nhấn, giảm thiểu hiện tượng double‑click so với switch cơ truyền thống. Cảm giác bấm được tinh chỉnh để rõ ràng, dứt khoát và tốc độ kích hoạt rất nhanh, phù hợp với các tình huống cần spam chuột liên tục trong game. Nhờ đó, DeathAdder V4 Pro Black vừa đảm bảo độ bền lâu dài, vừa giữ được trải nghiệm bấm nhất quán trong suốt vòng đời sản phẩm.\n\nCon lăn quang học và trải nghiệm cuộn\n\nRazer trang bị cho DeathAdder V4 Pro con lăn sử dụng công nghệ quang học thay thế cơ chế cơ học truyền thống. Thiết kế này giúp việc nhận tín hiệu cuộn chính xác hơn, giảm hao mòn linh kiện và mang lại độ bền cao hơn trong thời gian sử dụng dài. Cảm giác cuộn vẫn được giữ ở mức có điểm khấc rõ.\n\nDongle 8.000Hz và kết nối HyperSpeed Gen 2\n\nDeathAdder V4 Pro Black hỗ trợ kết nối không dây Razer HyperSpeed Wireless Gen‑2 với độ trễ rất thấp và độ ổn định cao. Đi kèm trong hộp là dongle 8.000Hz dạng “bán cầu” với anten lớn và phần đế nặng, vừa tăng cường độ mạnh tín hiệu vừa hiển thị bằng đèn LED các trạng thái như kết nối, pin và polling rate. Nhờ đó, chuột có thể đạt polling rate lên đến 8.000Hz ở cả chế độ có dây và không dây để cho tín hiệu phản hồi cực nhanh.\n\nMua ngay Razer DeathAdder V4 Pro Black tại GearVN\n\nBạn đang tìm một chú chuột không dây siêu nhẹ chỉ khoảng 56g, form công thái học quen tay, cảm biến Focus Pro 45K Gen 2 để mỗi cú vẩy chuột trong game FPS đều nhanh, chuẩn và ổn định? Razer DeathAdder V4 Pro Black là lựa chọn lý tưởng cho game thủ Esports muốn vừa try-hard, vừa yên tâm về độ bền và độ chính xác lâu dài. Đừng chần chờ thêm khoảnh khắc nào và hãy mua ngay Razer DeathAdder V4 Pro Black chính hãng tại GearVN để nâng cấp aim, chuẩn hóa từng cú click và tận hưởng dịch vụ giao hàng nhanh chóng trên toàn quốc nhé!",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-black-1.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro Black có thiết kế công thái học",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-black-2.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro Black có cảm biến Focus Pro 45K Gen 2 hiện đại",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-black-3.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro Black có switch quang học Gen 4 bền bỉ",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/description-03.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-black-4.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro Black có con lăn quang học hiện đại",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/description-04.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-black-5.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro Black có con dongle 8.000Hz",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/description-05.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://cdn.hstatic.net/products/200000722513/imgi_234_deathadder-v4-pro-black-png-4_5e8d12b1fbe4474c9f13f7915506817c.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/main.webp",
+      "ProductGalleryImages": [
+        "https://cdn.hstatic.net/products/200000722513/imgi_72_deathadder-v4-pro-black_a0935bec304f4233b4bd0b2bb429588a.png",
+        "https://cdn.hstatic.net/products/200000722513/imgi_230_deathadder-v4-pro-black-png-2_409348b6d519435bb139930102723c2d.png",
+        "https://cdn.hstatic.net/products/200000722513/imgi_232_deathadder-v4-pro-black-png-3_aea37436d5834dada057189b02f7cb13.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/44f7a927166d5998bd56d3a1/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-deathadder-v4-pro-black-1"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-deathadder-v4-pro-white-1",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-deathadder-v4-pro-white-1",
+      "ProductName": "Chuột Razer DeathAdder V4 Pro White",
+      "ProductSKU": "CHU-RAZER-DA-V4-PRO-WHI",
+      "ProductPriceVND": 3690000,
+      "ProductRegularPriceVND": 4990000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Không dây 2.4GHz;Có dây USB",
+        "Cảm biến (Sensor)": "Focus Pro 45K",
+        "Độ phân giải (DPI)": "100 - 45000 DPI",
+        "Polling Rate": "8000;1000",
+        "Trọng lượng": "56 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Không dây 2.4GHz;Có dây USB\", \"Cảm biến (Sensor)\": \"Focus Pro 45K\", \"Độ phân giải (DPI)\": \"100 - 45000 DPI\", \"Polling Rate\": \"8000;1000\", \"Trọng lượng\": \"56 g\"}",
+      "ProductDescription": "Khám phá chuột Razer DeathAdder V4 Pro White\n\nRazer DeathAdder V4 Pro White là thế hệ mới trong dòng chuột gaming , tập trung vào thiết kế công thái học quen thuộc và phần cứng tối ưu cho Esports. Phiên bản màu trắng sử dụng hoàn toàn công nghệ quang học từ cảm biến đến switch và con lăn nhằm mang lại độ chính xác cao và độ trễ thấp khi chơi game. Sản phẩm phù hợp với game thủ muốn một con chuột không dây nhẹ, ổn định và dễ kết hợp với nhiều phong cách góc máy khác nhau.\n\nThiết kế công thái học và lớp phủ trắng\n\nDeathAdder V4 Pro White giữ nguyên dáng công thái học tay phải để tối ưu cho kiểu cầm palm hoặc claw quen thuộc. Bên cạnh đó, chuột còn có bề mặt phủ smooth‑touch màu trắng giúp bám tay hơn và hạn chế trơn trượt kể cả khi sử dụng trong thời gian dài. Chuột có trọng lượng khoảng 57g cho bản màu trắng, hỗ trợ các thao tác vẩy chuột nhanh và chính xác trong những tựa game cạnh tranh cao.\n\nCảm biến và switch quang học hiện đại\n\nRazer DeathAdder V4 Pro White được trang bị cảm biến quang học Razer Focus Pro 45K Gen‑2 với thông số tối đa 45.000 DPI, tốc độ 900 IPS và gia tốc 85G. Cảm biến cho độ chính xác theo dõi khoảng 99,8% và hoạt động ổn định trên nhiều bề mặt khác nhau như tấm lót chuột , bàn thái công học . Chuột sử dụng switch Razer Optical Mouse Gen‑4 với tuổi thọ lên đến khoảng 100 triệu lần nhấn, làm giảm nguy cơ double‑click và mang lại cảm giác bấm rõ ràng, dứt khoát.\n\nCon lăn quang học và độ bền sử dụng\n\nDeathAdder V4 Pro White sở hữu con lăn quang học giúp việc nhận tín hiệu cuộn chính xác hơn và giảm hao mòn so với cơ chế truyền thống. Công nghệ này hỗ trợ tốt cho thao tác cuộn nhỏ trong game, đồng thời phục vụ các tác vụ thường ngày như đọc tài liệu, duyệt web hay chỉnh sửa timeline video được mượt mà. Sự kết hợp giữa switch và con lăn quang học tạo nên một tổng thể bền bỉ, phù hợp với người dùng có cường độ sử dụng chuột cao.\n\nDongle 8.000Hz và theo dõi trạng thái chuột\n\nChuột hỗ trợ polling rate lên đến 8.000Hz thông qua dongle HyperPolling 8K cho cả chế độ có dây và không dây. Dongle có thiết kế dạng bán cầu với anten lớn và đế nặng để kết nối ổn định hơn và hạn chế nhiễu khi sử dụng trong môi trường nhiều thiết bị. Ngoài ra, hệ thống đèn báo trên dongle và phần mềm Razer Synapse còn cho phép người dùng theo dõi nhanh tình trạng kết nối, dung lượng pin và mức polling rate đang sử dụng.\n\nMua ngay Razer DeathAdder V4 Pro Black tại GearVN\n\nVới switch quang học Gen 4 bền tới 100 triệu lần nhấn, con lăn quang học chính xác và HyperSpeed Wireless Gen 2 độ trễ cực thấp, Razer DeathAdder V4 Pro Black là lựa chọn lý tưởng cho game thủ Esports muốn vừa try-hard, vừa yên tâm về độ bền và độ chính xác lâu dài. Nếu đó đúng là lợi thế bạn đang cần trong mỗi trận rank, đừng chần chờ thêm khoảnh khắc nào nữa và hãy mua ngay Razer DeathAdder V4 Pro Black chính hãng tại GearVN để nâng cấp aim, chuẩn hóa từng cú click và tận hưởng chính sách giao hàng nhanh chóng trên toàn quốc của nhà GearVN nhé!",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-white-1.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro White có thiết kế công thái học",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-white-2.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro White có cảm biến và switch quang học hiện đại",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-white-3.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro White có con lăn quang học bền bỉ",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/description-03.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-deathadder-v4-pro-white-4.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer DeathAdder V4 Pro White có thiết bị theo dõi trạng thái chuột",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/description-04.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://cdn.hstatic.net/products/200000722513/imgi_235_deathadder-v4-pro-white-png-4-png_c17413a89a1645a099607a4229aa9303.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/main.webp",
+      "ProductGalleryImages": [
+        "https://cdn.hstatic.net/products/200000722513/imgi_218_deathadder-v4-pro-white_c3856f7073774f01a6d93ad27fd9cdea.png",
+        "https://cdn.hstatic.net/products/200000722513/imgi_231_deathadder-v4-pro-white-png-2_77dcf2c45f1642ff987bfcfb0aa6d424.png",
+        "https://cdn.hstatic.net/products/200000722513/imgi_233_deathadder-v4-pro-white-png-3_ec24a67ba55b4cf68a616a1fbabcc248.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/fa8d31d90eaa1fbeb61b4e8f/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-deathadder-v4-pro-white-1"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-pro-click-v2",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-pro-click-v2",
+      "ProductName": "Chuột Razer Pro Click V2",
+      "ProductSKU": "CHU-RAZER-PRO-CLICK-V2",
+      "ProductPriceVND": 2490000,
+      "ProductRegularPriceVND": 2690000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Focus Pro 30K",
+        "Độ phân giải (DPI)": "100 - 30000 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "110 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Focus Pro 30K\", \"Độ phân giải (DPI)\": \"100 - 30000 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"110 g\"}",
+      "ProductDescription": "Khám phá chuột Razer Pro Click V2\n\nRazer Pro Click V2 là chuột máy tính có sự kết hợp thiết kế công thái học, cảm biến hiệu năng cao và khả năng kết nối đa thiết bị để phục vụ tốt cho môi trường làm việc hiện đại. Đây là lựa chọn phù hợp với nhân viên văn phòng, lập trình viên, nhà thiết kế hay người sáng tạo nội dung thường xuyên làm việc với laptop .\n\nThiết kế công thái học cho những ngày làm việc dài\n\nRazer Pro Click V2 được thiết kế dành cho người thuận tay phải với phần thân ôm sát lòng bàn tay và vị trí đặt ngón cái hợp lý. Kiểu dáng này giúp giảm áp lực lên cổ tay và tạo cảm giác cầm chắc chắn, đặc biệt khi phải sử dụng chuột liên tục trong nhiều giờ. Ngoài ra, chuột Razer còn được trang bị 8 nút có thể lập trình thông qua Razer Synapse, cho phép gán phím tắt, macro hoặc các thao tác thường dùng.\n\nCảm biến Focus Pro Optical cho độ chính xác cao\n\nRazer Pro Click V2 sử dụng cảm biến quang học Razer Focus Pro Optical với độ phân giải lên đến 30.000 DPI, tốc độ theo dõi 550 IPS và gia tốc 40G. Chính vì vậy mà chuột có thể phản hồi nhanh và chính xác trên nhiều loại bề mặt, phù hợp từ các tác vụ văn phòng đến chỉnh sửa ảnh, dựng video hoặc thiết kế đồ họa.\n\nNgoài khả năng theo dõi ổn định, cảm biến còn hỗ trợ hoạt động trên mặt kính có độ dày tối thiểu 4mm. Điều này giúp người dùng linh hoạt hơn khi làm việc ở nhiều không gian khác nhau mà không phụ thuộc hoàn toàn vào pad chuột .\n\nKết nối nhiều thiết bị để làm việc liền mạch\n\nRazer Pro Click V2 hỗ trợ kết nối qua Razer HyperSpeed Wireless, Bluetooth và USB Type-C có dây. Người dùng có thể chuyển đổi nhanh giữa nhiều chế độ kết nối để phù hợp với từng tình huống sử dụng từ làm việc cố định đến di chuyển.\n\nChuột còn hỗ trợ kết nối đồng thời tối đa 5 thiết bị, giúp việc chuyển đổi giữa máy tính để bàn, laptop hoặc máy tính bảng trở nên thuận tiện hơn. Đây là tính năng hữu ích đối với người thường xuyên làm việc đa nền tảng hoặc sử dụng nhiều thiết bị trong cùng một ngày.\n\nAI Prompt Master hỗ trợ tối ưu quy trình làm việc\n\nMột trong những điểm mới của Razer Pro Click V2 là AI Prompt Master tích hợp trong Razer Synapse. Người dùng có thể kích hoạt nhanh các công cụ AI để hỗ trợ tóm tắt nội dung, soạn thảo văn bản hoặc tạo câu lệnh chỉ với một nút bấm, giúp tiết kiệm thời gian trong quá trình làm việc.\n\nBên cạnh đó, hệ thống Razer Chroma RGB với 14 vùng chiếu sáng tạo điểm nhấn hiện đại cho góc làm việc. Hiệu ứng ánh sáng có thể đồng bộ với các thiết bị tương thích trong hệ sinh thái Razer để mang đến trải nghiệm sử dụng đồng nhất.\n\nTrải nghiệm sử dụng bền bỉ mỗi ngày\n\nRazer Pro Click V2 sử dụng switch cơ học có tuổi thọ lên đến 60 triệu lần nhấn, đáp ứng tốt nhu cầu sử dụng lâu dài. Feet chuột 100% PTFE hỗ trợ giảm ma sát khi di chuyển, mang lại cảm giác lướt mượt trên nhiều loại bề mặt và hỗ trợ thao tác chính xác hơn.\n\nMua ngay chuột Razer Pro Click V2 tại GearVN\n\nHỗ trợ chuyển đổi linh hoạt giữa 5 thiết bị cùng cảm biến Focus Pro 30.000 DPI nhận diện chính xác ngay cả trên mặt kính, Razer Pro Click V2 đáp ứng tốt cho người dùng làm việc đa nền tảng. Mua ngay mẫu chuột này tại GearVN để nhận các ưu đãi hấp dẫn theo từng giai đoạn cùng chính sách bảo hành uy tín bảo vệ thiết bị của bạn!",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-6.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 có thiết kế công thái học",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-7.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 có kết nối nhiều thiết bị",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-8.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 bền bỉ mỗi ngày",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/pro_click_v2__2025__render_05__cbe30b0c1e7843c49d606a20f0f2060a.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/pro_click_v2__2025__render_01__4632a87b322b479d94a393cb48615160.png",
+        "https://product.hstatic.net/200000722513/product/pro_click_v2__2025__render_02__e9d516a748844c2a85c2367a097781e6.png",
+        "https://product.hstatic.net/200000722513/product/pro_click_v2__2025__render_03__3c4d7a836ddd4c3f92362626e3e2c046.png",
+        "https://product.hstatic.net/200000722513/product/pro_click_v2__2025__render_04__c44c3cc783be49d98f5f25e8953eef3e.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/7622cd8113c093231ab505c7/gallery-04.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-pro-click-v2"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-pro-click-v2-vertical",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-pro-click-v2-vertical",
+      "ProductName": "Chuột Razer Pro Click V2 Vertical",
+      "ProductSKU": "CHU-RAZER-PRO-CLICK-V2-VERTICAL",
+      "ProductPriceVND": 3040000,
+      "ProductRegularPriceVND": 3290000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Razer Focus Pro",
+        "Độ phân giải (DPI)": "30000 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "150 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Razer Focus Pro\", \"Độ phân giải (DPI)\": \"30000 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"150 g\"}",
+      "ProductDescription": "Khám phá chuột Razer Pro Click V2 Vertical\n\nRazer Pro Click V2 Vertical là mẫu chuột máy tính được phát triển dành cho người dùng thường xuyên làm việc nhiều giờ trước laptop nhưng vẫn cần hiệu năng cao cho các tác vụ sáng tạo và giải trí. Thay vì chỉ tập trung vào tốc độ hay thiết kế bắt mắt, sản phẩm hướng đến trải nghiệm sử dụng lâu dài với kiểu dáng công thái học dạng đứng, giúp giảm áp lực lên cổ tay trong suốt quá trình làm việc.\n\nThiết kế công thái học dạng đứng giảm mỏi cổ tay\n\nĐiểm nổi bật nhất của Razer Pro Click V2 Vertical là thiết kế vertical với góc nghiêng 71,7°, giúp bàn tay duy trì tư thế tự nhiên thay vì phải xoay úp hoàn toàn như trên chuột truyền thống. Kiểu thiết kế này góp phần giảm áp lực lên cổ tay và cẳng tay, đặc biệt phù hợp với những người thường xuyên sử dụng máy tính liên tục trong nhiều giờ mỗi ngày.\n\nChuột Razer được trang bị 8 nút bấm với khả năng tùy biến tối đa 8 chức năng thông qua phần mềm Razer Synapse. Người dùng có thể gán macro , phím tắt hoặc các thao tác thường dùng để tăng tốc quy trình làm việc, đồng thời tối ưu trải nghiệm khi xử lý các phần mềm.\n\nKết nối linh hoạt giữa nhiều thiết bị\n\nRazer Pro Click V2 Vertical hỗ trợ ba phương thức kết nối gồm Razer HyperSpeed Wireless 2.4 GHz, Bluetooth và USB Type-C có dây. Với đó, người dùng có thể lựa chọn chế độ phù hợp với từng nhu cầu sử dụng.\n\nKhả năng kết nối đồng thời tối đa 5 thiết bị còn hỗ trợ việc chuyển đổi giữa PC , laptop hoặc máy tính bảng diễn ra nhanh chóng chỉ với vài thao tác. Đây là điểm cộng đáng giá đối với những người thường xuyên làm việc đa nền tảng hoặc cần sử dụng nhiều thiết bị trong cùng một ngày.\n\nCảm biến Razer Focus Pro Optical theo dõi chính xác\n\nRazer Pro Click V2 Vertical sử dụng cảm biến quang học Razer Focus Pro Optical với độ phân giải tối đa 30.000 DPI, tốc độ theo dõi lên đến 550 IPS cùng gia tốc 50G. Cảm biến mang lại khả năng kiểm soát chính xác cho từng chuyển động, đáp ứng tốt từ các tác vụ văn phòng, chỉnh sửa hình ảnh đến chơi game giải trí sau giờ làm việc.\n\nNgoài độ chính xác cao, sản phẩm còn có khả năng theo dõi trên bề mặt kính có độ dày tối thiểu 4mm. Điều này giúp sản phẩm hoạt động ổn định trong nhiều môi trường làm việc khác nhau mà không bắt buộc phải sử dụng tấm lót chuột chuyên dụng.\n\nAI Prompt Master hỗ trợ tối ưu công việc\n\nMột trong những điểm mới trên Razer Pro Click V2 Vertical là tính năng AI Prompt Master được tích hợp thông qua phần mềm Razer Synapse 4. Chỉ với một nút bấm, người dùng có thể kích hoạt nhanh các công cụ AI để hỗ trợ soạn thảo văn bản, tóm tắt nội dung hoặc tạo câu lệnh phục vụ công việc hằng ngày, giúp tiết kiệm thời gian trong quá trình xử lý tác vụ.\n\nBên cạnh đó, hệ thống đèn Razer Chroma RGB với 18 vùng chiếu sáng tạo điểm nhấn hiện đại cho góc làm việc. Người dùng cũng có thể đồng bộ hiệu ứng ánh sáng với các thiết bị khác trong hệ sinh thái Razer để tạo nên không gian làm việc đồng nhất và chuyên nghiệp hơn.\n\nThời lượng pin bền bỉ cho nhu cầu sử dụng mỗi ngày\n\nRazer Pro Click V2 Vertical sở hữu thời lượng pin lên đến khoảng 6 tháng trong điều kiện sử dụng phù hợp nhằm hạn chế việc sạc thường xuyên và duy trì trải nghiệm liền mạch trong quá trình làm việc. Khi cần, chuột vẫn có thể sử dụng thông qua kết nối dây cáp , hạn chế tối đa sự gián đoạn.\n\nMua ngay chuột Razer Pro Click V2 Vertical tại GearVN\n\nRazer Pro Click V2 Vertical không chỉ bảo vệ sức khỏe mà còn nâng tầm thẩm mỹ cho góc làm việc nhờ thiết kế đứng thời thượng kết hợp dải đèn Razer Chroma RGB 18 vùng chiếu sáng rực rỡ. Hãy trở thành người sở hữu sớm nhất chiếc chuột công thái học thế hệ mới chính hãng 100% tại GearVN để nhận ngay các chương trình ưu đãi hấp dẫn theo từng thời điểm và biến góc làm việc của bạn trở nên chuyên nghiệp, đẳng cấp hơn bao giờ hết!",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-vertical-5.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 Vertical có thiết kế công thái học dạng đứng",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-vertical-6.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 Vertical có cảm biến chính xác",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://cdn.hstatic.net/files/200000722513/file/chuot-razer-pro-click-v2-vertical-7.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Pro Click V2 Vertical có thời lượng pin bền bỉ",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/pro_click_v2_vertical_edition__2025__render_06__613a743bf83c423681d14cc0fb96abc8.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/pro_click_v2_vertical_edition__2025__render_01__566dfb9fb04944f38103a77e62f7eb05.png",
+        "https://product.hstatic.net/200000722513/product/pro_click_v2_vertical_edition__2025__render_05__28203b842d024c3d8cb4252236b3f273.png",
+        "https://product.hstatic.net/200000722513/product/pro_click_v2_vertical_edition__2025__render_07__35564d35754c403f9f2ef01e6bf51634.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/aa8074624e603fb145f2404c/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-pro-click-v2-vertical"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-35k-black",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3-pro-35k-black",
+      "ProductName": "Chuột Razer Basilisk V3 Pro 35K Black",
+      "ProductSKU": "CHU-RAZER-BASILISK-V3-PRO-35K-BLACK",
+      "ProductPriceVND": 3950000,
+      "ProductRegularPriceVND": 4490000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Loại pin": "Pin sạc Li-ion"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Loại pin\": \"Pin sạc Li-ion\"}",
+      "ProductDescription": "Nâng tầm trải nghiệm chơi game với Razer Basilisk V3 Pro 35K – chuột chơi game không dây RGB công thái học với khả năng tùy chỉnh và công nghệ tiên tiến nhất. Chuột gaming này với cảm biến chính xác hoàn hảo và con lăn chuột với các tùy chọn cấu hình chuyên sâu, chơi game theo cách của bạn chưa bao giờ thú vị đến thế.\n\nCuộn lăn Razer™ HyperScroll Tilt Cuộn lăn 4 chiều với 3 chế độ độc đáo\n\nChọn giữa cuộn khấc Tactile-Cycling và cuộn tự do Free-Spin, hoặc tự động chuyển đổi giữa hai chế độ dựa trên tốc độ cuộn của bạn với chế độ cuộn thông minh Smart-Reel – hiện có thể cấu hình trên Synapse .\n\nCảm biến quang học Razer™ Focus Pro 35K Gen-2 Độ chính xác hàng đầu\n\nTrải nghiệm hiệu suất theo dõi hàng đầu trên nhiều bề mặt khác nhau, bao gồm cả kính, được hỗ trợ bởi các chức năng thông minh và điều chỉnh từng bước 1-DPI cho khả năng kiểm soát chi tiết và ngắm bắn chính xác hơn.\n\nLên đến 140 tiếng kết nối không dây Razer™ HyperSpeed Chơi game hiệu suất cao, độ trễ thấp\n\nTận hưởng hiệu suất mượt mà, không giật lag cho các phiên chơi game liên tục hoặc tận dụng sức mạnh thực sự của tốc độ thăm dò 8000Hz với Razer Mouse Dock Pro hoặc HyperPolling Wireless Dongle (cả hai đều được bán riêng).\n\n13 thao tác điều khiển có thể tùy biến Khả năng tùy chỉnh vô hạn\n\nGán vô số lệnh và macro trên 13 nút điều khiển ở vị trí dễ tiếp cận – bao gồm cò bấm đa chức năng nổi tiếng – để thực hiện các hành động quan trọng như push-to-talk, ping và nhiều hơn nữa.\n\nĐèn Chroma 13 vùng với dải sáng dưới bao quanh Được hỗ trợ bởi Razer Chroma™ RGB\n\nTùy chỉnh từng vùng với hơn 16,8 triệu màu và vô số hiệu ứng ánh sáng, và đắm chìm vào những màn game mãn nhãn với sắc màu sống động, chuyển động nhịp nhàng với hơn 200 trò chơi tương thích với Chroma.\n\nCông tắc chuột quang học Razer™ Gen-3 Độ bền và tốc độ vô song\n\nĐược nâng cấp với vòng đời 90 triệu lần nhấp mà không gặp vấn đề nhấp đúp, cùng tốc độ kích hoạt 0,2 mili giây không có độ trễ, tận hưởng độ tin cậy và tốc độ vượt trội để sẵn sàng out trình đối thủ.\n\nThêm vào đó, Razer Không dây Viper V3 Pro Trắng , Razer Deathadder Essential White và Razer Cobra mang đến trải nghiệm cầm nắm thoải mái, phản hồi nhanh và hiệu năng ổn định cho game thủ.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_2_a462926dea1a47148e5bf4e374a73065.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-01.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_3_ebbb02187d4c40a9955f173a0ac0ee93.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_4_b201e94f54c8467a99db781cc0171496.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-03.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_5_c451b2275efd4295b50547df594ffb0a.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-04.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_6_12668a73066b4d0e8fbb2d48a70f3da3.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-05.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_7_399980dcb4ec46489e09bf05257a301b.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/description-06.jpg"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v5_872706926ee643629909cc9971f523be.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/chuot-gaming-khong-day-razer-bas_62ede1e4e4434715b536f14dce75f95d.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v3_83758f1880a642a38a163f0554f811dd.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v2_306a30e031204eda8e0846c06d6cb3c0.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v4_9ba17bdb83a44ef18082f40b57624125.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v7_196a1fb000224e649b85490d393f6235.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_v6_fee2e6af119545c798768fa38a110a08.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/721e372be19467ef09a7d300/gallery-06.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-35k-black"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-deathadder-v3-hyperspeed-wireless",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-deathadder-v3-hyperspeed-wireless",
+      "ProductName": "Chuột Razer DeathAdder V3 Hyperspeed Wireless",
+      "ProductSKU": "CHU-RAZER-DEATHADDER-V3-HP",
+      "ProductPriceVND": 2130000,
+      "ProductRegularPriceVND": 2990000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Wireless",
+        "Cảm biến (Sensor)": "Focus X 26K Optical",
+        "Độ phân giải (DPI)": "1 - 26000 DPI",
+        "Polling Rate": "8000",
+        "Trọng lượng": "55 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"Focus X 26K Optical\", \"Độ phân giải (DPI)\": \"1 - 26000 DPI\", \"Polling Rate\": \"8000\", \"Trọng lượng\": \"55 g\"}",
+      "ProductDescription": "Thông số kỹ thuật\n\nDài: 122.2 mm / 4.81 in\n\nRộng: 64.8 mm / 2.55 in\n\nCao: 41.3 mm / 1.63 in\n\nRazer DeathAdder V3 HyperSpeed\n\nRazer HyperSpeed Wireless USB Dongle + USB Dongle Adapter\n\nUSB Type A to USB Type C cable\n\nHướng dẫn sử dụng",
+      "ProductDescriptionImages": [],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/iner_h00_h7e_9785428508702_240620-deathadder-v3-hyperspeed-1500x1000-3_996b24e9bda246169fc6385ba4c2d8e2.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/v9amb50o_6df2fc1a8a944bdbbf598f3f0dd408e4.png",
+        "https://product.hstatic.net/200000722513/product/iner_h69_h81_9785428607006_240620-deathadder-v3-hyperspeed-1500x1000-5_5beb89e149494a8497b9b3c4b056a0b2.jpg",
+        "https://product.hstatic.net/200000722513/product/iner_hc2_h7e_9785428574238_240620-deathadder-v3-hyperspeed-1500x1000-4_1c39299878994929a8958f4bf0099a3d.jpg",
+        "https://product.hstatic.net/200000722513/product/iner_h59_h7b_9785428475934_240620-deathadder-v3-hyperspeed-1500x1000-1_8de842d667c24e6da9cb818a065d2179.jpg",
+        "https://product.hstatic.net/200000722513/product/iner_h9a_h77_9785428344862_240620-deathadder-v3-hyperspeed-1500x1000-2_abf290567c4b461ba7fda4dd62e7fdcd.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/48e2fe0bb19f2091e989a9ef/gallery-05.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-deathadder-v3-hyperspeed-wireless"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-khong-day-viper-v3-pro-trang",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-khong-day-viper-v3-pro-trang",
+      "ProductName": "Chuột Razer Không dây Viper V3 Pro Trắng",
+      "ProductSKU": "CHU-RAZER-VIPER-V3-PRO-WHITE",
+      "ProductPriceVND": 2790000,
+      "ProductRegularPriceVND": null,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Wireless",
+        "Cảm biến (Sensor)": "Focus Pro",
+        "Polling Rate": "8000",
+        "Trọng lượng": "150 g",
+        "Loại pin": "Pin sạc Li-ion"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"Focus Pro\", \"Polling Rate\": \"8000\", \"Trọng lượng\": \"150 g\", \"Loại pin\": \"Pin sạc Li-ion\"}",
+      "ProductDescription": "Trong thế giới gaming, việc lựa chọn thiết bị phụ kiện như chuột, bàn phím là vô cùng quan trọng. Đặc biệt, một con chuột gaming chất lượng cao sẽ giúp bạn nâng cao trải nghiệm và hiệu suất chơi game. GEARVN sẽ giới thiệu đến bạn sản phẩm mới nhất từ Razer - Chuột Razer Không dây Viper V3 Pro Trắng, một trong những con chuột không dây siêu nhẹ và đỉnh cao nhất hiện nay.\n\nThiết kế siêu nhẹ, tiện lợi\n\nChuột Razer không dây Viper V3 Pro Trắng nổi bật với thiết kế siêu nhẹ, chỉ 54g. Đây là một trong những con chuột gaming không dây nhẹ nhất trên thị trường, giúp bạn di chuyển nhanh chóng và linh hoạt trong mọi trận đấu. Thiết kế này không chỉ giúp giảm mỏi tay mà còn tăng cường khả năng phản ứng và kiểm soát, cho phép bạn làm chủ mọi tình huống trong game. Ngoài ra, còn được trang bị thiết kế đối xứng, phù hợp cho cả người thuận tay trái và tay phải. Mang lại sự tiện lợi và thoải mái cho mọi game thủ, không phân biệt tay thuận.\n\nCông nghệ hiện đại\n\nMột trong những yếu tố quan trọng nhất của một con chuột gaming chính là được trang bị cảm biến. Chuột Razer Viper V3 Pro Trắng được trang bị cảm biến quang học Razer Focus Pro 35K Gen-2, cung cấp độ chính xác và độ nhạy cao nhất. Công nghệ này cho phép bạn thực hiện những pha tracking và flick chuột mượt mà, chính xác, giúp bạn vượt trội hơn trong các trò chơi yêu cầu phản xạ nhanh.\n\nTốc độ phản hồi nhanh chóng\n\nVới công nghệ Razer HyperPolling 8KHz, Razer Viper V3 Pro Trắng đảm bảo tốc độ phản hồi nhanh nhất, chỉ 0.125ms. Tốc độ này loại bỏ hoàn toàn độ trễ, mang đến cho bạn lợi thế cạnh tranh trong mọi tình huống. Dù bạn đang chơi game bắn súng FPS hay các trò chơi MOBA, sự phản hồi nhanh chóng của chuột sẽ giúp bạn luôn đi trước đối thủ một bước.\n\nĐộ bền vượt trội\n\nChuột Razer Viper V3 Pro Trắng được trang bị công tắc quang học Razer Gen-3, mang đến độ bền bỉ gấp 75 lần so với công tắc chuột cơ học truyền thống. Công tắc này không chỉ có độ bền cao mà còn cho cảm giác nhấp chuột sắc nét và phản hồi nhanh chóng, giúp bạn kiểm soát trò chơi tốt hơn. Phần mềm Razer Synapse cho phép bạn tùy chỉnh các nút bấm, DPI, RGB và các cài đặt khác theo ý thích. Điều này giúp bạn cá nhân hóa trải nghiệm sử dụng chuột Bluetooth theo nhu cầu và phong cách riêng của mình.\n\nThời lượng pin lên đến 95 giờ\n\nMột trong những điểm nổi bật của Razer Viper V3 Pro Trắng chính là thời lượng pin lên đến 95 giờ. Bạn có thể thoải mái chơi game trong nhiều giờ liền mà không cần lo lắng về việc hết pin. Đây là một ưu điểm lớn đối với các game thủ thường xuyên chơi game trong thời gian dài mà không cần phải lo lắng vấn đề gián đoạn về pin.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_khong_day_viper_v3_pro_trang-1_2e24bbf7ab2b442f9edb50de29bdec4e_grande.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Không dây Viper V3 Pro Trắng",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_khong_day_viper_v3_pro_trang-3_029e188f37e44741be1341bfbdcb5b6b_grande.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Không dây Viper V3 Pro Trắng",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_khong_day_viper_v3_pro_trang-4_f69079c7a399462295b486f1244bb4dc_grande.jpg",
+          "ProductDescriptionImageAlt": "Chuột Razer Không dây Viper V3 Pro Trắng",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/i56gu2q2_c08bcc730eb04dcd8b795722757d1f1c.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/ci9f8k75_e9e8bebbbb164f648e7bf94d561919f7.png",
+        "https://product.hstatic.net/200000722513/product/32q6ue9b_dd64156f5869455da6d4172f9faa0fa0.png",
+        "https://product.hstatic.net/200000722513/product/d3awpu8q_57e067c744cb404180328a927afb6dbc.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/3134e63c60d8cfcfe59307d8/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-khong-day-viper-v3-pro-trang"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-khong-day-viper-v3-pro-den",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-khong-day-viper-v3-pro-den",
+      "ProductName": "Chuột Razer Không dây Viper V3 Pro Đen",
+      "ProductSKU": "CHU-RAZER-VIPER-V3-PRO-BLK",
+      "ProductPriceVND": 2790000,
+      "ProductRegularPriceVND": null,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Wireless",
+        "Cảm biến (Sensor)": "Razer Focus Pro 35K",
+        "Độ phân giải (DPI)": "35000 DPI",
+        "Polling Rate": "8000",
+        "Trọng lượng": "54 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"Razer Focus Pro 35K\", \"Độ phân giải (DPI)\": \"35000 DPI\", \"Polling Rate\": \"8000\", \"Trọng lượng\": \"54 g\"}",
+      "ProductDescription": "Trong thế giới gaming, việc lựa chọn thiết bị phụ kiện như chuột, bàn phím là vô cùng quan trọng. Đặc biệt, một con chuột gaming chất lượng cao sẽ giúp bạn nâng cao trải nghiệm và hiệu suất chơi game. GEARVN sẽ giới thiệu đến bạn sản phẩm mới nhất từ Razer - Chuột Razer Không dây Viper V3 Pro Đen, một trong những con chuột không dây siêu nhẹ và đỉnh cao nhất hiện nay.\n\nThiết kế siêu nhẹ, tiện lợi\n\nChuột Razer không dây Viper V3 Pro Đen nổi bật với thiết kế siêu nhẹ, chỉ 54g. Đây là một trong những con chuột gaming không dây nhẹ nhất trên thị trường, giúp bạn di chuyển nhanh chóng và linh hoạt trong mọi trận đấu. Thiết kế này không chỉ giúp giảm mỏi tay mà còn tăng cường khả năng phản ứng và kiểm soát, cho phép bạn làm chủ mọi tình huống trong game. Ngoài ra, còn được trang bị thiết kế đối xứng, phù hợp cho cả người thuận tay trái và tay phải. Mang lại sự tiện lợi và thoải mái cho mọi game thủ, không phân biệt tay thuận.\n\nCông nghệ hiện đại\n\nMột trong những yếu tố quan trọng nhất của một con chuột gaming chính là được trang bị cảm biến. Chuột Razer Viper V3 Pro Đen được trang bị cảm biến quang học Razer Focus Pro 35K Gen-2, cung cấp độ chính xác và độ nhạy cao nhất. Công nghệ này cho phép bạn thực hiện những pha tracking và flick chuột mượt mà, chính xác, giúp bạn vượt trội hơn trong các trò chơi yêu cầu phản xạ nhanh.\n\nTốc độ phản hồi nhanh chóng\n\nVới công nghệ Razer HyperPolling 8KHz, Razer Viper V3 Pro Đen đảm bảo tốc độ phản hồi nhanh nhất, chỉ 0.125ms. Tốc độ này loại bỏ hoàn toàn độ trễ, mang đến cho bạn lợi thế cạnh tranh trong mọi tình huống. Dù bạn đang chơi game bắn súng FPS hay các trò chơi MOBA, sự phản hồi nhanh chóng của chuột sẽ giúp bạn luôn đi trước đối thủ một bước.\n\nĐộ bền vượt trội\n\nChuột Razer Viper V3 Pro Đen được trang bị công tắc quang học Razer Gen-3, mang đến độ bền bỉ gấp 75 lần so với công tắc chuột cơ học truyền thống. Công tắc này không chỉ có độ bền cao mà còn cho cảm giác nhấp chuột sắc nét và phản hồi nhanh chóng, giúp bạn kiểm soát trò chơi tốt hơn. Phần mềm Razer Synapse cho phép bạn tùy chỉnh các nút bấm, DPI, RGB và các cài đặt khác theo ý thích. Điều này giúp bạn cá nhân hóa trải nghiệm sử dụng chuột Bluetooth theo nhu cầu và phong cách riêng của mình.\n\nThời lượng pin lên đến 95 giờ\n\nMột trong những điểm nổi bật của Razer Viper V3 Pro Đen chính là thời lượng pin lên đến 95 giờ. Bạn có thể thoải mái chơi game trong nhiều giờ liền mà không cần lo lắng về việc hết pin. Đây là một ưu điểm lớn đối với các game thủ thường xuyên chơi game trong thời gian dài mà không cần phải lo lắng vấn đề gián đoạn về pin.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-2_c60ff2243cb74ae4be830a1ddc25131a_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-1_25c278a13aff48f28dd6bdfe2cf85b26_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-3_1537596fa5b745939a7b934a59a5c536_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/description-03.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/-container_ha1_h08_9765619171358_240423-viper-v3-pro-black-1500x1000-6_f6f8803e1c16480fa11890f98c97e829.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-1_25c278a13aff48f28dd6bdfe2cf85b26.jpg",
+        "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-2_c60ff2243cb74ae4be830a1ddc25131a.jpg",
+        "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-3_1537596fa5b745939a7b934a59a5c536.jpg",
+        "https://product.hstatic.net/200000722513/product/5360-viper-v3-pro-black-4_602086840c454b9e97c44e6fd84626d5.jpg",
+        "https://product.hstatic.net/200000722513/product/-container_h9f_h0b_9765619236894_240423-viper-v3-pro-black-1500x1000-3_d8bea6bb405a4fb38314ee0e5580ecff.jpg",
+        "https://product.hstatic.net/200000722513/product/-container_h37_h08_9765619138590_240423-viper-v3-pro-black-1500x1000-5_d6c6ddad5bf04c969ebc555d8535170b.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/f7795604186cb159072e771d/gallery-06.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-khong-day-viper-v3-pro-den"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3",
+      "ProductName": "Chuột Razer Basilisk V3",
+      "ProductSKU": "CHU-RAZ-BASI-V3",
+      "ProductPriceVND": 940000,
+      "ProductRegularPriceVND": 1390000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Có dây USB",
+        "Cảm biến (Sensor)": "Razer™ Focus;Optical Sensor",
+        "Polling Rate": "1000",
+        "Trọng lượng": "101 g",
+        "Đèn LED": "RGB 16.8 triệu màu"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Có dây USB\", \"Cảm biến (Sensor)\": \"Razer™ Focus;Optical Sensor\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"101 g\", \"Đèn LED\": \"RGB 16.8 triệu màu\"}",
+      "ProductDescription": "Thông số kỹ thuật:\n\nĐánh giá chi tiết chuột Razer Basilisk V3\n\nRazer mới vừa tung ra thị trường phiên bản mới của Razer Basilisk V3. Bạn hoàn toàn có thể tạo nên phong cách chơi game riêng cho bản thân, làm chủ và nâng cao phong độ trên mọi trận đấu. Mang thiết kế công thái học của một chuột gaming điển hình và 11 nút có thể tái lập trình, Basilisk V3 cho phép bạn điều chỉnh hiệu suất của chuột cho phù hợp với nhu cầu trải nghiệm của bản thân. Ngoài ra, nó còn tích hợp con lăn có độ nhạy tốt, thông minh và đèn LED Razer Chroma RGB. Đã đến lúc khuấy động những trận đấu theo cách riêng của bạn.\n\nKhả năng tùy chỉnh chức năng\n\n11 nút thao tác trên Basilisk V3 đã được gán tất cả các nút macro và chức năng phụ cần thiết (bao gồm các trình kích hoạt đa chức năng được đánh giá cao), để bạn dễ dàng thực hiện các thao tác cơ bản như “nhấn để nói”, ping, v.v., giúp bạn thao tác nhanh mà không phải với tay quá nhiều sang bàn phím .\n\nBạn có thể thiết lập lại chức năng của các nút thao tác sao cho phù hợp với các tác vụ và tựa game. Chỉ cần nhấn nút thay đổi lập trình ở phía dưới con chuột, bạn đã có thể linh hoạt thay đổi cấu trúc chuột sao cho phù hợp với nhu cầu cá nhân.\n\nNhững nâng cấp mới trên Razer Basilisk V3\n\nCon lăn đã được cải tiến và làm mới rất nhiều. Bạn chắc chắn sẽ không thể bỏ qua sự đổi mới ngày trên Basilisk V3.\n\nPhiên bản mới được cung cấp hai kiểu cuộn để linh hoạt hơn trong việc di chuột. Basilisk V3 có thể tự động chuyển đổi nhờ vào chức năng Smart Reel tiên tiến được tích hợp, giúp mang lại cảm giác mượt mà khi chơi game.\n\nChế độ Smart Reel là một chức năng mới trên chuột nhà Razer. Chúng được thiết lập thông qua Razer Synapse. Con lăn sẽ tự động chuyển từ chế độ xúc giác sang chế độ quay tự do khi bạn cuộn nhanh hơn. Điều này sẽ giúp bạn tìm thấy thông tin, duyệt tài liệu hay xác định vị trí trên màn hình được dễ dàng và nhanh chóng hơn.\n\nThiết kế thông minh, sáng tạo\n\nBasilisk V3 rất được ưa chuộng từ các game thủ. Không chỉ vì những tính năng đắc lực và độc đáo mà còn ghi điểm bởi thiết kế ấn tượng và tiện lợi. Thiết kế của nó hỗ trợ hoàn hảo cho thao tác tay của bạn. Và các nút của chuột được bố trí ở vị trí tối ưu nhất để bạn có thể sử dụng nhanh chóng và dễ dàng nhất có thể.\n\nCông tắc khởi động và chạy nhanh chóng trong 0,2 ms và có thể đáp ứng đến 70 triệu lần nhấp. Bạn sẽ không yêu cầu gì thêm ở một con chuột gaming ngoài việc phản hồi nhanh chóng, chính xác và không có nhấp chuột lỗi. Những điều này Basilisk V3 thừa sức làm được.\n\nThêm vào đó, Razer Basilisk V3 X HyperSpeed sở hữu thiết kế mạnh mẽ, hiệu năng ổn định và độ bền ấn tượng phù hợp cho game thủ chuyên nghiệp.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot_razer_basilisk_v3-1_3aa9f33efcab47568ff118c2d1177fac.png",
+          "ProductDescriptionImageAlt": "GEARVN -Chuột Razer Basilisk V3",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot_razer_basilisk_v3-5_3bc7a4c7f2a44e009e09ddb211c97290.jpg",
+          "ProductDescriptionImageAlt": "GEARVN -Chuột Razer Basilisk V3",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot_razer_basilisk_v3-2_57f850aeceb64131a18c0483249c5af2.jpg",
+          "ProductDescriptionImageAlt": "GEARVN -Chuột Razer Basilisk V3",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot_razer_basilisk_v3-3_e55ec1b17a4a461284d4e37643694ad5.jpg",
+          "ProductDescriptionImageAlt": "GEARVN -Chuột Razer Basilisk V3",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot_razer_basilisk_v3-4_636952d2d0b548fc8e3221a00dee2336.jpg",
+          "ProductDescriptionImageAlt": "GEARVN -Chuột Razer Basilisk V3",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-basilisk-v3-5_23924c8a9cb24a8eabd8ac3cb2df79db_18551c6c78094172ab7111fb05a9f35d.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/rtehosjd_7cf8331e76c04cb59e02a8f763ae3bb8.png",
+        "https://product.hstatic.net/200000722513/product/thumbchuot_8b80210461d64beab28fb3cde34b7280.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-basilisk-v3-1_b47a39920b774761bc240b1613eac945_c0c3f6b8fe5a45efb6635fb762d3cd9a.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-basilisk-v3-2_4496e5e64a3d4625b653c0704753b015_78da7ade2abb45a39d5538dddce49948.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-basilisk-v3-3_df81f3cc7da44791a60f4ef865a9b736_b86c8dcd3dbc4ee29f8839a21020b538.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-basilisk-v3-4_a2497df5e5fa471f8954d8bce7c11b37_d85139146dc34101a75d85f85a4be5e6.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/92415e9008d007e8d653a4c2/gallery-06.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3-pro",
+      "ProductName": "Chuột Razer Basilisk V3 Pro",
+      "ProductSKU": "CHU-RAZER-BASILISK-V3-PRO",
+      "ProductPriceVND": 2390000,
+      "ProductRegularPriceVND": 4590000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Razer Focus Pro 30K",
+        "Độ phân giải (DPI)": "100 - 30000 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "112 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Razer Focus Pro 30K\", \"Độ phân giải (DPI)\": \"100 - 30000 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"112 g\"}",
+      "ProductDescription": "Thông số kỹ thuật:\n\nĐánh giá chi tiết chuột Razer Basilisk V3 Pro\n\nRazer Basilisk V3 Pro “The king returns to raise the game” là sự kết hợp giữa công nghệ không dây đỉnh cao từ RAZER cùng thiết kế gaming góc cạnh hầm hố. Ở phiên bản Basilisk V3, Razer đã trang bị nhiều tính năng hiện đại, cao cấp GEARVN tin chắc đây sẽ là sản phẩm chuột gaming không dây đáng sở hữu nhất hiện nay.\n\nRazer Basilisk V3 Pro với thiết kế gaming hầm hố\n\nSở hữu thiết kế hầm hố đậm màu gaming, những dòng sản phẩm Gaming Gear của Razer từ bàn phím, tai nghe máy tính cho đến chuột Bluetooth luôn gây ấn tượng với hàng triệu người tiêu dùng nhờ vào thiết kế góc cạnh, mạnh mẽ.\n\nThiết kế chuột công thái học hỗ trợ tối đa việc sử dụng chuột trong thời gian dài, tránh tình trạng đau, mỏi cổ tay. Với 11 nút bấm được bố trí thông minh giúp bạn có những thao tác nhanh chóng với những pha phối hợp, hành động yêu cầu tốc độ cao và chính xác.\n\nKết hợp với đó là hệ thống LED RGB độc đáo giúp cho Razer Basilisk V3 Pro nổi bật trong mọi không gian, góc máy PC từ học tập, làm việc cho đến gaming. Phần LED RGB 16.8 triệu màu được trang bị dọc thân chuột có thể dễ dàng tinh chỉnh qua phần mềm với 13 chế độ khác nhau để có những hiệu ứng LED riêng biệt theo sở thích.\n\nCon lăn Razer Hyperscroll\n\nĐể chiếm ưu thế và đi đến chiến thắng, Razer đã trang bị trên Basilisk V3 Pro con lăn siêu tốc HyperScroll giúp cho những thao tác nhanh chóng, tiện lợi với nhiều chế độ khác nhau.\n\nChế độ Cycling Tactile: Khả năng cuộn chính xác cao, hỗ trợ tối đa khi người dùng cần độ chính xác cao trong từng di chuyển chuột.\n\nChế độ  Smart-Reel: Đây là tính năng được kích hoạt thông qua phần mềm riêng biệt Razer Synapse , con lăn sẽ tự động quay tự do khi người chơi cần sử dụng cuộn chuột nhanh hơn.\n\nChế độ Free-spin Scrolling: Cho khả năng cuộn mượt mà, tốc độ cao một cách tự do.\n\nChế độ Virtual Acceleration: Bạn có thể kích hoạt chế độ Virtual Acceleration qua phần mềm để sử dụng con lăn khi có nhu cầu đọc tài liệu, báo dài với tốc độ nhanh hơn.\n\nRazer Basilisk V3 Pro hỗ trợ đa thiết bị Hyperspeed Wireless\n\nCông nghệ không dây nhanh nhất với độ ổn định cao, độ trễ thấp giúp giảm tiêu thụ điện năng cải thiện đáng kể tuổi thọ pin cho các thiết bị không dây. Bạn sẽ có những trải nghiệm tuyệt vời cùng Razer Basilisk V3 Pro với tốc độ nhanh hơn 25% so với các công nghệ không dây có trên thị trường.\n\nChuột không dây được hỗ trợ 3 chế độ kết nối khác nhau mang đến những trải nghiệm riêng như:\n\nRazer HyperSpeed Wireless.\n\nBluetooth.\n\nWired – Speedflex Cable USB Type C.\n\nNgoài ra, điểm đặc biệt trên dòng chuột Razer này chính là bạn có thể kết nối chuột và bàn phím không dây với Laptop, PC chỉ với 1 USB Receiver. Điều này giúp tiết kiệm không gian và cổng kết nối để bạn có thể dùng cho các phụ kiện khác.\n\nRazer Basilisk V3 Pro cùng những tính năng nâng cao\n\nRazer Basilisk V3 Pro được trang bị nhiều tính năng cao cấp nhất, đây được xem là “Sự trở lại của nhà vua” ở phân khúc chuột không dây gaming. Với một số tính năng hiện đại đã được nâng cấp có thể kể đến như:\n\nNút bấm có thể lập trình riêng biệt thông qua phần mềm độc quyền Razer Synapse.\n\nCảm biến quang học Focus Pro 30K Optical Sensor có thể sử dụng chuột trên mọi mặt phẳng tiếp xúc khác nhau.\n\nCông tắc switch Optical Mouse Switches Gen-3 tránh được tình trạng Double Click . Đồng thời mang đến tốc độ phản hồi nhanh chóng chỉ với 0.2ms.\n\nTương thích với bộ sạc không dây Razer và các bộ sạc Qi khác.\n\nThêm vào đó, Razer Basilisk V3 X HyperSpeed mang lại cảm giác điều khiển linh hoạt, độ nhạy cao và khả năng phản hồi chính xác cho mọi thao tác.Thêm vào đó, Razer Basilisk V3 X HyperSpeed mang lại cảm giác điều khiển linh hoạt, độ nhạy cao và khả năng phản hồi chính xác cho mọi thao tác.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-7_fdff679f964a4956b289091df749f5b6_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-00_686255aabb0f4994b7345e317c62dc39_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-5_3e7e2eea464e4d2aaf1f9c3531920c28_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro_c3f06f4c1f784912bb5d5ac37cea4a38_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-3_8758067c0b3a4025950521d134f1d52c_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/chuot-gaming-khong-day-razer-bas__2__05c12625b9d7446281c81389f5e1984a.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/c38a7bdf74cbe78adb1a2baf/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/thumbchuot-recovered_757cce0149c042149f8b58f30fcb3307_8868cbe7339a46e9813f2eb8bdb334ee.png",
+        "https://product.hstatic.net/200000722513/product/chuot-gaming-khong-day-razer-bas__1__19a630f182654bb49cb0146046e955d7.png",
+        "https://product.hstatic.net/200000722513/product/chuot-gaming-khong-day-razer-bas_c37710e77f0443dea050b6cf509fc93b.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/c38a7bdf74cbe78adb1a2baf/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/c38a7bdf74cbe78adb1a2baf/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/c38a7bdf74cbe78adb1a2baf/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-x-hyperspeed",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3-x-hyperspeed",
+      "ProductName": "Chuột Razer Basilisk V3 X HyperSpeed",
+      "ProductSKU": "CHU-RAZER-BASI-V3-X-HS",
+      "ProductPriceVND": 1490000,
+      "ProductRegularPriceVND": 1990000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Razer 5G 18K Optical",
+        "Polling Rate": "1000",
+        "Trọng lượng": "110 g",
+        "Loại pin": "Pin AA"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Razer 5G 18K Optical\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"110 g\", \"Loại pin\": \"Pin AA\"}",
+      "ProductDescription": "Thông số kỹ thuật :\n\nBasilisk V3 X HyperSpeed là một trong những dòng chuột không dây chơi game chất lượng cao thuộc Series Razer Ultimate trứ danh. Được tích hợp nhiều công nghệ hiện đại, khả năng kết nối ổn định và tính tương thích cao. GEARVN tin chắc đây sẽ là dòng chuột gaming trong phân khúc dưới 2 triệu rất đáng trải nghiệm.\n\nThiết kế ấn tượng form cầm đối xứng\n\nĐiểm ấn tượng đầu tiên trên dòng chuột gaming mới nhất từ Razer chính là sở hữu thiết kế đối xứng, ôm sát lòng bàn tay giúp cho những pha di chuột thêm phần chắc chắn, chính xác nhưng vẫn đáp ứng được sự thoải mái không khác gì những dòng sản phẩm chuột công thái học .\n\nLấy tone màu đen quyền lực làm chủ đạo kết hợp với các chi tiết góc cạnh tinh xảo điều này đã tạo nên tổng thể vô cùng đẹp mắt cho dòng chuột Razer Basilisk V3 X HyperSpeed.\n\nHỗ trợ công nghệ Multi-Device\n\nMulti-Device là một trong những công nghệ ghép nối đỉnh cao giúp bạn dễ dàng kết nối những dòng sản phẩm không dây trong cùng hệ sinh thái từ Razer như bàn phím máy tính , chuột máy tính với máy tính thông qua USB Receiver .\n\nCông nghệ kết nối không dây thông minh\n\nBasilisk V3 X được trang bị công nghệ không dây Razer HyperSpeed Wireless - Một trong những công nghệ kết nối không dây gây nhiều ấn tượng với người dùng nhất hiện nay nhờ vào tính ổn định cao, phạm vi kết nối rộng lớn lên đến 10m, độ trễ thấp giúp người chơi tự tin hơn khi xử lý các tác vụ trong công việc & giải trí.\n\nHoàn thiện hơn với Led RGB Razer Chroma\n\nHoàn thiện hơn với dãy led RGB 16.8 triệu màu lấp lánh cùng nhiều hiệu ứng chiếu sáng khác nhau khi đặt cùng các thiết bị Gaming Gear khác như bàn phím cơ , tai nghe chơi game,...Ngoài ra, bạn còn có thể sáng tạo ra những hiệu ứng chiếu sáng khác nhau thông qua phần mềm Razer Synapse để tạo nên phong cách riêng.\n\nĐộ phân giải có thể tùy chỉnh lên 18000 DPI\n\nKhông chỉ sở hữu thiết kế đẹp mắt, công nghệ kết nối không dây ổn định điểm đặc biệt nhất trên dòng chuột Razer Basilisk V3 X HyperSpeed chính là có thể tùy chỉnh độ phân giải lên đến 18.000 DPI chỉ với một nút bấm được tích hợp trên thân chuột. Điều này đồng nghĩa với việc bạn có thể tinh chỉnh trực tiếp mà không cần qua bất kỳ phần mềm nào tránh làm gián đoạn khi xử lý các tác vụ trong công việc và chơi game giải trí.\n\nSwitch bấm Razer Mechanical Mouse Gen-2\n\nNhờ vào việc sử dụng bộ công tắc cơ học Razer Mechanical Mouse Gen-2 mà người chơi sẽ có những trải nghiệm đầy thú vị cùng các tựa game yêu thích với dòng chuột Bluetooth mới nhất từ Razer. Không chỉ sử dụng bộ Switch bấm tốc độ phản hồi nhanh, êm tay Razer Basilisk V3 X HyperSpeed còn sở hữu lên đến 9 nút bấm được bố trí một cách thông minh và có thể thay đổi qua phần mềm để bạn sử dụng một cách thoải mái nhất.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-h_8fbce700d3e0491083110fe9b51d536d_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-4_1e75ef2b1ee24bba9da62c4c5796c847_grande.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-3_0bcf7865b58d4614b05efb333eb07493_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-1_c14b9949d1554780ba95bdf20aca700c_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-6_b1594afc734d41d5a553d0827f610a22_grande.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-7_ff12c3641cc049d5b476437cf905630c_grande.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-razer-basilisk-v3-x-hyperspeed-5_b348bbdc0fad4d8eac99ad4ca6b4a510_grande.jpg",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-x-hyperspeed",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/1532069352-9747-600x389_30b3b17c0d984d71b1efd1324a66a9c9_94e23d6d36e24445a3bc3775f60e8a27.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/fd4f055ab07768062fe64c85/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/1532069345-4326-600x394_c563b34006924e788c065b0e47ce06e6_93d044d502b14010ad34ed5bdd80417c.png",
+        "https://product.hstatic.net/200000722513/product/1532069347-4465-600x394_213e294bd51b4568be741bbcf9bf1576_3bc384987e3c48958c4c11aebd8e0857.png",
+        "https://product.hstatic.net/200000722513/product/1532069349-9546-600x394_8d36c6bfaf3a42f896f7e2be27a86f28_be2f9a4c52444031912aa48e7de8f742.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/fd4f055ab07768062fe64c85/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/fd4f055ab07768062fe64c85/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/fd4f055ab07768062fe64c85/gallery-03.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-x-hyperspeed"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-viper-v3-hyperspeed",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-viper-v3-hyperspeed",
+      "ProductName": "Chuột Razer Viper V3 HyperSpeed",
+      "ProductSKU": "CHU-RAZER-VIPER-V3-HS",
+      "ProductPriceVND": 1710000,
+      "ProductRegularPriceVND": 2090000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Không dây 2.4GHz",
+        "Cảm biến (Sensor)": "Focus Pro 30K",
+        "Độ phân giải (DPI)": "1 - 30000 DPI",
+        "Polling Rate": "1000;4000;8000",
+        "Trọng lượng": "82 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Không dây 2.4GHz\", \"Cảm biến (Sensor)\": \"Focus Pro 30K\", \"Độ phân giải (DPI)\": \"1 - 30000 DPI\", \"Polling Rate\": \"1000;4000;8000\", \"Trọng lượng\": \"82 g\"}",
+      "ProductDescription": "Thông số kỹ thuật :\n\nĐánh giá chi tiết chuột Razer Viper V3 HyperSpeed\n\nChuột Razer Viper V3 HyperSpeed có thể nói là một trong những mẫu chuột máy tính vô cùng được yêu thích mà bất kỳ game thủ nào cũng muốn sở hữu.\n\nTốc độ đọc 8KHZ\n\nChuột không dây Razer Viper V3 HyperSpeed được hỗ trợ công nghệ Razer HyperSpeed Wireless tiên tiến, có tốc độ Polling rate thực lên đến 8000 Hz. Với công nghệ Razer Hyper Polling cho hiệu suất ở tốc độ siêu nhanh, cụ thể nó gửi dữ liệu nhiều hơn tới 8 lần trong một giây và giảm độ trễ từ 1 đến 1/8 mili giây. Mẫu chuột Bluetooth này mở ra một kỷ nguyên mới về khả năng phản hồi, tốc độ và độ tin cậy khi chơi game.\n\nThiết kế phù hợp với mọi kiểu cầm chuột\n\nĐối với game thủ, thiết kế chuột cũng là một yếu tố đáng để cân nhắc. Để có thể bắt kịp xu hướng sử dụng của game thủ, hãng đã làm việc không ngừng nghỉ để tìm ra thiết kế hoàn hảo và tối nhất cho Razer Viper V3 HyperSpeed, mang lại cảm giác nhẹ, mượt vững chắc và độ bền vô cùng ấn tượng. Đây là những yếu tố không thể phù hợp hơn cho những ai muốn sở hữu một sản phẩm chuột gaming chính hiệu.\n\nSwitch 2ND-Gen Razer\n\nĐược cải tiến mạnh để cho khả năng phản hồi tốt hơn, mỗi lần nhấp chuột của người dùng đều mang lại cảm giác và âm thanh dễ chịu. Điều này làm tăng cảm giác chơi game và giúp các game thủ có khả năng điều khiển và xử lý tốt nhất.\n\nVới độ chính xác lên đến 99,8%, mọi chuyển động và từng cú click chuột cũng được theo dõi một cách nhất quán. Razer Viper V3 HyperSpeed được trang bị các chức năng thông minh, cảm biến thậm chí còn trở nên chính xác hơn.\n\nTrọng lượng siêu nhẹ\n\nNếu thường xuyên bị mỏi tay khi di chuột nhiều thì điều này không thành vấn đề với chuột Razer Viper V3 HyperSpeed. Có trọng lượng chỉ khoảng 71g, mẫu chuột này vô cùng nhẹ nhưng vẫn đảm bảo sự chắc chắn và đầm tay trong quá trình sử dụng.\n\nChuột Razer Viper V3 HyperSpeed với 6 nút lập trình\n\nChuột Razer Viper V3 HyperSpeed sở hữu cho mình 6 nút bấm hoàn toàn có thể lập trình để tối giản quá trình thao tác của bạn. Với tính năng này không chỉ phù hợp cho việc chơi game mà cả các tác vụ văn phòng và đồ họa khác.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-1_bc99a1b5db014af1a74bffa729af46df.png",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-__6__ff16c73664614fa7a229ab27b0932a31_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-__5__2558c3007c1d4337a522a39d04732078_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-03.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-__9__fe7472599b6840e9b15862cbbc870d69_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-04.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-__1__4b5a4ee215814380b6a88d72171b0361_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-05.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-viper-v3-hyperspeed-__4__b82594b4325642078a2368b32bb6f350_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Viper V3 HyperSpeed",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/description-06.jpg"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-7_fbe7a9a3cf4f4f70a458a8cb22d64e9e.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/1_21b147133b854b80989cbcbd8fa9a449.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-1_54f605a23e344abeb90dc5c5615b5358.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-2_79165db032d74d2899ed35e58d7d9e6a.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-3_b9531ba2a86246af923aae2370b1f0e5.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-4_bd3024cb2e3f4522b900a19dafd71a2c.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-5_7ff1f6fe2bd240ac8b00a6d83dbc2c61.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-viper-v3-hyperspeed-6_79c7fd0d54414999b7435f33f20cb010.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-06.webp",
+        "images/20261015T123123Z/Razer_Mouse/f1669b3efe1b7687eea2eb17/gallery-07.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-viper-v3-hyperspeed"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/razer-deathadder-essential",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "razer-deathadder-essential",
+      "ProductName": "Chuột Razer DeathAdder Essential (RZ01-03850100-R3M1)",
+      "ProductSKU": "CHU-RAZ-DA-ESSENTIAL",
+      "ProductPriceVND": 370000,
+      "ProductRegularPriceVND": 790000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Có dây USB",
+        "Cảm biến (Sensor)": "Quang học",
+        "Độ phân giải (DPI)": "6400 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "96 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Có dây USB\", \"Cảm biến (Sensor)\": \"Quang học\", \"Độ phân giải (DPI)\": \"6400 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"96 g\"}",
+      "ProductDescription": "Chuột Razer Deathadder Essential sở hữu thiết kế công thái học\n\nChuột gaming DeathAdder Essential được Razer thiết kế với kiểu dáng công thái học (Ergonomic) cổ điển. Thiết kế đẹp mắt và khác biệt ở các dòng chuột gaming khác, tạo ra sự thoải mái, cho phép người chơi duy trì mức hiệu suất cao trong suốt thời gian chơi game dài, vì vậy bạn sẽ không bao giờ bị ngập ngừng trong các trận chiến nóng bỏng. Hứa hẹn đây sẽ là một trong những dòng chuột gaming dưới 1 triệu rất đáng trải nghiệm.\n\nRazer Deathadder Essential được trang bị công nghệ hiện đại\n\nTrang bị đến 5 nút Hyperesponse người chơi có thể lập trình được, một trong những dòng chuột gaming giá rẻ mang đến cho người chơi có được lợi thế cạnh tranh khi điều khiển trận đấu, mà không phải với tay quá nhiều sang bàn phím . Nút cơ học công nghệ Razer Mechanical với độ tin cậy cao cùng với độ bền cao lên đến 10 triệu lần nhấp.\n\nNâng cao khả năng kiểm soát trận đấu\n\nKhả năng kiểm soát trận đấu chính là ưu điểm của những dòng sản phẩm bàn phím cơ , tai nghe gaming trong cùng hệ sinh thái của Razer. Và Razer Deathadder Essential cũng không ngoại lệ, sở hữu cảm biến quang học lên đến 6.400 DPI cho phép vuốt chuột đi nhanh và chuẩn xác, cung cấp khả năng kiểm soát tốt hơn cho game thủ với những nhu cầu thiết yếu nhất. Mang đến lợi thế cho người dùng khi trải nghiệm các tựa game yêu thích.\n\nThêm vào đó, Razer Basilisk V3 X HyperSpeed là mẫu chuột không dây đáng sở hữu với thiết kế tinh tế, độ nhạy cao và hiệu suất chuẩn gaming đỉnh cao.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/rggfdgfgf_cff59151889d4c98aeeeacca04132555.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/tttttt_2454edabe9b24a6982dc14c415ce7664.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/yuyuyuyuyu_00c9841f6f6b42ae8092802b7cb674c6.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/yuyuyuyuyu_ca4f8c3b29194d0b9c883690ba108d50_95dc73e3e61e40cabf803a55b7f14c04.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/8aa6c14c9768b0d7602779a5/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/thumbchuot_7445abea69bf461e881eeba2b6cbbd8d.jpg",
+        "https://product.hstatic.net/200000722513/product/tttttt_a3febd70c7f74160abf2441546d1a8c0_95c2516690034447b7b8b4bf44b6c631.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/8aa6c14c9768b0d7602779a5/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/8aa6c14c9768b0d7602779a5/gallery-02.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/razer-deathadder-essential"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-deathadder-essential-white",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-deathadder-essential-white",
+      "ProductName": "Chuột Razer Deathadder Essential White",
+      "ProductSKU": "CHU-RAZ-DE-WHI",
+      "ProductPriceVND": 370000,
+      "ProductRegularPriceVND": 790000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Có dây USB",
+        "Cảm biến (Sensor)": "Quang học",
+        "Độ phân giải (DPI)": "6400 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "96 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Có dây USB\", \"Cảm biến (Sensor)\": \"Quang học\", \"Độ phân giải (DPI)\": \"6400 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"96 g\"}",
+      "ProductDescription": "Chuột Razer Deathadder Essential White sở hữu thiết kế công thái học\n\nChuột gaming DeathAdder Essential White được Razer thiết kế với kiểu dáng công thái học (Ergonomic) cổ điển. Thiết kế đẹp mắt và khác biệt ở các dòng chuột gaming khác tạo ra sự thoải mái, cho phép người chơi duy trì mức hiệu suất cao trong suốt thời gian chơi game dài, vì vậy bạn sẽ không bao giờ bị ngập ngừng trong các trận chiến nóng bỏng. Hứa hẹn đây sẽ là một trong những dòng chuột gaming dưới 1 triệu rất đáng trải nghiệm.\n\nRazer Deathadder Essential White được trang bị công nghệ hiện đại\n\nTrang bị đến 5 nút Hyperesponse người chơi có thể lập trình được, một trong những dòng chuột gaming giá rẻ mang đến cho người chơi có được lợi thế cạnh tranh khi điều khiển trận đấu.\n\nNút cơ học công nghệ Razer Mechanical với độ tin cậy cao cùng với độ bền cao lên đến 10 triệu lần nhấp.\n\nNâng cao khả năng kiểm soát trận đấu\n\nRazer Deathadder Essential White sở hữu cảm biến quang học lên đến 6.400 DPI cho phép vuốt chuột đi nhanh và chuẩn xác, cung cấp khả năng kiểm soát tốt hơn cho game thủ với những nhu cầu thiết yếu nhất. Mang đến lợi thế cho người dùng khi trải nghiệm các tựa game yêu thích.\n\nThêm vào đó, Razer Basilisk V3 X HyperSpeed mang đến tốc độ phản hồi nhanh, thao tác chính xác và trải nghiệm cầm nắm thoải mái trong thời gian dài.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/fghfghjgfhfg_e0ea01aebf63479cae2f386db79a1669.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/untitled-1_176fafc423534f31b5aeed5f9ecff235.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/565656_116bbbab501148ef810b7d0a79fd768a.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/untitled-1_72f284baa15e4ba6824a83ae5ac00608_c703e6d4a26b400baeffd8783f96546a.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/57a5861b128a2e872c0e5ffa/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/565656_22914bb589c146e599cb381f2c75b557_e6b08a36816248339bcf29ca71560fcb.png",
+        "https://product.hstatic.net/200000722513/product/fghfghjgfhfg_d0640724df5040709cba326097f94789_b37107e263b5437a96239bbe3884f81c.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/57a5861b128a2e872c0e5ffa/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/57a5861b128a2e872c0e5ffa/gallery-02.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-deathadder-essential-white"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-cobra-pro",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-cobra-pro",
+      "ProductName": "Chuột Razer Cobra Pro",
+      "ProductSKU": "CHU-RAZER-COBRA-PRO",
+      "ProductPriceVND": 2890000,
+      "ProductRegularPriceVND": 3390000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Đa kết nối",
+        "Cảm biến (Sensor)": "Razer Focus Pro 30K",
+        "Độ phân giải (DPI)": "30000 DPI",
+        "Polling Rate": "1000",
+        "Trọng lượng": "77 g"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Đa kết nối\", \"Cảm biến (Sensor)\": \"Razer Focus Pro 30K\", \"Độ phân giải (DPI)\": \"30000 DPI\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"77 g\"}",
+      "ProductDescription": "Thông số kỹ thuật:\n\nĐánh giá chi tiết chuột Razer Cobra Pro\n\nRazer, thương hiệu gaming gear vô cùng nổi tiếng trong làng game thủ. Được biết đến với những thành phẩm chất lượng, đặc biệt là chuột gaming với lineup sản phẩm Deathadder, Basilisk, Viper,... Và gần đây, đó chính là sự xuất hiện của series Cobra cùng model Razer Cobra Pro .\n\nThiết kế cân xứng, đẹp mắt\n\nRazer Cobra Pro được hoàn thiện với thiết kế đối xứng 2 bên đem đến sự thuận tiện sử dụng cho mọi người dùng, bất chấp tay thuận. Vẫn giữ vững tôn chỉ từ nhà rắn, những đường nét trên toát lên khí chất mạnh mẽ của linh vật nhà Slytherin trên chú chuột gaming . Ngoài ra, Razer Cobra Pro sở hữu cho mình trọng lượng chỉ 77g, vô cùng nhẹ để mang tới trải nghiệm sử dụng thoải mái nhất ngay cả khi trong thời gian dài.\n\nChính xác và bền bỉ\n\nLà một trong những món “vũ khí” dành cho mọi game thủ, Razer Cobra Pro đảm bảo độ chính xác trong từng cú flick, rê chuột. Điều này được đảm bảo thông qua cảm biến quang học Razer Focus Pro 30K, giúp cho Razer Cobra Pro dễ dàng sử dụng trên mọi bề mặt và mang lại sự chính xác trong từng thao tác.\n\nKhông thể thiếu tiếp theo đó là phần switch chuột với thế hệ Razer Gen-3, Razer Cobra Pro cung cấp tuổi thọ sử dụng lên đến 90 triệu click và giảm thiểu tình trạng double click. Tốc độ phản hồi từ click chuột đến với màn hình máy tính chỉ trong 0.2ms tạo nên độ uy tín trong từng trận chiến, biến lợi thế trở nên rõ ràng hơn dành cho mọi game thủ.\n\nĐa dụng với những tùy chỉnh macro\n\nMột điều không thể thiếu trên những sản phẩm chuột gaming đó là những phím bấm có thể cài đặt macro. Razer Cobra Pro mang đến những nút bấm trên khắp diện tích sản phẩm, cùng với đó 5 profile đã được thiết lập sẵn trên chiến binh từ nhà tam xà. Qua đó, giúp người dùng có thể thao tác và sử dụng cho mọi nhu cầu sử dụng cho chú chuột Razer .\n\nKết nối đa dạng\n\nRazer Cobra Pro đem đến cho chúng ta 3 kiểu kết nối trên những sản phẩm chuột máy tính ngày nay: có dây, wireless và bluetooth. Khi kết nối thông qua wireless, sức mạnh của công nghệ Razer HyperSpeed đảm bảo độ trễ cực thấp, giữ vững khả năng phản hồi cực nhanh mang lại thao tác chính xác trong mọi tựa game biến Razer Cobra Pro trở thành một trong những con chuột không dây đạt top đầu tối ưu độ trễ.\n\nĐến với bluetooth, đó là sự đa dụng khi có thể kết nối cùng những thiết bị di động như laptop , Razer Cobra Pro cho thời gian sử dụng lên đến 170 tiếng cho bạn thoải mái giải trí và làm việc. Và khi kết nối cùng phần dock sạc Razer HyperPolling Wireless Dongle và Mouse Dock Pro, Razer Cobra Pro có thể mang tời thời lượng 33 tiếng và 100 tiếng với kết nối wireless.\n\nTỏa sáng bùng nổ cùng Razer Chroma\n\nSản phẩm từ Razer vẫn giữ vững phong độ với khả năng tỏa sáng mình nhờ vào thiết kế chiếu sáng 11-zone. Hỗ trợ bởi công nghệ Razer Chroma cùng vô vàn hiệu ứng, Razer Cobra Pro với 16.8 triệu màu sẽ thể hiện những bữa tiệc ánh sáng tuyệt đỉnh cùng những linh kiện máy tính . Qua đó, Razer Chroma còn mang đến khả năng tương thích với hơn 200 tựa game để mang đến trải nghiệm gaming thú vị nhất dành cho mọi game thủ. Đồng thời, còn tạo điều thuận lợi khi đặt cạnh các thiết bị chơi game khác trong cùng hệ sinh thái Razer như bàn phím cơ , tai nghe Bluetooth gaming,..tạo nên góc máy chơi game vô cùng chất lượng.\n\nThông tin chung:\n\nNhà Sản Xuất : Razer\n\nTình trạng: Mới\n\nBảo hành: 24 Tháng",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-pro-__3__ea0d431012194420bd02a7a8b843ea90_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Cobra Pro",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-pro-__14__983af05d40bb430ab62f6ce3f825dac3_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Cobra Pro",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-pro-__5__c2740eceee9b4269ad6a81615c080642_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Cobra Pro",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/description-03.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-pro-__10__a70908fe60cd4caf93b73cd5778c2661_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Cobra Pro",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/description-04.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-pro-__9__a6c02f3be52c46daa54b17e3265a2741_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "GEARVN - Chuột Razer Cobra Pro",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/description-05.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-6_83fb7afc8fd24885bbc5c764619d5c64.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/1-2_d48628cb79b3407cbc7b5c8e81c9db08.png",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-1_769dfa4742664ce0965b5dc63bb86c4c.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-2_7bf76c811ccc4a85abaf74d698df4724.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-3_2e1ed088d7d047f491a096a145fa295f.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-4_ad7e28fec66b490ba3dcc831a8422573.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-pro-5_be95afd53193473a86b26d8b0d7d8cc6.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-01.png",
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/30df0de254d521da07edfa6e/gallery-06.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-cobra-pro"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-cobra",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-cobra",
+      "ProductName": "Chuột Razer Cobra",
+      "ProductSKU": "CHU-RAZER-COBRA",
+      "ProductPriceVND": 660000,
+      "ProductRegularPriceVND": 1049000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Đen",
+        "Kết nối": "Có dây USB",
+        "Cảm biến (Sensor)": "Quang học",
+        "Polling Rate": "1000",
+        "Trọng lượng": "58 g",
+        "Đèn LED": "RGB 16.8 triệu màu"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Đen\", \"Kết nối\": \"Có dây USB\", \"Cảm biến (Sensor)\": \"Quang học\", \"Polling Rate\": \"1000\", \"Trọng lượng\": \"58 g\", \"Đèn LED\": \"RGB 16.8 triệu màu\"}",
+      "ProductDescription": "Thông số kỹ thuật :\n\nLength: 119.6 mm / 4.71 in\n\nWidth: 62.5 mm / 2.46 in\n\nHeight: 38.1 mm / 1.50 in\n\nĐánh giá chi tiết chuột Razer Cobra\n\nRazer Cobra dòng chuột chơi game sở hữu thiết kế đối xứng giúp các thao tác di chuột thêm phần chắc chắn. Đồng thời, trang bị lên đến 6 nút bấm được bố trí thông minh dọc thân chuột giúp cho các thao tác xử lý thêm phần hiệu quả. Hứa hẹn đây sẽ là một trong những dòng chuột máy tính chơi game rất đáng sở hữu đến từ nhà Razer đấy nhé!\n\nThiết kế độc đáo, form cầm đối xứng\n\nThiết kế độc đáo được thể hiện qua các chi tiết góc cạnh cùng tone màu đen chủ đạo, Razer mang đến thị trường chuột gaming dòng sản phẩm sở hữu thẩm mỹ cao và hiệu năng ấn tượng. Nhờ vào form cầm đối xứng giúp ôm sát lòng bàn tay mang đến cảm giác chắc chắn khi di chuột giúp bạn chiếm lợi thế trong các tựa game bắn súng FPS.\n\nĐồng thời, nhờ vào thiết kế có phần gọn gàng hơn so với các dòng chuột gaming ở cùng phân khúc người chơi có thể kết hợp với các phụ kiện chơi game khác có thể kể đến như bàn phím không dây , tai nghe Bluetooth ,...để tạo nên góc máy gọn gàng mang tính thẩm mỹ cao.\n\nHệ thống led chiếu sáng Razer Chroma RGB\n\nĐể giúp vẻ ngoài thêm phần cuốn hút  Razer Cobra được tích hợp hệ thống led RGB độc đáo, sáng tạo với nhiều hiệu ứng chiếu sáng khác nhau tạo điều kiện cho người chơi dễ dàng đồng bộ màu sắc RGB cùng các phụ kiện chơi game trong cùng hệ sinh thái Razer như bàn phím cơ , tai nghe gaming hay bất kỳ phụ kiện khác tạo nên góc máy làm việc & giải trí sáng tạo, phong cách.\n\nCông tắc bấm Optical Mouse Switches Gen-3\n\nSử dụng một trong những công tắc chuột tốt nhất hiện nay Optical Mouse Switches Gen-3 tốc độ phản hồi nhanh, siêu nhạy giúp các thao tác bấm thêm phần chính xác. Cảm giác bấm nhẹ, tiếng Clicky nghe êm tai mang lại âm thanh tuyệt vời khi click chuột. Đặc biệt nhờ vào tuổi thọ lên đến 90 triệu lần Clicks nên bạn không cần lo lắng về tình trạng Double Click khi sử dụng.\n\nTrang bị lên đến 6 nút bấm bố trí dọc thân chuột\n\nĐể tăng thêm phần thoải mái khi sử dụng cả ngày dài, chuột gaming Razer Cobra bên cạnh sở hữu form cầm đối xứng cùng trọng lượng 58Gram hãng sản xuất còn trang bị lên đến 6 nút bấm bố trí dọc thân chuột.\n\nTrong quá trình sử dụng, bạn hoàn toàn có thể tùy chỉnh nút bấm thông qua phần mềm độc quyền sao cho phù hợp với kiểu cầm chuột của mình, thay vì phải nhớ thêm phím tắt trên bàn phím . Đối với người thuận tay trái đây sẽ là dòng chuột máy tính chơi game mang đến cảm giác kiểm soát tốt mà không cần mất thời gian làm quen đấy nhé!\n\nCảm biến quang học Razer 8500 DPI\n\nĐược đánh giá là một trong những dòng chuột Razer chơi game có thể di chuyển tốt trên nhiều mặt phẳng khác nhau nhờ vào phần cảm biến thông minh quang học Razer 8500 DPI. Đặc biệt, bạn hoàn toàn có thể tùy chỉnh các mức DPI lên đến 8500 khác nhau sao cho phù hợp từng tựa game yêu thích và các tác vụ công việc.\n\nCáp Razer Speedflex Cable siêu bền\n\nTrải nghiệm hiệu suất kết nối siêu nhanh và ổn định, chuột Razer Cobra được trang bị cáp bọc dù siêu bền, chống rối Razer Speedflex mở ra một tiêu chuẩn mới về tốc độ kết nối ổn định và khả năng tương thích với máy tính, Laptop mang đến cho hàng triệu game thủ trải nghiệm độc đáo khi cầm trên tay.\n\nNgoài ra, Razer Basilisk V3 X HyperSpeed là lựa chọn lý tưởng cho game thủ yêu thích chuột không dây nhẹ, pin bền và hiệu suất mạnh mẽ.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-1_715023c81c3a4cd9a9cbb07b0ea32118_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra_c486630ae4ae4e4195138c3c3751b435_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-02.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra_ba52cdaca765468ebb5063bd5dd0c64d_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-03.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-3_4e60e7b24a6848be8d3aaed1e09edc81_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-04.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-2_4d655d8c8ebb46f297a636d5ad007e14_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-05.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra_1487289d42824133892e865ce180adc6_1024x1024.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-06.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/gearvn-chuot-razer-cobra-1_9e26aa49220b443586c08433132970bf_grande.png",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/description-07.webp"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-5_702ccbeb42fc47e9a1ed8f59d7cb2e73.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/1_4944caaca4a941a7b730a314ff40516a.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-1_1fb27bbc757a4c26b5d07324cc5acf13.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-2_c254a93a943d4a2ca732500c9feae8f8.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-3_cd59e1f7758249f2af2b6c066ebe8e1a.jpg",
+        "https://product.hstatic.net/200000722513/product/gearvn-chuot-razer-cobra-4_435bccf0b8724f3cad9819ad9e0cd1d4.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/bc5a8b408378a273bb40dd52/gallery-05.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-cobra"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-white",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3-pro-white",
+      "ProductName": "Chuột Razer Basilisk V3 Pro White",
+      "ProductSKU": "CHU-RAZER-BASILISK-V3-PRO-WHITE",
+      "ProductPriceVND": 2390000,
+      "ProductRegularPriceVND": 4090000.0,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Không dây 2.4Ghz;Bluetooth;USB-C",
+        "Cảm biến (Sensor)": "Focus Pro 30K",
+        "Độ phân giải (DPI)": "100 - 30000 DPI",
+        "Polling Rate": "1000",
+        "Loại pin": "Pin sạc"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Không dây 2.4Ghz;Bluetooth;USB-C\", \"Cảm biến (Sensor)\": \"Focus Pro 30K\", \"Độ phân giải (DPI)\": \"100 - 30000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin sạc\"}",
+      "ProductDescription": "Thông số kỹ thuật:\n\nĐánh giá chi tiết chuột Razer Basilisk V3 Pro White\n\nRazer Basilisk V3 Pro White dòng chuột gaming với nhiều tính năng nổi bật, công nghệ không dây với độ trễ cực thấp. Đặc biệt, sở hữu thiết kế ôm sát lòng bàn tay hỗ trợ cho việc di chuyển trở nên mượt mà, chắc chắn.\n\nThiết kế nổi bật, tông màu sang trọng.\n\nRazer Basilisk V3 Pro sở hữu thiết kế chuột công thái học phù hợp với nhiều phong cách cầm chuột. Cùng với form cầm đối xứng ôm sát lòng bàn tay hỗ trợ việc sử dụng chuột máy tính dễ dàng, chắc chắn đáp ứng tốt mọi nhu cầu sử dụng.\n\nĐược hàng triệu game thủ chuyên nghiệp, tuyển thủ và Streamer lựa chọn vì là dòng chuột không dây chơi game được trang bị lên đến 11 nút bấm được bố trí thông minh. Không dừng lại ở đó, sở hữu tông màu sang trọng kết hợp với những chi tiết góc cạnh được gia công tinh xảo tạo nên tổng thể vô cùng đẹp mắt.\n\nCon lăn Hyperscroll mượt mà.\n\nSở hữu tính năng con lăn Hyperscroll mượt mà với nhiều chế độ lướt khác nhau giúp người chơi dễ dàng tăng tốc độ cuộn của chuột khi lướt web, đọc báo và dành chiến thắng với các tựa game yêu thích ở nhiều chế độ lướt khác nhau như Tactile cycling, Free-Spin Scrolling, Smart-Reel Mode,...\n\nHệ thống LED RGB sinh động.\n\nĐể tăng thêm phần độc đáo bên cạnh thiết kế nổi bật, tông màu ấn tượng chuột Razer Basilisk V3 Pro White được tích hợp hệ thống LED RGB sinh động với hiệu ứng chiếu sáng 13 vùng riêng biệt.\n\nCùng phần mềm Razer Synapse bạn có thể tùy chỉnh vô số hiệu ứng ánh sáng, đồng thời có thể đồng nhất hiệu ứng ánh sáng cùng các thiết bị khác như tai nghe gaming và bàn phím máy tính tăng thêm trải nghiệm, tạo cảm giác đắm chìm trong không gian RGB.\n\nCảm biến quang học Razer Focus Pro 30K.\n\nChuột Razer Basilisk V3 Pro White sở hữu cảm biến quang học Razer Focus Pro 30K cùng với chân Feet 100% PTFE giúp chuột có thể di chuyển hoàn hảo trên nhiều loại bề mặt khác nhau bao gồm cả kính.\n\nSở hữu công nghệ kết nối ấn tượng.\n\nChơi game hiệu suất cao, độ trễ thấp nhờ vào khả năng kết nối ấn tượng. Bạn hoàn toàn có thể sử dụng như những dòng chuột Bluetooth với độ trễ cực thấp hoặc chế độ HyperSpeed Wireless siêu nhạy, tốc độ nhanh hơn 25% cùng phạm vi kết nối rộng. Hơn thế nữa, nếu sử dụng ở chế độ chuột không dây bạn có thể sử dụng lên đến 90 giờ.\n\nTrang bị thêm cáp Speedflex USB Type C để bạn có thể sử dụng như chuột có dây khi cần thiết tránh làm gián đoạn trải nghiệm sử dụng chuột.\n\nNgoài ra, Razer Basilisk V3 X HyperSpeed giúp bạn tối ưu hiệu suất chơi game với kết nối HyperSpeed siêu nhanh và cảm biến chất lượng cao.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white-2_da9c07f96adc415dbb347dbe0296f31e_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white-3_8c63e5d04b7a4089ad6c60f8fe107e43_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white-4_e6075f69a7014a95aed5ae7c7f469a7f_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white_67477dfebb644ca990e403e4b2b37e39_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white-5_32d4784040ff49f9abaa1b79da6515c8_grande.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/1000026716/file/gearvn-chuot-razer-basilisk-v3-pro-white-1_510dd955871a4bc4b655afe674cf5760_1024x1024.png",
+          "ProductDescriptionImageAlt": "GEARVN-chuot-razer-basilisk-v3-pro-white",
+          "ProductDescriptionImageLocalPath": ""
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/techspace-zowie-ec2-wl-2_39d19fcffd9f4d909c3d08b91014b1ad_8de7639abaf047ff90a72af1abdcdfac.jpg",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/17199112a6ce22be203c6254/main.webp",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/thumbchuot-recovered_44dcc374ea4d40e9bfaa4fa0d086f62f_c213a6395356408aae12d54abc6ff8ee.gif",
+        "https://product.hstatic.net/200000722513/product/techspace-zowie-ec2-wl-3_61d7e530856045489c9f6430ef933cee_3be34c92ef894418a81a57a154000fe7.jpg"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/17199112a6ce22be203c6254/gallery-01.gif",
+        "images/20261015T123123Z/Razer_Mouse/17199112a6ce22be203c6254/gallery-02.webp"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-white"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-35k-white",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-basilisk-v3-pro-35k-white",
+      "ProductName": "Chuột Razer Basilisk V3 Pro 35K White",
+      "ProductSKU": "CHU-RAZER-BASILISK-V3-PRO-35K-WHITE",
+      "ProductPriceVND": 3950000,
+      "ProductRegularPriceVND": null,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Đa kết nối",
+        "Loại pin": "Pin sạc Li-ion"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Đa kết nối\", \"Loại pin\": \"Pin sạc Li-ion\"}",
+      "ProductDescription": "Nâng tầm trải nghiệm chơi game với Razer Basilisk V3 Pro 35K – chuột máy tính không dây RGB công thái học với khả năng tùy chỉnh và công nghệ tiên tiến nhất. Với cảm biến chính xác hoàn hảo và con lăn chuột với các tùy chọn cấu hình chuyên sâu, chơi game theo cách của bạn chưa bao giờ thú vị đến thế.\n\nCuộn lăn Razer™ HyperScroll Tilt Cuộn lăn 4 chiều với 3 chế độ độc đáo\n\nChọn giữa cuộn khấc Tactile-Cycling và cuộn tự do Free-Spin, hoặc tự động chuyển đổi giữa hai chế độ dựa trên tốc độ cuộn của bạn với chế độ cuộn thông minh Smart-Reel – hiện có thể cấu hình trên Synapse .\n\nCảm biến quang học Razer™ Focus Pro 35K Gen-2 Độ chính xác hàng đầu\n\nTrải nghiệm hiệu suất theo dõi hàng đầu trên nhiều bề mặt khác nhau, bao gồm cả kính, được hỗ trợ bởi các chức năng thông minh và điều chỉnh từng bước 1-DPI cho khả năng kiểm soát chi tiết và ngắm bắn chính xác hơn.\n\nLên đến 140 tiếng kết nối không dây Razer™ HyperSpeed Chơi game hiệu suất cao, độ trễ thấp\n\nTận hưởng hiệu suất mượt mà, không giật lag cho các phiên chơi game liên tục hoặc tận dụng sức mạnh thực sự của tốc độ thăm dò 8000Hz với Razer Mouse Dock Pro hoặc HyperPolling Wireless Dongle (cả hai đều được bán riêng).\n\n13 thao tác điều khiển có thể tùy biến Khả năng tùy chỉnh vô hạn\n\nGán vô số lệnh và macro trên 13 nút điều khiển ở vị trí dễ tiếp cận – bao gồm cò bấm đa chức năng nổi tiếng – để thực hiện các hành động quan trọng như push-to-talk , ping và nhiều hơn nữa.\n\nĐèn Chroma 13 vùng với dải sáng dưới bao quanh Được hỗ trợ bởi Razer Chroma™ RGB\n\nTùy chỉnh từng vùng với hơn 16,8 triệu màu và vô số hiệu ứng ánh sáng, và đắm chìm vào những màn game mãn nhãn với sắc màu sống động, chuyển động nhịp nhàng với hơn 200 trò chơi tương thích với Chroma.\n\nCông tắc chuột quang học Razer™ Gen-3 Độ bền và tốc độ vô song\n\nĐược nâng cấp với vòng đời 90 triệu lần nhấp mà không gặp vấn đề nhấp đúp, cùng tốc độ kích hoạt 0,2 mili giây không có độ trễ, tận hưởng độ tin cậy và tốc độ vượt trội để sẵn sàng out trình đối thủ.\n\nNgoài ra, bạn có thể tham khảo thêm Razer Không dây Viper V3 Pro Trắng , Razer Deathadder Essential White và Razer Cobra với thiết kế hiện đại, cảm biến nhạy và độ chính xác cao cho mọi tựa game.",
+      "ProductDescriptionImages": [
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_2.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/description-01.webp"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_4.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/description-02.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_5.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/description-03.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_6.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/description-04.jpg"
+        },
+        {
+          "ProductDescriptionImageURL": "https://file.hstatic.net/200000722513/file/chuot_razer_basilisk_v3_pro_35k_white_7.jpg",
+          "ProductDescriptionImageAlt": "",
+          "ProductDescriptionImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/description-05.jpg"
+        }
+      ],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v5_2d4d9596ea344257a49f2e84e418ec48.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/main.png",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/chuot-gaming-khong-day-razer-bas__1__5dbd0f539aa24d1480cf4c3501840088.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v4_a1417349782b4454880a9f884fefa3a5.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v2_8c4186936ce544db960459a2ca67f448.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v3_625f5e214c3744dd904b6d66ff8b8d00.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v6_bc0d47570b1f4f6f973483e2bbb389c6.png",
+        "https://product.hstatic.net/200000722513/product/basilisk_v3_pro_35k_white_v7._895fa631618e432f981dea6e58026eab.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-01.png",
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-02.webp",
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-03.webp",
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-04.webp",
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-05.webp",
+        "images/20261015T123123Z/Razer_Mouse/de1df477af93e35ef23e0597/gallery-06.png"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-basilisk-v3-pro-35k-white"
+    }
+  },
+  {
+    "ScrapeSource": "gearvn",
+    "ScrapeURL": "https://gearvn.com/products/chuot-razer-cobra-pro-trang",
+    "ScrapeRunID": "20261015T123123Z",
+    "ScrapeCapturedAt": "2026-10-15T12:31:23Z",
+    "ScrapeParserVersion": "product-v2",
+    "ProductData": {
+      "ProductBrand": "Razer",
+      "ProductID": "chuot-razer-cobra-pro-trang",
+      "ProductName": "Chuột Razer Cobra Pro Trắng",
+      "ProductSKU": "CHU-RAZER-COBRA-PRO-WHT",
+      "ProductPriceVND": 2590000,
+      "ProductRegularPriceVND": null,
+      "ProductCategory": "Mouse",
+      "ProductSpecifications": {
+        "Màu sắc": "Trắng",
+        "Kết nối": "Đa kết nối",
+        "Loại pin": "Pin sạc Li-ion"
+      },
+      "ProductTechnicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Đa kết nối\", \"Loại pin\": \"Pin sạc Li-ion\"}",
+      "ProductDescription": "Thông số kỹ thuật:\n\nThông tin chung:\n\nNhà Sản Xuất : Razer\n\nTình trạng: Mới\n\nBảo hành: 24 Tháng",
+      "ProductDescriptionImages": [],
+      "ProductPromotions": [],
+      "ProductMainImage": "https://product.hstatic.net/200000722513/product/9ktbn43h_c8d1e233aee24077ae3ccb8061b5c7bc.png",
+      "ProductMainImageLocalPath": "images/20261015T123123Z/Razer_Mouse/ccf80ddf9acb89d5e5c11600/main.png",
+      "ProductGalleryImages": [
+        "https://product.hstatic.net/200000722513/product/42rc3efe_13d1959281ec44749394fad1ceebece4.png",
+        "https://product.hstatic.net/200000722513/product/bfo6ep9j_37d6891e25d94d7fa37cd147bc3464e8.png"
+      ],
+      "ProductGalleryImageLocalPaths": [
+        "images/20261015T123123Z/Razer_Mouse/ccf80ddf9acb89d5e5c11600/gallery-01.webp",
+        "images/20261015T123123Z/Razer_Mouse/ccf80ddf9acb89d5e5c11600/gallery-02.png"
+      ],
+      "ProductURL": "https://gearvn.com/products/chuot-razer-cobra-pro-trang"
+    }
+  }
+]

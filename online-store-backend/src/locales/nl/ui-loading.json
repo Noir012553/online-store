@@ -1,0 +1,11 @@
+{
+  "loading": "Bezig met laden...",
+  "loading_data": "Gegevens laden...",
+  "loading_products": "Producten laden...",
+  "loading_cart": "Winkelwagen laden...",
+  "loading_checkout": "Betaling laden...",
+  "loading_orders": "Uw bestellingen laden...",
+  "loading_profile": "Profiel laden...",
+  "loading_admin_ui": "Beheerinterface laden...",
+  "please_wait": "Even geduld alstublieft..."
+}

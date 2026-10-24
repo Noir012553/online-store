@@ -1,0 +1,17 @@
+{
+  "max_file_size_error": "Kích thước file tối đa là 10MB",
+  "invalid_file_error": "Định dạng file không hợp lệ. Chỉ hỗ trợ JSON và CSV",
+  "import_success": "Nhập sản phẩm thành công",
+  "import_failed": "Nhập sản phẩm thất bại",
+  "upload_failed": "Tải file lên thất bại",
+  "importing": "Đang nhập...",
+  "file_format_json": "JSON",
+  "file_format_csv": "CSV",
+  "mode_insert": "Thêm mới",
+  "mode_update": "Cập nhật",
+  "mode_upsert": "Thêm hoặc cập nhật",
+  "dry_run_label": "Xem trước (không thay đổi dữ liệu)",
+  "download_template": "Tải template",
+  "select_file": "Chọn file",
+  "submit_import": "Nhập sản phẩm"
+}

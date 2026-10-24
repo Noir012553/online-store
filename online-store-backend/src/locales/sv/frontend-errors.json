@@ -1,0 +1,7 @@
+{
+  "server_error": "Serverfel",
+  "network_error": "Nätverksfel",
+  "too_many_requests": "För många förfrågningar",
+  "request_timeout": "Timeout för begäran",
+  "request_processing": "Begäran bearbetas..."
+}

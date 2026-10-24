@@ -1,0 +1,16 @@
+{
+  "required_codes": "Beide valutacodes zijn vereist",
+  "required_fields": "Bronvaluta, doelvaluta en wisselkoers zijn vereist",
+  "rate_must_be_positive": "De wisselkoers moet groter zijn dan nul",
+  "created_success": "Wisselkoers is succesvol aangemaakt",
+  "updated_success": "Wisselkoers is succesvol bijgewerkt",
+  "deleted_success": "Wisselkoers is succesvol verwijderd",
+  "amount_non_negative": "Het bedrag mag niet negatief zijn",
+  "updated_rates": "{{count}} wisselkoersen bijgewerkt",
+  "not_found": "Wisselkoers niet gevonden",
+  "pair_not_found": "Wisselkoers van {{fromCode}} naar {{toCode}} niet gevonden",
+  "currencies_match": "Bron- en doelvaluta moeten verschillend zijn",
+  "already_exists": "Wisselkoers van {{fromCode}} naar {{toCode}} bestaat al",
+  "currency_not_found": "Valuta {{currencyCode}} niet gevonden",
+  "operation_failed": "De wisselkoersaanvraag kon niet worden verwerkt"
+}

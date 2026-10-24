@@ -1,0 +1,237 @@
+import { indexedDbService } from './services/indexedDbService';
+
+const API_BASE = '/api';
+const FALLBACK_CACHE_TTL_MS = 60 * 60 * 1000;
+const fallbackCache = new Map<string, { value: Record<string, Record<string, string>>; expiresAt: number }>();
+const pendingFallbackRequests = new Map<string, Promise<Record<string, Record<string, string>>>>();
+
+interface TranslationResponse {
+  success: boolean;
+  data: {
+    code: string;
+    namespace: string;
+    translations: Record<string, string>; // Flat dot-notation keys (e.g., 'ui.commandPalette')
+    fallbackKeys?: string[];
+  };
+}
+
+interface TranslateTextResponse {
+  success: boolean;
+  data: {
+    originalText: string;
+    translatedText: string;
+    targetLang: string;
+    fromCache: boolean;
+  };
+}
+
+export class TranslationServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly params: Record<string, string> = {}
+  ) {
+    super(code);
+    this.name = 'TranslationServiceError';
+  }
+}
+
+class TranslationService {
+  async getStaticTranslations(
+    lang: string,
+    namespace: string = 'common',
+    signal?: AbortSignal,
+    onFallbackKeys?: (keys: string[]) => void
+  ): Promise<Record<string, string>> {
+    const readCachedTranslations = async () => {
+      const cached = await indexedDbService.get(lang, namespace);
+      if (!cached) return null;
+      onFallbackKeys?.(cached.fallbackKeys || []);
+      return cached.data;
+    };
+
+    try {
+      // Ensure namespace is never empty - fallback to 'common'
+      const validNamespace = !namespace || namespace.trim() === '' ? 'common' : namespace;
+      const url = `${API_BASE}/translations?lang=${lang}&ns=${validNamespace}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal,
+      });
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 500) {
+          // Try IndexedDB fallback before returning empty
+          const cached = await readCachedTranslations();
+          if (cached) {
+            return cached;
+          }
+          return {};
+        }
+        throw new Error(`Failed to fetch translations: ${response.statusText}`);
+      }
+
+      const data: TranslationResponse = await response.json();
+
+      if (!data.success) {
+        // Try IndexedDB fallback
+        const cached = await readCachedTranslations();
+        if (cached) {
+          return cached;
+        }
+        return {};
+      }
+
+      const translations = data.data.translations;
+      const fallbackKeys = data.data.fallbackKeys || [];
+      onFallbackKeys?.(fallbackKeys);
+
+      // Cache to IndexedDB for offline support
+      indexedDbService.save(lang, namespace, translations, fallbackKeys).catch(() => {});
+
+      return translations;
+    } catch (error) {
+      // Network error - try IndexedDB
+      if (error instanceof Error) {
+        const cached = await readCachedTranslations();
+        if (cached) {
+          return cached;
+        }
+      }
+      return {};
+    }
+  }
+
+  async translateText(
+    text: string,
+    targetLang: string,
+    sourceLang: string,
+    useCache: boolean = true,
+    signal?: AbortSignal
+  ): Promise<string> {
+    // Validate required parameters
+    if (!targetLang) {
+      throw new TranslationServiceError('TRANSLATION_TARGET_LANGUAGE_REQUIRED');
+    }
+    if (!sourceLang) {
+      throw new TranslationServiceError('TRANSLATION_SOURCE_LANGUAGE_REQUIRED');
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/translations/translate?lang=${targetLang}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          targetLang,
+          sourceLang,
+          useCache,
+        }),
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new TranslationServiceError('TRANSLATION_REQUEST_FAILED', {
+          status: String(response.status),
+        });
+      }
+
+      const data: TranslateTextResponse = await response.json();
+
+      if (!data.success) {
+        throw new TranslationServiceError('TRANSLATION_SERVICE_FAILED');
+      }
+
+      return data.data.translatedText;
+    } catch (error) {
+      // Return original text on abort (signal aborted)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
+      return text;
+    }
+  }
+
+  async getAllTranslationsByLanguage(lang: string): Promise<Record<string, Record<string, string>>> {
+    try {
+      const response = await fetch(`${API_BASE}/translations/lang/${lang}?lang=${lang}`);
+
+      if (!response.ok) {
+        throw new Error('fetch_translations_error');
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error('load_translations_error');
+      }
+
+      return data.data.namespaces;
+    } catch (error) {
+      return {};
+    }
+  }
+
+  // QUY TẮC #1: Get fallback translations for offline support
+  // Returns all static translations for a language from Backend
+  async getFallbackTranslations(lang: string, signal?: AbortSignal): Promise<Record<string, Record<string, string>>> {
+    const cacheKey = lang.toLowerCase();
+    const cached = fallbackCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    if (cached) fallbackCache.delete(cacheKey);
+
+    if (!signal) {
+      const pending = pendingFallbackRequests.get(cacheKey);
+      if (pending) return pending;
+    }
+
+    const request = (async () => {
+      try {
+        const url = `${API_BASE}/translations/fallback?lang=${lang}`;
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal,
+        });
+
+        if (!response.ok) return {};
+
+        const data = await response.json();
+        if (!data.success) return {};
+
+        const value = data.data as Record<string, Record<string, string>>;
+        fallbackCache.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + FALLBACK_CACHE_TTL_MS,
+        });
+        return value;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
+        return {};
+      }
+    })();
+
+    if (!signal) {
+      pendingFallbackRequests.set(cacheKey, request);
+      void request.then(
+        () => pendingFallbackRequests.delete(cacheKey),
+        () => pendingFallbackRequests.delete(cacheKey),
+      );
+    }
+
+    return request;
+  }
+}
+
+export const translationService = new TranslationService();
+
+export type { TranslationResponse, TranslateTextResponse };

@@ -1,0 +1,17 @@
+{
+  "max_file_size_error": "O tamanho máximo do arquivo é 10MB",
+  "invalid_file_error": "Formato de arquivo inválido. Apenas JSON e CSV são suportados",
+  "import_success": "Produtos importados com sucesso",
+  "import_failed": "Falha ao importar produtos",
+  "upload_failed": "Falha ao carregar arquivo",
+  "importing": "Importando...",
+  "file_format_json": "JSON",
+  "file_format_csv": "CSV",
+  "mode_insert": "Inserir",
+  "mode_update": "Atualizar",
+  "mode_upsert": "Inserir ou Atualizar",
+  "dry_run_label": "Pré-visualização (sem alterações de dados)",
+  "download_template": "Baixar modelo",
+  "select_file": "Selecionar arquivo",
+  "submit_import": "Importar produtos"
+}

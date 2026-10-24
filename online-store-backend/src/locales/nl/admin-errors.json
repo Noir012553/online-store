@@ -1,0 +1,17 @@
+{
+  "failed_save_override": "Fout bij opslaan override",
+  "error_saving_override": "Fout bij opslaan override",
+  "failed_load_namespace": "Fout bij laden naamruimte",
+  "error_fetching_health_data": "Fout bij ophalen gezondheidsgegevens",
+  "error_fetching_logs": "Fout bij ophalen logs",
+  "error_fetching_languages": "Fout bij ophalen talen",
+  "error_fetching_supported_languages": "Fout bij ophalen ondersteunde talen",
+  "failed_fetch_products": "Fout bij ophalen producten",
+  "failed_fetch_deleted_products": "Fout bij ophalen verwijderde producten",
+  "http_error_status": "HTTP-fout! status: {status}",
+  "failed_create_shipment": "Fout bij aanmaken zending",
+  "failed_update_translation": "Fout bij bijwerken vertaling",
+  "failed_delete_product": "Fout bij verwijderen product",
+  "failed_import_products": "Fout bij importeren producten",
+  "network_timeout": "Netwerktime-out"
+}
