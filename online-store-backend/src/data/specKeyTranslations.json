@@ -153,6 +153,28 @@
     "nl": "Sensor",
     "vi": "Cảm biến"
   },
+  "shellMaterial": {
+    "en": "Shell material",
+    "fr": "Matériau du châssis",
+    "de": "Gehäusematerial",
+    "it": "Materiale del guscio",
+    "es": "Material del chasis",
+    "pt": "Material da carcaça",
+    "nl": "Behuizingsmateriaal",
+    "sv": "Höljesmaterial",
+    "vi": "Chất liệu vỏ"
+  },
+  "screenSize": {
+    "en": "Screen size",
+    "fr": "Taille de l'écran",
+    "de": "Bildschirmgröße",
+    "it": "Dimensione schermo",
+    "es": "Tamaño de pantalla",
+    "pt": "Tamanho do ecrã",
+    "nl": "Schermgrootte",
+    "sv": "Skärmstorlek",
+    "vi": "Kích thước màn hình"
+  },
   "size": {
     "en": "Size",
     "de": "Größe",
@@ -427,5 +449,38 @@
     "sv": "Hållbarhet",
     "nl": "Duurzaamheid",
     "vi": "Độ bền"
+  },
+  "panel": {
+    "en": "Panel",
+    "fr": "Dalle",
+    "de": "Panel",
+    "it": "Pannello",
+    "pt": "Painel",
+    "es": "Panel",
+    "sv": "Panel",
+    "nl": "Paneel",
+    "vi": "Tấm nền"
+  },
+  "screenResolution": {
+    "en": "Screen resolution",
+    "fr": "Résolution d'écran",
+    "de": "Bildschirmauflösung",
+    "it": "Risoluzione dello schermo",
+    "pt": "Resolução do ecrã",
+    "es": "Resolución de pantalla",
+    "sv": "Skärmupplösning",
+    "nl": "Schermresolutie",
+    "vi": "Độ phân giải màn hình"
+  },
+  "refreshRate": {
+    "en": "Refresh rate",
+    "fr": "Taux de rafraîchissement",
+    "de": "Bildwiederholrate",
+    "it": "Frequenza di aggiornamento",
+    "pt": "Taxa de atualização",
+    "es": "Frecuencia de actualización",
+    "sv": "Uppdateringsfrekvens",
+    "nl": "Vernieuwingsfrequentie",
+    "vi": "Tần số quét"
   }
 }

@@ -313,6 +313,23 @@ const productSchema = mongoose.Schema(
   }
 );
 
+// Safety net: bất kể dữ liệu đến từ đâu (crawler import, seed, admin create),
+// specs luôn được chuẩn hóa key tiếng Anh trước khi lưu — không phụ thuộc
+// controller nào nhớ gọi normalizeSpecs().
+productSchema.pre('validate', function () {
+  if (this.specs && typeof this.specs === 'object' && !Array.isArray(this.specs)) {
+    try {
+      const { normalizeSpecs } = require('../utils/specNormalizer');
+      const normalized = normalizeSpecs(this.specs instanceof Map
+        ? Object.fromEntries(this.specs)
+        : this.specs);
+      if (normalized && Object.keys(normalized).length) this.specs = normalized;
+    } catch (e) {
+      // không chặn lưu nếu normalize lỗi — giữ specs nguyên trạng
+    }
+  }
+});
+
 // Indexes để tối ưu query
 productSchema.index({ name: 1, isDeleted: 1 });
 productSchema.index({ category: 1, isDeleted: 1 });

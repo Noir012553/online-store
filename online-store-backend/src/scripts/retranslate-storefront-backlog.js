@@ -27,6 +27,7 @@ const {
   getRetranslationLockKey,
   hydrateCheckpoint,
   openProductCheckpoint,
+  clearUnfixedCheckpointEntries,
 } = require('../utils/retranslateProgress');
 
 const args = process.argv.slice(2);
@@ -203,6 +204,10 @@ const run = async () => {
     databaseLock = await acquireDatabaseLock(getRetranslationLockKey(getDatabaseScope(process.env.MONGO_URI)));
     const checkpoint = openProductCheckpoint(getDatabaseScope(process.env.MONGO_URI));
     await hydrateCheckpoint(checkpoint);
+    // Clear unresolved entries so failed fields are retried with fresh provider
+    // calls instead of replaying previous failed translations from checkpoint.
+    const cleared = await clearUnfixedCheckpointEntries(checkpoint, {});
+    console.log(`Cleared ${cleared} unresolved checkpoint entries for retry.`);
     const backlog = await loadBacklog();
     const jobs = printSummary(backlog, options.limit);
     const fieldConcurrency = Number(process.env.PRODUCT_RETRANSLATION_FIELD_CONCURRENCY || 1);
@@ -216,6 +221,7 @@ const run = async () => {
         const result = await retranslateProduct(job.productId, job.targetLang, {
           checkpoint,
           parallelProducts: fieldConcurrency,
+          retryMixedLanguage: process.env.RETRANSLATE_RETRY_MIXED_LANGUAGE !== 'false',
         });
         if (!result.committed) {
           needsReviewCount++;

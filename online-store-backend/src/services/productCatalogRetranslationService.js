@@ -206,9 +206,14 @@ const retranslateProductUnlocked = async (
     if (currentCanonical) return currentCanonical;
 
     const checkpointErrors = checkpointValidation?.validationErrors || [];
-    const retryableCheckpointCandidate = Boolean(completed?.payload && checkpointErrors.some(error => (
+    // Reusing a checkpoint candidate for mixed_language tends to replay the same
+    // leak (the model copies its previous output), so mixed_language always gets
+    // a fresh provider call from the original source instead.
+    const hasCheckpointMixedLanguage = retryMixedLanguage
+      && checkpointErrors.includes('mixed_language');
+    const retryableCheckpointCandidate = Boolean(completed?.payload && !hasCheckpointMixedLanguage
+      && checkpointErrors.some(error => (
       ['missing_technical_token', 'unexpected_technical_token', 'truncated', 'extra_commentary'].includes(error)
-      || (retryMixedLanguage && error === 'mixed_language')
     )));
     let result = retryableCheckpointCandidate
       ? {

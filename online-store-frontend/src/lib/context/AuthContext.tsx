@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { authAPI, clearInMemoryAccessToken, setInMemoryAccessToken } from "../api";
+import { authAPI, clearInMemoryAccessToken, setInMemoryAccessToken, clearPersistedRefreshBlockState } from "../api";
 import { getImageUrl } from "../utils";
 
 export interface User {
@@ -57,14 +57,45 @@ export const AuthProvider = ({
     const initializeAuth = async () => {
       const initializationVersion = authVersionRef.current;
 
+      // Shared-machine guard: if the previous tab/user logged in but did not log
+      // out, the refresh cookie would silently sign the next visitor back in as
+      // that account. sessionStorage dies with the tab, so its absence means a
+      // NEW browsing session on this device — refuse to auto-restore.
+      // (Login always sets the flag, so normal navigation / F5 keeps working.)
+      let hasLocalSessionFlag = false;
       try {
-        const refreshResponse = await authAPI.refreshToken();
+        hasLocalSessionFlag = sessionStorage.getItem("auth_session_active") === "1";
+      } catch {
+        // sessionStorage unavailable — fail closed (safer on shared machines)
+        hasLocalSessionFlag = false;
+      }
+      if (!hasLocalSessionFlag) {
+        await authAPI.logout().catch(() => {}); // revoke the orphaned cookie server-side
+        clearInMemoryAccessToken();
+        setUser(null);
+        setIsInitialized(true);
+        return;
+      }
+
+      try {
+        // Hard deadline: if refresh/getMe hang (e.g. Atlas connection stalls),
+        // fail closed as signed-out instead of leaving the app stuck on
+        // "Loading…" forever. getMe gets the remaining budget after refresh.
+        const withDeadline = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+          Promise.race([
+            p,
+            new Promise<T>((_, reject) =>
+              setTimeout(() => reject(new Error("auth_init_timeout")), ms)
+            ),
+          ]);
+
+        const refreshResponse = await withDeadline(authAPI.refreshToken(), 10000);
         const newAccessToken = refreshResponse?.accessToken || refreshResponse?.token;
 
         if (newAccessToken) {
           if (cancelled || authVersionRef.current !== initializationVersion) return;
           setInMemoryAccessToken(newAccessToken);
-          const freshUserData = await authAPI.getMe();
+          const freshUserData = await withDeadline(authAPI.getMe(), 10000);
           if (cancelled || authVersionRef.current !== initializationVersion) return;
           setUser({
             id: freshUserData._id || freshUserData.id,
@@ -107,6 +138,13 @@ export const AuthProvider = ({
       const accessToken = response.accessToken || response.token;
 
       authVersionRef.current += 1;
+      // Mark this browsing session as active (dies with the tab). Without it,
+      // the next visitor on a shared machine would be silently signed in as
+      // this account via the leftover refresh cookie.
+      try { sessionStorage.setItem("auth_session_active", "1"); } catch {}
+      // Start the new session with a clean refresh cooldown (in case a stale
+      // 429 block survived in localStorage from before).
+      clearPersistedRefreshBlockState();
       // Store access token in Memory (RAM) - XSS Protection
       setInMemoryAccessToken(accessToken);
 
@@ -139,6 +177,7 @@ export const AuthProvider = ({
         return false;
       }
 
+      try { sessionStorage.setItem("auth_session_active", "1"); } catch {}
       setInMemoryAccessToken(accessToken);
       const freshUserData = await authAPI.getMe();
       const userData: User = {
@@ -220,6 +259,14 @@ export const AuthProvider = ({
       // Step 2-5: Always clear all auth state (even if API fails)
       // Step 2: Clear memory token (XSS Protection)
       setInMemoryAccessToken(null);
+
+      // Clear the shared-machine session marker so the next visitor on this
+      // device is never auto-restored into this account.
+      try { sessionStorage.removeItem("auth_session_active"); } catch {}
+
+      // Clear any persisted 429 refresh cooldown so it cannot leak into the
+      // next login session on this device.
+      clearPersistedRefreshBlockState();
 
       // Step 4: Clear React state
       setUser(null);

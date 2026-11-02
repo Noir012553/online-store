@@ -1,0 +1,46 @@
+NAME: Laptop Asus ExpertBook P1403CVA-C5H16-50W (Core 5-210H/ 16GB/ 512GB/ 14" FHD/ Win 11)
+
+SPECS:  gpu = Intel® UHD Graphics
+  kich_thuoc_man_hinh = 14 "
+  cpu = Core 5
+  storage = 512GB
+  tam_nen = IPS
+  o_phan_giai = Full HD (1920x1080)
+
+TECH: Thông số: {"Card đồ họa": "Intel® UHD Graphics", "Kích thước màn hình": "14 inch", "Dòng CPU": "Core 5", "Dung lượng SSD": "512 GB", "Tấm nền": "IPS", "Độ phân giải": "Full HD (1920x1080)"}
+
+ALTS:
+Laptop ASUS ExpertBook P1403CVA-C5H16-50W là mẫu laptop văn phòng nổi bật
+Laptop ASUS ExpertBook P1403CVA-C5H16-50W có webcam chất lượng
+Laptop ASUS ExpertBook P1403CVA-C5H16-50W được trang bị bảo mật thông minh
+
+DESC:
+Thông số: {"Card đồ họa": "Intel® UHD Graphics", "Kích thước màn hình": "14 inch", "Dòng CPU": "Core 5", "Dung lượng SSD": "512 GB", "Tấm nền": "IPS", "Độ phân giải": "Full HD (1920x1080)"}
+DESCRIPTION (verbatim):
+Khám phá Laptop ASUS ExpertBook P1 P1403CVA-C5H16-50W-C5-210H
+
+Nếu bạn đang tìm một chiếc laptop văn phòng đồng hành trong các công việc hàng ngày thì ASUS ExpertBook P1403CVA-C5H16-50W-C5-210H chắc chắn sẽ làm bạn thích thú. Với thiết kế siêu mỏng nhẹ và hiệu năng mạnh mẽ từ Intel Core 5 , laptop không chỉ giúp bạn làm việc mượt mà mà còn dễ dàng mang theo bất cứ nơi đâu từ văn phòng đến quán cà phê yêu thích.
+
+Thiết kế mỏng nhẹ, chắc chắn theo chuẩn quân sự
+
+Bạn sẽ ấn tượng ngay từ cái nhìn đầu tiên với thân máy chỉ dày 1.97cm và nặng vỏn vẹn 1.44kg, giúp bạn thoải mái bỏ vào balo mà chẳng lo nặng nề. Vỏ nhôm xám Misty Grey sang trọng, đạt chuẩn MIL-STD 810H chống va đập, bụi bẩn và nhiệt độ khắc nghiệt nên dù mang theo đi công tác xa, em ấy vẫn sẽ luôn bền bỉ để trở thành một người bạn đồng hành đáng tin cậy.​
+
+Hiệu năng mạnh mẽ, đa nhiệm mượt mà
+
+Bên trong là chipset Intel Core i5 Processor 210H kết hợp với RAM 16GB DDR5 siêu nhanh và SSD 512GB PCIe 4.0, có thể hỗ trợ bạn mở hàng chục tab Chrome, chỉnh sửa Excel lớn hay thậm chí render video nhẹ nhàng mà không hề giật lag. Card đồ họa Intel Graphics còn hỗ trợ giải trí xem phim, lướt web mượt mà đảm bảo kết nối ổn định mọi lúc.
+
+Màn hình sắc nét, bảo vệ mắt tối ưu
+
+Màn hình 14 inch FHD IPS chống chói với độ sáng 300 nits và 45% NTSC mang đến hình ảnh sống động, góc nhìn rộng 170 độ để bạn tập trung làm việc lâu mà không hề mỏi mắt. Ngoài ra, webcam 720p có nắp che privacy tiện lợi, lý tưởng cho các cuộc họp online và công nghệ giảm ánh sáng xanh để bảo vệ đôi mắt suốt cả ngày dài.
+
+Bảo mật thông minh, yên tâm sử dụng
+
+ASUS còn trang bị cảm biến vân tay nhanh nhạy, TPM 2.0 mã hóa dữ liệu, khóa Kensington và bảo vệ BIOS nên bạn hoàn toàn yên tâm lưu trữ thông tin quan trọng mà không lo rủi ro bảo mật. Bàn phím Chiclet chống tràn nước mang lại cảm giác gõ êm ái, thoải mái như đang chat với bạn bè.​
+
+Pin trâu, kết nối linh hoạt
+
+Pin 3 cell 50Wh cho thời lượng sử dụng cả ngày làm việc, hỗ trợ sạc nhanh USB-C để bạn chẳng phải lo hết pin giữa chừng. Bên cạnh đó, các cổng kết nối đầy đủ như USB-A/C, HDMI 1.4, RJ45 Ethernet và jack tai nghe cũng hỗ trợ bạn dễ dàng gắn màn hình ngoài hay thiết bị ngoại vi, biến em ấy trở thành "trợ thủ đắc lực" cho mọi nhu cầu.
+
+Mua ngay Laptop ASUS ExpertBook P1403CVA-C5H16-50W tại GearVN
+
+Cần laptop văn phòng siêu nhẹ 1.44kg Intel Core 5, RAM 16GB DDR5, SSD 512GB cho công việc cả ngày? ASUS ExpertBook P1403CVA FHD chống chói kèm Intel Graphics mạnh mẽ, pin 50Wh bền bỉ. Đến ngay GearVN để tậu ngay một chiếc máy tính ASUS ExpertBook P1403CVA để phục vụ cho công việc của bạn nào!

@@ -1,0 +1,55 @@
+NAME: Bàn Phím Leopold FC660MPD Ash Yellow Red Switch
+
+SPECS:  layout = 65%
+  buttons = 66 phím
+  connection = Bluetooth;USB;PS/2
+  keycapMaterial = PBT Double-shot
+  chat_lieu_vo = Nhựa
+  led = Không có đèn
+
+TECH: Thông số: {"Kích thước/Layout": "65%", "Số lượng phím": "66 phím", "Phương thức kết nối": "Bluetooth;USB;PS/2", "Chất liệu Keycap": "PBT Double-shot", "Chất liệu vỏ": "Nhựa", "Đèn LED": "Không có đèn"}
+
+ALTS:
+Bàn Phím Leopold FC660MPD Ash Yellow Red Switch có phối màu Ash Yellow tạo dấu ấn riêng
+Bàn Phím Leopold FC660MPD Ash Yellow Red Switch có vỏ bàn phím chắc chắn
+
+DESC:
+Thông số: {"Kích thước/Layout": "65%", "Số lượng phím": "66 phím", "Phương thức kết nối": "Bluetooth;USB;PS/2", "Chất liệu Keycap": "PBT Double-shot", "Chất liệu vỏ": "Nhựa", "Đèn LED": "Không có đèn"}
+DESCRIPTION (verbatim):
+Thông số kỹ thuật:
+
+Bàn Phím Leopold FC660MPD Ash Yellow Red Switch là mẫu bàn phím cơ nổi bật với thiết kế nhỏ gọn cùng chất lượng hoàn thiện đặc trưng của thương hiệu Leopold. Phiên bản Ash Yellow tạo điểm nhấn bằng sự kết hợp giữa tông màu trắng và vàng, mang đến diện mạo khác biệt nhưng vẫn giữ được sự tinh tế cần thiết cho không gian làm việc.
+
+Đặc điểm nổi bật của bàn Phím Leopold FC660MPD Ash Yellow Red Switch
+
+Layout 65% gọn gàng nhưng vẫn đầy đủ tiện ích
+
+Bàn phím Leopold sở hữu bố cục 65% với 66 phím, mang lại kích thước nhỏ gọn hơn đáng kể so với các bàn phím fullsize truyền thống. Với đó, thiết kế này tạo thêm khoảng trống cho chuột máy tính và các phụ kiện khác trên bàn làm việc.
+
+Phối màu Ash Yellow tạo dấu ấn riêng
+
+Ash Yellow là một trong những phối màu đặc trưng của Leopold với sự kết hợp hài hòa giữa nền tối và các điểm nhấn màu vàng nổi bật. Tông màu này mang lại cảm giác tươi sáng, hiện đại nhưng không quá rực rỡ như nhiều thiết kế bàn phím gaming phổ biến hiện nay.
+
+Nhờ sự cân bằng giữa tính thẩm mỹ và khả năng ứng dụng thực tế, bàn phím dễ dàng phù hợp với nhiều phong cách setup khác nhau. Đây cũng là yếu tố giúp sản phẩm tạo được dấu ấn riêng ngay từ cái nhìn đầu tiên.
+
+Cherry MX Red Switch cho cảm giác gõ mượt mà
+
+Phiên bản này được trang bị Cherry MX Red Switch với cơ chế linear quen thuộc trong cộng đồng bàn phím cơ. Hành trình phím liền mạch cùng lực nhấn nhẹ tạo cảm giác thao tác nhanh và thoải mái trong thời gian dài.
+
+Với các dòng switch có phản hồi xúc giác mạnh hoặc tiếng click lớn, Cherry MX Red mang đến trải nghiệm êm ái và dễ làm quen hơn. Vì vậy, switch này là lựa chọn phù hợp cho cả công việc văn phòng, nhập liệu hằng ngày và nhu cầu giải trí sau giờ làm việc.
+
+Vỏ bàn phím chắc chắn và hoàn thiện cứng cáp
+
+Leopold FC660MPD được hoàn thiện với phần khung có độ cứng cao, mang lại cảm giác ổn định khi sử dụng. Các chi tiết được lắp ráp chắc chắn nhằm hạn chế hiện tượng rung lắc hoặc phát ra tiếng động không mong muốn khi thao tác.
+
+Ngoài ra, mặt đáy của bàn phím cũng được trang bị các chân cao su hỗ trợ tăng độ bám trên nhiều bề mặt khác nhau. Với đó, tổng thể sản phẩm mang lại cảm giác hoàn thiện chỉn chu, phù hợp với những người dùng đề cao chất lượng lắp ráp.
+
+Keycap PBT Double Shot bền bỉ theo thời gian
+
+Bàn phím sử dụng bộ keycap PBT Double Shot có độ dày cao nhằm tăng độ bền trong quá trình sử dụng lâu dài. Chất liệu PBT duy trì bề mặt nhám ổn định, hạn chế tình trạng bóng dầu thường xuất hiện trên các loại keycaps thông thường. Còn công nghệ Double Shot hỗ trợ ký tự sắc nét và khó phai mờ sau nhiều năm sử dụng.
+
+Tại sao nên chọn bàn Phím Leopold FC660MPD Ash Yellow Red Switch tại GearVN?
+
+Nếu bạn đang theo đuổi phong cách làm việc tối giản và cần tìm một chiếc bàn phím nhỏ gọn nhưng sở hữu độ hoàn thiện cơ khí đầm chắc, Leopold FC660MPD Ash Yellow Red Switch chính là mảnh ghép lý tưởng. Layout 65% gọn gàng kết hợp cùng phối màu tro xám nhấn vàng thời thượng không chỉ giúp bạn giải phóng tối đa diện tích di chuột mà còn mang lại cảm giác gõ mượt mà, êm ái nhờ switch Cherry MX Red chất lượng.
+
+Hãy ghé GearVN để rinh ngay chiếc bàn phím cơ nhỏ gọn này về bàn làm việc của mình. Chúng tôi tự hào mang đến cho bạn sản phẩm chính hãng 100% đi kèm chính sách bảo hành uy tín, sẵn sàng đồng hành cùng năng suất công việc của bạn ngay hôm nay!

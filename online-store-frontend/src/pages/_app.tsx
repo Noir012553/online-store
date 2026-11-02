@@ -2,7 +2,7 @@ import '../styles/index.css';
 import type { AppProps } from 'next/app';
 import { useEffect, useState } from 'react';
 import dynamicImport from 'next/dynamic';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Toaster } from "../components/ui/sonner";
 import { CartProvider } from "../lib/context/CartContext";
 import { AuthProvider } from "../lib/context/AuthContext";
@@ -58,7 +58,22 @@ type PageWithAdminMeta = AppProps['Component'] & {
   };
 };
 
+// Clear all cached query data (including admin data) when the user logs out,
+// so sensitive data does not linger in memory (gcTime up to 10 minutes).
+function useClearQueryCacheOnLogout() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const handleLogout = () => {
+      queryClient.clear();
+      queryClient.cancelQueries();
+    };
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
+  }, [queryClient]);
+}
+
 function AppContent({ Component, pageProps }: AppContentProps) {
+  useClearQueryCacheOnLogout();
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -156,7 +171,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
         >
           <AnimatePresence mode="wait">
             {showLoadingOverlay && (
-              <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-white/50 backdrop-blur-sm">
+              <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
                 <HamsterLoader size={144} />
               </div>
             )}
@@ -177,7 +192,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
       <main className="min-h-screen relative bg-white">
         <AnimatePresence mode="wait">
           {showLoadingOverlay && (
-            <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-white/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
               <HamsterLoader size={144} />
             </div>
           )}

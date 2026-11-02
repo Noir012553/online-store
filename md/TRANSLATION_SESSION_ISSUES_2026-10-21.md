@@ -1,6 +1,6 @@
 # Nhật ký vấn đề dịch sản phẩm và UI quản trị — 2026-10-21
 
-Tài liệu này tổng hợp các vấn đề dịch sản phẩm, retry, approval và giao diện quản trị được xử lý trong phiên. Trạng thái DB/log được nêu là snapshot tại thời điểm kiểm tra, không phải dữ liệu live. Quy trình chuẩn nằm ở [TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md](TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md); nhật ký chung ở [SESSION_ISSUES_RESOLVED.md](SESSION_ISSUES_RESOLVED.md).
+Tài liệu này tổng hợp các vấn đề dịch sản phẩm, retry, approval và giao diện quản trị được xử lý trong phiên. Trạng thái DB/log được nêu là snapshot tại thời điểm kiểm tra, không phải dữ liệu live. **Cập nhật 2026-10-28:** bỏ check technical-token cho description, xem mục 6. Quy trình chuẩn nằm ở [TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md](TRANSLATION_RETRANSLATE_QUALITY_INCIDENT_AND_FIX_PLAN.md); nhật ký chung ở [SESSION_ISSUES_RESOLVED.md](SESSION_ISSUES_RESOLVED.md).
 
 ## Tóm tắt tiến độ
 
@@ -101,3 +101,53 @@ Log batch người dùng cung cấp ghi nhận job ở khoảng `1251/4603`, HTT
 - Typecheck frontend, parse JSON locale và `git diff --check` đạt; dev server compile thành công và preview được mở tại `/admin/translationsDynamic`.
 - Chưa thực hiện tương tác browser end-to-end hoặc xác minh network requests theo từng lựa chọn; chưa gọi provider thật. Cần kiểm tra thủ công các lựa chọn một locale, nhiều locale, tất cả và tình huống lỗi trước khi xác nhận đầy đủ hành vi.
 - Không đổi API/backend, không chạy lượt dịch, không cập nhật dữ liệu sản phẩm và không chạy `npm run build` trong phiên này.
+
+## 6. Bỏ check technical-token cho description (2026-10-28)
+
+### Vấn đề
+
+- `description` là văn xuôi marketing (dài ~3.400 ký tự/sản phẩm) chứ không phải dữ liệu spec; validator cũ vẫn chạy `checkTechnicalTokens` (cả `missing_technical_token` lẫn `unexpected_technical_token`) trên trường này và là nhóm lỗi lớn nhất: scan 78 bản dịch description trong batch next3 (8 locale) cho thấy **67/78 (≈86%) fail token check**.
+- Mỗi fail kéo theo ít nhất 1 lần gọi Cloudflare retry (service tự retry với prompt nhắc token, `productCatalogRetranslationService.js`), nhiều job retry 2-3 lần, gây tốn quota Neurons và kéo dài batch do rate-limit/cooldown.
+
+### Thay đổi
+
+- `online-store-backend/src/utils/translationValidator.js` — trong `validateTranslation()`, skip `checkTechnicalTokens` khi `entityType === 'product_description'`. Cả hai lỗi `missing_technical_token` và `unexpected_technical_token` không còn phát sinh cho description.
+- Các entityType khác (`product_technical_description`, `product_spec`, `product_name`, `product_promotion`, `product_description_image_alt`) **giữ nguyên** token check như cũ.
+- Các check khác của description (empty, missing_brand, length, markup, truncated, extra_commentary, mixed_language, wrong_language, inconsistent) **giữ nguyên**.
+
+### Đã xác minh
+
+- Chạy validator thật với 3 thử nghiệm: description thiếu token → `[]` (pass); `product_technical_description` `512GB`→`256GB` → `["missing_technical_token"]` (vẫn chặn); `product_spec` `16GB`→`8GB` → `["missing_technical_token"]` (vẫn chặn).
+
+### Tác động kỳ vọng
+
+- Batch ~63 job như next3: giảm ~45-50% số call Cloudflare cho nhóm description (~145 → ~78 call) và ~40-45% thời gian batch (bỏ retry + giảm cascade rate-limit). Lợi ích gián tiếp: bớt cooldown giữa các job.
+- Lưu ý: description giờ chỉ cần token "có mặt", không kiểm tra đếm đủ/bịa thêm — chấp nhận rủi ro này vì priority là giảm retry/quota; các field dữ liệu cứng (technicalDescription, specs) vẫn kiểm tra nghiêm.
+
+### Việc còn lại
+
+- Các bản description đã bị đánh `needs_retranslate`/`pending` vì token trước đây có thể cần chạy lại report/đánh giá lại trạng thái; chưa chạy lại readiness report trên DB sau thay đổi này.
+
+## 7. Retry mixed_language dịch lại từ nguồn thay vì tái dùng candidate lỗi (2026-10-28)
+
+### Vấn đề
+
+- Dry-run sau lượt `apply-incomplete` cho thấy 966 jobs còn lại, trong đó `mixed_language` là nhóm lỗi chính. Kiểm tra mẫu thực tế cho thấy pattern lặp: heading section tiếng Việt (`THÔNG SỐ KỸ THUẬT`, `Thông tin kỹ thuật`, `Chuột không dây`...) bị model giữ nguyên trong bản dịch.
+- Luồng cũ: khi checkpoint có candidate fail `mixed_language`, service **tái dùng đúng bản dịch cũ** làm đầu vào (chỉ retry 1 lần với prompt nhắc cụm bị leak). Model Cloudflare thường trả về gần nguyên văn → vẫn leak → fail lần 2 → `needs_review`, lặp vô ích mỗi lượt chạy.
+
+### Thay đổi
+
+- `productCatalogRetranslationService.js`: candidate checkpoint có lỗi `mixed_language` **không còn được tái dùng** — luôn gọi provider dịch mới từ source gốc; retry có hướng dẫn vẫn giữ nguyên ở call thứ 2.
+- `retranslate-storefront-backlog.js`: nối `retryMixedLanguage` qua env `RETRANSLATE_RETRY_MIXED_LANGUAGE` (mặc định bật); **thêm bước clear checkpoint entries chưa pass** (`clearUnfixedCheckpointEntries`) sau hydrate, để mọi field fail lượt trước được thử lại với provider call mới thay vì replay kết quả cũ.
+- Cập nhật test `translation-product-cache.test.js`:
+  - "retries a mixed-language field once..." — kỳ vọng 2 calls: call 1 dịch mới không instruction, call 2 retry có instruction.
+  - "retries a technical-token failure..." — bỏ expect dòng mixed-language instruction (candidate token-error vẫn được reuse đúng thiết kế; mock không còn trả mixed_language để không đụng luồng mới).
+
+### Đã xác minh
+
+- `node --check` OK cho service và script.
+- Toàn bộ `translation-product-cache.test.js`: **126 passing, 0 failing**.
+
+### Tác động kỳ vọng
+
+- Các job `needs_review` do mixed_language ở lượt trước giờ sẽ được **dịch thật lại** thay vì replay — nhóm heading-leak lặp lại có khả năng pass cao. Còn `missing_technical_token`/`truncated` vẫn tận dụng candidate cũ (reuse + retry 1 lần) đúng thiết kế tiết kiệm quota.

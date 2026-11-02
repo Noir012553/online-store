@@ -1330,7 +1330,8 @@ describe('Product translation cache controller', () => {
       lean: sandbox.stub().resolves({}),
     });
     const translate = sandbox.stub(productTranslationService, 'translateWithCloudflare')
-      .resolves({ translatedText: 'Complete Portuguese translation', providersUsed: ['cloudflare'] });
+      .onFirstCall().resolves({ translatedText: 'Portuguese with Vietnamese words', providersUsed: ['cloudflare'] })
+      .onSecondCall().resolves({ translatedText: 'Complete Portuguese translation', providersUsed: ['cloudflare'] });
     sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
       ['Previous Portuguese description', 'Portuguese with Vietnamese words'].includes(translated)
         ? { qualityStatus: 'pending', qualityScore: 80, validationErrors: ['mixed_language'] }
@@ -1347,9 +1348,12 @@ describe('Product translation cache controller', () => {
         checkpoint,
       });
 
-      expect(translate.calledOnce).to.equal(true);
-      expect(translate.firstCall.args[3]).to.include('Translate any remaining Vietnamese prose into pt');
-      expect(translate.firstCall.args[3]).to.include('Translate this remaining source-language phrase into pt: "sensor thế".');
+      expect(translate.calledTwice).to.equal(true);
+      // mixed-language checkpoint candidates are never reused: the first call
+      // translates the original source fresh, the retry carries instructions.
+      expect(translate.firstCall.args[3]).to.equal(undefined);
+      expect(translate.secondCall.args[3]).to.include('Translate any remaining Vietnamese prose into pt');
+      expect(translate.secondCall.args[3]).to.include('Translate this remaining source-language phrase into pt: "sensor thế".');
       expect(result.committed).to.equal(true);
       expect(findOneAndUpdate.calledOnce).to.equal(true);
     } finally {
@@ -1409,11 +1413,11 @@ describe('Product translation cache controller', () => {
     });
     sandbox.stub(RetranslationProgress, 'updateOne').resolves({ acknowledged: true });
     sandbox.stub(translationValidator, 'validateTranslation').callsFake(async (_source, translated) => (
-      ['Wrong cached laptop', 'Fresh translated laptop'].includes(translated)
+      translated === 'Wrong cached laptop'
         ? {
           qualityStatus: 'pending',
           qualityScore: 50,
-          validationErrors: ['missing_technical_token', 'truncated', 'extra_commentary', 'mixed_language'],
+          validationErrors: ['missing_technical_token', 'truncated', 'extra_commentary'],
         }
         : { qualityStatus: 'approved', qualityScore: 100, validationErrors: [] }
     ));
@@ -1430,7 +1434,6 @@ describe('Product translation cache controller', () => {
       expect(translate.firstCall.args[3]).to.include('Include the missing source token exactly as written: "RTX 4060".');
       expect(translate.firstCall.args[3]).to.include('do not add notes');
       expect(translate.firstCall.args[3]).to.include('Translate all source content, including short interjections.');
-      expect(translate.firstCall.args[3]).to.include('Translate any remaining Vietnamese prose into en.');
       expect(findOneAndUpdate.firstCall.args[1].$set.name).to.equal('Fresh laptop with preserved tokens');
       expect(retranslateProgress.getCompletedResult(checkpoint, nameKey).payload.value)
         .to.equal('Fresh laptop with preserved tokens');

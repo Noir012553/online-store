@@ -1,0 +1,48 @@
+NAME: Laptop Asus ExpertBook P1 P1403CVA-C3U08-50W (Core 3-100U/ 8GB/ 512GB/ 14" FHD/ Win 11)
+
+SPECS:  gpu = Intel Graphics
+  kich_thuoc_man_hinh = 14 "
+  cpu = Core 3
+  storage = 512GB
+  tam_nen = IPS
+  o_phan_giai = Full HD (1920x1080)
+
+TECH: Thông số: {"Card đồ họa": "Intel Graphics", "Kích thước màn hình": "14 inch", "Dòng CPU": "Core 3", "Dung lượng SSD": "512 GB", "Tấm nền": "IPS", "Độ phân giải": "Full HD (1920x1080)"}
+
+ALTS:
+Laptop ASUS ExpertBook P1403CVA-C3U08-50W có CPU mạnh mẽ
+Laptop ASUS ExpertBook P1403CVA-C3U08-50W sở hữu màn hình chống chói
+Laptop ASUS ExpertBook P1403CVA-C3U08-50W kết nối tiện dụng
+Laptop ASUS ExpertBook P1403CVA-C3U08-50W có bàn phím êm và viên pin trâu
+Laptop ASUS ExpertBook P1403CVA-C3U08-50W an toàn cao với chuẩn quân đội
+
+DESC:
+Thông số: {"Card đồ họa": "Intel Graphics", "Kích thước màn hình": "14 inch", "Dòng CPU": "Core 3", "Dung lượng SSD": "512 GB", "Tấm nền": "IPS", "Độ phân giải": "Full HD (1920x1080)"}
+DESCRIPTION (verbatim):
+Khám phá laptop ASUS ExpertBook P1403CVA-C3U08-50W
+
+Nếu bạn đang tìm một chiếc laptop văn phòng gọn nhẹ cho công việc hàng ngày hay học tập, ASUS ExpertBook P1403CVA-C3U08-50W chắc chắn sẽ làm bạn hài lòng. Laptop ASUS này mang đến sự kết hợp hoàn hảo giữa hiệu năng ổn định và thiết kế siêu di động, giúp bạn thoải mái làm việc ở bất cứ đâu. Với mức giá hợp lý, em nó trở thành người bạn đồng hành lý tưởng cho dân văn phòng hay sinh viên bận rộn.​
+
+CPU mạnh mẽ, làm việc mượt mà
+
+Bên trong là con chip Intel Core 3 100U "xịn sò" với tốc độ lên đến 4.7GHz, 6 lõi kèm 10MB cache thông minh. Kết hợp cùng 8GB RAM DDR5 (nâng cấp tối đa 64GB) và SSD 512GB siêu tốc, bạn tha hồ mở nhiều tab Chrome, chỉnh sửa Word hay Excel mà chẳng lo giật lag. Hiệu năng này đảm bảo mọi tác vụ hàng ngày diễn ra mượt mà từ soạn thảo văn bản đến xử lý đa nhiệm nhẹ nhàng.​
+
+Màn hình đẹp, mắt dễ chịu
+
+Màn hình 14 inch Full HD chống chói, tần số 60Hz mang lại hình ảnh sắc nét, màu sắc trung thực. Dù ngồi văn phòng hay cà phê, bạn vẫn thoải mái xem tài liệu, video mà không mỏi mắt khi sử dụng màn hình quá lâu. Bên cạnh đó, đồ họa Intel Graphics hỗ trợ tốt cho nhu cầu cơ bản từ xem phim Netflix đến Zoom họp hành đều mượt mà, cho trải nghiệm thị giác dễ chịu suốt cả ngày.​
+
+Kết nối đầy đủ, tiện dùng
+
+Em laptop này còn dễ dàng kết nối với Wi-Fi 6, Bluetooth 5.4 và cổng LAN có sẵn với tốc độ nhanh như chớp. Ngoài ra, máy còn sở hữu đủ các cổng USB-A, USB-C, HDMI để nối màn hình ngoài hay máy chiếu. Dù dùng với PC , laptop khác hay điện thoại, bạn cứ yên tâm kết nối linh hoạt mà không gặp trở ngại nào.​
+
+Bàn phím êm, pin "trâu"
+
+Máy được trang bị bàn phím Chiclet siêu thoải mái, chống tràn nước, nếu lỡ đổ cà phê thì cũng sẽ không sao. Bên cạnh đó, viên pin 50Whrs còn có thể dùng cả ngày dài. Khi kết hợp với sạc Type-C 65W tiện lợi sẽ hỗ trợ bạn di chuyển mà chẳng lo "chạy deadline" giữa đường hết pin. Đây là điểm cộng lớn cho những bạn trẻ có lối sống năng động, cần di chuyển nhiều.​
+
+Bền bỉ, an toàn cao với chuẩn quân đội
+
+Đạt chuẩn quân đội MIL-STD 810H nên sản phẩm chịu va đập tốt, mỏng nhẹ chỉ 1.97cm và có màu xám thời trang. Đồng thời, camera 720p có nắp che riêng tư cùng âm thanh Dirac rõ ràng để có thể gọi video với sếp hay bạn bè đều "pro" hết biết. Thiết kế này không chỉ bền mà còn đảm bảo sự riêng tư và chuyên nghiệp trong mọi tình huống.
+
+Mua ngay Laptop ASUS ExpertBook P1403CVA-C3U08-50W tại GearVN
+
+ASUS ExpertBook P1403CVA-C3U08-50W sở hữu Intel Core 3 mạnh mẽ cùng RAM 8GB DDR5, SSD 512GB nhằm đáp ứng mượt mà mọi tác vụ văn phòng. Với những đặc điểm nổi bật ấy, bạn hãy mau chóng đến với GearVN để mua ngay một em máy tính xịn xò. GearVN giao hàng nhanh chóng toàn quốc với bảo hành chính hãng đầy đủ, sẵn sàng đồng hành cùng công việc chuyên nghiệp của bạn mọi lúc mọi nơi.

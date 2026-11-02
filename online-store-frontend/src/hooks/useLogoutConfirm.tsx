@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../lib/context/AuthContext';
-import { getSafeReturnPath } from '../lib/utils';
+import { getSafeReturnPath, isLoginPath } from '../lib/utils';
 import { useRouter } from 'next/router';
 import { useTranslation } from '../lib/i18n';
 
@@ -34,10 +35,22 @@ export const useLogoutConfirm = () => {
   const handleConfirmLogout = useCallback(async () => {
     try {
       setIsLoggingOut(true);
+      // Capture the current path BEFORE logout clears the route context.
+      const currentPath = router?.isReady ? (router.asPath || '/') : returnTo;
       await logout();
       setShowConfirm(false);
+      // Success feedback — a distinct message, NOT the login one.
+      toast.success(t('logout_success', 'auth'));
+      // Always land on /login after logging out. The page we were on is
+      // preserved as ?from= so login can bring the user back to it.
+      // Never push the user back to the page itself: non-admin pages have no
+      // guard to bounce them to /login, and admin pages may hang on their
+      // signed-out "Loading…" shell if the /login chunk is slow to fetch.
+      const target = getSafeReturnPath(currentPath);
       if (router?.isReady) {
-        router.push(getSafeReturnPath(returnTo));
+        router.push(isLoginPath(target) ? target : `/login?from=${encodeURIComponent(target)}`);
+      } else if (typeof window !== 'undefined') {
+        window.location.assign(isLoginPath(currentPath) ? '/login' : `/login?from=${encodeURIComponent(currentPath)}`);
       }
     } catch (error) {
       // Silent fail

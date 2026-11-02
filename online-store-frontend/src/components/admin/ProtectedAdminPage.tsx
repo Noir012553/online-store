@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/context/AuthContext';
 import { PermissionDenied } from './PermissionDenied';
 
@@ -25,7 +26,30 @@ export const ProtectedAdminPage: React.FC<ProtectedAdminPageProps> = ({
   children,
   featureName,
 }) => {
-  const { isAdmin, isSuperAdmin, can, isInitialized } = useAuth();
+  const { isAdmin, isSuperAdmin, can, isInitialized, user } = useAuth();
+  const router = useRouter();
+
+  // Signed-out visitors on an admin page are redirected to /login (keeping the
+  // target path so login can bring them back). Access Denied is only for users
+  // who ARE signed in but lack the required role — previously a signed-out
+  // user got "Access Denied" with a "Back to Dashboard" button that kept them
+  // trapped inside the admin area after logging out.
+  // Same last-resort safety net as AdminLayout: if auth init is stuck
+  // (isInitialized never flips true), fail closed after 12s.
+  useEffect(() => {
+    if (isInitialized) return;
+    const timer = setTimeout(() => {
+      if (router.pathname.startsWith('/login')) return;
+      void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [isInitialized, router]);
+
+  useEffect(() => {
+    if (!isInitialized || user) return;
+    if (router.pathname.startsWith('/login')) return;
+    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+  }, [isInitialized, user, router]);
 
   const hasPermission = (() => {
     switch (permission) {
@@ -55,11 +79,14 @@ export const ProtectedAdminPage: React.FC<ProtectedAdminPageProps> = ({
   })();
 
 
-  if (!isInitialized) {
+  if (!isInitialized || !user) {
+    // Signed-out: redirect effect above sends the user to /login. Render
+    // nothing meanwhile to avoid flashing Access Denied during logout.
     return null;
   }
 
   if (!hasPermission) {
+    // Signed-in but lacking the role: explain instead of silently redirecting.
     return <PermissionDenied feature={featureName} />;
   }
 

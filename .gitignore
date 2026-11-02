@@ -14,6 +14,10 @@ reports/
 !assistant-*.zip
 online-store.zip
 
+# Generated workspace data (reproducible via npm run export/build)
+translation-workspace/data/archive/
+translation-workspace/logs/archive-*/
+
 # Third-party binaries (download separately from vendor)
 *.exe
 

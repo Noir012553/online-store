@@ -269,7 +269,11 @@ class TranslationValidator {
     const lengthCheck = this.checkLength(original, translated);
     if (lengthCheck) errors.push(lengthCheck.error);
 
-    const technicalTokenCheck = this.checkTechnicalTokens(original, translated);
+    // Marketing prose may reorder or reference specs freely: skip technical-token
+    // checks for product_description (tokens only need to appear, order/count free).
+    const technicalTokenCheck = entityType === 'product_description'
+      ? null
+      : this.checkTechnicalTokens(original, translated);
     if (technicalTokenCheck) errors.push(technicalTokenCheck.error);
 
     const markupCheck = this.checkMarkup(original, translated);

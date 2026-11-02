@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useLanguage } from "../../lib/i18n";
+import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { RoleBadge } from "./RoleBadge";
 import { Header } from "../Header";
@@ -69,6 +70,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleAdminLogout = async () => {
     await logout();
+    // Distinct feedback — logged out, not logged in.
+    toast.success(t('logout_success', 'auth'));
     router?.replace('/login');
   };
 
@@ -101,6 +104,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isInitialized, user, router]);
 
+  // Last-resort safety net: if auth init never completes (isInitialized stuck
+  // false — e.g. the backend hangs and even the AuthContext deadline fails to
+  // propagate), treat the visitor as signed out after 12s and bounce to /login
+  // instead of hanging on the "Loading…" shell forever.
+  useEffect(() => {
+    if (!router || isInitialized) return;
+    const timer = setTimeout(() => {
+      if (router.pathname.startsWith('/login')) return;
+      void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [router, isInitialized]);
+
+  useEffect(() => {
+    if (!router || !isInitialized) return;
+    if (user) return;
+    if (router.pathname.startsWith('/login')) return;
+    // Signed out on an admin page: redirect immediately instead of waiting on
+    // ProtectedAdminPage (belt-and-braces — it runs the same redirect, but if
+    // the /login chunk loads slowly the admin shell would hang on "Loading…").
+    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+  }, [isInitialized, user, router]);
+
   useEffect(() => {
     const savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
 
@@ -124,7 +150,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!user) {
-    return null;
+    // Redirecting to /login (effect above). Render a minimal shell so the
+    // page never goes fully blank during the client-side navigation.
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50" role="status" aria-live="polite">
+        <p className="text-sm text-slate-500 animate-pulse">Loading…</p>
+      </div>
+    );
   }
 
   if (!isAdmin) {

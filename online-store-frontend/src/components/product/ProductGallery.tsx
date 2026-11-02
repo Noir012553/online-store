@@ -36,7 +36,7 @@ export function ProductGallery({
 }: ProductGalleryProps) {
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="relative aspect-video overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-red-50/60 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)] group">
+      <div className="relative aspect-video overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-50 via-white to-red-50/60 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.45)] group">
         {mainImage ? (
           <button
             type="button"

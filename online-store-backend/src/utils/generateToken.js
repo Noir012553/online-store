@@ -31,13 +31,14 @@ const generateAccessToken = (id) => {
 /**
  * Tạo JWT refresh token cho người dùng (long-lived)
  * @param {String} id - User ID
+ * @param {String|null} role - User role (embedded in refresh token for cookie policy)
  * @returns {Object} refresh token payload metadata
  */
-const generateRefreshToken = (id) => {
+const generateRefreshToken = (id, role = null) => {
   const jti = crypto.randomUUID();
 
   return {
-    refreshToken: jwt.sign({ id, type: 'refresh', jti }, REFRESH_TOKEN_SECRET, {
+    refreshToken: jwt.sign({ id, type: 'refresh', jti, ...(role ? { role } : {}) }, REFRESH_TOKEN_SECRET, {
       algorithm: JWT_ALGORITHM,
       expiresIn: REFRESH_TOKEN_EXPIRES_IN,
     }),
@@ -49,10 +50,11 @@ const generateRefreshToken = (id) => {
  * Tạo cả access token và refresh token
  * Dùng cho login/register
  * @param {String} id - User ID
+ * @param {String|null} role - User role (embedded in refresh token for cookie policy)
  * @returns {Object} { accessToken, refreshToken, refreshTokenId }
  */
-const generateTokenPair = (id) => {
-  const { refreshToken, refreshTokenId } = generateRefreshToken(id);
+const generateTokenPair = (id, role = null) => {
+  const { refreshToken, refreshTokenId } = generateRefreshToken(id, role);
 
   return {
     accessToken: generateAccessToken(id),

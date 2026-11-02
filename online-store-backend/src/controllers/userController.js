@@ -56,7 +56,7 @@ const authUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail, isDeleted: false });
 
     if (user && (await user.matchPassword(password))) {
-        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id);
+        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
         user.refreshTokenId = refreshTokenId;
         await user.save();
 
@@ -64,7 +64,9 @@ const authUser = asyncHandler(async (req, res) => {
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
             secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
-            sameSite: 'lax',          // Allows same-site cookie in all cases
+            // Admin sessions use 'strict': on a shared machine the cookie is not sent
+            // with top-level navigation after the admin closes the tab without logging out.
+            sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
             maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
             path: '/',                // Cookie sent with all requests
         });
@@ -125,7 +127,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
-        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id);
+        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
         user.refreshTokenId = refreshTokenId;
         await user.save();
 
@@ -133,7 +135,7 @@ const registerUser = asyncHandler(async (req, res) => {
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
             secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
-            sameSite: 'lax',          // Allows same-site cookie in all cases
+            sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
             maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
             path: '/',                // Cookie sent with all requests
         });
@@ -664,7 +666,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new Error(getMessage(req.lang, 'admin-controllers-messages.refresh_token_revoked'));
         }
 
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenId } = generateTokenPair(user._id);
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
         const rotationResult = await User.updateOne(
             { _id: user._id, refreshTokenId: decoded.jti, isDeleted: false },
             { $set: { refreshTokenId } },
@@ -909,7 +911,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   }
 
   // Issue our system's tokens
-  const { refreshToken, refreshTokenId } = generateTokenPair(user._id);
+  const { refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
   user.refreshTokenId = refreshTokenId;
   await user.save();
 
@@ -917,7 +919,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
     maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS, // 7 days
     path: '/',
   });

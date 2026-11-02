@@ -1,0 +1,1437 @@
+{
+  "workflow": "assistant_batch",
+  "records": [
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "en",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Discover the Mechanical keyboard AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nThe Mechanical keyboard AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) from Aula focuses on durable switches, flexible connection modes and a clean tenkeyless layout. Every detail below reflects what the manufacturer ships in the box.\n\nSpec highlights\n\nBuy the Mechanical keyboard AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) at GearVN\n\nGearVN offers genuine Aula products with credible warranty support and fast nationwide delivery. Order the Mechanical keyboard AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) today for a reliable pick.\n\nConnection covers three modes: wired Type-C, wireless 2.4G and Bluetooth.\n\nCharging runs at DC5V 600mA; a full charge yields about 22 hours of RGB lighting.\n\nRated current is 180mA @37V with default lighting and 15 mA with lights off.\n\nWeight sits at about 916g without the cable or receiver (935g with them).\n\nKey travel is 4.0mm with a linear typing sound profile.\n\nRated voltage is DC 3.7V (up to a full 4.2V when charged).\n\nKeyboard dimensions (L × W × H): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 keys",
+          "connection": "Wired;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Specifications: {\"Size/Layout\": \"TKL/Tenkeyless (80%)\", \"Number of keys\": \"87 keys\", \"Connection\": \"Wired;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "pt",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Descubra o Teclado mecânico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nO Teclado mecânico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) da Aula aposta em switches duráveis, modos de ligação flexíveis e um layout tenkeyless limpo. Cada detalhe abaixo reflete o que o fabricante inclui na caixa.\n\nDestaques técnicos\n\nCompre o Teclado mecânico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) na GearVN\n\nA GearVN oferece produtos Aula originais com garantia credível e entrega rápida. Encomende já o Teclado mecânico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) para uma escolha fiável.\n\nA ligação cobre três modos: Type-C com fios, 2.4G sem fios e Bluetooth.\n\nO carregamento ocorre em DC5V 600mA; uma carga completa rende cerca de 22 horas de luz RGB.\n\nA corrente nominal é 180mA @37V com iluminação padrão e 15 mA com as luzes apagadas.\n\nO peso fica em cerca de 916g sem cabo nem recetor (935g com).\n\nO curso das teclas é de 4.0mm com um perfil sonoro linear.\n\nA tensão nominal é DC 3.7V (até 4.2V com carga completa).\n\nDimensões do teclado (C × L × A): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "Com fios;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Especificações: {\"Tamanho/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Ligação\": \"Com fios;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "fr",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Découvrez le Clavier mécanique AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nLe Clavier mécanique AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) de Aula mise sur des switches durables, des modes de connexion flexibles et un format TKL épuré. Chaque détail ci-dessous reflète le contenu de la boîte du fabricant.\n\nPoints clés\n\nAchetez le Clavier mécanique AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) chez GearVN\n\nGearVN propose des produits Aula authentiques avec garantie crédible et livraison rapide. Commandez dès aujourd'hui le Clavier mécanique AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) pour un choix fiable.\n\nLa connexion couvre trois modes : Type-C filaire, 2.4G sans fil et Bluetooth.\n\nLa charge se fait en DC5V 600mA ; une charge complète donne environ 22 heures d'éclairage RGB.\n\nLe courant nominal est de 180mA @37V avec l'éclairage par défaut et 15 mA lights éteintes.\n\nLe poids est d'environ 916g sans câble ni récepteur (935g avec).\n\nLa course des touches est de 4.0mm avec un profil sonore linéaire.\n\nLa tension nominale est DC 3.7V (jusqu'à 4.2V une fois chargée).\n\nDimensions du clavier (L × P × H) : 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 touches",
+          "connection": "Filaire;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Spécifications: {\"Taille/Layout\": \"TKL/Tenkeyless (80%)\", \"Nombre de touches\": \"87 touches\", \"Connexion\": \"Filaire;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "de",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Entdecken Sie den Mechanische Tastatur AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nDer Mechanische Tastatur AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) von Aula setzt auf langlebige Switches, flexible Verbindungsmodi und ein aufgeräumtes Tenkeyless-Layout. Jedes Detail unten entspricht dem Lieferumfang des Herstellers.\n\nSpec-Highlights\n\nKaufen Sie den Mechanische Tastatur AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) bei GearVN\n\nGearVN bietet originale Aula-Produkte mit verlässlicher Garantie und schnellem Versand. Bestellen Sie den Mechanische Tastatur AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) noch heute für eine zuverlässige Wahl.\n\nDie Verbindung deckt drei Modi ab: kabelgebunden Type-C, kabellos 2.4G und Bluetooth.\n\nDas Laden erfolgt mit DC5V 600mA; eine vollständige Ladung liefert etwa 22 Stunden RGB-Beleuchtung.\n\nDer Nennstrom beträgt 180mA @37V mit Standardbeleuchtung und 15 mA bei ausgeschaltetem Licht.\n\nDas Gewicht liegt bei ca. 916g ohne Kabel oder Empfänger (935g mit).\n\nDer Tastenweg beträgt 4.0mm mit linearem Schallprofil.\n\nDie Nennspannung beträgt DC 3.7V (bis zu vollen 4.2V bei Ladung).\n\nTastaturabmessungen (L × B × H): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 Tasten",
+          "connection": "Kabelgebunden;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Technische Daten: {\"Größe/Layout\": \"TKL/Tenkeyless (80%)\", \"Anzahl der Tasten\": \"87 Tasten\", \"Verbindung\": \"Kabelgebunden;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "it",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Scopri il Tastiera meccanica AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nIl Tastiera meccanica AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) di Aula punta su switch duraturi, modalità di connessione flessibili e un layout tenkeyless essenziale. Ogni dettaglio sotto riflette ciò che il produttore include nella confezione.\n\nPunti salienti\n\nCompra il Tastiera meccanica AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) su GearVN\n\nGearVN offre prodotti Aula originali con garanzia credibile e consegna rapida. Ordina subito il Tastiera meccanica AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) per una scelta affidabile.\n\nLa connessione copre tre modalità: Type-C cablata, 2.4G wireless e Bluetooth.\n\nLa ricarica avviene in DC5V 600mA; una carica completa offre circa 22 ore di luce RGB.\n\nLa corrente nominale è 180mA @37V con illuminazione predefinita e 15 mA a luci spente.\n\nIl peso è di circa 916g senza cavo né ricevitore (935g con essi).\n\nLa corsa dei tasti è di 4.0mm con un profilo sonoro lineare.\n\nLa tensione nominale è DC 3.7V (fino a 4.2V a carica completa).\n\nDimensioni della tastiera (L × P × H): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tasti",
+          "connection": "Cablato;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Specifiche: {\"Dimensione/Layout\": \"TKL/Tenkeyless (80%)\", \"Numero di tasti\": \"87 tasti\", \"Connessione\": \"Cablato;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "es",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Descubre el Teclado mecánico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nEl Teclado mecánico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) de Aula apuesta por switches duraderos, modos de conexión flexibles y un layout tenkeyless limpio. Cada detalle a continuación refleja lo que el fabricante incluye en la caja.\n\nPuntos clave\n\nCompra el Teclado mecánico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) en GearVN\n\nGearVN ofrece productos Aula originales con garantía creíble y entrega rápida. Pide ya el Teclado mecánico AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) para una elección fiable.\n\nLa conexión cubre tres modos: Type-C con cable, 2.4G inalámbrico y Bluetooth.\n\nLa carga se realiza en DC5V 600mA; una carga completa ofrece unas 22 horas de luz RGB.\n\nLa corriente nominal es 180mA @37V con iluminación predeterminada y 15 mA con las luces apagadas.\n\nEl peso ronda los 916g sin cable ni receptor (935g con ellos).\n\nEl recorrido de tecla es de 4.0mm con un perfil sonoro lineal.\n\nEl voltaje nominal es DC 3.7V (hasta 4.2V con carga completa).\n\nDimensiones del teclado (An × Pr × Al): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "Con cable;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Especificaciones: {\"Tamaño/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Conexión\": \"Con cable;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "nl",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Ontdek de Mechanisch toetsenbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nDe Mechanisch toetsenbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) van Aula focust op duurzame switches, flexibele verbindingsmodi en een strak tenkeyless layout. Elk detail hieronder weerspiegelt wat de fabrikant meelevert.\n\nSpec hoogtepunten\n\nKoop de Mechanisch toetsenbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) bij GearVN\n\nGearVN levert originele Aula-producten met betrouwbare garantie en snelle levering. Bestel de Mechanisch toetsenbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) vandaag voor een betrouwbare keuze.\n\nDe verbinding dekt drie modi: bedraad Type-C, draadloos 2.4G en Bluetooth.\n\nOpladen gebeurt met DC5V 600mA; een volledige lading geeft ongeveer 22 uur RGB-verlichting.\n\nDe nominale stroom is 180mA @37V met standaardverlichting en 15 mA met licht uit.\n\nHet gewicht ligt op ca. 916g zonder kabel of ontvanger (935g met).\n\nDe toetsenslag is 4.0mm met een lineair typgeluid.\n\nDe nominale spanning is DC 3.7V (tot een volle 4.2V bij opladen).\n\nToetsenbordafmetingen (L × B × H): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 toetsen",
+          "connection": "Bedraad;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Specificaties: {\"Grootte/Layout\": \"TKL/Tenkeyless (80%)\", \"Aantal toetsen\": \"87 toetsen\", \"Verbinding\": \"Bedraad;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0cff40069aece85a8c728",
+      "targetLang": "sv",
+      "sourceHash": "9ffd92f8ba05eefa7379b61c725cb07bac76f1656f967d0b4ce82332571a4089",
+      "source": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+        "description": "- Độ bền phím: 60 triệu lần bấm - Thời gian sử dụng sau khi sạc đầy pin: Khoảng 22 giờ (hiệu ứng ánh sáng mặc định)/ 266 giờ (khi tắt đèn) - Kết nối: 3 mode có dây Type-C, không dây 2.4G & BT - Màu sắc: Xám đậm trắng xám - Đèn nền: LED RGB - 16 loại hiệu ứng ánh sáng - Loại switch: Grey wood switch - Hiệu ứng âm thanh khi gõ phím: Linear - Hot swap - Gasket mount - Mạch ngược - Số lượng phím: 87 phím - Hành trình phím: 4.0mm - Điện áp/dòng sạc: DC5V 600mA - Điện áp định mức: DC 3.7V (đầy đủ 4.2V) - Định mức dòng điện: 180mA @37V (hiệu ứng ánh sáng mặc định)/15 mA (tắt tất cả đèn) - Trọng lượng: Xấp xỉ 916g (không có cáp/bộ thu), 935g (với cáp/bộ thu) - Kích thước bàn phím (L x W x H): 365,90 x 139,00 x 41,10 +1 mm - Phụ kiện kèm theo: Sách hướng dẫn sử dụng + 2 Switch tặng kèm + Dây USB type-C + Dụng cụ thay keycap",
+        "brand": "Aula",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "Có dây;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"Có dây;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W F",
+        "description": "Upptäck Mekaniskt tangentbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch)\n\nMekaniskt tangentbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) från Aula fokuserar på hållbara switchar, flexibla anslutningslägen och en ren tenkeyless-layout. Varje detalj nedan speglar vad tillverkaren levererar i lådan.\n\nSpec-höjdpunkter\n\nKöp Mekaniskt tangentbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) hos GearVN\n\nGearVN erbjuder originalprodukter från Aula med pålitlig garanti och snabb leverans. Beställ Mekaniskt tangentbord AULA AULA TM (Xám + Trắng + Xám đậm /Grey Wood Switch) idag för ett tryggt val.\n\nAnslutningen täcker tre lägen: trådbunden Type-C, trådlös 2.4G och Bluetooth.\n\nLaddning sker med DC5V 600mA; en full laddning ger cirka 22 timmars RGB-belysning.\n\nMärkströmmen är 180mA @37V med standardbelysning och 15 mA med ljuset av.\n\nVikten ligger på ca 916g utan kabel eller mottagare (935g med).\n\nTangentresan är 4.0mm med ett linjärt skrivljud.\n\nMärkspänningen är DC 3.7V (upp till 4.2V vid full laddning).\n\nTangentbordsmått (L × B × H): 365.90 × 139.00 × 41.10 +1 mm.",
+        "brand": "AULA",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tangenter",
+          "connection": "Trådbunden;Bluetooth;Wireless 2.4GHz"
+        },
+        "technicalDescription": "Specifikationer: {\"Storlek/Layout\": \"TKL/Tenkeyless (80%)\", \"Antal tangenter\": \"87 tangenter\", \"Anslutning\": \"Trådbunden;Bluetooth;Wireless 2.4GHz\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "en",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Headset Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Discover the Headset Tai nghe HyperX Cloud Stinger Core II\n\nThe Headset Tai nghe HyperX Cloud Stinger Core II from HyperX focuses on durable switches, flexible connection modes and a clean tenkeyless layout. Every detail below reflects what the manufacturer ships in the box.\n\nSpec highlights\n\nBuy the Headset Tai nghe HyperX Cloud Stinger Core II at GearVN\n\nGearVN offers genuine HyperX products with credible warranty support and fast nationwide delivery. Order the Headset Tai nghe HyperX Cloud Stinger Core II today for a reliable pick.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Wired",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Specifications: {\"Connection\": \"Wired\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "pt",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Auscultadores Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Descubra o Auscultadores Tai nghe HyperX Cloud Stinger Core II\n\nO Auscultadores Tai nghe HyperX Cloud Stinger Core II da HyperX aposta em switches duráveis, modos de ligação flexíveis e um layout tenkeyless limpo. Cada detalhe abaixo reflete o que o fabricante inclui na caixa.\n\nDestaques técnicos\n\nCompre o Auscultadores Tai nghe HyperX Cloud Stinger Core II na GearVN\n\nA GearVN oferece produtos HyperX originais com garantia credível e entrega rápida. Encomende já o Auscultadores Tai nghe HyperX Cloud Stinger Core II para uma escolha fiável.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Com fios",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Especificações: {\"Ligação\": \"Com fios\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "fr",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Casque Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Découvrez le Casque Tai nghe HyperX Cloud Stinger Core II\n\nLe Casque Tai nghe HyperX Cloud Stinger Core II de HyperX mise sur des switches durables, des modes de connexion flexibles et un format TKL épuré. Chaque détail ci-dessous reflète le contenu de la boîte du fabricant.\n\nPoints clés\n\nAchetez le Casque Tai nghe HyperX Cloud Stinger Core II chez GearVN\n\nGearVN propose des produits HyperX authentiques avec garantie crédible et livraison rapide. Commandez dès aujourd'hui le Casque Tai nghe HyperX Cloud Stinger Core II pour un choix fiable.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Filaire",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Spécifications: {\"Connexion\": \"Filaire\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "de",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Headset Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Entdecken Sie den Headset Tai nghe HyperX Cloud Stinger Core II\n\nDer Headset Tai nghe HyperX Cloud Stinger Core II von HyperX setzt auf langlebige Switches, flexible Verbindungsmodi und ein aufgeräumtes Tenkeyless-Layout. Jedes Detail unten entspricht dem Lieferumfang des Herstellers.\n\nSpec-Highlights\n\nKaufen Sie den Headset Tai nghe HyperX Cloud Stinger Core II bei GearVN\n\nGearVN bietet originale HyperX-Produkte mit verlässlicher Garantie und schnellem Versand. Bestellen Sie den Headset Tai nghe HyperX Cloud Stinger Core II noch heute für eine zuverlässige Wahl.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Kabelgebunden",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Technische Daten: {\"Verbindung\": \"Kabelgebunden\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "it",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Cuffie Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Scopri il Cuffie Tai nghe HyperX Cloud Stinger Core II\n\nIl Cuffie Tai nghe HyperX Cloud Stinger Core II di HyperX punta su switch duraturi, modalità di connessione flessibili e un layout tenkeyless essenziale. Ogni dettaglio sotto riflette ciò che il produttore include nella confezione.\n\nPunti salienti\n\nCompra il Cuffie Tai nghe HyperX Cloud Stinger Core II su GearVN\n\nGearVN offre prodotti HyperX originali con garanzia credibile e consegna rapida. Ordina subito il Cuffie Tai nghe HyperX Cloud Stinger Core II per una scelta affidabile.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Cablato",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Specifiche: {\"Connessione\": \"Cablato\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "es",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Auriculares Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Descubre el Auriculares Tai nghe HyperX Cloud Stinger Core II\n\nEl Auriculares Tai nghe HyperX Cloud Stinger Core II de HyperX apuesta por switches duraderos, modos de conexión flexibles y un layout tenkeyless limpio. Cada detalle a continuación refleja lo que el fabricante incluye en la caja.\n\nPuntos clave\n\nCompra el Auriculares Tai nghe HyperX Cloud Stinger Core II en GearVN\n\nGearVN ofrece productos HyperX originales con garantía creíble y entrega rápida. Pide ya el Auriculares Tai nghe HyperX Cloud Stinger Core II para una elección fiable.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Con cable",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Especificaciones: {\"Conexión\": \"Con cable\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "nl",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Headset Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Ontdek de Headset Tai nghe HyperX Cloud Stinger Core II\n\nDe Headset Tai nghe HyperX Cloud Stinger Core II van HyperX focust op duurzame switches, flexibele verbindingsmodi en een strak tenkeyless layout. Elk detail hieronder weerspiegelt wat de fabrikant meelevert.\n\nSpec hoogtepunten\n\nKoop de Headset Tai nghe HyperX Cloud Stinger Core II bij GearVN\n\nGearVN levert originele HyperX-producten met betrouwbare garantie en snelle levering. Bestel de Headset Tai nghe HyperX Cloud Stinger Core II vandaag voor een betrouwbare keuze.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Bedraad",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Specificaties: {\"Verbinding\": \"Bedraad\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d2af0069aece85a8c7cd",
+      "targetLang": "sv",
+      "sourceHash": "6b5126264d71350208dfa24a322c5742396b67f28effde3fee3066e72dec6d72",
+      "source": {
+        "name": "Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Thông số kỹ thuật:\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Có dây",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Thông số: {\"Phương thức kết nối\": \"Có dây\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Headset Tai nghe HyperX Cloud Stinger Core II",
+        "description": "Upptäck Headset Tai nghe HyperX Cloud Stinger Core II\n\nHeadset Tai nghe HyperX Cloud Stinger Core II från HyperX fokuserar på hållbara switchar, flexibla anslutningslägen och en ren tenkeyless-layout. Varje detalj nedan speglar vad tillverkaren levererar i lådan.\n\nSpec-höjdpunkter\n\nKöp Headset Tai nghe HyperX Cloud Stinger Core II hos GearVN\n\nGearVN erbjuder originalprodukter från HyperX med pålitlig garanti och snabb leverans. Beställ Headset Tai nghe HyperX Cloud Stinger Core II idag för ett tryggt val.\n\nĐánh giá chi tiết tai nghe HyperX Cloud Stinger Core II\n\nTai nghe HyperX Cloud Stinger Core II là một trong những tai nghe đáng mua cho game thủ mới. Với mức giá phải chăng, HyperX Cloud Stinger Core II cho chất lượng âm thanh tuyệt vời, trong trẻo, chất lượng vượt xa so với những tai nghe giá rẻ cùng phân khúc.\n\nChất lượng âm thanh vượt trội\n\nNhờ vào kiểu dáng tai nghe chụp tai , HyperX Cloud Stinger Core II sẽ đưa bạn đến không gian âm thanh 3D cực chính xác. Driver 40mm trên Cloud Stinger Core II được điều chỉnh đặc biệt để cải thiện âm bass và mang lại trải nghiệm “có 102” cho game thủ.\n\nCải thiện chất lượng thu âm\n\nHyperX Cloud Stinger Core II còn được trang bị microphone tháo rời độc đáo với khả năng swivel-to-mute (xoay mic để tắt tiếng). Tính năng này khá mới mẻ và độc đáo cho những tai nghe gaming giá rẻ như HyperX. Nó giúp game thủ chủ động và dễ dàng điều khiển trải nghiệm âm thanh khi chơi game hơn.\n\nThiết kế HyperX Cloud Stinger Core II tiện lợi\n\nVẫn là thiết kế tai nghe over-ear quen thuộc nhưng HyperX Cloud Stinger Core II lại ghi điểm trong mắt người dùng bởi thiết kế tiện lợi, đẹp mắt với tông màu đen nhám thời thượng. Đường vân in chìm trên hai earcup cùng với logo HyperX vừa tô điểm cho tai nghe, vừa tăng độ nhận diện thương hiệu cho sản phẩm.\n\nNhờ vào thiết kế có phần nổi bật tạo điều kiện thuận lợi khi Setup góc máy chơi game ấn tượng khi đặt cạnh các thiết bị Gaming Gear khác trong góc máy như chuột máy tính chơi game, bàn phím cơ ,...\n\nChất liệu cao cấp\n\nTai nghe HyperX chưa bao giờ làm người dùng thất vọng. Nó được hoàn thiện với chất liệu nhựa cao cấp, bạn hoàn toàn có thể an toàn về độ cứng cáp và độ bền của sản phẩm. Phần đỉnh đầu và phần đệm tai nghe được làm bằng mút êm ái, thoải mái và không bị đau tai khi phải chiến game cả đêm dài.\n\n&gt;&gt;Xem thêm: Bó túi cách đeo tai nghe đúng cách, không bị đau tai .",
+        "brand": "HyperX",
+        "specs": {
+          "connection": "Trådbunden",
+          "headphoneType": "Over-ear",
+          "compatibility": "PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12",
+          "led": "Không",
+          "weight": "244 g",
+          "color": "Đen"
+        },
+        "technicalDescription": "Specifikationer: {\"Anslutning\": \"Trådbunden\", \"Kiểu tai nghe\": \"Over-ear\", \"Tương thích\": \"PC/Laptop;Mobile/Smartphone;Nintendo Switch;PS4;PS12\", \"Đèn LED\": \"Không\", \"Trọng lượng\": \"244 g\", \"Màu sắc\": \"Đen\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "en",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Wireless mouse Chuột Logitech G304 Wireless White",
+        "description": "Discover the Wireless mouse Chuột Logitech G304 Wireless White\n\nThe Wireless mouse Chuột Logitech G304 Wireless White from Logitech focuses on durable switches, flexible connection modes and a clean tenkeyless layout. Every detail below reflects what the manufacturer ships in the box.\n\nSpec highlights\n\nBuy the Wireless mouse Chuột Logitech G304 Wireless White at GearVN\n\nGearVN offers genuine Logitech products with credible warranty support and fast nationwide delivery. Order the Wireless mouse Chuột Logitech G304 Wireless White today for a reliable pick.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Specifications: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "pt",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Rato sem fios Chuột Logitech G304 Wireless White",
+        "description": "Descubra o Rato sem fios Chuột Logitech G304 Wireless White\n\nO Rato sem fios Chuột Logitech G304 Wireless White da Logitech aposta em switches duráveis, modos de ligação flexíveis e um layout tenkeyless limpo. Cada detalhe abaixo reflete o que o fabricante inclui na caixa.\n\nDestaques técnicos\n\nCompre o Rato sem fios Chuột Logitech G304 Wireless White na GearVN\n\nA GearVN oferece produtos Logitech originais com garantia credível e entrega rápida. Encomende já o Rato sem fios Chuột Logitech G304 Wireless White para uma escolha fiável.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Especificações: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "fr",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Souris sans fil Chuột Logitech G304 Wireless White",
+        "description": "Découvrez le Souris sans fil Chuột Logitech G304 Wireless White\n\nLe Souris sans fil Chuột Logitech G304 Wireless White de Logitech mise sur des switches durables, des modes de connexion flexibles et un format TKL épuré. Chaque détail ci-dessous reflète le contenu de la boîte du fabricant.\n\nPoints clés\n\nAchetez le Souris sans fil Chuột Logitech G304 Wireless White chez GearVN\n\nGearVN propose des produits Logitech authentiques avec garantie crédible et livraison rapide. Commandez dès aujourd'hui le Souris sans fil Chuột Logitech G304 Wireless White pour un choix fiable.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Spécifications: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "de",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Kabellose Maus Chuột Logitech G304 Wireless White",
+        "description": "Entdecken Sie den Kabellose Maus Chuột Logitech G304 Wireless White\n\nDer Kabellose Maus Chuột Logitech G304 Wireless White von Logitech setzt auf langlebige Switches, flexible Verbindungsmodi und ein aufgeräumtes Tenkeyless-Layout. Jedes Detail unten entspricht dem Lieferumfang des Herstellers.\n\nSpec-Highlights\n\nKaufen Sie den Kabellose Maus Chuột Logitech G304 Wireless White bei GearVN\n\nGearVN bietet originale Logitech-Produkte mit verlässlicher Garantie und schnellem Versand. Bestellen Sie den Kabellose Maus Chuột Logitech G304 Wireless White noch heute für eine zuverlässige Wahl.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Technische Daten: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "it",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mouse wireless Chuột Logitech G304 Wireless White",
+        "description": "Scopri il Mouse wireless Chuột Logitech G304 Wireless White\n\nIl Mouse wireless Chuột Logitech G304 Wireless White di Logitech punta su switch duraturi, modalità di connessione flessibili e un layout tenkeyless essenziale. Ogni dettaglio sotto riflette ciò che il produttore include nella confezione.\n\nPunti salienti\n\nCompra il Mouse wireless Chuột Logitech G304 Wireless White su GearVN\n\nGearVN offre prodotti Logitech originali con garanzia credibile e consegna rapida. Ordina subito il Mouse wireless Chuột Logitech G304 Wireless White per una scelta affidabile.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Specifiche: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "es",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Ratón inalámbrico Chuột Logitech G304 Wireless White",
+        "description": "Descubre el Ratón inalámbrico Chuột Logitech G304 Wireless White\n\nEl Ratón inalámbrico Chuột Logitech G304 Wireless White de Logitech apuesta por switches duraderos, modos de conexión flexibles y un layout tenkeyless limpio. Cada detalle a continuación refleja lo que el fabricante incluye en la caja.\n\nPuntos clave\n\nCompra el Ratón inalámbrico Chuột Logitech G304 Wireless White en GearVN\n\nGearVN ofrece productos Logitech originales con garantía creíble y entrega rápida. Pide ya el Ratón inalámbrico Chuột Logitech G304 Wireless White para una elección fiable.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Especificaciones: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "nl",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Draadloze muis Chuột Logitech G304 Wireless White",
+        "description": "Ontdek de Draadloze muis Chuột Logitech G304 Wireless White\n\nDe Draadloze muis Chuột Logitech G304 Wireless White van Logitech focust op duurzame switches, flexibele verbindingsmodi en een strak tenkeyless layout. Elk detail hieronder weerspiegelt wat de fabrikant meelevert.\n\nSpec hoogtepunten\n\nKoop de Draadloze muis Chuột Logitech G304 Wireless White bij GearVN\n\nGearVN levert originele Logitech-producten met betrouwbare garantie en snelle levering. Bestel de Draadloze muis Chuột Logitech G304 Wireless White vandaag voor een betrouwbare keuze.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Specificaties: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d5ed0069aece85a8c89c",
+      "targetLang": "sv",
+      "sourceHash": "512550b423c094b76f676c43517aab38bf82a39a093a4678f319bc386fa9513e",
+      "source": {
+        "name": "Chuột Logitech G304 Wireless White",
+        "description": "Chuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Thông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Trådlös mus Chuột Logitech G304 Wireless White",
+        "description": "Upptäck Trådlös mus Chuột Logitech G304 Wireless White\n\nTrådlös mus Chuột Logitech G304 Wireless White från Logitech fokuserar på hållbara switchar, flexibla anslutningslägen och en ren tenkeyless-layout. Varje detalj nedan speglar vad tillverkaren levererar i lådan.\n\nSpec-höjdpunkter\n\nKöp Trådlös mus Chuột Logitech G304 Wireless White hos GearVN\n\nGearVN erbjuder originalprodukter från Logitech med pålitlig garanti och snabb leverans. Beställ Trådlös mus Chuột Logitech G304 Wireless White idag för ett tryggt val.\n\nThông số: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000Hz, \"Loại pin\": \"Pin AA\"}\nDESCRIPTION (verbatim):\nChuột Logitech G304 Lightspeed Wireless White\n\nTHÔNG SỐ KĨ THUẬT\n\nKích thước\n\n116.6 x 62.15 x 38.2 ( mm ) ( Dài x Rộng x Cao )\n\nTrọng lượng\n\n99g\n\nCảm biến\n\nHERO\n\nĐộ phân giải\n\n200 – 12000 DPI\n\nTăng tốc tối đa\n\n&gt; 40 G\n\nTốc độ tối đa\n\n&gt; 400 IPS\n\nTốc độ báo cáo không dây\n\n1000Hz ( 1ms )\n\nCông nghệ LIGHTSPEED\n\nCó\n\nBộ vi xử lý\n\nARM 32-bit\n\nTuổi thọ pin\n\n250 giờ\n\nBộ nhớ tích hợp\n\n1 cấu hình\n\nHệ thống\n\nỨng lực Nút Cơ học\n\nTương thích phần mềm\n\nLogitech Gaming Software\n\nMột số đánh giá chi tiết chuột Logitech G304 Lightspeed Wireless White\n\nG304 là một trong những dòng sản phẩm chuột gaming sở hữu công nghệ LIGHTSPEED, mang đến những trải nghiệm chơi game thú vị. Với thiết kế chuột không dây mang đến hiệu suất thực sự với các đột phá công nghệ mới nhất ở mức giá thành phù hợp. Đó là chơi game không dây thế hệ mới, hiện đã sẵn sàng cho mọi game thủ.\n\nLogitech G304 White được xem là một trong những giải pháp dành cho chuột gaming không dây giải quyết vấn đề cơ bản của độ trễ, độ ổn định và khả năng kết nối. Kết quả cuối cùng là LIGHTSPEED.\n\nThời gian sử dụng pin siêu dài lên đến 250 giờ\n\nCảm biến HERO và công nghệ LIGHTSPEED không dây đem lại hiệu suất đỉnh cao cho phép bạn chơi game trong hàng tháng. Một trong những dòng chuột Logitech đem lại đến 250 giờ hoạt động chỉ trên một quả pin AA. Nó có thể được điều chỉnh để sử dụng trong tới 9 tháng ở mức thông thường trong chế độ Bền.\n\nG304 sở hữu mắt cảm biến HERO\n\nHERO là cảm biến quang học đổi mới được thiết kế bởi Logitech G để mang lại hiệu suất đẳng cấp dẫn đầu và tiết kiệm năng lượng tới 10 lần (so với hệ thệ trước). Cảm biến HERO mang lại hiệu suất ổn định và chính xác vượt trội với khả năng làm mượt, lọc và tăng tốc từ 200 tới 12.000 DPI. G304 có thể lưu tới 5 cấu hình với tối đa 5 cấp độ DPI trên bộ nhớ tích hợp.\n\nG304 được thiết lập với 6 nút lập trình tùy biến\n\nCác phím chính của G304 , cả ở bên trái và phải, được đánh giá 10 triệu lần nhấp. G304 cũng có nút giữa, nút DPI và hai nút bên có thể được lập trình tùy theo sở thích của bạn bằng G HUB của Logitech. Do đó, bạn có thể tuỳ chỉnh các nút bấm nhằm phù hợp với nhu cầu sử dụng, mang đến cảm giác chơi game tốt nhất.\n\nỨng lực nút cơ học mang đến sự ổn định\n\nChuột Logitech G304 với hệ thống ứng lực cho nút cơ học với các nút tách biệt nâng cao sự ổn định của các nút chuột trái, phải và giúp giảm lực cần thiết để nhấp chuột. Điều này tạo ra hiệu suất nút nhanh chóng, đáng tin cậy mà bạn có thể tin tưởng ngay cả ở những cuộc thi đấu căng thẳng nhất. Hứa hẹn đây sẽ là một trong những phụ kiện chơi game đến từ Logitech bên cạnh bàn phím cơ , tai nghe Gaming,..sẽ mang đến cho bạn những trải nghiệm chơi game vô cùng ấn tượng.\n\nThêm vào đó, Logitech G Pro X Superlight Wireless Black và Logitech G203 LightSync Lilac mang đến hiệu năng mượt mà, độ bền ấn tượng và khả năng kết nối ổn định.\n\nNgoài ra, nếu bạn muốn bộ đôi chuột sử dụng ở nhà và nơi làm việc, có thể chọn Logitech G102 để cố định tại bàn, và Logitech G304 mang theo khi di chuyển.",
+        "brand": "Logitech",
+        "specs": {
+          "color": "Trắng",
+          "connection": "Wireless",
+          "sensor": "HERO",
+          "maxDPI": "200 - 12000 DPI",
+          "pollRate": "1000",
+          "battery": "Pin AA"
+        },
+        "technicalDescription": "Specifikationer: {\"Màu sắc\": \"Trắng\", \"Kết nối\": \"Wireless\", \"Cảm biến (Sensor)\": \"HERO\", \"Độ phân giải (DPI)\": \"200 - 12000 DPI\", \"Polling Rate\": \"1000\", \"Loại pin\": \"Pin AA\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "en",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanical keyboard Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Discover the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Green Switch\n\nThe Mechanical keyboard Razer Blackwidow V3 Tenkeyless Green Switch from Razer focuses on durable switches, flexible connection modes and a clean tenkeyless layout. Every detail below reflects what the manufacturer ships in the box.\n\nSpec highlights\n\nBuy the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Green Switch at GearVN\n\nGearVN offers genuine Razer products with credible warranty support and fast nationwide delivery. Order the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Green Switch today for a reliable pick.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 keys",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Specifications: {\"Size/Layout\": \"TKL/Tenkeyless (80%)\", \"Number of keys\": \"87 keys\", \"Connection\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "pt",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Teclado mecânico Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Descubra o Teclado mecânico Razer Blackwidow V3 Tenkeyless Green Switch\n\nO Teclado mecânico Razer Blackwidow V3 Tenkeyless Green Switch da Razer aposta em switches duráveis, modos de ligação flexíveis e um layout tenkeyless limpo. Cada detalhe abaixo reflete o que o fabricante inclui na caixa.\n\nDestaques técnicos\n\nCompre o Teclado mecânico Razer Blackwidow V3 Tenkeyless Green Switch na GearVN\n\nA GearVN oferece produtos Razer originais com garantia credível e entrega rápida. Encomende já o Teclado mecânico Razer Blackwidow V3 Tenkeyless Green Switch para uma escolha fiável.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Especificações: {\"Tamanho/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Ligação\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "fr",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Clavier mécanique Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Découvrez le Clavier mécanique Razer Blackwidow V3 Tenkeyless Green Switch\n\nLe Clavier mécanique Razer Blackwidow V3 Tenkeyless Green Switch de Razer mise sur des switches durables, des modes de connexion flexibles et un format TKL épuré. Chaque détail ci-dessous reflète le contenu de la boîte du fabricant.\n\nPoints clés\n\nAchetez le Clavier mécanique Razer Blackwidow V3 Tenkeyless Green Switch chez GearVN\n\nGearVN propose des produits Razer authentiques avec garantie crédible et livraison rapide. Commandez dès aujourd'hui le Clavier mécanique Razer Blackwidow V3 Tenkeyless Green Switch pour un choix fiable.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 touches",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Spécifications: {\"Taille/Layout\": \"TKL/Tenkeyless (80%)\", \"Nombre de touches\": \"87 touches\", \"Connexion\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "de",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Entdecken Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Green Switch\n\nDer Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Green Switch von Razer setzt auf langlebige Switches, flexible Verbindungsmodi und ein aufgeräumtes Tenkeyless-Layout. Jedes Detail unten entspricht dem Lieferumfang des Herstellers.\n\nSpec-Highlights\n\nKaufen Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Green Switch bei GearVN\n\nGearVN bietet originale Razer-Produkte mit verlässlicher Garantie und schnellem Versand. Bestellen Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Green Switch noch heute für eine zuverlässige Wahl.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 Tasten",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Technische Daten: {\"Größe/Layout\": \"TKL/Tenkeyless (80%)\", \"Anzahl der Tasten\": \"87 Tasten\", \"Verbindung\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "it",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Tastiera meccanica Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Scopri il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Green Switch\n\nIl Tastiera meccanica Razer Blackwidow V3 Tenkeyless Green Switch di Razer punta su switch duraturi, modalità di connessione flessibili e un layout tenkeyless essenziale. Ogni dettaglio sotto riflette ciò che il produttore include nella confezione.\n\nPunti salienti\n\nCompra il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Green Switch su GearVN\n\nGearVN offre prodotti Razer originali con garanzia credibile e consegna rapida. Ordina subito il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Green Switch per una scelta affidabile.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tasti",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Specifiche: {\"Dimensione/Layout\": \"TKL/Tenkeyless (80%)\", \"Numero di tasti\": \"87 tasti\", \"Connessione\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "es",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Teclado mecánico Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Descubre el Teclado mecánico Razer Blackwidow V3 Tenkeyless Green Switch\n\nEl Teclado mecánico Razer Blackwidow V3 Tenkeyless Green Switch de Razer apuesta por switches duraderos, modos de conexión flexibles y un layout tenkeyless limpio. Cada detalle a continuación refleja lo que el fabricante incluye en la caja.\n\nPuntos clave\n\nCompra el Teclado mecánico Razer Blackwidow V3 Tenkeyless Green Switch en GearVN\n\nGearVN ofrece productos Razer originales con garantía creíble y entrega rápida. Pide ya el Teclado mecánico Razer Blackwidow V3 Tenkeyless Green Switch para una elección fiable.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Especificaciones: {\"Tamaño/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Conexión\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "nl",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Ontdek de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Green Switch\n\nDe Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Green Switch van Razer focust op duurzame switches, flexibele verbindingsmodi en een strak tenkeyless layout. Elk detail hieronder weerspiegelt wat de fabrikant meelevert.\n\nSpec hoogtepunten\n\nKoop de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Green Switch bij GearVN\n\nGearVN levert originele Razer-producten met betrouwbare garantie en snelle levering. Bestel de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Green Switch vandaag voor een betrouwbare keuze.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 toetsen",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Specificaties: {\"Grootte/Layout\": \"TKL/Tenkeyless (80%)\", \"Aantal toetsen\": \"87 toetsen\", \"Verbinding\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8fe",
+      "targetLang": "sv",
+      "sourceHash": "c55bb2be0b6023b8b45599ebfa08099b747e57d76445cc4ad946506a5a5e47ef",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Green Switch",
+        "description": "Upptäck Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Green Switch\n\nMekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Green Switch från Razer fokuserar på hållbara switchar, flexibla anslutningslägen och en ren tenkeyless-layout. Varje detalj nedan speglar vad tillverkaren levererar i lådan.\n\nSpec-höjdpunkter\n\nKöp Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Green Switch hos GearVN\n\nGearVN erbjuder originalprodukter från Razer med pålitlig garanti och snabb leverans. Beställ Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Green Switch idag för ett tryggt val.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tangenter",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Rainbow"
+        },
+        "technicalDescription": "Specifikationer: {\"Storlek/Layout\": \"TKL/Tenkeyless (80%)\", \"Antal tangenter\": \"87 tangenter\", \"Anslutning\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Rainbow\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "en",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanical keyboard Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Discover the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nThe Mechanical keyboard Razer Blackwidow V3 Tenkeyless Yellow Switch from Razer focuses on durable switches, flexible connection modes and a clean tenkeyless layout. Every detail below reflects what the manufacturer ships in the box.\n\nSpec highlights\n\nBuy the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Yellow Switch at GearVN\n\nGearVN offers genuine Razer products with credible warranty support and fast nationwide delivery. Order the Mechanical keyboard Razer Blackwidow V3 Tenkeyless Yellow Switch today for a reliable pick.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 keys",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Specifications: {\"Size/Layout\": \"TKL/Tenkeyless (80%)\", \"Number of keys\": \"87 keys\", \"Connection\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "pt",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Teclado mecânico Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Descubra o Teclado mecânico Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nO Teclado mecânico Razer Blackwidow V3 Tenkeyless Yellow Switch da Razer aposta em switches duráveis, modos de ligação flexíveis e um layout tenkeyless limpo. Cada detalhe abaixo reflete o que o fabricante inclui na caixa.\n\nDestaques técnicos\n\nCompre o Teclado mecânico Razer Blackwidow V3 Tenkeyless Yellow Switch na GearVN\n\nA GearVN oferece produtos Razer originais com garantia credível e entrega rápida. Encomende já o Teclado mecânico Razer Blackwidow V3 Tenkeyless Yellow Switch para uma escolha fiável.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Especificações: {\"Tamanho/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Ligação\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "fr",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Clavier mécanique Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Découvrez le Clavier mécanique Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nLe Clavier mécanique Razer Blackwidow V3 Tenkeyless Yellow Switch de Razer mise sur des switches durables, des modes de connexion flexibles et un format TKL épuré. Chaque détail ci-dessous reflète le contenu de la boîte du fabricant.\n\nPoints clés\n\nAchetez le Clavier mécanique Razer Blackwidow V3 Tenkeyless Yellow Switch chez GearVN\n\nGearVN propose des produits Razer authentiques avec garantie crédible et livraison rapide. Commandez dès aujourd'hui le Clavier mécanique Razer Blackwidow V3 Tenkeyless Yellow Switch pour un choix fiable.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 touches",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Spécifications: {\"Taille/Layout\": \"TKL/Tenkeyless (80%)\", \"Nombre de touches\": \"87 touches\", \"Connexion\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "de",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Entdecken Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nDer Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Yellow Switch von Razer setzt auf langlebige Switches, flexible Verbindungsmodi und ein aufgeräumtes Tenkeyless-Layout. Jedes Detail unten entspricht dem Lieferumfang des Herstellers.\n\nSpec-Highlights\n\nKaufen Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Yellow Switch bei GearVN\n\nGearVN bietet originale Razer-Produkte mit verlässlicher Garantie und schnellem Versand. Bestellen Sie den Mechanische Tastatur Razer Blackwidow V3 Tenkeyless Yellow Switch noch heute für eine zuverlässige Wahl.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 Tasten",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Technische Daten: {\"Größe/Layout\": \"TKL/Tenkeyless (80%)\", \"Anzahl der Tasten\": \"87 Tasten\", \"Verbindung\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "it",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Tastiera meccanica Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Scopri il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nIl Tastiera meccanica Razer Blackwidow V3 Tenkeyless Yellow Switch di Razer punta su switch duraturi, modalità di connessione flessibili e un layout tenkeyless essenziale. Ogni dettaglio sotto riflette ciò che il produttore include nella confezione.\n\nPunti salienti\n\nCompra il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Yellow Switch su GearVN\n\nGearVN offre prodotti Razer originali con garanzia credibile e consegna rapida. Ordina subito il Tastiera meccanica Razer Blackwidow V3 Tenkeyless Yellow Switch per una scelta affidabile.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tasti",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Specifiche: {\"Dimensione/Layout\": \"TKL/Tenkeyless (80%)\", \"Numero di tasti\": \"87 tasti\", \"Connessione\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "es",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Teclado mecánico Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Descubre el Teclado mecánico Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nEl Teclado mecánico Razer Blackwidow V3 Tenkeyless Yellow Switch de Razer apuesta por switches duraderos, modos de conexión flexibles y un layout tenkeyless limpio. Cada detalle a continuación refleja lo que el fabricante incluye en la caja.\n\nPuntos clave\n\nCompra el Teclado mecánico Razer Blackwidow V3 Tenkeyless Yellow Switch en GearVN\n\nGearVN ofrece productos Razer originales con garantía creíble y entrega rápida. Pide ya el Teclado mecánico Razer Blackwidow V3 Tenkeyless Yellow Switch para una elección fiable.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 teclas",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Especificaciones: {\"Tamaño/Layout\": \"TKL/Tenkeyless (80%)\", \"Número de teclas\": \"87 teclas\", \"Conexión\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "nl",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Ontdek de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nDe Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Yellow Switch van Razer focust op duurzame switches, flexibele verbindingsmodi en een strak tenkeyless layout. Elk detail hieronder weerspiegelt wat de fabrikant meelevert.\n\nSpec hoogtepunten\n\nKoop de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Yellow Switch bij GearVN\n\nGearVN levert originele Razer-producten met betrouwbare garantie en snelle levering. Bestel de Mechanisch toetsenbord Razer Blackwidow V3 Tenkeyless Yellow Switch vandaag voor een betrouwbare keuze.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 toetsen",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Specificaties: {\"Grootte/Layout\": \"TKL/Tenkeyless (80%)\", \"Aantal toetsen\": \"87 toetsen\", \"Verbinding\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    },
+    {
+      "productId": "6ad0d73a0069aece85a8c8ff",
+      "targetLang": "sv",
+      "sourceHash": "ae1c537fc3eff5f88c5f08f9d39d6a5eac70ef66bd0543e44fb52907d3e16827",
+      "source": {
+        "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "THÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 phím",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Thông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (80%)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      },
+      "translations": {
+        "name": "Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Yellow Switch",
+        "description": "Upptäck Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Yellow Switch\n\nMekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Yellow Switch från Razer fokuserar på hållbara switchar, flexibla anslutningslägen och en ren tenkeyless-layout. Varje detalj nedan speglar vad tillverkaren levererar i lådan.\n\nSpec-höjdpunkter\n\nKöp Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Yellow Switch hos GearVN\n\nGearVN erbjuder originalprodukter från Razer med pålitlig garanti och snabb leverans. Beställ Mekaniskt tangentbord Razer Blackwidow V3 Tenkeyless Yellow Switch idag för ett tryggt val.\n\nThông số: {\"Kích thước/Layout\": \"TKL/Tenkeyless (-)\", \"Số lượng phím\": \"87 phím\", \"Phương thức kết nối\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}\nDESCRIPTION (verbatim):\nTHÔNG SỐ KĨ THUẬT\n\nĐánh giá chi tiết bàn phím gaming Razer Blackwidow V3 Tenkeyless\n\nCảm nhận sự khác biệt\n\nSwitch cơ RAZER Razer BlackWidow V3 Tenkeyless với hai biến thể:\n\nSwitch xanh\n\nSwitch vàng\n\nSwitch tuyến tính, im lặng này tạo ra các lần nhấn phím cực kỳ mượt mà mà không có va đập xúc giác và bao gồm bộ giảm chấn âm thanh để giảm cấu hình âm thanh vốn đã thấp hơn.\n\nThiết kế khung nhôm\n\nDây cáp gọn gàng\n\n&gt;&gt; Đừng bỏ qua các sản phẩm tai nghe game thủ giá rẻ",
+        "brand": "Razer",
+        "specs": {
+          "layout": "TKL/Tenkeyless (80%)",
+          "buttons": "87 tangenter",
+          "connection": "USB",
+          "keycapMaterial": "ABS",
+          "chat_lieu_vo": "Nhựa",
+          "led": "Razer Chroma RGB"
+        },
+        "technicalDescription": "Specifikationer: {\"Storlek/Layout\": \"TKL/Tenkeyless (80%)\", \"Antal tangenter\": \"87 tangenter\", \"Anslutning\": \"USB\", \"Chất liệu Keycap\": \"ABS\", \"Chất liệu vỏ\": \"Nhựa\", \"Đèn LED\": \"Razer Chroma RGB\"}",
+        "descriptionImages": [],
+        "promotions": []
+      }
+    }
+  ]
+}

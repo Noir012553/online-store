@@ -271,6 +271,16 @@ export const clearInMemoryAccessToken = () => {
 };
 
 /**
+ * Clear the persisted 429 refresh cooldown (localStorage).
+ * Called on logout/login so a stale cooldown from a previous session
+ * cannot block the next login's token refresh.
+ */
+export const clearPersistedRefreshBlockState = () => {
+  refreshBlockedUntil = 0;
+  clearPersistedRefreshBlock();
+};
+
+/**
  * Refresh access token bằng refresh token (stored in httpOnly cookie)
  * Called khi access token hết hạn (401 response)
  *
