@@ -87,13 +87,13 @@ const passwordResetLimiter = rateLimit({
 
 /**
  * Global API rate limiter
- * 100 requests per 15 minutes per IP
+ * 2000 requests per 15 minutes per IP
  * Áp dụng cho tất cả /api/* routes để ngăn DoS/scraping
  * Skip ở development mode để tiện testing
  */
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests
+  max: 2000, // 2000 requests
   handler: rateLimitHandler('RATE_LIMIT_GLOBAL'),
   standardHeaders: true,
   legacyHeaders: false,
