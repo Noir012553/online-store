@@ -3,7 +3,7 @@ import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2, PackageSearch } from "lucide-react";
-import { features, getCategoryName, getDealEndTimestamp, isActiveDeal } from "../lib/data";
+import { features, getCategoryName } from "../lib/data";
 import { bannerAPI, productAPI, type BannerRecord } from "../lib/api";
 import { useCategories } from "../lib/context/CategoryContext";
 import { useCurrencyContext } from "../lib/context/CurrencyContext";
@@ -75,6 +75,7 @@ interface BackendProduct {
   price: number;
   baseCurrencyCode: string;
   originalPrice?: number;
+  discountPercentage?: number;
   rating?: number;
   numReviews?: number;
   countInStock?: number;
@@ -164,6 +165,13 @@ const hasProductSpecs = (product: BackendProduct): boolean => (
   Boolean(product.specs && Object.keys(product.specs).length > 0)
 );
 
+const getPriceReductionPercentage = (product: BackendProduct): number => {
+  const price = Number(product.price);
+  const originalPrice = Number(product.originalPrice);
+  if (!Number.isFinite(price) || !Number.isFinite(originalPrice) || originalPrice <= price) return 0;
+  return Math.round(((originalPrice - price) / originalPrice) * 100);
+};
+
 const getCategoryIconKey = (category: HomeCategory): keyof typeof iconMap => {
   const categoryText = [category.name, ...(category.sourceNames || [])]
     .map(normalizeCategoryKey)
@@ -252,12 +260,6 @@ export default function Home() {
   const [currentCategoryCardSlide, setCurrentCategoryCardSlide] = useState(0);
   const [currentCategorySlides, setCurrentCategorySlides] = useState<Record<string, number>>({});
   const [dealCardsPerView, setDealCardsPerView] = useState(getDealCardsPerView);
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-  const [dealEndTime, setDealEndTime] = useState<number | null>(null);
   const [categoryProducts, setCategoryProducts] = useState<Record<string, BackendProduct[]>>({});
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
@@ -436,7 +438,8 @@ export default function Home() {
         currencyCode,
         inStock: true,
         hasSpecs: true,
-        hasDeal: true,
+        hasPriceReduction: true,
+        minDiscount: 1,
       };
       debugHomepage('flash-sale:request-start', requestDetails);
 
@@ -454,11 +457,13 @@ export default function Home() {
         currencyCode,
         true,
         undefined,
-        true,
+        undefined,
         undefined,
         undefined,
         undefined,
         { skipErrorToast: true, signal: requestController.signal },
+        true,
+        1,
       );
 
       debugHomepage('flash-sale:response-success', {
@@ -507,17 +512,16 @@ export default function Home() {
           dealCandidates.map((product) => [product._id || product.id, product]),
         ).values()];
         const deals = uniqueDeals
-          .filter((product) => isActiveDeal(product.deal))
+          .filter((product) => getPriceReductionPercentage(product) > 0)
+          .map((product) => ({
+            ...product,
+            discountPercentage: getPriceReductionPercentage(product),
+          }))
           .sort((first, second) => {
             const specsDifference = Number(hasProductSpecs(second)) - Number(hasProductSpecs(first));
             if (specsDifference !== 0) return specsDifference;
 
-            const discountDifference = Number(second.deal?.discount || 0) - Number(first.deal?.discount || 0);
-            if (discountDifference !== 0) return discountDifference;
-
-            const firstEnd = getDealEndTimestamp(first.deal) ?? Number.MAX_SAFE_INTEGER;
-            const secondEnd = getDealEndTimestamp(second.deal) ?? Number.MAX_SAFE_INTEGER;
-            return firstEnd - secondEnd;
+            return getPriceReductionPercentage(second) - getPriceReductionPercentage(first);
           })
           .slice(0, 10);
 
@@ -528,17 +532,13 @@ export default function Home() {
         });
         debugHomepage('deals:transformed', {
           candidateCount: dealCandidates.length,
-          activeDealCount: deals.length,
+          priceReducedProductCount: deals.length,
           productIds: deals.map((product) => product._id || product.id),
         });
 
         setCategoryProducts(categoryProductMap);
         setDealProducts(deals);
         setProductLoadError(hasRequestFailure);
-        const dealEndTimes = deals
-          .map((product) => getDealEndTimestamp(product.deal))
-          .filter((endTime): endTime is number => endTime !== null);
-        setDealEndTime(dealEndTimes.length > 0 ? Math.min(...dealEndTimes) : null);
       } catch (error) {
         debugHomepage('products:fetch-error', {
           durationMs: Date.now() - fetchStartedAt,
@@ -708,32 +708,6 @@ export default function Home() {
       return () => clearInterval(timer);
     }
   }, [dealProducts.length, isDealQuickViewOpen]);
-
-  useEffect(() => {
-    if (!dealEndTime) {
-      setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-      return;
-    }
-
-    const updateTimeLeft = () => {
-      const remainingSeconds = Math.max(0, Math.floor((dealEndTime - Date.now()) / 1000));
-      if (remainingSeconds === 0) {
-        setDealProducts([]);
-        setDealEndTime(null);
-        return;
-      }
-
-      setTimeLeft({
-        hours: Math.floor(remainingSeconds / 3600),
-        minutes: Math.floor((remainingSeconds % 3600) / 60),
-        seconds: remainingSeconds % 60,
-      });
-    };
-
-    updateTimeLeft();
-    const timer = setInterval(updateTimeLeft, 1000);
-    return () => clearInterval(timer);
-  }, [dealEndTime]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);
@@ -1181,23 +1155,6 @@ export default function Home() {
                     <R2Icon name="flash" size={24} />
                     {t('flash_deal_title', 'home')}
                   </h2>
-                  <p className="text-lg sm:text-xl mb-3 sm:mb-4 text-black font-bold">{t('limited_time_offer', 'home')}</p>
-                  <div className="flex justify-center gap-1 sm:gap-2 md:gap-4">
-                    <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
-                      <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.hours).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('hours_label', 'components')}</div>
-                    </div>
-                    <div className="text-lg sm:text-2xl md:text-3xl text-black">:</div>
-                    <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
-                      <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.minutes).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('minutes_label', 'components')}</div>
-                    </div>
-                    <div className="text-lg sm:text-2xl md:text-3xl text-black">:</div>
-                    <div className="bg-white px-2 sm:px-4 py-2 rounded text-xs sm:text-sm">
-                      <div className="text-lg sm:text-2xl md:text-3xl text-red-500">{String(timeLeft.seconds).padStart(2, "0")}</div>
-                      <div className="text-xs text-gray-600">{t('seconds_label', 'components')}</div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="relative hidden items-center gap-3 overflow-visible lg:flex">
