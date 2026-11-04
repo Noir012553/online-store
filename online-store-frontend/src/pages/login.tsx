@@ -220,6 +220,7 @@ export default function Login() {
                       variant="outline"
                       className="w-full flex items-center justify-center gap-2"
                       onClick={() => {
+                        try { sessionStorage.setItem("google_oauth_pending", "1"); } catch {}
                         window.location.href = '/api/users/auth/google';
                       }}
                     >

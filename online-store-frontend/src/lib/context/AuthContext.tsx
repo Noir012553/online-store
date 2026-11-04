@@ -63,13 +63,18 @@ export const AuthProvider = ({
       // NEW browsing session on this device — refuse to auto-restore.
       // (Login always sets the flag, so normal navigation / F5 keeps working.)
       let hasLocalSessionFlag = false;
+      let isGoogleOAuthCallback = false;
       try {
         hasLocalSessionFlag = sessionStorage.getItem("auth_session_active") === "1";
+        isGoogleOAuthCallback = new URLSearchParams(window.location.search).get("oauth") === "google"
+          && sessionStorage.getItem("google_oauth_pending") === "1";
+        if (isGoogleOAuthCallback) sessionStorage.removeItem("google_oauth_pending");
       } catch {
         // sessionStorage unavailable — fail closed (safer on shared machines)
         hasLocalSessionFlag = false;
+        isGoogleOAuthCallback = false;
       }
-      if (!hasLocalSessionFlag) {
+      if (!hasLocalSessionFlag && !isGoogleOAuthCallback) {
         await authAPI.logout().catch(() => {}); // revoke the orphaned cookie server-side
         clearInMemoryAccessToken();
         setUser(null);
@@ -168,6 +173,8 @@ export const AuthProvider = ({
   };
 
   const googleLogin = async (): Promise<boolean> => {
+    authVersionRef.current += 1;
+    clearPersistedRefreshBlockState();
     setIsLoading(true);
     try {
       const refreshResponse = await authAPI.refreshToken();
