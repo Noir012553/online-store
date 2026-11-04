@@ -930,9 +930,11 @@ export default function Home() {
                   aria-label={`${t('banner_indicator', 'banner')} ${index + 1}`}
                   aria-current={index === currentSlide ? 'true' : undefined}
                   onFocus={() => setIsHeroPaused(true)}
-                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors ${index === currentSlide ? "bg-red-600" : "bg-white/50"
+                  className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${index === currentSlide ? "bg-white/10" : "bg-transparent"
                     }`}
-                />
+                >
+                  <span className={`h-2 w-2 rounded-full transition-colors sm:h-3 sm:w-3 ${index === currentSlide ? "bg-red-600" : "bg-white/50"}`} />
+                </button>
               ))}
             </div>
           </>

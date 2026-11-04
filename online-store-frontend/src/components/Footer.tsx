@@ -6,13 +6,6 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import {
-  FacebookIcon,
-  InstagramIcon,
-  YoutubeIcon,
-  SendIcon,
-  TwitterIcon
-} from "./icons/SocialIcons";
 import { getCategoryName } from "../lib/data";
 import { useCategories } from "../lib/context/CategoryContext";
 import { useTranslation } from "../lib/i18n";
@@ -126,38 +119,10 @@ export function Footer() {
 
   return (
     <footer className="relative bg-black text-white overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 opacity-20">
-        <Image
-          src="https://images.unsplash.com/photo-1762279389042-9439bfb6c155?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHxfc2VhcmNofDF8fGRhcmslMjBhYnN0cmFjdCUyMHRlY2hub2xvZ3klMjBwYXR0ZXJufGVufDF8fHwxNzY0NjU4NTU1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-          alt=""
-          aria-hidden="true"
-          fill
-          sizes="100vw"
-          className="object-cover object-center"
-          priority={false}
-          unoptimized
-        />
-      </div>
-
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-linear-to-br from-black via-gray-900 to-red-950/30" />
 
-      {/* Animated Dots Pattern */}
-      <div className="footer-pattern absolute inset-0" />
-
       <style>{`
-        @keyframes movePattern {
-          0% { background-position: 0 0; }
-          100% { background-position: 50px 50px; }
-        }
-
-        .footer-pattern {
-          background-image: radial-gradient(circle, rgba(239, 68, 68, 0.1) 1px, transparent 1px);
-          background-size: 50px 50px;
-          animation: movePattern 20s linear infinite;
-        }
-
         .laminated-card {
           position: relative;
           width: 45px;
@@ -174,7 +139,7 @@ export function Footer() {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.3s ease;
+          transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
           transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
         }
 
@@ -276,49 +241,6 @@ export function Footer() {
                 )}
               </div>
 
-              {/* Social Links */}
-              <div className="flex gap-2 sm:gap-3">
-                <a
-                  href="#"
-                  aria-label={t('social_facebook', 'footer')}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
-                >
-                  <FacebookIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-                <a
-                  href="#"
-                  aria-label={t('social_instagram', 'footer')}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
-                >
-                  <InstagramIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-                <a
-                  href="#"
-                  aria-label={t('social_youtube', 'footer')}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
-                >
-                  <YoutubeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-                <a
-                  href="#"
-                  aria-label={t('social_twitter', 'footer')}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
-                >
-                  <TwitterIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </a>
-                <a
-                  href="#"
-                  aria-label={t('social_zalo', 'footer')}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300"
-                >
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Logo_Zalo.png"
-                    alt={t('zalo_logo_alt', 'footer')}
-                    loading="lazy"
-                    className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
-                  />
-                </a>
-              </div>
             </div>
 
             {/* Right Column: 6 Menu Items (7/10) */}
@@ -480,39 +402,6 @@ export function Footer() {
                   </div>
                 </div>
 
-                {/* App Store Column */}
-                <div className="text-center">
-                  <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
-                    {t('downloadApp', 'footer')}
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
-                  </h3>
-                  <div className="flex flex-col items-center gap-2 sm:gap-3">
-                    <a
-                      href="#"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:opacity-80 transition-opacity"
-                    >
-                      <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg"
-                        alt={t('app_store_alt', 'footer')}
-                        className="h-8 sm:h-10"
-                      />
-                    </a>
-                    <a
-                      href="#"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:opacity-80 transition-opacity"
-                    >
-                      <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-                        alt={t('google_play_alt', 'footer')}
-                        className="h-8 sm:h-10"
-                      />
-                    </a>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

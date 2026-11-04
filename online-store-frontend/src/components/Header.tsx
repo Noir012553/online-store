@@ -136,7 +136,7 @@ function HeaderComponent() {
             <Link
               href="/cart"
               aria-label={t('shopping_cart', 'cart')}
-              className="relative flex items-center justify-center p-1"
+              className="relative flex h-11 w-11 items-center justify-center"
             >
               <ShoppingCartIcon className="w-5 h-5" />
               {totalItems > 0 && (
@@ -153,7 +153,7 @@ function HeaderComponent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hover:text-red-600 p-1"
+                  className="h-11 w-11 hover:text-red-600"
                   aria-label={t('profile', 'common')}
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
@@ -223,7 +223,7 @@ function HeaderComponent() {
                 asChild
                 variant="ghost"
                 size="icon"
-                className="hover:text-red-600 p-1"
+                className="h-11 w-11 hover:text-red-600"
                 aria-label={t('login', 'common')}
               >
                 <Link href="/login">
@@ -234,7 +234,7 @@ function HeaderComponent() {
 
             {/* Mobile Hamburger Menu */}
             <button
-              className="lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={t('toggle_menu', 'components')}
               title={t('toggle_menu', 'components')}
