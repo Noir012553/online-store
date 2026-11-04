@@ -232,6 +232,28 @@ describe('Product Controller', () => {
       expect(countStub.firstCall.args[0]).to.deep.equal(homeQuery);
       expect(res.json.calledOnce).to.equal(true);
     });
+
+    it('filters price-reduced home products without requiring featured or deal fields', async () => {
+      const queryChain = {
+        populate: sandbox.stub().returnsThis(),
+        lean: sandbox.stub().returnsThis(),
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        skip: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
+        then: (resolve, reject) => Promise.resolve([]).then(resolve, reject),
+      };
+      const findStub = sandbox.stub(Product, 'find').returns(queryChain);
+      sandbox.stub(Product, 'countDocuments').returns({ maxTimeMS: sandbox.stub().resolves(0) });
+      const res = { json: sandbox.stub() };
+
+      await getFeaturedProducts({ query: { pageNumber: '1', hasPriceReduction: 'true' } }, res);
+
+      const homeQuery = findStub.firstCall.args[0];
+      expect(homeQuery).not.to.have.property('featured');
+      expect(homeQuery.$and).to.deep.include({ $expr: { $gt: ['$originalPrice', '$price'] } });
+      expect(res.json.calledOnce).to.equal(true);
+    });
   });
 
   describe('getDeletedProducts', () => {

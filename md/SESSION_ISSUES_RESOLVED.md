@@ -87,6 +87,16 @@
 - Lượt seed này chạy FULL MODE, nên ngoài sản phẩm còn chạy baseline và post-products; report ghi nhận 604 review, 410 order, 12 coupon cùng các dữ liệu nền. Module `specTranslations` gặp `optionalFieldWarnings is not defined` nhưng được đánh dấu `non-critical`; toàn lượt vẫn kết thúc `COMPLETED`. Không chạy seed lại chỉ để xử lý lỗi phụ này nếu chưa xác định phạm vi cần khôi phục.
 - HTTP 530 / Cloudflare 1033 khi gọi Categories/API storefront là lỗi kết nối upstream backend, khác với lỗi category slug và lỗi ảnh mô tả. Frontend đã đổi trạng thái category để không báo nhầm “không tìm thấy danh mục” khi API lỗi, đồng thời có nút thử lại; danh sách sản phẩm vẫn cần API backend hoạt động.
 
+### Flash Sale và dữ liệu giảm giá
+
+- Phân biệt ba khái niệm: scraper lấy `price` (giá bán) và `originalPrice` (giá gốc); phần trăm giảm hiển thị có thể được suy ra từ chênh lệch hai giá; `Product.deal.discount` là trường riêng dùng cho deal/campaign có hạn. `deal.endTime` không bắt buộc, thiếu hoặc `null` được xem là chưa hết hạn nếu discount dương.
+- `scraper_paths.py` trích sale/regular price; `BaseImportAdapter.js` map sang `price`/`originalPrice` và promotions, không map phần trăm đó sang `deal.discount`. Nội dung promotion dạng chữ không phải trường discount số. Form admin `ProductForm.tsx` sửa được giá bán/giá gốc nhưng không có input `deal.discount`; backend API/import vẫn có đường ghi trường deal.
+- **Đã sửa Flash Sale homepage**: chỉ tìm trong category slug `gaming-laptop` và `office-laptop`, tiếp tục giữ điều kiện homepage, tồn kho và specs, nhưng thêm filter API riêng `hasPriceReduction=true` để yêu cầu `originalPrice > price` trước pagination/count; request vẫn dùng `minDiscount=1`. Frontend tính phần trăm từ hai giá, sắp xếp theo mức giảm rồi bỏ sản phẩm không còn điều kiện. Không còn yêu cầu `deal.discount` hoặc `deal.endTime` cho sale giá sản phẩm; đồng hồ đếm ngược đã bỏ vì nguồn giá cào không cung cấp thời hạn campaign. Deal riêng ở các luồng khác không đổi.
+- Snapshot API công khai trước khi sửa: hai category có nhiều sản phẩm nhưng đa số thiếu object `deal`; filter `hasDeal=true` trả rỗng. Kiểm tra theo giá `minDiscount=1`, tồn kho và specs trả về 6 sản phẩm giảm giá mỗi category trong response được lấy. Các số liệu này là snapshot, không phải số liệu live.
+- Bài học: không đồng nhất promotion text, phần trăm suy ra từ `originalPrice`/`price`, và `Product.deal.discount`. Chọn một nguồn dữ liệu cho từng storefront; filter phải áp dụng ở backend trước pagination/count, rồi frontend hiển thị cùng phần trăm được suy ra từ giá. Không bỏ expiry của deal riêng để làm storefront hiện sản phẩm.
+- Checkout vẫn tính tiền từ `product.price` rồi mới áp coupon; thay đổi Flash Sale không tự sửa giá sản phẩm hay phép tính checkout. Cần đảm bảo crawler/import đã ghi `price` là giá bán thực tế nếu đó là giá khách phải trả.
+- Frontend `npm run typecheck`, `git diff --check` và `node --check` backend/test đạt. Backend product test chưa chạy được vì môi trường thiếu `dotenv`; không cài dependency và không chạy `npm run build`.
+
 ### Thiết lập môi trường và phạm vi quyền thao tác
 
 - Backend local nạp cấu hình từ `.env`; seed log xác nhận biến môi trường đã được nạp. Frontend có thể cần `NEXT_PUBLIC_API_BASE_URL` để trỏ API tới backend đang chạy thay vì URL mặc định.

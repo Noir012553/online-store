@@ -310,6 +310,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
     ? { specs: { $type: 'object', $ne: {} } }
     : {};
   const hasDeal = req.query.hasDeal === 'true';
+  const hasPriceReduction = req.query.hasPriceReduction === 'true';
   const highlighted = req.query.highlighted === 'true';
   const featuredOnly = req.query.featuredOnly === 'true';
   const shockDeal = req.query.shockDeal === 'true';
@@ -333,7 +334,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   };
   if (featuredOnly) {
     query.featured = true;
-  } else if (!hasDeal && !highlighted) {
+  } else if (!hasDeal && !hasPriceReduction && !highlighted) {
     query.featured = true;
   }
   if (highlighted) {
@@ -343,6 +344,10 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
   if (hasDeal) {
     query.$and = query.$and || [];
     query.$and.push(activeDealFilter);
+  }
+  if (hasPriceReduction) {
+    query.$and = query.$and || [];
+    query.$and.push({ $expr: { $gt: ['$originalPrice', '$price'] } });
   }
   if (shockDeal) {
     query.$and = query.$and || [];
@@ -373,6 +378,7 @@ const getFeaturedProducts = asyncHandler(async (req, res) => {
       hasSpecs: req.query.hasSpecs,
       prioritizeSpecs: req.query.prioritizeSpecs,
       hasDeal: req.query.hasDeal,
+      hasPriceReduction: req.query.hasPriceReduction,
     },
     mongoQuery: query,
   });

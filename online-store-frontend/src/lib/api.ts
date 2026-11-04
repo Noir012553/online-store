@@ -990,6 +990,8 @@ export const productAPI = {
     featuredOnly?: boolean,
     shockDeal?: boolean,
     requestOptions?: Pick<FetchOptions, 'signal' | 'skipErrorToast' | 'timeout'>,
+    hasPriceReduction?: boolean,
+    minDiscount?: number,
   ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
@@ -1009,6 +1011,8 @@ export const productAPI = {
     if (highlighted !== undefined) params.append('highlighted', highlighted.toString());
     if (featuredOnly !== undefined) params.append('featuredOnly', featuredOnly.toString());
     if (shockDeal !== undefined) params.append('shockDeal', shockDeal.toString());
+    if (hasPriceReduction !== undefined) params.append('hasPriceReduction', hasPriceReduction.toString());
+    if (minDiscount !== undefined) params.append('minDiscount', minDiscount.toString());
 
     return apiCall(`/products/featured/list?${params.toString()}`, {
       ...requestOptions,
