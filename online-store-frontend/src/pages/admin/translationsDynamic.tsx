@@ -15,6 +15,7 @@ import { useAuth } from "../../lib/context/AuthContext";
 import { useTranslation } from "@/lib/i18n";
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from "../../lib/i18n/types";
 import type { ProductDescriptionImage, ProductPromotion } from "../../lib/data";
+import { formatTechnicalDescription, serializeTechnicalDescription } from "../../lib/technicalDescriptionFormat";
 
 const INITIAL_TRANSLATION_LOCALE = SUPPORTED_LOCALES.find((code) => code !== DEFAULT_LOCALE) || DEFAULT_LOCALE;
 const RETRANSLATION_LOCALES = SUPPORTED_LOCALES.filter((code) => code !== DEFAULT_LOCALE);
@@ -1154,6 +1155,7 @@ function ProductTranslationCard({
   const { t } = useTranslation();
   const retranslatingLanguageName = getLanguages(t).find(({ code }) => code === retranslatingLocale)?.name || retranslatingLocale || '';
   const [translations, setTranslations] = useState<ProductTranslation>({});
+  const originalTechnicalDescriptionRef = useRef('');
   const [loadingTranslation, setLoadingTranslation] = useState(false);
   const [loadedTranslationLanguage, setLoadedTranslationLanguage] = useState<string | null>(null);
   const [translationSnapshot, setTranslationSnapshot] = useState<string | null>(null);
@@ -1216,6 +1218,7 @@ function ProductTranslationCard({
             discountText: translatedPromotions[index]?.discountText || '',
           })),
         };
+        originalTechnicalDescriptionRef.current = initialTranslations.technicalDescription || '';
         setTranslations(initialTranslations);
         setTranslationSnapshot(JSON.stringify(initialTranslations));
         setLoadedTranslationLanguage(selectedLanguage);
@@ -1339,12 +1342,19 @@ function ProductTranslationCard({
           product={product}
           selectedLanguage={selectedLanguage}
           translations={translations}
+          technicalDescriptionReference={originalTechnicalDescriptionRef.current}
           onFieldChange={handleFieldChange}
           onSpecChange={handleSpecChange}
           onDescriptionImageAltChange={handleDescriptionImageAltChange}
           onPromotionTextChange={handlePromotionTextChange}
           onCancel={onCancel}
-          onSave={() => onSave(translations)}
+          onSave={() => onSave({
+          ...translations,
+          technicalDescription: serializeTechnicalDescription(
+            translations.technicalDescription || '',
+            originalTechnicalDescriptionRef.current,
+          ),
+        })}
           onApproveAssistant={onApproveAssistant}
           canApproveAssistant={Boolean(translationStatus?.canApprove && translationSnapshot === JSON.stringify(translations))}
           hasUnsavedAssistantChanges={Boolean(translationStatus?.canApprove && translationSnapshot !== JSON.stringify(translations))}
@@ -1434,6 +1444,7 @@ interface EditViewProps {
   product: any;
   selectedLanguage: string;
   translations: ProductTranslation;
+  technicalDescriptionReference: string;
   isLoading: boolean;
   isLoadError: boolean;
   onFieldChange: (field: keyof ProductTranslation, value: any) => void;
@@ -1452,6 +1463,7 @@ function EditView({
   product,
   selectedLanguage,
   translations,
+  technicalDescriptionReference,
   isLoading,
   isLoadError,
   onFieldChange,
@@ -1522,6 +1534,8 @@ function EditView({
         label={t('technical_description', 'products')}
         sourceValue={product?.technicalDescription || ''}
         targetValue={translations?.technicalDescription || ''}
+        formatValue={formatTechnicalDescription}
+        parseValue={(value) => serializeTechnicalDescription(value, technicalDescriptionReference)}
         sourceLanguage={defaultLang?.name || DEFAULT_LOCALE.toUpperCase()}
         targetLanguage={selectedLang?.name || selectedLanguage}
         onChange={(value) => onFieldChange('technicalDescription', value)}
@@ -1665,6 +1679,8 @@ interface TranslationFieldProps {
   onChange: (value: string) => void;
   isRequired?: boolean;
   isTextarea?: boolean;
+  formatValue?: (value: string) => string;
+  parseValue?: (value: string) => string;
 }
 
 function TranslationField({
@@ -1676,6 +1692,8 @@ function TranslationField({
   onChange,
   isRequired,
   isTextarea,
+  formatValue,
+  parseValue,
 }: TranslationFieldProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1704,7 +1722,7 @@ function TranslationField({
         <div>
           <Label className="text-xs font-semibold text-gray-600">{sourceLanguage}</Label>
           <div className={`mt-1 p-3 bg-gray-100 rounded text-sm text-gray-900 ${isTextarea ? 'whitespace-pre-wrap' : ''}`}>
-            {sourceValue || <span className="text-gray-500 italic">-</span>}
+            {(formatValue ? formatValue(sourceValue) : sourceValue) || <span className="text-gray-500 italic">-</span>}
           </div>
         </div>
 
@@ -1714,9 +1732,9 @@ function TranslationField({
           {isTextarea ? (
             <textarea
               ref={textareaRef}
-              value={targetValue}
+              value={formatValue ? formatValue(targetValue) : targetValue}
               onChange={(e) => {
-                onChange(e.target.value);
+                onChange(parseValue ? parseValue(e.target.value) : e.target.value);
                 handleAutoResize();
               }}
               onInput={handleAutoResize}
