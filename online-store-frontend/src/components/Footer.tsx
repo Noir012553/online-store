@@ -450,8 +450,12 @@ export function Footer() {
                   </h3>
                   <div className="laminated-card mx-auto">
                     <img
-                      src="/assets/ghnLogo.png"
+                      src="/assets/ghnLogo.webp"
                       alt={t('ghn_icon_alt', 'footer')}
+                      width="183"
+                      height="41"
+                      loading="lazy"
+                      decoding="async"
                       className="logo-image"
                     />
                   </div>
@@ -465,8 +469,12 @@ export function Footer() {
                   </h3>
                   <div className="laminated-card mx-auto">
                     <img
-                      src="/assets/vnpay.png"
+                      src="/assets/vnpay.webp"
                       alt={t('vnpay_logo_alt', 'footer')}
+                      width="183"
+                      height="56"
+                      loading="lazy"
+                      decoding="async"
                       className="logo-image"
                     />
                   </div>

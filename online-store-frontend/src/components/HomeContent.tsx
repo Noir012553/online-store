@@ -857,6 +857,7 @@ export default function Home() {
           const slideCount = heroSlidesToRender.length;
           const logicalIndex = slideCount > 0 ? index % slideCount : 0;
           const isDesktopSlide = index < slideCount;
+          const isPrioritySlide = logicalIndex === currentSlide && index < slideCount * 2;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
@@ -872,8 +873,8 @@ export default function Home() {
                 fill
                 sizes="100vw"
                 className="object-cover"
-                loading={index === currentSlide ? 'eager' : 'lazy'}
-                fetchPriority={index === currentSlide ? 'high' : 'low'}
+                loading={isPrioritySlide ? 'eager' : 'lazy'}
+                fetchPriority={isPrioritySlide ? 'high' : 'low'}
               />
               <div className="absolute inset-0 bg-black/50" />
               <div className="absolute inset-0 mx-auto flex w-full items-center px-3 sm:px-4 lg:px-8">
