@@ -87,6 +87,15 @@
 - Lượt seed này chạy FULL MODE, nên ngoài sản phẩm còn chạy baseline và post-products; report ghi nhận 604 review, 410 order, 12 coupon cùng các dữ liệu nền. Module `specTranslations` gặp `optionalFieldWarnings is not defined` nhưng được đánh dấu `non-critical`; toàn lượt vẫn kết thúc `COMPLETED`. Không chạy seed lại chỉ để xử lý lỗi phụ này nếu chưa xác định phạm vi cần khôi phục.
 - HTTP 530 / Cloudflare 1033 khi gọi Categories/API storefront là lỗi kết nối upstream backend, khác với lỗi category slug và lỗi ảnh mô tả. Frontend đã đổi trạng thái category để không báo nhầm “không tìm thấy danh mục” khi API lỗi, đồng thời có nút thử lại; danh sách sản phẩm vẫn cần API backend hoạt động.
 
+### Flash Sale và dữ liệu giảm giá (chưa sửa)
+
+- Phân biệt ba khái niệm: scraper lấy `price` (giá bán) và `originalPrice` (giá gốc); phần trăm giảm hiển thị có thể được suy ra từ chênh lệch hai giá; `Product.deal.discount` là trường riêng dùng cho deal/Flash Sale. `deal.endTime` không bắt buộc, thiếu hoặc `null` được xem là chưa hết hạn nếu discount dương.
+- `scraper_paths.py` trích sale/regular price; `BaseImportAdapter.js` map sang `price`/`originalPrice` và promotions, không map phần trăm đó sang `deal.discount`. Nội dung promotion dạng chữ không phải trường discount số. Form admin `ProductForm.tsx` sửa được giá bán/giá gốc nhưng không có input `deal.discount`; backend API/import vẫn có đường ghi trường deal.
+- Flash Sale homepage chỉ tìm trong category slug `gaming-laptop` và `office-laptop`, yêu cầu sản phẩm hợp lệ cho homepage cùng `deal.discount > 0` và chưa hết hạn; request còn yêu cầu tồn kho và specs. Nếu danh sách rỗng, cả section Flash Sale bị ẩn. Không nhầm với listing thường hoặc phần trăm suy ra từ hai giá.
+- Snapshot API công khai trong phiên rà soát: cả hai category có nhiều sản phẩm, nhưng đa số thiếu object `deal`; không có deal còn hiệu lực được trả về. Kiểm tra `hasDeal=true` cũng rỗng trước khi áp thêm filter tồn kho/specs. Đây là snapshot, không phải số liệu live.
+- Trước khi sửa, chốt một nguồn sự thật: nếu Flash Sale đại diện cho sale price từ crawler, cân nhắc eligibility theo `originalPrice > price` và tính phần trăm từ hai giá; nếu deal là campaign riêng, cần map dữ liệu campaign/discount số vào `deal.discount` và chỉ dùng expiry khi nguồn có thông tin đó. Không bỏ kiểm tra hết hạn chỉ để làm section hiện sản phẩm; đồng bộ điều kiện API/UI và thêm test cho thiếu deal, discount không dương, hết hạn, chưa có endTime.
+- Checkout tính tiền từ `product.price` rồi mới áp coupon; `deal.discount` không tự trừ tiền riêng. Xác nhận giá bán thực tế đã được cập nhật trước khi kỳ vọng một deal chỉ dùng để hiển thị sẽ giảm số tiền thanh toán. Chưa chọn hoặc triển khai hướng sửa nào.
+
 ### Thiết lập môi trường và phạm vi quyền thao tác
 
 - Backend local nạp cấu hình từ `.env`; seed log xác nhận biến môi trường đã được nạp. Frontend có thể cần `NEXT_PUBLIC_API_BASE_URL` để trỏ API tới backend đang chạy thay vì URL mặc định.
