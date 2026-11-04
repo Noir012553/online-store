@@ -21,29 +21,44 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  // Load cart from localStorage on mount
+  const [hasLoadedCart, setHasLoadedCart] = useState(false);
+
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
         const savedItems = JSON.parse(savedCart) as CartItem[];
         setItems(savedItems.map(({ laptop, quantity }) => ({ laptop, quantity })));
-      } catch {
-        localStorage.removeItem("cart");
       }
+    } catch {
+      try {
+        localStorage.removeItem("cart");
+      } catch {
+        setItems([]);
+      }
+    } finally {
+      setHasLoadedCart(true);
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items));
-  }, [items]);
+    if (!hasLoadedCart) return;
+    try {
+      localStorage.setItem("cart", JSON.stringify(items));
+    } catch {
+      return;
+    }
+  }, [hasLoadedCart, items]);
 
   // Listen for logout event from AuthContext - auto clear cart on logout
   useEffect(() => {
     const handleLogout = () => {
       setItems([]);
-      localStorage.removeItem("cart");
+      try {
+        localStorage.removeItem("cart");
+      } catch {
+        return;
+      }
     };
 
     window.addEventListener("auth:logout", handleLogout);
