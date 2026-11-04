@@ -4,6 +4,20 @@ import { useTranslation } from '../../lib/context/LanguageContext';
 
 const ERROR_IMG_SRC =
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg==';
+const imageOptimizerSources = new Set<string>(
+  JSON.parse(process.env.NEXT_PUBLIC_IMAGE_OPTIMIZER_SOURCES || '[]'),
+);
+
+const shouldUnoptimizeImage = (src: string | null | undefined) => {
+  if (!src || !/^https?:\/\//i.test(src)) return false;
+
+  try {
+    const imageUrl = new URL(src);
+    return !imageOptimizerSources.has(`${imageUrl.protocol}//${imageUrl.hostname}`);
+  } catch {
+    return true;
+  }
+};
 
 type ImageWithFallbackProps = Omit<ImageProps, 'src' | 'alt'> & {
   src?: string | null;
@@ -33,7 +47,7 @@ export function ImageWithFallback({
   const showFallback = Boolean(hasValidFallback && (didError || !hasValidSrc) && !didFallbackError);
   const shouldShowError = !showFallback && (didError || !hasValidSrc || didFallbackError);
   const currentSrc = showFallback ? fallbackSrc : src;
-  const isExternalImage = typeof currentSrc === 'string' && /^https?:\/\//i.test(currentSrc);
+  const unoptimized = shouldUnoptimizeImage(currentSrc);
   const handleError = () => {
     if (showFallback) {
       setDidFallbackError(true);
@@ -83,7 +97,7 @@ export function ImageWithFallback({
         style={style}
         onError={handleError}
         {...imageRest}
-        unoptimized={isExternalImage}
+        unoptimized={unoptimized}
       />
     );
   }
@@ -102,7 +116,7 @@ export function ImageWithFallback({
         style={style}
         onError={handleError}
         {...imageRest}
-        unoptimized={isExternalImage}
+        unoptimized={unoptimized}
       />
     );
   }
