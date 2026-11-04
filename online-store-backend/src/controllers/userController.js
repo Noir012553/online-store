@@ -45,6 +45,16 @@ const createUserError = (lang, code, messageKey) => {
   return error;
 };
 
+const getRefreshTokenCookieOptions = (sameSite = 'lax') => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite,
+  path: '/',
+  ...(process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL
+    ? { domain: new URL(process.env.FRONTEND_URL).hostname.replace(/^www\./, '') }
+    : {}),
+});
+
 /**
  * Xác thực người dùng và cấp JWT token
  * @route POST /api/users/login
@@ -62,13 +72,8 @@ const authUser = asyncHandler(async (req, res) => {
 
         // Set refresh token in httpOnly secure cookie (not accessible from JavaScript)
         res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
-            secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
-            // Admin sessions use 'strict': on a shared machine the cookie is not sent
-            // with top-level navigation after the admin closes the tab without logging out.
-            sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
-            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
-            path: '/',                // Cookie sent with all requests
+            ...getRefreshTokenCookieOptions(['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax'),
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
         });
 
         // Return access token & user info (refresh token NOT in response body)
@@ -133,11 +138,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
         // Set refresh token in httpOnly secure cookie (not accessible from JavaScript)
         res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,           // Cannot be accessed from JavaScript (XSS protection)
-            secure: process.env.NODE_ENV === 'production',  // Only send over HTTPS in production
-            sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
-            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
-            path: '/',                // Cookie sent with all requests
+            ...getRefreshTokenCookieOptions(['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax'),
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
         });
 
         // Gửi email xác minh
@@ -486,12 +488,7 @@ const resetPassword = asyncHandler(async (req, res) => {
         throw createUserError(req.lang, 'USER_RESET_TOKEN_INVALID', 'admin-controllers-messages.invalid_reset_token');
     }
 
-    res.clearCookie('refreshToken', {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-    });
+    res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
 
     res.json({
         message: getMessage(req.lang, 'user-messages.passwordChangedSuccess'),
@@ -618,12 +615,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
 
     // Clear refresh token cookie
-    res.clearCookie('refreshToken', {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-    });
+    res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
 
     res.json({
         message: getMessage(req.lang, 'user-messages.logoutSuccess'),
@@ -679,11 +671,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         // Update refresh token cookie (Token rotation)
         res.cookie('refreshToken', newRefreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,  // 7 days
-            path: '/',
+            ...getRefreshTokenCookieOptions(),
+            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
         });
 
         // Return only access token (refresh token is in secure cookie)
@@ -692,12 +681,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         });
     } catch (error) {
         // Clear invalid refresh token
-        res.clearCookie('refreshToken', {
-            path: '/',
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-        });
+        res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
         res.status(401);
         throw createUserError(req.lang, 'REFRESH_TOKEN_INVALID', 'user-messages.invalid_refresh_token');
     }
@@ -917,11 +901,8 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
 
   // Set refresh token in httpOnly secure cookie
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: ['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax',
-    maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS, // 7 days
-    path: '/',
+    ...getRefreshTokenCookieOptions(['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax'),
+    maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
   });
 
   const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';

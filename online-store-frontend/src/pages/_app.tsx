@@ -109,30 +109,46 @@ function AppContent({ Component, pageProps }: AppContentProps) {
   useEffect(() => {
     if (!isRouterReady) return;
 
-    let navigationTimer: NodeJS.Timeout | null = null;
+    let navigationTimer: ReturnType<typeof setTimeout> | null = null;
+    let activeNavigationUrl: string | null = null;
+    const clearNavigationTimer = () => {
+      if (navigationTimer) {
+        clearTimeout(navigationTimer);
+        navigationTimer = null;
+      }
+    };
 
-    const handleStart = () => {
+    const handleStart = (url: string, { shallow }: { shallow: boolean }) => {
+      if (shallow) return;
+      clearNavigationTimer();
+      activeNavigationUrl = url;
       navigationTimer = setTimeout(() => {
+        navigationTimer = null;
         setShowLoadingOverlay(true);
       }, 200);
       setIsPageLoading(true);
     };
 
-    const handleComplete = () => {
-      if (navigationTimer) clearTimeout(navigationTimer);
+    const handleComplete = (url: string, { shallow }: { shallow: boolean }) => {
+      if (shallow || url !== activeNavigationUrl) return;
+      clearNavigationTimer();
+      activeNavigationUrl = null;
       setIsPageLoading(false);
       setShowLoadingOverlay(false);
+    };
+    const handleError = (_error: Error, url: string, options: { shallow: boolean }) => {
+      handleComplete(url, options);
     };
 
     router?.events?.on('routeChangeStart', handleStart);
     router?.events?.on('routeChangeComplete', handleComplete);
-    router?.events?.on('routeChangeError', handleComplete);
+    router?.events?.on('routeChangeError', handleError);
 
     return () => {
-      if (navigationTimer) clearTimeout(navigationTimer);
+      clearNavigationTimer();
       router?.events?.off('routeChangeStart', handleStart);
       router?.events?.off('routeChangeComplete', handleComplete);
-      router?.events?.off('routeChangeError', handleComplete);
+      router?.events?.off('routeChangeError', handleError);
     };
   }, [isRouterReady, router]);
 

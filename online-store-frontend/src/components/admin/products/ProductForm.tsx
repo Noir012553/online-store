@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
@@ -14,6 +14,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useR2Upload } from "@/hooks/useR2Upload";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
 import { useCategories } from "../../../lib/context/CategoryContext";
+import { formatTechnicalDescription, serializeTechnicalDescription } from "../../../lib/technicalDescriptionFormat";
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -34,6 +35,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
   }, [loadNamespace]);
 
   const [product, setProduct] = useState<any>(null);
+  const originalTechnicalDescriptionRef = useRef('');
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const baseCurrencyCode = product?.baseCurrencyCode || '';
   const baseCurrencyLabel = baseCurrencyCode ? `(${baseCurrencyCode})` : '';
@@ -58,6 +60,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
             countInStock = isNaN(parsed) ? 0 : parsed;
           }
 
+          originalTechnicalDescriptionRef.current = fetchedProduct.technicalDescription || '';
           setProduct({
             ...fetchedProduct,
             name: getTranslatedValue(fetchedProduct.name, locale),
@@ -74,6 +77,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       fetchProduct();
     } else {
       // Create mode
+      originalTechnicalDescriptionRef.current = '';
       setProduct({
         name: "",
         brand: "",
@@ -179,7 +183,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);
         formData.append("description", product.description);
-        formData.append("technicalDescription", product.technicalDescription || '');
+        formData.append("technicalDescription", serializeTechnicalDescription(product.technicalDescription || '', originalTechnicalDescriptionRef.current));
         formData.append("descriptionImages", JSON.stringify(product.descriptionImages || []));
         formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
@@ -214,7 +218,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);
         formData.append("description", product.description);
-        formData.append("technicalDescription", product.technicalDescription || '');
+        formData.append("technicalDescription", serializeTechnicalDescription(product.technicalDescription || '', originalTechnicalDescriptionRef.current));
         formData.append("descriptionImages", JSON.stringify(product.descriptionImages || []));
         formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
@@ -517,9 +521,9 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
             <Textarea
               id="product-technical-description"
               name="product-technical-description"
-              value={product.technicalDescription || ""}
+              value={formatTechnicalDescription(product.technicalDescription || "")}
               onChange={(e) => setProduct({ ...product, technicalDescription: e.target.value })}
-              rows={3}
+              rows={Math.min(Math.max(formatTechnicalDescription(product.technicalDescription || "").split("\n").length, 3), 10)}
               placeholder={t('technical_description', 'products')}
               className="transition-colors focus:ring-2 focus:ring-blue-500"
             />

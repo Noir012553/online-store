@@ -352,7 +352,7 @@ export function NotificationBell() {
                     disabled={isSaving}
                   >
                     <option value="pending">{t('waiting_delivery', 'notifications')}</option>
-                    <option value="delivered">{t('my_orders_status_delivered', 'orders')}</option>
+                    <option value="delivered">{t('my_orders_status_delivered', 'orders').replace(/^✓\s*/, '')}</option>
                   </select>
                 </div>
               </div>
