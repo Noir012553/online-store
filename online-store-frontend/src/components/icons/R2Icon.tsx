@@ -3,7 +3,11 @@ import { useState } from 'react';
 
 type R2IconName = 'fire' | 'flash' | 'star';
 
-const iconUrls = JSON.parse(process.env.NEXT_PUBLIC_R2_ICON_URLS || '{}') as Partial<Record<R2IconName, string>>;
+const iconPaths: Record<R2IconName, string> = {
+  fire: '/assets/icons/fire.png',
+  flash: '/assets/icons/flash.png',
+  star: '/assets/icons/star.png',
+};
 
 interface R2IconProps {
   name: R2IconName;
@@ -13,7 +17,7 @@ interface R2IconProps {
 
 export function R2Icon({ name, size, className }: R2IconProps) {
   const [failed, setFailed] = useState(false);
-  const src = iconUrls[name];
+  const src = iconPaths[name];
 
   if (!src || failed) return null;
 
