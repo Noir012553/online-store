@@ -1,0 +1,13 @@
+{
+  "workflow": "assistant_batch",
+  "records": [
+    {
+      "productId": "6ad0cb680069aece85a8c613",
+      "targetLang": "fr",
+      "sourceHash": "68b9d249ce9c8c120494ba951104e0d28d92317dec13abebd53d36582f47518c",
+      "translations": {
+        "technicalDescription": "Spécifications : {\"Carte graphique\": \"Intel Arc Graphics\", \"Taille de l'écran\": \"14 inch\", \"Série de CPU\": \"Core Ultra 9\", \"Capacité de SSD\": \"512 GB\", \"Dalle\": \"IPS\", \"Résolution\": \"WUXGA(1920x1200)\"}"
+      }
+    }
+  ]
+}

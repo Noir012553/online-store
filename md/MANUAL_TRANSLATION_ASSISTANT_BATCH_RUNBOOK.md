@@ -231,3 +231,71 @@ Batch gồm 24 laptop + 12 accessory; export → generator + hand merge → pref
 - Preflight: 208/208 records, 0 leak sau 6 passes (2 bigram giả cuối: `white van` c6ca/nl, `night over the rhône` c8c3/en).
 - Import + approve: 208 slot xử lý xong; 17 slot pending cố định được trong phiên 2026-11-01 (14 slot c6c8/c6ca + 3 slot c645 fr/pt/sv), cuối cùng 17/17 `approved` score 80–100, errs=[] xác nhận bằng đọc lại DB.
 - Script đáng nhớ: `import-nov09-full.js` (chunk 8 + state resume), `diag-nov09-exact.js` (validator cục bộ chỉ lỗi), `fix-nov09-pass7-17pending.js`, `fix-nov09-pass8-akko.js`, `reimport-nov09-17pending.js`, `reimport-c645-3.js` (có `--apply`/`--shutdown`), `verify-nov09-17p.js` (đọc DB sau ghi).
+
+## 13. Phụ lục — Audit chất lượng 2026-11-02: slot "approved" nhưng chưa dịch thật (name giữ nguyên tiếng Việt)
+
+Mặc dù coverage báo 604/604 sản phẩm đủ 8 locale approved, quét field-level trên 4.832 cache docs (~45.238 field) phát hiện chất lượng chưa sạch. Phát hiện này áp dụng cho **cả hai luồng dịch** — assistant batch lẫn Cloudflare AI — vì validator dùng chung.
+
+### 13.1 Hai lỗi nặng nhất phải ưu tiên
+
+1. **`wrong_language`** — ngôn ngữ phát hiện ≠ locale đích. Đáng sợ ở chỗ language-detect hay trả `unknown` với chuỗi ngắn/nhiều token (`Laptop gaming Acer ... (Core 5-210H/ RTX...)`) nên check bị skip âm thầm — slot đi qua validator mà không ai kiểm tra ngôn ngữ thật.
+2. **`mixed_language` / leak tiếng Việt** — cụm tiếng Việt có dấu còn nguyên trong bản dịch. Đã verified trong DB:
+   - `"Bàn tastatur AKKO 3098B..."` (de), `"Kabellose Maus Chuột Logitech G304..."` (de), `"Tastatur AULA F75 (Đen + Xanh kräftig + Cam...)"` (de/en), `"Bàn clavier ASUS M704..."` (fr), `"Clavier AULA F108 Pro (bleu blanc violet đậm...)"` (fr).
+   - Từ màu tiếng Việt trong tên sản phẩm là nguồn leak phổ biến nhất: `Đen`, `Trắng`, `Xám`, `Xám đậm`, `Xanh lá` phải dịch hết (`Schwarz/Weiß/Grau/Dunkelgrau/Grün`...).
+
+**Cả hai lỗi này đều −50 điểm và thuộc `CRITICAL_ERRORS`** — không thuộc nhóm override được (chỉ `inconsistent` mới override được).
+
+### 13.2 Yêu cầu đồng bộ luồng Cloudflare AI với luồng assistant
+
+Quy tắc dưới đây áp dụng **bằng nhau cho cả hai luồng** vì cùng chạy qua `translationValidator.validateTranslation()`:
+
+- Luồng CF model đang có vòng lặp đốt quota đã ghi ở `SESSION_NOTES_2026-10-30.md` mục 3: retry "dịch lại từ nguồn" vẫn để sót heading tiếng Việt → `mixed_language` lặp vô ích (needsReview 39→136 trong 1 lượt). Luồng assistant khi dịch tay phải **không lặp lại pattern lỗi này**: soát heading (`Đánh giá chi tiết`, `Thông số kỹ thuật`, `Bàn phím`, `Chuột`) và từ màu trước khi nộp.
+- Nhóm keyboard/mouse `6ad0cb68...611/612/613` fail lặp `missing_technical_token` + `too_long` xuyên nhiều locale ở luồng CF — dịch tay nhóm này phải sửa tay thật (rút gọn đoạn mô tả nguồn dài), không chờ retry AI.
+- Validator exempt token-count cho `description` (2026-10-28) đã áp cho cả 2 luồng — đừng hiểu nhầm là chỉ assistant được miễn.
+
+### 13.3 Kết quả quét 2026-11-02 (snapshot, không phải live)
+
+| Vấn đề | Số lượng | Ghi chú |
+|---|---|---|
+| Name giữ nguyên tiếng Việt gốc (so với `products.name`) | **407 slot / 159 sản phẩm** | it 143, de 78, en 72, nl 38, pt 36, fr 21, sv 12, es 7 — vẫn `approved` score 80–100 |
+| Field chứa từ tiếng Việt thật (`Đen`, `Chuột`, `đậm`, `Bàn`...) | **455 field / 252 sản phẩm** | it 213, fr 68, pt 67, es 25, nl 25, en 24, de 17, sv 16 |
+| Field bị flag heuristic thiếu từ-vựng-đích | 8.750 field | Gồm cả false-positive (spec JSON ít chữ); cần soát tay, không sửa mù |
+| Spec key tiếng Việt chưa map | `o_phan_giai`, `chat_lieu_vo` | Cần map sang key chuẩn (`resolution`, `shellMaterial`) |
+| Chữ `đ` trong giá promotion | còn nguyên (`2.000.000đ`) | Quyết định chính sách: giữ `đ` hay đổi đơn vị — phải nhất quán toàn catalog |
+
+### 13.4 Ma trận field × validator (map từ code `translationController.js` 2130–2171)
+
+Score record = **min** của mọi field; `qualityStatus` = tệ nhất. Mọi field đều chạy: empty, missing_brand, length, markup, truncated, extra_commentary, mixed_language, wrong_language, inconsistent. Khác biệt chỉ ở token-check:
+
+| Field | Token-check |
+|---|---|
+| `name` | ✅ nghiêm (đếm đủ + kề nhau) |
+| `description` | ⛔ miễn (chỉ cần token "có mặt") — từ 2026-10-28 |
+| `brand` | ✅ nghiêm |
+| `technicalDescription` | ✅ nghiêm nhất (đúng định dạng `Specificaties: {JSON}` + đúng số lần token) |
+| `specs` (từng key) | ✅ nghiêm |
+| `promotions` (title/giftProductName/scope/discountText) | ✅ nghiêm |
+| `descriptionImages[].alt` | ✅ nhưng lỗi chỉ là **optional warning**, không chặn duyệt |
+
+### 13.5 Hướng dẫn dịch tay từng field (checklist cho người dịch)
+
+1. **`name`**: giữ 100% token kỹ thuật verbatim và kề nhau như nguồn; dịch hết từ màu/từ tiếng Việt; không bịa model.
+2. **`description`**: dịch trọn heading; đủ độ dài (≥20% nguồn); kết thúc câu tương tự nguồn; không chêm lời.
+3. **`technicalDescription`**: giữ JSON inline valid; giữ đúng số lần từng giá trị; không đổi định dạng token (`Φ13mm`, `Bluetooth v5.4`, `60ms` đã từng bị bắt).
+4. **`specs`**: số/model verbatim; key lạ map sang key chuẩn qua `getCanonicalSpecKey`.
+5. **`promotions`**: giữ nguyên số tiền + `đ`, tên quà + model quà verbatim; chỉ dịch phần mô tả.
+6. **`descriptionImages[].alt`**: có thể bỏ trống; nếu điền thì dịch đúng ngôn ngữ đích.
+7. Chỉ sửa field cần sửa — backend chỉ validate field có mặt trong `translations` → gửi ít field hơn = ít mặt lỗi hơn, validate nhanh hơn.
+
+### 13.6 Việc cần làm tiếp (kế hoạch fix 407 slot name)
+
+1. **Xuất batch thật qua UI** (`/admin/translationsDynamic` → Xuất batch, tối đa 50 sản phẩm/lượt × 4 lượt) để lấy `sourceHash` + source đúng thời điểm — file skeleton cũ thiếu hash, không dùng được để import.
+2. Dịch tay name theo checklist 13.5.
+3. Preview/dry-run qua UI → import thật → duyệt (chuẩn bị note override `inconsistent` ≥10 ký tự — name mới khác bản cũ chắc chắn nổ lỗi này).
+4. Gộp xử lý 27 slot pending cũ từ phiên 30/10 (`SESSION_NOTES_2026-10-30.md` mục 3) nếu cùng nhóm sản phẩm.
+5. Sau import: đọc lại DB xác nhận name ≠ tiếng Việt gốc cho cả 407 slot.
+
+### 13.7 Khoản trống của validator (ghi nhận, chưa sửa)
+
+- `wrong_language` skip khi detect trả `unknown` — với tên sản phẩm ngắn/nhiều token, check này gần như vô hiệu. Md trước đã đề xuất "rà lại validator inconsistent"; cần thêm đề xuất: cân nhắc fallback detect theo tỷ lệ từ-vựng-đích cho field ngắn.
+- `mixed_language` chỉ quét bigram nguồn ≥6 ký tự có dấu — không bắt từ tiếng Việt ngắn (`Bàn`, `Đen`) đứng **một mình** trong bản dịch. Case `"Bàn tastatur"` bị bắt vì cụm ≥6 ký tự; case `"(Đen + ...)"` bên trong ngoặc không chắc bị bắt. Đây là lý do 455 field leak nói trên vẫn đang `approved`.

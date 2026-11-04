@@ -77,5 +77,15 @@
     "dut": "nl",
     "swedish": "sv",
     "swe": "sv"
+  },
+  "targetLanguageHints": {
+    "en": ["the", "and", "with", "for", "of", "your", "gaming", "wireless", "keyboard", "mouse", "featur", "desi", "perform", "experien", "speci", "comfort", "ergonom", "connect", "precis", "durab", "lightwei", "powerf", "seaml", "unparal", "ultra"],
+    "de": ["der", "die", "das", "und", "mit", "für", "auch", "alle", "eine", "einen", "tast", "maus", "leist", "komfort", "präzis", "dauer", "leicht", "kabel", "gaming", "gamer", "spiele", "verbin", "ergono", "beleuch", "anschlu", "akku", "stund", "herst", "garanti", "produk", "filtr", "schalt", "mecha", "klick"],
+    "fr": ["le", "la", "les", "des", "une", "avec", "pour", "votr", "jeu", "sans fil", "clav", "sour", "performan", "confort", "précis", "durab", "lég"],
+    "it": ["il", "lo", "la", "gli", "le", "con", "per", "tast", "mous", "prestazion", "confort", "precis", "durab", "legg", "senza fili", "gaming"],
+    "es": ["el", "los", "las", "una", "con", "para", "tecl", "rató", "raton", "rendimi", "comod", "precis", "durab", "lig", "inalámbr", "inalambr", "juego"],
+    "pt": ["os", "as", "uma", "com", "para", "tecl", "mous", "desempen", "confort", "precis", "durab", "leve", "sem fio", "sem fios", "jogo", "jogos"],
+    "nl": ["de", "het", "een", "met", "voor", "toets", "muis", "prestat", "comfort", "precis", "duurz", "licht", "draadl", "gamen", "gaming"],
+    "sv": ["och", "med", "för", "tang", "mus", "prestan", "komfort", "precis", "håll", "lätt", "trådl", "spel"]
   }
 }

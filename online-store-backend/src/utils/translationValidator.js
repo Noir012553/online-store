@@ -11,6 +11,16 @@ const PRODUCT_ENTITY_TYPES = new Set([
   'product_promotion',
 ]);
 const VIETNAMESE_DIACRITICS = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặếềểễệốồổỗộớờởỡợứừửữự]/u;
+
+// Single Vietnamese syllables that are also valid words in target languages
+// (French/Portuguese articles, prepositions, pronouns...) must be excluded
+// from the single-word leak pass. E.g. "là" is the Vietnamese verb "to be"
+// but "là"/"la" is also the French feminine article / Portuguese pronoun.
+// The bigram pass below still catches real leaks containing these words
+// when they appear inside a longer Vietnamese phrase (>= 6 chars).
+const SOURCE_LEAK_SINGLE_WORD_ALLOWLIST = new Set([
+  'la', // Vietnamese "là" vs French article "la" / Portuguese pronoun
+]);
 const TECHNICAL_TOKEN_PATTERN = /(?<![\p{L}\d])(?:[A-Za-z]{2,}-\d+[A-Za-z\d-]*|[A-Z]{2,}\s+\d{3,}[A-Za-z\d-]*|[A-Z]{2,}\s+\d+(?:[.,]\d+)?-[A-Za-z0-9-]+|\d+(?:[.,]\d+)?\s?(?:GB|TB|MB|GHz|MHz|Hz|mm|cm|inch(?:es)?|in|W|V|%|["″])|[A-Za-z]+\d+[A-Za-z\d-]*|\d+(?!(?:st|nd|rd|th)(?![\p{L}\d]))[A-Za-z][A-Za-z\d-]*)(?![\p{L}\d])/gu;
 const MARKUP_TOKEN_PATTERN = /(?:<\/?[A-Za-z][^>]*>|&[A-Za-z0-9#]+;|\{\{[^}]+\}\}|\[[^\]]+\]\([^\)]+\))/g;
 const TRANSLATION_COMMENTARY_PATTERN = /\b(?:nothing to translate\b|the translation of\b[\s\S]{0,100}\bis not provided\b)/i;
@@ -67,6 +77,22 @@ const getMarkupTokens = (value) => String(value || '').match(MARKUP_TOKEN_PATTER
 const containsWholePhrase = (value, phrase) => {
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
   return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u').test(value);
+};
+
+// Vocabulary fallback scoring for the unknown-detection case: picks the
+// locale whose hint stems match the most words. Returns 'uncertain' when no
+// locale scores >= 2 matches or the top two tie, so ambiguous strings are
+// not flagged (false negatives are preferred over false positives here).
+const detectedLanguageOf = (words, expectedLang) => {
+  const scores = Object.entries(config.TARGET_LANGUAGE_HINTS)
+    .map(([lang, hints]) => [lang, words.filter(
+      (word) => hints.some((hint) => word.startsWith(hint)),
+    ).length])
+    .filter(([, score]) => score >= 2)
+    .sort((left, right) => right[1] - left[1]);
+  if (scores.length === 0) return 'uncertain';
+  if (scores.length > 1 && scores[0][1] === scores[1][1]) return 'uncertain';
+  return scores[0][0] === expectedLang ? expectedLang : scores[0][0];
 };
 
 class TranslationValidator {
@@ -183,6 +209,23 @@ class TranslationValidator {
     const translatedText = translated.toLocaleLowerCase('vi');
     const normalizedTranslatedText = removeVietnameseDiacritics(translatedText);
 
+    // Single-word pass: catch short Vietnamese words (Bàn, Đen, Chuột, đậm...)
+    // that the bigram-only pass below misses. Minimum length is 3: 2-letter
+    // syllables (là, dữ...) normalize to French articles/prepositions (la, du)
+    // and would false-positive on every French sentence — the bigram pass
+    // below still catches them when inside a longer Vietnamese phrase (>= 6 chars).
+    for (const sourceWord of sourceWords) {
+      const normalizedWord = removeVietnameseDiacritics(sourceWord);
+      const hasDiacritics = VIETNAMESE_DIACRITICS.test(sourceWord);
+      const isKnownWord = config.VIETNAMESE_DOMAIN_PHRASES.includes(normalizedWord);
+      if (SOURCE_LEAK_SINGLE_WORD_ALLOWLIST.has(normalizedWord)) continue;
+      if (sourceWord.length >= 3 && (hasDiacritics || isKnownWord)
+        && (containsWholePhrase(translatedText, sourceWord)
+          || containsWholePhrase(normalizedTranslatedText, normalizedWord))) {
+        return { error: 'mixed_language', phrase: sourceWord };
+      }
+    }
+
     for (let index = 0; index < sourceWords.length - 1; index += 1) {
       for (let length = Math.min(4, sourceWords.length - index); length >= 2; length -= 1) {
         const phrase = sourceWords.slice(index, index + length).join(' ');
@@ -204,13 +247,62 @@ class TranslationValidator {
     return Boolean(this.checkSourceLanguageLeak(original, translated, targetLang, entityType));
   }
 
-  async checkWrongLanguage(translated, expectedLang) {
+  // Fallback language check for short/token-heavy strings where language-detect
+  // returns 'unknown': flags the translation as wrong_language when it contains
+  // no words of the target language vocabulary at all (only tokens/brands).
+  // Controlled by TARGET_LANGUAGE_HINTS (per-locale word lists) in
+  // config/translationValidation; locales without hints stay skipped.
+  checkTargetLanguageVocabulary(translated, expectedLang) {
+    const hints = config.TARGET_LANGUAGE_HINTS[expectedLang];
+    if (!hints || hints.length === 0) return null;
+    if (typeof translated !== 'string') return null;
+    const words = getWords(translated);
+    if (words.length === 0) return null;
+    // Require at least 2 alphabetic words so pure model names / spec values
+    // ("RTX 5070", "8000Hz") are not flagged.
+    const alphabeticWords = words.filter((word) => /^\p{L}{2,}$/u.test(word));
+    if (alphabeticWords.length < 2) return null;
+    const detected = detectedLanguageOf(alphabeticWords, expectedLang);
+    if (detected === expectedLang) return null;
+    return {
+      error: 'wrong_language',
+      expected: expectedLang,
+      detected,
+    };
+  }
+
+  // Technical descriptions are JSON-inline strings
+  // ("Specifications: {...}" / "Spécifications: {...}") where keys and values
+  // are largely English technical tokens. Language detection on the whole
+  // string misfires (detects 'en'), so for tech-desc we detect only the
+  // prose OUTSIDE the JSON payload. If no prose remains, skip wrong_language
+  // (token checks already guard the JSON part). Same rationale as the
+  // technical-token exemption for product_description since 2026-10-28.
+  stripTechnicalDescriptionJson(translated) {
+    if (typeof translated !== 'string') return '';
+    const braceIndex = translated.indexOf('{');
+    if (braceIndex === -1) return translated;
+    return translated.slice(0, braceIndex).trim();
+  }
+
+  async checkWrongLanguage(translated, expectedLang, entityType = null) {
     if (!config.ENABLE_LANGUAGE_CHECK) return null;
+    let textForDetection = translated;
+    if (entityType === 'product_technical_description' && typeof translated === 'string') {
+      textForDetection = this.stripTechnicalDescriptionJson(translated);
+      if (!textForDetection || textForDetection.length < 10) return null;
+    }
     try {
-      const detected = await this.detectLanguage(translated);
+      const detected = await this.detectLanguage(textForDetection);
       const detectedCode = this.normalizeLanguageCode(detected);
       const expectedCode = this.normalizeLanguageCode(expectedLang);
-      if (!detectedCode || detectedCode === 'unknown' || detectedCode === expectedCode) return null;
+      if (detectedCode === expectedCode) return null;
+      if (!detectedCode || detectedCode === 'unknown') {
+        // language-detect often returns 'unknown' for short/token-heavy
+        // product strings; fall back to a target-vocabulary ratio check so
+        // untranslated strings cannot slip through silently.
+        return this.checkTargetLanguageVocabulary(textForDetection, expectedCode);
+      }
       return {
         error: 'wrong_language',
         expected: expectedLang,
@@ -293,7 +385,7 @@ class TranslationValidator {
     );
     if (sourceLanguageLeakCheck) errors.push(sourceLanguageLeakCheck.error);
 
-    const langCheck = await this.checkWrongLanguage(translated, targetLang);
+    const langCheck = await this.checkWrongLanguage(translated, targetLang, entityType);
     if (langCheck) errors.push(langCheck.error);
 
     const inconsistencyCheck = await this.checkInconsistency(original, targetLang, translated, entityType);

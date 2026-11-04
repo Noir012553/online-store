@@ -131,6 +131,13 @@ class CloudflareAiService {
     this.lastConfigIndex = null;
     this.rateLimitCooldownMs = parsePositiveInteger('CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS', 30000);
     this.maxRateLimitCooldownMs = parsePositiveInteger('CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS', 900000);
+    // How long acquireConfig may wait for cooling-down keys to recover before
+    // giving up and reporting the pool as exhausted. Default: a bit more than
+    // the max single-key cooldown so normal rotation never bails early.
+    this.cooldownWaitBudgetMs = parsePositiveInteger(
+      'CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS',
+      this.maxRateLimitCooldownMs + 60000,
+    );
     this.maxParallelRequestsPerConfig = parsePositiveInteger('CLOUDFLARE_MAX_PARALLEL_PER_KEY', 1);
     this.configAvailabilityWaiters = [];
     this.maxRequestsPerSecond = parsePositiveInteger('CLOUDFLARE_MAX_REQUESTS_PER_SEC', 5);
@@ -263,6 +270,7 @@ class CloudflareAiService {
   }
 
   async acquireConfig(excludedIndexes) {
+    const deadline = Date.now() + this.cooldownWaitBudgetMs;
     while (true) {
       const lease = this.selectConfig(excludedIndexes);
       if (lease) return lease;
@@ -270,7 +278,22 @@ class CloudflareAiService {
       const untriedConfigs = this.configs.filter((entry) => (
         !excludedIndexes.has(entry.index) && (entry.cooldownUntil || 0) <= now
       ));
-      if (untriedConfigs.length === 0) return null;
+      if (untriedConfigs.length === 0) {
+        // Every non-excluded key is cooling down. Returning null here made
+        // callers report the whole key pool as exhausted (and stop whole
+        // retranslation runs) even while keys were only waiting out short
+        // rate-limit cooldowns. Wait — bounded by cooldownWaitBudgetMs — for
+        // the nearest cooldown to expire instead of failing immediately.
+        const coolingConfigs = this.configs.filter((entry) => (
+          !excludedIndexes.has(entry.index) && (entry.cooldownUntil || 0) > now
+        ));
+        const nextCooldownAt = Math.min(...coolingConfigs.map((entry) => entry.cooldownUntil));
+        if (!Number.isFinite(nextCooldownAt) || nextCooldownAt > deadline) return null;
+        const waitMs = nextCooldownAt - now + 50;
+        console.warn(`[CloudflareAI] ${CLI_SYMBOLS.progress} All keys cooling down; waiting ${waitMs}ms for the next key to recover (budget ${this.cooldownWaitBudgetMs}ms)`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
       await new Promise((resolve) => this.configAvailabilityWaiters.push(resolve));
     }
   }

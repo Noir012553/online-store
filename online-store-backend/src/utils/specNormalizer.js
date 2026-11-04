@@ -23,7 +23,7 @@ const validSpecFields = new Set([
   'driver', 'frequency', 'impedance', 'cableLength',
   'type', 'tdp', 'fanSpeed', 'noiseLevel',
   'condition', 'led', 'warranty', 'sensor', 'durability', 'size',
-  'screenSize', 'screenResolution', 'refreshRate', 'shellMaterial', 'panel'
+  'screenResolution', 'refreshRate', 'shellMaterial', 'panel'
 ]);
 
 const sanitizeUnknownSpecKey = (fieldName) => {

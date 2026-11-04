@@ -1,0 +1,5327 @@
+{
+  "generatedAt": "2026-11-03T07:58:19.212Z",
+  "total": 596,
+  "frSlots": 576,
+  "ptSlots": 571,
+  "rows": [
+    {
+      "id": "6ad0ca970069aece85a8c5da",
+      "name": "Laptop gaming Acer Aspire 7 A715-59G-59RD (Core 5-210H/ RTX 3050 4GB/ ",
+      "sourceHash": "3f6722838e12f342cfb9549116f81e253297fb4643f400408c95a4d6622cdf72",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5db",
+      "name": "Laptop gaming Acer Aspire 7 A715-59G-53RH (Core 5-210H/ RTX 4050 6GB/ ",
+      "sourceHash": "75220000c48203a05586dc05d55d80befc89863f831c09a2008dff4ba4758388",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5dc",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-78MD (Core 7-240H/ RTX 5050",
+      "sourceHash": "b43117547aed4e805e57c01fa40ec03838bd81176d001daa251583cd19d530be",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5dd",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-556L (Core 5-210H/ RTX 5050",
+      "sourceHash": "5538a76124e7fad868728c0fdbf9d0af08f203260271c0af474dd33608772669",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5de",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-50VA (Core 5-210H/ RTX 3050",
+      "sourceHash": "5841e840df52bd56a1045d5162cc3df61f6f28086f6fe4cef9471ccd7f2f330d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5df",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-74UM (Core 7-240H/ RTX 3050",
+      "sourceHash": "56bb3b4f711629dc39e3461b557252a1635e5578fca6a7e6b255c937feac2084",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e0",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-42-R5EF (Ryzen 5 7640HS/ RTX 4",
+      "sourceHash": "a9279544ddffb17f18d2d0aeb1773a687b831f93a1307e8dbcf99ddf2bccd1c2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e1",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-73Z8 (Core 7-240H/ RTX 4050",
+      "sourceHash": "f34f47ec4242900389acf4d9fa1845f885e0442aad07d724d0ba7fca8a3f7502",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e2",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-72-71T9 (Core 7-240H/ RTX 5060",
+      "sourceHash": "d7ca60ac27681e9f5766fedb491dd366498fd0d4dbe697dcec79bfe9584dc956",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e3",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16S-61-R9ZV (Ryzen AI 7 350/ RTX ",
+      "sourceHash": "7377386bdd6a1732b42fabd76dbf83abb564feeeb5fb51d29bd4e53ac5d170f3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e4",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16S-71-58WQ (Core 5-210H/ RTX 505",
+      "sourceHash": "8f24eaf97b4a99ab7b8c44c752873c6df8b65fcf3045104dbe9225bc2674ac46",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e5",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16S-41-R337 (Ryzen 7 260/ RTX 505",
+      "sourceHash": "ffb1058626325c6a8ae44a2a6f49851bc4f8dd0715cc91102359a618783cf2c8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e6",
+      "name": "Laptop gaming Acer Predator Helios 18 PH18-I71-975R (Ultra 9-290HX Plu",
+      "sourceHash": "c5554422f6bf8a0c3c2ae35281355f809034c677a3ea552ff938ea6529ca98e0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e7",
+      "name": "Laptop gaming Acer Predator Helios 18 AI PH18-I71-91UX (Ultra 9-290HX ",
+      "sourceHash": "467b01167069c9086b016f28e690ebc7c7ddd56ac44a19c97fc8bb112ecac2fe",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e8",
+      "name": "Laptop gaming Acer Predator Helios Neo 16 PHN16-I31-91K5 (I9-14900HX/ ",
+      "sourceHash": "e249f122785656f008454a129b9850d0dd632fc490d8e55fd8b597537044ee89",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5e9",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-42-R0QM (Ryzen 5 7640HS/ RTX 3",
+      "sourceHash": "32e0f6e3ca24d6b08d59f26c7b1d74c48f1963143bcdd50d9b8b2d73d076920a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5ea",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-I12-72G0 (Core 7-230H/ RTX 305",
+      "sourceHash": "84d92c46379238d606a8f8f95cbbc1432e282880df94021dc7ab331135e976bf",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5eb",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-I12-53VH (Core 5-205H/ RTX 305",
+      "sourceHash": "cec9d3788d01d629ee19c3237382fc7eeaed17265db7f07c7957b2ca50f74dd3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5ec",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-A71-R7Z6 (Ryzen AI 9 465/ RTX ",
+      "sourceHash": "5cd6e348e7a5c6027306a508437dd8bb6847a32fab45861da47bbf348d3f7344",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5ed",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-52-50RB (Core 5-210H/ RTX 4050",
+      "sourceHash": "4a6081a9efa1196408fb6a27e52563be0b5d854d72acedfb46481294003f0dfb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5ee",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV15-42-R9EH (Ryzen 7 7445HS/ RTX 4",
+      "sourceHash": "541edd470127354127b0d196ef9d6a4a660781c75b24a5eecd89e55f8d5fc069",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5ef",
+      "name": "Laptop gaming Acer Nitro ProPanel AN16S-61-R5F4 (Ryzen AI 7 350/ RTX 5",
+      "sourceHash": "1756793390f66fee1d9c85f62138dd3bb46a91e72c45362e121f7c2bb8e42b0c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f0",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-I51-71MF (Ultra 7-355/ RTX 507",
+      "sourceHash": "74179920b30f6b47462c20cb3e8bc9b15abf69df11ae27393fcc9594aaa09ead",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f1",
+      "name": "Laptop gaming Acer Nitro ProPanel AN16S-61-R9CN (Ryzen AI 7 350/ RTX 5",
+      "sourceHash": "65db9f8295b657855616eaffb48faf4a0547e09481ab8c9ae21e0e2db2c41b54",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f2",
+      "name": "Laptop gaming Acer Nitro ProPanel AN16S-61-R7ZJ (Ryzen AI 7 350/ RTX 5",
+      "sourceHash": "f516f4178ebedc5264494933cc151cefa90ea7fa5c2f8f7186b0ebe19863cb45",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f3",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16S-61-R0B8 (Ryzen AI 5 340/ RTX ",
+      "sourceHash": "b4f549766626977f395976b2a1ed1edbfedc25834149b95fcc6feb9c8fd73cd9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f4",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16-72-782F (Core 7-240H/ RTX 5050",
+      "sourceHash": "bf13be11bb489f3b99eb4e0a947baf656cec67f74eff78624d0dc432ebf7b192",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f5",
+      "name": "Laptop gaming Acer Predator Helios Neo PHN16S-I51-97T9 (Ultra 9-386H/ ",
+      "sourceHash": "71b23678883863716d455128bea1a53ec61cc5868200fab8d3c211a1102da7f1",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f6",
+      "name": "Laptop gaming Acer Predator Helios Neo PHN16S-I51-98CX (Ultra 9-386H/ ",
+      "sourceHash": "82e9a0c7f45982af069bb56fc6604b69d83331750c3067d5e6b0e87bc429ab74",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f7",
+      "name": "Laptop gaming Acer Predator Helios Neo 16 PHN16-I31-50H7 (I5-14450HX/ ",
+      "sourceHash": "4b1b13d1d82f280950c4ff4ea58d5bc0a1a539573ff10ab92a0bc14aaa83a97a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f8",
+      "name": "Laptop gaming Acer Predator Helios Neo PHN16-I71-9779 (Ultra 9-290HX P",
+      "sourceHash": "021aec4e6dcd0ba14890eecff507d636c6176e9a6d0376c3540d4960f01a0cdc",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5f9",
+      "name": "Laptop gaming Acer Predator Helios Neo PHN16-I71-97VK (Ultra 9-290HX P",
+      "sourceHash": "fd271ea97ebd3ac2dba01b1af97106fca17a3889ff6fddea45c04825c1979ef0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5fa",
+      "name": "Laptop gaming Acer Predator Triton 14 AI PT14-52T-99TU (Ultra 9-288V/ ",
+      "sourceHash": "0fdf743b33bfe24200299eb57f2894196933160810b517278e62880b093d2f6c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5fb",
+      "name": "Laptop gaming Acer Nitro ProPanel ANV16S-61-R7KQ (Ryzen AI 5 340/ RTX ",
+      "sourceHash": "62201334558f74045fe11b59fc61f1a12dbd20dcacfc1e499c9e6f5c64446a8a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5fc",
+      "name": "Laptop gaming Acer Predator Helios Neo 16S PHN16S-71-95MS (Ultra 9-275",
+      "sourceHash": "147cce8047b2884aa03edf8caa78595a181209aa6bd77bb0dad29ece44c2db5c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5fd",
+      "name": "Laptop gaming Acer Predator Helios Neo 16 PHN16-I31-72XE (I7-14650HX/ ",
+      "sourceHash": "e1675f2a8a90237f0520e197c8e285ad3c0bcb2c4ade11b01a736bee8ff53b83",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ca970069aece85a8c5fe",
+      "name": "Laptop gaming Acer Predator Helios Neo 16 PHN16-I31-74MN (I7-14650HX/ ",
+      "sourceHash": "0afb510575b77ede8808a07aeee0a947ce6203211a544e43ba68a3c926bc86e7",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c60d",
+      "name": "Laptop Acer Aspire Lite 14 AL14-53M-53E8 (Core 5-120U/ 16GB/ 512GB/ 14",
+      "sourceHash": "aad04bb93717b855cf9c24c6efd6910a2cb9fc7aabc1384d755f33de4e03db8f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c60e",
+      "name": "Laptop Acer Swift Air 14 SFA14-I31-52BV (Core 5-320/ 12GB/ 512GB/ 14\" ",
+      "sourceHash": "6d000f9b7a1c63202c27370baa1855568cfa42e382b4478c32ffb7684df97fce",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c60f",
+      "name": "Laptop Acer Aspire Lite 15 AL15-410P-R1W8 (Ryzen 5-3500U/ 8GB/ 512GB/ ",
+      "sourceHash": "2624a940b489aba170d5965af50395e13cadf3e012be2cd118898fcbd022af2d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c610",
+      "name": "Laptop Acer Aspire Lite 14 AL14-47P-R0TR (Ryzen 5-3500U/ 8GB/ 512GB/ 1",
+      "sourceHash": "90ec59681007ffc4059404ed6d49f0895198d392502418c5608b335bf287d02c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c611",
+      "name": "Laptop Acer Aspire Go 15 AG15-72P-776J (Core 7-150U/ 16GB/ 512GB/ 15.6",
+      "sourceHash": "c1a622888c2f3a7a8e8d2c254838b53713aef4dc88ab2a1241067d9655b79ff1",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c612",
+      "name": "Laptop Acer Aspire Lite 15 AL15-53P-56QH (Core 5-120U/ 8GB/ 512GB/ 15.",
+      "sourceHash": "d270a75ed4119939481165730613e95ca46ad559a0e54c11e14fda933091a297",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c613",
+      "name": "Laptop Acer Aspire Go 14 AI AG14-I71M-977M (Ultra 9-185H/ 16GB/ 512GB/",
+      "sourceHash": "f5fbe902cff69ee933bc9b4e37c8b9b745eb54b638aa83a3ed16dd0f36847aa7",
+      "needs": [
+        "fr:desc+ARC_TOKEN",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c614",
+      "name": "Laptop Acer Swift Go 14 AI SFG14-75-5264 (Ultra 5-226V/ 16GB/ 512GB/ 1",
+      "sourceHash": "b84783bd61dd6823ffb080f44ef27d0a870150bf1d1e16bb502c2030b19e1c58",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c615",
+      "name": "Laptop Acer Swift Go AI OLED SFG14-75-765M (Ultra 7-258V/ 32GB/ 512GB/",
+      "sourceHash": "731f39f148b56dc39ff43130f485817685e7e76ea0fabd7fe3c5a2c20f9131c4",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c616",
+      "name": "Laptop Acer Swift Air 14 SFA14-I31-34NF (Core 3-304/ 12GB/ 512GB/ 14\" ",
+      "sourceHash": "4e2053ff795b2eddd8f0ee693969f2843d9c1718c5489d2eccf11a29130ce499",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c617",
+      "name": "Laptop Acer Swift X SFX14-71G-78SY (I7-13700H/ RTX 4050 6GB/ 32GB/ 1TB",
+      "sourceHash": "b7735f4bc5fe5a8d13b474258fa5ff2e0a6331bd3918d97e9057ebc64006a76e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c618",
+      "name": "Laptop Acer Swift Go 14 AI SFG14-I71-70RP (Ultra 7-358H/ 32GB/ 1TB/ 14",
+      "sourceHash": "c0442996ef2b337ef5dfd0eb0d4fa0d4b104a8796ad3a61663862d2ebf5459cd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c619",
+      "name": "Laptop Acer Aspire Go 14 AI AG14-I71M-50AL (Ultra 5-125H/ 16GB/ 512GB/",
+      "sourceHash": "eda9a4c5c38f7187f30fea24d8b4c289cffaafc3a39bd4a0dfc031bfe6b4e8df",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61a",
+      "name": "Laptop Acer Aspire Lite 14 AI AL14-57P-76KR (Core 7-350/ 8GB/ 512GB/ 1",
+      "sourceHash": "a52257c94bddaae794909831ee4c46370788d8e4887c1a763a03764ca7391033",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61b",
+      "name": "Laptop Acer Aspire Lite 14 AI AL14-57P-59HB (Core 5-320/ 16GB/ 512GB/ ",
+      "sourceHash": "775c5f006da4c7f5d4a4667773523092b89ce0ca365f768116b0a7251f191e45",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61c",
+      "name": "Laptop Acer Aspire Lite 15 AL15-411P-R1CM (Ryzen 5 3500U/ 8GB/ 256GB)",
+      "sourceHash": "659015b60e887fd37abe58e4ab783e2344a7e855672a1f89553e38902aaedbab",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61d",
+      "name": "Laptop Acer Aspire Lite 15 AL15-411P-R7YP (Ryzen 3 3200U/ 8GB/ 256GB)",
+      "sourceHash": "0d71466522de403c43da8340f78af1b9130e0d2e1fb2dcdb978950b5b1eba72e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61e",
+      "name": "Laptop Acer Aspire Lite 16 AI AL16-71P-582Q (Ultra 5-125H/ 16GB/ 512GB",
+      "sourceHash": "d533378ea072fd7764d98c91d827304115011008ca4141b522c8915b1bebe59c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c61f",
+      "name": "Laptop Acer Aspire Lite 15 AL15-21P-R91W (Ryzen 5 40/ 16GB/ 512GB/ 15.",
+      "sourceHash": "cb929dc2b64b01e542a4c5ad9db1b73c06f9fcb0955bab0f7fe35164d9e0e1c9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c620",
+      "name": "Laptop Acer Aspire Lite 14 AL14-44P-R0SP (Ryzen 7 7730U/ 8GB/ 512GB/ 1",
+      "sourceHash": "a5f0e655d556679518e1940223b1d0fd356af402f80f8eeb90ef8ba4c9ae47c2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c621",
+      "name": "Laptop Acer Aspire Lite 15 AL15-21P-R87W (Ryzen 3 30/ 8GB/ 512GB/ 15.6",
+      "sourceHash": "59abff7baa00cf2a93ed6b13e1d2c32d13cb654250d7b76a6faf509aa72f18a8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c622",
+      "name": "Laptop Acer Aspire 14 AI A14-11M-X8FP (Snapdragon X X1-26-100/ 16GB/ 5",
+      "sourceHash": "50fb2818f72099a4bd6b576a957a0ee4cff3d4ab0ffedf35c61f261f44cb99da",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c623",
+      "name": "Laptop Acer Swift Go SFG14-74T-55HD (Ultra 5-225H/ 16GB/ 1TB/ 14.0\" FH",
+      "sourceHash": "7fb11d20e3acb2b0a1d6a604a72bd68cf9bd8748cad9e248f7b801c25a2fb6f5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c624",
+      "name": "Laptop Acer Swift Go SFG14-74-58FJ (Ultra 5-225H/ 16GB/ 1TB/ 14.0\" FHD",
+      "sourceHash": "5ff332cc8bafb454b7e30a3b8b496b6c048400b057d985fce7f6f873142065c3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c625",
+      "name": "Laptop Acer Swift X AI SFX14-72G-708X (Ultra 7-155H/ RTX 4060 8GB/ 32G",
+      "sourceHash": "54e623e9e23d114bf1a1bdcff9c5d0a9b4c1edea7ec7099301ebec1d2ce57fbb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c626",
+      "name": "Laptop Acer Aspire Lite 15 AL15-49P-R6XX (Ryzen 5 7430U/ 8GB/ 512GB/15",
+      "sourceHash": "4a155d1a613bbf8314063d3434468f36a4a194d474c00864e190e6245507b2f6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c627",
+      "name": "Laptop Acer Swift Air 14 AI SFA14-I31-54A2 (Core 5-320/ 12GB/ 512GB/ 1",
+      "sourceHash": "90107ed13607f7c6875020baf3d3ec13a64724c6c8ecb6908c4a171c11737439",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c628",
+      "name": "Laptop Acer Swift Air 14 AI SFA14-I31-36GM (Core 3-304/ 12GB/ 512GB/ 1",
+      "sourceHash": "96a53cbe7a6bce562c523d8e0553b481b6fc86328e350b0b4ec14159b64f691e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cb680069aece85a8c629",
+      "name": "Laptop Acer Swift Air 14 AI SFA14-I31-55NR (Core 5-320/ 12GB/ 512GB/ 1",
+      "sourceHash": "1759a79d6e10f1138784263089034eb6eabb6716cfbde81d8aa9b1c3c1dba5a6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c636",
+      "name": "Bàn phím không dây AKKO 5087 V3 Black&Gray Gradient Botany",
+      "sourceHash": "c4d436ea33caac8ed3510ee7620150ce1799668f816909c822415a40d02a164c",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c637",
+      "name": "Bàn phím không dây AKKO 3108RF V3 Prunus Lannesiana",
+      "sourceHash": "8ea3d8d2c9a5a48ff362951e789ef20a85ca171aada3d58e4b314f9d3e35c9fc",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c638",
+      "name": "Bàn phím không dây AKKO 3108RF V3 Black&Gold",
+      "sourceHash": "94c324dfb73e3c1b0209ffc6bb0ffae900d51f02ce2ed11028279e239031964d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c639",
+      "name": "Bàn phím có dây Veekos K75 Wined Red",
+      "sourceHash": "ebe903210859dfb138ad1a2e3bf7e03bb120f06edf104eaba9b6c860d29c1ee6",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63a",
+      "name": "Bàn phím AKKO 5075B Plus Red World Tour VIET NAM",
+      "sourceHash": "d99d023201bd184ef96631a1505638d296d2cfcbc83b4d96ad41cf890377abba",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63b",
+      "name": "Bàn phím AKKO 5075B Plus Black World Tour VIET NAM",
+      "sourceHash": "fb67eae8b0e34f34d2ea747497b09783132d342698bb1311d7c278539284eb35",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63c",
+      "name": "Bàn phím AKKO 5108B Plus Hatsune Miku Akko Piano Pro Switch",
+      "sourceHash": "91fb57750082c3bb7f43fe3a51c2f64b38ed0c755c7163628e366c4dec1249c5",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63d",
+      "name": "Bàn phím AKKO 3098B Plus Black & Gold Fairy (Silent) switch",
+      "sourceHash": "93d6d9b70667019a7f12af047a594dedd62548d9910cbe168921848802812cf8",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63e",
+      "name": "Bàn phím AKKO 5098B Santorini V3 Piano Pro switch",
+      "sourceHash": "abcad6dccf1a49413b3455c8bd585b37d1f22cfa8e15321b187dc64e9ca915d7",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c63f",
+      "name": "Bàn phím cơ AKKO 5075B Plus-S Black & Silver Akko Switch v3 Cream Yell",
+      "sourceHash": "90754ab3bed29142bcdce185f32ffe39bfa1c04b07b9862395a293f61524446d",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c640",
+      "name": "Bàn phím AKKO MOD007B-HE PC Tokyo Sakura Pink Magnetic Switch",
+      "sourceHash": "89d5ef307144b62213ba333a54d738e7e9838d4c09aefcf0463aa3c03724a64a",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c641",
+      "name": "Bàn phím AKKO 5098B Prunus Lannesiana V3 Piano Pro switch",
+      "sourceHash": "a03f5ab8c42eb98a299d82b6e4bd7b6f7fb9986c1e858a49c0dd71d8e7af7624",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c642",
+      "name": "Bàn phím AKKO YU01 White Jade V3 Piano Pro switch",
+      "sourceHash": "c6b9a1b1002d2cf819109cfc696d4e27c7c4d397585d276f3aa78c18043c9a9b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c643",
+      "name": "Bàn phím AKKO YU01 Antique Jade V3 Piano Pro switch",
+      "sourceHash": "31d868e139270e34330c7f0928bfe4fcc78a5cd6441e98f930c0e099fc077128",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c644",
+      "name": "Bàn phím cơ AKKO 5075B Plus Black Akko Switch v3 Cream Blue Pro",
+      "sourceHash": "1ff5734d91c038e0ca92ae7824f8376ccbd7d53c719c7df0607ca432e458bbd5",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c645",
+      "name": "Bàn phím cơ không dây AKKO 5108 V5 3 Mode Legend of Hei",
+      "sourceHash": "a2900f40fdbb88c98cf8387a8d69a7b980f4977902881e91ae9103af68523966",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c646",
+      "name": "Bàn phím cơ không dây AKKO 5108 V5 3 Mode Hello Kitty",
+      "sourceHash": "b2f3bdbd1bd71bbe86d5a1f859627a54ebccc8d5e04c9724675c065f0ad63bcb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c647",
+      "name": "Bàn phím cơ AKKO 5075B Plus Transparent ASA Black Piano Pro",
+      "sourceHash": "e17bbd9b27d7ec25f9ca83109318af8c9b0a94d5de07134e374dc709d1b1bf64",
+      "needs": [
+        "fr:tech",
+        "pt:tech"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c648",
+      "name": "Bàn phím AKKO MOD007B-HE PC Santorini Sakura Pink Magnetic Switch",
+      "sourceHash": "a2f3bf5a6abca95eb88b59239b91fd39ba9000857532f385f5e18c0016c5200c",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c649",
+      "name": "Bàn phím cơ AKKO 3098B Plus Black Akko Switch v3 Cream Blue Pro",
+      "sourceHash": "f996ad2c47ef9c23fb016126074615834ef32cee2587d2b9b245eb3a6f80b4bd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c64a",
+      "name": "Bàn phím AKKO 5098B Wasteland Survival V3 Piano Pro switch",
+      "sourceHash": "188060d2d4616dc866f4132171b309f0324c4ea37b78fc5071801ebe12bb9d81",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc010069aece85a8c64b",
+      "name": "Bàn phím cơ AKKO 5075B Plus Horizon SP Akko Switch V3 Cream Yellow Pro",
+      "sourceHash": "30915f7232631a8a4e43aa6d9d34069fcba2b8af41210993288187ee83de0a60",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c650",
+      "name": "Tai nghe có dây TUF Gaming H1 Gen II Hatsune Miku",
+      "sourceHash": "71aa0da3b3050d0db6b0fb00560b6b967266539710f88471157727afe34c5d43",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c651",
+      "name": "Tai nghe ASUS ROG Kithara Gaming",
+      "sourceHash": "65ce8cf5cb35a039c466d2f514bc45ceac01fc5799cec8854928294bff6b02ef",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c652",
+      "name": "Tai nghe ASUS ROG Cetra Open Wireless Gaming Earbuds",
+      "sourceHash": "b8c217eb97fbcdfe29102788661e635d96393065500e4f7882879abf6dae2946",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c653",
+      "name": "Tai nghe Asus ROG Pelta WL RGB Black",
+      "sourceHash": "67c8116965445ea103ab1610c0fa2abcbc44c13915c0abcf915e20ae420ae5f4",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c654",
+      "name": "Tai nghe Asus ROG Cetra II Core",
+      "sourceHash": "828b950470dc977075b414876be2d0f7abc2d7e56f301216d7620f5f07fcbdbc",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c655",
+      "name": "Tai nghe Asus ROG Cetra II Core Moonlight",
+      "sourceHash": "4b8c86d09939dda8d89316ec63fdfe6e3307580d9f54b308a132f4e741025b7c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c656",
+      "name": "Tai nghe gaming ASUS ROG Pelta Core Black",
+      "sourceHash": "28bb8f7948e87de9ca08c25f153ae81b87a05e9f3a94c9f323b90d10277e5835",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c657",
+      "name": "Tai Nghe Asus ROG Delta S Core",
+      "sourceHash": "f0fb28987212e74236b0a4ca4556ff302438f85c8ba15d6eee65efed7722f308",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cc440069aece85a8c658",
+      "name": "Tai nghe Asus ROG Delta Core",
+      "sourceHash": "5dd04a96e326464b2d61675bd016a6c94d9a8e68be4a99a665fa5948238193bb",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c667",
+      "name": "Bàn phím gaming ASUS ROG Azoth 96 HE White",
+      "sourceHash": "1357084476bac90f713ec98943c5b93ef64079c62caeb203fbd9bb6420d0495b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c668",
+      "name": "Bàn phím gaming ASUS ROG Azoth 96 HE Black",
+      "sourceHash": "2739e9b6b6538b103643e31e6ddd818bc5e2cc87192134992f957462a295d1d0",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c669",
+      "name": "Bàn phím không dây ASUS ROG Azoth Extreme",
+      "sourceHash": "354a6bcbdac6211ae4899645389f08b4008f7bffd280bb54e38a29b8adeb4af2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66a",
+      "name": "Bàn phím ASUS M704 ROG AZOTH X NX Snow V2 Switch",
+      "sourceHash": "ea5aae008a509f5a29bb87e01aa3b4d1a19a34c058829591441bac4e82b2bb01",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66b",
+      "name": "Bàn phím ASUS M605 ROG FALCHION ACE HFX",
+      "sourceHash": "f3d30c36c589b09a80f6bac71aeb20fa2391343be82008b316f4b5be20f25e63",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66c",
+      "name": "Bàn phím cơ có dây ASUS TUF Gaming K3 Gen II Hatsune Miku",
+      "sourceHash": "93f0b2ab72ce7d2188a6a06f2cc239b47bbf149ad771a53e7530d55f8b3c36ab",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66d",
+      "name": "Bàn phím ASUS M704 ROG AZOTH X NX Storm V2 Switch",
+      "sourceHash": "fdf92eec773fcef0a5c0e1dc3ecddc6bce9059d264866714143ba22f9910d1e2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66e",
+      "name": "Bàn phím gaming không dây ASUS ROG Strix Morph 96 NX Snow Switch",
+      "sourceHash": "38c5dffd59c5eed2d081164d431a53bb989a1476ae69f5668d7646838979ede2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c66f",
+      "name": "Bàn phím gaming ASUS XA14 ROG STRIX SCOPE II X NX Storm",
+      "sourceHash": "c04ffedb9234f39ac3ec3479911e5e5dbda60b4ca26ca684f480e5197245358e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c670",
+      "name": "Bàn phím gaming ASUS XA14 ROG STRIX SCOPE II X NX Snow",
+      "sourceHash": "cb9ba48d2544aecdfba6bffdb00363e03be977a24a2c3ee634d0b1452356defc",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c671",
+      "name": "Bàn phím ASUS M709 ROG AZOTH EXTREME E20 NX Snow",
+      "sourceHash": "dadda49beabe6cc8ff95be1ca2182e5847f99b3337a5e09a5360713ae1ac7494",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c672",
+      "name": "Bàn phím ASUS ROG Falcata Gaming",
+      "sourceHash": "7447d06dae03e9c8d1f20f64e5f6b5a753d04d48b7e299d929fd20bdc03d8f49",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c673",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2X White",
+      "sourceHash": "210089479a27a9bd738f08b83ab29c4e0181d618856700e2f9935b0dca842a83",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c674",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2X Red",
+      "sourceHash": "2841012f0b3c968d92b5e35b1aeedd1d1e5fccea050ae3cb051838d8f60f5d97",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c675",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2X Black",
+      "sourceHash": "57ec0bd0447e8d3f0eeb0fb2399ec8f172686ded2d708972194d90d68180a5b2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c676",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2 White",
+      "sourceHash": "058cb4928b5f9534ee3f3778e1a4662e59e7884e24d0c4bca83321725a83e5cb",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c677",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2 Red",
+      "sourceHash": "eb2b572e8a6fef7539818c35865394f2914bbf85314508f6f9cf5163e1b6d18d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c678",
+      "name": "Bàn phím cơ ASUS ROG Falchion Ace 75 HE V2 Black",
+      "sourceHash": "7037f7e569b6348452ae567525cafe295acbb521b3305284e0a726b05fb9f472",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c679",
+      "name": "Bàn phím gaming không dây ASUS ROG Strix Morph 96 NX Storm Switch",
+      "sourceHash": "7120dccb0bbe9872225f7ff7110615659ad4edf08555e523643605e063243961",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c67a",
+      "name": "Bàn phím ASUS TUF Gaming K3 Gen II",
+      "sourceHash": "0429ad94bdd9eed044519a2510e5740b610c97d2f31881a007d0904a75b806c8",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c67b",
+      "name": "Bàn phím ASUS M709 ROG AZOTH EXTREME E20 NX Storm",
+      "sourceHash": "4f73b3c035f1f226cf44cf85f5ca06ec1eb4e558d3c03249deb9d8db09d3b7ac",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c67c",
+      "name": "Bàn phím Asus ROG Strix Scope II 96 Wireless ROG NX Storm Switch",
+      "sourceHash": "8fa6ecebda6bcb5f8bcc739d46617ac08bf0a345e4fbf5ad961960509d0cadc0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cd010069aece85a8c67d",
+      "name": "Bàn phím ASUS TUF Gaming K1",
+      "sourceHash": "09c3b223fb0bf66760d016d3189c15bd12bbb07b69cf1e3d1f4b8a97ece06705",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c68e",
+      "name": "Laptop gaming ASUS V16 V3607VJ-TK189W (Core 5-210H/ RTX 3050 6GB/ 16GB",
+      "sourceHash": "39484ee4891922316c9bcc6e1c3325c7ddd3a752a752e8a6e7f5920ae14756ee",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c68f",
+      "name": "Laptop gaming ASUS TUF Gaming A15 FA506NCG-HN329W (Ryzen 7-8845HS/ RTX",
+      "sourceHash": "bea0a05b5484f4f7a96050f28db6215411f88bfa5286c630db0869eb0d7c4cf5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c690",
+      "name": "Laptop gaming ASUS TUF Gaming A16 FA607NUQ-RL007W (Ryzen 7-170/ RTX 40",
+      "sourceHash": "cca9e912b012992a289a79b3fba5b0bfbd22e5117542c12a9512d0f707dcc15e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c691",
+      "name": "Laptop gaming ASUS ROG Strix G16 G614PM-TS147W (Ryzen 9-8940HX/ RTX 50",
+      "sourceHash": "be990ce3bbb0d89b8c9942a74affcc5caa4468550113e47f733ab108a24ecae8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c692",
+      "name": "Laptop gaming ASUS ROG Strix G16 G614PH-S5101W (Ryzen 9-8940HX/ RTX 50",
+      "sourceHash": "36c80f484e38ec00f6f2d9aff5349af1f694a8fc95b18d4574f88ad158e0dab5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c693",
+      "name": "Laptop gaming ASUS TUF Gaming A15 FA506NCG-HN390W (Ryzen 7-155/ RTX 30",
+      "sourceHash": "96633a97defb5b35ba1f7b8cc5f115ae1b1b2f12ed21062ecfb8714b8aa8edbb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c694",
+      "name": "Laptop gaming ASUS ROG Strix G G614PH-RV176W (Ryzen 9/ RTX 5050/ 16GB/",
+      "sourceHash": "41e713f526cf1285eedf4fc52ebf7f749b09842df2af1326e37c3062ad2d172f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c695",
+      "name": "Laptop gaming ASUS TUF Gaming FA401EA-RG041W (Ryzen AI Max+ 392/ 32GB/",
+      "sourceHash": "d09063562f9fa1f491f97a5c3393f057af70c5cbc7dfaa730e272b166775812d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c696",
+      "name": "Laptop gaming ASUS TUF Gaming FA401UM-RG049W (Ryzen 7 260/ RTX 5060/ 3",
+      "sourceHash": "a0b209f0661f5158dc1f2f26b01477506ac1da268b66b40845da59c9bf25c95b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c697",
+      "name": "Laptop gaming ASUS TUF Gaming FA401UH-RG001W (Ryzen 7 260/ RTX 5050/ 1",
+      "sourceHash": "bd95388a5b986e18a5f326356b20569c0a9d572f3abb724531b5ef22991ec101",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c698",
+      "name": "Laptop gaming ASUS TUF Gaming FA608UMI-TU162W (Ryzen 7 260/ RTX 5060/ ",
+      "sourceHash": "36631e984c10e6b9bb6d4b709f8fd1e8edb212b484f50259ea81f99074c32ae8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c699",
+      "name": "Laptop gaming ASUS TUF Gaming FA608UHI-TU121W (Ryzen 7 260/ RTX 5050/ ",
+      "sourceHash": "26ee5941dda2bda68c31627728aa525e05bae527d026bcec938ea960fdeeb13f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69a",
+      "name": "Laptop gaming ASUS ROG Strix SCAR G835LXG-TQ473W (Ultra 9-290HX Plus/ ",
+      "sourceHash": "9a0a83880769a422dbbf8b3d0f9bb8eb6a10c493604fdd1c436217d3799156d2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69b",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU606AW-TB121W (Ultra 9/ RTX 5080/ 32G",
+      "sourceHash": "d1831cf368b6a7e03ccea58dbd7e6972aece63a016d74c9b278a5730e89dd61b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69c",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU606AX-TB042WS (Ultra 9/ RTX 5090/ 64",
+      "sourceHash": "2ef361dbc007825e9ea0747955469666f8b9766730b4d034fb87dbfd3ae36dc0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69d",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU606AR-TB027W (Ultra 9/ RTX 5070 Ti/ ",
+      "sourceHash": "a60010cd25c30b3e85fba1e83784b207bd179a8cacd123a550318794f6076dd9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69e",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU405AR-SY016W (Ultra 9/ RTX 5070 Ti/ ",
+      "sourceHash": "5b5e98d3334fdc5d43bf6d8f87239977b56ed62d7cd2015990995854142e1019",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c69f",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU405AW-SY029W (Ultra 9/ RTX 5080/ 32G",
+      "sourceHash": "9acd6cd87d5646d20e2f744e82733f90aacb03053c18b429ae2f9586564b4535",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a0",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU605CP-QR141W (Ultra 7-255H/ RTX 5070",
+      "sourceHash": "86e88fbfd69684ad30e03adf81622aee26c782f127eb9a187b18c6f0f62f36a0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a1",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU605CP-QR115W (Ultra 7-255H/ RTX 5070",
+      "sourceHash": "a78d9930ff29b642aded283de39dcedd342e9d62a3da5e8a24fc452b21c81306",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a2",
+      "name": "Laptop gaming Asus ROG Zephyrus Duo 16 GX651AX-SR050WS (Ultra 9-386H/ ",
+      "sourceHash": "19bf97b6dae39b73069572879df7d40260a36985c69a7ac008a7578ee726a78a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a3",
+      "name": "Laptop gaming ASUS TUF Gaming A14 FA401GM-RG013W (Ryzen AI 9 465/ RTX ",
+      "sourceHash": "ff76c7a1adf783b576c94da9f9bf77643bdd91ec053c5fee18fe90025309f648",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a4",
+      "name": "Laptop gaming Asus TUF Gaming F16 FX608JHI-TU209W (I7-14650HX/ RTX 505",
+      "sourceHash": "88d1af9d1b279ac37f8dcdeacef9734f9be55a8c2bd67266280e8a58784c0e27",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a5",
+      "name": "Laptop gaming ASUS ROG Strix G16 G614PH-TS118W (Ryzen 9-8940HX/ RTX 50",
+      "sourceHash": "bdf0843283f38cd7f1b7457e8a4a3590d85afb893eaeb718a7f1614768806cb9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a6",
+      "name": "Laptop gaming ASUS ROG Zephyrus GU606AW-TB052WS (Ultra 9/ RTX 5080/ 32",
+      "sourceHash": "a84fcf908edadaa755c4ff1376e7d595c34df38cb7e2e0f50da4643e04cc8480",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a7",
+      "name": "Laptop gaming ASUS ROG Zephyrus G16 GU606AM-TB032W (Ultra 9-386H/ RTX ",
+      "sourceHash": "ef2b1a2ba4fc41206138304d39017e66df243819e70b76e3a0e0d7b0a7446b42",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a8",
+      "name": "Laptop gaming ASUS TUF Gaming A15 FA506NCG-HN396W (Ryzen 7-155/ RTX 30",
+      "sourceHash": "ef401c11f00bf512757db42c8cac56dac48f38aa993ab03076e7a7246386dda3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde40069aece85a8c6a9",
+      "name": "Laptop gaming ASUS ROG Zephyrus G14 GA403GM-SY201W (Ryzen AI 9 465/ RT",
+      "sourceHash": "ee716ecbbb6d98b22321dfd410a021b7a4ebeb5d12df9f2e1523a24d8db39510",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde50069aece85a8c6aa",
+      "name": "Laptop gaming ASUS ROG Strix SCAR 18 G835LWG-TQ383W (Ultra 9-290HX/ RT",
+      "sourceHash": "41425c88be9f2f069679ed390f148611ea0449921b5e9d50f876c664815f9b16",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde50069aece85a8c6ab",
+      "name": "Laptop gaming ASUS TUF Gaming A16 FA607NUG-RL129W (Ryzen 7-7445HS/ RTX",
+      "sourceHash": "5c3a267e762911e8ad2951c9d887e66a380958c4be1901eed98db7567bfb029f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cde50069aece85a8c6ac",
+      "name": "Laptop gaming Asus V16 V3607VH-RP084W (Core 5-210H/ RTX 5050 8GB/ 16GB",
+      "sourceHash": "d5959c967e4de37ff3784420d96a8f95e6907048422e2ad3aaacee39dd759376",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cdf20069aece85a8c6b1",
+      "name": "Laptop Asus ExpertBook P1403CVA-C5H16-50W (Core 5-210H/ 16GB/ 512GB/ 1",
+      "sourceHash": "84f523bd69acee8789072a2d2034ccadd185a9eee39ffe3e27683090e5f31deb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cdf20069aece85a8c6b2",
+      "name": "Laptop Asus ExpertBook P1 P1403CVA-C3U08-50W (Core 3-100U/ 8GB/ 512GB/",
+      "sourceHash": "10ae44a984405cca1ede20468fdcf729474dc62eb3ec534932bf62ac0dc6c18f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6bb",
+      "name": "Chuột ASUS P725 ROG HARPE II EXTREME EDITION 20",
+      "sourceHash": "fd6de8b0680285794566289b8a72897d513cc8cc690463dffd69d198e9b37a2d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6bc",
+      "name": "Chuột ASUS P722 ROG KERIS II Origin WL White",
+      "sourceHash": "ccfd3b911f45d1ac08057b276bc45fd88f0b7fdbffcbf7105b2f955f89580f15",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6bd",
+      "name": "Chuột ASUS P723 ROG Harpe II Ace Wireless Black",
+      "sourceHash": "abfd6c5d899e8b0716e85649f5ef36cf302579276147440836492f785e1999df",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6be",
+      "name": "Chuột ASUS ROG Strix Impact III Wireless White",
+      "sourceHash": "871d43919e50e81dda991704c41d6a5f6dab2f21d9c4cc4d654b01446f311ad0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6bf",
+      "name": "Chuột ASUS ROG KERIS II ACE Wireless Black",
+      "sourceHash": "cb1fcae0c638c5d6b5df5c53a2e458c2e2c076d99775f48aa5cf730ccb3e3bd4",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c0",
+      "name": "Chuột ASUS P722 ROG KERIS II Origin WL Black",
+      "sourceHash": "5d878efccc2339e6b061912f473ccced97da4413843e28707aa9c07ba85dbf79",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c1",
+      "name": "Chuột gaming ASUS ROG Harpe Ace Extreme",
+      "sourceHash": "fb40d4321d5d62d737e264c34b96f7a3be7c92bcc82e0056942b9fae9bf2ce03",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c2",
+      "name": "Chuột ASUS ROG Strix Impact III",
+      "sourceHash": "bf642d22fa4af22a25f3f919e6d32a1dbae0c5edd9eb6c55dd6c3702a0fad8bf",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c3",
+      "name": "Chuột ASUS ROG Strix Impact III Wireless",
+      "sourceHash": "4c38070905f37b6540ac9fdbe37c0fbfddf9ef311f6433d86601d57528af4d5f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c5",
+      "name": "Chuột Asus TUF Gaming M3 Gen II",
+      "sourceHash": "56a53699d6bfd53a143a376b3a0b60bb7a9a921f7ff007107204fd2a69e11cb2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c6",
+      "name": "Chuột Gaming Asus TUF M4 Wireless",
+      "sourceHash": "11ba8bef76de035a8ce8217c0deeeec8df0baee5f8a0f162ab5fb985ab74b010",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c7",
+      "name": "Chuột Asus Rog Gladius III Wireless Aimpoint Black",
+      "sourceHash": "8c8515612c3b94393b44822282ab2ba78d44021cbfa2aaa3cb00ac6726b774ec",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c8",
+      "name": "Chuột ASUS ROG Harpe Ace Aim Lab Edition",
+      "sourceHash": "d03eb6d0f622e0df29fd694e036eeba0385a5f1b8a61578a7b1108ccdd995346",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6c9",
+      "name": "Chuột gaming ASUS ROG Harpe Mini Core",
+      "sourceHash": "3e163fa349f3c829f93fb5c9d02d9516e7646bb2b581f725a9bdd4379994b809",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0ce6e0069aece85a8c6ca",
+      "name": "Chuột Asus Rog Keris Wireless Aimpoint White",
+      "sourceHash": "ec8c183efb9877e85d823cf0b7dc29dfe0802c0a73fc795bd8c79d0fb99a6da0",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6e6",
+      "name": "Bàn phím AULA F108 Pro (Xanh dương trắng tím đậm/ Reaper switch) F1080",
+      "sourceHash": "0f9e44d7fc967165319def022105d58afc47bbb984e77e6de1f73f56f2eb4bfd",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6e7",
+      "name": "Bàn phím AULA F108 Pro (xám đen gradient/ Nimbus V3 switch) F10801",
+      "sourceHash": "b9673f4f25f83180e7d048a35dc4f2d9871296fdc738fd384d54ef2341d6eb95",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6e8",
+      "name": "Bàn phím AULA S102 Pro TM (Xanh lá be) S10204",
+      "sourceHash": "ac6cf738a6c2c99d71c77e209865cfb3ac830a4b8986803dfc4aa404084b8d11",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6e9",
+      "name": "Bàn phím AULA S102 Pro TM (Xám be xanh ngọc) S10206",
+      "sourceHash": "21f70a260707d446ec57398d1d3807e86c2a66f0bba4f8fd505858883bb56e46",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ea",
+      "name": "Bàn phím AULA S99 Pro TM (Xanh lá be) S9905",
+      "sourceHash": "1ede504a4173d2d58b40e3760ec92bf2a298e20d63378f4cd31d7dae81be91e5",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6eb",
+      "name": "Bàn phím AULA S99 Pro TM (Xanh dương be tím) S9904",
+      "sourceHash": "4bd05a5db313ff147c7c647dca482807a47c61910624a4177917373c0b5e685a",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ec",
+      "name": "Bàn phím AULA F75 (Đen + Xanh đậm + Cam/ Reaper Switch) F7504",
+      "sourceHash": "d72e1e862a0b5d407eaa141a22f81306bc4f23815d4972af61c92f1dec54627c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ed",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím đậm/ Star Vector sw",
+      "sourceHash": "45f44521448e6e4b6e6f34831aeaf587670f5cdd388c9f195ce4b21bb6b557b0",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ee",
+      "name": "Bàn phím AULA S100 PRO TM (Đen+xám+cam/ Red switch) S100PRO03",
+      "sourceHash": "8fb5042c1183b57188ebd94cb8392b1abff2d25dcd2e827a6775638bfcf011fc",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ef",
+      "name": "Bàn phím có dây AULA AG60 PRO (Xám/ Aether magnetic switch - Rapid tri",
+      "sourceHash": "8349584e1fa1b4085c49534f83465a2c5d28883061e905fe94243137aa510cdc",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f0",
+      "name": "Bàn phím AULA F75 Max TM (Ice blue/ Reaper switch) F7516",
+      "sourceHash": "7fa682b710571fe4b0acb9b989dd51bc066ceeee30235ff165919a3a02d34416",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f1",
+      "name": "Bàn phím AULA F99 PRO TM (Có núm xoay/ Xanh dương + Trắng + Tím/ Grey ",
+      "sourceHash": "8ad21e89a5c0010a1c4876d3ed9676acb2443a58fb5aaceb030b4b64cd21b379",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f2",
+      "name": "Bàn phím AULA F75 TM (Comic/ Reaper switch) F7521",
+      "sourceHash": "4ad9792b211c4ea7dc366b3879aee613699ca8915f215b09fde4e8d1ea07192a",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f3",
+      "name": "Bàn phím AULA WIN60HE MAX có dây (Đen + xám + vàng/ Wing Chun Magnetic",
+      "sourceHash": "37b342c6084bf8d49e5cb0b748e5f15866dc9b9118d072029b3ec67628bddecc",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f4",
+      "name": "Bàn phím AULA HERO68HE có dây (Trắng/ Meteor magnetic switch - Rapid t",
+      "sourceHash": "017c8abed2fc131f86a4013212e744a100ceb67364932886a9ca1bfd2bbd023e",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f5",
+      "name": "Bàn phím AULA WIN60HE MAX có dây (Xám + trắng + xanh dương/ Wing Chun ",
+      "sourceHash": "a9f73a66b6f1b3ab74322d46a75f3e0744c8c964a3842913df69b27dd79524b9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f6",
+      "name": "Bàn phím AULA WIN68HE MAX có dây (Đen + đỏ/ Wing Chun Magnetic switch ",
+      "sourceHash": "48e7d156e3bb4354c5bc52f5ed8b6caa2beabe89e6028611a286acf5a27e8125",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f7",
+      "name": "Bàn phím AULA S100 PRO TM (Xanh dương+trắng+tím đậm/ Brown switch) S10",
+      "sourceHash": "7474d403d5c19a9e9444c2d2e19801079ef56bdf80e624a053623a5a256cff61",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f8",
+      "name": "Bàn phím AULA S100 PRO TM (Xanh dương+trắng+tím/ Red switch) S100PRO01",
+      "sourceHash": "b8a3ec6c3562852495b633b0f8df6f93caf590976c5f3702c1dadd3c7b05a8d8",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6f9",
+      "name": "Bàn phím AULA F68 TM (Đen/ Ice Crystal switch ) F68B",
+      "sourceHash": "62e8b3e2f2374fd4e63f5432bce1770158e510c5f827157631947337cde8f982",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6fa",
+      "name": "Bàn phím AULA F2058 có dây (Đen Red switch) F205802",
+      "sourceHash": "f1be7e40eeb7e60784c8a1045468f7a607e69ea298273221b4e54ecade131b59",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6fb",
+      "name": "Bàn phím AULA F75 có dây (Đen Red switch) F7513",
+      "sourceHash": "d363af4764bcfcca73fcca12e04372825039d406664fb6dc4fadf8c9a4236687",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6fc",
+      "name": "Bàn phím AULA F75 có dây (Trắng Red switch) F7512",
+      "sourceHash": "f261be38d400b33259f044181861347d5fb5e62a6d75c5e8854c5a5bae25663f",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6fd",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím/ Paleo Dust switch)",
+      "sourceHash": "38c082f5a371f407e272afa46dd86a8fa2aa0399d08b23631066c684273670c2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6fe",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím/ Caramel Latte swit",
+      "sourceHash": "e4dc9b933db34860101d2a5fa1e4698383897d37dbe3f0897a68eac3558758a2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c6ff",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím đậm/ Paleo Dust swi",
+      "sourceHash": "8a9960207f7ae86177daf23f9ac71045d9625befb08438dff0e7f935de528665",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c700",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím đậm/ Nimbus V3 swit",
+      "sourceHash": "f9b5bb97d87ddaaad43267f3f4d2114ca842ef7460fc14918f99e0e5be5cd488",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c701",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím/ Nimbus V3 switch) ",
+      "sourceHash": "185bf908de188c916625a52989f1155cf5580cc9b715d9718567fd4e82cb4f89",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c702",
+      "name": "Bàn phím AULA F99 (Xám + Trắng + Xám đậm/ Grey Wood V3 Switch) F99GWG",
+      "sourceHash": "1c6ad3b55dbc6e8743b974c9e0ab03d805d70a62eda39ae70191fcfd189cc8dc",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c703",
+      "name": "Bàn phím AULA F99 PRO (Đen + Xám + Xanh lá/ Grey Wood V3 switch) F9910",
+      "sourceHash": "607fd923a350d4fa24c36e0fb82b8ffbaf719b7b997d1603fc92254b233f7267",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c704",
+      "name": "Bàn phím AULA F99 (Đen + Trắng + Xanh dương/ Star Vector switch) F9907",
+      "sourceHash": "d0be1f8e84d770c600b34bd187be38355320c64225328e603be6b55a2b7b2918",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c705",
+      "name": "Bàn phím AULA F99 (Xanh dương + Trắng + Tím đậm/ Grey Wood V3 switch) ",
+      "sourceHash": "545d40d74419700d2d26906685344eb501939b4cc8a9ef73b8de2805ec53d696",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c706",
+      "name": "Bàn phím AULA F75 PRO (Trắng + Xanh Dương Gradient - Seiya/Star Vector",
+      "sourceHash": "9b7768be476506c6db4439c96381e82ccf239820030f26a1d6f00efaa7b208f7",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c707",
+      "name": "Bàn phím AULA F75 PRO (Trắng + Tím Gradient - Seiya/ Star Vector switc",
+      "sourceHash": "d5bd02e67a89ab5007746a697d380b0898a5e8367830e6d9fe7e1a78769d5627",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c708",
+      "name": "Bàn phím AULA F75 (Xám + Đen Gradient/ Reaper switch) F7505",
+      "sourceHash": "d1cbc6ccf03d4ddd9e876da3535dc10f42be10983ac01738bc9fd07d925f94e2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c709",
+      "name": "Bàn phím AULA F75 (Đen + Xanh đậm + Cam/ Grey Wood V3 Switch) F75BBG",
+      "sourceHash": "5ad5add64348888913cc2c8e01c33c6fc3d55e09d451ba536f275b6d6e72abd7",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70a",
+      "name": "Bàn phím AULA F75 (Xanh nhạt + Trắng + Xanh đậm/ Grey Wood V3 Switch) ",
+      "sourceHash": "0e5df8d3b5d29a4672572e27d6364676a1384aa88ff0ee3bec8731b70af34860",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70b",
+      "name": "Bàn phím AULA F75 (Tím nhạt + Be + Xanh lá/ Grey Wood V3 Switch) F75PB",
+      "sourceHash": "42d147ed0a1eee31744402d1faac1108a584fb2f862e2c83d5ae379bb5735ae6",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70c",
+      "name": "Bàn phím AULA F75 Ice Blue (Xanh nhạt + Trắng + Tím đậm /Reaper switch",
+      "sourceHash": "7c234ea9d2fb1528a149fa9bed1e2bd0afc3f3a7abd67289c19b8da44658a957",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70d",
+      "name": "Bàn phím AULA F75 Ice Blue (Xanh nhạt + Trắng + Tím đậm /Ice Vein Swit",
+      "sourceHash": "627bb26f119e7e73f950567a60ff221d130286745c280acc401828083de04d9b",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70e",
+      "name": "Bàn phím AULA F75 Ice Green (Tím nhạt + Be + Xanh lá /Reaper Switch) F",
+      "sourceHash": "9f754578d5488d4d7d012116c1c26efda9e217adcf7d74b02e8a6b263629bb7e",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c70f",
+      "name": "Bàn phím AULA F87 TM (Đen + Trắng + Xanh Lá /Grey Wood V4 Switch) F873",
+      "sourceHash": "02fe4fb0f6d7b38f4ce14ee1646d1b9310b3a5073ff5796f509b7e8102ffc6b6",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c710",
+      "name": "Bàn phím AULA HERO68HE có dây (Trắng/ Black King magnetic switch - Rap",
+      "sourceHash": "10ebb9278eb05bb8c40cfec1f8acdf6775138c8655166b04a0f33f8cf24ecf32",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c711",
+      "name": "Bàn phím AULA HERO68HE có dây (Hồng gradient/ Black King magnetic swit",
+      "sourceHash": "e3e4294418d22ef6aaf718e27dfb81e8ac9ce1cbfd30f1371cea5a4f7c77a8a6",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c712",
+      "name": "Bàn phím AULA F75 (Đen +Hồng Gradient/Reaper switch) F7514",
+      "sourceHash": "04745b25e3af42f1b52b75c609873c5503b3f878368aa5291b1917aefa60448d",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c713",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh lá + Trắng/ Grey Wood V4 switch) S9802",
+      "sourceHash": "6c7d4d8b6b4b53e2645c2ed757d838ddf089adc03f8c6780b5c7fddcb6e40872",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c714",
+      "name": "Bàn phím AULA AU75 TM (Đen + Xám + Cam/ Star Vector Switch) AU7501",
+      "sourceHash": "15167820c075ddf0f408b6d91b3aebba73b593129c243e3ec6c038dd182ff361",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c715",
+      "name": "Bàn phím AULA AU75 TM (Tím + Be + Đỏ/ Star Vector Switch) AU7502",
+      "sourceHash": "44b09ca753a4b7d81949ea94cf523314d45ff206eb154a4cabca5446b6403703",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c716",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Tím đậm/ Caramel latte ",
+      "sourceHash": "8d122c9418aa3895110a4eee365d5c739119ef2de5447805e23e790feee2bb94",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c717",
+      "name": "Bàn phím AULA S98 PRO TM (Xanh Dương + Trắng + Cam/ Nimbus V3 switch) ",
+      "sourceHash": "a70ed46c98409550bfaa70a086f87e12336aedb3645eb5c4215dc4301d3a4dc5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c718",
+      "name": "Bàn phím AULA F98 PRO TM (Trắng/ Ice Crystal Switch) F98PB",
+      "sourceHash": "70e9df7cc597b112188b138ba58615f26642ce101bc26df1b3bd0771503ce71e",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c719",
+      "name": "Bàn phím AULA F98 PRO TM (Đen/ Ice Crystal Switch) F9801",
+      "sourceHash": "c4e619892c5d6d3c7ca1bf6e9def2e71735dffdd9f7913bbd319f7215873cd1c",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71a",
+      "name": "Bàn phím AULA F99 (Xanh dương + Trắng + Tím / Grey Wood V3 switch) F99",
+      "sourceHash": "d51baaa2012ba612446024dad2deb70184b3e111fe5965b474f900169a1cb237",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71b",
+      "name": "Bàn phím AULA F99 PRO (Xám + Đen Gradient/ Star Vector switch) F9911",
+      "sourceHash": "85c5c23d030d9e91dae8efd35d462c6134db0185a89f4ef9e2403b75e890d200",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71c",
+      "name": "Bàn phím AULA F99 PRO (Xám + Đen Gradient/ Nimbus V3 switch) F9906",
+      "sourceHash": "c7c8d76565c214738cb48cb9abf102b4d9f7d3c0b118294b95648f9d169076bb",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71d",
+      "name": "Bàn phím AULA F99 PRO (Xám + Đen Gradient/ Grey Wood V3 switch) F9904",
+      "sourceHash": "6d863ef0841611412d0af1069e27a1dad83bbe0f7bbb60d87ca2d97069d53527",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71e",
+      "name": "Bàn phím AULA F99 PRO (Xanh dương + Trắng + Tím đậm/ Star Vector switc",
+      "sourceHash": "b4c4db450315c3053ee446cdf3a66d7f666385f1479f2943f4350c1ab430d3de",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c71f",
+      "name": "Bàn phím AULA F99 (Đen + Trắng + Xanh lá/ Whale Sea switch) F9909",
+      "sourceHash": "3c968132acc987abb4fc57ba29994b4de39e5c1f7c6552a6d43f142e9aa4398f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c720",
+      "name": "Bàn phím AULA F99 (Xanh dương + Trắng + Tím đậm/ Reaper switch) F9901",
+      "sourceHash": "8c7da081900f39cb17dd328fde7fd19ef10047990f0383d6902359619a975b04",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c721",
+      "name": "Bàn phím AULA F99 (Đen + Trắng + Hồng/ Grey Wood V3 switch) F99LWP",
+      "sourceHash": "9e83e6fa5ebbbdfa1643d7c25c766150561e4dcd20a9500bc1c07ed4a9c29f93",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c722",
+      "name": "Bàn phím AULA F75 (Xanh dương + Trắng + Tím/ Star Vector Switch) F7508",
+      "sourceHash": "d8fd77f32c9e0f4a30be210a7958c19ba2ad0b3c041f122fb8b15ed9df1e7217",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c723",
+      "name": "Bàn phím AULA F87 PRO Black Gradient Grey Wood V4 Switch F8701",
+      "sourceHash": "ef58965878aac787931221424b051e2658aad1e687e362c56bdfd4a0b9c5f36e",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c724",
+      "name": "Bàn phím AULA F87 PRO (Xanh đậm + Đen + Xanh cổ vịt /Grey Wood V4 Swit",
+      "sourceHash": "2d9eea19e9103172e4225819d49a3381242d435fe1019860d8c1d3de38bc17c0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c725",
+      "name": "Bàn phím AULA F87 TM (Đen + Xanh đậm + Cam/ Grey Wood V3 Switch) F8703",
+      "sourceHash": "2715e3c85896707a96554ad1242cb667b5e8b2e2ef35b8f9c6f460a228f8a94f",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c726",
+      "name": "Bàn phím AULA F87 TM (Đen + Trắng + Xanh Lá /Grey Wood V3 Switch) F873",
+      "sourceHash": "a1a826c7689b6c43efb0a667a220a805efcff3b326197c6bc8bc9958bc17503f",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c727",
+      "name": "Bàn phím AULA F87 TM (Đen + Trắng + Xanh Dương /Grey Wood V3 Switch) F",
+      "sourceHash": "af79f7d93809eb167f9f8a63cf7ef8741c2f8e4116dbe260849257711f14d9ce",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0cff40069aece85a8c728",
+      "name": "Bàn phím AULA F87 TM (Xám + Trắng + Xám đậm /Grey Wood Switch) F873W",
+      "sourceHash": "97a94abb4b13e944d409f057a230b1c42a758614cdd2b2fb15a695b805245861",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0cffa0069aece85a8c729",
+      "name": "Bàn phím cơ Corsair K100 RGB Cherry MX Speed (CH-912A014-NA)",
+      "sourceHash": "524c322b2ce2d2bc52204f82cf4ed8cb561a475d3804a17b3ff76b0d0c6ddd59",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c735",
+      "name": "Chuột Corsair Katar Pro Wireless",
+      "sourceHash": "a0b25973755a315260c84dec685b5b0defb9b6a370729d12e9b58caa5481ac45",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c736",
+      "name": "Chuột không dây Corsair Nightsabre RGB (CH-931B011-AP)",
+      "sourceHash": "f6b27094f499aa31aab27e36d256772bbd79989b4f8517ced6afadd1982042a8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c737",
+      "name": "Chuột không dây Corsair Darkstar RGB (CH-931A011-AP)",
+      "sourceHash": "06bc17e533f76f3cf6d28a53915d46de6087e071783a90f46d63902bf6cdc15a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c738",
+      "name": "Chuột Corsair M75 Air Black",
+      "sourceHash": "aa48dd9cbabe6c9cfcc36063f12bcf03786a399bbeb13c89cc3a9e6ee0fd9cd4",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c739",
+      "name": "Chuột Corsair Sabre RGB Pro Wireless (CH-9313211-AP)",
+      "sourceHash": "bb7c2176f8ae6a82b35d156ade1031bb9e1c454c27c5bb1ecefeb68133bcb78b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73a",
+      "name": "Chuột Corsair Sabre RGB Pro (CH-9303111-AP)",
+      "sourceHash": "7288fce4cc8da5945781bd9f717943528568028372935428353944f219f5c1a0",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73b",
+      "name": "Chuột Corsair Katar Pro Ultra Light",
+      "sourceHash": "693156a11b290802a06b1b3aadfc5167b3a9896b0ed957887c417bde0b1ec1e7",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73c",
+      "name": "Chuột Corsair M65 RGB ULTRA Black CH-9309411-AP2",
+      "sourceHash": "9419d3b209ff24c13ab0900d1352aee0414460ee8b3f8f8dadf85f3ed7a00d7c",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73d",
+      "name": "Chuột Corsair Darkcore RGB Pro Wireless (CH-9315411-AP)",
+      "sourceHash": "d33ab0e25c2ed8feb61a1cb035fbc0f919fe55372c4ac7f05404bda1781bea65",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73e",
+      "name": "Chuột Corsair Darkcore RGB Pro SE Wireless (CH-9315511-AP)",
+      "sourceHash": "0dbfb7d830ccf6af350d056464d5bb8a3ab70ac0623190d8c2e07c35ef8bd8f0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c73f",
+      "name": "Chuột Corsair Scimitar RGB ELITE (CH-9304211-AP)",
+      "sourceHash": "167d37eab9dd9b7ae71f6427215e5d4460ca910e0878f81ed0eb4996ca2674ba",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c740",
+      "name": "Chuột Corsair HARPOON",
+      "sourceHash": "8b08f533ab8f01da169aa9b20f143bc0505e7a05129c1571cc2ab4e8ed7974ff",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c741",
+      "name": "Chuột Corsair M55 RGB Pro White",
+      "sourceHash": "0c2e17a41fe3b4fbd7a4442fdd1af9f1879ab2db55ccccffa5ba5c93960d70c0",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c742",
+      "name": "Chuột Corsair NightSword RGB (CH-9306011-AP)",
+      "sourceHash": "4b814f772c4a3b1cbef8d1690ea5480659dd453a136b77624b249f1093eb7a21",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c743",
+      "name": "Chuột Corsair M55 RGB Pro Black (CH-9308011-AP)",
+      "sourceHash": "4a196bd8d3d5de96641d1a3a989cd44e6fca77f89a34c547d25890343018d9c4",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c744",
+      "name": "Chuột gaming Corsair Glaive RGB Pro Black (CH-9302211-AP)",
+      "sourceHash": "187b2ae65f8a2a5630ab478f13e3336a0b8b5e5ac7f5dba79587d4a1a3c3a338",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c745",
+      "name": "Chuột Corsair IronClaw RGB (CH-9307011-AP)",
+      "sourceHash": "0d5df4bebec5f00120d15aab3f8626faa921b400aff58f84f0de35604b549561",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c746",
+      "name": "Chuột Corsair Harpoon Wireless (CH-9311011-AP)",
+      "sourceHash": "91d721d85ab9c1cbd6a5138e233448ca2f8834f2e437f9ead952ffd3e61c9a27",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c747",
+      "name": "Chuột Corsair M65 RGB Elite White (CH-9309111-AP)",
+      "sourceHash": "8af9f2d217f587811b4dda78c126df5a699518ef7114434e3b873a7da3d18dc5",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d0620069aece85a8c748",
+      "name": "Chuột Corsair M65 RGB Elite Black (CH-9309011-AP)",
+      "sourceHash": "ee7ef59f3accad08964b92ecd0f932ee5c424ac7e804e6a0cfcfa09f884ff316",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c759",
+      "name": "Bàn phím cơ DareU EK75 Pro Sakura Pink Dream switch",
+      "sourceHash": "f8a705902923f250691cac971d551f009d4f35e5e8e718b4673f323203abaf45",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75a",
+      "name": "Bàn phím cơ DareU EK75 Rapid Trigger Black",
+      "sourceHash": "4a563168270535c0d675de9fd3d92a1cef03954ba454300d74893101f486f44a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75b",
+      "name": "Bàn phím cơ Gaming DAREU EK87 v2 Gray Black Dream Switch",
+      "sourceHash": "606a80902e687c4415ac1df3dcacdde52fe1e5868fdbd8ef3067d931f612fb93",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75c",
+      "name": "Bàn phím cơ DareU EK75 White Black Firefly switch",
+      "sourceHash": "91c465d71a9ec1a4ea494ca5d6856fc8fd5749367742c154a3afe9ca1ef2d948",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75d",
+      "name": "Bàn phím cơ DareU EK75 Full White Firefly switch",
+      "sourceHash": "926f0ca2c8ff013053bc3c789d6aebb880f3d70b6a9fd0a8bf26f982cb9c7cb4",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75e",
+      "name": "Bàn phím DareU EK104 Rainbow White Black Dream Switch",
+      "sourceHash": "72480e2f591f59c807f2faf17f77ac0709da1191712f79d5f408d60ae44f7ebd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c75f",
+      "name": "Bàn phím Không dây DareU EK87 Pro RGB Trắng Dream Switch",
+      "sourceHash": "af97d2d378695e50f74a80840bca565f724c0603380c848637ae19c8c438e426",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c760",
+      "name": "Bàn phím Không dây DareU EK87 Pro RGB Đen Dream Switch",
+      "sourceHash": "7711d8addb41e0a0d202a0cf4e9108938858e578ad2e3505378e4ef35fecd820",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c761",
+      "name": "Bàn phím cơ DareU không dây EK75 Pro WBC RGB Dream switch",
+      "sourceHash": "ec86ae88866202f02e49627fad5ddf54f464084b23572277ab0eceec3715a99a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c762",
+      "name": "Bàn phím cơ DareU EK75 Pro Triple Mode Black Golden Dream switch",
+      "sourceHash": "b83c8267d4253e93b7158ba58c11be7f025ce822aae863b59940ff8ba2db41cf",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c763",
+      "name": "Bàn phím cơ DareU EK75 Pro Triple Mode Black Firefly switch",
+      "sourceHash": "89f61602030084958471a7d3770a04adb77e01391c62018e6c9cc89613222638",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c764",
+      "name": "Bàn phím DareU EK87V2 White Red Switch",
+      "sourceHash": "597ba96eda4e442b4b60148455c3de08a68f7d3426e76c2e586a3b366b89a753",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c765",
+      "name": "Bàn phím DareU EK87V2 White Blue Switch",
+      "sourceHash": "23c569535a3e60cac07f9673dfeca970b0683bbb60117586f20e0ed91e7b0683",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c766",
+      "name": "Bàn phím DareU EK87V2 Black Blue Switch",
+      "sourceHash": "36f6ed77f4570617d24a52975dd828f303205392c43fe29eccd571c9af920be4",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c767",
+      "name": "Bàn phím DareU EK87V2 Black Brown Switch",
+      "sourceHash": "5d14a9c6846556a62813edfae7f1409a92be02524bf01b876d97f0272d965882",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c768",
+      "name": "Bàn phím Gaming DareU LK185",
+      "sourceHash": "3a8322c4f4ac1bb7ae3684601dab260556b16eaaad452096c2b67f6634a03c98",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c769",
+      "name": "Bàn phím cơ gaming không dây DareU Flex 75 White Black 3 Mode Pegasus ",
+      "sourceHash": "712f5d562b0aedc8d8c7b1216f189cdcf1583db11451d1eb8460a62c96b4757d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76a",
+      "name": "Bàn phím cơ gaming không dây DareU Flex 75 Black Grey 3 Mode Pegasus s",
+      "sourceHash": "241cb794389e545284b495bdf857c1f85a368be2ae0a4ed1fe187af2cfb95c68",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76b",
+      "name": "Bàn phím cơ gaming không dây DareU Flex 75 Shadowfold 3 Mode Pegasus s",
+      "sourceHash": "4842c52ae343cfe0dfe97c1bcf6f17d78d846fa311c1af9ef35a7debff3ef70f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76c",
+      "name": "Bàn phím cơ DareU EK65s White Black PBT Dream Switch",
+      "sourceHash": "5a47e09a72b9d1094205fb4434985b2e1e8f9adbad2564ad816201a1f2a46d1d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76d",
+      "name": "Bàn phím cơ DareU A98 Pro TM Clear Water Dream switch",
+      "sourceHash": "dec911813026c3ada258a3af3b293d0c90d0568149290b8fc342bec4cc2e71cd",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76e",
+      "name": "Bàn phím cơ DareU A98 Pro TM Red Wave Dream switch",
+      "sourceHash": "c002aa353c8413d712c400d3405c33b0f5f0dbac911a8fd78c9e34d3ae9f290c",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c76f",
+      "name": "Bàn phím DAREU EK98 PRO Proto Dream switch",
+      "sourceHash": "395aea349c2b5409684d84da40dbb719deaf813e9f316d8972639be70d00ba7c",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c770",
+      "name": "Bàn phím DareU Không dây EK98 Pro RGB Trắng Dream Switch",
+      "sourceHash": "2647041cc0cfd18f3337121ab70ca201093d36fc085e926205838b1417899b87",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c771",
+      "name": "Bàn phím DareU Không dây EK98 Pro RGB Đen Dream Switch",
+      "sourceHash": "2afa2f3149194011c97dbd71aa0cff04fe4d6150534a489a010521b6b74381b9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c772",
+      "name": "Bàn phím cơ DareU EK807G Wireless Red Switch",
+      "sourceHash": "0dc62ea6769bd5fed61bfd1bd17a037a73b56339fb95d8409d5af062f59f5f4e",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c773",
+      "name": "Bàn phím cơ DareU EK807G Wireless Blue Switch",
+      "sourceHash": "dd025d6c5f15dad8b70845261d96cd716444d46b7716a7ca22ed7b2a66e4db1f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c774",
+      "name": "Bàn phím cơ DareU EK807G Wireless Brown Switch",
+      "sourceHash": "48df6f00aebbb2bd32b569f4f11bf43308b86840488e676a6a9b00f7604fce5c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c775",
+      "name": "Bàn phím cơ DareU EK810 Queen Blue Switch",
+      "sourceHash": "99f7410d50b521ff50eb8765a898630ecb1ed2dfa9ae64841b9f5dce0084b19f",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c776",
+      "name": "Bàn phím cơ DareU EK810 Queen Red Switch",
+      "sourceHash": "4586a959321826d633eb8f50e1f3db77337928bca258ad33d08ef0f27418d5fc",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c777",
+      "name": "Bàn phím cơ DareU EK884 RGB Brown Switch",
+      "sourceHash": "3c4481f68335964a65dcb1f634c14b81c77d040c6970da747af853707a5af756",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c778",
+      "name": "Bàn phím cơ DareU EK884 RGB Blue Switch",
+      "sourceHash": "52320b407874b6af649a89406ba6e80f80ccbde052d0e0a24ffc9ba635ebaae4",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c779",
+      "name": "Combo Bundle DareU MK188G",
+      "sourceHash": "d5b36674267abcc4efa9142d074788e089e00dd4caf132ac78d2501affa2ca33",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d14e0069aece85a8c77a",
+      "name": "Bàn phím DareU LK135",
+      "sourceHash": "95497347c9dd0734be412b0c287661a8e0984305870ba053c5691ad96c7fb0e3",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c77b",
+      "name": "Chuột DareU Không dây EM911T RGB Đen",
+      "sourceHash": "a38fad9fe62f2c74d8329db8db30f10beba1d4a2a0be5ab39bcf908c4ed72865",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c77c",
+      "name": "Chuột không dây DareU LM115G Black",
+      "sourceHash": "6872d8825819f8d893b556060f1d3578cc53fd0eaa4a0888b165c7e82538aa03",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c77d",
+      "name": "Chuột DareU EM901X RGB Superlight Wireless White Blue",
+      "sourceHash": "6cd40c6b334749b9d38e11aaf7ffb6ec7a7059ee165a71cd04d6392f0389664b",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c77e",
+      "name": "Chuột gaming DareU A960 Yellow Ultralight",
+      "sourceHash": "54f8e6db24a5c7c9b609196d530153817036d5e228f156b23b0830db1279fb49",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c77f",
+      "name": "Chuột DAREU LM103 (USB)",
+      "sourceHash": "e8374ad0eca0478a444fdb5f5ae71df335ee7830486fc87a2aa8852aea0fc667",
+      "needs": [
+        "fr:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c780",
+      "name": "Chuột gaming không dây DareU A950GM White",
+      "sourceHash": "07a3f4077b81f01cac29d8885a18f858c2cbfda216916ca0a499e0d1c1ae96dd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c781",
+      "name": "Chuột gaming không dây DareU A950GM Black",
+      "sourceHash": "6e95c09b99c6c2f50a31581a537ee6cc42442cc6903def8d06358aac9bed8f75",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c782",
+      "name": "Chuột DAREU A950 3 MODE Pink",
+      "sourceHash": "6a1c555ff12c8ff29981de0cd8561ce05f26e54bd6ce1019f7481aa085ef8180",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c784",
+      "name": "Chuột DareU LM121 RGB Black Silent Click",
+      "sourceHash": "e877568fc8e21c5a5619dc69454a81c9a58ca2311a64430cf4183fc3ab0496c2",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c785",
+      "name": "Chuột DareU LM121 RGB White Silent Click",
+      "sourceHash": "7d9f97137b3ea016af1c5495668d6e89c816332ba7123d7809dfed7d00cd4be6",
+      "needs": [
+        "fr:tech"
+      ]
+    },
+    {
+      "id": "6ad0d1720069aece85a8c786",
+      "name": "Chuột Dare-U A960s Ultralight",
+      "sourceHash": "9cd8a8e8d2f54b595924c4a9087c3c4e50557e991959f7012ce43fbb83b14941",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d18f0069aece85a8c78f",
+      "name": "Laptop Dell DC15250-7982BLK H5YXJ (I7-1355U/ 16GB/ 1TB/ 15.6\" FHD Touc",
+      "sourceHash": "43540b2ebd5729197ddca93bf9575c3d1c9b9d666db5ed8626b51936b14724d4",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d18f0069aece85a8c790",
+      "name": "Laptop Dell 16 DC16251 (I5-120U/ 8GB/ 512GB/ 16\" FHD+ Touch/ Win 11) -",
+      "sourceHash": "ec2cc5bddbac24a067fa252fd9b55404d03c607d8463fa28cb63e01bd35f596f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d18f0069aece85a8c791",
+      "name": "Laptop Dell 15 Pro Essential PV15250 VKVKD (I3-100U/ 8GB/ 512GB/ 15.6\"",
+      "sourceHash": "39f725e50046f348aeb38c92f466f05b46675dadca21117e214f7a31448c67f2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d18f0069aece85a8c792",
+      "name": "Laptop Dell 15 Pro Essential PV15250 VKVKD (I5-1334U/ 8GB/ 512GB/ 15.6",
+      "sourceHash": "4f0e3bd0744c25cb6bf4f470eba05f125f7013b773fa6133e39d5533e2c3e7b7",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d18f0069aece85a8c793",
+      "name": "Laptop Dell 15 DC15250 - 71092480 (I7-1355U/ 16GB/ 512GB/ Win 11/ Offi",
+      "sourceHash": "235ee3e23ca6b0363ae82537ac9da57cad50dd2aac19107b629d0940bc1c98de",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c79c",
+      "name": "Tai nghe Edifier True Wireless X1 Lite White",
+      "sourceHash": "2b0e3a3e6262e1ac909015131fa6bcdb40b10cd2a091697e37b0df470204d931",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c79d",
+      "name": "Tai nghe Edifier Không dây WH700NB Đen",
+      "sourceHash": "8fc9df6ca6529a0a1a0811cfb8090bf7fe07586b3316ba2a858c2c03d7c41d82",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c79e",
+      "name": "Tai nghe Edifier không dây W800BT Pro Grey",
+      "sourceHash": "666d1efb3098215c4193d003cf0784bf6ffb2ce31fde693a1c044c6e25c37c95",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c79f",
+      "name": "Tai nghe Edifier không dây W830NB Gray",
+      "sourceHash": "5849438240dab990e37c061e725ab01d05324ef7dcda4c0cc14d46b623fcf947",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a0",
+      "name": "Tai nghe Edifier không dây W800BT Pro Ivory",
+      "sourceHash": "f3fe83033fbaec2f135d8628b3134fcfc57dc6f228da0efc58ee797d57e67603",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a1",
+      "name": "Tai nghe Edifier không dây W800BT SE Gray",
+      "sourceHash": "60c3aa901a61949028a5ff259c7340e1659c46924deed7e5ea0f5950ecc75ec5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a2",
+      "name": "Tai nghe Edifier không dây W830NB Black",
+      "sourceHash": "ee736afb300e4c4c661fa85568ae97cafd561c5bd8f14740976f69326402867a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a3",
+      "name": "Tai nghe Edifier không dây W830NB White",
+      "sourceHash": "d35f24cfe186e601160b6de1a060074b6b3fe4bce907663bb76f63c57772815c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a4",
+      "name": "Tai nghe Edifier không dây W800BT Pro Black",
+      "sourceHash": "ea586a0524a67d4eecc8d8bfba7ff48d93b773f3a03c827883de345adae3107a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a5",
+      "name": "Tai nghe Edifier không dây W800BT SE Black",
+      "sourceHash": "d7ae12751942c0703e08ee63f56900f07bf39b79531262d887f6f79b9d81444e",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a6",
+      "name": "Tai nghe Edifier không dây W800BT SE White",
+      "sourceHash": "d9823161e213eb1806a5acb513093803f9c4302a412048181d6b4d68a1cbfbad",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a7",
+      "name": "Tai nghe Edifier True Wireless X1 Lite Black",
+      "sourceHash": "980ffb91a3d58024dfa76801e417473e2f9368d91126741f2fc546ce2ec359bb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a8",
+      "name": "Tai nghe Edifier Không dây W820NB Xanh Dương",
+      "sourceHash": "cc19e4eafbb80c38bd6537eb763781998d351e1b1b9217cd82db38577c82e22b",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7a9",
+      "name": "Tai nghe Edifier True Wireless X2S Trắng",
+      "sourceHash": "bd59213c44ea6f951dd84f69b4d104225985a9c081fe2ee7f0e889864e0aa3ba",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7aa",
+      "name": "Tai nghe Edifier Không dây WH700NB Trắng Ngà",
+      "sourceHash": "ed96727c9c608c80bbef6057aadc2734677c1b4ef36593d1c8206d047aecc42a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7ab",
+      "name": "Tai nghe Edifier True Wireless X2S Xám",
+      "sourceHash": "54eb915db4d4acdc2a55751d0d22b5001d76013fd5169f2fa6ab49e5009ee3ef",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7ac",
+      "name": "Tai nghe Edifier True Wireless X2S Xanh lá",
+      "sourceHash": "a3f8ff676eeff83decef37e45c09987255eee36b3bbf437035c02ab8cefc0ef6",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2150069aece85a8c7ad",
+      "name": "Tai nghe Edifier True Wireless X2S Đen",
+      "sourceHash": "85364a56725f6c1d556a0e2dfaa0651722e716cc4a293b73d60f2cb1319d7982",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2250069aece85a8c7ae",
+      "name": "Bàn phím FL-Esports CMK75 Không dây Desert Grey Blue FLCMMK Ice Violet",
+      "sourceHash": "1fc866ff30da8263e66c49fc86f26ca995d46d9e3e2b3c755b52704d6acb2f31",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2250069aece85a8c7af",
+      "name": "Bàn phím FL-Esports CMK75 Không dây Desert Grey Blue FLCMMK Ice Pink",
+      "sourceHash": "7f7f2c67570165a4f91c5a593e6fe8f15ef067dca9e0f0fedb04734c9439c6ce",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2250069aece85a8c7b0",
+      "name": "Bàn phím FL-Esports CMK75 Không dây Lake Placid Blue FLCMMK Ice Violet",
+      "sourceHash": "68894f5e07a8824fbdf725ff2e642cf06ec65ab28c47fc4f308f6ff2b5439b31",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2250069aece85a8c7b1",
+      "name": "Bàn phím FL-Esports CMK75 Không dây Lake Placid Blue FLCMMK Ice Pink",
+      "sourceHash": "305fff0c810b865cc266ddf98440c68e9d2f4b8b4c5412015194dbd9714a32d7",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7b8",
+      "name": "Laptop gaming GIGABYTE A16 CVHI3MY893SH (I7-13620H/ RTX 5060 8GB/ 16GB",
+      "sourceHash": "270b6879a4c8626e147dac70906a346fd4add8a269d22914d19daf109a86e606",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7b9",
+      "name": "Laptop gaming GIGABYTE AORUS Master 16 6XJM4VNE64SH (Ryzen 9 9955HX3D/",
+      "sourceHash": "3feb2dd0798602325a5723a40c11195942726ee473f976973b3a29a133f6753e",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7ba",
+      "name": "Laptop gaming Gigabyte Eagle GL6J EAGLE-9MJR2VNF93SH (Ryzen 5 7533HS/ ",
+      "sourceHash": "8844591308ca2d1f3fb985327958cb446e6212dbaa9caea0e1f517fbdb6eb2c3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7bb",
+      "name": "Laptop gaming Gigabyte A16 A16-3THK3VN893SH (Ryzen 7 260/ RTX 5050 8GB",
+      "sourceHash": "75b5d5faba7b7cf2b9c22a7c16799f7a526db9b5c3e97f4f70d03f1e5a4f5871",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7bc",
+      "name": "Laptop gaming Gigabyte A16 CMHH2VN893SH (Core i5-13420H/ GeForce RTX™ ",
+      "sourceHash": "6f412c96604fd88b3f922dd72006f749afbfe06ccc7770793593c0980e6e0aeb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d25d0069aece85a8c7bd",
+      "name": "Laptop gaming Gigabyte Eagle GL6J EAGLE-9LJR2VNF93SH (Ryzen 5 7533HS/ ",
+      "sourceHash": "16b2e13bcd49e0d6381a97cfa4ea7b00423c1c8a10790ad86f3baf353ede899b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c2",
+      "name": "Tai nghe HyperX Cloud Stinger 3 Black",
+      "sourceHash": "4f2256ca36d89af0f753a928f603de236d7be4cc04a5af9246c5a2cecae08254",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c3",
+      "name": "Tai nghe HP HYPERX Cloud Earbuds III S Red",
+      "sourceHash": "7a826a1cf5826a663912893b8fc50c89a0b9cd667d14e7779c34e525d171ec6f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c4",
+      "name": "Tai nghe HP HYPERX Cloud Earbuds III S Black",
+      "sourceHash": "3253aa034dd12be43605db3fa856749b79797906bb9a9779115409c875ccf490",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c5",
+      "name": "Tai nghe không dây HyperX Cloud Flight 2 WL Black",
+      "sourceHash": "f10a65e88684d7b80276daf73459679cb6ec08d769a37c298e72b7978bfc9a00",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c6",
+      "name": "Tai nghe HP HyperX Cloud Alpha 2 Wireless Black",
+      "sourceHash": "c3c3919e8ce8250b987bab92cf6398182e736c0396da528a306e5de96037a4d4",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c7",
+      "name": "Tai nghe HP HyperX Cloud III S Wireless Black",
+      "sourceHash": "8824109119779b534679e039c0f0d0e5faf324cb905045754cee7a8afce08df2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c8",
+      "name": "Tai nghe HP HyperX Cloud III S Wireless Black Red",
+      "sourceHash": "1db4fd9b59029850d29549590c486e5801764b084fc0c508ab10825147634003",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7c9",
+      "name": "Tai nghe HP HyperX Cloud JET Blue Wireless",
+      "sourceHash": "3b9dfa10ee8947e66eb1b67aaec5939aca66c4466fb5d6e8df9cceb861cda6b9",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7ca",
+      "name": "Tai nghe HP HyperX Cloud JET Black Wireless",
+      "sourceHash": "4534215fa06cb26ee69af5119f255e4dce84eaab565599a73138a221b7f6c3fa",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7cb",
+      "name": "Tai nghe HP HyperX Cloud III Black",
+      "sourceHash": "c71e719da4182cced9037b06e5cd80afed61b176d7122d3b3ebbc922794e75a8",
+      "needs": [
+        "pt:tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7cc",
+      "name": "Tai nghe HP HyperX Cloud III Red",
+      "sourceHash": "bcbfa08afa1117eb298d8d0bda663eb78e6194ccb5af6c1a236d4dff07e6504d",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2af0069aece85a8c7cd",
+      "name": "Tai nghe HyperX Cloud Stinger Core II",
+      "sourceHash": "04263923c8df86c787e39319f05d6008a1db58551d9f5d3f114a74507bae92c5",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2bc0069aece85a8c7cf",
+      "name": "Chuột HyperX Pulsefire Haste 2 Mini Wireless White",
+      "sourceHash": "059b88f9545728796a232620f8cec9889d4d35955a349752ad4c5962ec551e91",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2bc0069aece85a8c7d0",
+      "name": "Chuột HyperX Pulsefire Haste 2 Mini Wireless Black",
+      "sourceHash": "b91e4cf0bac7b8c90204517e31cfad4f4d49f53a53a730380c9a64958249c01e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d4",
+      "name": "Bàn phím Keychron Q6M-M1 Carbon Black Red Switch",
+      "sourceHash": "e6be593425ab437eb2ab4374036a3ce1e1e202d9982c3b2f7588077ddf263d77",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d5",
+      "name": "Bàn phím gaming Keychron Black Myth Wukong Deluxe Gold Pink Switch",
+      "sourceHash": "10dfb2c8a26854a580dddc1f788d1e4073248da940f6b90f42b560cdce6ae0cc",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d6",
+      "name": "Bàn phím Keychron B1P-K9 Deep Black",
+      "sourceHash": "9a6bdfb7b3b819bff5783939acde1068fb2da08830f05aacea1c050faf4a0e27",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d7",
+      "name": "Bàn phím Keychron B6P-K9 Deep Black",
+      "sourceHash": "1219c5629bce75a036a8a68c66e44488159d07a2e31e545e3ce46b178634d9c0",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d8",
+      "name": "Bàn phím Keychron B6P-K2 White Scissor",
+      "sourceHash": "e3353f2a85798dad90ab93901938ff97e874919970450ba32868deaa8d79cc89",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7d9",
+      "name": "Bàn phím Keychron B6P-K1 Space Gray Scissor",
+      "sourceHash": "24aa7384d124e06859fa1bab598fc9db9ada20f6deb45d4f4ddd0db162140a84",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7da",
+      "name": "Bàn phím Keychron B1P-K2 White Scissor",
+      "sourceHash": "d87f43dbbd5fc4575fd0f9068b5a62305b32daa90cfcbc5780a2e3469ea396a3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7db",
+      "name": "Bàn phím Keychron K5M-B3 Black Brown Switch",
+      "sourceHash": "db249f0d64b388e5a6d4790ec02430ce08adb0bfcb6725a0e3f78ec0d71168c9",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7dc",
+      "name": "Bàn phím Keychron B1P-K1 Space Gray Scissor",
+      "sourceHash": "f7df4578cd4fe52e79ade7cf3ba967ecd5999d1f064f4c53055ed4ab9116fa5f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7dd",
+      "name": "Bàn phím Keychron K8M-J3 Black Brown Switch",
+      "sourceHash": "31d3a37e6624ab3b18f1ce279ed6fd9ba80de4d927d35347efacc03c9c365132",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7de",
+      "name": "Bàn phím Keychron K3M-B3 Black Brown Switch",
+      "sourceHash": "53dd1ac0fa4a7859da6458f89ef4923c176ec6712d224e198ef0f9638d31e809",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7df",
+      "name": "Bàn phím Keychron V3M-D3 Carbon Black Brown Switch",
+      "sourceHash": "035014ce513811bbe58f8f15f1e93b5ac339374f605e3f12a7e61d5b370024eb",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7e0",
+      "name": "Bàn phím Keychron Q3M-P3 Shell White Brown Switch",
+      "sourceHash": "c04a7aed91adbe39193339de567028d0297a2d2cf04dca97d62fd6063300ac74",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7e1",
+      "name": "Bàn phím Keychron Q1M-V1 Purple Red Switch",
+      "sourceHash": "6ebe18071ad29ab5e7d84622ae43d816c142668af31181ea8667e7103f77643d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7e2",
+      "name": "Bàn phím Keychron Q1H-P1 White Magnetic Switch",
+      "sourceHash": "abd668c51ceaa5be1daf3e59269523458b17e2ecff1440540fe8aa73f6f10341",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d2ee0069aece85a8c7e3",
+      "name": "Bàn phím Keychron K2H-F1 Black Magnetic Switch",
+      "sourceHash": "998a5399571479fe6e6eb5ea402ad314318c5a6b3d529a96a811e3e7747ef56c",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7eb",
+      "name": "Laptop gaming Lenovo LOQ 15ARP10E 83S0006RVN (Ryzen 7-7735HS/ RTX 3050",
+      "sourceHash": "842cff7bd0b1dfcb35f2a98d4b1edc139b640dff7a449041330e2370c8b59c36",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7ec",
+      "name": "Laptop gaming Lenovo LOQ 15IRX10 83JE01AGVN (I7-13645HX/ RTX 5050 8GB/",
+      "sourceHash": "7f2dbed684915e3971e2be356a2d3a5a0b7ebb858f17b8b4049fdeb9420414be",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7ed",
+      "name": "Laptop gaming Lenovo Legion Pro 7 16IAX10H 83F500JGVN (Ultra 9-275HX/ ",
+      "sourceHash": "6940fd500dbb21b69165787974dc5a8644952df42fb7380caab5aba65c22760a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7ee",
+      "name": "Laptop gaming Lenovo LOQ Essential 15ARP10E 83S0004FVN (Ryzen 7 7735HS",
+      "sourceHash": "b670fb8ab3336c2beaec1ae4b717435703f663a9fdd88ea06c75bfad278f3e9c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7ef",
+      "name": "Laptop gaming Lenovo LOQ 15IRH11E 83Y9003WVN (Core 5-205H/ RTX 3050 6G",
+      "sourceHash": "270d6ddcdf4a70d7a3de5172c50eb5baa7db4d19ea983e61e2fc1eca44043e6f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7f0",
+      "name": "Laptop gaming Lenovo LOQ 15IRH11E 83Y9003VVN (Core 5-205H/ RTX 3050 6G",
+      "sourceHash": "216dcde6071c7dd739263d1c7824e35c9035bbb53869c0a4e0076548adbd5fa7",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7f1",
+      "name": "Laptop gaming Lenovo LOQ 15IRX9 83DV01ALVN (I7-13650HX/ RTX 4050 6GB/ ",
+      "sourceHash": "2929767f200591b66c08962f1bdd4905e19ae8d2125f32f086ddc171a43c291a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7f2",
+      "name": "Laptop gaming Lenovo LOQ 15AHP11 83TN0040VN (Ryzen 7-250/ RTX 5050 8GB",
+      "sourceHash": "3e9875ef49326d9f76b225bfbbefb3b616c4be229a1330a336198673d679d1ee",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3400069aece85a8c7f3",
+      "name": "Laptop gaming Lenovo LOQ 15ARP10E 83S000DCVN (Ryzen 7-170/ RTX 3050 6G",
+      "sourceHash": "80e04267ad13527fa7a5213de756229d4fa18395909707c753824d40c770274b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3980069aece85a8c7fa",
+      "name": "Laptop Lenovo IdeaPad Slim 5 14AKP10 OLED 83HX00F5VN (Ryzen AI 5-330/ ",
+      "sourceHash": "bf80c177f4dd0c587597424217f1cfdcac88fa7bc440b9772edf0ceb3961f1da",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3980069aece85a8c7fb",
+      "name": "Laptop Lenovo IdeaPad Slim 3 14IWC11 83RQ00DBVN (Core 3-304/ 8GB/ 512G",
+      "sourceHash": "81dbef7f7a89c1c087f515c61430538a72d37dd16ac4d4507e1e6d006f5e3364",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3980069aece85a8c7fc",
+      "name": "Laptop Lenovo Yoga Slim 7 14IPH11 OLED 83QM0075VN (Ultra 7-355/ 16GB/ ",
+      "sourceHash": "03f24e259252085a6234995fe30eb15a8dd540b6e515d74f8d79e5ccf38deb70",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3980069aece85a8c7fd",
+      "name": "Laptop Lenovo Yoga Slim 7 14IPH11 OLED 83QM0076VN (Ultra 7-355/ 16GB/ ",
+      "sourceHash": "d8f3729d53bbe59420c297a6bc2ab3826d54a3082a80b16471fc1e3c7d67e72b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c7fe",
+      "name": "Laptop Lenovo IdeaPad Slim 3 16AHP10 83KB005YVN (Ryzen 5-125/ 8GB/ 512",
+      "sourceHash": "18eee25ef95d58877ce657f5be1534958998d3aa359ee280eebfbd8aeeeb51ff",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c7ff",
+      "name": "Laptop Lenovo IdeaPad Slim 3 16AHP10 83KB0060VN (Ryzen 7-155/ 8GB/ 512",
+      "sourceHash": "86700009530f5ae42a273762d95a472d873b12551a70fc38eca5b55966e42ad7",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c800",
+      "name": "Laptop Lenovo Yoga Slim 7 Ultra 14IPH11 POLED 83QK009PVN (Ultra X9-378",
+      "sourceHash": "500ede516004e39f234d8adb7a6fb875939ade747e0d56c873c47f3073a5404f",
+      "needs": [
+        "fr:desc+ARC_TOKEN",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c801",
+      "name": "Laptop Lenovo Yoga Slim 7 Ultra 14IPH11 OLED 83QK006GVN (Ultra 7-355/ ",
+      "sourceHash": "1c360210ed66712228e15d5df23f7a7df01fe8da0c300e6309a53a4733010f8a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c802",
+      "name": "Laptop Lenovo Yoga Slim 7 Ultra 14IPH11 OLED 83QK0015VN (Ultra 7-355/ ",
+      "sourceHash": "516092ce772cdfae6f1fadfa1823d315ba75137e6d7b3814d5e10445ae3ce776",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c803",
+      "name": "Laptop Lenovo Yoga Slim 7 14IPH11 OLED 83QM002FVN (Ultra 7-355/ 32GB/ ",
+      "sourceHash": "79f0d1d7f04e9060bfe67aabf94d20e018c4e90983424a5613307bb87c60ad16",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c804",
+      "name": "Laptop Lenovo Yoga Slim 7 14IPH11 OLED 83QM002EVN (Ultra 7-355/ 32GB/ ",
+      "sourceHash": "72c5085bbff2ec6da7c92d57c402739e5ed282ee11c15ebc3de5fa6c933fb2d3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c805",
+      "name": "Laptop Lenovo IdeaPad Slim 5 14AGP11 OLED 83S1006RVN (Ryzen AI 7-445/ ",
+      "sourceHash": "0240e23e673e0f7a2ea1bf4134336f382b5fa0ec1405236996a419e5f6ab28fd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c806",
+      "name": "Laptop Lenovo IdeaPad Slim 5 14AKP10 OLED 83HX00ABVN (Ryzen AI 5-330/ ",
+      "sourceHash": "c17d3a251d146c69b02426e379a43b4df57b626889cc971366e8ae2ece4ddd12",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3990069aece85a8c807",
+      "name": "Laptop Lenovo IdeaPad Slim 3 82XQ012HUS (Ryzen 5/ 8GB/ 512GB/ 15.6\" FH",
+      "sourceHash": "7855b47db8918fa4ed141025570ac8ed07c52765cb9b9f67214d18e983e148e8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c810",
+      "name": "Bàn phím Leobog Hi75C PRO TM (Be + trắng + nâu/ Turquoise switch) HI75",
+      "sourceHash": "912ca328faa7d016a294bdbb14c2031c6d3096ce24c8473b6c5432beddd16d1f",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c811",
+      "name": "Bàn phím Leobog Hi75C PRO TM (Đen contour/ Turquoise switch) HI7509",
+      "sourceHash": "a3bbd93c4e0e2478adb587259c999ea4e10285423f89359834e6b11fa3221754",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c812",
+      "name": "Bàn phím Leobog AMG65 TM (Trắng/Light feather switch) AMG6503",
+      "sourceHash": "4b59e0ef536741382969a51d6f2b3eb3299933f3923c56a470f73081e87d6260",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c813",
+      "name": "Bàn phím Leobog AMG65 TM (Tím đen/Light feather switch) AMG6504",
+      "sourceHash": "3b02041c12116763b4b02972625d133f0ece7ccfcbc64c14d501b59680e8417d",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c814",
+      "name": "Bàn phím Leobog Hi75C PRO TM (Xám+ đen gradient/ Reaper switch) HI7506",
+      "sourceHash": "1390499e4539c8901ee5ba92b24d440905797a2ac6d12b4cd16171afacb11a03",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c815",
+      "name": "Bàn phím Leobog Hi75C PRO TM (Misty green/ Ice Vein switch) HI7507",
+      "sourceHash": "aaeea0f3680aad1e615f1a45b5683a2bab735256aeeaad064f4194c13124b329",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c816",
+      "name": "Bàn phím Leobog AMG65 TM (Màu hồng + trắng + xanh dương/ Jadeite switc",
+      "sourceHash": "9b306e65540971d6731488ba5de11188bb9ad30287947ef3cbdeaa839950e2ac",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c817",
+      "name": "Bàn phím Leobog Hi86 TM (Đen Hồng/ Nimbus V3 switch) HI8604",
+      "sourceHash": "58c48fd6ece33e9bc70994aa26f1c818caf29e6cf5c33b6f2d38497ff5e9ec7d",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c818",
+      "name": "Bàn phím Leobog AMG65 TM (Tím đen/ Jadeite switch) AMG6501",
+      "sourceHash": "3b55f458b89cb724824df25452f4c2cdc96cf2fc352387063515b70ce781bd76",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c819",
+      "name": "Bàn phím Leobog AMG65 TM (Trắng/ Jadeite switch) AMG6502",
+      "sourceHash": "03242f4e51cd148f1cf3856f2f7b48254191b083224e9c2fdd3c691c58db4b82",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81a",
+      "name": "Bàn phím Leobog Hi86 TM (Đen+Xanh dương+Trắng/ Nimbus V3 switch) HI860",
+      "sourceHash": "8845e7f279c9c5a5cbade247d71bc1f7d5a49ec06a9fd4e830d14da212615c52",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81b",
+      "name": "Bàn phím Leobog Hi86 TM (Trắng đen/ Nimbus V3 switch) HI8602",
+      "sourceHash": "94620087404eafd174b8938cbfdea4e74da85f9ac26044f162bf3c728b43d166",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81c",
+      "name": "Bàn phím Leobog A75 TM (Moon Cat trắng/ Rambo switch) A7504",
+      "sourceHash": "8ecccc29ea5cbb67c3b0f3ab565d6d3691f862f2771c6a30d1864f9ea77f67e5",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81d",
+      "name": "Bàn phím Leobog A75 TM (Moon Cat hồng/ Rambo switch) A7503",
+      "sourceHash": "04d60d7c786100325a406f58ae64d31f1cd5d339fb2be5f859d2320c829cf5b9",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81e",
+      "name": "Bàn phím Leobog A75 TM (Tím+đen/Rambo Switch) A7505",
+      "sourceHash": "666fbc81bbdb9b3d4c765018990db336c4a6bcb25af3c58d18ebf08a8d952140",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c81f",
+      "name": "Bàn phím Leobog Hi75 có dây (Xanh dương + trắng/ Space berry/ Nimbus V",
+      "sourceHash": "268e9e783eae36b1b95597a5d7e72644ed74bdc9095ba2e22177219b25b0e503",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d3ff0069aece85a8c820",
+      "name": "Bàn phím Leobog Hi86 TM (Đen hồng/ Star Vector switch) HI8601",
+      "sourceHash": "e9a7e96fa22f5ddff67230ce84d693e86f43d05757cdeff31d899b5899592bf2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c82b",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Coral Blue Limited Edition Brown S",
+      "sourceHash": "f63d31a36277121d1f9057a539bf5a6d8aef2c789c7a048ffd0d1c6413e79677",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c82c",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Milk Turquoise Limited Edition Bro",
+      "sourceHash": "984c2cbc4e8bddacdf4b96d187bd15a4d2c9ba8b7edcf57a8c1780188e613a65",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c82d",
+      "name": "Bàn phím Leopold FC900R Bluetooth White Green Brown Switch",
+      "sourceHash": "0c41b78ebd5d7a87ec10a3d35a297809cb14bffd64b8e3ea8eb5e46211a1e7ea",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c82e",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Blue Grey Red Switch",
+      "sourceHash": "af559b5baa3f8bfb93cfdf7b30d66ef2e8d3e49c718ceea6fb15f7e4ff7b42b7",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c82f",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth White Grey Red Switch",
+      "sourceHash": "b9b26eae333c13679632951b30c43f5c838a8ef525321f0b5454d5f0b884b43e",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c830",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth White Grey Brown Switch",
+      "sourceHash": "b39780e3a05e0781a4c2ea624d256261bc593d2671756376a5d77ca8a94844a2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c831",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Blue Font Red Switch",
+      "sourceHash": "5bcf84fc484088ab8d37ecf09a497b92b52294df3c7ab8921b44de0eea012738",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c832",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Blue Font Brown Switch",
+      "sourceHash": "8eed8f01d24c6efc424b4eb05ea1eaca696fb2a01e50260fea0dadf35fe70ca2",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c833",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth White Mint Brown Switch",
+      "sourceHash": "2560da1ff620a192c63e7e58efae751a6f8d33c0024fd49612be7e9451b308aa",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c834",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth White Mint Red Switch",
+      "sourceHash": "99859922173ab3a7f047446b38c06dba7b615fd9d013752e2dc92671dc9a7109",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c836",
+      "name": "Bàn phím Leopold FC750RBT Bluetooth White Grey Red Switch",
+      "sourceHash": "83d5e80b17038018aea9d900244a97ffbf12591f88a53ac82d7b91e1198dcf24",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c837",
+      "name": "Bàn phím Leopold FC750RBT Bluetooth White Grey Brown Switch",
+      "sourceHash": "570264335dea9fbf7cced1cc3fc42f75d2fb944b989f0d84e64ab703f29e7020",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c838",
+      "name": "Bàn phím Leopold FC750RBT Bluetooth White Mint Brown Switch",
+      "sourceHash": "ab464ec4178942e47acc99fbc205e390fdef5d8ae073335d17e3a827c0871956",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c839",
+      "name": "Bàn phím Leopold FC750RBT Bluetooth White Mint Red Switch",
+      "sourceHash": "ea31e2aa6edcba4c7884c92b5a5be64eb878fb86ca22adb8b1fd51c958545adf",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c83a",
+      "name": "Bàn phím Leopold FC900R Bluetooth Ash Yellow Black Switch",
+      "sourceHash": "aaed2ffde7f623e80e1a9479e78b35b9e4162c4ab208463c407e95bd45404651",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c83b",
+      "name": "Bàn phím Leopold FC900RPD Bluetooth Blue Font Blue Switch",
+      "sourceHash": "9f00cabbc4543405eb7d6f681a0df87bd1a17aaa24b8abb24315a76a944aa3a5",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c83c",
+      "name": "Bàn phím Leopold FC900RPD Bluetooth Light Pink Brown Switch",
+      "sourceHash": "25eaca72075512be6bc02489a85b55d466333719ab7aa139dcef3f85b5de571c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c83d",
+      "name": "Bàn phím Leopold FC750RBT Bluetooth Coral Blue Limited Edition Brown S",
+      "sourceHash": "298b37855e1826eafbaf0c8d213fcaff5110da726f2c32ddd7761295e7709b46",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4720069aece85a8c83e",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Coral Blue Limited Edition Red Swi",
+      "sourceHash": "833dbd089b73a9c1a6860f3db9f46ab6942c6a5f9f2de889ba4f1c10f955967a",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c83f",
+      "name": "Bàn phím Leopold FC900RBT Bluetooth Milk Turquoise Limited Edition Red",
+      "sourceHash": "cc626bae4a319e7ecd020768f1e63696fe826a512c81e7d41663ca86da7e2420",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c840",
+      "name": "Bàn phím Leopold FC750RPD Bluetooth White Dark Grey Brown Switch",
+      "sourceHash": "2c8d889b9b164443fa7db054a898224a79875578eed5e0a3936717f739d436f8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c841",
+      "name": "Bàn phím Leopold FC750RPD White Dark Grey Red Switch",
+      "sourceHash": "7dd75768d89cf5fb4e1a383e70981cd4f4c6b93b8da6402060e30919c047707c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c842",
+      "name": "Bàn phím Leopold FC900RPD Bluetooth White Dark Grey Brown Switch",
+      "sourceHash": "ee4f99c421f11b7724630899c53f6af4083df27011af888e40766411d89dde90",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c843",
+      "name": "Bàn phím Leopold FC900R Bluetooth White Dark Grey Black Switch",
+      "sourceHash": "695cf2c88f97d0cc69c5683f87f9357ed904fdb1e42f61a9daea2679358516bd",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c844",
+      "name": "Bàn phím Leopold FC900R Bluetooth White Dark Grey Red Switch",
+      "sourceHash": "317876091b83008d5a9c13d50e9c790dea63ff008bd7bcfac8896c2a5fd56dd0",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c845",
+      "name": "Bàn phím Leopold FC750R Bluetooth White Green Red Switch",
+      "sourceHash": "f32295002af918d61c787b1bc194c81183913e8aa310393d63855be7cd5de697",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c846",
+      "name": "Bàn phím Leopold FC900R Bluetooth White Green Silent Red Switch",
+      "sourceHash": "0a4fc51ad2a83f747cdfe907aa49ab2246bf0d22a316dbb6c40ce2dbea2c4bba",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c847",
+      "name": "Bàn phím Leopold FC900R Bluetooth White Green Red Switch",
+      "sourceHash": "8da6da03c76ae0b50c7fe6eeb5967581c50682a14aac745c96927a785b0f0734",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d4730069aece85a8c848",
+      "name": "Bàn Phím Leopold FC660MPD Ash Yellow Red Switch",
+      "sourceHash": "6ee0c70dbd5dc87c54c8a6f342cd3a387f5440c0e0b4f602329540dde01a63fa",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c84c",
+      "name": "Tai nghe Logitech G PRO X 2 LIGHTSPEED Pink",
+      "sourceHash": "eb0976175e6a7548ac8377810e2a14c325d1efc5c043362498e229b7b3875d25",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c84d",
+      "name": "Tai nghe Logitech G PRO X 2 LIGHTSPEED Black",
+      "sourceHash": "ead652e8c69ebe6b3b2c5691fd53fdc8ae906a3944ccd2767c9d4feb239d692e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c84e",
+      "name": "Tai nghe Logitech G PRO X 2 LIGHTSPEED White",
+      "sourceHash": "612d01018442616109768a01bc6eba16e109288349549bc43fcf7fccac81349a",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c84f",
+      "name": "Tai nghe Logitech G733 LIGHTSPEED Wireless White",
+      "sourceHash": "02debde42bbc82ffaed3d1a4e5744be818ddec6d4c4e6f877cf9b4185b66d3c7",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c850",
+      "name": "Tai nghe Logitech G733 LIGHTSPEED Wireless Black",
+      "sourceHash": "e7626edd6450fa7b6ebd0651db936de81514bbe9d81c0abc6831fc4138bf6170",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c851",
+      "name": "Tai nghe Logitech G333 Black",
+      "sourceHash": "93a46f02fb1609d733dc92444a7aa8fd6dd6015212348756867c208efc42225e",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d49d0069aece85a8c852",
+      "name": "Tai nghe Logitech G Pro X SE",
+      "sourceHash": "01b209192ac12e01e4f512a0a5f99f038827ca63ea50d5679a3fc3d516cdd558",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c85e",
+      "name": "Bàn phím có dây Logitech G515 RAPID TKL RGB Black",
+      "sourceHash": "f1f5529495863cf5f3350d8f454f8535017a7076875c907cb96766c21d1dede2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c85f",
+      "name": "Bàn phím có dây Logitech G515 RAPID TKL RGB White",
+      "sourceHash": "17890de8b05281e6f7d111f84b81ac8d8d51a67673d71c447ee13576c52540a7",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c860",
+      "name": "Bàn phím không dây Logitech Alto Keys K98M Graphite",
+      "sourceHash": "6ee7a8e1fd3bbc075f48f01a382af5d01aa52c88664cc75e3e2ba5bd6c64df72",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c861",
+      "name": "Bàn phím Logitech G515 TKL Lightspeed Wireless RGB Đen",
+      "sourceHash": "9f9738e9ad245090461230073b5a1436625e6bb3a5eac112a3b41d247d0a30d3",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c862",
+      "name": "Bàn phím Logitech G515 TKL Lightspeed Wireless RGB Trắng",
+      "sourceHash": "c8fb4699eaa60f3a7505276c13ce2f347e116ae5b2cca276992078724d91a10a",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c863",
+      "name": "Bàn phím Logitech G Pro X 60 Light Speed Pink",
+      "sourceHash": "7e7497f0281ccc6fe5f9b00e775d7dee8d0bbe68b04e0b5e1b2a832ef15b4b2d",
+      "needs": [
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c864",
+      "name": "Bàn phím Logitech G715 TKL Off White Linear (920-010693)",
+      "sourceHash": "81b2055c65e61988669068ff27fc4ac425d522c6443cca678bab42460a33e3e1",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c865",
+      "name": "Bàn phím Logitech G512 GX RGB Tactile",
+      "sourceHash": "c20563608cca5586496364c62424989ed47ce9aa7712ddf3b1cf715fe4841782",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c866",
+      "name": "Bàn phím Logitech G512 GX RGB Linear",
+      "sourceHash": "c0c7cb6e9048c81dc2d9e51a63a098ef9db9943f2510b3de80ad875909dab9a5",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c867",
+      "name": "Bàn phím Logitech G Pro X TKL Light Speed Tactile Switch White",
+      "sourceHash": "d791e56f4c65f8716bc3d3e89b3be14146d22478d72197808e1bdb30e4a75f7f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c868",
+      "name": "Bàn phím Logitech G Pro X TKL Light Speed Tactile Switch Black",
+      "sourceHash": "4c53992ccc2b8ac4a5a7b9b382c88dfd25f649182b32cb2adb4443d7f73c9c04",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c869",
+      "name": "Bàn phím Logitech Pebble Keys 2 K380S White",
+      "sourceHash": "63ceae41cdaaa1d876dd8dcd0f61432a3606d16677790a8a6deb89aa5dad4103",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86a",
+      "name": "Bàn phím Logitech Pebble Keys 2 K380S Rose",
+      "sourceHash": "2b38d53a3c9ffd4dfca55ba9d6b21ddde940cbfa75fce24afc727b34cbc7a6f6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86b",
+      "name": "Bộ Bàn Phím và Chuột Logitech MK240 Wireless",
+      "sourceHash": "5fa11b034896740744639136908256fe408b6853df2d50d0fe534ef9c7fb284b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86c",
+      "name": "Bàn phím không dây Logitech MX Keys",
+      "sourceHash": "66ea90669f856bff6f0176d8e54ec6d27aca8bd5ee2442b8e6fd7b8179aeb5e2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86d",
+      "name": "Bộ bàn phím và chuột Logitech MK220",
+      "sourceHash": "ba883b3ef552eca025f215f4d8c6d253359857c46b467aa1e7564d8e740e0afd",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86e",
+      "name": "Bàn phím Logitech G316 X 75 RGB White Tactile",
+      "sourceHash": "0c531ebf55a57753b74560f75229ef0f2bff804b1031e6a310f733a20acded18",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c86f",
+      "name": "Bàn phím Logitech G316 X 75 RGB Black Tactile",
+      "sourceHash": "cc4fc0e6b0669e3bf6389c5c9338b56d06f9b4e157ca9bbfb2374511c975d017",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c870",
+      "name": "Bàn phím Logitech G316 X 98 RGB Trắng Tactile",
+      "sourceHash": "d28c8e9155c1595644429a1bcf166011889a1e6fb9887f01daeb16373fbf9ec6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c871",
+      "name": "Bàn phím Logitech G316 X 98 RGB Đen Tactile",
+      "sourceHash": "ba079a52ccd029cf495414cb4c627ca4aca6f4d562d207cec06d3d752b39b792",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c872",
+      "name": "Bàn phím Logitech G715 TKL Off White Tactile (920-010467)",
+      "sourceHash": "8e76186cfa4f26082249a8722b5441dcd9d943a3680c7fc9e17eef3f5fe281e1",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c873",
+      "name": "Bàn phím Logitech G512 GX RGB (Clicky)",
+      "sourceHash": "aa266c1a45155dfa84cffca8d03afa7c8b21355b8488699caf6e82236b50c98e",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c874",
+      "name": "Bàn phím cơ Logitech MX Mechanical Graphite Tactile Silent 920-010760",
+      "sourceHash": "3fa7961b5ca8fcfb3f9445668e3119d7018e8d73c9a5931fcd3e01b5180efe85",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c875",
+      "name": "Bàn phím không dây Logitech MX Keys Mini - Graphite",
+      "sourceHash": "c10ccbf808a94d191204316150c73c3318113717f38db7471da9a445f1001e65",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5170069aece85a8c876",
+      "name": "Bàn phím không dây Logitech MX Keys Mini - Rose",
+      "sourceHash": "53e77e6cfbbc877848271491f73fa2538451379f898b5c545b71c545dceaba38",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c884",
+      "name": "Chuột gaming không dây Logitech Pro X3 Superstrike Lightspeed Black",
+      "sourceHash": "5f84f0233d26828e519798b6d2ae15c34391b09f8f01881e186a42211a2c3e6a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c885",
+      "name": "Chuột gaming không dây Logitech Pro X3 Superstrike Lightspeed Pink",
+      "sourceHash": "f15be73c7235031860036ddb78a4d204ac9f925f3aeaebd679070e44e42af4d5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c886",
+      "name": "Chuột gaming không dây Logitech G304 X Superlight White",
+      "sourceHash": "d9dcb16879d6c18b428aa3b1702267afe9fc9fb0c7487bc4896bfa537d5beedb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c887",
+      "name": "Chuột Logitech G Pro X Superlight 2 SE White",
+      "sourceHash": "b17f2e51dce3b7f10c1e5f02fab9f6f4adc77b91c2d9744ccf4a1646162626f8",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c888",
+      "name": "Chuột Logitech G Pro X Superlight 2 SE Black",
+      "sourceHash": "b008f3a8e04a6a2ec561ef3cce428ad146d14c66ecb6a3bd4eb6bbd02a0e8cca",
+      "needs": [
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c889",
+      "name": "Chuột Logitech G Pro 2 Lightspeed Wireless White",
+      "sourceHash": "abbaff31bbe75141932f7d819d1846c7174a6092310b9c52a4b6009c9e0814c7",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88a",
+      "name": "Chuột Logitech G Pro 2 Lightspeed Wireless Black",
+      "sourceHash": "7ea79f04f7a3d1075c10aa9dab558f5a9c93039754e9153aff6dcb1e7febc6a5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88b",
+      "name": "Chuột Logitech G Pro X Superlight 2 Dex Wireless Pink",
+      "sourceHash": "ca6fbf665267855f4a6f08e1a77ca78034c6d536e81143e71172db8f6d67bc7d",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88c",
+      "name": "Chuột Logitech G Pro X Superlight 2 Dex Wireless White",
+      "sourceHash": "c0c430c4b8a5e9b5e80156222bb6b0bb11f52084b14085c1a46e0f737cc47fb3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88d",
+      "name": "Chuột Logitech G Pro X Superlight 2 Dex Wireless Black",
+      "sourceHash": "e802374b3e71b7e485009be6fdfe2d35c0844871ccb1bdfea1cc69fe88470b74",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88e",
+      "name": "Chuột gaming không dây Logitech Pro X2 Superstrike Lightspeed",
+      "sourceHash": "132fec86e6ffa17c6beebdb9330c0c6f662f0d8735c8768c4b93edb5ee788ccf",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c88f",
+      "name": "Chuột Logitech Pebble Mouse 2 M350S Rose",
+      "sourceHash": "9b16ff1d11d329a82c9c28d50d1406d1db14a9c2945a4cb918de71afb1c856b2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c890",
+      "name": "Chuột Logitech Pebble Mouse 2 M350S White",
+      "sourceHash": "92ddb537478830fb891f631b81de476df430896b7e6f91312de3405934ebc742",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c891",
+      "name": "Chuột Logitech Pebble Mouse 2 M350S Graphite",
+      "sourceHash": "84644fc70783552363ecc03d5c81da1bed5d34974592ba4395ca92eab40c21d2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c893",
+      "name": "Chuột Logitech G Pro X Superlight 2 White",
+      "sourceHash": "a751b749080f5773eb0a4c57c3af622df22f5a45713a31d20821c9dceb26bb82",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c894",
+      "name": "Chuột Logitech G Pro X Superlight 2 Black",
+      "sourceHash": "8f37c59f8dcdf48d1fa188039a443be8813a850b7a05a26c58ac4e44939fddfb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c895",
+      "name": "Chuột không dây Logitech M331 Silent Red",
+      "sourceHash": "67381e97ae7eae8537e110a70ca8d862898734bf3edd25a5cf56645cd54260e6",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c896",
+      "name": "Chuột không dây Logitech M331 Silent Blue",
+      "sourceHash": "ff60f9b5dbe3d10d843e78687856e4f721a9921133d202cff02d8cf3b2daa803",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c897",
+      "name": "Chuột Logitech MX Anywhere 3S Rose",
+      "sourceHash": "96b8a7787cb5f8cf07ff578200b80a04cf393704b562869e63c19aa351d38174",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c898",
+      "name": "Chuột Logitech MX Anywhere 3S Pale Grey",
+      "sourceHash": "48da5c38ac0c1787412c7d55436082f1727230ccaa556f2950d82f0393a15634",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c899",
+      "name": "Chuột Logitech MX Anywhere 3S Graphite",
+      "sourceHash": "e6219dcc9da488467d3dbe030080c228e84cc9de57c58957268b7d0cfc1e7209",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89a",
+      "name": "Chuột Logitech G102 LightSync White",
+      "sourceHash": "14132283df6565fdd31af2d0e8c982f273fa4c58225d26ddc72cfda3e77514ff",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89b",
+      "name": "Chuột Logitech G102 LightSync Black",
+      "sourceHash": "b783b70bcb3c8682ee4b017abf6d4a15772c8d7a15277d0e561877ec567eaa8b",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89c",
+      "name": "Chuột Logitech G304 Wireless White",
+      "sourceHash": "aebf6ee7521fa5d6c7eaff17d01bd38d71a86cc122cfda0fdf8e4cba910afe8e",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89d",
+      "name": "Chuột Logitech G502 Hero Gaming",
+      "sourceHash": "ee628fce8bf8003f914e6213b6b50e65eafa09db71d9321097725680901773ef",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89e",
+      "name": "Chuột không dây Logitech M331 Silent Black",
+      "sourceHash": "d5c902c88ef0a823ba094945d561c3671242f319bf772eb7f7ee7095cc91f810",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c89f",
+      "name": "Chuột Logitech G304 Wireless",
+      "sourceHash": "d89523e5683e1c3277412b00f665d3eafa90af64a4a567eeda65ba0cec1fc5cb",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a1",
+      "name": "Chuột Logitech MX Master 3S Pale Grey",
+      "sourceHash": "3f0ac717b813416a1db4c11014798422b809b1f20628a3aaee49c82e4af603f8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a2",
+      "name": "Chuột Logitech M650 Rose",
+      "sourceHash": "33fcb681325b9b20a615bb36aa74e6c17083449bbe6ea5566dee402232f4d6f7",
+      "needs": [
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a3",
+      "name": "Chuột Logitech M650 Off White",
+      "sourceHash": "8f137a385f5a5e7437daa9113021028b068e74d6ee8d099f7eb926ad527e6cf7",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a4",
+      "name": "Chuột Logitech G703 HERO Lightspeed Wireless",
+      "sourceHash": "333ab367ad91a6d3bd7bee621147495fc9a6007bb1fddd10341e9cbfb26516e6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a5",
+      "name": "Chuột Logitech G403 HERO",
+      "sourceHash": "2fa95e6c833233ef5a00bfd7749f1ca5c1b999975da9fe34ce91cdd03b5074c6",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a6",
+      "name": "Chuột Logitech G502 X Plus LightSpeed White",
+      "sourceHash": "1a16afe98501cb95482762256281a9be8dcb33281ea172fa2ff9dc10d296ded2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a8",
+      "name": "Chuột không dây Logitech Signature M650 L Off White",
+      "sourceHash": "c61dc7640426c8fefdd13ed5f818abc5e8ad78c3c884282aa0fcf3036066da00",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8a9",
+      "name": "Chuột không dây Logitech Signature M650 L Graphite",
+      "sourceHash": "2f0ba688bf007a6063c64eb626b60c9daffaeda85ff4e1a27aca45d5419eecaa",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8aa",
+      "name": "Chuột gaming không dây Logitech G304 X Lightspeed White",
+      "sourceHash": "7568375ea819ab6821f44e79e6eef82ed18a26c82250366392eec4c0cfdb82c2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8ab",
+      "name": "Chuột gaming không dây Logitech G304 X Lightspeed Black",
+      "sourceHash": "c98c74388add1bc6e00109faf66bff043e9769eea2f92b2d5a0f4eba17c48c34",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8ac",
+      "name": "Chuột không dây Logitech M221 Black",
+      "sourceHash": "4e11646ad0cfb39a29454fbec1c05f5815f6413e4366f30f3c90856504befb49",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8ad",
+      "name": "Chuột Logitech G903 HERO Lightspeed Wireless Gaming",
+      "sourceHash": "1473c5c320a14edf20199d069995568b6fb764c61f75994ac568c1f72f1943e2",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d5ed0069aece85a8c8ae",
+      "name": "Chuột không dây Logitech Signature M650 L Rose",
+      "sourceHash": "723032513fb400106a7c8609c098b749501172c55577f4c122abd971e20b4815",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b3",
+      "name": "Laptop gaming MSI Stealth 16 AI+ B3WGX-051VN (Ultra 9-386H/ RTX 5070 1",
+      "sourceHash": "d7e09a4654bda1db36200f4d776c4ae9afa1f00d4938b714568e31e6465d9095",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b4",
+      "name": "Laptop gaming MSI Stealth 16 AI+ B3WG-008VN (Ultra 9-386H/ RTX 5070 8G",
+      "sourceHash": "8c3456f5e64f3faad1cb4be000a4dea694fef0c090b6f6245e9c75fd49008f7b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b5",
+      "name": "Laptop gaming MSI Crosshair 16 HX E14WEK-076VN (I9-14900HX/ 32GB/ 1TB/",
+      "sourceHash": "6bedaeae8b7c8099036d2788f38bf322f023f1ea999566fb1d4396d1ef5703e6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b6",
+      "name": "Laptop gaming MSI Raider A16 HX B8WH-031VN (Ryzen 9 8940HX/ 32GB/ 1TB/",
+      "sourceHash": "9e4f2e6daf230334751e86ca073f6c41c7e2145d46faa49a328f0f6adc1a9240",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b7",
+      "name": "Laptop gaming MSI Cyborg 15 C13WEO-417VN (I7-13620H/ RTX 5050/ 16GB/ 5",
+      "sourceHash": "842e002b493e84ac7d947d1f189dcc9520c3efe09cfd1aef426f2c5fe97c5c1b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b8",
+      "name": "Laptop gaming MSI Katana 15 B13VEK-2440VN (I7-13620H/ RTX 4050/ 16GB/ ",
+      "sourceHash": "d51c3bdac72613ae420d134e088f724803839958a7d81973b04a078856cf40cc",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8b9",
+      "name": "Laptop gaming MSI Cyborg 15 Max C13WE-422VN (I7-13620H/ RTX 5050 8GB/ ",
+      "sourceHash": "d3344168c107d51889a615c14c5d6f86482bf90445636642b523c85625bb06c8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8ba",
+      "name": "Laptop gaming MSI Cyborg 15 Max C13WF-421VN (I7-13620H/ RTX 5060 8GB/ ",
+      "sourceHash": "9b730b2a0e52cc491d3360cd9552aed6f9cbd9f8c62aaf65c5a35685b7880d95",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8bb",
+      "name": "Laptop gaming MSI Cyborg 15 Black Edition A13VEO-2610VN (I5-13420H/ RT",
+      "sourceHash": "fbdaa5ffb9c524972ef72987f9c40f1b927d54888cee83197facba8d83d599ef",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8bc",
+      "name": "Laptop gaming MSI Cyborg 15 Black Edition A13VEO-2608VN (I7-13620H/ RT",
+      "sourceHash": "6ab715268cdf381f22f7d245e722daaa60aa956abb3a76a75a4f11394a4e676a",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8bd",
+      "name": "Laptop gaming MSI Cyborg 15 C13WEO-418VN (I5-13420H/ RTX 5050 8GB/ 16G",
+      "sourceHash": "0769d15ced3d951e37f35a3e7da7587496b015d892d3968cb0a2d20ecbf66e49",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d62d0069aece85a8c8be",
+      "name": "Laptop gaming MSI Stealth 16 AI+ B3WF-007VN (Ultra 9-386H/ RTX 5060/ 3",
+      "sourceHash": "ef2578f49b28e92b8845feedcfc37214aba8809f370ab7a9f362d1e2227459d8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c3",
+      "name": "Laptop MSI Prestige 14 Flip AI+ Vincent van Gogh Edition - Starry Nigh",
+      "sourceHash": "b74ca46546bb6e7bdf31b2463703aa8f6c4b1d1037a4cf2cd16fe20d38be2d29",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c4",
+      "name": "Laptop MSI Prestige 14 Flip AI+ Vincent van Gogh Edition - The Starry ",
+      "sourceHash": "b67ca2531b986b87a395d902fa6e1f5a7b22702ca0cbcaa13dc2d73b26bacec4",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c5",
+      "name": "Laptop MSI Modern 16S G3MG-016VN (Core 7 350/ 16GB/ 1TB/ 16\" FHD/ Win ",
+      "sourceHash": "22bd2838e0d2cf1ca55bf9494fa820c210e54d584c5685d1af732880dd247b7e",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c6",
+      "name": "Laptop MSI Modern 16S AI+ G3MG-058VN (Core Ultra 7 355/ 16GB/ 1TB/ 16\"",
+      "sourceHash": "de24ab2c809e3c2997832c6db3207be742ae235b51ba67a83cb7992992369cee",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c7",
+      "name": "Laptop MSI Modern 15 F1MG-1225VN (CORE 5-120U/ 16GB /512GB / 15.6 FHD/",
+      "sourceHash": "f02d59f036b1662dafecb1a17b1c8fff6cefbecf4032b7b4faa695cd8e29db21",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c8",
+      "name": "Laptop MSI Modern 14 H1M-014VN (Core 7 150U/ 16GB/ 512GB/ UMA/ 14\" FHD",
+      "sourceHash": "ec0f48355db0f753166449283a3bdef4c739d02c73a14dab580793656bdcc93c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8c9",
+      "name": "Laptop MSI Prestige 14 AI+ D3MG-022VN (Ultra 7-355/ 32GB/ 1TB/ 14\" FHD",
+      "sourceHash": "2846a726366f29b3822d99441695bf045f7e48536c598cb52a7abb414a0cd690",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8ca",
+      "name": "Laptop MSI Prestige 13 AI+ Evo A2VMG 040VN",
+      "sourceHash": "944a568c17df779391e2d9adef953dc18216be84fa2f93a17d0eea8fbdcd5b47",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8cb",
+      "name": "Laptop MSI Modern 14S AI+ G3MG-050VN (Ultra 7-355/ 16GB/ 1TB/ 14\" FHD ",
+      "sourceHash": "33a72c86d641e335bfb3217489f428642779ced8505855edbf018df81adaaf33",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8cc",
+      "name": "Laptop MSI Prestige N16 Flip AI+ C1XMT-017VN (NVIDIA RTX Spark N1X/ RT",
+      "sourceHash": "52e874d475794567951168dc72804cd488747b3fd9c0550861dca50f63bc7c84",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6630069aece85a8c8cd",
+      "name": "Laptop MSI Prestige N16 Flip AI+ C1XMT-016VN (NVIDIA RTX Spark N1X/ RT",
+      "sourceHash": "7ffd2bae003ef53b78ba6e1da8bcc0d31f899aecfa0073916fb260a1ca3ee25f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d4",
+      "name": "Chuột gaming không dây Rapoo V300L",
+      "sourceHash": "0ab7a2b61769193836281247686bf0df877c6430407cfed0d90b04ba1d4f8650",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d5",
+      "name": "Chuột gaming có dây Rapoo V260 Pro",
+      "sourceHash": "62eb3bb45e57eedecec818f02c559144e574dcdfb8897c663bd89cb3746d0c0d",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d6",
+      "name": "Chuột Không Dây Rapoo M10 Plus Black",
+      "sourceHash": "9eec84dc4f849927a223a91c9dc73ce649b8fce3e6b84118b7516b3a4c42708b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d7",
+      "name": "Chuột Không Dây Rapoo M21 Silent",
+      "sourceHash": "35854149a1f65cf3f783b3b61215b08afd70d17837bc22003213311d1cf62ec5",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d8",
+      "name": "Chuột Rapoo V300L Wireless Black",
+      "sourceHash": "94b7f8304d45b4788390f3badcc7ec20597846526f4750363415ee15c53af8f1",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8d9",
+      "name": "Chuột Rapoo VT3S Wireless 8K Black",
+      "sourceHash": "f8e9af96301883483a7d776d3f88450bb9ce4dd3980118a4fcadfc5125820064",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8da",
+      "name": "Chuột Rapoo MT760 Mini Không Dây Hồng",
+      "sourceHash": "033c41c59e1db8c528e8d25271f67775af9dd59d62f1376042b1cdcea7820c4d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8db",
+      "name": "Chuột Rapoo Không dây V300SE Black",
+      "sourceHash": "296cc7f06cd12dec870126b0aa64490ee3781beafa87091f5341e97093ff2bc6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8dc",
+      "name": "Chuột Rapoo MT760 Mini Không Dây Xám Trắng",
+      "sourceHash": "2bb001ac0af4dd6b32db9ca2ab9f76785c2e0f2ad12eb9733e92a8ad14a6d052",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8dd",
+      "name": "Chuột Rapoo MT760 Mini Không Dây Đen",
+      "sourceHash": "fdfbac5d6db1660ebff938dd9b9f3cee9de3bdd2a8567b13cab3b76990db3a4d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8de",
+      "name": "Chuột Không Dây Rapoo M10 Plus White",
+      "sourceHash": "d9675eabba52a9931a8e3dd1bc7ea5ba9896cf377253ab74f3a4fc63520f9a06",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8df",
+      "name": "Chuột Rapoo M300 Silent Wireless Dark Grey",
+      "sourceHash": "ac8f40f186adac7213c7f0f39207ff6a96a7de7ffe2eec7d9e6aac1622dd89d3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8e0",
+      "name": "Chuột Rapoo VT350S Black",
+      "sourceHash": "f5caa1add1adf2622c4cb98ca2d2bba228f54d9ad55c78b66d57a8e4836459a2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8e1",
+      "name": "Chuột Bluetooth Silent Rapoo M650 Lucky Cat",
+      "sourceHash": "f09d2f2a93bc2f57ae8039774b49652d9fd3f7d7c7503b1ce9ec9cc60e0d341b",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8e2",
+      "name": "Chuột Không Dây Rapoo M20 Plus White",
+      "sourceHash": "877bf760270b8ad073f757e8a2dc5c31e95f2c9cbd773382e94227f662ccc8a6",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6a00069aece85a8c8e3",
+      "name": "Chuột Rapoo Gaming V280 RGB",
+      "sourceHash": "0f15f0548f13e07fb14d7abfb7327ad87a5bd6d02c43f45f9e7618124acbd3d1",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8e8",
+      "name": "Tai nghe Razer Kraken Kitty V2 BT White",
+      "sourceHash": "ec3d8e68c4fa50e486524792ba725b9962349c92003bf99996360bdf421e0233",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8e9",
+      "name": "Tai nghe Razer Kraken Kitty V3 X White",
+      "sourceHash": "992b0403ec7d286a63838ed3f1bff681828e05bfda873eed295b1c86d1ece19e",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8ea",
+      "name": "Tai nghe Razer Hammerhead V3 HyperSpeed Black",
+      "sourceHash": "3e8487ea7661e4730a0ed39e4309d84d1db67d0811139411427f7b38b743cc25",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8eb",
+      "name": "Tai nghe Razer Hammerhead V3 Wired Earbuds",
+      "sourceHash": "5e551f76bc825e63343f1b78eff4ae36e6914480e5a69cd98c4fcdfa52d04753",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8ec",
+      "name": "Tai nghe không dây Razer Blackshark V3 Pro Counter-Strike 2 Edition",
+      "sourceHash": "3111103b423339a6182e361154b2b6acc1f918d7bb2f5a3517e87dc44722cca0",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e40069aece85a8c8ed",
+      "name": "Tai nghe không dây Razer Kraken V4 Pro",
+      "sourceHash": "772b9aa6d356bd556c67d72d8d320e482cd29129cd93b7d7546df80d55e09bf2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8ee",
+      "name": "Tai nghe Razer Hammerhead V3 Wired Earbuds White",
+      "sourceHash": "1d7e002e988964736f1fa8e4df5c2b762805f842a8b71b9c5791c120cc127728",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8ef",
+      "name": "Tai nghe Razer Barracuda X 2022 Quart",
+      "sourceHash": "1d4df5ea5080ee50d29086d9fc65e5cb5363b1c01b51a09ca552f94ff9e1ce1b",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8f0",
+      "name": "Tai nghe Razer Barracuda X 2022",
+      "sourceHash": "2334be79d65c33d4a06ae7fa0ebf9b84f5b37c279991a95a939e1ae949328ae0",
+      "needs": [
+        "fr:tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8f1",
+      "name": "Tai nghe Razer BlackShark V2 X",
+      "sourceHash": "895f279f8483094e63692d554afad5de87aa29da6faac5d278f6ce70419f22a7",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8f2",
+      "name": "Tai nghe Razer Kraken V3 X USB",
+      "sourceHash": "0a45005cbd4d7e4720d36c9cc5d3cd147c3a86040124d02b7426ba1b787db3c2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8f3",
+      "name": "Tai nghe Razer Kraken BT Kitty Edition - Quartz",
+      "sourceHash": "200f9f7a885addb8c544254f5abd8be35fa30bf07dc32bdbca546f4cd09e7ace",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d6e50069aece85a8c8f4",
+      "name": "Tai nghe Razer Barracuda X 2022 Mecury",
+      "sourceHash": "82d2bd76cade201f3e032785e681d175e7cb3b154b98edf97554f73707d7c7d5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8f8",
+      "name": "Bàn phím có dây Razer Huntsman V3 Pro Tenkeyless Counter-Strike 2 Edit",
+      "sourceHash": "25a232c7ac00dc9a0078bbc8d6e23f55e83122fbf45fe486c46761ac3087783a",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8f9",
+      "name": "Bàn phím Razer Huntsman V3 Pro TKL",
+      "sourceHash": "a6404443bb9336f37157d73ad4ecf12d3dabed63cc904d634ebcf4974adf59a0",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8fa",
+      "name": "Bàn phím Razer Huntsman V3 Pro Mini",
+      "sourceHash": "7d168581d567693144abfaa08b5a2efec16f2e23a66635f8b01c9a31b96b2c01",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8fb",
+      "name": "Bàn phím Razer Huntsman V3 Pro",
+      "sourceHash": "b185a00d6f2a94a27d080e54b8da9d3474d9afdf24c42656095afcc5049ecd80",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8fc",
+      "name": "Bàn phím cơ Razer BlackWidow V4 Pro Green Switch",
+      "sourceHash": "38bb1cbc7947f66b483526e0b9f324f08236d6bb640dd9c9dd5a17d4b8ef31ea",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8fd",
+      "name": "Bàn phím Razer Blackwidow V3 Green Switch",
+      "sourceHash": "ddf6cf2456aee3b34f5b1ad0ad989afe283761064eb28c6d5444e7a78e9bda13",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8fe",
+      "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Green Switch",
+      "sourceHash": "e0bee7bbebcac7e50254b5860fb0458a9a23bd4354356a5b062ec695cdae176c",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c8ff",
+      "name": "Bàn phím Razer Blackwidow V3 Tenkeyless Yellow Switch",
+      "sourceHash": "289ab937e8dcd358e5ee3b0ac8d1909e15440e16c0b980b1d8cb16065da39bcd",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c900",
+      "name": "Bàn phím Razer Blackwidow V4 75% Black Tactile",
+      "sourceHash": "162f946f6c3a1a15941e55aa403fedcd7ccf6841cacf72415abf713b86f5f407",
+      "needs": [
+        "pt:tech"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c901",
+      "name": "Bàn phím Razer BlackWidow V4 X Green Switch",
+      "sourceHash": "10f909aa5d89b0e6e0c4bc0b6821d399c2f2a889e59a35ba0f5306c879f3ebac",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c902",
+      "name": "Bàn phím Razer BlackWidow V4 X Yellow Switch",
+      "sourceHash": "db5c4ad36ac38f081756298bc06177884cc8af72f65a28539055cda417b5792b",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c903",
+      "name": "Bàn phím Razer BlackWidow V4 Yellow Switch",
+      "sourceHash": "2cc6870e7b1056513206cdfb0baf961ad5363bb86400059f16fbd464a17b17f3",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c904",
+      "name": "Bàn phím Razer BlackWidow V4 Green Switch",
+      "sourceHash": "3b959d68784d22787626ff4079e9a32465bcd26112e3d49650a878ca2ead7bd3",
+      "needs": [
+        "fr:tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c905",
+      "name": "Bàn phím cơ Razer BlackWidow V4 Pro 75% Wireless Hot-Swappable Design",
+      "sourceHash": "119a27173f0343a9a756667f36a4da16b880debe59a4c38bcf4dd08bc1915ed2",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c906",
+      "name": "Bàn phím cơ Razer Huntsman V3 HE Magnetic Tenkeyless 8KHz",
+      "sourceHash": "70859781801c2d82b91e64ad6b369e236cd338a6c6012e6e06fa4ef9dd49c3c8",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c907",
+      "name": "Bàn phím Razer Reclusa X Mini 65 Orange Switch",
+      "sourceHash": "042db9addee26638405a4d2368f65cf9bf078b2d9a9283f768a589dd033ea66b",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c909",
+      "name": "Bàn phím cơ Razer BlackWidow V4 Pro Yellow Switch",
+      "sourceHash": "5e1bf08e0a6ad16f540e3d9121a84f871325beb131e09f714a9392c0f3bf7591",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c90a",
+      "name": "Bàn phím Razer DeathStalker V2 Pro",
+      "sourceHash": "3263832f021343765633b3ae0436a48b1956b3b26501c99c1af3d09777155d79",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d73a0069aece85a8c90b",
+      "name": "Bàn phím Razer Huntsman Elite - Linear Optical Switch",
+      "sourceHash": "851fc13f5bee4e752ebf884280740a135e1d7f7ded4f7ee8d58c318ff53abfdf",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c917",
+      "name": "Chuột không dây Razer Viper V3 Pro SE",
+      "sourceHash": "b15c3016b56bddafde4df63521ed27fa982f5269c918c16af63ae0cd92edb2d3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c918",
+      "name": "Chuột Razer Viper V3 Pro Counter-Strike 2 Edition",
+      "sourceHash": "5a23ecf21670a7da7e35f56975deccea24fa2a4c2a65b945c123dd18dd0ba2e5",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c919",
+      "name": "Chuột Razer DeathAdder V4 Pro Black",
+      "sourceHash": "3e3f976f88878edd2fcdee2e6d924424546571ca0f6fcfe390a6230d7d6087c3",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91a",
+      "name": "Chuột Razer DeathAdder V4 Pro White",
+      "sourceHash": "f638e7f0f155cd471c9a0b459deb1b4d35ee56a6d592d6a88e30096674915275",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91b",
+      "name": "Chuột Razer Pro Click V2",
+      "sourceHash": "c6dd7a611c706cb8e2df4dd30e8092a22c34022beaf3f03b25200d23eaf5bc3d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91c",
+      "name": "Chuột Razer Pro Click V2 Vertical",
+      "sourceHash": "2c5594461364c48d6364419ecd30898a769a240b0d9d9f55efa584e98692dd38",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91d",
+      "name": "Chuột Razer Basilisk V3 Pro 35K Black",
+      "sourceHash": "019520927fa4d52fab22fe8034ad080f8b38a5fe8e82247bacf46be54eda438d",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91e",
+      "name": "Chuột Razer DeathAdder V3 Hyperspeed Wireless",
+      "sourceHash": "493a574dd1002dec6d611eb3aeeb5e1e3fc47b6fa6829acae247456b8d782784",
+      "needs": [
+        "fr:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c91f",
+      "name": "Chuột Razer Không dây Viper V3 Pro Trắng",
+      "sourceHash": "5b7996bdc59484f58f012d9a4a78e7f2cffe54f531b04b896c280ffb9bdf2bfc",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c920",
+      "name": "Chuột Razer Không dây Viper V3 Pro Đen",
+      "sourceHash": "6a9ed02019708f2fd3971830f641325025345591a66327d4ab72916b6b4edd8f",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c921",
+      "name": "Chuột Razer Basilisk V3",
+      "sourceHash": "50f753638008c46f25571465ce5c0ac18b47252ad601db05e4be66c4b59a6cd4",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c922",
+      "name": "Chuột Razer Basilisk V3 Pro",
+      "sourceHash": "701e27e97bc14e0451f8f699023866a8ae0157ebc4390b4d06fe25bbfa3f8206",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c923",
+      "name": "Chuột Razer Basilisk V3 X HyperSpeed",
+      "sourceHash": "34286c156ce9d1b1dea631f88862a2f08a7f629b274ed5db198f2b69c647b6c6",
+      "needs": [
+        "fr:desc",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c924",
+      "name": "Chuột Razer Viper V3 HyperSpeed",
+      "sourceHash": "555983f2db4ec399eb21a8eb759255360b90c1ec98d4d065737eeb2d3a179871",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c925",
+      "name": "Chuột Razer DeathAdder Essential (RZ01-03850100-R3M1)",
+      "sourceHash": "ea49d7c398a8b5fd11111c1b81173113a295bdde309ae66d2866aa1c5be03898",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c926",
+      "name": "Chuột Razer Deathadder Essential White",
+      "sourceHash": "a695802ccc09223b319f4bb297b93be4e33a13c56d617d178be1ea3d0e32f2c8",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c927",
+      "name": "Chuột Razer Cobra Pro",
+      "sourceHash": "c0059a7e8a413a0d4f6e920b1ef49196fd473f39cc391609aedfc3e0df220d3b",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c928",
+      "name": "Chuột Razer Cobra",
+      "sourceHash": "25c68c7c8122532747316f5a62e83a8b88a04a8593c32aec8e3fee7601f9339c",
+      "needs": [
+        "fr:desc+tech",
+        "pt:desc+tech"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c929",
+      "name": "Chuột Razer Basilisk V3 Pro White",
+      "sourceHash": "3e4c6593bcf59e60fb25e1c5f7ef04e816e0f0a6f7de11bccd09e15a97e846bf",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    },
+    {
+      "id": "6ad0d7c80069aece85a8c92a",
+      "name": "Chuột Razer Basilisk V3 Pro 35K White",
+      "sourceHash": "1b6bec25bf15414f4d1ac1026cd0b161ba217f2aa35d860ebb5f5ec6cd7bbd81",
+      "needs": [
+        "fr:desc",
+        "pt:desc"
+      ]
+    }
+  ]
+}

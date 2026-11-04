@@ -65,4 +65,11 @@ module.exports = {
   MAX_REPORT_SIZE: 10000,
   VIETNAMESE_DOMAIN_PHRASES: validationData.vietnameseDomainPhrases,
   LANGUAGE_ALIASES: validationData.languageAliases,
+
+  // Per-locale word-stem hints for the vocabulary fallback used when
+  // language-detect returns 'unknown' (short/token-heavy strings). A
+  // translation must contain >= 2 words starting with one of these stems,
+  // otherwise it is flagged wrong_language. Locales absent here keep the old
+  // silent-skip behaviour.
+  TARGET_LANGUAGE_HINTS: validationData.targetLanguageHints || {},
 };
