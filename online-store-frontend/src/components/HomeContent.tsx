@@ -865,7 +865,7 @@ export default function Home() {
             <div
               key={`${slide.title}-${index}`}
               aria-hidden={logicalIndex !== currentSlide}
-              className={`relative h-full min-w-full snap-start ${isDesktopSlide ? `lg:absolute lg:inset-0 ${logicalIndex === currentSlide ? "lg:opacity-100 lg:scale-100" : "lg:pointer-events-none lg:opacity-0 lg:scale-105"}` : 'lg:hidden'} ${prefersReducedMotion ? '' : 'lg:transition-all lg:duration-1000'}`}
+              className={`relative h-full min-w-full snap-start ${isDesktopSlide ? `lg:absolute lg:inset-0 ${logicalIndex === currentSlide ? "lg:opacity-100 lg:scale-100" : "lg:pointer-events-none lg:opacity-0 lg:scale-105"}` : 'lg:hidden'} ${prefersReducedMotion ? '' : 'lg:transition-[opacity,transform,scale] lg:duration-1000'}`}
             >
               <ImageWithFallback
                 src={slide.image}
