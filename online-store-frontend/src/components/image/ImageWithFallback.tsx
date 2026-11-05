@@ -34,7 +34,7 @@ export function ImageWithFallback({
   style,
   fill,
   sizes,
-  priority,
+  preload,
   loading,
   quality,
   ...rest
@@ -61,7 +61,7 @@ export function ImageWithFallback({
     srcSet?: string;
   };
   void srcSet;
-  const imageRest = showFallback || priority ? restWithoutImageSources : rest;
+  const imageRest = showFallback || preload ? restWithoutImageSources : rest;
 
   if (shouldShowError) {
     const errorAlt = t('image_load_error_alt', 'components');
@@ -91,7 +91,7 @@ export function ImageWithFallback({
         alt={alt}
         fill
         sizes={sizes ?? '100vw'}
-        priority={priority}
+        preload={preload}
         loading={loading}
         quality={quality}
         className={className}
@@ -111,7 +111,7 @@ export function ImageWithFallback({
         width={rest.width}
         height={rest.height}
         sizes={sizes}
-        priority={priority}
+        preload={preload}
         loading={loading}
         quality={quality}
         className={className}

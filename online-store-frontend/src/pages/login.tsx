@@ -138,6 +138,9 @@ export default function Login() {
               alt={t('brand_name', 'login')}
               width={260}
               height={146}
+              preload
+              loading="eager"
+              fetchPriority="high"
               className="h-24 w-auto max-w-full object-contain"
             />
           </div>

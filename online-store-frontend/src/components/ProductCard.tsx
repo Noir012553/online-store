@@ -226,7 +226,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                     </span>
                   </div>
                 )}
-                <span className="text-green-600 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>
+                <span className="text-green-700 font-bold text-xs sm:text-sm">{convertedLaptop.formattedPrice}</span>
               </div>
             </ProductDetailsContainer>
 

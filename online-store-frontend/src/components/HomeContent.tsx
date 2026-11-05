@@ -139,7 +139,7 @@ function LazyProductCard({ laptop, onQuickViewToggle }: LazyProductCardProps) {
       if (!entry.isIntersecting) return;
       setIsNearViewport(true);
       observer.disconnect();
-    }, { rootMargin: '600px 0px' });
+    }, { rootMargin: '200px 0px' });
 
     observer.observe(card);
     return () => observer.disconnect();
@@ -234,7 +234,11 @@ function getRepeatedItems<T>(items: T[]): T[] {
   return items.length > 1 ? [...items, ...items, ...items] : items;
 }
 
-export default function Home() {
+type HomeContentProps = {
+  initialHeroBanners: BannerRecord[];
+};
+
+export default function Home({ initialHeroBanners }: HomeContentProps) {
   const { loadNamespace, t, locale, isHydrated } = useLanguage();
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { currencyCode } = useCurrencyContext();
@@ -287,12 +291,13 @@ export default function Home() {
   const [dealCardsPerView, setDealCardsPerView] = useState(3);
   const [categoryProducts, setCategoryProducts] = useState<Record<string, BackendProduct[]>>({});
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
-  const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
+  const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>(initialHeroBanners);
   const [isLoading, setIsLoading] = useState(true);
   const [productLoadError, setProductLoadError] = useState(false);
   const [productRetryKey, setProductRetryKey] = useState(0);
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
   const heroCarouselRef = useRef<HTMLElement>(null);
@@ -524,10 +529,8 @@ export default function Home() {
         const response = await bannerAPI.getBanners('homepage_hero', true, 1, 10, locale as any);
         if (!isMounted) return;
         setHomepageHeroBanners(Array.isArray(response.banners) ? response.banners : []);
-      } catch (error) {
-        if (isMounted) {
-          setHomepageHeroBanners([]);
-        }
+      } catch {
+        return;
       }
     };
 
@@ -572,13 +575,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (heroSlidesToRender.length <= 1 || isHeroPaused || prefersReducedMotion) return;
+    if (heroSlidesToRender.length <= 1 || isHeroPaused || prefersReducedMotion || !isHeroImageLoaded) return;
 
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);
-    }, 5000);
+    }, 15000);
     return () => clearInterval(timer);
-  }, [heroSlidesToRender.length, isHeroPaused, prefersReducedMotion]);
+  }, [heroSlidesToRender.length, isHeroPaused, isHeroImageLoaded, prefersReducedMotion]);
 
   useEffect(() => {
     const carousel = heroCarouselRef.current;
@@ -751,12 +754,12 @@ export default function Home() {
           const slideCount = heroSlidesToRender.length;
           const logicalIndex = slideCount > 0 ? index % slideCount : 0;
           const isDesktopSlide = index < slideCount;
-          const isPrioritySlide = logicalIndex === currentSlide && index < slideCount * 2;
           const isAccessibleSlide = slideCount <= 1
             ? index === 0
             : isDesktopViewport
               ? index < slideCount && logicalIndex === currentSlide
               : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
+          const isPriorityHeroSlide = isAccessibleSlide || (logicalIndex === 0 && (index === 0 || index === slideCount));
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
@@ -773,9 +776,10 @@ export default function Home() {
                 fill
                 sizes="100vw"
                 className="object-cover"
-                priority={isPrioritySlide}
-                loading={isPrioritySlide ? 'eager' : 'lazy'}
-                fetchPriority={isPrioritySlide ? 'high' : 'low'}
+                preload={isPriorityHeroSlide}
+                loading={isPriorityHeroSlide ? 'eager' : 'lazy'}
+                fetchPriority={isPriorityHeroSlide ? 'high' : 'low'}
+                onLoad={isPriorityHeroSlide ? () => setIsHeroImageLoaded(true) : undefined}
               />
               <div className="absolute inset-0 bg-black/50" />
               <div className="absolute inset-0 mx-auto flex w-full items-center px-3 sm:px-4 lg:px-8">
@@ -952,10 +956,10 @@ export default function Home() {
                     <button
                       key={index}
                       onClick={() => setCurrentCategoryCardSlide(index)}
-                      className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentCategoryCardSlide ? 'bg-red-600' : 'bg-gray-300'}`}
+                      className="flex h-11 w-11 items-center justify-center rounded-full"
                       aria-label={`${t('go_to_category_slide', 'categories')} ${index + 1}`}
                       aria-current={index === currentCategoryCardSlide ? 'true' : undefined}
-                    />
+                    ><span className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentCategoryCardSlide ? 'bg-red-600' : 'bg-gray-300'}`} /></button>
                   ))}
                 </div>
               )}
@@ -1114,10 +1118,10 @@ export default function Home() {
                       <button
                         key={index}
                         onClick={() => setCurrentDealSlide(index)}
-                        className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentDealSlide ? "bg-red-600" : "bg-red-300"}`}
+                        className="flex h-11 w-11 items-center justify-center rounded-full"
                         aria-label={`${t('go_to_deal_slide', 'components')} ${index + 1}`}
                         aria-current={index === currentDealSlide ? 'true' : undefined}
-                      />
+                      ><span className={`h-2.5 w-2.5 rounded-full transition-colors ${index === currentDealSlide ? "bg-red-600" : "bg-red-300"}`} /></button>
                     ))}
                   </div>
                 )}
@@ -1186,6 +1190,8 @@ export default function Home() {
                               src={logo}
                               fallbackSrc={remoteLogo ? localLogo : undefined}
                               alt={brand.name || t('brand', 'common')}
+                              fill
+                              sizes="(max-width: 639px) 42vw, (max-width: 1023px) 28vw, 220px"
                               loading="lazy"
                               className="max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
                             />
