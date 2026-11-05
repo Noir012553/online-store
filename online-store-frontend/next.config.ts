@@ -1,25 +1,13 @@
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
-const trimTrailingSlashes = (value: string) => {
-  let normalized = value.trim();
-  while (normalized.endsWith('/')) normalized = normalized.slice(0, -1);
-  return normalized;
-};
-const r2PublicBaseUrl = trimTrailingSlashes(
-  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.R2_PUBLIC_BASE_URL || '',
-);
-const r2IconStoragePrefix = (process.env.R2_ICON_STORAGE_PREFIX || 'site/icons')
-  .split('/').filter(Boolean).join('/');
-const frontendRoot = fileURLToPath(new URL('.', import.meta.url));
-const r2IconUrls = Object.fromEntries((['fire', 'flash', 'star'] as const).map((name) => {
-  const content = readFileSync(resolve(frontendRoot, 'public', 'assets', 'icons', `${name}.png`));
-  const hash = createHash('sha256').update(content).digest('hex');
-  return [name, r2PublicBaseUrl ? `${r2PublicBaseUrl}/${r2IconStoragePrefix}/${hash}.png` : ''];
-}));
+const imageHosts = [
+  'images.unsplash.com',
+  'cdn.hstatic.net',
+  'product.hstatic.net',
+  'upload.wikimedia.org',
+  'cdn.manln.online',
+];
 
 const r2PublicPatterns = [
   process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL,
@@ -37,9 +25,15 @@ const r2PublicPatterns = [
   }
 });
 
+const remotePatterns = [
+  ...imageHosts.map((hostname) => ({ protocol: 'https' as const, hostname })),
+  ...r2PublicPatterns,
+];
+const imageOptimizerSources = [...new Set(remotePatterns.map(({ hostname, protocol }) => `${protocol}://${hostname}`))];
+
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_R2_ICON_URLS: JSON.stringify(r2IconUrls),
+    NEXT_PUBLIC_IMAGE_OPTIMIZER_SOURCES: JSON.stringify(imageOptimizerSources),
   },
   outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
   reactStrictMode: true,
@@ -57,25 +51,9 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.hstatic.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'product.hstatic.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'upload.wikimedia.org',
-      },
-      ...r2PublicPatterns,
-    ],
+    remotePatterns,
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+    formats: ['image/avif', 'image/webp'],
   },
 
   /**
@@ -106,6 +84,12 @@ const nextConfig: NextConfig = {
    */
   async headers() {
     return [
+      {
+        source: '/assets/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
+        ],
+      },
       {
         source: '/:path*',
         headers: [

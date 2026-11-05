@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "../../lib/i18n";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { productAPI, reviewAPI } from "../../lib/api";
@@ -26,6 +27,7 @@ import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 import { isNoInputTranslationResponse } from "../../lib/translationResponseGuard";
+import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL } from "../../lib/seo";
 
 const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
@@ -530,11 +532,30 @@ export default function ProductDetail() {
   };
 
   const discount = Math.max(0, convertedLaptop.discountPercentage ?? 0);
+  const pageTitle = `${convertedLaptop.name || DEFAULT_SITE_TITLE} | ${SITE_NAME}`;
+  const pageDescription = (convertedLaptop.description || DEFAULT_SITE_DESCRIPTION)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160);
+  const pageImage = typeof mainImage === 'string' && /^https?:\/\//i.test(mainImage)
+    ? mainImage
+    : DEFAULT_SITE_IMAGE;
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
   return (
-    <div className="container relative mx-auto max-w-360 px-4 py-8 animate-in fade-in duration-300 sm:py-10">
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} key="description" />
+        <meta property="og:type" content="product" key="og-type" />
+        <meta property="og:title" content={pageTitle} key="og-title" />
+        <meta property="og:description" content={pageDescription} key="og-description" />
+        <meta property="og:image" content={pageImage} key="og-image" />
+        <meta property="og:url" content={`${SITE_URL}/product/${productId}`} key="og-url" />
+        <link rel="canonical" href={`${SITE_URL}/product/${productId}`} key="canonical" />
+      </Head>
+      <div className="container relative mx-auto max-w-360 px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs
         links={[
           { label: t('breadcrumb_products', 'products'), href: "/products" },
@@ -620,6 +641,7 @@ export default function ProductDetail() {
         relatedTitle={t('section_related_products', 'products')}
         recentlyViewedTitle={t('section_recently_viewed_products', 'products')}
       />
-    </div>
+      </div>
+    </>
   );
 }

@@ -198,7 +198,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 /**
  * Trust Proxy Middleware
  * Cloudflare Tunnel kết nối từ localhost (loopback)
- * Nên ta tin tưởng loopback proxy để lấy đúng IP từ cf-connecting-ip header
+ * Tin cậy loopback proxy để Express lấy IP client từ X-Forwarded-For
  */
 app.set('trust proxy', 'loopback');
 
@@ -211,7 +211,7 @@ expressJSDocSwagger(app)(swaggerOptions);
 /**
  * Global Rate Limiter Middleware
  * Áp dụng cho tất cả /api/* routes để ngăn DoS/scraping
- * Limit: 100 requests per 15 minutes per IP
+ * Limit: 2000 requests per 15 minutes per IP
  */
 app.use('/api/', globalLimiter);
 

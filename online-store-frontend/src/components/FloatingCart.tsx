@@ -25,6 +25,7 @@ export function FloatingCart() {
         <button
           onClick={() => setIsMinimized(false)}
           className="bg-red-600 hover:bg-red-700 text-white w-12 h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center"
+          aria-label={t('floating_cart_open', 'components')}
           title={t('floating_cart_open', 'components')}
         >
           <ShoppingCart className="w-5 h-5" />
@@ -39,6 +40,7 @@ export function FloatingCart() {
         <button
           onClick={handleCartClick}
           className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-3 group"
+          aria-label={t('floating_cart_view', 'components')}
           title={t('floating_cart_view', 'components')}
         >
           <div className="relative">
@@ -56,7 +58,8 @@ export function FloatingCart() {
         </button>
         <button
           onClick={() => setIsMinimized(true)}
-          className="absolute -top-2 -right-2 bg-white text-red-600 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
+          className="absolute -top-3 -right-3 bg-white text-red-600 rounded-full h-11 w-11 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
+          aria-label={t('floating_cart_hide', 'components')}
           title={t('floating_cart_hide', 'components')}
         >
           <X className="w-4 h-4" />

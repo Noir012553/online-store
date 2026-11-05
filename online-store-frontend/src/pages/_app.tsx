@@ -1,5 +1,6 @@
 import '../styles/index.css';
 import type { AppProps } from 'next/app';
+import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import dynamicImport from 'next/dynamic';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -11,14 +12,15 @@ import { LanguageProvider, useLanguage } from "../lib/context/LanguageContext";
 import { CurrencyProvider } from "../lib/context/CurrencyContext";
 import { LoadingGate } from "../components/LoadingGate";
 import { useRouter } from 'next/router';
-import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from "../components/PageTransition";
 import { HamsterLoader } from "../components/HamsterLoader";
 import AdminLayout from "../components/admin/_AdminLayout";
+import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME } from '../lib/seo';
 import { ProtectedAdminPage, type PagePermission } from "../components/admin/ProtectedAdminPage";
 
 const Header = dynamicImport(() => import("../components/Header").then((mod) => mod.Header), {
   ssr: false,
+  loading: () => <div className="h-20" aria-hidden="true" />,
 });
 
 const Footer = dynamicImport(() => import("../components/Footer").then((mod) => mod.Footer), {
@@ -172,7 +174,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     }
   }, [router?.isReady, router?.pathname]);
 
-  if (!isHydrated || !isCriticalTranslationsReady) {
+  if ((!isHydrated || !isCriticalTranslationsReady) && router?.pathname !== '/') {
     return (
       <LoadingGate />
     );
@@ -185,18 +187,14 @@ function AppContent({ Component, pageProps }: AppContentProps) {
           permission={adminMeta?.permission || 'admin'}
           featureName={adminMeta?.featureName || 'Admin'}
         >
-          <AnimatePresence mode="wait">
-            {showLoadingOverlay && (
-              <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                <HamsterLoader size={144} />
-              </div>
-            )}
-          </AnimatePresence>
-          <AnimatePresence mode="wait">
-            <PageTransition key={router?.asPath?.split('?')[0] || ''}>
-              <Component {...pageProps} />
-            </PageTransition>
-          </AnimatePresence>
+          {showLoadingOverlay && (
+            <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+              <HamsterLoader size={144} />
+            </div>
+          )}
+          <PageTransition key={router?.asPath?.split('?')[0] || ''}>
+            <Component {...pageProps} />
+          </PageTransition>
         </ProtectedAdminPage>
       </AdminLayout>
     );
@@ -206,18 +204,18 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     <>
       <Header />
       <main className="min-h-screen relative bg-white">
-        <AnimatePresence mode="wait">
-          {showLoadingOverlay && (
-            <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-              <HamsterLoader size={144} />
-            </div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence mode="wait">
+        {showLoadingOverlay && (
+          <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+            <HamsterLoader size={144} />
+          </div>
+        )}
+        {router?.pathname === '/' ? (
+          <Component {...pageProps} />
+        ) : (
           <PageTransition key={router?.asPath?.split('?')[0] || ''}>
             <Component {...pageProps} />
           </PageTransition>
-        </AnimatePresence>
+        )}
       </main>
       <Footer />
       <ScrollToTop />
@@ -230,6 +228,17 @@ function AppContent({ Component, pageProps }: AppContentProps) {
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
+      <Head>
+        <title>{DEFAULT_SITE_TITLE}</title>
+        <meta name="description" content={DEFAULT_SITE_DESCRIPTION} key="description" />
+        <meta property="og:type" content="website" key="og-type" />
+        <meta property="og:site_name" content={SITE_NAME} key="og-site-name" />
+        <meta property="og:title" content={DEFAULT_SITE_TITLE} key="og-title" />
+        <meta property="og:description" content={DEFAULT_SITE_DESCRIPTION} key="og-description" />
+        <meta property="og:image" content={DEFAULT_SITE_IMAGE} key="og-image" />
+        <meta name="twitter:card" content="summary_large_image" key="twitter-card" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       <LanguageProvider>
         <CurrencyProvider>
           <AuthProvider>
