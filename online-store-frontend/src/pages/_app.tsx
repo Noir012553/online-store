@@ -12,7 +12,6 @@ import { LanguageProvider, useLanguage } from "../lib/context/LanguageContext";
 import { CurrencyProvider } from "../lib/context/CurrencyContext";
 import { LoadingGate } from "../components/LoadingGate";
 import { useRouter } from 'next/router';
-import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from "../components/PageTransition";
 import { HamsterLoader } from "../components/HamsterLoader";
 import AdminLayout from "../components/admin/_AdminLayout";
@@ -187,18 +186,14 @@ function AppContent({ Component, pageProps }: AppContentProps) {
           permission={adminMeta?.permission || 'admin'}
           featureName={adminMeta?.featureName || 'Admin'}
         >
-          <AnimatePresence mode="wait">
-            {showLoadingOverlay && (
-              <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                <HamsterLoader size={144} />
-              </div>
-            )}
-          </AnimatePresence>
-          <AnimatePresence mode="wait">
-            <PageTransition key={router?.asPath?.split('?')[0] || ''}>
-              <Component {...pageProps} />
-            </PageTransition>
-          </AnimatePresence>
+          {showLoadingOverlay && (
+            <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+              <HamsterLoader size={144} />
+            </div>
+          )}
+          <PageTransition key={router?.asPath?.split('?')[0] || ''}>
+            <Component {...pageProps} />
+          </PageTransition>
         </ProtectedAdminPage>
       </AdminLayout>
     );
@@ -208,18 +203,14 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     <>
       <Header />
       <main className="min-h-screen relative bg-white">
-        <AnimatePresence mode="wait">
-          {showLoadingOverlay && (
-            <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-              <HamsterLoader size={144} />
-            </div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence mode="wait">
-          <PageTransition key={router?.asPath?.split('?')[0] || ''}>
-            <Component {...pageProps} />
-          </PageTransition>
-        </AnimatePresence>
+        {showLoadingOverlay && (
+          <div className="fixed inset-0 z-9998 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+            <HamsterLoader size={144} />
+          </div>
+        )}
+        <PageTransition key={router?.asPath?.split('?')[0] || ''}>
+          <Component {...pageProps} />
+        </PageTransition>
       </main>
       <Footer />
       <ScrollToTop />

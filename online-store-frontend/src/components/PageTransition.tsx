@@ -1,17 +1,7 @@
-'use client';
-
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
 
-export const PageTransition = ({ children }: { children: ReactNode }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-    >
-      {children}
-    </motion.div>
-  );
-};
+export const PageTransition = ({ children }: { children: ReactNode }) => (
+  <div className="animate-in fade-in slide-in-from-bottom-5 duration-300 motion-reduce:animate-none">
+    {children}
+  </div>
+);
