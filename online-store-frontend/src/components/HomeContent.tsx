@@ -284,7 +284,7 @@ export default function Home() {
   const [currentDealSlide, setCurrentDealSlide] = useState(0);
   const [currentCategoryCardSlide, setCurrentCategoryCardSlide] = useState(0);
   const [currentCategorySlides, setCurrentCategorySlides] = useState<Record<string, number>>({});
-  const [dealCardsPerView, setDealCardsPerView] = useState(getDealCardsPerView);
+  const [dealCardsPerView, setDealCardsPerView] = useState(3);
   const [categoryProducts, setCategoryProducts] = useState<Record<string, BackendProduct[]>>({});
   const [dealProducts, setDealProducts] = useState<BackendProduct[]>([]);
   const [homepageHeroBanners, setHomepageHeroBanners] = useState<BannerRecord[]>([]);
@@ -294,9 +294,7 @@ export default function Home() {
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [isDesktopViewport, setIsDesktopViewport] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
-  );
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
   const heroCarouselRef = useRef<HTMLElement>(null);
   const brandCarouselRef = useRef<HTMLDivElement>(null);
   const categoryNavigationMobileCarouselRef = useRef<HTMLDivElement>(null);
@@ -733,7 +731,7 @@ export default function Home() {
   const sectionsToRender = categorySections;
 
   return (
-    <div className="animate-in fade-in duration-500 bg-white">
+    <div className="bg-white">
       <section
         ref={heroCarouselRef}
         id="homepage-hero"

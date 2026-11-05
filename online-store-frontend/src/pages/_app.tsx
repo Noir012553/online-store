@@ -20,6 +20,7 @@ import { ProtectedAdminPage, type PagePermission } from "../components/admin/Pro
 
 const Header = dynamicImport(() => import("../components/Header").then((mod) => mod.Header), {
   ssr: false,
+  loading: () => <div className="h-20" aria-hidden="true" />,
 });
 
 const Footer = dynamicImport(() => import("../components/Footer").then((mod) => mod.Footer), {
@@ -173,7 +174,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     }
   }, [router?.isReady, router?.pathname]);
 
-  if (!isHydrated || !isCriticalTranslationsReady) {
+  if ((!isHydrated || !isCriticalTranslationsReady) && router?.pathname !== '/') {
     return (
       <LoadingGate />
     );
@@ -208,9 +209,13 @@ function AppContent({ Component, pageProps }: AppContentProps) {
             <HamsterLoader size={144} />
           </div>
         )}
-        <PageTransition key={router?.asPath?.split('?')[0] || ''}>
+        {router?.pathname === '/' ? (
           <Component {...pageProps} />
-        </PageTransition>
+        ) : (
+          <PageTransition key={router?.asPath?.split('?')[0] || ''}>
+            <Component {...pageProps} />
+          </PageTransition>
+        )}
       </main>
       <Footer />
       <ScrollToTop />

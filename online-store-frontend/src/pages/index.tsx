@@ -1,11 +1,6 @@
 import dynamicImport from "next/dynamic";
-import { GetServerSideProps } from "next";
-import { HamsterLoader } from '../components/HamsterLoader';
-
-const HomeContent = dynamicImport(() => import("../components/HomeContent"), {
-  ssr: false,
-  loading: () => <div className="flex h-screen w-full items-center justify-center bg-white"><HamsterLoader /></div>,
-});
+import type { GetServerSideProps } from "next";
+import HomeContent from "../components/HomeContent";
 
 export default function Home() {
   return <HomeContent />;
