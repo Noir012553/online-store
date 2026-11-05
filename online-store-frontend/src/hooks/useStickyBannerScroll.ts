@@ -18,21 +18,28 @@ export function useStickyBannerScroll({
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isVisible) return;
+
+    const bannerElement = bannerRef.current;
+    const container = document.querySelector(containerSelector);
+    if (!bannerElement || !container) return;
+
     let frameId: number | null = null;
+    let bannerHeight = 0;
+    let containerTopDoc = 0;
+    let containerBottomDoc = 0;
+
+    const measureLayout = () => {
+      bannerHeight = bannerElement.offsetHeight;
+      const containerRect = container.getBoundingClientRect();
+      containerTopDoc = containerRect.top + window.scrollY;
+      containerBottomDoc = containerRect.bottom + window.scrollY;
+    };
 
     const updatePosition = () => {
       frameId = null;
-      const bannerElement = bannerRef.current;
-      const container = document.querySelector(containerSelector);
-      if (!bannerElement || !container) return;
-
-      const bannerHeight = bannerElement.offsetHeight;
-      const containerRect = container.getBoundingClientRect();
       const scrollY = window.scrollY;
       const initialStickyPos = headerHeight + 16;
-      const containerTopDoc = containerRect.top + scrollY;
-      const containerBottomDoc = containerRect.bottom + scrollY;
-
       let bannerTopDoc = scrollY + initialStickyPos;
       if (minBannerTopDocument !== undefined) {
         bannerTopDoc = Math.max(bannerTopDoc, minBannerTopDocument);
@@ -52,23 +59,26 @@ export function useStickyBannerScroll({
       frameId = window.requestAnimationFrame(updatePosition);
     };
 
-    const bannerElement = bannerRef.current;
-    const container = document.querySelector(containerSelector);
+    const handleResize = () => {
+      measureLayout();
+      handlePositionChange();
+    };
     const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(handlePositionChange)
+      ? new ResizeObserver(handleResize)
       : null;
 
-    if (bannerElement) resizeObserver?.observe(bannerElement);
-    if (container) resizeObserver?.observe(container);
+    resizeObserver?.observe(bannerElement);
+    resizeObserver?.observe(container);
+    measureLayout();
     window.addEventListener('scroll', handlePositionChange, { passive: true });
-    window.addEventListener('resize', handlePositionChange, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
     handlePositionChange();
 
     return () => {
       if (frameId !== null) window.cancelAnimationFrame(frameId);
       resizeObserver?.disconnect();
       window.removeEventListener('scroll', handlePositionChange);
-      window.removeEventListener('resize', handlePositionChange);
+      window.removeEventListener('resize', handleResize);
     };
   }, [containerSelector, minBannerTopDocument, headerHeight, maxBottomOffset, isVisible]);
 

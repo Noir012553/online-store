@@ -751,7 +751,8 @@ export default function Home() {
           const slideCount = heroSlidesToRender.length;
           const logicalIndex = slideCount > 0 ? index % slideCount : 0;
           const isDesktopSlide = index < slideCount;
-          const isPrioritySlide = logicalIndex === currentSlide && index < slideCount * 2;
+          const isLcpImage = index === 0;
+          const isVisibleInitialSlide = index === 0 || index === slideCount;
           const isAccessibleSlide = slideCount <= 1
             ? index === 0
             : isDesktopViewport
@@ -773,9 +774,9 @@ export default function Home() {
                 fill
                 sizes="100vw"
                 className="object-cover"
-                priority={isPrioritySlide}
-                loading={isPrioritySlide ? 'eager' : 'lazy'}
-                fetchPriority={isPrioritySlide ? 'high' : 'low'}
+                preload={isLcpImage}
+                loading={isVisibleInitialSlide ? 'eager' : 'lazy'}
+                fetchPriority={isVisibleInitialSlide ? 'high' : 'low'}
               />
               <div className="absolute inset-0 bg-black/50" />
               <div className="absolute inset-0 mx-auto flex w-full items-center px-3 sm:px-4 lg:px-8">

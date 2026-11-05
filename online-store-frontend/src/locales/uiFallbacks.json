@@ -11,6 +11,7 @@
     "shopping_cart": "Giỏ hàng",
     "change_language": "Đổi ngôn ngữ",
     "login": "Đăng nhập",
+    "login_successful": "Đăng nhập thành công",
     "profile": "Tài khoản",
     "myOrders": "Đơn hàng của tôi",
     "admin": "Quản trị",
@@ -206,6 +207,7 @@
     "shopping_cart": "Shopping cart",
     "change_language": "Change language",
     "login": "Log in",
+    "login_successful": "Login successful",
     "profile": "Profile",
     "myOrders": "My orders",
     "admin": "Admin",
@@ -395,7 +397,8 @@
     "social_facebook_aria": "Facebook — em breve",
     "social_instagram_aria": "Instagram — em breve",
     "social_youtube_aria": "YouTube — em breve",
-    "social_x_aria": "X — em breve"
+    "social_x_aria": "X — em breve",
+    "login_successful": "Login realizado com sucesso"
   },
   "fr": {
     "social_title": "Réseaux sociaux",
@@ -403,7 +406,8 @@
     "social_facebook_aria": "Facebook — bientôt disponible",
     "social_instagram_aria": "Instagram — bientôt disponible",
     "social_youtube_aria": "YouTube — bientôt disponible",
-    "social_x_aria": "X — bientôt disponible"
+    "social_x_aria": "X — bientôt disponible",
+    "login_successful": "Connexion réussie"
   },
   "de": {
     "social_title": "Soziale Medien",
@@ -411,7 +415,8 @@
     "social_facebook_aria": "Facebook — demnächst verfügbar",
     "social_instagram_aria": "Instagram — demnächst verfügbar",
     "social_youtube_aria": "YouTube — demnächst verfügbar",
-    "social_x_aria": "X — demnächst verfügbar"
+    "social_x_aria": "X — demnächst verfügbar",
+    "login_successful": "Anmeldung erfolgreich"
   },
   "it": {
     "social_title": "Social media",
@@ -419,7 +424,8 @@
     "social_facebook_aria": "Facebook — prossimamente",
     "social_instagram_aria": "Instagram — prossimamente",
     "social_youtube_aria": "YouTube — prossimamente",
-    "social_x_aria": "X — prossimamente"
+    "social_x_aria": "X — prossimamente",
+    "login_successful": "Accesso riuscito"
   },
   "es": {
     "social_title": "Redes sociales",
@@ -427,7 +433,8 @@
     "social_facebook_aria": "Facebook — próximamente",
     "social_instagram_aria": "Instagram — próximamente",
     "social_youtube_aria": "YouTube — próximamente",
-    "social_x_aria": "X — próximamente"
+    "social_x_aria": "X — próximamente",
+    "login_successful": "Inicio de sesión exitoso"
   },
   "nl": {
     "social_title": "Sociale media",
@@ -435,7 +442,8 @@
     "social_facebook_aria": "Facebook — binnenkort beschikbaar",
     "social_instagram_aria": "Instagram — binnenkort beschikbaar",
     "social_youtube_aria": "YouTube — binnenkort beschikbaar",
-    "social_x_aria": "X — binnenkort beschikbaar"
+    "social_x_aria": "X — binnenkort beschikbaar",
+    "login_successful": "Aanmelding geslaagd"
   },
   "sv": {
     "social_title": "Sociala medier",
@@ -443,6 +451,7 @@
     "social_facebook_aria": "Facebook — kommer snart",
     "social_instagram_aria": "Instagram — kommer snart",
     "social_youtube_aria": "YouTube — kommer snart",
-    "social_x_aria": "X — kommer snart"
+    "social_x_aria": "X — kommer snart",
+    "login_successful": "Inloggning lyckades"
   }
 }

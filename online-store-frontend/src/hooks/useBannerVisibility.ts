@@ -14,55 +14,25 @@ export function useBannerVisibility({
   const [isBannerVisible, setIsBannerVisible] = useState(true);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const hero = document.querySelector(heroSelector);
-      const footer = document.querySelector(footerSelector);
+    const hero = document.querySelector(heroSelector);
+    const footer = document.querySelector(footerSelector);
+    const observedElements = [hero, footer].filter((element): element is Element => Boolean(element));
+    if (observedElements.length === 0) return;
 
-      if (!hero && !footer) return;
-
-      let shouldHideBanners = false;
-
-      // Check if hero is visible
-      if (hero) {
-        const heroRect = hero.getBoundingClientRect();
-        const heroVisibleHeight = Math.max(0, Math.min(heroRect.bottom, window.innerHeight) - Math.max(heroRect.top, 0));
-        const heroVisibilityRatio = heroRect.height > 0
-          ? Math.min(1, heroVisibleHeight / heroRect.height)
-          : 0;
-
-        // Hide banners if hero is more visible than threshold
-        if (heroVisibilityRatio > triggerThreshold) {
-          shouldHideBanners = true;
+    const hiddenElements = new Set<Element>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.intersectionRatio > triggerThreshold) {
+          hiddenElements.add(entry.target);
+        } else {
+          hiddenElements.delete(entry.target);
         }
       }
+      setIsBannerVisible(hiddenElements.size === 0);
+    }, { threshold: triggerThreshold });
 
-      // Check if footer is visible
-      if (footer && !shouldHideBanners) {
-        const footerRect = footer.getBoundingClientRect();
-        const footerVisibleHeight = Math.max(0, Math.min(footerRect.bottom, window.innerHeight) - Math.max(footerRect.top, 0));
-        const footerVisibilityRatio = footerRect.height > 0
-          ? Math.min(1, footerVisibleHeight / footerRect.height)
-          : 0;
-
-        // Hide banners if footer is more visible than threshold
-        if (footerVisibilityRatio > triggerThreshold) {
-          shouldHideBanners = true;
-        }
-      }
-
-      setIsBannerVisible(!shouldHideBanners);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
-
-    // Initial calculation
-    handleScroll();
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
+    observedElements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
   }, [heroSelector, footerSelector, triggerThreshold]);
 
   return { isBannerVisible };

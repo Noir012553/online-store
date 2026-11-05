@@ -57,7 +57,7 @@ function HeaderComponent() {
               width={260}
               height={146}
               sizes="(max-width: 639px) 220px, 260px"
-              priority
+              preload
               className="h-16 w-auto max-w-[220px] object-contain sm:h-18 sm:max-w-[260px]"
             />
           </Link>
