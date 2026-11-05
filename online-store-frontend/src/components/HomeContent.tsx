@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type UIEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../lib/i18n/types";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Gamepad2, LaptopMinimal, Briefcase, Palette, GraduationCap, Building, Laptop as LaptopIcon, Truck, Shield, Headphones, CreditCard, Keyboard, Mouse, Zap, Monitor, MonitorPlay, Volume2, PackageSearch } from "lucide-react";
 import { features, getCategoryName } from "../lib/data";
@@ -11,7 +12,6 @@ import { onBannerCreated, onBannerUpdated, onBannerDeleted, onBannerRestored, of
 import { useStickyBannerScroll } from "../hooks/useStickyBannerScroll";
 import { useBannerVisibility } from "../hooks/useBannerVisibility";
 import { useBrands } from "../hooks/useBrands";
-import { ProductCard } from "../components/ProductCard";
 import { BannerSlot } from "../components/BannerSlot";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
@@ -20,6 +20,11 @@ import { ProductSkeleton } from "../components/ProductSkeleton";
 import { EmptyState } from "../components/EmptyState";
 import { getImageUrl } from "../lib/utils";
 
+
+const DeferredProductCard = dynamic(
+  () => import("../components/ProductCard").then((module) => module.ProductCard),
+  { ssr: false, loading: () => <ProductSkeleton /> },
+);
 
 const BRAND_LOGO_ASSETS: Record<string, string> = {
   acer: '/assets/brands/Acer.png',
@@ -107,6 +112,11 @@ type HeroSlide = {
   sortOrder?: number;
 };
 
+type LazyProductCardProps = {
+  laptop: BackendProduct;
+  onQuickViewToggle?: (isOpen: boolean) => void;
+};
+
 type HomeCategory = {
   _id: string;
   name: string;
@@ -117,19 +127,34 @@ type HomeCategory = {
   icon?: string;
 };
 
-const debugHomepage = (..._args: unknown[]): void => {};
+function LazyProductCard({ laptop, onQuickViewToggle }: LazyProductCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
 
-const describeProductPayload = (payload: any) => ({
-  payloadType: Array.isArray(payload) ? 'array' : payload === null ? 'null' : typeof payload,
-  productCount: Array.isArray(payload?.products) ? payload.products.length : undefined,
-  productIds: Array.isArray(payload?.products)
-    ? payload.products.map((product: any) => product?._id || product?.id).filter(Boolean)
-    : undefined,
-  page: payload?.page,
-  pages: payload?.pages,
-  total: payload?.total,
-  keys: payload && typeof payload === 'object' ? Object.keys(payload) : undefined,
-});
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setIsNearViewport(true);
+      observer.disconnect();
+    }, { rootMargin: '600px 0px' });
+
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={cardRef} className="h-full">
+      {isNearViewport ? (
+        <DeferredProductCard laptop={laptop} onQuickViewToggle={onQuickViewToggle} />
+      ) : (
+        <ProductSkeleton />
+      )}
+    </div>
+  );
+}
 
 const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-gaming': '/products/gaming-laptop',
@@ -269,12 +294,12 @@ export default function Home() {
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
+  );
   const heroCarouselRef = useRef<HTMLElement>(null);
   const brandCarouselRef = useRef<HTMLDivElement>(null);
   const categoryNavigationMobileCarouselRef = useRef<HTMLDivElement>(null);
-  const categoryMobileCarouselRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const dealMobileCarouselRef = useRef<HTMLDivElement>(null);
   const categoryCount = Array.isArray(categories) ? categories.length : 0;
 
   // Detect if hero carousel or footer is visible - hide banners when they are
@@ -364,12 +389,6 @@ export default function Home() {
   // Fetch products from backend
   useEffect(() => {
     if (!isHydrated || isLoadingCategories) {
-      debugHomepage('products:skipped-not-ready', {
-        locale,
-        currencyCode,
-        isHydrated,
-        isLoadingCategories,
-      });
       setIsLoading(true);
       return;
     }
@@ -381,22 +400,6 @@ export default function Home() {
     const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
 
     const fetchCategoryProducts = async (category: HomeCategory) => {
-      const requestDetails = {
-        categoryId: category._id,
-        categoryName: category.name,
-        categorySlug: category.slug,
-        mode: 'content',
-        pageNumber: 1,
-        pageSize: 8,
-        lang: locale,
-        locale,
-        currencyCode,
-        inStock: true,
-        hasSpecs: true,
-        highlighted: true,
-      };
-      debugHomepage('category:request-start', requestDetails);
-
       const response = await productAPI.getFeaturedProducts(
         1,
         undefined,
@@ -418,32 +421,10 @@ export default function Home() {
         { skipErrorToast: true, signal: requestController.signal },
       );
 
-      debugHomepage('category:response-success', {
-        ...requestDetails,
-        ...describeProductPayload(response),
-        products: response.products || [],
-      });
       return [category._id, response.products || []] as const;
     };
 
     const fetchFlashSaleProducts = async (category: HomeCategory) => {
-      const requestDetails = {
-        categoryId: category._id,
-        categoryName: category.name,
-        categorySlug: category.slug,
-        mode: 'flash',
-        pageNumber: 1,
-        pageSize: 8,
-        lang: locale,
-        locale,
-        currencyCode,
-        inStock: true,
-        hasSpecs: true,
-        hasPriceReduction: true,
-        minDiscount: 1,
-      };
-      debugHomepage('flash-sale:request-start', requestDetails);
-
       const response = await productAPI.getFeaturedProducts(
         1,
         undefined,
@@ -467,23 +448,10 @@ export default function Home() {
         1,
       );
 
-      debugHomepage('flash-sale:response-success', {
-        ...requestDetails,
-        ...describeProductPayload(response),
-        products: response.products || [],
-      });
       return response.products || [];
     };
 
     const fetchData = async () => {
-      const fetchStartedAt = Date.now();
-      debugHomepage('products:fetch-start', {
-        locale,
-        currencyCode,
-        categoryCount: contentCategories.length,
-        flashSaleCategoryCount: flashSaleCategories.length,
-        categories: contentCategories,
-      });
       setIsLoading(true);
       setProductLoadError(false);
 
@@ -526,80 +494,26 @@ export default function Home() {
           })
           .slice(0, 10);
 
-        debugHomepage('categories:settled', {
-          durationMs: Date.now() - fetchStartedAt,
-          content: categoryResults,
-          flashSale: flashResults,
-        });
-        debugHomepage('deals:transformed', {
-          candidateCount: dealCandidates.length,
-          priceReducedProductCount: deals.length,
-          productIds: deals.map((product) => product._id || product.id),
-        });
-
         setCategoryProducts(categoryProductMap);
         setDealProducts(deals);
         setProductLoadError(hasRequestFailure);
-      } catch (error) {
-        debugHomepage('products:fetch-error', {
-          durationMs: Date.now() - fetchStartedAt,
-          errorName: error instanceof Error ? error.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        });
+      } catch {
         if (isMounted && !requestController.signal.aborted) {
           setCategoryProducts({});
           setDealProducts([]);
           setProductLoadError(true);
         }
       } finally {
-        debugHomepage('products:fetch-finish', {
-          durationMs: Date.now() - fetchStartedAt,
-          isMounted,
-        });
         if (isMounted) setIsLoading(false);
       }
     };
 
-    void fetchData().catch((error) => {
-      if (!requestController.signal.aborted) {
-        debugHomepage('products:unhandled-fetch-error', {
-          errorName: error instanceof Error ? error.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-    });
+    void fetchData();
     return () => {
       isMounted = false;
       requestController.abort();
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale, productRetryKey]);
-
-  useEffect(() => {
-    const handleRuntimeError = (event: ErrorEvent) => {
-      debugHomepage('runtime:error', {
-        message: event.message,
-        filename: event.filename,
-        lineNumber: event.lineno,
-        columnNumber: event.colno,
-        stack: event.error?.stack,
-      });
-    };
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      debugHomepage('runtime:unhandled-rejection', {
-        errorName: reason instanceof Error ? reason.name : typeof reason,
-        message: reason instanceof Error ? reason.message : String(reason),
-        stack: reason instanceof Error ? reason.stack : undefined,
-      });
-    };
-
-    window.addEventListener('error', handleRuntimeError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    return () => {
-      window.removeEventListener('error', handleRuntimeError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
 
   // Fetch homepage hero banners and refresh them when admin changes are broadcast.
   useEffect(() => {
@@ -687,12 +601,6 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentDealSlide((prev) => (dealProducts.length > 0 ? prev % dealProducts.length : 0));
-    const mobileCarousel = dealMobileCarouselRef.current;
-    if (mobileCarousel && dealProducts.length > 1) {
-      requestAnimationFrame(() => {
-        mobileCarousel.scrollLeft = mobileCarousel.scrollWidth / 3;
-      });
-    }
   }, [dealProducts.length]);
 
   useEffect(() => {
@@ -702,10 +610,6 @@ export default function Home() {
     requestAnimationFrame(() => {
       const navigationCarousel = categoryNavigationMobileCarouselRef.current;
       if (navigationCarousel) navigationCarousel.scrollLeft = navigationCarousel.scrollWidth / 3;
-
-      Object.values(categoryMobileCarouselRefs.current).forEach((carousel) => {
-        if (carousel) carousel.scrollLeft = carousel.scrollWidth / 3;
-      });
     });
   }, [categoryCount]);
 
@@ -828,24 +732,6 @@ export default function Home() {
     .filter(({ products }) => products.length > 0);
   const sectionsToRender = categorySections;
 
-  debugHomepage('render:sections', {
-    isLoading,
-    categoryCount: Array.isArray(categories) ? categories.length : 0,
-    categorySections: categorySections.map(({ category, products }) => ({
-      categoryId: category._id,
-      categoryName: category.name,
-      categorySlug: category.slug,
-      productCount: products.length,
-      productIds: products.map((product) => product._id || product.id),
-    })),
-    sectionsToRender: sectionsToRender.map(({ category, products }) => ({
-      categoryId: category._id,
-      categoryName: category.name,
-      productCount: products.length,
-      productIds: products.map((product) => product._id || product.id),
-    })),
-  });
-
   return (
     <div className="animate-in fade-in duration-500 bg-white">
       <section
@@ -867,13 +753,7 @@ export default function Home() {
           const slideCount = heroSlidesToRender.length;
           const logicalIndex = slideCount > 0 ? index % slideCount : 0;
           const isDesktopSlide = index < slideCount;
-          const isPrioritySlide = logicalIndex === currentSlide && (
-            slideCount <= 1
-              ? index === 0
-              : isDesktopViewport
-                ? index < slideCount
-                : index >= slideCount && index < slideCount * 2
-          );
+          const isPrioritySlide = logicalIndex === currentSlide && index < slideCount * 2;
           const isAccessibleSlide = slideCount <= 1
             ? index === 0
             : isDesktopViewport
@@ -1122,7 +1002,7 @@ export default function Home() {
                           {t('view_all_products', 'components')}
                         </Link>
                       </div>
-                      <div className="relative hidden lg:flex lg:items-center lg:gap-3">
+                      <div aria-hidden={!isDesktopViewport} inert={!isDesktopViewport} className="relative hidden lg:flex lg:items-center lg:gap-3">
                         <button
                           onClick={() => prevCategorySlide(category._id, products.length)}
                           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
@@ -1133,9 +1013,9 @@ export default function Home() {
 
                         <div className="flex-1 overflow-hidden">
                           <div className="grid grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
-                            {getCircularItems(products, currentCategorySlides[category._id] ?? 0, PRODUCT_CARDS_PER_VIEW)
-                              .map((product, index) => (
-                                <ProductCard key={`${product._id}-${index}`} laptop={product} />
+                            {isDesktopViewport && getCircularItems(products, currentCategorySlides[category._id] ?? 0, PRODUCT_CARDS_PER_VIEW)
+                              .map((product) => (
+                                <LazyProductCard key={product._id} laptop={product} />
                               ))}
                           </div>
                         </div>
@@ -1150,15 +1030,13 @@ export default function Home() {
                       </div>
 
                       <div
-                        ref={(element) => {
-                          categoryMobileCarouselRefs.current[category._id] = element;
-                        }}
+                        aria-hidden={isDesktopViewport}
+                        inert={isDesktopViewport}
                         className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
-                        onScroll={(event) => handleInfiniteCarouselScroll(event, products.length)}
                       >
-                        {getRepeatedItems(products).map((product, index) => (
-                          <div key={`${product._id}-${index}`} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
-                            <ProductCard laptop={product} />
+                        {!isDesktopViewport && products.map((product) => (
+                          <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                            <LazyProductCard laptop={product} />
                           </div>
                         ))}
                       </div>
@@ -1185,7 +1063,7 @@ export default function Home() {
                   </h2>
                 </div>
 
-                <div className="relative hidden items-center gap-3 overflow-visible lg:flex">
+                <div aria-hidden={!isDesktopViewport} inert={!isDesktopViewport} className="relative hidden items-center gap-3 overflow-visible lg:flex">
                   {dealProducts.length > 1 && (
                     <button
                       onClick={prevDealSlide}
@@ -1198,10 +1076,10 @@ export default function Home() {
 
                   <div className="flex-1 overflow-hidden">
                     <div className="grid grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
-                      {getCircularItems(dealProducts, currentDealSlide, dealCardsPerView)
-                        .map((product, index) => (
-                          <ProductCard
-                            key={`${product._id}-${index}`}
+                      {isDesktopViewport && getCircularItems(dealProducts, currentDealSlide, dealCardsPerView)
+                        .map((product) => (
+                          <LazyProductCard
+                            key={product._id}
                             laptop={product}
                             onQuickViewToggle={setIsDealQuickViewOpen}
                           />
@@ -1221,13 +1099,13 @@ export default function Home() {
                 </div>
 
                 <div
-                  ref={dealMobileCarouselRef}
+                  aria-hidden={isDesktopViewport}
+                  inert={isDesktopViewport}
                   className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
-                  onScroll={(event) => handleInfiniteCarouselScroll(event, dealProducts.length)}
                 >
-                  {getRepeatedItems(dealProducts).map((product, index) => (
-                    <div key={`${product._id}-${index}`} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
-                      <ProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
+                  {!isDesktopViewport && dealProducts.map((product) => (
+                    <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                      <LazyProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
                     </div>
                   ))}
                 </div>
