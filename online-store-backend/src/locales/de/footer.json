@@ -40,5 +40,11 @@
   "zalo_logo_alt": "Zalo",
   "contact_phone_display": "090 123 4567",
   "contact_email_display": "info@laptopstore.vn",
+  "social_title": "Soziale Medien",
+  "social_coming_soon": "Demnächst verfügbar",
+  "social_facebook_aria": "Facebook — demnächst verfügbar",
+  "social_instagram_aria": "Instagram — demnächst verfügbar",
+  "social_youtube_aria": "YouTube — demnächst verfügbar",
+  "social_x_aria": "X — demnächst verfügbar",
   "separator": "•"
 }

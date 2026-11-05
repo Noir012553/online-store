@@ -89,6 +89,12 @@
     "social_youtube": "YouTube",
     "social_twitter": "Twitter",
     "social_zalo": "Zalo",
+    "social_title": "Mạng xã hội",
+    "social_coming_soon": "Tính năng sắp ra mắt",
+    "social_facebook_aria": "Facebook — sắp ra mắt",
+    "social_instagram_aria": "Instagram — sắp ra mắt",
+    "social_youtube_aria": "YouTube — sắp ra mắt",
+    "social_x_aria": "X — sắp ra mắt",
     "brand": "Thương hiệu",
     "emailPlaceholder": "Email của bạn",
     "phonePlaceholder": "Số điện thoại của bạn",
@@ -278,6 +284,12 @@
     "social_youtube": "YouTube",
     "social_twitter": "Twitter",
     "social_zalo": "Zalo",
+    "social_title": "Social media",
+    "social_coming_soon": "Coming soon",
+    "social_facebook_aria": "Facebook — coming soon",
+    "social_instagram_aria": "Instagram — coming soon",
+    "social_youtube_aria": "YouTube — coming soon",
+    "social_x_aria": "X — coming soon",
     "brand": "Brand",
     "emailPlaceholder": "Your email",
     "phonePlaceholder": "Your phone number",
@@ -376,5 +388,61 @@
     "product_unpublished_label": "Unpublished",
     "cancel": "Cancel",
     "loading_message": "Loading..."
+  },
+  "pt": {
+    "social_title": "Redes sociais",
+    "social_coming_soon": "Em breve",
+    "social_facebook_aria": "Facebook — em breve",
+    "social_instagram_aria": "Instagram — em breve",
+    "social_youtube_aria": "YouTube — em breve",
+    "social_x_aria": "X — em breve"
+  },
+  "fr": {
+    "social_title": "Réseaux sociaux",
+    "social_coming_soon": "Bientôt disponible",
+    "social_facebook_aria": "Facebook — bientôt disponible",
+    "social_instagram_aria": "Instagram — bientôt disponible",
+    "social_youtube_aria": "YouTube — bientôt disponible",
+    "social_x_aria": "X — bientôt disponible"
+  },
+  "de": {
+    "social_title": "Soziale Medien",
+    "social_coming_soon": "Demnächst verfügbar",
+    "social_facebook_aria": "Facebook — demnächst verfügbar",
+    "social_instagram_aria": "Instagram — demnächst verfügbar",
+    "social_youtube_aria": "YouTube — demnächst verfügbar",
+    "social_x_aria": "X — demnächst verfügbar"
+  },
+  "it": {
+    "social_title": "Social media",
+    "social_coming_soon": "Prossimamente",
+    "social_facebook_aria": "Facebook — prossimamente",
+    "social_instagram_aria": "Instagram — prossimamente",
+    "social_youtube_aria": "YouTube — prossimamente",
+    "social_x_aria": "X — prossimamente"
+  },
+  "es": {
+    "social_title": "Redes sociales",
+    "social_coming_soon": "Próximamente",
+    "social_facebook_aria": "Facebook — próximamente",
+    "social_instagram_aria": "Instagram — próximamente",
+    "social_youtube_aria": "YouTube — próximamente",
+    "social_x_aria": "X — próximamente"
+  },
+  "nl": {
+    "social_title": "Sociale media",
+    "social_coming_soon": "Binnenkort beschikbaar",
+    "social_facebook_aria": "Facebook — binnenkort beschikbaar",
+    "social_instagram_aria": "Instagram — binnenkort beschikbaar",
+    "social_youtube_aria": "YouTube — binnenkort beschikbaar",
+    "social_x_aria": "X — binnenkort beschikbaar"
+  },
+  "sv": {
+    "social_title": "Sociala medier",
+    "social_coming_soon": "Kommer snart",
+    "social_facebook_aria": "Facebook — kommer snart",
+    "social_instagram_aria": "Instagram — kommer snart",
+    "social_youtube_aria": "YouTube — kommer snart",
+    "social_x_aria": "X — kommer snart"
   }
 }

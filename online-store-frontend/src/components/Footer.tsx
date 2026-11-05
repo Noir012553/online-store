@@ -244,16 +244,16 @@ export function Footer() {
 
               <div className="mt-5">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-semibold text-gray-300">Mạng xã hội</h3>
+                  <h3 className="text-sm font-semibold text-gray-300">{t('social_title', 'footer')}</h3>
                   <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-medium text-gray-400">
-                    Tính năng sắp ra mắt
+                    {t('social_coming_soon', 'footer')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-gray-500">
-                  <span role="img" aria-label="Facebook" className="opacity-60"><FacebookIcon /></span>
-                  <span role="img" aria-label="Instagram" className="opacity-60"><InstagramIcon /></span>
-                  <span role="img" aria-label="YouTube" className="opacity-60"><YoutubeIcon /></span>
-                  <span role="img" aria-label="X" className="opacity-60"><TwitterIcon /></span>
+                  <span role="img" aria-label={t('social_facebook_aria', 'footer')} className="opacity-60"><FacebookIcon /></span>
+                  <span role="img" aria-label={t('social_instagram_aria', 'footer')} className="opacity-60"><InstagramIcon /></span>
+                  <span role="img" aria-label={t('social_youtube_aria', 'footer')} className="opacity-60"><YoutubeIcon /></span>
+                  <span role="img" aria-label={t('social_x_aria', 'footer')} className="opacity-60"><TwitterIcon /></span>
                 </div>
               </div>
             </div>
