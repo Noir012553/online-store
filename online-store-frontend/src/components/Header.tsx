@@ -56,6 +56,8 @@ function HeaderComponent() {
               alt={t('brand_name', 'common')}
               width={260}
               height={146}
+              sizes="(max-width: 639px) 220px, 260px"
+              priority
               className="h-16 w-auto max-w-[220px] object-contain sm:h-18 sm:max-w-[260px]"
             />
           </Link>

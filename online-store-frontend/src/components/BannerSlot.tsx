@@ -88,6 +88,11 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
   // Chỉ hiển thị text/button cho homepage_hero, các slot khác chỉ hiển thị image tĩnh
   const isHeroSlot = slot === 'homepage_hero';
   const effectiveVariant = isHeroSlot ? variant : 'image-only';
+  const imageSizes = effectiveVariant === 'image-only'
+    ? '(min-width: 1536px) 280px, (min-width: 1280px) 240px, 100vw'
+    : slot === 'sitewide_top'
+      ? '100vw'
+      : '(min-width: 1280px) 1280px, calc(100vw - 2rem)';
 
   const rootClassName = effectiveVariant === 'hero'
     ? 'relative overflow-hidden rounded-3xl bg-gray-900 shadow-2xl'
@@ -111,7 +116,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
           src={displaySrc}
           alt={localizedTitle}
           fill
-          sizes="100vw"
+          sizes={imageSizes}
           className="object-cover"
           loading="lazy"
         />
@@ -143,7 +148,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
         src={displaySrc}
         alt={localizedTitle}
         fill
-        sizes="100vw"
+        sizes={imageSizes}
         className="object-cover"
         loading="lazy"
       />

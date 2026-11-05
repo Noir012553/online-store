@@ -35,6 +35,7 @@ export function ImageWithFallback({
   fill,
   sizes,
   priority,
+  loading,
   quality,
   ...rest
 }: ImageWithFallbackProps) {
@@ -56,11 +57,9 @@ export function ImageWithFallback({
 
     setDidError(true);
   };
-  const { loading, srcSet, ...restWithoutImageSources } = rest as typeof rest & {
-    loading?: 'lazy' | 'eager';
+  const { srcSet, ...restWithoutImageSources } = rest as typeof rest & {
     srcSet?: string;
   };
-  void loading;
   void srcSet;
   const imageRest = showFallback || priority ? restWithoutImageSources : rest;
 
@@ -74,6 +73,7 @@ export function ImageWithFallback({
             alt={errorAlt}
             fill
             sizes={sizes ?? '100vw'}
+            loading={loading}
             className="object-contain"
             unoptimized
           />
@@ -81,7 +81,7 @@ export function ImageWithFallback({
       );
     }
 
-    return <img src={ERROR_IMG_SRC} alt={errorAlt} className={className} style={style} {...restWithoutImageSources} />;
+    return <img src={ERROR_IMG_SRC} alt={errorAlt} className={className} style={style} loading={loading} {...restWithoutImageSources} />;
   }
 
   if (fill) {
@@ -92,6 +92,7 @@ export function ImageWithFallback({
         fill
         sizes={sizes ?? '100vw'}
         priority={priority}
+        loading={loading}
         quality={quality}
         className={className}
         style={style}
@@ -111,6 +112,7 @@ export function ImageWithFallback({
         height={rest.height}
         sizes={sizes}
         priority={priority}
+        loading={loading}
         quality={quality}
         className={className}
         style={style}
@@ -127,6 +129,7 @@ export function ImageWithFallback({
       alt={alt}
       className={className}
       style={style}
+      loading={loading}
       onError={handleError}
       {...(showFallback ? restWithoutImageSources : rest)}
     />

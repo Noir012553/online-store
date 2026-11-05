@@ -269,6 +269,7 @@ export default function Home() {
   const [isDealQuickViewOpen, setIsDealQuickViewOpen] = useState(false);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
   const heroCarouselRef = useRef<HTMLElement>(null);
   const brandCarouselRef = useRef<HTMLDivElement>(null);
   const categoryNavigationMobileCarouselRef = useRef<HTMLDivElement>(null);
@@ -639,6 +640,15 @@ export default function Home() {
   }, [locale, isHydrated]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const handleViewportChange = (event: MediaQueryListEvent) => setIsDesktopViewport(event.matches);
+
+    setIsDesktopViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleViewportChange);
+    return () => mediaQuery.removeEventListener('change', handleViewportChange);
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const handleMotionPreferenceChange = (event: MediaQueryListEvent) => {
       setPrefersReducedMotion(event.matches);
@@ -857,14 +867,26 @@ export default function Home() {
           const slideCount = heroSlidesToRender.length;
           const logicalIndex = slideCount > 0 ? index % slideCount : 0;
           const isDesktopSlide = index < slideCount;
-          const isPrioritySlide = logicalIndex === currentSlide && index < slideCount * 2;
+          const isPrioritySlide = logicalIndex === currentSlide && (
+            slideCount <= 1
+              ? index === 0
+              : isDesktopViewport
+                ? index < slideCount
+                : index >= slideCount && index < slideCount * 2
+          );
+          const isAccessibleSlide = slideCount <= 1
+            ? index === 0
+            : isDesktopViewport
+              ? index < slideCount && logicalIndex === currentSlide
+              : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
           return (
             <div
               key={`${slide.title}-${index}`}
-              aria-hidden={logicalIndex !== currentSlide}
+              aria-hidden={!isAccessibleSlide}
+              inert={!isAccessibleSlide}
               className={`relative h-full min-w-full snap-start ${isDesktopSlide ? `lg:absolute lg:inset-0 ${logicalIndex === currentSlide ? "lg:opacity-100 lg:scale-100" : "lg:pointer-events-none lg:opacity-0 lg:scale-105"}` : 'lg:hidden'} ${prefersReducedMotion ? '' : 'lg:transition-[opacity,transform,scale] lg:duration-1000'}`}
             >
               <ImageWithFallback
@@ -873,6 +895,7 @@ export default function Home() {
                 fill
                 sizes="100vw"
                 className="object-cover"
+                priority={isPrioritySlide}
                 loading={isPrioritySlide ? 'eager' : 'lazy'}
                 fetchPriority={isPrioritySlide ? 'high' : 'low'}
               />
@@ -885,12 +908,12 @@ export default function Home() {
                   {href && slide.cta ? (
                     isInternalLink ? (
                       <Button asChild size="sm" className="bg-red-600 hover:bg-red-700">
-                        <Link href={href}>{slide.cta}</Link>
+                        <Link href={href}>{slide.cta}<span className="sr-only">: {slide.title}</span></Link>
                       </Button>
                     ) : (
                       <Button asChild size="sm" className="bg-red-600 hover:bg-red-700">
                         <a href={href} target={slide.openInNewTab ? '_blank' : undefined} rel={slide.openInNewTab ? 'noreferrer' : undefined}>
-                          {slide.cta}
+                          {slide.cta}<span className="sr-only">: {slide.title}</span>
                         </a>
                       </Button>
                     )
@@ -948,6 +971,7 @@ export default function Home() {
           <div
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
+            inert={!isBannerVisible}
             className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
@@ -956,6 +980,7 @@ export default function Home() {
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
           <div
             aria-hidden={!isBannerVisible}
+            inert={!isBannerVisible}
             className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
