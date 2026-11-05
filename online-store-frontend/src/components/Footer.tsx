@@ -10,6 +10,7 @@ import { getCategoryName } from "../lib/data";
 import { useCategories } from "../lib/context/CategoryContext";
 import { useTranslation } from "../lib/i18n";
 import { apiCall } from "../lib/api";
+import { FacebookIcon, InstagramIcon, TwitterIcon, YoutubeIcon } from "./icons/SocialIcons";
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -241,6 +242,20 @@ export function Footer() {
                 )}
               </div>
 
+              <div className="mt-5">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-300">Mạng xã hội</h3>
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-medium text-gray-400">
+                    Tính năng sắp ra mắt
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-gray-500">
+                  <span role="img" aria-label="Facebook" className="opacity-60"><FacebookIcon /></span>
+                  <span role="img" aria-label="Instagram" className="opacity-60"><InstagramIcon /></span>
+                  <span role="img" aria-label="YouTube" className="opacity-60"><YoutubeIcon /></span>
+                  <span role="img" aria-label="X" className="opacity-60"><TwitterIcon /></span>
+                </div>
+              </div>
             </div>
 
             {/* Right Column: 6 Menu Items (7/10) */}
