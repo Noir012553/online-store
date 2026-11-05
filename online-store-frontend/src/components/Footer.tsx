@@ -386,15 +386,16 @@ export function Footer() {
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
                   <div className="laminated-card mx-auto">
-                    <img
-                      src="/assets/ghnLogo.webp"
-                      alt={t('ghn_icon_alt', 'footer')}
-                      width="183"
-                      height="41"
-                      loading="lazy"
-                      decoding="async"
-                      className="logo-image"
-                    />
+                    <div className="relative h-full w-full">
+                      <Image
+                        src="/assets/ghnLogo-brandfetch.webp"
+                        alt={t('ghn_icon_alt', 'footer')}
+                        fill
+                        sizes="37px"
+                        loading="lazy"
+                        className="logo-image object-contain"
+                      />
+                    </div>
                   </div>
                 </div>
 
