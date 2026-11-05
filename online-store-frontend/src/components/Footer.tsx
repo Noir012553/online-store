@@ -406,7 +406,7 @@ export function Footer() {
                   </h3>
                   <div className="laminated-card mx-auto">
                     <img
-                      src="/assets/vnpay.webp"
+                      src="/assets/vnpay.svg"
                       alt={t('vnpay_logo_alt', 'footer')}
                       width="183"
                       height="56"
