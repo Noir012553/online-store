@@ -24,6 +24,12 @@ const IMAGE_TYPES = {
     signature: (buffer) => buffer.subarray(0, 4).toString('ascii') === 'RIFF'
       && buffer.subarray(8, 12).toString('ascii') === 'WEBP',
   },
+  avif: {
+    extensions: ['.avif'],
+    mimeTypes: ['image/avif'],
+    signature: (buffer) => buffer.subarray(4, 8).toString('ascii') === 'ftyp'
+      && ['avif', 'avis'].includes(buffer.subarray(8, 12).toString('ascii')),
+  },
 };
 
 const getImageType = (buffer) => Object.values(IMAGE_TYPES).find((type) => type.signature(buffer));

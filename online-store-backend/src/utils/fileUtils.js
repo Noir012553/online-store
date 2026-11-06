@@ -11,7 +11,7 @@ const MAX_IMAGE_ASSET_BYTES = 5 * 1024 * 1024;
 
 /**
  * Kiểm tra loại file được phép upload
- * Chỉ hỗ trợ các định dạng ảnh: jpeg, jpg, png, gif, webp
+ * Chỉ hỗ trợ các định dạng ảnh: jpeg, jpg, png, gif, webp, avif
  * @param {Object} file - File object từ multer
  * @param {Function} cb - Callback function
  */
@@ -22,6 +22,7 @@ const checkFileType = (file, cb) => {
     '.png': 'image/png',
     '.gif': 'image/gif',
     '.webp': 'image/webp',
+    '.avif': 'image/avif',
   };
   const extension = path.extname(file.originalname).toLowerCase();
 
@@ -29,7 +30,7 @@ const checkFileType = (file, cb) => {
     return cb(null, true);
   }
 
-  return cb(new Error('Images Only! Allowed: jpeg, jpg, png, gif, webp'));
+  return cb(new Error('Images Only! Allowed: jpeg, jpg, png, gif, webp, avif'));
 };
 
 /**
