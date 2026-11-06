@@ -163,6 +163,23 @@ const validateOrderList = [
     .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
 ];
 
+const validateUpdateOrderStatus = [
+  body('isPaid')
+    .optional()
+    .isBoolean({ strict: true })
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+  body('isDelivered')
+    .optional()
+    .isBoolean({ strict: true })
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+  body().custom((_, { req }) => {
+    if (req.body.isPaid === undefined && req.body.isDelivered === undefined) {
+      throw new Error(getMessage(req.lang, 'common.error_request_title'));
+    }
+    return true;
+  }),
+];
+
 const validateUpdateOrder = [
   body('shippingAddress')
     .isObject()
@@ -198,5 +215,6 @@ module.exports = {
   validateCreateOrder,
   validateOrderList,
   validateUpdateOrder,
+  validateUpdateOrderStatus,
   validateCheckoutSummary,
 };

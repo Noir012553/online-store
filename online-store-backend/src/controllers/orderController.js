@@ -304,6 +304,12 @@ const addOrderItems = asyncHandler(async (req, res) => {
       // Case 1: Phone provided - upsert by phone (most reliable for order creation)
       if (customerPhone) {
         const normalizedEmail = customerEmail ? customerEmail.toLowerCase().trim() : null;
+        const customerAddress = [
+          shippingAddress?.address,
+          shippingAddress?.wardName,
+          shippingAddress?.districtName,
+          shippingAddress?.provinceName,
+        ].filter(Boolean).join(', ');
 
         // Use findOneAndUpdate with upsert to avoid race condition
         const customer = await withTimeout(
@@ -313,6 +319,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
               $set: {
                 ...(customerName && { name: customerName }),
                 ...(normalizedEmail && { email: normalizedEmail }),
+                ...(customerAddress && { address: customerAddress }),
                 updatedAt: new Date()
               }
             },
@@ -1127,6 +1134,10 @@ const hardDeleteOrder = asyncHandler(async (req, res) => {
   if (!order) {
     res.status(404);
     throw new Error(getMessage(lang, 'orders.order_not_found'));
+  }
+  if (!order.isDeleted) {
+    res.status(409);
+    throw new Error(getMessage(lang, 'admin-controllers-messages.order_not_deleted'));
   }
 
   await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);

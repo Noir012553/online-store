@@ -70,7 +70,7 @@ export function Step3Payment() {
         }),
         couponCode: couponCode || null,
         customerName: formData.name,
-        customerEmail: formData.email,
+        customerEmail: formData.email.trim() || undefined,
         customerPhone: formData.phone,
         shippingAddress: formData.shippingAddress,
         shippingProvider: formData.selectedShipping?.provider,

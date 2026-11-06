@@ -19,6 +19,14 @@ const normalizeSourceNames = (value) => (
     : []
 );
 
+const createCategorySlug = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/gi, 'd')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
 /**
  * Lấy danh sách danh mục sản phẩm với phân trang và tìm kiếm
  * @route GET /api/categories

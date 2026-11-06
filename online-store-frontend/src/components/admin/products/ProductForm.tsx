@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
-import { productAPI } from "../../../lib/api";
+import { categoryAPI, productAPI } from "../../../lib/api";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
@@ -205,15 +205,20 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           return;
         }
 
+        let categoryId = product.category?._id;
+        if (categoryChoice === "new") {
+          const createdCategory = await categoryAPI.createCategory({ name: newCategoryName.trim() });
+          categoryId = createdCategory.category?._id || createdCategory._id;
+        }
+
+        if (!categoryId) {
+          throw new Error('category_create_failed');
+        }
+
         const formData = new FormData();
         formData.append("name", product.name);
         formData.append("brand", product.brand);
-
-        if (categoryChoice === "existing" && product.category) {
-          formData.append("category", product.category._id);
-        } else if (categoryChoice === "new" && newCategoryName.trim()) {
-          formData.append("categoryName", newCategoryName.trim());
-        }
+        formData.append("category", categoryId);
 
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);

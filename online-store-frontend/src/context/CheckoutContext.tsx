@@ -118,15 +118,21 @@ interface CheckoutProviderProps {
   initialName?: string;
   initialEmail?: string;
   initialPhone?: string;
+  initialAddress?: string | null;
 }
 
-export function CheckoutProvider({ children, initialName, initialEmail, initialPhone }: CheckoutProviderProps) {
+export function CheckoutProvider({ children, initialName, initialEmail, initialPhone, initialAddress }: CheckoutProviderProps) {
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
   const [formData, setFormDataState] = useState<FormData>({
     ...defaultFormData,
     name: initialName || '',
     email: initialEmail || '',
     phone: initialPhone || '',
+    shippingAddress: initialAddress ? {
+      name: initialName || '',
+      phone: initialPhone || '',
+      address: initialAddress,
+    } : undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

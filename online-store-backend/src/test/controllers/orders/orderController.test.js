@@ -199,7 +199,7 @@ describe('Order Controller', () => {
   describe('hardDeleteOrder', () => {
     it('should hard delete an order', async () => {
       const orderId = new mongoose.Types.ObjectId();
-      sandbox.stub(Order, 'findById').resolves({ _id: orderId });
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true });
       sandbox.stub(Order, 'findByIdAndDelete').resolves({ _id: orderId });
 
       const req = { params: { id: orderId.toString() }, lang: 'en' };
@@ -207,6 +207,21 @@ describe('Order Controller', () => {
       
       await hardDeleteOrder(req, res);
       expect(res.json.calledOnce).to.be.true;
+    });
+
+    it('should reject hard deletion of an active order', async () => {
+      const orderId = new mongoose.Types.ObjectId();
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: false });
+
+      const req = { params: { id: orderId.toString() }, lang: 'en' };
+      const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
+
+      try {
+        await hardDeleteOrder(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+      }
     });
   });
 });

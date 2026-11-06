@@ -36,7 +36,7 @@ function CartItemName({ itemLaptop }: { itemLaptop: any }) {
 }
 
 export default function Cart() {
-  const { items, removeFromCart, updateQuantity } = useCart();
+  const { items, totalItems, removeFromCart, updateQuantity } = useCart();
   const { t, loadNamespace } = useTranslation();
   const { locale } = useLanguage();
   const { summary } = useCartSummary();
@@ -104,7 +104,7 @@ export default function Cart() {
       <div className="flex items-center justify-between mb-8">
         <h1>{t('your_shopping_cart', 'cart')}</h1>
         <Badge className="bg-red-600 text-white">
-          {interpolateTranslation(t('items_count_label', 'cart'), { count: items.length })}
+          {interpolateTranslation(t('items_count_label', 'cart'), { count: totalItems })}
         </Badge>
       </div>
 
@@ -178,8 +178,9 @@ export default function Cart() {
                         <span className="w-6 text-left text-xs">{item.quantity}</span>
                         <button
                           onClick={() => handleUpdateQuantity(item.laptop.id, item.quantity + 1)}
-                          className="p-0.5 hover:bg-white rounded transition-all"
+                          className="p-0.5 hover:bg-white rounded transition-all disabled:opacity-50"
                           aria-label={t('quantity_increase', 'products')}
+                          disabled={Number.isInteger(item.laptop.countInStock) && item.quantity >= item.laptop.countInStock!}
                         >
                           <Plus className="w-2.5 h-2.5" />
                         </button>

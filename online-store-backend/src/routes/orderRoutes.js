@@ -26,6 +26,7 @@ const {
   validateCreateOrder,
   validateOrderList,
   validateUpdateOrder,
+  validateUpdateOrderStatus,
   validateCheckoutSummary,
 } = require('../middleware/validationMiddleware');
 const { createOrderLimiter } = require('../middleware/rateLimitMiddleware');
@@ -158,7 +159,7 @@ router.route('/:id/deliver')
  * PUT /api/orders/:id/status - Cập nhật trạng thái đơn hàng (isPaid, isDelivered) (Admin only)
  */
 router.route('/:id/status')
-  .put(protect, admin, updateOrderStatus);
+  .put(protect, admin, validateUpdateOrderStatus, handleValidationErrors, updateOrderStatus);
 
 /**
  * PUT /api/orders/:id/restore - Khôi phục đơn hàng đã xóa (Admin only)

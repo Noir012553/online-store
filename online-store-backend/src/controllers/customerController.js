@@ -119,7 +119,7 @@ const createCustomer = asyncHandler(async (req, res) => {
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
   const { name, email, phone, address } = req.body;
 
-  const customerExists = await Customer.findOne({ email });
+  const customerExists = email ? await Customer.findOne({ email: email.toLowerCase().trim() }) : null;
 
   if (customerExists) {
     res.status(400);
@@ -128,9 +128,9 @@ const createCustomer = asyncHandler(async (req, res) => {
 
   const customer = new Customer({
     name,
-    email,
+    ...(email && { email: email.toLowerCase().trim() }),
     phone,
-    address,
+    address: typeof address === 'string' ? address.trim() : '',
   });
 
   const createdCustomer = await customer.save();
@@ -180,9 +180,9 @@ const updateCustomer = asyncHandler(async (req, res) => {
   // Build update object
   const updateData = {};
   if (name) updateData.name = name;
-  if (email) updateData.email = email.toLowerCase().trim();
-  if (phone) updateData.phone = phone;
-  if (address) updateData.address = address;
+  if (email !== undefined) updateData.email = email.toLowerCase().trim();
+  if (phone) updateData.phone = phone.trim();
+  if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : '';
 
   try {
     const updatedCustomer = await Customer.findByIdAndUpdate(
@@ -347,6 +347,10 @@ const hardDeleteCustomer = asyncHandler(async (req, res) => {
   if (!customer) {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.customer_not_found'));
+  }
+  if (!customer.isDeleted) {
+    res.status(409);
+    throw new Error(getMessage(lang, 'admin-controllers-messages.customer_not_deleted'));
   }
 
   await ensureCustomerHasNoOrders(customer, lang, res);

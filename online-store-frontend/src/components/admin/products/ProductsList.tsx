@@ -85,7 +85,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
     const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
-      const response = await productAPI.getDeletedProducts(deletedCurrentPage, itemsPerPage, locale);
+      const response = await productAPI.getDeletedProducts(deletedCurrentPage, itemsPerPage, locale, searchQuery);
       if (requestId !== latestRequestRef.current) return;
       const fetchedProducts = response.products || [];
       setDeletedProducts(fetchedProducts);
@@ -95,7 +95,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
     } finally {
       if (requestId === latestRequestRef.current) setIsLoading(false);
     }
-  }, [deletedCurrentPage, itemsPerPage, locale, t]);
+  }, [deletedCurrentPage, itemsPerPage, locale, searchQuery, t]);
 
   useEffect(() => {
     if (viewDeletedTab) {
@@ -296,7 +296,11 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                   name="product-search"
                   placeholder={t('search_placeholder', 'common')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                    setDeletedCurrentPage(1);
+                  }}
                   className="pl-10"
                   autoComplete="off"
                 />
@@ -304,7 +308,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
             </div>
             {!viewDeletedTab && (
               <>
-                <select value={filterCategory} onChange={(event) => setFilterCategory(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterCategory} onChange={(event) => { setFilterCategory(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'admin')}</option>
                   {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
@@ -312,7 +316,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                     </option>
                   ))}
                 </select>
-                <select value={filterBrand} onChange={(event) => setFilterBrand(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterBrand} onChange={(event) => { setFilterBrand(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   {brandNames.map((brand) => (
                     <option key={brand} value={brand}>

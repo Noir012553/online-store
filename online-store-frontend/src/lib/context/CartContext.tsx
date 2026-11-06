@@ -17,6 +17,12 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const getStockLimit = (laptop: Laptop) => (
+  Number.isInteger(laptop.countInStock) && laptop.countInStock! >= 0
+    ? laptop.countInStock!
+    : Number.POSITIVE_INFINITY
+);
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -28,7 +34,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       const savedCart = localStorage.getItem("cart");
       if (savedCart) {
         const savedItems = JSON.parse(savedCart) as CartItem[];
-        setItems(savedItems.map(({ laptop, quantity }) => ({ laptop, quantity })));
+        setItems(savedItems
+          .filter(({ laptop, quantity }) => laptop && Number.isInteger(quantity) && quantity > 0)
+          .map(({ laptop, quantity }) => ({
+            laptop,
+            quantity: Math.min(quantity, getStockLimit(laptop)),
+          }))
+          .filter(({ quantity }) => quantity > 0));
       }
     } catch {
       try {
@@ -66,12 +78,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const addToCart = (laptop: Laptop, quantity: number = 1) => {
+    if (!Number.isInteger(quantity) || quantity <= 0) return;
+    const stockLimit = getStockLimit(laptop);
+    if (stockLimit === 0) return;
+
     setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.laptop.id === laptop.id);
+      const laptopId = laptop.id || laptop._id;
+      const existingItem = prevItems.find((item) => (item.laptop.id || item.laptop._id) === laptopId);
       if (existingItem) {
         return prevItems.map((item) =>
-          item.laptop.id === laptop.id
-            ? { ...item, quantity: item.quantity + quantity }
+          (item.laptop.id || item.laptop._id) === laptopId
+            ? { ...item, laptop, quantity: Math.min(item.quantity + quantity, stockLimit) }
             : item
         );
       }
@@ -79,7 +96,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prevItems,
         {
           laptop,
-          quantity,
+          quantity: Math.min(quantity, stockLimit),
         },
       ];
     });
@@ -94,9 +111,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       removeFromCart(laptopId);
       return;
     }
+    if (!Number.isInteger(quantity)) return;
     setItems((prevItems) =>
       prevItems.map((item) =>
-        item.laptop.id === laptopId ? { ...item, quantity } : item
+        (item.laptop.id || item.laptop._id) === laptopId
+          ? { ...item, quantity: Math.min(quantity, getStockLimit(item.laptop)) }
+          : item
       )
     );
   };
