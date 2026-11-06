@@ -14,7 +14,7 @@ const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyRe
 const { getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { broadcastNewCustomer, broadcastCustomerUpdated, broadcastCustomerDeleted, broadcastCustomerRestored } = require('../socket/socketHandler');
 
-const escapeRegex = (value) => value.replace(/[^a-zA-Z0-9]/g, '\\$&');
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getPagination = (query) => ({
   page: Math.max(1, Number.parseInt(query.pageNumber, 10) || 1),
   pageSize: Math.min(1000, Math.max(1, Number.parseInt(query.pageSize, 10) || 10)),

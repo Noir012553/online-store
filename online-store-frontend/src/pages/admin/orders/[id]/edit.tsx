@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from '../../../../lib/i18n';
 import { withAdminLayout } from '../../../../components/admin/withAdminLayout';
@@ -9,6 +10,9 @@ function EditOrderPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const id = typeof router.query.id === 'string' ? router.query.id : null;
+  const goToOrder = useCallback(() => {
+    if (id) void router.push(`/admin/orders/${id}`);
+  }, [id, router]);
 
   if (!id) return <div>{t('loading', 'admin')}</div>;
 
@@ -16,8 +20,8 @@ function EditOrderPage() {
     <OrderForm
       mode="edit"
       orderId={id}
-      onSuccess={() => router.push(`/admin/orders/${id}`)}
-      onCancel={() => router.push(`/admin/orders/${id}`)}
+      onSuccess={goToOrder}
+      onCancel={goToOrder}
     />
   );
 }

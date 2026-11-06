@@ -104,6 +104,7 @@ const TEST_SUITES = {
     tags: ['backend', 'endpoints'],
     files: [
       'backend-endpoints.test.js',
+      'orders-api.test.js',
       'translation-migration-smoke.test.js',
       'app-readiness.test.js',
     ],

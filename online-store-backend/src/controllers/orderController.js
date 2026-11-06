@@ -33,7 +33,7 @@ const formatOrderResponse = async (orders, req) => {
 
 const WAREHOUSE_DISTRICT_ID = 1458;
 
-const escapeRegex = (value) => value.replace(/[^a-zA-Z0-9]/g, '\\$&');
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const buildOrderListQuery = async (query, isDeleted) => {
   const filters = { isDeleted };
@@ -47,6 +47,9 @@ const buildOrderListQuery = async (query, isDeleted) => {
     ]);
     const matches = [
       { 'orderItems.name': expression },
+      { 'shippingAddress.name': expression },
+      { 'shippingAddress.phone': expression },
+      { 'shippingAddress.address': expression },
       { customer: { $in: customers.map(({ _id }) => _id) } },
       { user: { $in: users.map(({ _id }) => _id) } },
     ];
@@ -102,8 +105,9 @@ const updateOrder = asyncHandler(async (req, res) => {
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
   }
 
-  const hasShipmentStarted = order.isPaid || order.isDelivered || order.shipmentStatus !== 'pending'
-    || order.ghnOrderCode || order.trackingNumber;
+  const hasShipmentStarted = order.isPaid || order.isDelivered
+    || (order.shipmentStatus && order.shipmentStatus !== 'pending')
+    || order.shippingProvider || order.shippingService || order.ghnOrderCode || order.trackingNumber;
   if (hasShipmentStarted) {
     res.status(409);
     const error = new Error(getMessage(req.lang, 'orders.order_cannot_be_edited'));

@@ -33,6 +33,11 @@ interface Order {
     address?: string;
   };
   shippingAddress?: { name?: string; phone?: string; address?: string };
+  shippingProvider?: string | null;
+  shippingService?: string;
+  shipmentStatus?: string;
+  trackingNumber?: string;
+  ghnOrderCode?: string;
   orderItems: OrderItem[];
   totalPrice: number;
   formattedTotalPrice?: string;
@@ -275,7 +280,9 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         </div>
 
         {/* Action Buttons */}
-        {!order.isPaid && !order.isDelivered && (
+        {!order.isPaid && !order.isDelivered
+          && (!order.shipmentStatus || order.shipmentStatus === 'pending')
+          && !order.shippingProvider && !order.shippingService && !order.trackingNumber && !order.ghnOrderCode && (
           <Button
             variant="outline"
             onClick={() => router.push(`/admin/orders/${order._id}/edit`)}

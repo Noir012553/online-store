@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import { Search, Eye, Trash2, RotateCcw, AlertCircle, Plus } from "lucide-react";
 import { formatDate } from "../../../lib/utils";
@@ -74,12 +74,14 @@ export function OrdersList() {
   const [loadError, setLoadError] = useState(false);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<Order | null>(null);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     loadNamespace('admin');
   }, [loadNamespace]);
 
   const fetchOrders = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await orderAPI.getAllOrders(currentPage, locale, locale, currencyCode, {
@@ -87,6 +89,7 @@ export function OrdersList() {
         status: filterStatus,
         paymentMethod: filterPaymentMethod,
       });
+      if (requestId !== latestRequestRef.current) return;
       const ordersList = response.orders || [];
       const totalPagesFromBackend = response.pages || 1;
 
@@ -94,16 +97,18 @@ export function OrdersList() {
       setTotalPages(totalPagesFromBackend);
       setLoadError(false);
     } catch (error) {
-      setLoadError(true);
+      if (requestId === latestRequestRef.current) setLoadError(true);
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [currentPage, filterPaymentMethod, filterStatus, locale, currencyCode, searchQuery]);
 
   const fetchDeletedOrders = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await orderAPI.getDeletedOrders(deletedCurrentPage, locale, locale, currencyCode, searchQuery);
+      if (requestId !== latestRequestRef.current) return;
       const ordersList = response.orders || [];
       const totalPagesFromBackend = response.pages || 1;
 
@@ -111,9 +116,9 @@ export function OrdersList() {
       setDeletedTotalPages(totalPagesFromBackend);
       setLoadError(false);
     } catch (error) {
-      setLoadError(true);
+      if (requestId === latestRequestRef.current) setLoadError(true);
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [deletedCurrentPage, locale, currencyCode, searchQuery]);
 
@@ -162,7 +167,6 @@ export function OrdersList() {
     onOrderRestored(handleOrderRestored);
 
     return () => {
-      leaveAdminRoom();
       offEvent('order-created', handleOrderCreated);
       offEvent('payment-success', handlePaymentSuccess);
       offEvent('order-updated', handleOrderUpdated);
@@ -180,6 +184,7 @@ export function OrdersList() {
     } else {
       joinAdminRoom();
     }
+    return () => leaveAdminRoom();
   }, [user, locale]);
 
   const handleDeleteOrder = async (orderId: string) => {

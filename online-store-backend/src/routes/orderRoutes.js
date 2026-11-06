@@ -35,6 +35,49 @@ const { createOrderLimiter } = require('../middleware/rateLimitMiddleware');
  * Rate limited: 5 orders per hour per user
  * GET /api/orders - Lấy tất cả đơn hàng (Admin only - chứa PII như email, phone, address)
  */
+/**
+ * @openapi
+ * /api/orders:
+ *   get:
+ *     tags: [Orders]
+ *     summary: Lấy danh sách đơn hàng có tìm kiếm và lọc phía máy chủ
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: pageNumber
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: pageSize
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *       - in: query
+ *         name: keyword
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [all, pending, paid, delivered] }
+ *       - in: query
+ *         name: paymentMethod
+ *         schema: { type: string, enum: [all, cod, card, bank_transfer, e_wallet, vnpay, momo] }
+ *     responses:
+ *       200:
+ *         description: Trang đơn hàng phù hợp bộ lọc
+ *       400:
+ *         description: Tham số lọc không hợp lệ
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: error
+ *               code: VALIDATION_FAILED
+ *               message: "Request validation failed"
+ *               errors:
+ *                 - field: status
+ *                   message: "Invalid value"
+ *       401:
+ *         description: Thiếu hoặc token không hợp lệ
+ *       403:
+ *         description: Không có quyền quản trị
+ */
 router.route('/')
   .post(protect, createOrderLimiter, validateCreateOrder, handleValidationErrors, addOrderItems)
   .get(protect, admin, validateOrderList, handleValidationErrors, getOrders);
@@ -63,6 +106,42 @@ router.route('/myorders')
  *
  * Note: GET endpoint is public (for payment confirmation page)
  * DELETE endpoint requires admin auth
+ */
+/**
+ * @openapi
+ * /api/orders/{id}:
+ *   put:
+ *     tags: [Orders]
+ *     summary: Cập nhật thông tin giao nhận của đơn chưa thanh toán/chưa xử lý
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             shippingAddress:
+ *               name: Nguyen Van A
+ *               phone: "0901234567"
+ *               address: "12 Le Loi, Quan 1"
+ *     responses:
+ *       200:
+ *         description: Đơn hàng đã cập nhật
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Thiếu hoặc token không hợp lệ
+ *       403:
+ *         description: Không có quyền quản trị
+ *       404:
+ *         description: Không tìm thấy đơn hàng
+ *       409:
+ *         description: Không thể sửa sau khi thanh toán hoặc xử lý giao hàng bắt đầu
  */
 router.route('/:id')
   .get(protect, getOrderById)

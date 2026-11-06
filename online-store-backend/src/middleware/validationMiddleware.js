@@ -18,7 +18,7 @@ const handleValidationErrors = (req, res, next) => {
       code: 'VALIDATION_FAILED',
       message: getMessage(req.lang, 'common.error_request_title'),
       errors: errors.array().map(err => ({
-        field: err.param,
+        field: err.path || err.param,
         message: err.msg,
       })),
     });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Search, Eye, Mail, Phone, Plus, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
@@ -51,38 +51,47 @@ export function CustomersList() {
   const [deleteConfirmCustomer, setDeleteConfirmCustomer] = useState<Customer | null>(null);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
   const itemsPerPage = 10;
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     loadNamespace('admin');
   }, [loadNamespace]);
 
   const fetchCustomers = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await customerAPI.getCustomers(currentPage, itemsPerPage, searchQuery, locale);
+      if (requestId !== latestRequestRef.current) return;
       const customersList = response.customers || [];
       setCustomers(Array.isArray(customersList) ? customersList : []);
       setTotalPages(response.pages || 1);
     } catch (error) {
-      setCustomers([]);
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) {
+        setCustomers([]);
+        toast.error(t('error_load_data', 'common'));
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [currentPage, itemsPerPage, locale, searchQuery, t]);
 
   const fetchDeletedCustomers = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await customerAPI.getDeletedCustomers(deletedCurrentPage, locale, itemsPerPage, searchQuery);
+      if (requestId !== latestRequestRef.current) return;
       const customersList = response.customers || [];
       setDeletedCustomers(Array.isArray(customersList) ? customersList : []);
       setDeletedTotalPages(response.pages || 1);
     } catch (error) {
-      setDeletedCustomers([]);
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) {
+        setDeletedCustomers([]);
+        toast.error(t('error_load_data', 'common'));
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [deletedCurrentPage, itemsPerPage, locale, searchQuery, t]);
 
@@ -103,7 +112,10 @@ export function CustomersList() {
     } else {
       joinAdminRoom();
     }
+    return () => leaveAdminRoom();
+  }, [user, locale]);
 
+  useEffect(() => {
     const handleCustomerCreated = () => {
       fetchCustomers();
       toast.success(t('toast_new_customer', 'admin'));
@@ -134,7 +146,6 @@ export function CustomersList() {
     onCustomerRestored(handleCustomerRestored);
 
     return () => {
-      leaveAdminRoom();
       offEvent('customer-created', handleCustomerCreated);
       offEvent('customer-updated', handleCustomerUpdated);
       offEvent('customer-deleted', handleCustomerDeleted);
