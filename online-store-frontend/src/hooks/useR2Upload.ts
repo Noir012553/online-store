@@ -79,7 +79,11 @@ export const useR2Upload = () => {
           && typeof error.failureCode === 'string'
           ? error.failureCode
           : null;
-        toast.error(failureCode ? `${t('upload_failed', 'common')} (${failureCode})` : t('upload_failed', 'common'));
+        toast.dismiss('auth-login-success');
+        toast.error(
+          failureCode ? `${t('upload_failed', 'common')} (${failureCode})` : t('upload_failed', 'common'),
+          { id: 'r2-upload-failure' },
+        );
         return null;
       } finally {
         setIsUploading(false);
