@@ -24,6 +24,8 @@ export default function Login() {
   const { t, loadNamespace } = useTranslation();
   const [activeTab, setActiveTab] = useState("login");
   const processedOAuthCallback = useRef<string | null>(null);
+  const loginInFlightRef = useRef(false);
+  const registerInFlightRef = useRef(false);
 
   useEffect(() => {
     loadNamespace('login');
@@ -55,7 +57,7 @@ export default function Login() {
     const handleGoogleLogin = async () => {
       const success = await googleLogin();
       if (success) {
-        toast.success(t('login_successful', 'login'));
+        toast.success(t('login_successful', 'login'), { id: 'auth-login-success' });
         router.replace(from);
       } else {
         toast.error(t('login_failed', 'login'));
@@ -67,12 +69,18 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(loginData.email, loginData.password);
-    if (success) {
-      toast.success(t('login_successful', 'login'));
-      router.replace(from);
-    } else {
-      toast.error(t('login_failed', 'login'));
+    if (loginInFlightRef.current) return;
+    loginInFlightRef.current = true;
+    try {
+      const success = await login(loginData.email, loginData.password);
+      if (success) {
+        toast.success(t('login_successful', 'login'), { id: 'auth-login-success' });
+        void router.replace(from);
+      } else {
+        toast.error(t('login_failed', 'login'));
+      }
+    } finally {
+      loginInFlightRef.current = false;
     }
   };
 
@@ -107,24 +115,27 @@ export default function Login() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (registerInFlightRef.current) return;
+    if (!validateRegisterForm()) return;
 
-    if (!validateRegisterForm()) {
-      return;
-    }
+    registerInFlightRef.current = true;
+    try {
+      const success = await register(
+        registerData.email,
+        registerData.password,
+        registerData.name
+      );
 
-    const success = await register(
-      registerData.email,
-      registerData.password,
-      registerData.name
-    );
-
-    if (success) {
-      toast.success(t('registration_successful', 'login'));
-      setRegisterErrors({});
-      setRegisterData({ name: "", email: "", password: "", confirmPassword: "" });
-      router.replace(from);
-    } else {
-      toast.error(t('registration_failed', 'login'));
+      if (success) {
+        toast.success(t('registration_successful', 'login'), { id: 'auth-register-success' });
+        setRegisterErrors({});
+        setRegisterData({ name: "", email: "", password: "", confirmPassword: "" });
+        void router.replace(from);
+      } else {
+        toast.error(t('registration_failed', 'login'));
+      }
+    } finally {
+      registerInFlightRef.current = false;
     }
   };
 

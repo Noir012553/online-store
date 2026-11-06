@@ -1,7 +1,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/compat/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -67,12 +67,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openGroups, setOpenGroups] = useState(DEFAULT_OPEN_GROUPS);
   const [adminNamespaceLoaded, setAdminNamespaceLoaded] = useState(false);
   const [isChangingLanguage, setIsChangingLanguage] = useState(false);
+  const logoutInFlightRef = useRef(false);
 
   const handleAdminLogout = async () => {
-    await logout();
-    // Distinct feedback — logged out, not logged in.
-    toast.success(t('logout_success', 'auth'));
-    router?.replace('/login');
+    if (logoutInFlightRef.current) return;
+    logoutInFlightRef.current = true;
+    try {
+      await logout();
+      toast.success(t('logout_success', 'auth'), { id: 'auth-logout-success' });
+    } finally {
+      logoutInFlightRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -98,12 +103,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
   }, [loadNamespace, locale]);
 
-  useEffect(() => {
-    if (!router || !isInitialized) return;
-    if (!user) {
-    }
-  }, [isInitialized, user, router]);
-
   // Last-resort safety net: if auth init never completes (isInitialized stuck
   // false — e.g. the backend hangs and even the AuthContext deadline fails to
   // propagate), treat the visitor as signed out after 12s and bounce to /login
@@ -116,16 +115,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, 12000);
     return () => clearTimeout(timer);
   }, [router, isInitialized]);
-
-  useEffect(() => {
-    if (!router || !isInitialized) return;
-    if (user) return;
-    if (router.pathname.startsWith('/login')) return;
-    // Signed out on an admin page: redirect immediately instead of waiting on
-    // ProtectedAdminPage (belt-and-braces — it runs the same redirect, but if
-    // the /login chunk loads slowly the admin shell would hang on "Loading…").
-    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
-  }, [isInitialized, user, router]);
 
   useEffect(() => {
     let savedSidebarState: string | null = null;

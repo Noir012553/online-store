@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/context/AuthContext';
 import { getSafeReturnPath, isLoginPath } from '../lib/utils';
@@ -22,6 +22,7 @@ export const useLogoutConfirm = () => {
   const { t } = useTranslation();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logoutInFlightRef = useRef(false);
   const [returnTo, setReturnTo] = useState('/');
   const router = useRouter();
 
@@ -33,6 +34,8 @@ export const useLogoutConfirm = () => {
   }, [router]);
 
   const handleConfirmLogout = useCallback(async () => {
+    if (logoutInFlightRef.current) return;
+    logoutInFlightRef.current = true;
     try {
       setIsLoggingOut(true);
       // Capture the current path BEFORE logout clears the route context.
@@ -40,21 +43,22 @@ export const useLogoutConfirm = () => {
       await logout();
       setShowConfirm(false);
       // Success feedback — a distinct message, NOT the login one.
-      toast.success(t('logout_success', 'auth'));
+      toast.success(t('logout_success', 'auth'), { id: 'auth-logout-success' });
       // Always land on /login after logging out. The page we were on is
       // preserved as ?from= so login can bring the user back to it.
       // Never push the user back to the page itself: non-admin pages have no
       // guard to bounce them to /login, and admin pages may hang on their
       // signed-out "Loading…" shell if the /login chunk is slow to fetch.
       const target = getSafeReturnPath(currentPath);
-      if (router?.isReady) {
-        router.push(isLoginPath(target) ? target : `/login?from=${encodeURIComponent(target)}`);
-      } else if (typeof window !== 'undefined') {
+      if (router?.isReady && !router.pathname.startsWith('/admin')) {
+        void router.push(isLoginPath(target) ? target : `/login?from=${encodeURIComponent(target)}`);
+      } else if (!router?.isReady && typeof window !== 'undefined') {
         window.location.assign(isLoginPath(currentPath) ? '/login' : `/login?from=${encodeURIComponent(currentPath)}`);
       }
     } catch (error) {
       // Silent fail
     } finally {
+      logoutInFlightRef.current = false;
       setIsLoggingOut(false);
     }
   }, [logout, router, returnTo]);
