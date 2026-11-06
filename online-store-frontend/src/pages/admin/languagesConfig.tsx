@@ -59,8 +59,15 @@ const LanguagesConfigContent = () => {
   const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
   useEffect(() => {
-    let active = true;
     isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     Promise.all([loadNamespace('admin-translation')]).then(() => {
       if (active) {
         fetchLanguages();
@@ -69,10 +76,8 @@ const LanguagesConfigContent = () => {
     });
     return () => {
       active = false;
-      isMountedRef.current = false;
       languagesRequestIdRef.current += 1;
       supportedLanguagesRequestIdRef.current += 1;
-      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
     };
   }, [loadNamespace, locale]);
 
