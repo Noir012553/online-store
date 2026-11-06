@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../lib/context/AuthContext';
 import { getSafeReturnPath, isLoginPath } from '../lib/utils';
 import { useRouter } from 'next/router';
-import { useTranslation } from '../lib/i18n';
+import { getLocalUiFallback, useTranslation } from '../lib/i18n';
 
 /**
  * Hook quản lý logout confirmation
@@ -19,7 +19,7 @@ import { useTranslation } from '../lib/i18n';
 
 export const useLogoutConfirm = () => {
   const { logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const logoutInFlightRef = useRef(false);
@@ -43,7 +43,7 @@ export const useLogoutConfirm = () => {
       await logout();
       setShowConfirm(false);
       // Success feedback — a distinct message, NOT the login one.
-      toast.success(t('logout_success', 'auth'), { id: 'auth-logout-success' });
+      toast.success(getLocalUiFallback(locale, 'logout_successful'), { id: 'auth-logout-success' });
       // Always land on /login after logging out. The page we were on is
       // preserved as ?from= so login can bring the user back to it.
       // Never push the user back to the page itself: non-admin pages have no
@@ -61,7 +61,7 @@ export const useLogoutConfirm = () => {
       logoutInFlightRef.current = false;
       setIsLoggingOut(false);
     }
-  }, [logout, router, returnTo]);
+  }, [logout, router, returnTo, locale]);
 
   const handleCancel = useCallback(() => {
     setShowConfirm(false);

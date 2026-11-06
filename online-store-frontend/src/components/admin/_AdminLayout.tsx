@@ -23,7 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
-import { useLanguage } from "../../lib/i18n";
+import { getLocalUiFallback, useLanguage } from "../../lib/i18n";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { RoleBadge } from "./RoleBadge";
@@ -74,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     logoutInFlightRef.current = true;
     try {
       await logout();
-      toast.success(t('logout_success', 'auth'), { id: 'auth-logout-success' });
+      toast.success(getLocalUiFallback(locale, 'logout_successful'), { id: 'auth-logout-success' });
     } finally {
       logoutInFlightRef.current = false;
     }

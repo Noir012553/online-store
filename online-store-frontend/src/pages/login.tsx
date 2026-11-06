@@ -10,7 +10,7 @@ import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import styles from "../styles/login.module.css";
-import { useTranslation } from "../lib/i18n";
+import { getLocalUiFallback, useTranslation } from "../lib/i18n";
 
 export const getServerSideProps = async () => {
   return {
@@ -21,7 +21,7 @@ export const getServerSideProps = async () => {
 export default function Login() {
   const router = useRouter();
   const { login, register, googleLogin } = useAuth();
-  const { t, loadNamespace } = useTranslation();
+  const { t, loadNamespace, locale } = useTranslation();
   const [activeTab, setActiveTab] = useState("login");
   const processedOAuthCallback = useRef<string | null>(null);
   const loginInFlightRef = useRef(false);
@@ -57,7 +57,7 @@ export default function Login() {
     const handleGoogleLogin = async () => {
       const success = await googleLogin();
       if (success) {
-        toast.success(t('login_successful', 'login'), { id: 'auth-login-success' });
+        toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
         router.replace(from);
       } else {
         toast.error(t('login_failed', 'login'));
@@ -65,7 +65,7 @@ export default function Login() {
     };
 
     void handleGoogleLogin();
-  }, [router.isReady, router.query.oauth, router.asPath, googleLogin, router, from, t]);
+  }, [router.isReady, router.query.oauth, router.asPath, googleLogin, router, from, t, locale]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +74,7 @@ export default function Login() {
     try {
       const success = await login(loginData.email, loginData.password);
       if (success) {
-        toast.success(t('login_successful', 'login'), { id: 'auth-login-success' });
+        toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
         void router.replace(from);
       } else {
         toast.error(t('login_failed', 'login'));

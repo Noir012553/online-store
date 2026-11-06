@@ -34,6 +34,9 @@ const LANGUAGE_CONFIG_UPDATED_STORAGE_KEY = 'laptopstore_language_config_updated
 
 const LOCAL_UI_FALLBACKS = uiFallbacks as Partial<Record<Locale, Record<string, string>>>;
 
+export const getLocalUiFallback = (locale: Locale, keyPath: string): string =>
+  LOCAL_UI_FALLBACKS[locale]?.[keyPath] ?? LOCAL_UI_FALLBACKS.en?.[keyPath] ?? keyPath;
+
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function getNestedValue(obj: unknown, path: string): string {

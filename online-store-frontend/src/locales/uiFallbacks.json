@@ -12,6 +12,7 @@
     "change_language": "Đổi ngôn ngữ",
     "login": "Đăng nhập",
     "login_successful": "Đăng nhập thành công",
+    "logout_successful": "Đăng xuất thành công",
     "profile": "Tài khoản",
     "myOrders": "Đơn hàng của tôi",
     "admin": "Quản trị",
@@ -208,6 +209,7 @@
     "change_language": "Change language",
     "login": "Log in",
     "login_successful": "Login successful",
+    "logout_successful": "Logged out successfully",
     "profile": "Profile",
     "myOrders": "My orders",
     "admin": "Admin",
@@ -398,7 +400,8 @@
     "social_instagram_aria": "Instagram — em breve",
     "social_youtube_aria": "YouTube — em breve",
     "social_x_aria": "X — em breve",
-    "login_successful": "Login realizado com sucesso"
+    "login_successful": "Login realizado com sucesso",
+    "logout_successful": "Sessão encerrada com sucesso"
   },
   "fr": {
     "social_title": "Réseaux sociaux",
@@ -407,7 +410,8 @@
     "social_instagram_aria": "Instagram — bientôt disponible",
     "social_youtube_aria": "YouTube — bientôt disponible",
     "social_x_aria": "X — bientôt disponible",
-    "login_successful": "Connexion réussie"
+    "login_successful": "Connexion réussie",
+    "logout_successful": "Déconnexion réussie"
   },
   "de": {
     "social_title": "Soziale Medien",
@@ -416,7 +420,8 @@
     "social_instagram_aria": "Instagram — demnächst verfügbar",
     "social_youtube_aria": "YouTube — demnächst verfügbar",
     "social_x_aria": "X — demnächst verfügbar",
-    "login_successful": "Anmeldung erfolgreich"
+    "login_successful": "Anmeldung erfolgreich",
+    "logout_successful": "Abmeldung erfolgreich"
   },
   "it": {
     "social_title": "Social media",
@@ -425,7 +430,8 @@
     "social_instagram_aria": "Instagram — prossimamente",
     "social_youtube_aria": "YouTube — prossimamente",
     "social_x_aria": "X — prossimamente",
-    "login_successful": "Accesso riuscito"
+    "login_successful": "Accesso riuscito",
+    "logout_successful": "Disconnessione riuscita"
   },
   "es": {
     "social_title": "Redes sociales",
@@ -434,7 +440,8 @@
     "social_instagram_aria": "Instagram — próximamente",
     "social_youtube_aria": "YouTube — próximamente",
     "social_x_aria": "X — próximamente",
-    "login_successful": "Inicio de sesión exitoso"
+    "login_successful": "Inicio de sesión exitoso",
+    "logout_successful": "Sesión cerrada correctamente"
   },
   "nl": {
     "social_title": "Sociale media",
@@ -443,7 +450,8 @@
     "social_instagram_aria": "Instagram — binnenkort beschikbaar",
     "social_youtube_aria": "YouTube — binnenkort beschikbaar",
     "social_x_aria": "X — binnenkort beschikbaar",
-    "login_successful": "Aanmelding geslaagd"
+    "login_successful": "Aanmelding geslaagd",
+    "logout_successful": "Uitloggen geslaagd"
   },
   "sv": {
     "social_title": "Sociala medier",
@@ -452,6 +460,7 @@
     "social_instagram_aria": "Instagram — kommer snart",
     "social_youtube_aria": "YouTube — kommer snart",
     "social_x_aria": "X — kommer snart",
-    "login_successful": "Inloggning lyckades"
+    "login_successful": "Inloggning lyckades",
+    "logout_successful": "Utloggning lyckades"
   }
 }
