@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '../lib/context/LanguageContext';
-import { getAuthToken, type R2AssetReference } from '../lib/api';
+import { getAuthToken, refreshAccessToken, type R2AssetReference } from '../lib/api';
 
 export interface R2UploadResult {
   storageKey: string;
@@ -38,7 +38,7 @@ export const useR2Upload = () => {
         formData.append('folder', folder);
         const token = getAuthToken();
 
-        return await new Promise<R2UploadResult>((resolve, reject) => {
+        const sendUpload = (accessToken: string | null) => new Promise<R2UploadResult>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.addEventListener('progress', event => {
             if (event.lengthComputable) {
@@ -49,12 +49,18 @@ export const useR2Upload = () => {
             try {
               const response = JSON.parse(xhr.responseText);
               if (xhr.status < 200 || xhr.status >= 300 || !response.asset) {
-                const failureCode = typeof response.code === 'string'
+                const responseCode = typeof response.code === 'string'
                   ? response.code
                   : xhr.status < 200 || xhr.status >= 300
                     ? `HTTP_${xhr.status}`
                     : 'INVALID_UPLOAD_RESPONSE';
-                reject(Object.assign(new Error(response.message || 'Upload failed'), { failureCode }));
+                const failureCode = responseCode === 'REQUEST_FAILED'
+                  ? `${responseCode}_HTTP_${xhr.status}`
+                  : responseCode;
+                reject(Object.assign(new Error(response.message || 'Upload failed'), {
+                  failureCode,
+                  httpStatus: xhr.status,
+                }));
                 return;
               }
               const asset = response.asset as R2AssetReference;
@@ -66,16 +72,28 @@ export const useR2Upload = () => {
                 asset,
               });
             } catch {
-              reject(new Error('Invalid response from R2'));
+              reject(Object.assign(new Error('Invalid response from R2'), {
+                failureCode: `HTTP_${xhr.status}`,
+                httpStatus: xhr.status,
+              }));
             }
           });
           xhr.addEventListener('error', () => reject(new Error('Upload failed')));
           xhr.addEventListener('timeout', () => reject(Object.assign(new Error('Upload timed out'), { failureCode: 'R2_UPLOAD_TIMEOUT' })));
           xhr.timeout = 60000;
           xhr.open('POST', '/api/assets/upload');
-          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          if (accessToken) xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
           xhr.send(formData);
         });
+
+        try {
+          return await sendUpload(token);
+        } catch (error) {
+          const isUnauthorized = error && typeof error === 'object'
+            && 'httpStatus' in error && error.httpStatus === 401;
+          if (!isUnauthorized || await refreshAccessToken() !== true) throw error;
+          return await sendUpload(getAuthToken());
+        }
       } catch (error) {
         const failureCode = error && typeof error === 'object' && 'failureCode' in error
           && typeof error.failureCode === 'string'

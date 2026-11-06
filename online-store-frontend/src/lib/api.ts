@@ -291,7 +291,7 @@ export const clearPersistedRefreshBlockState = () => {
  * 4. Return true để retry request cũ
  * 5. Nếu thất bại, logout ngay lập tức
  */
-const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
+export const refreshAccessToken = async (): Promise<boolean | 'rate_limited'> => {
   if (typeof window === 'undefined' || isHandlingUnauthorized) return false;
   if (Date.now() < refreshBlockedUntil || Date.now() < getPersistedRefreshBlockedUntil()) {
     return 'rate_limited';
