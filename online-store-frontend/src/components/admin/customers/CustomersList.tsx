@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Search, Eye, Mail, Phone, Plus, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
@@ -44,43 +44,56 @@ export function CustomersList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [deletedCurrentPage, setDeletedCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deletedTotalPages, setDeletedTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [deleteConfirmCustomer, setDeleteConfirmCustomer] = useState<Customer | null>(null);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
   const itemsPerPage = 10;
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     loadNamespace('admin');
   }, [loadNamespace]);
 
   const fetchCustomers = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
-      const response = await customerAPI.getCustomers(1, 100, undefined, locale);
+      const response = await customerAPI.getCustomers(currentPage, itemsPerPage, searchQuery, locale);
+      if (requestId !== latestRequestRef.current) return;
       const customersList = response.customers || [];
       setCustomers(Array.isArray(customersList) ? customersList : []);
+      setTotalPages(response.pages || 1);
     } catch (error) {
-      setCustomers([]);
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) {
+        setCustomers([]);
+        toast.error(t('error_load_data', 'common'));
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
-  }, [locale, t]);
+  }, [currentPage, itemsPerPage, locale, searchQuery, t]);
 
   const fetchDeletedCustomers = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
-      const response = await customerAPI.getDeletedCustomers(deletedCurrentPage, locale);
+      const response = await customerAPI.getDeletedCustomers(deletedCurrentPage, locale, itemsPerPage, searchQuery);
+      if (requestId !== latestRequestRef.current) return;
       const customersList = response.customers || [];
       setDeletedCustomers(Array.isArray(customersList) ? customersList : []);
+      setDeletedTotalPages(response.pages || 1);
     } catch (error) {
-      setDeletedCustomers([]);
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) {
+        setDeletedCustomers([]);
+        toast.error(t('error_load_data', 'common'));
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
-  }, [deletedCurrentPage, locale, t]);
+  }, [deletedCurrentPage, itemsPerPage, locale, searchQuery, t]);
 
   useEffect(() => {
     if (viewDeletedTab) {
@@ -99,7 +112,10 @@ export function CustomersList() {
     } else {
       joinAdminRoom();
     }
+    return () => leaveAdminRoom();
+  }, [user, locale]);
 
+  useEffect(() => {
     const handleCustomerCreated = () => {
       fetchCustomers();
       toast.success(t('toast_new_customer', 'admin'));
@@ -130,7 +146,6 @@ export function CustomersList() {
     onCustomerRestored(handleCustomerRestored);
 
     return () => {
-      leaveAdminRoom();
       offEvent('customer-created', handleCustomerCreated);
       offEvent('customer-updated', handleCustomerUpdated);
       offEvent('customer-deleted', handleCustomerDeleted);
@@ -150,7 +165,7 @@ export function CustomersList() {
         await fetchCustomers();
       }
     } catch (error) {
-      toast.error(t('error_delete_data', 'common'));
+      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'common'));
     } finally {
       setIsUpdating(false);
     }
@@ -177,7 +192,7 @@ export function CustomersList() {
       toast.success(t('toast_customer_deleted', 'admin'));
       setDeleteConfirmCustomer(null);
     } catch (error) {
-      toast.error(t('error_delete_data', 'common'));
+      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'common'));
     } finally {
       setIsUpdating(false);
     }
@@ -190,26 +205,9 @@ export function CustomersList() {
     return (firstName + ' ' + lastName).trim() || t('customer_fallback', 'admin');
   };
 
-  const getFilteredCustomers = () => {
-    const listToFilter = viewDeletedTab ? deletedCustomers : customers;
-    return listToFilter.filter((customer) => {
-      const name = getCustomerName(customer);
-      return (
-        name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.phone?.includes(searchQuery) ||
-        false
-      );
-    });
-  };
-
-  const filteredCustomers = getFilteredCustomers();
   const currentPageVar = viewDeletedTab ? deletedCurrentPage : currentPage;
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const paginatedCustomers = filteredCustomers.slice(
-    (currentPageVar - 1) * itemsPerPage,
-    currentPageVar * itemsPerPage
-  );
+  const pagesToShow = viewDeletedTab ? deletedTotalPages : totalPages;
+  const visibleCustomers = viewDeletedTab ? deletedCustomers : customers;
 
   if (isLoading) {
     return (
@@ -276,7 +274,11 @@ export function CustomersList() {
               name="customer-search"
               placeholder={t('admin_search_customers_placeholder', 'admin')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+                setDeletedCurrentPage(1);
+              }}
               className="pl-10"
               autoComplete="off"
             />
@@ -301,7 +303,7 @@ export function CustomersList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {paginatedCustomers.map((customer) => (
+                  {visibleCustomers.map((customer) => (
                     <tr key={customer._id}>
                       <td className="px-4 py-4 sm:px-6">
                         <p className="font-medium">{getCustomerName(customer)}</p>
@@ -382,10 +384,10 @@ export function CustomersList() {
               </table>
             </div>
 
-            {totalPages > 1 && (
+            {pagesToShow > 1 && (
               <Pagination
                 currentPage={currentPageVar}
-                totalPages={totalPages}
+                totalPages={pagesToShow}
                 onPageChange={viewDeletedTab ? setDeletedCurrentPage : setCurrentPage}
               />
             )}

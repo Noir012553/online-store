@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Package, MapPin, Calendar, DollarSign, CheckCircle2, Truck, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Package, MapPin, Calendar, DollarSign, CheckCircle2, Truck, ArrowLeft, AlertCircle, Pencil } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
 import { apiCall, orderAPI } from '../../../lib/api';
 import { useTranslation, useLanguage } from '../../../lib/i18n';
@@ -32,6 +32,12 @@ interface Order {
     phone?: string;
     address?: string;
   };
+  shippingAddress?: { name?: string; phone?: string; address?: string };
+  shippingProvider?: string | null;
+  shippingService?: string;
+  shipmentStatus?: string;
+  trackingNumber?: string;
+  ghnOrderCode?: string;
   orderItems: OrderItem[];
   totalPrice: number;
   formattedTotalPrice?: string;
@@ -158,7 +164,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
           <div className="bg-blue-50 p-4 rounded-lg space-y-3">
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">{t('name_label', 'admin')}:</span>
-              <span className="font-medium">{order.customer?.name || order.user?.username || t('not_updated', 'admin')}</span>
+              <span className="font-medium">{order.shippingAddress?.name || order.customer?.name || order.user?.username || t('not_updated', 'admin')}</span>
             </div>
             {(order.customer?.email || order.user?.email) && (
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
@@ -168,18 +174,18 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                 </a>
               </div>
             )}
-            {order.customer?.phone && (
+            {(order.shippingAddress?.phone || order.customer?.phone) && (
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
                 <span className="text-sm text-gray-600">{t('phone_placeholder', 'admin')}:</span>
-                <a href={`tel:${order.customer.phone}`} className="font-medium text-blue-600 hover:underline">
-                  {order.customer.phone}
+                <a href={`tel:${order.shippingAddress?.phone || order.customer?.phone}`} className="font-medium text-blue-600 hover:underline">
+                  {order.shippingAddress?.phone || order.customer?.phone}
                 </a>
               </div>
             )}
-            {order.customer?.address && (
+            {(order.shippingAddress?.address || order.customer?.address) && (
               <div className="pt-2 border-t border-blue-200">
                 <p className="text-sm text-gray-600 mb-1">{t('shipping_address', 'admin')}:</p>
-                <p className="text-sm font-medium text-gray-800">{order.customer.address}</p>
+                <p className="text-sm font-medium text-gray-800">{order.shippingAddress?.address || order.customer?.address}</p>
               </div>
             )}
           </div>
@@ -274,6 +280,18 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         </div>
 
         {/* Action Buttons */}
+        {!order.isPaid && !order.isDelivered
+          && (!order.shipmentStatus || order.shipmentStatus === 'pending')
+          && !order.shippingProvider && !order.shippingService && !order.trackingNumber && !order.ghnOrderCode && (
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/admin/orders/${order._id}/edit`)}
+            className="w-full"
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            {t('update', 'common')}
+          </Button>
+        )}
         {!order.isDelivered && (
           <div className="flex gap-2 pt-4 border-t">
             <Button

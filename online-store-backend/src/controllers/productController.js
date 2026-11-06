@@ -44,6 +44,17 @@ const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
+
+const ensureProductHasNoOrders = async (productId, lang, res) => {
+  const linkedOrder = await Order.exists({ 'orderItems.product': productId });
+  if (!linkedOrder) return;
+
+  res.status(409);
+  const error = new Error(getMessage(lang, 'admin-controllers-messages.product_has_orders'));
+  error.errorCode = 'PRODUCT_HAS_ORDERS';
+  error.exposeMessage = true;
+  throw error;
+};
 const EXCLUDED_BRAND_PATTERN = /^iKBC\s*(?:&(?:amp;)*|and)\s*Durgod$/i;
 const EXCLUDED_BRAND_FILTER = { brand: { $not: EXCLUDED_BRAND_PATTERN } };
 const debugFeatured = () => {};
@@ -1200,6 +1211,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_already_deleted'));
   }
 
+  await ensureProductHasNoOrders(product._id, lang, res);
   product.isDeleted = true;
   try {
     await product.save();
@@ -1332,6 +1344,8 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
   }
+
+  await ensureProductHasNoOrders(product._id, lang, res);
 
   try {
     await withTimeout(Product.findByIdAndDelete(req.params.id), 8000);

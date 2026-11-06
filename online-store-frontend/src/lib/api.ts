@@ -1944,12 +1944,21 @@ export const orderAPI = {
   /**
    * Lấy tất cả đơn hàng (Admin only)
    */
-  getAllOrders: async (pageNumber?: number, lang?: Locale, locale?: string, currencyCode?: string) => {
+  getAllOrders: async (
+    pageNumber?: number,
+    lang?: Locale,
+    locale?: string,
+    currencyCode?: string,
+    filters: { keyword?: string; status?: string; paymentMethod?: string } = {},
+  ) => {
     const params = new URLSearchParams();
     if (pageNumber) params.append('pageNumber', pageNumber.toString());
     if (lang) params.append('lang', lang);
     if (locale) params.append('locale', locale);
     if (currencyCode) params.append('currencyCode', currencyCode);
+    if (filters.keyword?.trim()) params.append('keyword', filters.keyword.trim());
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters.paymentMethod && filters.paymentMethod !== 'all') params.append('paymentMethod', filters.paymentMethod);
     const query = params.toString();
     return apiCall(`/orders${query ? `?${query}` : ''}`);
   },
@@ -1957,12 +1966,19 @@ export const orderAPI = {
   /**
    * Lấy danh sách đơn hàng đã xóa (Admin only)
    */
-  getDeletedOrders: async (pageNumber?: number, lang?: Locale, locale?: string, currencyCode?: string) => {
+  getDeletedOrders: async (
+    pageNumber?: number,
+    lang?: Locale,
+    locale?: string,
+    currencyCode?: string,
+    keyword?: string,
+  ) => {
     const params = new URLSearchParams();
     params.append('pageNumber', pageNumber?.toString() || '1');
     if (lang) params.append('lang', lang);
     if (locale) params.append('locale', locale);
     if (currencyCode) params.append('currencyCode', currencyCode);
+    if (keyword?.trim()) params.append('keyword', keyword.trim());
     return apiCall(`/orders/deleted/list?${params.toString()}`);
   },
 
@@ -2001,11 +2017,27 @@ export const orderAPI = {
     return apiCall(`/orders/${id}?${params.toString()}`);
   },
 
+  updateOrder: async (id: string, data: {
+    shippingAddress: { name: string; phone: string; address: string };
+  }, locale?: string) => {
+    const params = new URLSearchParams();
+    if (locale) params.set('lang', locale);
+    const query = params.toString();
+    return apiCall(`/orders/${id}${query ? `?${query}` : ''}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   /**
    * Khôi phục đơn hàng đã xóa (Admin only)
    */
   restoreOrder: async (id: string) => {
     return apiCall(`/orders/${id}/restore`, { method: 'PUT' });
+  },
+
+  hardDeleteOrder: async (id: string) => {
+    return apiCall(`/orders/${id}/hard`, { method: 'DELETE' });
   },
 
   /**
@@ -2063,7 +2095,7 @@ export const customerAPI = {
   /**
    * Lấy danh sách khách hàng (Admin only)
    */
-  getCustomers: async (pageNumber?: number, pageSize = 1000, keyword?: string, locale?: string) => {
+  getCustomers: async (pageNumber?: number, pageSize = 10, keyword?: string, locale?: string) => {
     const params = new URLSearchParams();
     params.append('pageSize', pageSize.toString());
     if (pageNumber) params.append('pageNumber', pageNumber.toString());
@@ -2075,11 +2107,12 @@ export const customerAPI = {
   /**
    * Lấy danh sách khách hàng đã xóa (Admin only)
    */
-  getDeletedCustomers: async (pageNumber?: number, locale?: string, pageSize = 1000) => {
+  getDeletedCustomers: async (pageNumber?: number, locale?: string, pageSize = 10, keyword?: string) => {
     const params = new URLSearchParams();
     params.append('pageSize', pageSize.toString());
     params.append('pageNumber', pageNumber?.toString() || '1');
     if (locale) params.append('lang', locale);
+    if (keyword?.trim()) params.append('keyword', keyword.trim());
     return apiCall(`/customers/deleted/list?${params.toString()}`);
   },
 

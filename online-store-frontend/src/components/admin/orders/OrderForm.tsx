@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { MapPin, Package, DollarSign, Plus, X, AlertCircle } from 'lucide-react';
+import { MapPin, Package, DollarSign, Plus, X } from 'lucide-react';
 import { apiCall, orderAPI, productAPI } from '../../../lib/api';
 import type { CheckoutSummary } from '../../../context/CheckoutContext';
-import { useAuth } from '../../../lib/context/AuthContext';
 import { useTranslation, useLanguage } from '../../../lib/i18n';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { Button } from '../../ui/button';
@@ -29,7 +27,6 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps) {
-  const router = useRouter();
   const { t, loadNamespace } = useTranslation();
   const { locale } = useLanguage();
   const { currency } = useCurrency();
@@ -59,6 +56,8 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   // Fetch products for selection
   useEffect(() => {
+    if (mode === 'edit') return;
+
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
@@ -76,7 +75,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     };
 
     fetchProducts();
-  }, [locale, t]);
+  }, [locale, mode, t]);
 
   // Fetch order data for edit mode
   useEffect(() => {
@@ -84,11 +83,14 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       const fetchOrder = async () => {
         try {
           setIsLoading(true);
-          const response = await orderAPI.getOrderById?.(orderId, locale);
-          // Note: orderAPI might not have getOrderById, so we'll handle this gracefully
-          // For now, we'll just show an error
-          toast.error(t('feature_not_available', 'common'));
-          onCancel?.();
+          const order = await orderAPI.getOrderById(orderId, locale, locale);
+          setForm({
+            customerName: order.shippingAddress?.name || order.customer?.name || '',
+            customerEmail: order.customer?.email || '',
+            customerPhone: order.shippingAddress?.phone || order.customer?.phone || '',
+            customerAddress: order.shippingAddress?.address || '',
+            paymentMethod: order.paymentMethod || 'cod',
+          });
         } catch (error) {
           toast.error(t('error_load_data', 'common'));
           onCancel?.();
@@ -193,7 +195,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       return;
     }
 
-    if (form.customerEmail) {
+    if (mode === 'create' && form.customerEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(form.customerEmail)) {
         toast.error(t('invalid_email', 'admin'));
@@ -201,7 +203,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       }
     }
 
-    if (orderItems.length === 0) {
+    if (mode === 'create' && orderItems.length === 0) {
       toast.error(t('error_cart_empty', 'admin'));
       return;
     }
@@ -209,31 +211,39 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     try {
       setIsSubmitting(true);
 
-      await apiCall(`/orders?lang=${locale}&locale=${locale}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          cartItems: orderItems.map((item) => ({
-            productId: item.product,
-            quantity: item.qty,
-          })),
-          couponCode: null,
-          customerName: form.customerName,
-          customerEmail: form.customerEmail || undefined,
-          customerPhone: form.customerPhone,
-          shippingAddress: {
-            name: form.customerName,
-            phone: form.customerPhone,
-            address: form.customerAddress,
-          },
-          paymentMethod: form.paymentMethod,
-          currencyCode: currency.code,
-        }),
-      });
+      const shippingAddress = {
+        name: form.customerName,
+        phone: form.customerPhone,
+        address: form.customerAddress,
+      };
 
-      toast.success(t('toast_order_created', 'admin'));
+      if (mode === 'edit') {
+        if (!orderId) return;
+        await orderAPI.updateOrder(orderId, { shippingAddress }, locale);
+        toast.success(t('toast_update_success', 'admin'));
+      } else {
+        await apiCall(`/orders?lang=${locale}&locale=${locale}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            cartItems: orderItems.map((item) => ({
+              productId: item.product,
+              quantity: item.qty,
+            })),
+            couponCode: null,
+            customerName: form.customerName,
+            customerEmail: form.customerEmail || undefined,
+            customerPhone: form.customerPhone,
+            shippingAddress,
+            paymentMethod: form.paymentMethod,
+            currencyCode: currency.code,
+          }),
+        });
+        toast.success(t('toast_order_created', 'admin'));
+      }
       onSuccess?.();
     } catch (error) {
-      toast.error(getUserFriendlyErrorMessage(error, t));
+      const apiError = error as Error & { code?: string };
+      toast.error(apiError.code === 'ORDER_CANNOT_BE_EDITED' ? apiError.message : getUserFriendlyErrorMessage(error, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -247,21 +257,11 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     );
   }
 
-  if (mode === 'edit') {
-    return (
-      <div className="p-6 text-center">
-        <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-        <p className="text-gray-600 mb-4">{t('feature_not_available', 'common')}</p>
-        <Button onClick={onCancel}>{t('back', 'common')}</Button>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-2xl py-4 sm:py-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">{t('create_order_title', 'admin')}</h1>
-        <p className="text-gray-600">{t('create_order_description', 'admin')}</p>
+        <h1 className="text-2xl font-bold mb-2">{mode === 'create' ? t('create_order_title', 'admin') : t('update', 'common')}</h1>
+        {mode === 'create' && <p className="text-gray-600">{t('create_order_description', 'admin')}</p>}
       </div>
 
       <div className="space-y-6 rounded-lg border bg-white p-4 sm:p-6">
@@ -298,7 +298,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                 autoComplete="tel"
               />
             </div>
-            <div>
+            {mode === 'create' && <div>
               <Label htmlFor="customer-email" className="text-xs font-medium text-gray-600">
                 {t('customer_email', 'admin')}
               </Label>
@@ -311,7 +311,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                 className="mt-1"
                 autoComplete="email"
               />
-            </div>
+            </div>}
             <div>
               <Label htmlFor="customer-address" className="text-xs font-medium text-gray-600">
                 {t('customer_address', 'admin')}
@@ -329,7 +329,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         </div>
 
         {/* Products Section */}
-        <div className="space-y-4">
+        {mode === 'create' && <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Package className="w-4 h-4 text-blue-600" />
             {t('add_product', 'admin')}
@@ -449,9 +449,9 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
               </table>
             </div>
           )}
-        </div>
+        </div>}
 
-        <div>
+        {mode === 'create' && <div>
           <Label htmlFor="payment-method" className="text-xs font-medium text-gray-600">
             {t('admin_payment_method', 'admin')}
           </Label>
@@ -466,9 +466,9 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
             <option value="bank_transfer">{t('payment_method_bank_transfer', 'admin')}</option>
             <option value="card">{t('payment_method_card', 'admin')}</option>
           </select>
-        </div>
+        </div>}
 
-        {orderItems.length > 0 && (
+        {mode === 'create' && orderItems.length > 0 && (
           <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <DollarSign className="h-4 w-4 text-blue-600" />
@@ -501,10 +501,10 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         <div className="flex flex-col gap-3 pt-6 sm:flex-row border-t">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || orderItems.length === 0}
+            disabled={isSubmitting || (mode === 'create' && orderItems.length === 0)}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
           >
-            {isSubmitting ? t('loading', 'common') : t('create_order_button', 'admin')}
+            {isSubmitting ? t('loading', 'common') : mode === 'create' ? t('create_order_button', 'admin') : t('update', 'common')}
           </Button>
           <Button
             variant="outline"

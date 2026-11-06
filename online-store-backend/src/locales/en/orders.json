@@ -122,6 +122,7 @@
   "payment_method_cod_label": "Cash on Delivery",
   "payment_method_vnpay_label": "VNPay",
   "payment_method_vnpay_desc": "Pay via VNPay",
+  "order_cannot_be_edited": "Shipping details cannot be edited after payment or fulfillment has started.",
   "order_not_found": "Order not found",
   "go_to_orders_list": "Back to orders list",
   "order_summary_title": "Order Summary",

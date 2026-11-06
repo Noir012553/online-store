@@ -177,7 +177,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       }
       toast.success(t('admin_toast_delete_success', 'admin'));
     } catch (error) {
-      toast.error(t('error_delete_data', 'admin'));
+      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
     }
   };
 
@@ -220,7 +220,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       toast.success(t('admin_toast_delete_success', 'admin'));
       setDeleteConfirmProduct(null);
     } catch (error) {
-      toast.error(t('error_delete_data', 'admin'));
+      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
     } finally {
       setIsSubmitting(false);
     }

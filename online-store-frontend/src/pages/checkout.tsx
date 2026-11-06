@@ -34,7 +34,7 @@ function CheckoutContent() {
 
     if (!user) {
       toast.error(t('please_login', 'checkout'));
-      router.push('/login');
+      router.push({ pathname: '/login', query: { from: '/checkout' } });
       return;
     }
 
@@ -97,7 +97,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isInitialized) return;
     if (!user) {
-      router.push('/login');
+      router.push({ pathname: '/login', query: { from: '/checkout' } });
     }
   }, [isInitialized, user, router]);
 

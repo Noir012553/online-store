@@ -3,7 +3,7 @@
  * Validates request body fields and returns errors if validation fails
  */
 
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const { getMessage } = require('../i18n/messages');
 
 /**
@@ -18,7 +18,7 @@ const handleValidationErrors = (req, res, next) => {
       code: 'VALIDATION_FAILED',
       message: getMessage(req.lang, 'common.error_request_title'),
       errors: errors.array().map(err => ({
-        field: err.param,
+        field: err.path || err.param,
         message: err.msg,
       })),
     });
@@ -152,6 +152,35 @@ const validateCreateOrder = [
     .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
 ];
 
+const validateOrderList = [
+  query('status')
+    .optional()
+    .isIn(['all', 'pending', 'paid', 'delivered'])
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+  query('paymentMethod')
+    .optional()
+    .isIn(['all', 'cod', 'card', 'bank_transfer', 'e_wallet', 'vnpay', 'momo'])
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+];
+
+const validateUpdateOrder = [
+  body('shippingAddress')
+    .isObject()
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.shipping.addressRequired')),
+  body('shippingAddress.name')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.customer.nameInvalid')),
+  body('shippingAddress.phone')
+    .trim()
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
+  body('shippingAddress.address')
+    .trim()
+    .isLength({ min: 3, max: 500 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.shipping.addressRequired')),
+];
+
 const validateCheckoutSummary = [
   ...validateCartItems,
   body('currencyCode')
@@ -167,5 +196,7 @@ module.exports = {
   validateLogin,
   validateUpdateProfile,
   validateCreateOrder,
+  validateOrderList,
+  validateUpdateOrder,
   validateCheckoutSummary,
 };
