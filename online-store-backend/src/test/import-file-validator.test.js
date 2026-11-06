@@ -14,6 +14,7 @@ const {
 } = require('../utils/productImportValidator');
 const { validateImageUpload } = require('../middleware/uploadValidationMiddleware');
 const { errorHandler } = require('../middleware/errorMiddleware');
+const { parseMultiLanguageField } = require('../controllers/bannerController');
 const JSONAdapter = require('../utils/importAdapters/JSONAdapter');
 const CSVAdapter = require('../utils/importAdapters/CSVAdapter');
 const Product = require('../models/Product');
@@ -1338,6 +1339,23 @@ describe('Initial product highlights', () => {
     ];
 
     expect(assignInitialHighlights(products)).to.deep.equal(products);
+  });
+});
+
+describe('Banner multilingual field parsing', () => {
+  it('parses JSON-encoded translations from multipart form fields', () => {
+    const parsed = parseMultiLanguageField(JSON.stringify({ vi: 'Giảm giá 40%', en: '40% off' }));
+
+    expect(parsed.vi).to.equal('Giảm giá 40%');
+    expect(parsed.en).to.equal('40% off');
+    expect(parsed.pt).to.equal('');
+  });
+
+  it('preserves legacy single-language string values', () => {
+    const parsed = parseMultiLanguageField('Ưu đãi mùa hè');
+
+    expect(parsed.vi).to.equal('Ưu đãi mùa hè');
+    expect(parsed.en).to.equal('');
   });
 });
 

@@ -200,7 +200,16 @@ const parseMultiLanguageField = (field) => {
   if (!field) return defaultField;
 
   if (typeof field === 'string') {
-    return { ...defaultField, [defaultLang]: String(field).trim() };
+    try {
+      const parsed = JSON.parse(field);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        field = parsed;
+      } else {
+        return { ...defaultField, [defaultLang]: field.trim() };
+      }
+    } catch {
+      return { ...defaultField, [defaultLang]: field.trim() };
+    }
   }
 
   if (typeof field === 'object') {
@@ -880,6 +889,7 @@ const autoTranslateBanner = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  parseMultiLanguageField,
   getBanners,
   getBannerById,
   getDeletedBanners,
