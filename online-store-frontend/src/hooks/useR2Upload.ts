@@ -70,6 +70,8 @@ export const useR2Upload = () => {
             }
           });
           xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+          xhr.addEventListener('timeout', () => reject(Object.assign(new Error('Upload timed out'), { failureCode: 'R2_UPLOAD_TIMEOUT' })));
+          xhr.timeout = 60000;
           xhr.open('POST', '/api/assets/upload');
           if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
           xhr.send(formData);

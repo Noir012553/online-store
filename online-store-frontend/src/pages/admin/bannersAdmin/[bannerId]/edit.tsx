@@ -265,53 +265,37 @@ function BannerEditPageContent() {
       return;
     }
 
-    let imageUrl = '';
-    let imageAsset: Record<string, unknown> | null = null;
+    setIsSubmitting(true);
+    try {
+      let imageUrl = '';
+      let imageAsset: Record<string, unknown> | null = null;
 
-    // Handle image upload to R2 if a new image file is provided
-    if (imageFile) {
-      try {
-        setIsSubmitting(true);
+      if (imageFile) {
         const uploadResult = await uploadToR2(imageFile, 'banners');
-        if (!uploadResult) {
-          return;
-        }
-
-        // Validate the uploaded image
-        const isValid = validateUploadedAsset(uploadResult);
-        if (!isValid) {
-          return;
-        }
+        if (!uploadResult || !validateUploadedAsset(uploadResult)) return;
 
         imageUrl = uploadResult.publicUrl;
         imageAsset = uploadResult.asset;
-      } catch (error: any) {
-        toast.error(error?.message || t('banner_error_load_data', 'admin-banners'));
-        setIsSubmitting(false);
-        return;
       }
-    }
 
-    const formData = new FormData();
+      const formData = new FormData();
+      formData.append('title', JSON.stringify(banner.title));
+      formData.append('subtitle', JSON.stringify(banner.subtitle));
+      formData.append('description', JSON.stringify(banner.description));
+      formData.append('ctaText', JSON.stringify(banner.ctaText));
+      formData.append('targetUrl', targetUrl);
+      formData.append('slot', slot);
+      formData.append('sortOrder', banner.sortOrder || '0');
+      formData.append('isActive', String(banner.isActive));
+      formData.append('openInNewTab', String(banner.openInNewTab));
+      formData.append('startDate', banner.startDate);
+      formData.append('endDate', banner.endDate);
 
-    formData.append('title', JSON.stringify(banner.title));
-    formData.append('subtitle', JSON.stringify(banner.subtitle));
-    formData.append('description', JSON.stringify(banner.description));
-    formData.append('ctaText', JSON.stringify(banner.ctaText));
-    formData.append('targetUrl', banner.targetUrl);
-    formData.append('slot', slot);
-    formData.append('sortOrder', banner.sortOrder || '0');
-    formData.append('isActive', String(banner.isActive));
-    formData.append('openInNewTab', String(banner.openInNewTab));
-    formData.append('startDate', banner.startDate);
-    formData.append('endDate', banner.endDate);
+      if (imageFile) {
+        formData.append('image', imageUrl);
+        formData.append('imageAsset', JSON.stringify(imageAsset));
+      }
 
-    if (imageFile) {
-      formData.append('image', imageUrl);
-      formData.append('imageAsset', JSON.stringify(imageAsset));
-    }
-
-    try {
       if (banner._id) {
         await bannerAPI.updateBanner(banner._id, formData);
         toast.success(t('banner_success_update', 'admin-banners'));
