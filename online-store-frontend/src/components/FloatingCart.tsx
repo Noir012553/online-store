@@ -58,7 +58,7 @@ export function FloatingCart() {
         </button>
         <button
           onClick={() => setIsMinimized(true)}
-          className="absolute -top-3 -right-3 bg-white text-red-600 rounded-full h-12 w-12 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
+          className="absolute -top-3 -right-3 bg-white text-red-600 rounded-full h-9 w-9 flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
           aria-label={t('floating_cart_hide', 'components')}
           title={t('floating_cart_hide', 'components')}
         >
