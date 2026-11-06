@@ -103,10 +103,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
   }, [loadNamespace, locale]);
 
-  // Last-resort safety net: if auth init never completes (isInitialized stuck
-  // false — e.g. the backend hangs and even the AuthContext deadline fails to
-  // propagate), treat the visitor as signed out after 12s and bounce to /login
-  // instead of hanging on the "Loading…" shell forever.
+  useEffect(() => {
+    if (!router?.isReady || !isInitialized || user || router.pathname.startsWith('/login')) return;
+    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+  }, [router, isInitialized, user]);
+
+  // Last-resort safety net: if auth init never completes, bounce to /login
+  // instead of hanging on the loading shell.
   useEffect(() => {
     if (!router || isInitialized) return;
     const timer = setTimeout(() => {
