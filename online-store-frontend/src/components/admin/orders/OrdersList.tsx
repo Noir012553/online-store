@@ -82,7 +82,11 @@ export function OrdersList() {
   const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await orderAPI.getAllOrders(currentPage, locale, locale, currencyCode);
+      const response = await orderAPI.getAllOrders(currentPage, locale, locale, currencyCode, {
+        keyword: searchQuery,
+        status: filterStatus,
+        paymentMethod: filterPaymentMethod,
+      });
       const ordersList = response.orders || [];
       const totalPagesFromBackend = response.pages || 1;
 
@@ -94,12 +98,12 @@ export function OrdersList() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, locale, currencyCode]);
+  }, [currentPage, filterPaymentMethod, filterStatus, locale, currencyCode, searchQuery]);
 
   const fetchDeletedOrders = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await orderAPI.getDeletedOrders(deletedCurrentPage, locale, locale, currencyCode);
+      const response = await orderAPI.getDeletedOrders(deletedCurrentPage, locale, locale, currencyCode, searchQuery);
       const ordersList = response.orders || [];
       const totalPagesFromBackend = response.pages || 1;
 
@@ -111,7 +115,7 @@ export function OrdersList() {
     } finally {
       setIsLoading(false);
     }
-  }, [deletedCurrentPage, locale, currencyCode]);
+  }, [deletedCurrentPage, locale, currencyCode, searchQuery]);
 
   useEffect(() => {
     if (viewDeletedTab) {
@@ -214,7 +218,7 @@ export function OrdersList() {
     try {
       setIsUpdating(true);
       // Hard delete order via API
-      await fetch(`/api/orders/${orderId}?hardDelete=true`, { method: 'DELETE' });
+      await orderAPI.hardDeleteOrder(orderId);
       await fetchDeletedOrders();
       toast.success(t('toast_delete_success'));
       setDeleteConfirmOrder(null);
@@ -225,37 +229,7 @@ export function OrdersList() {
     }
   };
 
-  const getOrderStatus = (order: Order) => {
-    if (order.isDelivered) return t('order_status_delivered', 'admin');
-    if (order.isPaid) return t('order_status_paid', 'admin');
-    return t('order_status_pending', 'admin');
-  };
-
-  const getFilteredOrders = () => {
-    const listToFilter = viewDeletedTab ? deletedOrders : orders;
-    return listToFilter.filter((order) => {
-      const searchStr = searchQuery.toLowerCase();
-      const matchesSearch =
-        String(order._id || '').toLowerCase().includes(searchStr) ||
-        String(order.customer?.name || '').toLowerCase().includes(searchStr) ||
-        String(order.customer?.email || '').toLowerCase().includes(searchStr) ||
-        String(order.user?.username || '').toLowerCase().includes(searchStr) ||
-        String(order.user?.email || '').toLowerCase().includes(searchStr);
-
-      if (viewDeletedTab) return matchesSearch;
-
-      const status = getOrderStatus(order);
-      const matchesStatus = filterStatus === "all" || status === filterStatus;
-
-      const paymentMethod = (order.paymentMethod || "cod").toLowerCase();
-      const normalizedFilter = filterPaymentMethod.toLowerCase();
-      const matchesPaymentMethod = normalizedFilter === "all" || paymentMethod === normalizedFilter;
-
-      return matchesSearch && matchesStatus && matchesPaymentMethod;
-    });
-  };
-
-  const filteredOrders = getFilteredOrders();
+  const visibleOrders = viewDeletedTab ? deletedOrders : orders;
   const currentPageVar = viewDeletedTab ? deletedCurrentPage : currentPage;
   const totalPagesToShow = viewDeletedTab ? deletedTotalPages : totalPages;
 
@@ -367,7 +341,11 @@ export function OrdersList() {
                   name="order-search"
                   placeholder={t('admin_search_orders_placeholder', 'admin')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                    setDeletedCurrentPage(1);
+                  }}
                   className="pl-10"
                   autoComplete="off"
                 />
@@ -375,13 +353,13 @@ export function OrdersList() {
             </div>
             {!viewDeletedTab && (
               <>
-                <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterStatus} onChange={(event) => { setFilterStatus(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   <option value="pending">{t('order_status_pending', 'admin')}</option>
                   <option value="paid">{t('order_status_paid', 'admin')}</option>
                   <option value="delivered">{t('order_status_delivered', 'admin')}</option>
                 </select>
-                <select value={filterPaymentMethod} onChange={(event) => setFilterPaymentMethod(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterPaymentMethod} onChange={(event) => { setFilterPaymentMethod(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   <option value="cod">{t('payment_method_cod', 'admin')}</option>
                   <option value="vnpay">{t('payment_method_vnpay', 'admin')}</option>
@@ -428,7 +406,7 @@ export function OrdersList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredOrders.map((order) => (
+                  {visibleOrders.map((order) => (
                     <tr key={order._id}>
                       <td className="px-4 py-4 sm:px-6 font-mono text-sm">{order._id.slice(-8).toUpperCase()}</td>
                       <td className="px-4 py-4 sm:px-6">

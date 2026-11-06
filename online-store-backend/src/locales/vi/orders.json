@@ -122,6 +122,7 @@
   "payment_method_cod_label": "Thanh toán khi nhận hàng",
   "payment_method_vnpay_label": "VNPay",
   "payment_method_vnpay_desc": "Thanh toán qua VNPay",
+  "order_cannot_be_edited": "Không thể sửa thông tin giao nhận sau khi thanh toán hoặc xử lý giao hàng đã bắt đầu.",
   "order_not_found": "Không tìm thấy đơn hàng",
   "go_to_orders_list": "Quay lại danh sách đơn hàng",
   "order_summary_title": "Tóm tắt đơn hàng",

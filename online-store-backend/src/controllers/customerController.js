@@ -14,26 +14,46 @@ const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyRe
 const { getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { broadcastNewCustomer, broadcastCustomerUpdated, broadcastCustomerDeleted, broadcastCustomerRestored } = require('../socket/socketHandler');
 
+const escapeRegex = (value) => value.replace(/[^a-zA-Z0-9]/g, '\\$&');
+const getPagination = (query) => ({
+  page: Math.max(1, Number.parseInt(query.pageNumber, 10) || 1),
+  pageSize: Math.min(1000, Math.max(1, Number.parseInt(query.pageSize, 10) || 10)),
+});
+
+const ensureCustomerHasNoOrders = async (customer, lang, res) => {
+  const user = await User.findOne({ email: customer.email }).select('_id').lean();
+  const linkedOrder = await Order.exists({
+    $or: [
+      { customer: customer._id },
+      ...(user ? [{ user: user._id }] : []),
+    ],
+  });
+  if (!linkedOrder) return;
+
+  res.status(409);
+  const error = new Error(getMessage(lang, 'admin-controllers-messages.customer_has_orders'));
+  error.errorCode = 'CUSTOMER_HAS_ORDERS';
+  error.exposeMessage = true;
+  throw error;
+};
+
 /**
  * Lấy danh sách khách hàng với phân trang và tìm kiếm (Admin only)
  * @route GET /api/customers
  * @access Private/Admin
  */
 const getCustomers = asyncHandler(async (req, res) => {
-  const pageSize = parseInt(req.query.pageSize) || 10;
-  const page = parseInt(req.query.pageNumber) || 1;
-  const keyword = req.query.keyword
-    ? {
-        $or: [
-          { name: { $regex: req.query.keyword, $options: 'i' } },
-          { email: { $regex: req.query.keyword, $options: 'i' } },
-        ]
-      }
-    : {};
-
+  const { page, pageSize } = getPagination(req.query);
+  const keyword = typeof req.query.keyword === 'string' ? req.query.keyword.trim() : '';
   const query = {
-    ...keyword,
     isDeleted: false,
+    ...(keyword && {
+      $or: [
+        { name: { $regex: escapeRegex(keyword), $options: 'i' } },
+        { email: { $regex: escapeRegex(keyword), $options: 'i' } },
+        { phone: { $regex: escapeRegex(keyword), $options: 'i' } },
+      ],
+    }),
   };
   const count = await Customer.countDocuments(query);
   const customers = await Customer.find(query)
@@ -214,6 +234,7 @@ const deleteCustomer = asyncHandler(async (req, res) => {
   const customer = await Customer.findById(req.params.id);
 
   if (customer) {
+    await ensureCustomerHasNoOrders(customer, lang, res);
     customer.isDeleted = true;
     await customer.save();
 
@@ -291,11 +312,17 @@ const restoreCustomer = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const getDeletedCustomers = asyncHandler(async (req, res) => {
-  const pageSize = parseInt(req.query.pageSize) || 10;
-  const page = parseInt(req.query.pageNumber) || 1;
-
+  const { page, pageSize } = getPagination(req.query);
+  const keyword = typeof req.query.keyword === 'string' ? req.query.keyword.trim() : '';
   const query = {
     isDeleted: true,
+    ...(keyword && {
+      $or: [
+        { name: { $regex: escapeRegex(keyword), $options: 'i' } },
+        { email: { $regex: escapeRegex(keyword), $options: 'i' } },
+        { phone: { $regex: escapeRegex(keyword), $options: 'i' } },
+      ],
+    }),
   };
   const count = await Customer.countDocuments(query);
   const customers = await Customer.find(query)
@@ -322,6 +349,7 @@ const hardDeleteCustomer = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.customer_not_found'));
   }
 
+  await ensureCustomerHasNoOrders(customer, lang, res);
   await customer.deleteOne();
   res.json({ message: getMessage(lang, 'admin-controllers-messages.customer_permanently_removed') });
 });

@@ -10,6 +10,7 @@ const {
   addOrderItems,
   getOrderSummary,
   getOrderById,
+  updateOrder,
   updateOrderToDelivered,
   updateOrderStatus,
   getMyOrders,
@@ -23,6 +24,8 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const {
   handleValidationErrors,
   validateCreateOrder,
+  validateOrderList,
+  validateUpdateOrder,
   validateCheckoutSummary,
 } = require('../middleware/validationMiddleware');
 const { createOrderLimiter } = require('../middleware/rateLimitMiddleware');
@@ -34,7 +37,7 @@ const { createOrderLimiter } = require('../middleware/rateLimitMiddleware');
  */
 router.route('/')
   .post(protect, createOrderLimiter, validateCreateOrder, handleValidationErrors, addOrderItems)
-  .get(protect, admin, getOrders);
+  .get(protect, admin, validateOrderList, handleValidationErrors, getOrders);
 
 /**
  * POST /api/orders/summary - Tính lại giỏ hàng và checkout theo dữ liệu tin cậy
@@ -63,6 +66,7 @@ router.route('/myorders')
  */
 router.route('/:id')
   .get(protect, getOrderById)
+  .put(protect, admin, validateUpdateOrder, handleValidationErrors, updateOrder)
   .delete(protect, admin, deleteOrder);
 
 /**

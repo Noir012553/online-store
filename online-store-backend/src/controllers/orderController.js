@@ -4,9 +4,11 @@
  * Hỗ trợ phân trang, tìm kiếm, quản lý khách hàng tự động
  */
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Customer = require('../models/Customer');
+const User = require('../models/User');
 const Currency = require('../models/Currency');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { broadcastNewOrder, broadcastOrderStatusUpdate, broadcastOrderDeleted, broadcastOrderRestored } = require('../socket/socketHandler');
@@ -31,6 +33,41 @@ const formatOrderResponse = async (orders, req) => {
 
 const WAREHOUSE_DISTRICT_ID = 1458;
 
+const escapeRegex = (value) => value.replace(/[^a-zA-Z0-9]/g, '\\$&');
+
+const buildOrderListQuery = async (query, isDeleted) => {
+  const filters = { isDeleted };
+  const keyword = typeof query.keyword === 'string' ? query.keyword.trim() : '';
+
+  if (keyword) {
+    const expression = new RegExp(escapeRegex(keyword), 'i');
+    const [customers, users] = await Promise.all([
+      Customer.find({ $or: [{ name: expression }, { email: expression }, { phone: expression }] }).select('_id').lean(),
+      User.find({ $or: [{ name: expression }, { username: expression }, { email: expression }] }).select('_id').lean(),
+    ]);
+    const matches = [
+      { 'orderItems.name': expression },
+      { customer: { $in: customers.map(({ _id }) => _id) } },
+      { user: { $in: users.map(({ _id }) => _id) } },
+    ];
+    if (mongoose.Types.ObjectId.isValid(keyword)) matches.push({ _id: keyword });
+    filters.$or = matches;
+  }
+
+  if (query.status === 'pending') Object.assign(filters, { isPaid: false, isDelivered: false });
+  if (query.status === 'paid') Object.assign(filters, { isPaid: true, isDelivered: false });
+  if (query.status === 'delivered') filters.isDelivered = true;
+  if (query.paymentMethod && query.paymentMethod !== 'all') filters.paymentMethod = query.paymentMethod;
+
+  return filters;
+};
+
+const getPagination = (query, defaultPageSize = 10) => {
+  const page = Math.max(1, Number.parseInt(query.pageNumber, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number.parseInt(query.pageSize, 10) || defaultPageSize));
+  return { page, pageSize };
+};
+
 const createOrderError = (lang, errorCode, messageKey, values = {}) => {
   const error = new Error(getMessage(lang, messageKey, values));
   error.errorCode = errorCode;
@@ -54,6 +91,46 @@ const convertFromCatalogCurrency = (amount, catalogCurrency, currencyCode, excha
  * @route PUT /api/orders/:id/status
  * @access Private/Admin
  */
+const updateOrder = asyncHandler(async (req, res) => {
+  const order = await withTimeout(
+    Order.findOne({ _id: req.params.id, isDeleted: false }),
+    ORDER_QUERY_TIMEOUT_MS,
+  );
+
+  if (!order) {
+    res.status(404);
+    throw new Error(getMessage(req.lang, 'orders.order_not_found'));
+  }
+
+  const hasShipmentStarted = order.isPaid || order.isDelivered || order.shipmentStatus !== 'pending'
+    || order.ghnOrderCode || order.trackingNumber;
+  if (hasShipmentStarted) {
+    res.status(409);
+    const error = new Error(getMessage(req.lang, 'orders.order_cannot_be_edited'));
+    error.errorCode = 'ORDER_CANNOT_BE_EDITED';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  const shippingAddress = req.body.shippingAddress;
+  order.shippingAddress = {
+    ...(order.shippingAddress?.toObject ? order.shippingAddress.toObject() : order.shippingAddress),
+    name: shippingAddress.name.trim(),
+    phone: shippingAddress.phone.trim(),
+    address: shippingAddress.address.trim(),
+  };
+
+  const updatedOrder = await withTimeout(order.save(), ORDER_QUERY_TIMEOUT_MS);
+  try {
+    const io = req.app.get('io');
+    if (io) broadcastOrderStatusUpdate(io, updatedOrder);
+  } catch (error) {
+    console.warn('[OrderController.updateOrder] Failed to broadcast order update:', error.message);
+  }
+
+  res.json((await formatOrders([updatedOrder], req.locale))[0]);
+});
+
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const { id: orderId } = req.params;
@@ -826,15 +903,15 @@ const getMyOrders = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const getOrders = asyncHandler(async (req, res) => {
-  const pageSize = 10;
-  const page = Number(req.query.pageNumber) || 1;
+  const { page, pageSize } = getPagination(req.query);
+  const query = await buildOrderListQuery(req.query, false);
 
   const count = await withTimeout(
-    Order.countDocuments({ isDeleted: false }).maxTimeMS(ORDER_QUERY_TIMEOUT_MS),
+    Order.countDocuments(query).maxTimeMS(ORDER_QUERY_TIMEOUT_MS),
     ORDER_QUERY_TIMEOUT_MS,
   );
-  let orders = await withTimeout(
-    Order.find({ isDeleted: false })
+  const orders = await withTimeout(
+    Order.find(query)
       .populate({
         path: 'user',
         select: 'username email name',
@@ -952,12 +1029,12 @@ const restoreOrder = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const getDeletedOrders = asyncHandler(async (req, res) => {
-  const pageSize = 10;
-  const page = Number(req.query.pageNumber) || 1;
+  const { page, pageSize } = getPagination(req.query);
+  const query = await buildOrderListQuery(req.query, true);
 
-  const count = await withTimeout(Order.countDocuments({ isDeleted: true }), ORDER_QUERY_TIMEOUT_MS);
-  let orders = await withTimeout(
-    Order.find({ isDeleted: true })
+  const count = await withTimeout(Order.countDocuments(query), ORDER_QUERY_TIMEOUT_MS);
+  const orders = await withTimeout(
+    Order.find(query)
       .populate({
         path: 'user',
         select: 'username email name',
@@ -1072,4 +1149,5 @@ module.exports = {
   getDeletedOrders,
   hardDeleteOrder,
   updateOrderStatus,
+  updateOrder,
 };
