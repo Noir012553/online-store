@@ -10,7 +10,7 @@ import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import styles from "../styles/login.module.css";
-import { useTranslation } from "../lib/i18n";
+import { getLocalUiFallback, useTranslation } from "../lib/i18n";
 
 export const getServerSideProps = async () => {
   return {
@@ -21,9 +21,11 @@ export const getServerSideProps = async () => {
 export default function Login() {
   const router = useRouter();
   const { login, register, googleLogin } = useAuth();
-  const { t, loadNamespace } = useTranslation();
+  const { t, loadNamespace, locale } = useTranslation();
   const [activeTab, setActiveTab] = useState("login");
   const processedOAuthCallback = useRef<string | null>(null);
+  const loginInFlightRef = useRef(false);
+  const registerInFlightRef = useRef(false);
 
   useEffect(() => {
     loadNamespace('login');
@@ -55,7 +57,8 @@ export default function Login() {
     const handleGoogleLogin = async () => {
       const success = await googleLogin();
       if (success) {
-        toast.success(t('login_successful', 'login'));
+        toast.dismiss('auth-logout-success');
+        toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
         router.replace(from);
       } else {
         toast.error(t('login_failed', 'login'));
@@ -63,16 +66,23 @@ export default function Login() {
     };
 
     void handleGoogleLogin();
-  }, [router.isReady, router.query.oauth, router.asPath, googleLogin, router, from, t]);
+  }, [router.isReady, router.query.oauth, router.asPath, googleLogin, router, from, t, locale]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(loginData.email, loginData.password);
-    if (success) {
-      toast.success(t('login_successful', 'login'));
-      router.replace(from);
-    } else {
-      toast.error(t('login_failed', 'login'));
+    if (loginInFlightRef.current) return;
+    loginInFlightRef.current = true;
+    try {
+      const success = await login(loginData.email, loginData.password);
+      if (success) {
+        toast.dismiss('auth-logout-success');
+        toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
+        void router.replace(from);
+      } else {
+        toast.error(t('login_failed', 'login'));
+      }
+    } finally {
+      loginInFlightRef.current = false;
     }
   };
 
@@ -107,24 +117,27 @@ export default function Login() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (registerInFlightRef.current) return;
+    if (!validateRegisterForm()) return;
 
-    if (!validateRegisterForm()) {
-      return;
-    }
+    registerInFlightRef.current = true;
+    try {
+      const success = await register(
+        registerData.email,
+        registerData.password,
+        registerData.name
+      );
 
-    const success = await register(
-      registerData.email,
-      registerData.password,
-      registerData.name
-    );
-
-    if (success) {
-      toast.success(t('registration_successful', 'login'));
-      setRegisterErrors({});
-      setRegisterData({ name: "", email: "", password: "", confirmPassword: "" });
-      router.replace(from);
-    } else {
-      toast.error(t('registration_failed', 'login'));
+      if (success) {
+        toast.success(t('registration_successful', 'login'), { id: 'auth-register-success' });
+        setRegisterErrors({});
+        setRegisterData({ name: "", email: "", password: "", confirmPassword: "" });
+        void router.replace(from);
+      } else {
+        toast.error(t('registration_failed', 'login'));
+      }
+    } finally {
+      registerInFlightRef.current = false;
     }
   };
 

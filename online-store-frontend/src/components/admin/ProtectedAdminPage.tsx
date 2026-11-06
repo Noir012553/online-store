@@ -29,22 +29,8 @@ export const ProtectedAdminPage: React.FC<ProtectedAdminPageProps> = ({
   const { isAdmin, isSuperAdmin, can, isInitialized, user } = useAuth();
   const router = useRouter();
 
-  // Signed-out visitors on an admin page are redirected to /login (keeping the
-  // target path so login can bring them back). Access Denied is only for users
-  // who ARE signed in but lack the required role — previously a signed-out
-  // user got "Access Denied" with a "Back to Dashboard" button that kept them
-  // trapped inside the admin area after logging out.
-  // Same last-resort safety net as AdminLayout: if auth init is stuck
-  // (isInitialized never flips true), fail closed after 12s.
-  useEffect(() => {
-    if (isInitialized) return;
-    const timer = setTimeout(() => {
-      if (router.pathname.startsWith('/login')) return;
-      void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
-    }, 12000);
-    return () => clearTimeout(timer);
-  }, [isInitialized, router]);
-
+  // Signed-out visitors are redirected by the admin layout. Access Denied is
+  // only for users who are signed in but lack the required role.
   useEffect(() => {
     if (!isInitialized || user) return;
     if (router.pathname.startsWith('/login')) return;

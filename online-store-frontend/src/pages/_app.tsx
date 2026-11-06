@@ -112,6 +112,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     if (!isRouterReady) return;
 
     let navigationTimer: ReturnType<typeof setTimeout> | null = null;
+    let navigationFailSafeTimer: ReturnType<typeof setTimeout> | null = null;
     let activeNavigationUrl: string | null = null;
     const clearNavigationTimer = () => {
       if (navigationTimer) {
@@ -119,21 +120,37 @@ function AppContent({ Component, pageProps }: AppContentProps) {
         navigationTimer = null;
       }
     };
+    const clearNavigationFailSafeTimer = () => {
+      if (navigationFailSafeTimer) {
+        clearTimeout(navigationFailSafeTimer);
+        navigationFailSafeTimer = null;
+      }
+    };
+    const getRoutePath = (url: string) => url.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
 
     const handleStart = (url: string, { shallow }: { shallow: boolean }) => {
       if (shallow) return;
       clearNavigationTimer();
+      clearNavigationFailSafeTimer();
       activeNavigationUrl = url;
       navigationTimer = setTimeout(() => {
         navigationTimer = null;
         setShowLoadingOverlay(true);
       }, 200);
+      navigationFailSafeTimer = setTimeout(() => {
+        navigationFailSafeTimer = null;
+        clearNavigationTimer();
+        activeNavigationUrl = null;
+        setIsPageLoading(false);
+        setShowLoadingOverlay(false);
+      }, 15000);
       setIsPageLoading(true);
     };
 
     const handleComplete = (url: string, { shallow }: { shallow: boolean }) => {
-      if (shallow || url !== activeNavigationUrl) return;
+      if (shallow || (activeNavigationUrl && getRoutePath(url) !== getRoutePath(activeNavigationUrl))) return;
       clearNavigationTimer();
+      clearNavigationFailSafeTimer();
       activeNavigationUrl = null;
       setIsPageLoading(false);
       setShowLoadingOverlay(false);
@@ -148,6 +165,10 @@ function AppContent({ Component, pageProps }: AppContentProps) {
 
     return () => {
       clearNavigationTimer();
+      clearNavigationFailSafeTimer();
+      activeNavigationUrl = null;
+      setIsPageLoading(false);
+      setShowLoadingOverlay(false);
       router?.events?.off('routeChangeStart', handleStart);
       router?.events?.off('routeChangeComplete', handleComplete);
       router?.events?.off('routeChangeError', handleError);

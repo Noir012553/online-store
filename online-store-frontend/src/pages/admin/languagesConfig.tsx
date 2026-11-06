@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
+import { API_BASE_PATH } from '../../config';
 
 interface Language {
   _id: string;
@@ -51,19 +52,38 @@ const LanguagesConfigContent = () => {
     type: 'success' | 'error' | 'info';
     text: string;
   } | null>(null);
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(false);
+  const languagesRequestIdRef = useRef(0);
+  const supportedLanguagesRequestIdRef = useRef(0);
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const LANGUAGES_API = `${API_BASE_PATH}/languages`;
 
   useEffect(() => {
-    Promise.all([
-      loadNamespace('admin-translation'),
-    ]).then(() => {
-      fetchLanguages();
-      fetchSupportedLanguages();
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([loadNamespace('admin-translation')]).then(() => {
+      if (active) {
+        fetchLanguages();
+        fetchSupportedLanguages();
+      }
     });
+    return () => {
+      active = false;
+      languagesRequestIdRef.current += 1;
+      supportedLanguagesRequestIdRef.current += 1;
+    };
   }, [loadNamespace, locale]);
 
   const fetchLanguages = async () => {
+    const requestId = ++languagesRequestIdRef.current;
     try {
       setLoading(true);
       const token = getAuthToken();
@@ -73,7 +93,7 @@ const LanguagesConfigContent = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/api/languages?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}?lang=${locale}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -90,23 +110,26 @@ const LanguagesConfigContent = () => {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current && data.success) {
         setLanguages(data.data);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(t('error_fetching_languages', 'admin-errors'), error);
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error(t('error_fetching_languages', 'admin-errors'), error);
+        }
+        showMessage('error', t('admin_error_load_languages', 'admin-translation'));
       }
-      showMessage('error', t('admin_error_load_languages', 'admin-translation'));
     } finally {
-      setLoading(false);
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current) setLoading(false);
     }
   };
 
   const fetchSupportedLanguages = async () => {
+    const requestId = ++supportedLanguagesRequestIdRef.current;
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/supported?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/supported?lang=${locale}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
@@ -115,19 +138,24 @@ const LanguagesConfigContent = () => {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (isMountedRef.current && requestId === supportedLanguagesRequestIdRef.current && data.success) {
         setSupportedLanguages(data.data);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
+      if (isMountedRef.current && requestId === supportedLanguagesRequestIdRef.current && process.env.NODE_ENV === 'development') {
         console.error(t('error_fetching_supported_languages', 'admin-errors'), error);
       }
     }
   };
 
   const showMessage = (type: 'success' | 'error' | 'info', text: string) => {
+    if (!isMountedRef.current) return;
+    if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 5000);
+    messageTimeoutRef.current = setTimeout(() => {
+      setMessage(null);
+      messageTimeoutRef.current = null;
+    }, 5000);
   };
 
   const handleAddLanguage = async () => {
@@ -145,7 +173,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}?lang=${locale}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +220,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${editingLanguage._id}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${editingLanguage._id}?lang=${locale}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name, isActive: editingLanguage.isActive }),
@@ -218,7 +246,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${deletingLanguage._id}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${deletingLanguage._id}?lang=${locale}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -237,7 +265,7 @@ const LanguagesConfigContent = () => {
   const handleToggleLanguage = async (langId: string, currentStatus: boolean) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${langId}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${langId}?lang=${locale}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -254,7 +282,9 @@ const LanguagesConfigContent = () => {
 
       await fetchLanguages();
       await refreshLocaleConfig();
-      window.localStorage.setItem('laptopstore_language_config_updated', String(Date.now()));
+      try {
+        window.localStorage.setItem('laptopstore_language_config_updated', String(Date.now()));
+      } catch {}
       window.dispatchEvent(new Event('language-config-updated'));
       showMessage('success', t('admin_language_status_updated', 'admin-translation'));
     } catch (error) {

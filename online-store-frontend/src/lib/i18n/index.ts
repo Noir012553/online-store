@@ -10,4 +10,5 @@ export {
   LanguageProvider,
   useLanguage,
   useTranslation,
+  getLocalUiFallback,
 } from '../context/LanguageContext';

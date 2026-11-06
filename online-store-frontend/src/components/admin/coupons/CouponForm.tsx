@@ -171,6 +171,7 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
   }, [editingCoupon?.applicableCategories.length, locale]);
 
   useEffect(() => {
+    let active = true;
     const loadCatalog = async () => {
       try {
         const [productResponse, categoryResponse] = await Promise.all([
@@ -178,25 +179,32 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
           categoryAPI.getCategories(locale),
         ]);
 
+        if (!active) return;
         setProducts(Array.isArray(productResponse.products) ? productResponse.products : []);
         const categoryList = categoryResponse.categories || categoryResponse;
         setCategories(Array.isArray(categoryList) ? categoryList : []);
       } catch (error) {
+        if (!active) return;
         setProducts([]);
         setCategories([]);
       }
     };
 
     void loadCatalog();
+    return () => {
+      active = false;
+    };
   }, [locale]);
 
   useEffect(() => {
+    let active = true;
     const loadCoupon = async () => {
       if (mode === 'edit' && couponId) {
         try {
           setIsLoading(true);
           const coupon = await couponAPI.getCouponById(couponId);
-          
+          if (!active) return;
+
           const extractIdArray = (items: any[]) =>
             items
               .map((item) => (typeof item === 'string' ? item : item?._id || item?.id))
@@ -219,9 +227,9 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
             applicableCategories: extractIdArray(coupon.applicableCategories || []),
           });
         } catch (error) {
-          toast.error(t('error_load_data', 'admin'));
+          if (active) toast.error(t('error_load_data', 'admin'));
         } finally {
-          setIsLoading(false);
+          if (active) setIsLoading(false);
         }
       } else {
         resetFormState();
@@ -229,6 +237,9 @@ export function CouponForm({ mode, couponId, onSuccess, onCancel }: CouponFormPr
     };
 
     void loadCoupon();
+    return () => {
+      active = false;
+    };
   }, [mode, couponId, locale, currencyCode]);
 
   const resetFormState = () => {

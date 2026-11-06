@@ -41,10 +41,12 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
   }, [loadNamespace]);
 
   useEffect(() => {
+    let active = true;
     const fetchCustomer = async () => {
       try {
         setIsLoading(true);
         const foundCustomer = await customerAPI.getCustomerById(customerId, currencyCode);
+        if (!active) return;
 
         if (foundCustomer) {
           setCustomer(foundCustomer);
@@ -53,16 +55,21 @@ export function CustomerDetail({ customerId }: CustomerDetailProps) {
           router.push('/admin/customers');
         }
       } catch (error) {
-        toast.error(t('error_load_data', 'common'));
-        router.push('/admin/customers');
+        if (active) {
+          toast.error(t('error_load_data', 'common'));
+          router.push('/admin/customers');
+        }
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     if (customerId) {
       fetchCustomer();
     }
+    return () => {
+      active = false;
+    };
   }, [customerId, currencyCode, locale, t, router]);
 
   if (isLoading) {

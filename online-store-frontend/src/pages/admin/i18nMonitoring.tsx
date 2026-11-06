@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, AlertCircle, CheckCircle, TrendingUp, TrendingDown, Activity, Zap } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
@@ -60,21 +60,10 @@ const I18nMonitoringContent = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState('1h'); // 1h, 6h, 24h
 
   const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const fetchRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    loadNamespace('admin-i18n-monitoring').catch(err => {
-      // Error handled by namespace loading
-    });
-
-    fetchHealthData();
-
-    if (autoRefresh) {
-      const interval = setInterval(fetchHealthData, refreshInterval);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, refreshInterval, loadNamespace]);
-
-  const fetchHealthData = async () => {
+  const fetchHealthData = useCallback(async () => {
+    const requestId = ++fetchRequestIdRef.current;
     try {
       const token = getAuthToken();
       if (!token) {
@@ -92,6 +81,7 @@ const I18nMonitoringContent = () => {
       }
 
       const data: SystemHealth = await response.json();
+      if (requestId !== fetchRequestIdRef.current) return;
       setHealth(data);
 
       // Keep last 20 metrics for chart
@@ -102,6 +92,7 @@ const I18nMonitoringContent = () => {
 
       setLoading(false);
     } catch (error) {
+      if (requestId !== fetchRequestIdRef.current) return;
       if (process.env.NODE_ENV === 'development') {
         console.error(t('error_fetching_health_data', 'admin-errors'), error);
       }
@@ -111,7 +102,18 @@ const I18nMonitoringContent = () => {
       });
       setLoading(false);
     }
-  };
+  }, [API_BASE, locale, t]);
+
+  useEffect(() => {
+    loadNamespace('admin-i18n-monitoring').catch(() => {});
+    fetchHealthData();
+
+    const interval = autoRefresh ? setInterval(fetchHealthData, refreshInterval) : null;
+    return () => {
+      if (interval) clearInterval(interval);
+      fetchRequestIdRef.current += 1;
+    };
+  }, [autoRefresh, refreshInterval, loadNamespace, fetchHealthData]);
 
   if (loading) {
     return (

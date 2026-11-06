@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { Bell, AlertCircle, CheckCircle, Clock, RefreshCw, TrendingUp, X } from "lucide-react";
 import { orderAPI } from "../../lib/api";
@@ -58,32 +58,35 @@ export function NotificationBell() {
   const [isSaving, setIsSaving] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState<'pending' | 'delivered'>('pending');
   const [prevDeliveryStatus, setPrevDeliveryStatus] = useState<'pending' | 'delivered'>('pending');
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    fetchPendingOrders();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingOrders, 30000);
-    return () => clearInterval(interval);
-  }, [locale, currencyCode]);
-
-  const fetchPendingOrders = async () => {
+  const fetchPendingOrders = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       const response = await orderAPI.getAllOrders(1, locale, locale, currencyCode);
+      if (requestId !== requestIdRef.current) return;
       const allOrders = response.orders || [];
-
-      // Filter pending orders (not paid or not delivered)
       const pending = allOrders.filter(
         (order: PendingOrder) => !order.isPaid || !order.isDelivered
       );
 
       setPendingOrders(pending);
     } catch (error) {
-      setPendingOrders([]);
+      if (requestId === requestIdRef.current) setPendingOrders([]);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  };
+  }, [locale, currencyCode]);
+
+  useEffect(() => {
+    fetchPendingOrders();
+    const interval = setInterval(fetchPendingOrders, 30000);
+    return () => {
+      clearInterval(interval);
+      requestIdRef.current += 1;
+    };
+  }, [fetchPendingOrders]);
 
   const unreadCount = pendingOrders.length;
 

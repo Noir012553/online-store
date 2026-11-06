@@ -1,7 +1,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/compat/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -23,7 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
-import { useLanguage } from "../../lib/i18n";
+import { getLocalUiFallback, useLanguage } from "../../lib/i18n";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { RoleBadge } from "./RoleBadge";
@@ -67,12 +67,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openGroups, setOpenGroups] = useState(DEFAULT_OPEN_GROUPS);
   const [adminNamespaceLoaded, setAdminNamespaceLoaded] = useState(false);
   const [isChangingLanguage, setIsChangingLanguage] = useState(false);
+  const logoutInFlightRef = useRef(false);
 
   const handleAdminLogout = async () => {
-    await logout();
-    // Distinct feedback — logged out, not logged in.
-    toast.success(t('logout_success', 'auth'));
-    router?.replace('/login');
+    if (logoutInFlightRef.current) return;
+    logoutInFlightRef.current = true;
+    try {
+      await logout();
+      toast.dismiss('auth-login-success');
+      toast.success(getLocalUiFallback(locale, 'logout_successful'), { id: 'auth-logout-success' });
+    } finally {
+      logoutInFlightRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -99,15 +105,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [loadNamespace, locale]);
 
   useEffect(() => {
-    if (!router || !isInitialized) return;
-    if (!user) {
-    }
-  }, [isInitialized, user, router]);
+    if (!router?.isReady || !isInitialized || user || router.pathname.startsWith('/login')) return;
+    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
+  }, [router, isInitialized, user]);
 
-  // Last-resort safety net: if auth init never completes (isInitialized stuck
-  // false — e.g. the backend hangs and even the AuthContext deadline fails to
-  // propagate), treat the visitor as signed out after 12s and bounce to /login
-  // instead of hanging on the "Loading…" shell forever.
+  // Last-resort safety net: if auth init never completes, bounce to /login
+  // instead of hanging on the loading shell.
   useEffect(() => {
     if (!router || isInitialized) return;
     const timer = setTimeout(() => {
@@ -118,17 +121,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router, isInitialized]);
 
   useEffect(() => {
-    if (!router || !isInitialized) return;
-    if (user) return;
-    if (router.pathname.startsWith('/login')) return;
-    // Signed out on an admin page: redirect immediately instead of waiting on
-    // ProtectedAdminPage (belt-and-braces — it runs the same redirect, but if
-    // the /login chunk loads slowly the admin shell would hang on "Loading…").
-    void router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
-  }, [isInitialized, user, router]);
-
-  useEffect(() => {
-    const savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    let savedSidebarState: string | null = null;
+    try {
+      savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    } catch {}
 
     if (window.matchMedia('(max-width: 767px)').matches) {
       setSidebarOpen(false);
@@ -142,7 +138,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!hasLoadedSidebarState) return;
 
-    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarOpen));
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarOpen));
+    } catch {}
   }, [sidebarOpen, hasLoadedSidebarState]);
 
   if (!router || !isInitialized) {
