@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import {
   Dialog,
@@ -51,19 +51,33 @@ const LanguagesConfigContent = () => {
     type: 'success' | 'error' | 'info';
     text: string;
   } | null>(null);
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(false);
+  const languagesRequestIdRef = useRef(0);
+  const supportedLanguagesRequestIdRef = useRef(0);
 
   const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
   useEffect(() => {
-    Promise.all([
-      loadNamespace('admin-translation'),
-    ]).then(() => {
-      fetchLanguages();
-      fetchSupportedLanguages();
+    let active = true;
+    isMountedRef.current = true;
+    Promise.all([loadNamespace('admin-translation')]).then(() => {
+      if (active) {
+        fetchLanguages();
+        fetchSupportedLanguages();
+      }
     });
+    return () => {
+      active = false;
+      isMountedRef.current = false;
+      languagesRequestIdRef.current += 1;
+      supportedLanguagesRequestIdRef.current += 1;
+      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+    };
   }, [loadNamespace, locale]);
 
   const fetchLanguages = async () => {
+    const requestId = ++languagesRequestIdRef.current;
     try {
       setLoading(true);
       const token = getAuthToken();
@@ -90,20 +104,23 @@ const LanguagesConfigContent = () => {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current && data.success) {
         setLanguages(data.data);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(t('error_fetching_languages', 'admin-errors'), error);
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error(t('error_fetching_languages', 'admin-errors'), error);
+        }
+        showMessage('error', t('admin_error_load_languages', 'admin-translation'));
       }
-      showMessage('error', t('admin_error_load_languages', 'admin-translation'));
     } finally {
-      setLoading(false);
+      if (isMountedRef.current && requestId === languagesRequestIdRef.current) setLoading(false);
     }
   };
 
   const fetchSupportedLanguages = async () => {
+    const requestId = ++supportedLanguagesRequestIdRef.current;
     try {
       const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/languages/supported?lang=${locale}`, {
@@ -115,19 +132,24 @@ const LanguagesConfigContent = () => {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (isMountedRef.current && requestId === supportedLanguagesRequestIdRef.current && data.success) {
         setSupportedLanguages(data.data);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
+      if (isMountedRef.current && requestId === supportedLanguagesRequestIdRef.current && process.env.NODE_ENV === 'development') {
         console.error(t('error_fetching_supported_languages', 'admin-errors'), error);
       }
     }
   };
 
   const showMessage = (type: 'success' | 'error' | 'info', text: string) => {
+    if (!isMountedRef.current) return;
+    if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 5000);
+    messageTimeoutRef.current = setTimeout(() => {
+      setMessage(null);
+      messageTimeoutRef.current = null;
+    }, 5000);
   };
 
   const handleAddLanguage = async () => {
@@ -254,7 +276,9 @@ const LanguagesConfigContent = () => {
 
       await fetchLanguages();
       await refreshLocaleConfig();
-      window.localStorage.setItem('laptopstore_language_config_updated', String(Date.now()));
+      try {
+        window.localStorage.setItem('laptopstore_language_config_updated', String(Date.now()));
+      } catch {}
       window.dispatchEvent(new Event('language-config-updated'));
       showMessage('success', t('admin_language_status_updated', 'admin-translation'));
     } catch (error) {

@@ -25,24 +25,31 @@ function BannerTranslationsContent() {
   useEffect(() => {
     if (!bannerId || typeof bannerId !== 'string') return;
 
+    let active = true;
     const fetchBanner = async () => {
       try {
         setIsLoading(true);
         const response = await bannerAPI.getBannerById(bannerId, locale as any);
+        if (!active) return;
         if (response) {
           setBanner(response);
         }
       } catch (error) {
-        toast.error(t('error_load_data', 'admin-banners'));
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching banner:', error);
+        if (active) {
+          toast.error(t('error_load_data', 'admin-banners'));
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching banner:', error);
+          }
         }
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     fetchBanner();
+    return () => {
+      active = false;
+    };
   }, [bannerId, locale, t]);
 
   const handleGoBack = () => {

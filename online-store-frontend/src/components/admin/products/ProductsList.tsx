@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle, Star } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
@@ -55,8 +55,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const itemsPerPage = 10;
+  const latestRequestRef = useRef(0);
 
   const fetchProducts = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await productAPI.getAdminProducts(
@@ -68,27 +70,30 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         locale,
         currencyCode,
       );
+      if (requestId !== latestRequestRef.current) return;
       const fetchedProducts = response.products || [];
       setProducts(fetchedProducts);
       setTotalPages(response.pages || 1);
     } catch (error) {
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) toast.error(t('error_load_data', 'common'));
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
-  }, [currentPage, searchQuery, filterCategory, itemsPerPage, locale, currencyCode, t]);
+  }, [currentPage, searchQuery, filterCategory, filterBrand, itemsPerPage, locale, currencyCode, t]);
 
   const fetchDeletedProducts = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     try {
       setIsLoading(true);
       const response = await productAPI.getDeletedProducts(deletedCurrentPage, itemsPerPage, locale);
+      if (requestId !== latestRequestRef.current) return;
       const fetchedProducts = response.products || [];
       setDeletedProducts(fetchedProducts);
       setDeletedTotalPages(response.pages || 1);
     } catch (error) {
-      toast.error(t('error_load_data', 'common'));
+      if (requestId === latestRequestRef.current) toast.error(t('error_load_data', 'common'));
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
   }, [deletedCurrentPage, itemsPerPage, locale, t]);
 
@@ -99,6 +104,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       fetchProducts();
     }
   }, [currentPage, deletedCurrentPage, viewDeletedTab, searchQuery, filterCategory, filterBrand, locale, fetchProducts, fetchDeletedProducts]);
+
+  useEffect(() => () => {
+    latestRequestRef.current += 1;
+  }, []);
 
   // Socket.io real-time updates
   useEffect(() => {

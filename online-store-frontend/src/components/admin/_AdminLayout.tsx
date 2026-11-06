@@ -128,7 +128,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [isInitialized, user, router]);
 
   useEffect(() => {
-    const savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    let savedSidebarState: string | null = null;
+    try {
+      savedSidebarState = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    } catch {}
 
     if (window.matchMedia('(max-width: 767px)').matches) {
       setSidebarOpen(false);
@@ -142,7 +145,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!hasLoadedSidebarState) return;
 
-    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarOpen));
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarOpen));
+    } catch {}
   }, [sidebarOpen, hasLoadedSidebarState]);
 
   if (!router || !isInitialized) {

@@ -47,14 +47,10 @@ const TranslationManualOverride = () => {
   }, [loadNamespace]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('recentTranslationOverrides');
-    if (stored) {
-      try {
-        setRecentOverrides(JSON.parse(stored).slice(0, 5));
-      } catch (e) {
-        // Ignore parse errors
-      }
-    }
+    try {
+      const stored = localStorage.getItem('recentTranslationOverrides');
+      if (stored) setRecentOverrides(JSON.parse(stored).slice(0, 5));
+    } catch {}
   }, []);
 
   const handleFormChange = (field: keyof OverrideForm, value: string) => {
@@ -123,7 +119,9 @@ const TranslationManualOverride = () => {
       // Save to recent overrides
       const newRecent = [form, ...recentOverrides].slice(0, 5);
       setRecentOverrides(newRecent);
-      localStorage.setItem('recentTranslationOverrides', JSON.stringify(newRecent));
+      try {
+        localStorage.setItem('recentTranslationOverrides', JSON.stringify(newRecent));
+      } catch {}
 
       // Reset form
       setForm({

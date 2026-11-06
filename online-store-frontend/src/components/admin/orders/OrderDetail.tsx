@@ -63,22 +63,29 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
   }, [loadNamespace]);
 
   useEffect(() => {
+    let active = true;
     const fetchOrder = async () => {
       try {
         setIsLoading(true);
         const order = await orderAPI.getOrderById(orderId, locale, locale, currencyCode);
+        if (!active) return;
         setOrder(order);
       } catch (error) {
-        toast.error(t('error_load_data', 'common'));
-        router.push('/admin/orders');
+        if (active) {
+          toast.error(t('error_load_data', 'common'));
+          router.push('/admin/orders');
+        }
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     if (orderId) {
       fetchOrder();
     }
+    return () => {
+      active = false;
+    };
   }, [orderId, locale, currencyCode, t, router]);
 
   const handleMarkAsDelivered = async () => {
