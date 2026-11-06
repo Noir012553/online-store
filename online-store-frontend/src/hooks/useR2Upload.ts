@@ -75,9 +75,6 @@ export const useR2Upload = () => {
           xhr.send(formData);
         });
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[R2_UPLOAD_ERROR]', error);
-        }
         const failureCode = error && typeof error === 'object' && 'failureCode' in error
           && typeof error.failureCode === 'string'
           ? error.failureCode
