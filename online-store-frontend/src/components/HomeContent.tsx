@@ -162,7 +162,7 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-office': '/products/office-laptop',
 };
 const VNPAY_HERO_IMAGE = 'https://cdn.manln.online/banners/vnpay/247e6eab7de66db4be44f73644dd87d61590bbd7fabd87c608ce54a69c434a7e.svg';
-const GAMING_HERO_IMAGE = '/assets/gaming-laptop-hero.jpg';
+const GAMING_HERO_IMAGE = 'https://images.pexels.com/photos/6053292/pexels-photo-6053292.jpeg';
 
 const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
 const CATEGORY_CARDS_PER_VIEW = 4;
