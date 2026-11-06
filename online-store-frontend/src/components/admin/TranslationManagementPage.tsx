@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../lib/i18n';
+import { BACKEND_URL } from '../../config';
 import { getAuthToken } from '../../lib/api';
 import { Locale, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../../lib/i18n/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
@@ -46,7 +47,7 @@ export function TranslationManagementPage() {
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; action: 'clearCache' }>({ isOpen: false, action: 'clearCache' });
   const cacheStatTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = BACKEND_URL;
 
   // Cleanup timers on unmount
   useEffect(() => {

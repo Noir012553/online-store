@@ -1,6 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Trash2, Plus, Edit2, ChevronLeft, ChevronRight, RotateCcw, ArchiveX, Archive } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
+import { BACKEND_URL } from '../../config';
 import { getAuthToken } from '../../lib/api';
 import { getLanguageLabelKey } from '../../lib/i18n/localeLabels';
 import { Locale } from '../../lib/i18n/types';
@@ -28,7 +29,7 @@ interface PaginationData {
 
 const TranslationsManagementPage = () => {
   const { t, locale } = useTranslation();
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = BACKEND_URL;
 
   const [translations, setTranslations] = useState<StaticTranslation[]>([]);
   const [loading, setLoading] = useState(false);

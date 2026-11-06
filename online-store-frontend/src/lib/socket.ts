@@ -11,50 +11,8 @@ const eventCallbacks = new Map<string, Set<Function>>();
 // Events that have been attached to socket (to prevent re-attaching)
 const attachedEvents = new Set<string>();
 
-/**
- * Get Socket.io URL from environment variable or fallback
- *
- * Strategy:
- * - Development (localhost): Connect to http://localhost:5000 (Cloudflare Tunnel)
- * - Production (manln.online): Connect to https://backend.manln.online (Backend URL)
- *
- * Why separate backend URL?
- * - Cloudflare Tunnel maps https://backend.manln.online to backend:5000
- * - Frontend on https://manln.online connects to backend subdomain
- * - Backend Socket.io CORS allows both manln.online and backend.manln.online origins
- */
-const getSocketURL = (): string => {
-  if (typeof window === 'undefined') {
-    return 'http://localhost:5000';
-  }
-
-  const hostname = window.location.hostname;
-
-  // Priority 1: Development environment (localhost via Cloudflare Tunnel)
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:5000';
-  }
-
-  // Priority 2: Use environment variable if set (allows override)
-  const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
-  if (envSocketUrl) {
-    return envSocketUrl;
-  }
-
-  // Priority 3: Production - construct backend subdomain URL
-  // For manln.online frontend → https://backend.manln.online backend
-  const protocol = window.location.protocol;
-
-  // Special handling for manln.online -> backend.manln.online
-  if (hostname === 'manln.online' || hostname === 'www.manln.online') {
-    const backendURL = `${protocol}//backend.manln.online`;
-    return backendURL;
-  }
-
-  // Fallback: construct backend subdomain for any hostname
-  const backendURL = `${protocol}//backend.${hostname}`;
-  return backendURL;
-};
+const getSocketURL = (): string =>
+  process.env.NEXT_PUBLIC_SOCKET_URL?.trim() || BACKEND_URL;
 
 /**
  * Initialize Socket.io connection

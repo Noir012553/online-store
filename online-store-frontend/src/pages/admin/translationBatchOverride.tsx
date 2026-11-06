@@ -1,5 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Upload, Download, Play, Check, AlertCircle, X, Eye, FileDown, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
+import { BACKEND_URL } from '../../config';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
@@ -64,7 +65,7 @@ const TranslationBatchOverride = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; rowCount: number }>({ isOpen: false, rowCount: 0 });
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = BACKEND_URL;
 
   useEffect(() => {
     loadNamespace('admin-translation-batch').catch(err => {

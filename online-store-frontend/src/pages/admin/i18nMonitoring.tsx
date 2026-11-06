@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, AlertCircle, CheckCircle, TrendingUp, TrendingDown, Activity, Zap } from 'lucide-react';
+import { BACKEND_URL } from '../../config';
 import { useTranslation } from '../../lib/i18n';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
@@ -59,7 +60,7 @@ const I18nMonitoringContent = () => {
   const [metricsHistory, setMetricsHistory] = useState<HealthMetrics[]>([]);
   const [selectedTimeRange, setSelectedTimeRange] = useState('1h'); // 1h, 6h, 24h
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = BACKEND_URL;
   const fetchRequestIdRef = useRef(0);
 
   const fetchHealthData = useCallback(async () => {

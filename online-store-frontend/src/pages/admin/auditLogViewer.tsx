@@ -1,5 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Search, RefreshCw, Download, Filter, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { BACKEND_URL } from '../../config';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, Locale } from '../../lib/i18n/types';
 import { getIntlLocale } from '../../lib/localeUtils';
@@ -60,7 +61,7 @@ const AuditLogViewerContent = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const API_BASE = BACKEND_URL;
 
   useEffect(() => {
     Promise.all([
