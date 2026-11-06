@@ -161,6 +161,8 @@ const HOMEPAGE_ROUTE_ALIASES: Record<string, string> = {
   '/products/laptop-van-phong': '/products/office-laptop',
   '/products/laptop-office': '/products/office-laptop',
 };
+const VNPAY_HERO_IMAGE = 'https://cdn.manln.online/banners/vnpay/247e6eab7de66db4be44f73644dd87d61590bbd7fabd87c608ce54a69c434a7e.svg';
+const GAMING_HERO_IMAGE = '/assets/gaming-laptop-hero.jpg';
 
 const FLASH_SALE_CATEGORY_SLUGS = new Set(['gaming-laptop', 'office-laptop']);
 const CATEGORY_CARDS_PER_VIEW = 4;
@@ -344,7 +346,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
       title: getTextByLang(banner.title, currentLang),
       subtitle: getTextByLang(banner.subtitle, currentLang),
       description: getTextByLang(banner.description, currentLang),
-      image: banner.image,
+      image: banner.image === VNPAY_HERO_IMAGE ? GAMING_HERO_IMAGE : banner.image,
       cta: getTextByLang(banner.ctaText, currentLang),
       link: normalizeHomepageTargetUrl(banner.targetUrl),
       openInNewTab: banner.openInNewTab,
