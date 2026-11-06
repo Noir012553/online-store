@@ -103,7 +103,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const removeFromCart = (laptopId: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.laptop.id !== laptopId));
+    setItems((prevItems) => prevItems.filter((item) => (item.laptop.id || item.laptop._id) !== laptopId));
   };
 
   const updateQuantity = (laptopId: string, quantity: number) => {

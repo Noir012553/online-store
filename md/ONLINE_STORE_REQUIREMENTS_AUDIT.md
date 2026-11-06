@@ -4,81 +4,62 @@
 
 Đối chiếu mã nguồn frontend và backend với yêu cầu chức năng trong tài liệu dự án. Báo cáo tập trung vào cửa hàng, checkout và trang quản trị; không đánh giá responsive, GitLab hoặc slide PowerPoint.
 
-Đây là rà soát tĩnh. Không sửa mã nguồn, không chạy test, không chạy `npm run build` và chưa xác minh trên trình duyệt.
+Báo cáo này được cập nhật sau lượt sửa. Không chạy `npm run build`. TypeScript frontend và cú pháp JavaScript backend đã được kiểm tra; test Mocha chưa chạy được do package không có sẵn trong môi trường. Đã mở các route trong preview, nhưng chưa thể thực hiện thao tác admin thật vì trang yêu cầu đăng nhập.
 
-## Tổng kết
+## Tổng kết sau sửa
 
-Các luồng chính đã được triển khai và phần catalog/đặt hàng có kết nối backend thật. Tuy nhiên, một số thao tác admin và dữ liệu checkout còn chưa khớp yêu cầu; chưa nên xem toàn bộ dự án là hoàn tất trước khi xử lý các mục ưu tiên bên dưới.
+Đã sửa các lỗi đã xác nhận ở tạo danh mục mới, xóa mềm đơn hàng, lưu địa chỉ khách hàng, email checkout tùy chọn, prefill địa chỉ profile, giới hạn số lượng giỏ, lọc nhiều brand, tìm kiếm sản phẩm đã xóa, phân trang khi đổi bộ lọc và bảo vệ thao tác xóa cứng. Phần quản lý sửa mặt hàng trong đơn và giữ/trừ tồn kho chưa thay đổi vì cần chốt quy tắc nghiệp vụ trước.
 
 ## Kết quả theo yêu cầu
 
 | Hạng mục | Đánh giá | Ghi chú |
 |---|---|---|
 | Danh mục và sản phẩm | Đạt | Frontend gọi API; backend truy vấn dữ liệu và chỉ trả sản phẩm đang được đăng bán, chưa xóa. |
-| Giỏ hàng | Đạt cơ bản | Thêm trùng sản phẩm thì cộng số lượng; giỏ lưu trong `localStorage`; có tăng, giảm và xóa sản phẩm. Chưa giới hạn số lượng theo tồn kho. |
+| Giỏ hàng | Đạt cơ bản | Thêm trùng sản phẩm thì cộng số lượng; giỏ lưu trong `localStorage`; có tăng, giảm, xóa; số lượng được giới hạn theo tồn kho có trong dữ liệu sản phẩm. Backend vẫn là nơi kiểm tra tồn kho cuối cùng. |
 | Tạo đơn và tính tiền | Đạt về tính giá | Backend lấy giá từ database, kiểm tra tồn kho và tính tổng; không dùng giá do client gửi làm nguồn chuẩn. Cần xác minh cơ chế giữ/trừ kho khi có nhiều đơn đồng thời. |
-| Đăng nhập và checkout | Một phần | Checkout chuyển người chưa đăng nhập sang trang Login. Tên, email, số điện thoại được điền trước; địa chỉ hồ sơ chưa được điền vào form giao hàng. |
-| Khớp khách bằng số điện thoại | Một phần | Backend tìm/tạo/cập nhật khách theo số điện thoại khi tạo đơn. Checkout chưa tra cứu khách theo số điện thoại để tự điền thông tin trước khi đặt hàng. |
-| Admin sản phẩm | Một phần | Có danh sách, tạo, sửa, lọc và thao tác xóa/khôi phục; luồng tạo danh mục mới đang lệch payload giữa frontend và backend. |
-| Admin khách hàng | Một phần | Có danh sách, tìm kiếm, tạo, sửa và thao tác xóa/khôi phục. Trường địa chỉ được gửi từ form nhưng không có trong schema Customer nên có thể không được lưu. |
-| Admin đơn hàng | Một phần | Có danh sách, bộ lọc, tạo, xem và thao tác trạng thái. Chỉnh sửa đơn hiện chỉ cập nhật địa chỉ giao hàng, không chỉnh sản phẩm/số lượng hay khách hàng gắn với đơn. Xóa mềm có khả năng lỗi xác thực và báo thành công giả. |
-| Ràng buộc xóa | Đạt một phần | Backend chặn xóa sản phẩm/khách hàng có đơn liên quan. Một số endpoint xóa cứng không bắt buộc bản ghi phải được xóa mềm trước. |
+| Đăng nhập và checkout | Đạt cơ bản | Checkout chuyển người chưa đăng nhập sang Login; tên, email, số điện thoại và địa chỉ profile được điền trước nếu có. Email được để tùy chọn nhất quán với form và schema. |
+| Khớp khách bằng số điện thoại | Đạt theo luồng tạo đơn | Backend upsert khách theo số điện thoại và cập nhật thông tin/địa chỉ từ đơn mới. Không tra cứu hồ sơ trước khi đặt; tài liệu chỉ yêu cầu cập nhật khi lưu đơn. |
+| Admin sản phẩm | Đạt cơ bản | Có danh sách, tạo, sửa, lọc, xóa/khôi phục; tạo danh mục mới gọi API danh mục rồi gửi ID; có thể đổi danh mục khi sửa; tìm kiếm đã xóa và reset trang khi lọc đã được nối. |
+| Admin khách hàng | Đạt cơ bản | Có danh sách, tìm kiếm, tạo/sửa và xóa/khôi phục; trường địa chỉ đã được khai báo trong schema và được lưu. Email khách hàng là tùy chọn. |
+| Admin đơn hàng | Một phần | Có danh sách, bộ lọc, tạo, xem và thao tác trạng thái; xóa mềm dùng API client có xác thực. Chỉnh sửa đơn vẫn chỉ cập nhật địa chỉ giao hàng, chưa chỉnh sản phẩm/số lượng hay khách hàng. Payload đổi trạng thái đã được validate. |
+| Ràng buộc xóa | Đạt cơ bản | Backend chặn xóa sản phẩm/khách hàng có đơn liên quan; xóa cứng sản phẩm, khách hàng và đơn hàng hiện yêu cầu bản ghi đã xóa mềm trước. |
 
-## Các vấn đề cần ưu tiên
+## Các mục còn tồn tại
 
-### 1. Tạo sản phẩm với danh mục mới không khớp API
+### Chỉnh sửa chi tiết mặt hàng trong đơn
 
-Form gửi `categoryName`, trong khi backend yêu cầu `category` là ID danh mục hợp lệ. Vì vậy, nhánh tạo danh mục mới trong form có thể không tạo được sản phẩm.
+Trang sửa đơn hiện chỉ cập nhật `shippingAddress`. Chưa thêm sửa sản phẩm/số lượng/khách hàng vì cần xác định chính sách cho đơn đã thanh toán, giảm giá, phí giao hàng và điều chỉnh tồn kho trước khi thay đổi tổng tiền.
 
-- `online-store-frontend/src/components/admin/products/ProductForm.tsx:116-129,208-216`
-- `online-store-backend/src/controllers/productController.js:755-759,787-795`
+- `online-store-frontend/src/components/admin/orders/OrderForm.tsx`
+- `online-store-backend/src/controllers/orderController.js`
+- `online-store-backend/src/routes/orderRoutes.js`
 
-### 2. Xóa mềm đơn hàng có khả năng không thực hiện đúng
+### Giữ hoặc trừ tồn kho khi tạo đơn
 
-Trang admin gọi `fetch` trực tiếp mà không thêm Bearer token; backend bảo vệ route bằng middleware xác thực. Frontend cũng không kiểm tra `response.ok` trước khi hiển thị thành công.
+Giỏ được giới hạn theo tồn kho trong snapshot sản phẩm và backend kiểm tra lại khi tạo đơn. Tuy nhiên, luồng tạo đơn hiện chưa giữ/trừ tồn kho nguyên tử; cần quy định thời điểm giữ hàng, xử lý thanh toán thất bại và hoàn tồn trước khi triển khai.
 
-- `online-store-frontend/src/components/admin/orders/OrdersList.tsx:190-207`
-- `online-store-backend/src/middleware/authMiddleware.js:17-25`
-- `online-store-backend/src/routes/orderRoutes.js:146-149`
+### Chuẩn hóa số điện thoại dữ liệu cũ
 
-### 3. Sửa đơn hàng chưa đầy đủ
+Các đơn mới kiểm tra số điện thoại dạng 10–11 chữ số. Chưa có migration chuẩn hóa số điện thoại cũ có dấu cách/mã quốc gia; các record cũ khác định dạng có thể không được ghép với nhau.
 
-Form chỉnh sửa gửi `shippingAddress`; chưa có luồng cập nhật danh sách sản phẩm, số lượng hoặc khách hàng của đơn.
+## Xác minh sau sửa
 
-- `online-store-frontend/src/components/admin/orders/OrderForm.tsx:80-104,186-224`
-- `online-store-backend/src/routes/orderRoutes.js:146-149`
+- `npm run typecheck` trong frontend: **đạt**.
+- `node --check` cho các controller, middleware, route và test backend đã sửa: **đạt**.
+- Test Mocha: **chưa chạy** — Mocha không có sẵn trong backend; không cài thêm package.
+- Preview: route `/cart` trả HTTP 200; `/admin/products/create` chuyển sang Login khi chưa đăng nhập. Chưa xác minh thao tác admin end-to-end do không có phiên admin.
+- Không chạy `npm run build`.
 
-### 4. Địa chỉ khách hàng admin có thể không được lưu
+## Mã nguồn liên quan
 
-Form và controller có nhận trường `address`, nhưng schema Customer không khai báo trường này. Với schema hiện tại, không nên giả định địa chỉ được lưu và đọc lại thành công.
-
-- `online-store-frontend/src/components/admin/customers/CustomerForm.tsx:92-108`
-- `online-store-backend/src/controllers/customerController.js:117-136`
-- `online-store-backend/src/models/Customer.js:28-51`
-
-### 5. Email checkout không nhất quán giữa form và backend
-
-Form không đánh dấu email bắt buộc, nhưng backend/schema yêu cầu email hợp lệ. Nếu người mua xóa email khỏi form, tạo khách hàng/đơn có thể bị từ chối.
-
-- `online-store-frontend/src/components/checkout/Step1Combined.tsx:265-280`
-- `online-store-backend/src/middleware/validationMiddleware.js:135-140`
-- `online-store-backend/src/models/Customer.js:34-39`
-
-### 6. Tra cứu khách hàng trong checkout chưa được nối
-
-Backend có handler tra cứu theo số điện thoại nhưng route yêu cầu quyền admin; frontend checkout chưa gọi API này. Việc ghép khách hiện diễn ra ở bước tạo đơn, không phải lúc nhập số điện thoại.
-
-- `online-store-backend/src/controllers/customerController.js:363-375`
-- `online-store-backend/src/routes/customerRoutes.js:60-65`
-- `online-store-backend/src/controllers/orderController.js:299-375`
-
-## Rủi ro và điểm cần xác minh thêm
-
-- Số lượng trong giỏ có thể vượt tồn kho; hiện chỉ backend kiểm tra khi tạo đơn.
-- Nhiều yêu cầu tạo đơn đồng thời có thể cùng vượt qua bước kiểm tra tồn kho nếu không có cơ chế giữ/trừ kho ở luồng khác.
-- Số điện thoại cùng khách nhưng khác định dạng có thể không được nhận diện là một giá trị thống nhất.
-- API cập nhật trạng thái đơn nhận `isPaid`/`isDelivered` nhưng thiếu validation và kiểm tra chuyển trạng thái nghiệp vụ đầy đủ.
-- Một số bộ lọc còn giới hạn: trang danh mục chỉ gửi brand đầu tiên khi chọn nhiều brand; tìm kiếm sản phẩm có giới hạn kết quả; tìm kiếm ở danh sách sản phẩm đã xóa chưa được truyền đầy đủ.
+- Frontend giỏ hàng: `online-store-frontend/src/lib/context/CartContext.tsx`, `online-store-frontend/src/pages/cart.tsx`
+- Frontend checkout: `online-store-frontend/src/pages/checkout.tsx`, `online-store-frontend/src/context/CheckoutContext.tsx`, `online-store-frontend/src/components/checkout/Step1Combined.tsx`, `online-store-frontend/src/components/checkout/Step3Payment.tsx`
+- Admin sản phẩm: `online-store-frontend/src/components/admin/products/ProductForm.tsx`, `online-store-frontend/src/components/admin/products/ProductsList.tsx`
+- Admin khách hàng: `online-store-frontend/src/components/admin/customers/CustomerForm.tsx`, `online-store-frontend/src/components/admin/customers/CustomersList.tsx`
+- Admin đơn hàng: `online-store-frontend/src/components/admin/orders/OrderForm.tsx`, `online-store-frontend/src/components/admin/orders/OrdersList.tsx`
+- Backend danh mục/sản phẩm: `online-store-backend/src/controllers/categoryController.js`, `online-store-backend/src/controllers/productController.js`
+- Backend đơn hàng/validation: `online-store-backend/src/controllers/orderController.js`, `online-store-backend/src/routes/orderRoutes.js`, `online-store-backend/src/middleware/validationMiddleware.js`
+- Backend khách hàng: `online-store-backend/src/controllers/customerController.js`, `online-store-backend/src/models/Customer.js`
 
 ## Mã nguồn liên quan
 

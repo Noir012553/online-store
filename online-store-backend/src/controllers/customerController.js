@@ -180,14 +180,17 @@ const updateCustomer = asyncHandler(async (req, res) => {
   // Build update object
   const updateData = {};
   if (name) updateData.name = name;
-  if (email !== undefined) updateData.email = email.toLowerCase().trim();
+  if (typeof email === 'string' && email.trim()) updateData.email = email.toLowerCase().trim();
   if (phone) updateData.phone = phone.trim();
   if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : '';
 
   try {
     const updatedCustomer = await Customer.findByIdAndUpdate(
       req.params.id,
-      { $set: updateData },
+      {
+        $set: updateData,
+        ...(email !== undefined && !String(email || '').trim() && { $unset: { email: 1 } }),
+      },
       { returnDocument: 'after', runValidators: true }
     );
 

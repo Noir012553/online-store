@@ -19,6 +19,7 @@ const {
   createOrUpdateCustomerByPhone,
 } = require('../controllers/customerController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { validateCustomer, handleValidationErrors } = require('../middleware/validationMiddleware');
 
 /**
  * GET /api/customers - Lấy danh sách khách hàng (Admin only, phân trang, tìm kiếm)
@@ -26,7 +27,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
  */
 router.route('/')
   .get(protect, admin, getCustomers)
-  .post(protect, admin, createCustomer);
+  .post(protect, admin, validateCustomer, handleValidationErrors, createCustomer);
 
 /**
  * GET /api/customers/deleted/list - Lấy danh sách khách hàng đã xóa (Admin only)
@@ -41,7 +42,7 @@ router.route('/deleted/list')
  */
 router.route('/:id')
   .get(protect, admin, getCustomerById)
-  .put(protect, admin, updateCustomer)
+  .put(protect, admin, validateCustomer, handleValidationErrors, updateCustomer)
   .delete(protect, admin, deleteCustomer);
 
 /**

@@ -176,7 +176,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         const formData = new FormData();
         formData.append("name", product.name);
         formData.append("brand", product.brand);
-        const catId = product.categoryId || (product.category?._id || product.category);
+        const catId = product.category?._id || product.category || product.categoryId;
         if (catId) {
           formData.append("category", catId);
         }
@@ -374,11 +374,21 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           {product._id && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">{t('admin_category', 'admin')}</Label>
-              <Input
-                value={product.category?.name || product.categoryName || product.category || ""}
-                disabled
-                className="bg-gray-100 text-gray-600"
-              />
+              <select
+                value={product.category?._id || product.categoryId || product.category || ""}
+                onChange={(event) => {
+                  const selectedCategory = categories.find((category) => category._id === event.target.value);
+                  setProduct({ ...product, category: selectedCategory || event.target.value });
+                }}
+                className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none"
+              >
+                <option value="" disabled>{t('select_category_placeholder', 'admin')}</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {getCategoryName(category)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>

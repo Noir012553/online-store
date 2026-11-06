@@ -616,7 +616,15 @@ const getProducts = asyncHandler(async (req, res) => {
       category = { category: categoryId };
     }
   }
-  const brand = req.query.brand ? { brand: req.query.brand } : {};
+  const requestedBrands = (Array.isArray(req.query.brand) ? req.query.brand : [req.query.brand])
+    .flatMap(value => typeof value === 'string' ? value.split(',') : [])
+    .map(value => value.trim())
+    .filter(Boolean);
+  const brand = requestedBrands.length === 1
+    ? { brand: requestedBrands[0] }
+    : requestedBrands.length > 1
+      ? { brand: { $in: requestedBrands } }
+      : {};
   const dealFilter = req.query.hasDeal === 'true'
     ? {
       'deal.discount': { $gt: 0 },

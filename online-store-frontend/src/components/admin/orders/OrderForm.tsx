@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, Package, DollarSign, Plus, X } from 'lucide-react';
+import { MapPin, Package, DollarSign, Plus, Minus, X } from 'lucide-react';
 import { apiCall, orderAPI, productAPI } from '../../../lib/api';
 import type { CheckoutSummary } from '../../../context/CheckoutContext';
 import { useTranslation, useLanguage } from '../../../lib/i18n';
@@ -56,8 +56,6 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   // Fetch products for selection
   useEffect(() => {
-    if (mode === 'edit') return;
-
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
@@ -91,6 +89,13 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
             customerAddress: order.shippingAddress?.address || '',
             paymentMethod: order.paymentMethod || 'cod',
           });
+          setOrderItems((order.orderItems || []).map((item: any) => ({
+            product: String(typeof item.product === 'object' ? item.product._id || item.product.id : item.product),
+            name: item.name,
+            image: item.image || '',
+            qty: Number(item.qty),
+            price: Number(item.price),
+          })));
         } catch (error) {
           toast.error(t('error_load_data', 'common'));
           onCancel?.();
@@ -155,7 +160,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
   }, [orderItems]);
 
   useEffect(() => {
-    if (orderItems.length === 0) {
+    if (mode === 'edit' || orderItems.length === 0) {
       setSummary(null);
       setIsLoadingSummary(false);
       return;
@@ -181,7 +186,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     return () => {
       cancelled = true;
     };
-  }, [currency.code, locale, orderItems]);
+  }, [currency.code, locale, mode, orderItems]);
 
   const handleSubmit = async () => {
     if (!form.customerName || !form.customerPhone || !form.customerAddress) {
@@ -203,7 +208,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       }
     }
 
-    if (mode === 'create' && orderItems.length === 0) {
+    if (orderItems.length === 0) {
       toast.error(t('error_cart_empty', 'admin'));
       return;
     }
@@ -219,7 +224,10 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
       if (mode === 'edit') {
         if (!orderId) return;
-        await orderAPI.updateOrder(orderId, { shippingAddress }, locale);
+        await orderAPI.updateOrder(orderId, {
+          shippingAddress,
+          cartItems: orderItems.map((item) => ({ productId: item.product, quantity: item.qty })),
+        }, locale);
         toast.success(t('toast_update_success', 'admin'));
       } else {
         await apiCall(`/orders?lang=${locale}&locale=${locale}`, {
@@ -329,7 +337,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         </div>
 
         {/* Products Section */}
-        {mode === 'create' && <div className="space-y-4">
+        <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Package className="w-4 h-4 text-blue-600" />
             {t('add_product', 'admin')}
@@ -426,7 +434,31 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                     return (
                       <tr key={item.product}>
                         <td className="px-4 py-2">{summaryItem?.name || product?.name || t('product_fallback', 'admin')}</td>
-                        <td className="px-4 py-2 text-center">{item.qty}</td>
+                        <td className="px-4 py-2 text-center">
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={item.qty <= 1}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty - 1 } : current))}
+                              aria-label={t('quantity_decrease', 'products')}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span>{item.qty}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={Number.isInteger(product?.countInStock) && item.qty >= product.countInStock}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty + 1 } : current))}
+                              aria-label={t('quantity_increase', 'products')}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </td>
                         <td className="px-4 py-2 text-right">
                           {summaryItem?.formattedPrice || '—'}
                         </td>
@@ -449,7 +481,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
               </table>
             </div>
           )}
-        </div>}
+        </div>
 
         {mode === 'create' && <div>
           <Label htmlFor="payment-method" className="text-xs font-medium text-gray-600">
@@ -501,7 +533,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         <div className="flex flex-col gap-3 pt-6 sm:flex-row border-t">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || (mode === 'create' && orderItems.length === 0)}
+            disabled={isSubmitting || orderItems.length === 0}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
           >
             {isSubmitting ? t('loading', 'common') : mode === 'create' ? t('create_order_button', 'admin') : t('update', 'common')}
