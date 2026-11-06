@@ -49,7 +49,12 @@ export const useR2Upload = () => {
             try {
               const response = JSON.parse(xhr.responseText);
               if (xhr.status < 200 || xhr.status >= 300 || !response.asset) {
-                reject(new Error(response.message || 'Upload failed'));
+                const failureCode = typeof response.code === 'string'
+                  ? response.code
+                  : xhr.status < 200 || xhr.status >= 300
+                    ? `HTTP_${xhr.status}`
+                    : 'INVALID_UPLOAD_RESPONSE';
+                reject(Object.assign(new Error(response.message || 'Upload failed'), { failureCode }));
                 return;
               }
               const asset = response.asset as R2AssetReference;
@@ -73,7 +78,11 @@ export const useR2Upload = () => {
         if (process.env.NODE_ENV === 'development') {
           console.error('[R2_UPLOAD_ERROR]', error);
         }
-        toast.error(t('upload_failed', 'common'));
+        const failureCode = error && typeof error === 'object' && 'failureCode' in error
+          && typeof error.failureCode === 'string'
+          ? error.failureCode
+          : null;
+        toast.error(failureCode ? `${t('upload_failed', 'common')} (${failureCode})` : t('upload_failed', 'common'));
         return null;
       } finally {
         setIsUploading(false);
