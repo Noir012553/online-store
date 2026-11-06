@@ -15,6 +15,7 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { useAuth } from '../../lib/context/AuthContext';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
+import { API_BASE_PATH } from '../../config';
 
 interface Language {
   _id: string;
@@ -56,7 +57,7 @@ const LanguagesConfigContent = () => {
   const languagesRequestIdRef = useRef(0);
   const supportedLanguagesRequestIdRef = useRef(0);
 
-  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const LANGUAGES_API = `${API_BASE_PATH}/languages`;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -92,7 +93,7 @@ const LanguagesConfigContent = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/api/languages?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}?lang=${locale}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ const LanguagesConfigContent = () => {
     const requestId = ++supportedLanguagesRequestIdRef.current;
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/supported?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/supported?lang=${locale}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
@@ -172,7 +173,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}?lang=${locale}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${editingLanguage._id}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${editingLanguage._id}?lang=${locale}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name, isActive: editingLanguage.isActive }),
@@ -245,7 +246,7 @@ const LanguagesConfigContent = () => {
     setIsProcessing(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${deletingLanguage._id}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${deletingLanguage._id}?lang=${locale}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -264,7 +265,7 @@ const LanguagesConfigContent = () => {
   const handleToggleLanguage = async (langId: string, currentStatus: boolean) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/languages/${langId}?lang=${locale}`, {
+      const response = await fetch(`${LANGUAGES_API}/${langId}?lang=${locale}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
