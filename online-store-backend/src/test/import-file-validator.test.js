@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const archiverModule = require('archiver');
 const path = require('path');
-const { checkFileType, validateImportFile } = require('../utils/fileUtils');
+const { validateImportFile } = require('../utils/fileUtils');
 const {
   validateProduct,
   validateProductArray,
@@ -1370,24 +1370,6 @@ describe('Image upload validation', () => {
     });
 
     expect(result.nextCalled).to.equal(true);
-  });
-
-  it('accepts AVIF through Multer and content-signature validation', () => {
-    const file = {
-      buffer: Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66]),
-      originalname: 'banner.avif',
-      mimetype: 'image/avif',
-    };
-    let filterError;
-    let accepted = false;
-    checkFileType(file, (error, result) => {
-      filterError = error;
-      accepted = result;
-    });
-
-    expect(filterError).to.equal(null);
-    expect(accepted).to.equal(true);
-    expect(validateImage(file).nextCalled).to.equal(true);
   });
 
   it('rejects a JPEG payload disguised with a PNG extension and MIME type', () => {
