@@ -43,6 +43,7 @@ export const useLogoutConfirm = () => {
       await logout();
       setShowConfirm(false);
       // Success feedback — a distinct message, NOT the login one.
+      toast.dismiss('auth-login-success');
       toast.success(getLocalUiFallback(locale, 'logout_successful'), { id: 'auth-logout-success' });
       // Always land on /login after logging out. The page we were on is
       // preserved as ?from= so login can bring the user back to it.

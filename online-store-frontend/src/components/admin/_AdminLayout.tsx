@@ -74,6 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     logoutInFlightRef.current = true;
     try {
       await logout();
+      toast.dismiss('auth-login-success');
       toast.success(getLocalUiFallback(locale, 'logout_successful'), { id: 'auth-logout-success' });
     } finally {
       logoutInFlightRef.current = false;

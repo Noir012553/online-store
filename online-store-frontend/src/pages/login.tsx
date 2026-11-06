@@ -57,6 +57,7 @@ export default function Login() {
     const handleGoogleLogin = async () => {
       const success = await googleLogin();
       if (success) {
+        toast.dismiss('auth-logout-success');
         toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
         router.replace(from);
       } else {
@@ -74,6 +75,7 @@ export default function Login() {
     try {
       const success = await login(loginData.email, loginData.password);
       if (success) {
+        toast.dismiss('auth-logout-success');
         toast.success(getLocalUiFallback(locale, 'login_successful'), { id: 'auth-login-success' });
         void router.replace(from);
       } else {
