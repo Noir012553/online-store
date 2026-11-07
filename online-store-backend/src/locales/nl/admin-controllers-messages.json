@@ -130,7 +130,7 @@
   "order_deleted": "Bestelling verwijderd",
   "order_already_deleted": "Bestelling is al verwijderd",
   "order_not_deleted": "Bestelling is niet verwijderd",
-  "order_cannot_be_deleted_paid_or_delivered": "Betaalde of geleverde bestellingen kunnen niet worden verwijderd.",
+  "order_cannot_be_deleted_paid_or_delivered": "Alleen betaalde en geleverde bestellingen kunnen worden verwijderd.",
   "order_permanently_deleted": "Bestelling permanent verwijderd",
   "payment_not_found": "Betaling {{paymentId}} niet gevonden",
   "newsletter_email_phone_required": "E-mail en telefoon vereist",

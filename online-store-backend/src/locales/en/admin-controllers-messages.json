@@ -142,7 +142,7 @@
   "order_deleted": "Order deleted",
   "order_already_deleted": "Order is already deleted",
   "order_not_deleted": "Order is not deleted",
-  "order_cannot_be_deleted_paid_or_delivered": "Paid or delivered orders cannot be deleted.",
+  "order_cannot_be_deleted_paid_or_delivered": "Only paid and delivered orders can be deleted.",
   "order_permanently_deleted": "Order permanently deleted",
   "payment_not_found": "Payment {{paymentId}} not found",
   "newsletter_email_phone_required": "Email and phone are required",

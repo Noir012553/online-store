@@ -130,7 +130,7 @@
   "order_deleted": "Beställning raderad",
   "order_already_deleted": "Beställningen är redan raderad",
   "order_not_deleted": "Beställningen är inte raderad",
-  "order_cannot_be_deleted_paid_or_delivered": "Betalda eller levererade beställningar kan inte tas bort.",
+  "order_cannot_be_deleted_paid_or_delivered": "Endast betalda och levererade beställningar kan tas bort.",
   "order_permanently_deleted": "Beställning permanent raderad",
   "payment_not_found": "Betalning {{paymentId}} hittades inte",
   "newsletter_email_phone_required": "E-post och telefon krävs",

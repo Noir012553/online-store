@@ -81,7 +81,7 @@ const createOrderError = (lang, errorCode, messageKey, values = {}) => {
 };
 
 const ensureOrderCanBeDeleted = (order, lang, res) => {
-  if (!order.isPaid && !order.isDelivered) return;
+  if (order.isPaid && order.isDelivered) return;
 
   res.status(409);
   throw createOrderError(

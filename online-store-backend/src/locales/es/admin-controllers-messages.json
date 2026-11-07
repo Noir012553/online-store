@@ -130,7 +130,7 @@
   "order_deleted": "Pedido eliminado",
   "order_already_deleted": "El pedido ya ha sido eliminado",
   "order_not_deleted": "El pedido no ha sido eliminado",
-  "order_cannot_be_deleted_paid_or_delivered": "No se pueden eliminar pedidos pagados o entregados.",
+  "order_cannot_be_deleted_paid_or_delivered": "Solo se pueden eliminar los pedidos pagados y entregados.",
   "order_permanently_deleted": "Pedido eliminado permanentemente",
   "payment_not_found": "Pago {{paymentId}} no encontrado",
   "newsletter_email_phone_required": "Se requieren correo electrónico y teléfono",

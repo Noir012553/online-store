@@ -256,6 +256,17 @@ describe('Order Controller', () => {
       expect(order.isDeleted).to.be.true;
     });
 
+    it('allows soft deletion of a paid and delivered order', async () => {
+      const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false, isPaid: true, isDelivered: true, save: sandbox.stub().resolves() };
+      sandbox.stub(Order, 'findOne').resolves(order);
+      const req = { params: { id: order._id.toString() }, app: { get: sandbox.stub().returns(null) }, lang: 'en' };
+      const res = { json: sandbox.stub() };
+
+      await deleteOrder(req, res);
+      expect(order.isDeleted).to.be.true;
+      expect(order.save.calledOnce).to.be.true;
+    });
+
     it('rejects soft deletion of a paid order', async () => {
       const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false, isPaid: true, isDelivered: false, save: sandbox.stub() };
       sandbox.stub(Order, 'findOne').resolves(order);
@@ -274,9 +285,9 @@ describe('Order Controller', () => {
   });
 
   describe('hardDeleteOrder', () => {
-    it('should hard delete an order', async () => {
+    it('should hard delete a completed order', async () => {
       const orderId = new mongoose.Types.ObjectId();
-      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true });
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true, isPaid: true, isDelivered: true });
       sandbox.stub(Order, 'findByIdAndDelete').resolves({ _id: orderId });
 
       const req = { params: { id: orderId.toString() }, lang: 'en' };
@@ -286,9 +297,9 @@ describe('Order Controller', () => {
       expect(res.json.calledOnce).to.be.true;
     });
 
-    it('rejects hard deletion of a delivered order', async () => {
+    it('rejects hard deletion of a delivered but unpaid order', async () => {
       const orderId = new mongoose.Types.ObjectId();
-      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true, isPaid: true, isDelivered: true });
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true, isPaid: false, isDelivered: true });
       const deleteStub = sandbox.stub(Order, 'findByIdAndDelete');
       const req = { params: { id: orderId.toString() }, lang: 'en' };
       const res = { status: sandbox.stub().returnsThis() };
