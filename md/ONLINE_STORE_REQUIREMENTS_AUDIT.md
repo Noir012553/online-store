@@ -19,38 +19,42 @@ Báo cáo này được cập nhật sau lượt sửa. Không chạy `npm run b
 | Tạo đơn và tính tiền | Đạt về tính giá | Backend lấy giá từ database, kiểm tra tồn kho và tính tổng; không dùng giá do client gửi làm nguồn chuẩn. Cần xác minh cơ chế giữ/trừ kho khi có nhiều đơn đồng thời. |
 | Đăng nhập và checkout | Đạt cơ bản | Checkout chuyển người chưa đăng nhập sang Login; tên, email, số điện thoại và địa chỉ profile được điền trước nếu có. Email được để tùy chọn nhất quán với form và schema. |
 | Khớp khách bằng số điện thoại | Đạt theo luồng tạo đơn | Backend upsert khách theo số điện thoại và cập nhật thông tin/địa chỉ từ đơn mới. Không tra cứu hồ sơ trước khi đặt; tài liệu chỉ yêu cầu cập nhật khi lưu đơn. |
-| Admin sản phẩm | Chưa đạt hoàn toàn | Có danh sách, tạo, sửa, lọc, xóa/khôi phục; audit CRUD bổ sung tìm thấy lỗi không lưu `featured` khi sửa và không xóa được `originalPrice`; xem mục “Rà soát bổ sung CRUD admin”. |
-| Admin khách hàng | Chưa đạt hoàn toàn | Có danh sách, tìm kiếm, tạo/sửa và xóa/khôi phục; audit CRUD bổ sung phát hiện tên nhiều hơn hai từ có thể bị cắt khi sửa; xem mục “Rà soát bổ sung CRUD admin”. |
-| Admin đơn hàng | Chưa đạt hoàn toàn | Có danh sách, bộ lọc, tạo, xem, cập nhật địa chỉ và mặt hàng/số lượng; audit CRUD bổ sung phát hiện thao tác đánh dấu đã giao không báo lỗi khi API thất bại; xem mục “Rà soát bổ sung CRUD admin”. |
+| Admin sản phẩm | Đã sửa các lỗi CRUD đã xác nhận | Payload sửa gửi `featured`; xóa `originalPrice` được hỗ trợ cả trong form sản phẩm và trình sửa thống kê. |
+| Admin khách hàng | Đã sửa lỗi giữ nguyên tên | Form sửa giữ toàn bộ phần tên sau từ đầu tiên thay vì cắt ở từ thứ hai. |
+| Admin đơn hàng | Đã sửa phản hồi CRUD đã xác nhận | Thao tác đánh dấu đã giao báo lỗi; lỗi tải tổng có thể thử lại và chặn lưu khi chưa có tổng mới. |
+| Admin tiền tệ/tỷ giá | Đã sửa lỗi xác thực | Ghi dữ liệu dùng API client chung để gửi Bearer token và tự làm mới phiên. |
+| Toast CRUD | Đã sửa lỗi trùng/sai nội dung | Thao tác cục bộ giữ toast thành công; socket chỉ đồng bộ danh sách; mutation API không hiện thêm toast lỗi toàn cục trước toast của màn hình. Thao tác giao đơn dùng toast đơn hàng. |
 | Ràng buộc xóa | Đạt cơ bản | Backend chặn xóa sản phẩm/khách hàng có đơn liên quan; xóa cứng sản phẩm, khách hàng và đơn hàng hiện yêu cầu bản ghi đã xóa mềm trước. |
 
 ## Các mục còn tồn tại
 
 ### Rà soát bổ sung CRUD admin
 
-Đây là audit tĩnh code frontend và các API/backend route liên quan; chưa xác minh thao tác trực tiếp trên server đang chạy. Các phát hiện dưới đây cần xử lý riêng trước khi đánh giá CRUD admin là hoàn tất.
+Đây là audit tĩnh code frontend và các API/backend route liên quan. Các lỗi dưới đây đã được sửa trong code; frontend typecheck và cú pháp backend đạt. Chưa xác minh thao tác end-to-end do preview admin yêu cầu đăng nhập; test backend chưa chạy được vì thiếu package `dotenv`.
 
 #### Lỗi ảnh hưởng đến thao tác hoặc dữ liệu
 
-1. **Cao — các thao tác ghi tiền tệ và tỷ giá thiếu Bearer token.** `online-store-frontend/src/lib/services/currencyService.ts:114-185, 279-353` chỉ gửi `credentials: 'include'`; trong khi `online-store-backend/src/middleware/authMiddleware.js:17-26, 77-80` chỉ đọc token từ `Authorization: Bearer ...`. Các route ghi yêu cầu `protect` (`online-store-backend/src/routes/currencyRoutes.js:12-19`, `exchangeRateRoutes.js:30-37`), nên tạo/sửa/xóa có thể bị 401.
-2. **Trung bình — form sửa sản phẩm không gửi trạng thái nổi bật.** Payload sửa trong `online-store-frontend/src/components/admin/products/ProductForm.tsx:174-200` không có `featured`; backend chỉ cập nhật trường này khi payload có gửi nó (`online-store-backend/src/controllers/productController.js:1056-1058`). UI có thể báo lưu thành công nhưng trạng thái không đổi.
-3. **Trung bình — không xóa được giá gốc sản phẩm.** Form gửi chuỗi rỗng khi trường được xóa (`ProductForm.tsx:139-149, 191`); backend bỏ qua giá trị rỗng/không hợp lệ và giữ giá cũ (`productController.js:990-993`). Form sửa sản phẩm trong `statistics.tsx:498-505` cũng chịu cùng vấn đề.
-4. **Trung bình — sửa khách hàng có thể làm mất phần tên từ ba từ trở lên.** `online-store-frontend/src/components/admin/customers/CustomerForm.tsx:45-54, 92-100` chỉ tách và lưu tối đa hai phần tên. Ví dụ “Nguyen Van An” có thể bị lưu thành “Nguyen Van” dù không sửa tên trong form.
-5. **Trung bình — form sửa banner có thể bị kẹt trạng thái đang gửi sau lỗi upload.** `online-store-frontend/src/pages/admin/bannersAdmin/[bannerId]/edit.tsx:272-284` bật `isSubmitting` rồi return sớm khi upload không thành công/asset không hợp lệ; các nhánh này không chạy `finally` tại `:314-327`, nên nút lưu/hủy có thể bị vô hiệu hóa.
+1. **Đã sửa (Cao) — thiếu Bearer token ở thao tác tiền tệ/tỷ giá.** `online-store-frontend/src/lib/services/currencyService.ts` chuyển các thao tác ghi sang `apiCall`, dùng Bearer token, cookie refresh và error handling chung; vẫn giữ toast lỗi tại form/list.
+2. **Đã sửa (Trung bình) — form sửa sản phẩm gửi `featured`.** `online-store-frontend/src/components/admin/products/ProductForm.tsx` gửi trạng thái nổi bật trong cả payload tạo và sửa.
+3. **Đã sửa (Trung bình) — xóa giá gốc sản phẩm.** Backend đặt `originalPrice` về `undefined` khi nhận chuỗi rỗng hoặc `null`; form sản phẩm và trang thống kê đều gửi giá trị rỗng khi admin xóa trường. Thêm test hồi quy tại `online-store-backend/src/test/controllers/products/productController.test.js`.
+4. **Đã sửa (Trung bình) — giữ tên khách hàng nhiều từ.** `CustomerForm.tsx` giữ phần còn lại của tên trong trường họ, nên tên như “Nguyen Van An” không bị cắt khi mở rồi lưu lại.
+5. **Đã sửa (Trung bình) — reset trạng thái form banner khi upload thất bại.** Các nhánh upload trả về sớm trong `online-store-frontend/src/pages/admin/bannersAdmin/[bannerId]/edit.tsx` giờ tắt `isSubmitting` trước khi thoát.
 
 #### Phản hồi lỗi và thông báo
 
-6. **Trung bình — lỗi đánh dấu đơn đã giao bị nuốt im lặng.** `online-store-frontend/src/components/admin/orders/OrderDetail.tsx:101-114` có `catch` rỗng; khi API từ chối, admin không nhận toast lỗi hoặc giải thích trạng thái chưa được cập nhật.
-7. **Thấp — xóa/khôi phục sản phẩm, khách hàng, đơn hàng có thể hiện toast thành công hai lần.** Các list tự hiện toast sau mutation và cũng hiện toast khi nhận socket event; ví dụ `ProductsList.tsx:122-158, 167-197`, `CustomersList.tsx:118-154, 156-185`, `OrdersList.tsx:150-177, 191-219`. Backend phát event tương ứng trong cùng thao tác (ví dụ `online-store-backend/src/socket/socketHandler.js:256-263, 284-315`). Socket còn kích hoạt refresh thêm lần nữa.
-8. **Thấp — một số API lỗi có thể hiện hai toast lỗi.** `online-store-frontend/src/lib/api.ts:664-704` gọi error handler rồi throw; các màn hình lại toast trong `catch`, ví dụ `CouponsList.tsx:131-143` và `CustomersList.tsx:156-170`.
-9. **Thấp — toast trang thống kê mô tả sai thao tác.** `online-store-frontend/src/pages/admin/statistics.tsx:589, 599-610` dùng `admin_toast_product_updated` sau khi lưu coupon/khách hàng và sau khi đánh dấu đơn đã giao.
-10. **Thấp — lỗi tải phần tóm tắt đơn hàng không hiển thị thông báo.** `online-store-frontend/src/components/admin/orders/OrderForm.tsx:172-188` bỏ qua lỗi API và xóa summary; nút tạo/sửa vẫn có thể bấm khi có sản phẩm (`:521-558`), khiến admin không biết phần tính tổng chưa tải được.
+6. **Đã sửa (Trung bình) — lỗi đánh dấu đã giao được thông báo.** `OrderDetail.tsx` bỏ toast lỗi toàn cục trùng lặp và hiển thị toast lỗi tại thao tác.
+7. **Đã sửa (Thấp) — toast thành công không còn nhân đôi bởi socket.** Các listener sản phẩm/khách hàng/đơn hàng vẫn refresh dữ liệu nhưng không phát toast; mutation handler tại màn hình giữ phản hồi thành công cho thao tác người dùng.
+8. **Đã sửa (Thấp) — mutation API chỉ hiện một toast lỗi.** CRUD admin dùng `skipErrorToast` tại API wrapper hoặc request; `api.ts` cũng tôn trọng cờ này trong các nhánh 401/rate limit, còn màn hình chịu trách nhiệm hiển thị toast dễ hiểu.
+9. **Đã sửa (Thấp) — toast trang thống kê đúng ngữ cảnh.** Lưu coupon/khách hàng dùng thông báo cập nhật chung; đánh dấu đơn đã giao dùng `toast_order_updated`.
+10. **Đã sửa (Thấp) — lỗi tổng đơn có toast, nút thử lại và chặn lưu nếu chưa có tổng.** `OrderForm.tsx` xóa tổng cũ khi tính lại, báo lỗi tại form và chỉ cho gửi đơn khi đã có tổng mới.
 
 #### Phạm vi đã rà soát và giới hạn
 
-- Các luồng danh sách/tạo/sửa/xóa/khôi phục của sản phẩm, coupon, khách hàng, đơn hàng, banner, người dùng, tiền tệ/tỷ giá và ngôn ngữ đã được đối chiếu với các API route tương ứng. Phần lớn method/path và luồng refresh sau thành công khớp; các ngoại lệ đã nêu ở trên.
+- Các luồng danh sách/tạo/sửa/xóa/khôi phục của sản phẩm, coupon, khách hàng, đơn hàng, banner, người dùng, tiền tệ/tỷ giá và ngôn ngữ đã được đối chiếu với các API route tương ứng. Phần lớn method/path và luồng refresh sau thành công khớp; các phát hiện của audit được ghi và đánh dấu đã sửa ở trên.
 - Chưa thấy trang CRUD danh mục riêng; hiện chỉ có thao tác tạo danh mục inline trong form sản phẩm. Không thấy trang quản trị CRUD review.
-- Đây là nhận định dựa trên đọc code. Chưa chạy thao tác end-to-end trên trình duyệt hoặc xác minh API bằng tài khoản admin.
+- Đã mở route `/admin/products` trong preview; không có phiên admin nên được chuyển về đăng nhập. Vì vậy CRUD chưa được kiểm tra end-to-end bằng tài khoản admin.
+- Frontend `npm run typecheck`: **đạt**. Backend `node --check` controller/test và `git diff HEAD --check`: **đạt**.
+- Backend test runner chưa chạy được: môi trường thiếu module `dotenv`. Không cài package và không chạy `npm run build`.
 
 ### Giữ hoặc trừ tồn kho khi tạo đơn
 

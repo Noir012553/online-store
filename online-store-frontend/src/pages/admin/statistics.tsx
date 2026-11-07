@@ -605,7 +605,7 @@ function StatisticsContent() {
         method: 'PUT',
         skipErrorToast: true,
       });
-      toast.success(t('toast_update_success', 'admin'));
+      toast.success(t('toast_order_updated', 'admin'));
       closeDetail();
       await loadData(true);
     } catch (error: any) {

@@ -110,7 +110,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         skipErrorToast: true,
       });
 
-      toast.success(t('toast_update_success', 'admin'));
+      toast.success(t('toast_order_updated', 'admin'));
       setOrder({ ...order, isDelivered: true });
     } catch {
       toast.error(t('error_save_data', 'common'));
