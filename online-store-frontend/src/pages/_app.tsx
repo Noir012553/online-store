@@ -241,7 +241,6 @@ function AppContent({ Component, pageProps }: AppContentProps) {
       <Footer />
       <ScrollToTop />
       <FloatingCart />
-      <Toaster position="top-right" />
     </>
   );
 }
@@ -266,6 +265,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             <CategoryProvider>
               <CartProvider>
                 <AppContent Component={Component} pageProps={pageProps} />
+                <Toaster position="top-right" />
               </CartProvider>
             </CategoryProvider>
           </AuthProvider>
