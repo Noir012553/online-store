@@ -1143,6 +1143,10 @@ export const productAPI = {
     return apiCall(`/products/${id}`, { method: 'DELETE' });
   },
 
+  hardDeleteProduct: async (id: string) => {
+    return apiCall(`/products/${id}/hard`, { method: 'DELETE' });
+  },
+
   /**
    * Lấy danh sách sản phẩm đã xóa (Admin only)
    */
