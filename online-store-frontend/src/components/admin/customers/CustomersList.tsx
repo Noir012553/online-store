@@ -118,12 +118,10 @@ export function CustomersList() {
   useEffect(() => {
     const handleCustomerCreated = () => {
       fetchCustomers();
-      toast.success(t('toast_new_customer', 'admin'));
     };
 
     const handleCustomerUpdated = () => {
       fetchCustomers();
-      toast.info(t('toast_customer_updated', 'admin'));
     };
 
     const handleCustomerDeleted = () => {
@@ -132,12 +130,10 @@ export function CustomersList() {
       } else {
         fetchCustomers();
       }
-      toast.info(t('toast_customer_deleted', 'admin'));
     };
 
     const handleCustomerRestored = () => {
       fetchCustomers();
-      toast.success(t('toast_customer_restored', 'admin'));
     };
 
     onCustomerCreated(handleCustomerCreated);

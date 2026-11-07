@@ -586,7 +586,7 @@ function StatisticsContent() {
         });
       }
 
-      toast.success(t('admin_toast_product_updated'));
+      toast.success(t('toast_update_success', 'admin'));
       closeDetail();
       await loadData(true);
     } catch (error: any) {
@@ -601,8 +601,11 @@ function StatisticsContent() {
 
     try {
       setIsSavingDetail(true);
-      await apiCall(`/orders/${selectedDetail.item._id}/deliver`, { method: 'PUT' });
-      toast.success(t('admin_toast_product_updated'));
+      await apiCall(`/orders/${selectedDetail.item._id}/deliver`, {
+        method: 'PUT',
+        skipErrorToast: true,
+      });
+      toast.success(t('toast_update_success', 'admin'));
       closeDetail();
       await loadData(true);
     } catch (error: any) {

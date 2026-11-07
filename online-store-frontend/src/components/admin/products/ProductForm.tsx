@@ -188,6 +188,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         formData.append("promotions", JSON.stringify(product.promotions || []));
         formData.append("countInStock", String(validCountInStock));
         formData.append("isPublished", product.isPublished ? "true" : "false");
+        formData.append("featured", product.featured ? "true" : "false");
         formData.append("originalPrice", validOriginalPrice !== undefined ? String(validOriginalPrice) : '');
 
 

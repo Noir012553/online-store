@@ -368,6 +368,38 @@ describe('Product Controller', () => {
       expect(liveUpdate.calledOnce).to.be.true;
     });
 
+    it('clears original price when an empty value is submitted', async () => {
+      const product = {
+        _id: new mongoose.Types.ObjectId(),
+        name: 'Laptop',
+        price: 100,
+        originalPrice: 120,
+        brand: 'Brand',
+        description: 'Description',
+        technicalDescription: '',
+        descriptionImages: [],
+        promotions: [],
+        specs: {},
+        save: sandbox.stub().resolvesThis(),
+      };
+      const findByIdStub = sandbox.stub(Product, 'findById');
+      findByIdStub.onFirstCall().resolves(product);
+      findByIdStub.onSecondCall().returns({
+        populate: sandbox.stub().withArgs('category').resolves({ ...product }),
+      });
+      sandbox.stub(ProductCatalogTranslationCache, 'updateMany').resolves();
+      sandbox.stub(LiveTranslationCache, 'updateMany').resolves();
+
+      await updateProduct({
+        params: { id: product._id.toString() },
+        query: {},
+        body: { originalPrice: '' },
+        app: { get: sandbox.stub().returns(null) },
+      }, { json: sandbox.stub() });
+
+      expect(product.originalPrice).to.equal(undefined);
+    });
+
     it('does not invalidate translations when submitted source fields are unchanged', async () => {
       const product = {
         _id: new mongoose.Types.ObjectId(),

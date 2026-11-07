@@ -121,12 +121,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
 
     const handleProductCreated = () => {
       fetchProducts();
-      toast.success(t('admin_toast_product_created', 'admin'));
     };
 
     const handleProductUpdated = () => {
       fetchProducts();
-      toast.info(t('admin_toast_product_updated', 'admin'));
     };
 
     const handleProductDeleted = () => {
@@ -135,12 +133,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       } else {
         fetchProducts();
       }
-      toast.info(t('admin_toast_product_deleted', 'admin'));
     };
 
     const handleProductRestored = () => {
       fetchProducts();
-      toast.success(t('admin_toast_product_restored', 'admin'));
     };
 
     onProductCreated(handleProductCreated);

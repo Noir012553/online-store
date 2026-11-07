@@ -45,9 +45,10 @@ export function CustomerForm({ mode, customerId, onSuccess, onCancel }: Customer
           const foundCustomer = await customerAPI.getCustomerById(customerId);
 
           if (foundCustomer) {
+            const nameParts = foundCustomer.name?.trim().split(/\s+/).filter(Boolean) || [];
             setForm({
-              firstName: foundCustomer.firstName || foundCustomer.name?.split(' ')[0] || '',
-              lastName: foundCustomer.lastName || foundCustomer.name?.split(' ')[1] || '',
+              firstName: foundCustomer.firstName || nameParts[0] || '',
+              lastName: foundCustomer.lastName || nameParts.slice(1).join(' '),
               email: foundCustomer.email || '',
               phone: foundCustomer.phone || '',
               address: foundCustomer.address || '',

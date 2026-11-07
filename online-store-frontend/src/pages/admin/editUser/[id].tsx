@@ -96,6 +96,7 @@ function EditUserContent() {
         body: JSON.stringify({
           avatarAsset: uploadResult.asset,
         }),
+        skipErrorToast: true,
       });
       const nextProfileImage = response.profileImage || response.user?.profileImage || uploadResult.publicUrl;
       setProfileImage(nextProfileImage);
@@ -141,6 +142,7 @@ function EditUserContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData),
+        skipErrorToast: true,
       });
 
       setUpdatedUserInfo({

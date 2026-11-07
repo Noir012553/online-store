@@ -133,6 +133,7 @@ function UsersAdminContent() {
     try {
       await apiCall(`/users/${deleteConfirmUser._id}?lang=${locale}`, {
         method: 'DELETE',
+        skipErrorToast: true,
       });
 
       toast.success(t('user_deleted_success'));
@@ -153,6 +154,7 @@ function UsersAdminContent() {
     try {
       await apiCall(`/users/${userToRestore._id}/restore?lang=${locale}`, {
         method: 'PUT',
+        skipErrorToast: true,
       });
 
       toast.success(t('user_restored_success'));
@@ -168,6 +170,7 @@ function UsersAdminContent() {
     try {
       await apiCall(`/users/${userToHardDelete._id}/hard?lang=${locale}`, {
         method: 'DELETE',
+        skipErrorToast: true,
       });
 
       toast.success(t('user_deleted_permanently'));

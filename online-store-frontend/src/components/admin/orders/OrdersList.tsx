@@ -132,9 +132,8 @@ export function OrdersList() {
   }, [viewDeletedTab, fetchOrders, fetchDeletedOrders]);
 
   useEffect(() => {
-    const handleOrderCreated = (data: any) => {
+    const handleOrderCreated = () => {
       fetchOrders();
-      toast.success(t('toast_new_order', 'admin'));
     };
 
     const handlePaymentSuccess = (data: any) => {
@@ -142,9 +141,8 @@ export function OrdersList() {
       toast.success(t('toast_order_paid', 'admin'));
     };
 
-    const handleOrderUpdated = (data: any) => {
+    const handleOrderUpdated = () => {
       fetchOrders();
-      toast.info(t('toast_order_updated', 'admin'));
     };
 
     const handleOrderDeleted = (data: any) => {
@@ -153,12 +151,10 @@ export function OrdersList() {
       } else {
         fetchOrders();
       }
-      toast.info(t('toast_order_deleted', 'admin'));
     };
 
-    const handleOrderRestored = (data: any) => {
+    const handleOrderRestored = () => {
       fetchOrders();
-      toast.success(t('toast_order_restored', 'admin'));
     };
 
     onOrderCreated(handleOrderCreated);
