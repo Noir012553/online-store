@@ -432,9 +432,7 @@ export async function apiCall<T = any>(
 
   // Build headers properly to handle all HeadersInit types
   const headers = new Headers();
-  if (typeof FormData === 'undefined' || !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
+  headers.set('Content-Type', 'application/json');
 
   if (options.headers) {
     if (options.headers instanceof Headers) {
@@ -667,7 +665,6 @@ async function executeRequest<T = any>(
       let errorMessage = `api_error`;
       let errorCode: string | undefined;
       let errorParams: Record<string, unknown> | undefined;
-      let validationMessages: string[] = [];
       try {
         const errorData = await response.json();
         if (errorData && errorData.message) {
@@ -675,10 +672,6 @@ async function executeRequest<T = any>(
         }
         errorCode = errorData?.code;
         errorParams = errorData?.params;
-        validationMessages = Array.isArray(errorData?.errors)
-          ? errorData.errors.map((item: { message?: unknown }) => item?.message).filter((item: unknown): item is string => typeof item === 'string')
-          : [];
-        if (validationMessages.length) errorMessage = validationMessages.join('\n');
       } catch (parseError) {
         // If response body is not JSON, use status code
         errorMessage = `http_error`;
@@ -700,14 +693,10 @@ async function executeRequest<T = any>(
         params?: Record<string, unknown>;
         status?: number;
         retryAfter?: number;
-        toastShown?: boolean;
-        validationMessages?: string[];
       };
       apiError.code = errorCode;
       apiError.params = errorParams;
       apiError.status = response.status;
-      apiError.toastShown = !fetchOptions.skipErrorToast;
-      apiError.validationMessages = validationMessages.length ? validationMessages : undefined;
       const retryAfter = Number(response.headers.get('Retry-After'));
       if (Number.isFinite(retryAfter) && retryAfter > 0) {
         apiError.retryAfter = retryAfter;
@@ -1104,24 +1093,47 @@ export const productAPI = {
    * Tạo sản phẩm mới (Admin only)
    */
   createProduct: async (formData: FormData) => {
-    return apiCall(`/products?lang=${encodeURIComponent(getCurrentLang())}`, {
+    const token = getAuthToken();
+    const url = `${API_URL}/products?lang=${encodeURIComponent(getCurrentLang())}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      body: formData,
-      skipErrorToast: true,
-      adapter: (data) => productAdapter.transform(data),
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: formData, // FormData sẽ tự set Content-Type
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'product_creation_failed');
+    }
+
+    const data = await response.json();
+    return productAdapter.transform(data);
   },
 
   /**
    * Cập nhật sản phẩm (Admin only)
    */
   updateProduct: async (id: string, formData: FormData) => {
-    return apiCall(`/products/${id}?lang=${encodeURIComponent(getCurrentLang())}`, {
+    const token = getAuthToken();
+    const url = `${API_URL}/products/${id}?lang=${encodeURIComponent(getCurrentLang())}`;
+
+    const response = await fetch(url, {
       method: 'PUT',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
       body: formData,
-      skipErrorToast: true,
-      adapter: (data) => productAdapter.transform(data),
     });
+
+    if (!response.ok) {
+      throw new Error('product_update_failed');
+    }
+
+    const data = await response.json();
+    return productAdapter.transform(data);
   },
 
   /**
@@ -1594,10 +1606,6 @@ export const categoryAPI = {
       body: JSON.stringify(data),
     });
   },
-
-  deleteCategory: async (id: string) => apiCall(`/categories/${id}`, { method: 'DELETE' }),
-  restoreCategory: async (id: string) => apiCall(`/categories/${id}/restore`, { method: 'PUT' }),
-  hardDeleteCategory: async (id: string) => apiCall(`/categories/${id}/hard`, { method: 'DELETE' }),
 
 };
 
