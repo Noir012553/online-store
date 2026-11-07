@@ -9,6 +9,7 @@
 - Tổng hợp vấn đề và tiến độ phiên 2026-10-21: [TRANSLATION_SESSION_ISSUES_2026-10-21.md](TRANSLATION_SESSION_ISSUES_2026-10-21.md).
 - Backup/restore MongoDB: [MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md](MONGODB_BACKUP_RESTORE_INCIDENT_LOG.md).
 - Contract ảnh sản phẩm khi import/storefront: [PRODUCT_IMAGE_REQUIREMENTS.md](PRODUCT_IMAGE_REQUIREMENTS.md).
+- Kết quả rà soát tĩnh CRUD trang quản trị, gồm lỗi API, đồng bộ giao diện và toast: phần “Rà soát bổ sung CRUD admin” trong [ONLINE_STORE_REQUIREMENTS_AUDIT.md](ONLINE_STORE_REQUIREMENTS_AUDIT.md).
 
 ## Nhật ký frontend và giao diện
 
