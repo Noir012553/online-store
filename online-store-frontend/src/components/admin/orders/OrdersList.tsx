@@ -219,21 +219,6 @@ export function OrdersList() {
     }
   };
 
-  const handleHardDeleteOrder = async (orderId: string) => {
-    try {
-      setIsUpdating(true);
-      // Hard delete order via API
-      await orderAPI.hardDeleteOrder(orderId);
-      await fetchDeletedOrders();
-      toast.success(t('toast_delete_success'));
-      setDeleteConfirmOrder(null);
-    } catch (error) {
-      toast.error(t('error_delete_data'));
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const visibleOrders = viewDeletedTab ? deletedOrders : orders;
   const currentPageVar = viewDeletedTab ? deletedCurrentPage : currentPage;
   const totalPagesToShow = viewDeletedTab ? deletedTotalPages : totalPages;
@@ -442,25 +427,15 @@ export function OrdersList() {
                             <Pencil className="w-4 h-4" />
                           </Button>
                           {viewDeletedTab ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRestoreOrder(order._id)}
-                                disabled={isUpdating}
-                                title={t('admin_restore', 'admin')}
-                              >
-                                <RotateCcw className="w-4 h-4 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteConfirmOrder(order)}
-                                title={t('admin_hard_delete', 'admin')}
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRestoreOrder(order._id)}
+                              disabled={isUpdating}
+                              title={t('admin_restore', 'admin')}
+                            >
+                              <RotateCcw className="w-4 h-4 text-green-600" />
+                            </Button>
                           ) : (
                             <Button
                               variant="ghost"
@@ -494,15 +469,15 @@ export function OrdersList() {
         <DialogContent className="w-[calc(100vw-2rem)] max-w-md animate-in fade-in zoom-in-95 duration-200">
           <DialogHeader className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className={`shrink-0 flex items-center justify-center h-10 w-10 rounded-full ${viewDeletedTab ? 'bg-red-100' : 'bg-orange-100'}`}>
-                <AlertCircle className={`h-6 w-6 ${viewDeletedTab ? 'text-red-600' : 'text-orange-600'}`} />
+              <div className="shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-orange-100">
+                <AlertCircle className="h-6 w-6 text-orange-600" />
               </div>
               <DialogTitle className="text-lg font-semibold">
-                {viewDeletedTab ? t('admin_hard_delete', 'admin') : t('confirm_delete_title', 'common')}
+                {t('confirm_delete_title', 'common')}
               </DialogTitle>
             </div>
             <DialogDescription>
-              {viewDeletedTab ? t('confirm_hard_delete_description', 'common') : t('confirm_delete_description', 'common')}
+              {t('confirm_delete_description', 'common')}
             </DialogDescription>
           </DialogHeader>
           <div className="bg-white rounded-lg p-4 my-2">
@@ -512,16 +487,11 @@ export function OrdersList() {
           </div>
           <DialogFooter className="gap-2 sm:gap-2 flex flex-row-reverse">
             <Button
-              onClick={() =>
-                deleteConfirmOrder &&
-                (viewDeletedTab
-                  ? handleHardDeleteOrder(deleteConfirmOrder._id)
-                  : handleDeleteOrder(deleteConfirmOrder._id))
-              }
+              onClick={() => deleteConfirmOrder && handleDeleteOrder(deleteConfirmOrder._id)}
               disabled={isUpdating}
               className="bg-red-600 hover:bg-red-700 text-white flex-1"
             >
-              {isUpdating ? t('loading', 'common') : viewDeletedTab ? t('admin_hard_delete', 'admin') : t('remove', 'common')}
+              {isUpdating ? t('loading', 'common') : t('remove', 'common')}
             </Button>
             <Button
               variant="outline"
