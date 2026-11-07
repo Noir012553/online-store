@@ -8,7 +8,7 @@ Báo cáo này được cập nhật sau lượt sửa. Không chạy `npm run b
 
 ## Tổng kết sau sửa
 
-Đã sửa các lỗi đã xác nhận ở tạo danh mục mới, xóa mềm đơn hàng, lưu địa chỉ khách hàng, email checkout tùy chọn, prefill địa chỉ profile, giới hạn số lượng giỏ, lọc nhiều brand, tìm kiếm sản phẩm đã xóa, phân trang khi đổi bộ lọc và bảo vệ thao tác xóa cứng. Phần quản lý sửa mặt hàng trong đơn và giữ/trừ tồn kho chưa thay đổi vì cần chốt quy tắc nghiệp vụ trước.
+Đã sửa các lỗi đã xác nhận ở tạo danh mục mới, xóa mềm đơn hàng, lưu địa chỉ khách hàng, email checkout tùy chọn, prefill địa chỉ profile, giới hạn số lượng giỏ, lọc nhiều brand, tìm kiếm sản phẩm đã xóa, phân trang khi đổi bộ lọc và bảo vệ thao tác xóa cứng. Admin có thể sửa mặt hàng/số lượng ở đơn chưa thanh toán và chưa bắt đầu giao; backend tính lại giá, ưu đãi và phí giao hàng.
 
 ## Kết quả theo yêu cầu
 
@@ -21,18 +21,10 @@ Báo cáo này được cập nhật sau lượt sửa. Không chạy `npm run b
 | Khớp khách bằng số điện thoại | Đạt theo luồng tạo đơn | Backend upsert khách theo số điện thoại và cập nhật thông tin/địa chỉ từ đơn mới. Không tra cứu hồ sơ trước khi đặt; tài liệu chỉ yêu cầu cập nhật khi lưu đơn. |
 | Admin sản phẩm | Đạt cơ bản | Có danh sách, tạo, sửa, lọc, xóa/khôi phục; tạo danh mục mới gọi API danh mục rồi gửi ID; có thể đổi danh mục khi sửa; tìm kiếm đã xóa và reset trang khi lọc đã được nối. |
 | Admin khách hàng | Đạt cơ bản | Có danh sách, tìm kiếm, tạo/sửa và xóa/khôi phục; trường địa chỉ đã được khai báo trong schema và được lưu. Email khách hàng là tùy chọn. |
-| Admin đơn hàng | Một phần | Có danh sách, bộ lọc, tạo, xem và thao tác trạng thái; xóa mềm dùng API client có xác thực. Chỉnh sửa đơn vẫn chỉ cập nhật địa chỉ giao hàng, chưa chỉnh sản phẩm/số lượng hay khách hàng. Payload đổi trạng thái đã được validate. |
+| Admin đơn hàng | Đạt cơ bản | Có danh sách, bộ lọc, tạo, xem, cập nhật địa chỉ và mặt hàng/số lượng; xóa mềm dùng API client có xác thực. Chỉ cho sửa khi chưa thanh toán/chưa bắt đầu giao; backend tính lại giá, giảm giá, phí giao hàng và kiểm tra tồn kho. |
 | Ràng buộc xóa | Đạt cơ bản | Backend chặn xóa sản phẩm/khách hàng có đơn liên quan; xóa cứng sản phẩm, khách hàng và đơn hàng hiện yêu cầu bản ghi đã xóa mềm trước. |
 
 ## Các mục còn tồn tại
-
-### Chỉnh sửa chi tiết mặt hàng trong đơn
-
-Trang sửa đơn hiện chỉ cập nhật `shippingAddress`. Chưa thêm sửa sản phẩm/số lượng/khách hàng vì cần xác định chính sách cho đơn đã thanh toán, giảm giá, phí giao hàng và điều chỉnh tồn kho trước khi thay đổi tổng tiền.
-
-- `online-store-frontend/src/components/admin/orders/OrderForm.tsx`
-- `online-store-backend/src/controllers/orderController.js`
-- `online-store-backend/src/routes/orderRoutes.js`
 
 ### Giữ hoặc trừ tồn kho khi tạo đơn
 
@@ -47,7 +39,7 @@ Các đơn mới kiểm tra số điện thoại dạng 10–11 chữ số. Chư
 - `npm run typecheck` trong frontend: **đạt**.
 - `node --check` cho các controller, middleware, route và test backend đã sửa: **đạt**.
 - Test Mocha: **chưa chạy** — Mocha không có sẵn trong backend; không cài thêm package.
-- Preview: route `/cart` trả HTTP 200; `/admin/products/create` chuyển sang Login khi chưa đăng nhập. Chưa xác minh thao tác admin end-to-end do không có phiên admin.
+- Preview: `/cart` và route sửa đơn trả HTTP 200; route admin chuyển về Login khi chưa có phiên. Chưa xác minh thao tác admin end-to-end do không có phiên admin.
 - Không chạy `npm run build`.
 
 ## Mã nguồn liên quan

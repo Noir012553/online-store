@@ -2027,6 +2027,7 @@ export const orderAPI = {
 
   updateOrder: async (id: string, data: {
     shippingAddress: { name: string; phone: string; address: string };
+    cartItems?: Array<{ productId: string; quantity: number }>;
   }, locale?: string) => {
     const params = new URLSearchParams();
     if (locale) params.set('lang', locale);

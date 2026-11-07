@@ -93,11 +93,16 @@ const recalculateOrderItems = async (order, cartItems, shippingAddress, lang, re
   const quantities = new Map();
   for (const item of cartItems) {
     const productId = String(item.productId || '');
+    const quantity = Number(item.quantity);
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       res.status(400);
       throw createOrderError(lang, 'ORDER_PRODUCT_ID_REQUIRED', 'validation.product.idRequired');
     }
-    quantities.set(productId, (quantities.get(productId) || 0) + item.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_INVALID_QUANTITY', 'validation.quantity.invalid');
+    }
+    quantities.set(productId, (quantities.get(productId) || 0) + quantity);
   }
 
   const products = await withTimeout(
@@ -176,7 +181,7 @@ const recalculateOrderItems = async (order, cartItems, shippingAddress, lang, re
         : 0;
     baseDiscount = Math.min(baseItemsPrice, Math.max(0, requestedDiscount));
     appliedCoupon = {
-      ...couponSnapshot.toObject?.() || couponSnapshot,
+      ...(typeof couponSnapshot.toObject === 'function' ? couponSnapshot.toObject() : couponSnapshot),
       baseMinOrderAmount: baseMinimum,
       baseDiscountAmount: baseDiscount,
     };

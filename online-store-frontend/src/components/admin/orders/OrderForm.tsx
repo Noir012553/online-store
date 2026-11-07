@@ -50,6 +50,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [summary, setSummary] = useState<CheckoutSummary | null>(null);
+  const [editOrder, setEditOrder] = useState<any>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [selectedProductQty, setSelectedProductQty] = useState<number | string>(1);
@@ -59,9 +60,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
-        const response = await productAPI.getProducts(
-          1, '', '', '', 100, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale
-        );
+        const response = await productAPI.getAdminProducts(1, undefined, undefined, undefined, 500, locale, currency.code);
         const productsList = response.products || [];
         setProducts(Array.isArray(productsList) ? productsList : []);
       } catch (error) {
@@ -73,7 +72,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     };
 
     fetchProducts();
-  }, [locale, mode, t]);
+  }, [currency.code, locale, t]);
 
   // Fetch order data for edit mode
   useEffect(() => {
@@ -82,6 +81,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         try {
           setIsLoading(true);
           const order = await orderAPI.getOrderById(orderId, locale, locale);
+          setEditOrder(order);
           setForm({
             customerName: order.shippingAddress?.name || order.customer?.name || '',
             customerEmail: order.customer?.email || '',
@@ -160,7 +160,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
   }, [orderItems]);
 
   useEffect(() => {
-    if (mode === 'edit' || orderItems.length === 0) {
+    if (orderItems.length === 0 || (mode === 'edit' && !editOrder)) {
       setSummary(null);
       setIsLoadingSummary(false);
       return;
@@ -171,7 +171,11 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
     orderAPI.getSummary({
       cartItems: orderItems.map((item) => ({ productId: item.product, quantity: item.qty })),
-      currencyCode: currency.code,
+      couponCode: mode === 'edit' ? editOrder?.appliedCoupon?.code : undefined,
+      shippingAddress: mode === 'edit' ? editOrder?.shippingAddress : undefined,
+      shippingProvider: mode === 'edit' ? editOrder?.shippingProvider : undefined,
+      shippingService: mode === 'edit' ? editOrder?.shippingService : undefined,
+      currencyCode: mode === 'edit' ? editOrder?.currencyCode || currency.code : currency.code,
     }, locale, getIntlLocale(locale))
       .then((response) => {
         if (!cancelled) setSummary(response.data as CheckoutSummary);
@@ -186,7 +190,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     return () => {
       cancelled = true;
     };
-  }, [currency.code, locale, mode, orderItems]);
+  }, [currency.code, editOrder, locale, mode, orderItems]);
 
   const handleSubmit = async () => {
     if (!form.customerName || !form.customerPhone || !form.customerAddress) {
@@ -416,12 +420,14 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                     <th className="px-4 py-2 text-center font-semibold text-gray-700">
                       {t('quantity_label', 'admin')}
                     </th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                      {t('admin_price', 'admin')}
-                    </th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                      {t('total', 'admin')}
-                    </th>
+                    {mode === 'create' && <>
+                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                        {t('admin_price', 'admin')}
+                      </th>
+                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                        {t('total', 'admin')}
+                      </th>
+                    </>}
                     <th className="px-4 py-2 text-center font-semibold text-gray-700">
                       {t('admin_actions', 'admin')}
                     </th>
@@ -459,12 +465,14 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                             </Button>
                           </div>
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          {summaryItem?.formattedPrice || '—'}
-                        </td>
-                        <td className="px-4 py-2 text-right font-medium text-red-600">
-                          {summaryItem?.formattedLineTotal || '—'}
-                        </td>
+                        {mode === 'create' && <>
+                          <td className="px-4 py-2 text-right">
+                            {summaryItem?.formattedPrice || '—'}
+                          </td>
+                          <td className="px-4 py-2 text-right font-medium text-red-600">
+                            {summaryItem?.formattedLineTotal || '—'}
+                          </td>
+                        </>}
                         <td className="px-4 py-2 text-center">
                           <Button
                             variant="ghost"
@@ -500,7 +508,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
           </select>
         </div>}
 
-        {mode === 'create' && orderItems.length > 0 && (
+        {orderItems.length > 0 && (
           <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <DollarSign className="h-4 w-4 text-blue-600" />
