@@ -362,10 +362,9 @@ const hardDeleteCustomer = asyncHandler(async (req, res) => {
 });
 
 /**
- * Lấy khách hàng theo số điện thoại (Public)
- * Sử dụng trong tính năng upsert khách hàng tại checkout
+ * Lấy khách hàng theo số điện thoại
  * @route GET /api/customers/phone/:phone
- * @access Public
+ * @access Private/Admin
  */
 const getCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
@@ -383,11 +382,10 @@ const getCustomerByPhone = asyncHandler(async (req, res) => {
 });
 
 /**
- * Tạo hoặc cập nhật khách hàng theo số điện thoại (Public)
+ * Tạo hoặc cập nhật khách hàng theo số điện thoại
  * Nếu khách hàng tồn tại → cập nhật, nếu không → tạo mới
- * FIX: Dùng findOneAndUpdate để tránh race condition (11000 duplicate key error)
  * @route POST /api/customers/phone/:phone
- * @access Public
+ * @access Private/Admin
  */
 const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
