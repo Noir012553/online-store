@@ -48,6 +48,7 @@ interface Order {
   isPaid: boolean;
   isDelivered: boolean;
   paymentMethod?: string;
+  inventoryStatus?: string;
   paidAt?: Date;
   deliveredAt?: Date;
   createdAt: Date;
@@ -238,6 +239,13 @@ export function OrdersList() {
   const totalPagesToShow = viewDeletedTab ? deletedTotalPages : totalPages;
 
   const getStatusBadge = (order: Order) => {
+    if (order.inventoryStatus === 'needs_review') {
+      return (
+        <span className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-900">
+          {locale === 'vi' ? 'Cần kiểm tra thanh toán' : 'Payment review required'}
+        </span>
+      );
+    }
     if (order.isDelivered) {
       return <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">{t('order_status_delivered', 'admin')}</span>;
     }

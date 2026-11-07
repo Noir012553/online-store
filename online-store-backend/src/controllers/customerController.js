@@ -13,6 +13,7 @@ const User = require('../models/User');
 const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyResponseFormatter');
 const { getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { broadcastNewCustomer, broadcastCustomerUpdated, broadcastCustomerDeleted, broadcastCustomerRestored } = require('../socket/socketHandler');
+const { normalizePhone, phoneLookupQuery } = require('../utils/phone');
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getPagination = (query) => ({
@@ -129,7 +130,7 @@ const createCustomer = asyncHandler(async (req, res) => {
   const customer = new Customer({
     name,
     ...(email && { email: email.toLowerCase().trim() }),
-    phone,
+    phone: normalizePhone(phone),
     address: typeof address === 'string' ? address.trim() : '',
   });
 
@@ -181,7 +182,7 @@ const updateCustomer = asyncHandler(async (req, res) => {
   const updateData = {};
   if (name) updateData.name = name;
   if (typeof email === 'string' && email.trim()) updateData.email = email.toLowerCase().trim();
-  if (phone) updateData.phone = phone.trim();
+  if (phone) updateData.phone = normalizePhone(phone);
   if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : '';
 
   try {
@@ -370,8 +371,9 @@ const getCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
   const { phone } = req.params;
+  const normalizedPhone = normalizePhone(phone);
 
-  const customer = await Customer.findOne({ phone, isDeleted: false });
+  const customer = await Customer.findOne({ ...phoneLookupQuery(normalizedPhone), isDeleted: false });
 
   if (customer) {
     res.json(customer);
@@ -391,6 +393,7 @@ const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
   const { phone } = req.params;
+  const normalizedPhone = normalizePhone(phone);
   const { name, email, address } = req.body;
 
   // Normalize email
@@ -398,13 +401,9 @@ const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
 
   // Check if trying to update to an email that's already in use by another customer
   if (normalizedEmail) {
-    const existingCustomer = await Customer.findOne({
-      email: normalizedEmail,
-      phone: { $ne: phone },
-      isDeleted: false
-    });
+    const existingCustomer = await Customer.findOne({ email: normalizedEmail, isDeleted: false });
 
-    if (existingCustomer) {
+    if (existingCustomer && normalizePhone(existingCustomer.phone) !== normalizedPhone) {
       res.status(409);
       throw new Error(getMessage(lang, 'admin-controllers-messages.email_already_in_use'));
     }
@@ -414,12 +413,13 @@ const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
     // Use findOneAndUpdate to avoid race condition
     // If customer with phone exists, update; otherwise create new
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { phone, isDeleted: false },
+      { ...phoneLookupQuery(normalizedPhone), isDeleted: false },
       {
         $set: {
           ...(name && { name }),
           ...(normalizedEmail && { email: normalizedEmail }),
           ...(address && { address }),
+          phone: normalizedPhone,
           updatedAt: new Date()
         }
       },

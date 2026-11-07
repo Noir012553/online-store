@@ -203,8 +203,6 @@ export function Step3Payment() {
         return;
       }
 
-      await createShipment(orderId);
-
       const paymentPayload = {
         orderId,
         gateway: 'vnpay',
@@ -235,6 +233,8 @@ export function Step3Payment() {
         toast.error(t('error_vnpay_link', 'checkout'));
         return;
       }
+
+      await createShipment(orderId);
 
       clearIdempotencyKey('vnpay_payment');
       vnpayIdempotencyKeyRef.current = null;
