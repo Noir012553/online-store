@@ -13,7 +13,7 @@ const Order = require('../../../models/Order');
 const Product = require('../../../models/Product');
 const Currency = require('../../../models/Currency');
 const ExchangeRate = require('../../../models/ExchangeRate');
-const { addOrderItems, updateOrderStatus, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../controllers/orderController');
+const { addOrderItems, updateOrder, updateOrderStatus, updateOrderToDelivered, getMyOrders, deleteOrder, hardDeleteOrder } = require('../../../controllers/orderController');
 
 const createQuery = (sandbox, result) => ({
   populate: sandbox.stub().returnsThis(),
@@ -113,6 +113,55 @@ describe('Order Controller', () => {
     });
   });
 
+  describe('updateOrder', () => {
+    it('recalculates order items and totals from current product data', async () => {
+      const orderId = new mongoose.Types.ObjectId();
+      const productId = new mongoose.Types.ObjectId();
+      const order = {
+        _id: orderId,
+        isDeleted: false,
+        isPaid: false,
+        isDelivered: false,
+        shipmentStatus: 'pending',
+        currencyCode: 'USD',
+        baseCurrencyCode: 'USD',
+        exchangeRates: [],
+        orderItems: [],
+        appliedCoupon: null,
+        taxPrice: 0,
+        save: sandbox.stub().callsFake(async function () { return this; }),
+      };
+      sandbox.stub(Order, 'findOne').resolves(order);
+      sandbox.stub(Product, 'find').resolves([{
+        _id: productId,
+        countInStock: 5,
+        price: 125,
+        baseCurrencyCode: 'USD',
+        name: 'Updated laptop',
+        image: '/laptop.jpg',
+      }]);
+      const req = {
+        params: { id: orderId.toString() },
+        body: {
+          shippingAddress: { name: 'Customer', phone: '0901234567', address: '12 Le Loi' },
+          cartItems: [{ productId: productId.toString(), quantity: 2 }],
+        },
+        lang: 'en',
+        locale: 'en',
+        app: { get: sandbox.stub().returns(null) },
+      };
+      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
+
+      await updateOrder(req, res);
+
+      expect(order.orderItems).to.have.length(1);
+      expect(order.orderItems[0].qty).to.equal(2);
+      expect(order.itemsPrice).to.equal(250);
+      expect(order.totalPrice).to.equal(250);
+      expect(order.save.calledOnce).to.be.true;
+    });
+  });
+
   describe('updateOrderStatus', () => {
     it('should update an order delivery status', async () => {
       const order = {
@@ -199,7 +248,7 @@ describe('Order Controller', () => {
   describe('hardDeleteOrder', () => {
     it('should hard delete an order', async () => {
       const orderId = new mongoose.Types.ObjectId();
-      sandbox.stub(Order, 'findById').resolves({ _id: orderId });
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true });
       sandbox.stub(Order, 'findByIdAndDelete').resolves({ _id: orderId });
 
       const req = { params: { id: orderId.toString() }, lang: 'en' };
@@ -207,6 +256,21 @@ describe('Order Controller', () => {
       
       await hardDeleteOrder(req, res);
       expect(res.json.calledOnce).to.be.true;
+    });
+
+    it('should reject hard deletion of an active order', async () => {
+      const orderId = new mongoose.Types.ObjectId();
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: false });
+
+      const req = { params: { id: orderId.toString() }, lang: 'en' };
+      const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
+
+      try {
+        await hardDeleteOrder(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+      }
     });
   });
 });

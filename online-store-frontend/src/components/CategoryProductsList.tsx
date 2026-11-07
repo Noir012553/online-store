@@ -282,7 +282,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
       try {
         setIsLoading(true);
 
-        const brandFilter = filters.brands.length > 0 ? filters.brands[0] : undefined;
+        const brandFilter = filters.brands.length > 0 ? filters.brands.join(',') : undefined;
         const [minPrice, maxPrice] = filters.priceRange;
         const minPriceParam = minPrice > 0 ? minPrice : undefined;
         const maxPriceParam = maxPrice > 0 ? maxPrice : undefined;

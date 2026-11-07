@@ -190,8 +190,7 @@ export function OrdersList() {
   const handleDeleteOrder = async (orderId: string) => {
     try {
       setIsUpdating(true);
-      // Delete order via API (soft delete)
-      await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      await orderAPI.deleteOrder(orderId);
       if (viewDeletedTab) {
         await fetchDeletedOrders();
       } else {

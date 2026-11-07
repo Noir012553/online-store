@@ -202,7 +202,8 @@ export function Step1Combined() {
     setFormData({
       shippingAddress: {
         ...localShippingAddress,
-        phone: formData.phone, // Ensure phone is up-to-date
+        name: formData.name,
+        phone: formData.phone,
       },
       selectedShipping: selectedService,
     });

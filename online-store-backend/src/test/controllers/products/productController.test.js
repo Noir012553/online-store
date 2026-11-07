@@ -472,7 +472,7 @@ describe('Product Controller', () => {
   describe('hardDeleteProduct', () => {
     it('should hard delete a product', async () => {
       const productId = new mongoose.Types.ObjectId();
-      sandbox.stub(Product, 'findById').resolves({ _id: productId });
+      sandbox.stub(Product, 'findById').resolves({ _id: productId, isDeleted: true });
       sandbox.stub(Product, 'findByIdAndDelete').resolves({ _id: productId });
       sandbox.stub(ProductCatalogTranslationCache, 'deleteMany').resolves();
 
@@ -482,9 +482,23 @@ describe('Product Controller', () => {
       expect(res.json.calledOnce).to.be.true;
     });
 
+    it('rejects hard deletion of an active product', async () => {
+      const productId = new mongoose.Types.ObjectId();
+      sandbox.stub(Product, 'findById').resolves({ _id: productId, isDeleted: false });
+      const req = { params: { id: productId.toString() } };
+      const res = { status: sandbox.stub().returnsThis() };
+
+      try {
+        await hardDeleteProduct(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+      }
+    });
+
     it('rejects hard deletion while an order references the product', async () => {
       const productId = new mongoose.Types.ObjectId();
-      sandbox.stub(Product, 'findById').resolves({ _id: productId });
+      sandbox.stub(Product, 'findById').resolves({ _id: productId, isDeleted: true });
       Order.exists.resolves({ _id: new mongoose.Types.ObjectId() });
       const req = { params: { id: productId.toString() } };
       const res = { status: sandbox.stub().returnsThis() };

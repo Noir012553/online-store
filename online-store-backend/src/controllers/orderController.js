@@ -89,6 +89,175 @@ const convertFromCatalogCurrency = (amount, catalogCurrency, currencyCode, excha
   );
 };
 
+const recalculateOrderItems = async (order, cartItems, shippingAddress, lang, res) => {
+  const quantities = new Map();
+  for (const item of cartItems) {
+    const productId = String(item.productId || '');
+    const quantity = Number(item.quantity);
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_PRODUCT_ID_REQUIRED', 'validation.product.idRequired');
+    }
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_INVALID_QUANTITY', 'validation.quantity.invalid');
+    }
+    quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+  }
+
+  const products = await withTimeout(
+    Product.find({ _id: { $in: [...quantities.keys()] }, isDeleted: false }),
+    ORDER_QUERY_TIMEOUT_MS,
+  );
+  const productMap = new Map(products.map(product => [String(product._id), product]));
+  const orderProducts = [];
+  for (const [productId, quantity] of quantities) {
+    const product = productMap.get(productId);
+    if (!product) {
+      res.status(404);
+      throw createOrderError(lang, 'ORDER_PRODUCT_NOT_FOUND', 'api-errors.product_not_found');
+    }
+    if (product.countInStock < quantity) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_INSUFFICIENT_STOCK', 'errors.insufficient_stock');
+    }
+    orderProducts.push({ product, quantity });
+  }
+
+  const baseCurrencyCode = order.baseCurrencyCode;
+  const currencyCode = order.currencyCode;
+  const exchangeRates = order.exchangeRates || [];
+  const couponSnapshot = order.appliedCoupon;
+  const currencyCodes = [...new Set([
+    baseCurrencyCode,
+    currencyCode,
+    ...orderProducts.map(({ product }) => product.baseCurrencyCode),
+    ...(couponSnapshot?.couponCurrencyCode ? [couponSnapshot.couponCurrencyCode] : []),
+  ])];
+  const currencies = await withTimeout(
+    Currency.find({ code: { $in: currencyCodes } }, { code: 1, decimalPlaces: 1, _id: 0 }).lean(),
+    ORDER_QUERY_TIMEOUT_MS,
+  );
+  const decimalPlaces = new Map(currencies.map(currency => [currency.code, currency.decimalPlaces]));
+  if (currencyCodes.some(code => !decimalPlaces.has(code))) {
+    res.status(503);
+    throw createOrderError(lang, 'ORDER_CURRENCY_CONFIG_UNAVAILABLE', 'common.error_request_title');
+  }
+
+  const hasExchangeRate = (fromCode, toCode) => fromCode === toCode || exchangeRates.some(rate =>
+    (rate.fromCode === fromCode && rate.toCode === toCode)
+      || (rate.fromCode === toCode && rate.toCode === fromCode));
+  if (currencyCodes.some(code => !hasExchangeRate(code, baseCurrencyCode)
+    || !hasExchangeRate(baseCurrencyCode, currencyCode))) {
+    res.status(503);
+    throw createOrderError(lang, 'ORDER_RATES_UNAVAILABLE', 'common.error_server_desc');
+  }
+
+  const toBaseCurrency = (amount, sourceCurrency) => convertFromCatalogCurrency(
+    amount,
+    sourceCurrency,
+    baseCurrencyCode,
+    exchangeRates,
+    decimalPlaces.get(baseCurrencyCode),
+  );
+  const baseItemsPrice = orderProducts.reduce(
+    (total, { product, quantity }) => total + toBaseCurrency(product.price * quantity, product.baseCurrencyCode),
+    0,
+  );
+
+  let baseDiscount = 0;
+  let appliedCoupon = null;
+  if (couponSnapshot?.code) {
+    const couponCurrencyCode = couponSnapshot.couponCurrencyCode;
+    const baseMinimum = toBaseCurrency(couponSnapshot.couponMinOrderAmount || 0, couponCurrencyCode);
+    if (baseItemsPrice < baseMinimum) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_COUPON_MINIMUM_NOT_REACHED', 'coupons.error_min_order_requirement');
+    }
+    const requestedDiscount = couponSnapshot.discountType === 'percentage'
+      ? Math.round((baseItemsPrice * couponSnapshot.discountValue) / 100)
+      : couponSnapshot.discountType === 'fixed'
+        ? toBaseCurrency(couponSnapshot.discountValue, couponCurrencyCode)
+        : 0;
+    baseDiscount = Math.min(baseItemsPrice, Math.max(0, requestedDiscount));
+    appliedCoupon = {
+      ...(typeof couponSnapshot.toObject === 'function' ? couponSnapshot.toObject() : couponSnapshot),
+      baseMinOrderAmount: baseMinimum,
+      baseDiscountAmount: baseDiscount,
+    };
+  }
+
+  let baseShippingFee = 0;
+  if (order.shippingProvider || order.shippingService) {
+    if (!order.shippingProvider || !order.shippingService || !shippingAddress?.districtId || !shippingAddress?.wardCode) {
+      res.status(400);
+      throw createOrderError(lang, 'ORDER_SHIPPING_SELECTION_INVALID', 'shipping.missingParametersService');
+    }
+    const totalWeight = orderProducts.reduce(
+      (weight, { product, quantity }) => weight + getProductWeightInGrams(product) * quantity,
+      0,
+    );
+    try {
+      baseShippingFee = await calculateSelectedShipping({
+        providerCode: order.shippingProvider,
+        serviceType: order.shippingService,
+        from: { districtId: WAREHOUSE_DISTRICT_ID },
+        to: { districtId: shippingAddress.districtId, wardCode: shippingAddress.wardCode },
+        weight: Math.max(totalWeight, 100),
+        value: baseItemsPrice,
+        lang,
+      });
+    } catch (error) {
+      res.status(502);
+      throw createOrderError(lang, error.errorCode || 'ORDER_SHIPPING_FEE_UNAVAILABLE', 'shipping.cannotCalculateFee');
+    }
+  }
+
+  const itemsPrice = convertFromCatalogCurrency(baseItemsPrice, baseCurrencyCode, currencyCode, exchangeRates, decimalPlaces.get(currencyCode));
+  const discount = convertFromCatalogCurrency(baseDiscount, baseCurrencyCode, currencyCode, exchangeRates, decimalPlaces.get(currencyCode));
+  const shippingFee = convertFromCatalogCurrency(baseShippingFee, baseCurrencyCode, currencyCode, exchangeRates, decimalPlaces.get(currencyCode));
+  if (appliedCoupon) appliedCoupon.discountAmount = discount;
+
+  const taxPrice = order.taxPrice || 0;
+  const totalPrice = roundCurrencyAmount(
+    Math.max(0, itemsPrice + taxPrice + shippingFee - discount),
+    decimalPlaces.get(currencyCode),
+  );
+  const baseTotalPrice = roundCurrencyAmount(
+    Math.max(0, baseItemsPrice + baseShippingFee - baseDiscount),
+    decimalPlaces.get(baseCurrencyCode),
+  );
+  const orderItems = orderProducts.map(({ product, quantity }) => {
+    const hasDiscount = Number.isFinite(product.originalPrice) && product.originalPrice > product.price;
+    return {
+      product: product._id,
+      name: typeof product.name === 'object'
+        ? product.name[getDefaultLanguage().code] || Object.values(product.name).find(Boolean) || product.name
+        : product.name,
+      qty: quantity,
+      price: convertFromCatalogCurrency(product.price, product.baseCurrencyCode, currencyCode, exchangeRates, decimalPlaces.get(currencyCode)),
+      ...(hasDiscount && {
+        originalPrice: convertFromCatalogCurrency(product.originalPrice, product.baseCurrencyCode, currencyCode, exchangeRates, decimalPlaces.get(currencyCode)),
+        discountPercentage: Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100),
+      }),
+      image: product.image || product.images?.[0] || '',
+    };
+  });
+
+  return {
+    orderItems,
+    itemsPrice,
+    discount,
+    shippingFee,
+    totalPrice,
+    appliedCoupon,
+    baseItemsPrice,
+    baseDiscount,
+    baseShippingFee,
+    baseTotalPrice,
+  };
+};
+
 /**
  * Cập nhật trạng thái đơn hàng (isPaid, isDelivered)
  * @route PUT /api/orders/:id/status
@@ -107,7 +276,7 @@ const updateOrder = asyncHandler(async (req, res) => {
 
   const hasShipmentStarted = order.isPaid || order.isDelivered
     || (order.shipmentStatus && order.shipmentStatus !== 'pending')
-    || order.shippingProvider || order.shippingService || order.ghnOrderCode || order.trackingNumber;
+    || order.ghnOrderCode || order.trackingNumber || order.shipmentCreatedAt;
   if (hasShipmentStarted) {
     res.status(409);
     const error = new Error(getMessage(req.lang, 'orders.order_cannot_be_edited'));
@@ -117,12 +286,19 @@ const updateOrder = asyncHandler(async (req, res) => {
   }
 
   const shippingAddress = req.body.shippingAddress;
-  order.shippingAddress = {
+  const nextShippingAddress = {
     ...(order.shippingAddress?.toObject ? order.shippingAddress.toObject() : order.shippingAddress),
+    ...shippingAddress,
     name: shippingAddress.name.trim(),
     phone: shippingAddress.phone.trim(),
     address: shippingAddress.address.trim(),
   };
+
+  if (req.body.cartItems) {
+    const totals = await recalculateOrderItems(order, req.body.cartItems, nextShippingAddress, req.lang, res);
+    Object.assign(order, totals);
+  }
+  order.shippingAddress = nextShippingAddress;
 
   const updatedOrder = await withTimeout(order.save(), ORDER_QUERY_TIMEOUT_MS);
   try {
@@ -304,6 +480,12 @@ const addOrderItems = asyncHandler(async (req, res) => {
       // Case 1: Phone provided - upsert by phone (most reliable for order creation)
       if (customerPhone) {
         const normalizedEmail = customerEmail ? customerEmail.toLowerCase().trim() : null;
+        const customerAddress = [
+          shippingAddress?.address,
+          shippingAddress?.wardName,
+          shippingAddress?.districtName,
+          shippingAddress?.provinceName,
+        ].filter(Boolean).join(', ');
 
         // Use findOneAndUpdate with upsert to avoid race condition
         const customer = await withTimeout(
@@ -313,6 +495,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
               $set: {
                 ...(customerName && { name: customerName }),
                 ...(normalizedEmail && { email: normalizedEmail }),
+                ...(customerAddress && { address: customerAddress }),
                 updatedAt: new Date()
               }
             },
@@ -1127,6 +1310,10 @@ const hardDeleteOrder = asyncHandler(async (req, res) => {
   if (!order) {
     res.status(404);
     throw new Error(getMessage(lang, 'orders.order_not_found'));
+  }
+  if (!order.isDeleted) {
+    res.status(409);
+    throw new Error(getMessage(lang, 'admin-controllers-messages.order_not_deleted'));
   }
 
   await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);

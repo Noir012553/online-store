@@ -4,6 +4,7 @@
  * Kiểm tra trùng lặp tên danh mục
  */
 const asyncHandler = require('express-async-handler');
+const crypto = require('crypto');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 const { withTimeout } = require('../utils/mongooseUtils');
@@ -18,6 +19,14 @@ const normalizeSourceNames = (value) => (
     ? [...new Set(value.map(name => String(name).trim()).filter(Boolean))]
     : []
 );
+
+const createCategorySlug = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/gi, 'd')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
 
 /**
  * Lấy danh sách danh mục sản phẩm với phân trang và tìm kiếm
@@ -125,9 +134,17 @@ const getCategoryById = asyncHandler(async (req, res) => {
 const createCategory = asyncHandler(async (req, res) => {
   const { name, sourceNames, description, translationKey, icon, image, key, slug } = req.body;
   const lang = req.lang;
+  const normalizedName = typeof name === 'string' ? name.trim() : '';
+  const generatedSlug = createCategorySlug(normalizedName);
+  const generatedIdentifier = `${generatedSlug}-${crypto.randomBytes(3).toString('hex')}`;
+
+  if (!normalizedName || !generatedSlug) {
+    res.status(400);
+    throw new Error(getMessage(lang, 'admin-controllers-messages.missing_invalid_fields'));
+  }
 
   // Check uniqueness on name
-  const categoryExists = await Category.findOne({ name: { $regex: name, $options: 'i' }, isDeleted: false });
+  const categoryExists = await Category.findOne({ name: { $regex: escapeRegex(normalizedName), $options: 'i' }, isDeleted: false });
 
   if (categoryExists) {
     res.status(400);
@@ -135,14 +152,14 @@ const createCategory = asyncHandler(async (req, res) => {
   }
 
   const category = new Category({
-    name: name || '',
+    name: normalizedName,
     sourceNames: normalizeSourceNames(sourceNames),
     description: description || '',
     translationKey: translationKey || null,
     icon: icon || 'Laptop',
     image: image || null,
-    key: key || null,
-    slug: slug || null,
+    key: key || generatedIdentifier,
+    slug: slug || generatedIdentifier,
   });
 
   const createdCategory = await category.save();

@@ -163,7 +163,57 @@ const validateOrderList = [
     .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
 ];
 
+const validateCustomer = [
+  body('name')
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.customer.nameInvalid')),
+  body('phone')
+    .isString()
+    .trim()
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
+  body('email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.email.invalid'))
+    .normalizeEmail(),
+  body('address')
+    .optional({ checkFalsy: true })
+    .isString()
+    .isLength({ max: 500 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+];
+
+const validateUpdateOrderStatus = [
+  body('isPaid')
+    .optional()
+    .isBoolean({ strict: true })
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+  body('isDelivered')
+    .optional()
+    .isBoolean({ strict: true })
+    .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
+  body().custom((_, { req }) => {
+    if (req.body.isPaid === undefined && req.body.isDelivered === undefined) {
+      throw new Error(getMessage(req.lang, 'common.error_request_title'));
+    }
+    return true;
+  }),
+];
+
 const validateUpdateOrder = [
+  body('cartItems')
+    .optional()
+    .isArray({ min: 1 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.cart.empty')),
+  body('cartItems.*.productId')
+    .isMongoId()
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.product.idRequired')),
+  body('cartItems.*.quantity')
+    .isInt({ min: 1 })
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.quantity.invalid')),
   body('shippingAddress')
     .isObject()
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.shipping.addressRequired')),
@@ -198,5 +248,7 @@ module.exports = {
   validateCreateOrder,
   validateOrderList,
   validateUpdateOrder,
+  validateCustomer,
+  validateUpdateOrderStatus,
   validateCheckoutSummary,
 };

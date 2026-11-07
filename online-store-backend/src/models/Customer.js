@@ -33,7 +33,6 @@ const CustomerSchema = new mongoose.Schema({
     },
     email: {
         type: String,
-        required: true,
         trim: true,
         lowercase: true
     },
@@ -41,6 +40,11 @@ const CustomerSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: '',
     },
     isDeleted: {
         type: Boolean,

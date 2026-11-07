@@ -116,7 +116,7 @@ describe('Order HTTP API', () => {
   });
 
   it('uses the canonical hard-delete endpoint', async () => {
-    const order = { _id: new mongoose.Types.ObjectId() };
+    const order = { _id: new mongoose.Types.ObjectId(), isDeleted: true };
     sandbox.stub(Order, 'findById').resolves(order);
     sandbox.stub(Order, 'findByIdAndDelete').resolves(order);
 
@@ -125,6 +125,32 @@ describe('Order HTTP API', () => {
       .set('Authorization', auth(adminUser));
 
     expect(response.status).to.equal(200);
+  });
+
+  it('rejects invalid order status payloads', async () => {
+    const orderId = new mongoose.Types.ObjectId();
+    const invalidValue = await request(app)
+      .put(`/api/orders/${orderId}/status`)
+      .set('Authorization', auth(adminUser))
+      .send({ isDelivered: 'yes' });
+    const emptyPayload = await request(app)
+      .put(`/api/orders/${orderId}/status`)
+      .set('Authorization', auth(adminUser))
+      .send({});
+
+    expect(invalidValue.status).to.equal(400);
+    expect(emptyPayload.status).to.equal(400);
+  });
+
+  it('rejects hard deletion of an active order', async () => {
+    const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false };
+    sandbox.stub(Order, 'findById').resolves(order);
+
+    const response = await request(app)
+      .delete(`/api/orders/${order._id}/hard`)
+      .set('Authorization', auth(adminUser));
+
+    expect(response.status).to.equal(409);
   });
 
   it('rejects shipping updates after payment has started', async () => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Package, DollarSign, CheckCircle2, AlertCircle, Check, Plus, Trash2 } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
-import { productAPI } from "../../../lib/api";
+import { categoryAPI, productAPI } from "../../../lib/api";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Badge } from "../../ui/badge";
@@ -176,7 +176,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
         const formData = new FormData();
         formData.append("name", product.name);
         formData.append("brand", product.brand);
-        const catId = product.categoryId || (product.category?._id || product.category);
+        const catId = product.category?._id || product.category || product.categoryId;
         if (catId) {
           formData.append("category", catId);
         }
@@ -205,15 +205,20 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           return;
         }
 
+        let categoryId = product.category?._id;
+        if (categoryChoice === "new") {
+          const createdCategory = await categoryAPI.createCategory({ name: newCategoryName.trim() });
+          categoryId = createdCategory.category?._id || createdCategory._id;
+        }
+
+        if (!categoryId) {
+          throw new Error('category_create_failed');
+        }
+
         const formData = new FormData();
         formData.append("name", product.name);
         formData.append("brand", product.brand);
-
-        if (categoryChoice === "existing" && product.category) {
-          formData.append("category", product.category._id);
-        } else if (categoryChoice === "new" && newCategoryName.trim()) {
-          formData.append("categoryName", newCategoryName.trim());
-        }
+        formData.append("category", categoryId);
 
         formData.append("price", product.price);
         formData.append("baseCurrencyCode", product.baseCurrencyCode);
@@ -369,11 +374,21 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
           {product._id && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">{t('admin_category', 'admin')}</Label>
-              <Input
-                value={product.category?.name || product.categoryName || product.category || ""}
-                disabled
-                className="bg-gray-100 text-gray-600"
-              />
+              <select
+                value={product.category?._id || product.categoryId || product.category || ""}
+                onChange={(event) => {
+                  const selectedCategory = categories.find((category) => category._id === event.target.value);
+                  setProduct({ ...product, category: selectedCategory || event.target.value });
+                }}
+                className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none"
+              >
+                <option value="" disabled>{t('select_category_placeholder', 'admin')}</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {getCategoryName(category)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>

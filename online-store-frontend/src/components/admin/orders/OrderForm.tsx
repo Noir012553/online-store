@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, Package, DollarSign, Plus, X } from 'lucide-react';
+import { MapPin, Package, DollarSign, Plus, Minus, X } from 'lucide-react';
 import { apiCall, orderAPI, productAPI } from '../../../lib/api';
 import type { CheckoutSummary } from '../../../context/CheckoutContext';
 import { useTranslation, useLanguage } from '../../../lib/i18n';
@@ -50,20 +50,17 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [summary, setSummary] = useState<CheckoutSummary | null>(null);
+  const [editOrder, setEditOrder] = useState<any>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [selectedProductQty, setSelectedProductQty] = useState<number | string>(1);
 
   // Fetch products for selection
   useEffect(() => {
-    if (mode === 'edit') return;
-
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
-        const response = await productAPI.getProducts(
-          1, '', '', '', 100, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, locale
-        );
+        const response = await productAPI.getAdminProducts(1, undefined, undefined, undefined, 500, locale, currency.code);
         const productsList = response.products || [];
         setProducts(Array.isArray(productsList) ? productsList : []);
       } catch (error) {
@@ -75,7 +72,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     };
 
     fetchProducts();
-  }, [locale, mode, t]);
+  }, [currency.code, locale, t]);
 
   // Fetch order data for edit mode
   useEffect(() => {
@@ -84,6 +81,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         try {
           setIsLoading(true);
           const order = await orderAPI.getOrderById(orderId, locale, locale);
+          setEditOrder(order);
           setForm({
             customerName: order.shippingAddress?.name || order.customer?.name || '',
             customerEmail: order.customer?.email || '',
@@ -91,6 +89,13 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
             customerAddress: order.shippingAddress?.address || '',
             paymentMethod: order.paymentMethod || 'cod',
           });
+          setOrderItems((order.orderItems || []).map((item: any) => ({
+            product: String(typeof item.product === 'object' ? item.product._id || item.product.id : item.product),
+            name: item.name,
+            image: item.image || '',
+            qty: Number(item.qty),
+            price: Number(item.price),
+          })));
         } catch (error) {
           toast.error(t('error_load_data', 'common'));
           onCancel?.();
@@ -155,7 +160,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
   }, [orderItems]);
 
   useEffect(() => {
-    if (orderItems.length === 0) {
+    if (orderItems.length === 0 || (mode === 'edit' && !editOrder)) {
       setSummary(null);
       setIsLoadingSummary(false);
       return;
@@ -166,7 +171,11 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
     orderAPI.getSummary({
       cartItems: orderItems.map((item) => ({ productId: item.product, quantity: item.qty })),
-      currencyCode: currency.code,
+      couponCode: mode === 'edit' ? editOrder?.appliedCoupon?.code : undefined,
+      shippingAddress: mode === 'edit' ? editOrder?.shippingAddress : undefined,
+      shippingProvider: mode === 'edit' ? editOrder?.shippingProvider : undefined,
+      shippingService: mode === 'edit' ? editOrder?.shippingService : undefined,
+      currencyCode: mode === 'edit' ? editOrder?.currencyCode || currency.code : currency.code,
     }, locale, getIntlLocale(locale))
       .then((response) => {
         if (!cancelled) setSummary(response.data as CheckoutSummary);
@@ -181,7 +190,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     return () => {
       cancelled = true;
     };
-  }, [currency.code, locale, orderItems]);
+  }, [currency.code, editOrder, locale, mode, orderItems]);
 
   const handleSubmit = async () => {
     if (!form.customerName || !form.customerPhone || !form.customerAddress) {
@@ -203,7 +212,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       }
     }
 
-    if (mode === 'create' && orderItems.length === 0) {
+    if (orderItems.length === 0) {
       toast.error(t('error_cart_empty', 'admin'));
       return;
     }
@@ -219,7 +228,10 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
       if (mode === 'edit') {
         if (!orderId) return;
-        await orderAPI.updateOrder(orderId, { shippingAddress }, locale);
+        await orderAPI.updateOrder(orderId, {
+          shippingAddress,
+          cartItems: orderItems.map((item) => ({ productId: item.product, quantity: item.qty })),
+        }, locale);
         toast.success(t('toast_update_success', 'admin'));
       } else {
         await apiCall(`/orders?lang=${locale}&locale=${locale}`, {
@@ -329,7 +341,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         </div>
 
         {/* Products Section */}
-        {mode === 'create' && <div className="space-y-4">
+        <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Package className="w-4 h-4 text-blue-600" />
             {t('add_product', 'admin')}
@@ -408,12 +420,14 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                     <th className="px-4 py-2 text-center font-semibold text-gray-700">
                       {t('quantity_label', 'admin')}
                     </th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                      {t('admin_price', 'admin')}
-                    </th>
-                    <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                      {t('total', 'admin')}
-                    </th>
+                    {mode === 'create' && <>
+                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                        {t('admin_price', 'admin')}
+                      </th>
+                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                        {t('total', 'admin')}
+                      </th>
+                    </>}
                     <th className="px-4 py-2 text-center font-semibold text-gray-700">
                       {t('admin_actions', 'admin')}
                     </th>
@@ -426,13 +440,39 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                     return (
                       <tr key={item.product}>
                         <td className="px-4 py-2">{summaryItem?.name || product?.name || t('product_fallback', 'admin')}</td>
-                        <td className="px-4 py-2 text-center">{item.qty}</td>
-                        <td className="px-4 py-2 text-right">
-                          {summaryItem?.formattedPrice || '—'}
+                        <td className="px-4 py-2 text-center">
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={item.qty <= 1}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty - 1 } : current))}
+                              aria-label={t('quantity_decrease', 'products')}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span>{item.qty}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={Number.isInteger(product?.countInStock) && item.qty >= product.countInStock}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty + 1 } : current))}
+                              aria-label={t('quantity_increase', 'products')}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </td>
-                        <td className="px-4 py-2 text-right font-medium text-red-600">
-                          {summaryItem?.formattedLineTotal || '—'}
-                        </td>
+                        {mode === 'create' && <>
+                          <td className="px-4 py-2 text-right">
+                            {summaryItem?.formattedPrice || '—'}
+                          </td>
+                          <td className="px-4 py-2 text-right font-medium text-red-600">
+                            {summaryItem?.formattedLineTotal || '—'}
+                          </td>
+                        </>}
                         <td className="px-4 py-2 text-center">
                           <Button
                             variant="ghost"
@@ -449,7 +489,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
               </table>
             </div>
           )}
-        </div>}
+        </div>
 
         {mode === 'create' && <div>
           <Label htmlFor="payment-method" className="text-xs font-medium text-gray-600">
@@ -468,7 +508,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
           </select>
         </div>}
 
-        {mode === 'create' && orderItems.length > 0 && (
+        {orderItems.length > 0 && (
           <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <DollarSign className="h-4 w-4 text-blue-600" />
@@ -501,7 +541,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         <div className="flex flex-col gap-3 pt-6 sm:flex-row border-t">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || (mode === 'create' && orderItems.length === 0)}
+            disabled={isSubmitting || orderItems.length === 0}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
           >
             {isSubmitting ? t('loading', 'common') : mode === 'create' ? t('create_order_button', 'admin') : t('update', 'common')}

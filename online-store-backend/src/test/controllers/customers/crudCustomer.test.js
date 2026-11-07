@@ -376,6 +376,7 @@ describe('Customer Controller - CRUD Operations', () => {
       const customer = {
         _id: customerId,
         email: 'customer@example.com',
+        isDeleted: true,
         deleteOne: sandbox.stub().resolves(),
       };
 
@@ -398,9 +399,25 @@ describe('Customer Controller - CRUD Operations', () => {
       })).to.be.true;
     });
 
+    it('rejects hard deletion of an active customer', async () => {
+      const customerId = new mongoose.Types.ObjectId();
+      const customer = { _id: customerId, email: 'customer@example.com', isDeleted: false, deleteOne: sandbox.stub() };
+      findByIdStub.resolves(customer);
+      const req = { params: { id: customerId.toString() }, query: { lang: 'en' } };
+      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
+
+      try {
+        await hardDeleteCustomer(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+      }
+      expect(customer.deleteOne.called).to.be.false;
+    });
+
     it('rejects hard deletion while orders reference the customer', async () => {
       const customerId = new mongoose.Types.ObjectId();
-      const customer = { _id: customerId, email: 'customer@example.com', deleteOne: sandbox.stub() };
+      const customer = { _id: customerId, email: 'customer@example.com', isDeleted: true, deleteOne: sandbox.stub() };
       findByIdStub.resolves(customer);
       Order.exists.resolves({ _id: new mongoose.Types.ObjectId() });
       const req = { params: { id: customerId.toString() }, query: { lang: 'en' } };

@@ -1146,10 +1146,11 @@ export const productAPI = {
   /**
    * Lấy danh sách sản phẩm đã xóa (Admin only)
    */
-  getDeletedProducts: async (page = 1, pageSize = 9, lang?: Locale) => {
+  getDeletedProducts: async (page = 1, pageSize = 9, lang?: Locale, keyword?: string) => {
     const params = new URLSearchParams();
     params.append('pageNumber', page.toString());
     params.append('pageSize', pageSize.toString());
+    if (keyword?.trim()) params.append('keyword', keyword.trim());
     const endpoint = `/products/deleted/list?${params.toString()}`;
     const finalEndpoint = lang ? `${endpoint}&lang=${lang}` : buildLocalizedUrl(endpoint);
     return apiCall(finalEndpoint, {
@@ -1595,6 +1596,13 @@ export const categoryAPI = {
     return apiCall(finalEndpoint);
   },
 
+  createCategory: async (data: { name: string }) => {
+    return apiCall('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
 };
 
 /**
@@ -2019,6 +2027,7 @@ export const orderAPI = {
 
   updateOrder: async (id: string, data: {
     shippingAddress: { name: string; phone: string; address: string };
+    cartItems?: Array<{ productId: string; quantity: number }>;
   }, locale?: string) => {
     const params = new URLSearchParams();
     if (locale) params.set('lang', locale);
@@ -2032,6 +2041,10 @@ export const orderAPI = {
   /**
    * Khôi phục đơn hàng đã xóa (Admin only)
    */
+  deleteOrder: async (id: string) => {
+    return apiCall(`/orders/${id}`, { method: 'DELETE' });
+  },
+
   restoreOrder: async (id: string) => {
     return apiCall(`/orders/${id}/restore`, { method: 'PUT' });
   },

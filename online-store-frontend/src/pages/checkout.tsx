@@ -22,7 +22,7 @@ export const getServerSideProps = async () => {
 function CheckoutContent() {
   const router = useRouter();
   const { user, isInitialized } = useAuth();
-  const { items } = useCart();
+  const { items, totalItems } = useCart();
   const { currentStep, formData } = useCheckout();
   const { t } = useTranslation();
 
@@ -79,7 +79,7 @@ function CheckoutContent() {
             <h1 className="text-3xl font-bold text-gray-900">{t('step_payment', 'checkout')}</h1>
             <p className="text-gray-600 mt-1">{t('step_payment', 'checkout')} {currentStep} / 3</p>
           </div>
-          <Badge className="bg-red-600 text-white px-4 py-2 text-sm font-medium">{items.length} {t('label_quantity', 'checkout')}</Badge>
+          <Badge className="bg-red-600 text-white px-4 py-2 text-sm font-medium">{totalItems} {t('label_quantity', 'checkout')}</Badge>
         </div>
 
         <StepIndicator currentStep={currentStep} totalSteps={3} />
@@ -110,6 +110,7 @@ export default function CheckoutPage() {
       initialName={user?.name}
       initialEmail={user?.email}
       initialPhone={user?.phone}
+      initialAddress={user?.address}
     >
       <CheckoutContent />
     </CheckoutProvider>

@@ -616,7 +616,15 @@ const getProducts = asyncHandler(async (req, res) => {
       category = { category: categoryId };
     }
   }
-  const brand = req.query.brand ? { brand: req.query.brand } : {};
+  const requestedBrands = (Array.isArray(req.query.brand) ? req.query.brand : [req.query.brand])
+    .flatMap(value => typeof value === 'string' ? value.split(',') : [])
+    .map(value => value.trim())
+    .filter(Boolean);
+  const brand = requestedBrands.length === 1
+    ? { brand: requestedBrands[0] }
+    : requestedBrands.length > 1
+      ? { brand: { $in: requestedBrands } }
+      : {};
   const dealFilter = req.query.hasDeal === 'true'
     ? {
       'deal.discount': { $gt: 0 },
@@ -1313,10 +1321,17 @@ const restoreProduct = asyncHandler(async (req, res) => {
 const getDeletedProducts = asyncHandler(async (req, res) => {
   const pageSize = Number(req.query.pageSize) || 9;
   const page = Number(req.query.pageNumber) || 1;
+  const keyword = typeof req.query.keyword === 'string' ? req.query.keyword.trim() : '';
+  const query = { isDeleted: true };
 
-  const count = await withTimeout(Product.countDocuments({ isDeleted: true }), 15000);
+  if (keyword) {
+    const expression = { $regex: keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    query.$or = [{ name: expression }, { brand: expression }];
+  }
+
+  const count = await withTimeout(Product.countDocuments(query), 15000);
   const products = await withTimeout(
-    Product.find({ isDeleted: true })
+    Product.find(query)
       .populate('category')
       .lean() // Use lean() to reduce memory overhead for large product lists
       .sort({ updatedAt: -1 })
@@ -1343,6 +1358,10 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
   if (!product) {
     res.status(404);
     throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_found'));
+  }
+  if (!product.isDeleted) {
+    res.status(409);
+    throw new Error(getMessage(String(lang || DEFAULT_LANG).toUpperCase(), 'admin-controllers-messages.product_not_deleted'));
   }
 
   await ensureProductHasNoOrders(product._id, lang, res);
