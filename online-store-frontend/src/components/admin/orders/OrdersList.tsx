@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
-import { Search, Eye, Trash2, RotateCcw, AlertCircle, Plus } from "lucide-react";
+import { Search, Pencil, Trash2, RotateCcw, AlertCircle, Plus } from "lucide-react";
 import { formatDate } from "../../../lib/utils";
 import { orderAPI } from "../../../lib/api";
 import { Button } from "../../ui/button";
@@ -436,10 +436,10 @@ export function OrdersList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/admin/orders/${order._id}`)}
-                            title={t('view_details', 'common')}
+                            onClick={() => router.push(`/admin/orders/${order._id}/edit`)}
+                            title={t('update', 'common')}
                           >
-                            <Eye className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           {viewDeletedTab ? (
                             <>
