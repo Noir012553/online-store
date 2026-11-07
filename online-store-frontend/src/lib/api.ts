@@ -1595,10 +1595,6 @@ export const categoryAPI = {
     });
   },
 
-  deleteCategory: async (id: string) => apiCall(`/categories/${id}`, { method: 'DELETE' }),
-  restoreCategory: async (id: string) => apiCall(`/categories/${id}/restore`, { method: 'PUT' }),
-  hardDeleteCategory: async (id: string) => apiCall(`/categories/${id}/hard`, { method: 'DELETE' }),
-
 };
 
 /**

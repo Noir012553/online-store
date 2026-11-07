@@ -12,7 +12,7 @@ const Category = require('../../../models/Category');
 const Product = require('../../../models/Product');
 const CategoryCatalogTranslationCache = require('../../../models/CategoryCatalogTranslationCache');
 const { getMessage } = require('../../../i18n/messages');
-const { getCategoryById, createCategory, updateCategory, deleteCategory, restoreCategory, hardDeleteCategory } = require('../../../controllers/categoryController');
+const { getCategoryById, createCategory, updateCategory, deleteCategory, hardDeleteCategory } = require('../../../controllers/categoryController');
 
 describe('Category Controller - CRUD Operations', () => {
   let sandbox;
@@ -249,10 +249,9 @@ describe('Category Controller - CRUD Operations', () => {
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Category, 'findById');
-      sandbox.stub(Product, 'exists').resolves(null);
     });
 
-    it('should soft delete a category without linked products', async () => {
+    it('should soft delete a category', async () => {
       const categoryId = new mongoose.Types.ObjectId();
       const category = {
         _id: categoryId,
@@ -280,24 +279,6 @@ describe('Category Controller - CRUD Operations', () => {
       })).to.be.true;
     });
 
-    it('should reject soft deletion while products are linked', async () => {
-      const category = { _id: new mongoose.Types.ObjectId(), isDeleted: false, save: sandbox.stub() };
-      findByIdStub.resolves(category);
-      Product.exists.resolves({ _id: new mongoose.Types.ObjectId() });
-
-      const req = { params: { id: category._id.toString() }, lang: 'en' };
-      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
-
-      try {
-        await deleteCategory(req, res);
-        throw new Error('Expected deletion to be rejected');
-      } catch (error) {
-        expect(res.status.calledWith(409)).to.be.true;
-        expect(error.errorCode).to.equal('CATEGORY_HAS_PRODUCTS');
-      }
-      expect(category.save.called).to.be.false;
-    });
-
     it('should return 404 if category not found for deletion', async () => {
       const categoryId = new mongoose.Types.ObjectId();
       findByIdStub.resolves(null);
@@ -321,36 +302,19 @@ describe('Category Controller - CRUD Operations', () => {
     });
   });
 
-  describe('restoreCategory', () => {
-    it('should restore a soft-deleted category', async () => {
-      const category = { _id: new mongoose.Types.ObjectId(), isDeleted: true, save: sandbox.stub().resolvesThis() };
-      sandbox.stub(Category, 'findById').resolves(category);
-      const req = { params: { id: category._id.toString() }, lang: 'en' };
-      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
-
-      await restoreCategory(req, res);
-
-      expect(category.isDeleted).to.be.false;
-      expect(category.save.calledOnce).to.be.true;
-      expect(res.json.calledOnce).to.be.true;
-    });
-  });
-
   describe('hardDeleteCategory', () => {
     let findByIdStub;
     let productCountStub;
 
     beforeEach(() => {
       findByIdStub = sandbox.stub(Category, 'findById');
-      productCountStub = sandbox.stub(Product, 'exists').resolves(null);
-      sandbox.stub(CategoryCatalogTranslationCache, 'deleteMany').resolves();
+      productCountStub = sandbox.stub(Product, 'countDocuments').resolves(0);
     });
 
-    it('should hard delete a soft-deleted category without linked products', async () => {
+    it('should hard delete a category', async () => {
       const categoryId = new mongoose.Types.ObjectId();
       const category = {
         _id: categoryId,
-        isDeleted: true,
         deleteOne: sandbox.stub().resolves(),
       };
 
@@ -371,39 +335,6 @@ describe('Category Controller - CRUD Operations', () => {
       expect(res.json.calledWith({
         message: getMessage('en', 'admin-controllers-messages.category_permanently_removed'),
       })).to.be.true;
-    });
-
-    it('should reject hard deletion of an active category', async () => {
-      const category = { _id: new mongoose.Types.ObjectId(), isDeleted: false, deleteOne: sandbox.stub() };
-      findByIdStub.resolves(category);
-      const req = { params: { id: category._id.toString() }, lang: 'en' };
-      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
-
-      try {
-        await hardDeleteCategory(req, res);
-        throw new Error('Expected deletion to be rejected');
-      } catch (error) {
-        expect(res.status.calledWith(409)).to.be.true;
-        expect(error.errorCode).to.equal('CATEGORY_NOT_DELETED');
-      }
-      expect(category.deleteOne.called).to.be.false;
-    });
-
-    it('should reject hard deletion while products are linked', async () => {
-      const category = { _id: new mongoose.Types.ObjectId(), isDeleted: true, deleteOne: sandbox.stub() };
-      findByIdStub.resolves(category);
-      Product.exists.resolves({ _id: new mongoose.Types.ObjectId() });
-      const req = { params: { id: category._id.toString() }, lang: 'en' };
-      const res = { json: sandbox.stub(), status: sandbox.stub().returnsThis() };
-
-      try {
-        await hardDeleteCategory(req, res);
-        throw new Error('Expected deletion to be rejected');
-      } catch (error) {
-        expect(res.status.calledWith(409)).to.be.true;
-        expect(error.errorCode).to.equal('CATEGORY_HAS_PRODUCTS');
-      }
-      expect(category.deleteOne.called).to.be.false;
     });
 
     it('should return 404 if category not found for hard delete', async () => {
