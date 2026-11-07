@@ -19,7 +19,7 @@ const {
   createOrUpdateCustomerByPhone,
 } = require('../controllers/customerController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { validateCustomer, validatePhoneParam, handleValidationErrors } = require('../middleware/validationMiddleware');
+const { validateCustomer, handleValidationErrors } = require('../middleware/validationMiddleware');
 
 /**
  * GET /api/customers - Lấy danh sách khách hàng (Admin only, phân trang, tìm kiếm)
@@ -62,7 +62,7 @@ router.route('/:id/hard')
  * POST /api/customers/phone/:phone - Tạo/cập nhật khách hàng theo phone (Admin only, upsert)
  */
 router.route('/phone/:phone')
-  .get(protect, admin, validatePhoneParam, handleValidationErrors, getCustomerByPhone)
-  .post(protect, admin, validatePhoneParam, handleValidationErrors, createOrUpdateCustomerByPhone);
+  .get(protect, admin, getCustomerByPhone)
+  .post(protect, admin, createOrUpdateCustomerByPhone);
 
 module.exports = router;

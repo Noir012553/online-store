@@ -446,13 +446,8 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                if (item.qty <= 1) {
-                                  toast.info(locale === 'vi' ? 'Số lượng tối thiểu của đơn là 1.' : 'The minimum order quantity is 1.');
-                                  return;
-                                }
-                                setOrderItems((currentItems) => currentItems.map((current) => current.product === item.product ? { ...current, qty: current.qty - 1 } : current));
-                              }}
+                              disabled={item.qty <= 1}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty - 1 } : current))}
                               aria-label={t('quantity_decrease', 'products')}
                             >
                               <Minus className="h-3 w-3" />
@@ -462,13 +457,8 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                if (!Number.isInteger(product?.countInStock) || item.qty >= product.countInStock) {
-                                  toast.error(`${t('error_insufficient_stock', 'admin')}. ${t('in_stock', 'admin')}: ${product?.countInStock ?? 0}`);
-                                  return;
-                                }
-                                setOrderItems((currentItems) => currentItems.map((current) => current.product === item.product ? { ...current, qty: current.qty + 1 } : current));
-                              }}
+                              disabled={Number.isInteger(product?.countInStock) && item.qty >= product.countInStock}
+                              onClick={() => setOrderItems(orderItems.map((current) => current.product === item.product ? { ...current, qty: current.qty + 1 } : current))}
                               aria-label={t('quantity_increase', 'products')}
                             >
                               <Plus className="h-3 w-3" />

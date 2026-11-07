@@ -89,19 +89,6 @@ const orderSchema = mongoose.Schema(
       baseDiscountAmount: Number,
       discountAmount: Number,
     },
-    inventoryStatus: {
-      type: String,
-      enum: ['not_reserved', 'reserved', 'committed', 'released', 'needs_review'],
-      default: 'not_reserved',
-    },
-    inventoryHoldExpiresAt: {
-      type: Date,
-      default: null,
-    },
-    inventoryReleasedAt: {
-      type: Date,
-      default: null,
-    },
     // Payment Status
     isPaid: {
       type: Boolean,
@@ -254,7 +241,6 @@ const orderSchema = mongoose.Schema(
 orderSchema.index({ user: 1, isDeleted: 1 });
 orderSchema.index({ customer: 1, isDeleted: 1 }); // Tối ưu query getMyOrders & historical orders
 orderSchema.index({ isDeleted: 1, createdAt: -1 });
-orderSchema.index({ inventoryStatus: 1, inventoryHoldExpiresAt: 1 });
 // Note: idempotencyKey index is already handled in field definition above with sparse: true
 
 const Order = mongoose.model('Order', orderSchema);

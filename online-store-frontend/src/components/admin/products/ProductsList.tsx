@@ -21,6 +21,7 @@ import { useAuth } from "../../../lib/context/AuthContext";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/router';
+import { getAuthToken } from "../../../lib/api";
 import { formatNumber } from "../../../lib/utils";
 import { useCategories } from "../../../lib/context/CategoryContext";
 
@@ -199,7 +200,22 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const handleHardDeleteProduct = async (id: string) => {
     try {
       setIsSubmitting(true);
-      await productAPI.hardDeleteProduct(id);
+      const token = getAuthToken();
+
+      const response = await fetch(`/api/products/${id}/hard?lang=${locale}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || t('delete_failed', 'common').replace('{status}', String(response.status)));
+      }
+
       await fetchDeletedProducts();
       toast.success(t('admin_toast_delete_success', 'admin'));
       setDeleteConfirmProduct(null);

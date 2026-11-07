@@ -10,7 +10,6 @@ import { BannerSlot } from "../../components/BannerSlot";
 import { useCategories } from "../../lib/context/CategoryContext";
 import { getCategoryName } from "../../lib/data";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
-import { Pagination } from "../../components/admin/Pagination";
 
 export const getServerSideProps = async () => {
   return {
@@ -26,19 +25,12 @@ export default function AllProductsPage() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [isSearchLoading, setIsSearchLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchTotal, setSearchTotal] = useState(0);
-  const [searchPages, setSearchPages] = useState(0);
-  const [searchPage, setSearchPage] = useState(1);
   const [hasSearchError, setHasSearchError] = useState(false);
   const searchRequestIdRef = useRef(0);
 
   useEffect(() => {
     loadNamespace('products');
   }, [loadNamespace]);
-
-  useEffect(() => {
-    setSearchPage(1);
-  }, [search, brand]);
 
   useEffect(() => {
     const requestId = ++searchRequestIdRef.current;
@@ -54,11 +46,11 @@ export default function AllProductsPage() {
       if (isSearchRequest) {
         try {
           const response = await productAPI.getProducts(
-            searchPage,
+            1,
             query || undefined,
             undefined,
             brandFilter || undefined,
-            12,
+            brandFilter ? 500 : 100,
             undefined,
             undefined,
             undefined,
@@ -75,14 +67,16 @@ export default function AllProductsPage() {
           );
 
           if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
-          setSearchResults(response.products || []);
-          setSearchTotal(response.total || 0);
-          setSearchPages(response.pages || 0);
+          const products = response.products || [];
+          const normalizedBrand = brandFilter.toLocaleLowerCase();
+          setSearchResults(
+            brandFilter
+              ? products.filter((product: { brand?: unknown }) => String(product.brand || '').trim().toLocaleLowerCase() === normalizedBrand)
+              : products,
+          );
         } catch (error) {
           if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
           setSearchResults([]);
-          setSearchTotal(0);
-          setSearchPages(0);
           setHasSearchError(true);
         } finally {
           if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
@@ -93,8 +87,6 @@ export default function AllProductsPage() {
       }
 
       setSearchResults([]);
-      setSearchTotal(0);
-      setSearchPages(0);
       setIsSearchLoading(false);
 
       try {
@@ -134,7 +126,7 @@ export default function AllProductsPage() {
       searchRequestIdRef.current += 1;
       controller.abort();
     };
-  }, [search, brand, locale, searchPage]);
+  }, [search, brand, locale]);
 
 
   const isSearching = search && typeof search === 'string' && search.trim();
@@ -178,7 +170,7 @@ export default function AllProductsPage() {
               </h1>
               <p className="text-xs sm:text-sm text-gray-600">
                 {interpolateTranslation(t('search_results_count'), {
-                  count: searchTotal,
+                  count: searchResults.length,
                   query: isFilteringByBrand ? brandFilter : typeof search === 'string' ? search : '',
                 })}
               </p>
@@ -191,24 +183,17 @@ export default function AllProductsPage() {
                 description={t('products_unavailable_description')}
               />
             ) : searchResults.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                  {searchResults.map((product) => (
-                    <ProductCard key={product._id} laptop={product} />
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={searchPage}
-                  totalPages={searchPages}
-                  onPageChange={setSearchPage}
-                />
-              </>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {searchResults.map((product) => (
+                  <ProductCard key={product._id} laptop={product} />
+                ))}
+              </div>
             ) : (
               <EmptyState
                 icon={PackageSearch}
                 title={t('search_no_results_title')}
                 description={interpolateTranslation(t('search_no_results_desc'), {
-                  query: typeof search === 'string' ? search : brandFilter,
+                  query: search as string,
                 })}
               />
             )}

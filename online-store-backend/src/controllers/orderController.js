@@ -18,8 +18,6 @@ const { calculateSelectedShipping } = require('../services/shippingService');
 const { formatOrders, formatCheckoutSummary, formatReportingOrders } = require('../utils/currencyResponseFormatter');
 const { getProductWeightInGrams } = require('../utils/productShippingWeight');
 const { sendOrderPaymentSuccessEmail } = require('../services/emailService');
-const { normalizePhone, phoneLookupQuery } = require('../utils/phone');
-const { markOrderPaid, releaseReservedOrderInventory, reserveOrderInventory } = require('../services/inventoryService');
 
 const configuredOrderTimeout = Number(process.env.ORDER_QUERY_TIMEOUT_MS);
 const ORDER_QUERY_TIMEOUT_MS = Number.isFinite(configuredOrderTimeout) && configuredOrderTimeout > 0
@@ -287,20 +285,12 @@ const updateOrder = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  if (req.body.cartItems && ['reserved', 'committed'].includes(order.inventoryStatus)) {
-    res.status(409);
-    const error = new Error(getMessage(req.lang, 'orders.order_cannot_be_edited'));
-    error.errorCode = 'ORDER_CANNOT_BE_EDITED';
-    error.exposeMessage = true;
-    throw error;
-  }
-
   const shippingAddress = req.body.shippingAddress;
   const nextShippingAddress = {
     ...(order.shippingAddress?.toObject ? order.shippingAddress.toObject() : order.shippingAddress),
     ...shippingAddress,
     name: shippingAddress.name.trim(),
-    phone: normalizePhone(shippingAddress.phone),
+    phone: shippingAddress.phone.trim(),
     address: shippingAddress.address.trim(),
   };
 
@@ -326,7 +316,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   const { id: orderId } = req.params;
   const { isPaid, isDelivered } = req.body;
 
-  let order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
+  const order = await withTimeout(Order.findOne({ _id: orderId, isDeleted: false }), ORDER_QUERY_TIMEOUT_MS);
 
   if (!order) {
     res.status(404);
@@ -334,19 +324,10 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   }
 
   let updated = false;
-  if (isPaid === true && !order.isPaid) {
-    const paymentResult = await markOrderPaid(orderId, order.paymentMethod || 'cod');
-    order = paymentResult.order;
+  if (isPaid !== undefined && order.isPaid !== isPaid) {
+    order.isPaid = isPaid;
+    order.paidAt = isPaid ? new Date() : null;
     updated = true;
-  } else if (isPaid === false && order.isPaid) {
-    order.isPaid = false;
-    order.paidAt = null;
-    updated = true;
-  }
-
-  if (isDelivered === true && order.inventoryStatus === 'needs_review') {
-    res.status(409);
-    throw createOrderError(lang, 'ORDER_INVENTORY_REVIEW_REQUIRED', 'orders.order_cannot_be_edited');
   }
 
   if (isDelivered !== undefined && order.isDelivered !== isDelivered) {
@@ -498,7 +479,6 @@ const addOrderItems = asyncHandler(async (req, res) => {
     try {
       // Case 1: Phone provided - upsert by phone (most reliable for order creation)
       if (customerPhone) {
-        const normalizedPhone = normalizePhone(customerPhone);
         const normalizedEmail = customerEmail ? customerEmail.toLowerCase().trim() : null;
         const customerAddress = [
           shippingAddress?.address,
@@ -510,13 +490,12 @@ const addOrderItems = asyncHandler(async (req, res) => {
         // Use findOneAndUpdate with upsert to avoid race condition
         const customer = await withTimeout(
           Customer.findOneAndUpdate(
-            { ...phoneLookupQuery(normalizedPhone), isDeleted: false },
+            { phone: customerPhone, isDeleted: false },
             {
               $set: {
                 ...(customerName && { name: customerName }),
                 ...(normalizedEmail && { email: normalizedEmail }),
                 ...(customerAddress && { address: customerAddress }),
-                phone: normalizedPhone,
                 updatedAt: new Date()
               }
             },
@@ -890,11 +869,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     exchangeRates, // PHASE 3: Save exchange rates snapshot for historical accuracy
   });
 
-  const createdOrder = await reserveOrderInventory(
-    order,
-    Array.from(productMap.values()),
-    order.paymentMethod !== 'cod',
-  );
+  const createdOrder = await order.save();
 
   // Return populated order with customer data
   const populatedOrder = await withTimeout(
@@ -1164,7 +1139,6 @@ const deleteOrder = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.order_already_deleted'));
   }
 
-  await releaseReservedOrderInventory(order._id);
   order.isDeleted = true;
   await order.save();
 
@@ -1285,10 +1259,6 @@ const updateOrderToDelivered = asyncHandler(async (req, res) => {
   if (!order) {
     res.status(404);
     throw new Error(getMessage(lang, 'orders.order_not_found'));
-  }
-  if (order.inventoryStatus === 'needs_review') {
-    res.status(409);
-    throw createOrderError(lang, 'ORDER_INVENTORY_REVIEW_REQUIRED', 'orders.order_cannot_be_edited');
   }
 
   order.isDelivered = true;

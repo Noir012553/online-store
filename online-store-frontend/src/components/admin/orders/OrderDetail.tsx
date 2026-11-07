@@ -45,7 +45,6 @@ interface Order {
   isPaid: boolean;
   isDelivered: boolean;
   paymentMethod?: string;
-  inventoryStatus?: string;
   paidAt?: Date;
   deliveredAt?: Date;
   createdAt: Date;
@@ -156,13 +155,6 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
       </div>
 
       <div className="space-y-6 rounded-lg border bg-white p-4 sm:p-6">
-        {order.inventoryStatus === 'needs_review' && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-900">
-            {locale === 'vi'
-              ? 'Thanh toán đến sau khi giữ kho hết hạn. Cần kiểm tra trước khi giao hàng.'
-              : 'Payment arrived after the stock hold expired. Review before fulfillment.'}
-          </div>
-        )}
         {/* Customer Info */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -300,7 +292,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             {t('update', 'common')}
           </Button>
         )}
-        {!order.isDelivered && order.inventoryStatus !== 'needs_review' && (
+        {!order.isDelivered && (
           <div className="flex gap-2 pt-4 border-t">
             <Button
               onClick={handleMarkAsDelivered}

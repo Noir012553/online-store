@@ -3,9 +3,8 @@
  * Validates request body fields and returns errors if validation fails
  */
 
-const { body, param, query, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const { getMessage } = require('../i18n/messages');
-const { normalizePhone } = require('../utils/phone');
 
 /**
  * Middleware to check validation errors and return 400 if any
@@ -123,7 +122,7 @@ const validateCartItems = [
 
   body('customerPhone')
     .optional()
-    .customSanitizer(normalizePhone)
+    .trim()
     .matches(/^[0-9]{10,11}$/)
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
 
@@ -146,11 +145,6 @@ const validateCreateOrder = [
   body('shippingAddress')
     .notEmpty()
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.shipping.addressRequired')),
-  body('shippingAddress.phone')
-    .optional({ checkFalsy: true })
-    .customSanitizer(normalizePhone)
-    .matches(/^[0-9]{10,11}$/)
-    .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
   body('currencyCode')
     .isString()
     .trim()
@@ -169,13 +163,6 @@ const validateOrderList = [
     .withMessage((value, { req }) => getMessage(req.lang, 'common.error_request_title')),
 ];
 
-const validatePhoneParam = [
-  param('phone')
-    .customSanitizer(normalizePhone)
-    .matches(/^[0-9]{10,11}$/)
-    .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
-];
-
 const validateCustomer = [
   body('name')
     .isString()
@@ -184,7 +171,7 @@ const validateCustomer = [
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.customer.nameInvalid')),
   body('phone')
     .isString()
-    .customSanitizer(normalizePhone)
+    .trim()
     .matches(/^[0-9]{10,11}$/)
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
   body('email')
@@ -235,7 +222,7 @@ const validateUpdateOrder = [
     .isLength({ min: 1, max: 100 })
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.customer.nameInvalid')),
   body('shippingAddress.phone')
-    .customSanitizer(normalizePhone)
+    .trim()
     .matches(/^[0-9]{10,11}$/)
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
   body('shippingAddress.address')
@@ -262,7 +249,6 @@ module.exports = {
   validateOrderList,
   validateUpdateOrder,
   validateCustomer,
-  validatePhoneParam,
   validateUpdateOrderStatus,
   validateCheckoutSummary,
 };

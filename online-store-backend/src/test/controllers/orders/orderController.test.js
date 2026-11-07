@@ -71,17 +71,11 @@ describe('Order Controller', () => {
         name: 'Laptop',
         image: '/laptop.jpg',
       }]);
-      const session = {
-        withTransaction: sandbox.stub().callsFake(callback => callback()),
-        endSession: sandbox.stub().resolves(),
-      };
-      sandbox.stub(mongoose, 'startSession').resolves(session);
-      sandbox.stub(Product, 'updateOne').resolves({ matchedCount: 1 });
       sandbox.stub(Currency, 'findOne')
         .onFirstCall().returns(createCurrencyQuery(sandbox, { code: 'USD' }))
         .onSecondCall().returns(createCurrencyQuery(sandbox, { code: 'USD' }));
       sandbox.stub(ExchangeRate, 'find').resolves([]);
-      sandbox.stub(Order, 'create').callsFake(async ([orderData]) => [{ ...orderData }]);
+      sandbox.stub(Order.prototype, 'save').resolves(savedOrder);
       sandbox.stub(Order, 'findById').returns(createQuery(sandbox, populatedOrder));
 
       const req = {
@@ -101,12 +95,6 @@ describe('Order Controller', () => {
       expect(res.status.calledWith(201)).to.be.true;
       expect(res.json.calledOnce).to.be.true;
       expect(res.json.firstCall.args[0].data.orderItems[0].qty).to.equal(2);
-      expect(Product.updateOne.calledWith(
-        { _id: productId, isDeleted: false, countInStock: { $gte: 2 } },
-        { $inc: { countInStock: -2 } },
-        { session },
-      )).to.be.true;
-      expect(Order.create.firstCall.args[0][0].inventoryStatus).to.equal('committed');
     });
 
     it('should return 400 if cartItems is empty', async () => {

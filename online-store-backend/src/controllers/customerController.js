@@ -13,7 +13,6 @@ const User = require('../models/User');
 const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyResponseFormatter');
 const { getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { broadcastNewCustomer, broadcastCustomerUpdated, broadcastCustomerDeleted, broadcastCustomerRestored } = require('../socket/socketHandler');
-const { normalizePhone, phoneLookupQuery } = require('../utils/phone');
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getPagination = (query) => ({
@@ -130,7 +129,7 @@ const createCustomer = asyncHandler(async (req, res) => {
   const customer = new Customer({
     name,
     ...(email && { email: email.toLowerCase().trim() }),
-    phone: normalizePhone(phone),
+    phone,
     address: typeof address === 'string' ? address.trim() : '',
   });
 
@@ -182,7 +181,7 @@ const updateCustomer = asyncHandler(async (req, res) => {
   const updateData = {};
   if (name) updateData.name = name;
   if (typeof email === 'string' && email.trim()) updateData.email = email.toLowerCase().trim();
-  if (phone) updateData.phone = normalizePhone(phone);
+  if (phone) updateData.phone = phone.trim();
   if (address !== undefined) updateData.address = typeof address === 'string' ? address.trim() : '';
 
   try {
@@ -363,17 +362,17 @@ const hardDeleteCustomer = asyncHandler(async (req, res) => {
 });
 
 /**
- * Lấy khách hàng theo số điện thoại
+ * Lấy khách hàng theo số điện thoại (Public)
+ * Sử dụng trong tính năng upsert khách hàng tại checkout
  * @route GET /api/customers/phone/:phone
- * @access Private/Admin
+ * @access Public
  */
 const getCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
   const { phone } = req.params;
-  const normalizedPhone = normalizePhone(phone);
 
-  const customer = await Customer.findOne({ ...phoneLookupQuery(normalizedPhone), isDeleted: false });
+  const customer = await Customer.findOne({ phone, isDeleted: false });
 
   if (customer) {
     res.json(customer);
@@ -384,16 +383,16 @@ const getCustomerByPhone = asyncHandler(async (req, res) => {
 });
 
 /**
- * Tạo hoặc cập nhật khách hàng theo số điện thoại
+ * Tạo hoặc cập nhật khách hàng theo số điện thoại (Public)
  * Nếu khách hàng tồn tại → cập nhật, nếu không → tạo mới
+ * FIX: Dùng findOneAndUpdate để tránh race condition (11000 duplicate key error)
  * @route POST /api/customers/phone/:phone
- * @access Private/Admin
+ * @access Public
  */
 const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
   const defaultLang = getDefaultLanguage();
   const lang = (req.query.lang || defaultLang.code).toLowerCase();
   const { phone } = req.params;
-  const normalizedPhone = normalizePhone(phone);
   const { name, email, address } = req.body;
 
   // Normalize email
@@ -401,9 +400,13 @@ const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
 
   // Check if trying to update to an email that's already in use by another customer
   if (normalizedEmail) {
-    const existingCustomer = await Customer.findOne({ email: normalizedEmail, isDeleted: false });
+    const existingCustomer = await Customer.findOne({
+      email: normalizedEmail,
+      phone: { $ne: phone },
+      isDeleted: false
+    });
 
-    if (existingCustomer && normalizePhone(existingCustomer.phone) !== normalizedPhone) {
+    if (existingCustomer) {
       res.status(409);
       throw new Error(getMessage(lang, 'admin-controllers-messages.email_already_in_use'));
     }
@@ -413,13 +416,12 @@ const createOrUpdateCustomerByPhone = asyncHandler(async (req, res) => {
     // Use findOneAndUpdate to avoid race condition
     // If customer with phone exists, update; otherwise create new
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { ...phoneLookupQuery(normalizedPhone), isDeleted: false },
+      { phone, isDeleted: false },
       {
         $set: {
           ...(name && { name }),
           ...(normalizedEmail && { email: normalizedEmail }),
           ...(address && { address }),
-          phone: normalizedPhone,
           updatedAt: new Date()
         }
       },
