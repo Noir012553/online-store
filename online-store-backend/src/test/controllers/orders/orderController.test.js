@@ -81,7 +81,7 @@ describe('Order Controller', () => {
         .onFirstCall().returns(createCurrencyQuery(sandbox, { code: 'USD' }))
         .onSecondCall().returns(createCurrencyQuery(sandbox, { code: 'USD' }));
       sandbox.stub(ExchangeRate, 'find').resolves([]);
-      sandbox.stub(Order.prototype, 'save').resolves(savedOrder);
+      sandbox.stub(Order, 'create').callsFake(async ([orderData]) => [{ ...orderData }]);
       sandbox.stub(Order, 'findById').returns(createQuery(sandbox, populatedOrder));
 
       const req = {
@@ -106,7 +106,7 @@ describe('Order Controller', () => {
         { $inc: { countInStock: -2 } },
         { session },
       )).to.be.true;
-      expect(Order.prototype.save.firstCall.thisValue.inventoryStatus).to.equal('committed');
+      expect(Order.create.firstCall.args[0][0].inventoryStatus).to.equal('committed');
     });
 
     it('should return 400 if cartItems is empty', async () => {

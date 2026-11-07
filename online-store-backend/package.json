@@ -72,6 +72,8 @@
     "check:category-references": "node src/scripts/check-category-references.js",
     "clear": "node --expose-gc src/scripts/clear-database.js",
     "fix": "node src/scripts/fix-order-customers.js",
+    "audit:customer-phones": "node src/scripts/normalize-customer-phones.js",
+    "migrate:customer-phones": "node src/scripts/normalize-customer-phones.js --apply --confirm=normalize-customer-phones",
     "setup-ghn": "node src/scripts/setup-ghn.js",
     "create-ghn": "node src/scripts/create-ghn-provider.js",
     "fix-indexes": "node src/scripts/fix-indexes.js",

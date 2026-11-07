@@ -146,6 +146,11 @@ const validateCreateOrder = [
   body('shippingAddress')
     .notEmpty()
     .withMessage((value, { req }) => getMessage(req.lang, 'validation.shipping.addressRequired')),
+  body('shippingAddress.phone')
+    .optional({ checkFalsy: true })
+    .customSanitizer(normalizePhone)
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage((value, { req }) => getMessage(req.lang, 'validation.phone.invalid')),
   body('currencyCode')
     .isString()
     .trim()

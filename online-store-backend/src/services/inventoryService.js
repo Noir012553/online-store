@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
@@ -18,6 +17,8 @@ const createInventoryError = (code) => {
 
 const reserveOrderInventory = async (order, products, shouldExpire) => {
   const session = await mongoose.startSession();
+  const orderData = order.toObject();
+  let reservedOrder;
   try {
     await session.withTransaction(async () => {
       for (const { product, quantity } of products) {
@@ -29,11 +30,11 @@ const reserveOrderInventory = async (order, products, shouldExpire) => {
         if (!result.matchedCount) throw createInventoryError('ORDER_INSUFFICIENT_STOCK');
       }
 
-      order.inventoryStatus = shouldExpire ? 'reserved' : 'committed';
-      order.inventoryHoldExpiresAt = shouldExpire ? new Date(Date.now() + HOLD_DURATION_MS) : null;
-      await order.save({ session });
+      orderData.inventoryStatus = shouldExpire ? 'reserved' : 'committed';
+      orderData.inventoryHoldExpiresAt = shouldExpire ? new Date(Date.now() + HOLD_DURATION_MS) : null;
+      [reservedOrder] = await Order.create([orderData], { session });
     });
-    return order;
+    return reservedOrder;
   } finally {
     await session.endSession();
   }

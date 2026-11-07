@@ -93,7 +93,6 @@ const orderSchema = mongoose.Schema(
       type: String,
       enum: ['not_reserved', 'reserved', 'committed', 'released', 'needs_review'],
       default: 'not_reserved',
-      index: true,
     },
     inventoryHoldExpiresAt: {
       type: Date,

@@ -333,11 +333,6 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'orders.order_not_found'));
   }
 
-  if (isDelivered === true && order.inventoryStatus === 'needs_review') {
-    res.status(409);
-    throw createOrderError(lang, 'ORDER_INVENTORY_REVIEW_REQUIRED', 'orders.order_cannot_be_edited');
-  }
-
   let updated = false;
   if (isPaid === true && !order.isPaid) {
     const paymentResult = await markOrderPaid(orderId, order.paymentMethod || 'cod');
@@ -347,6 +342,11 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     order.isPaid = false;
     order.paidAt = null;
     updated = true;
+  }
+
+  if (isDelivered === true && order.inventoryStatus === 'needs_review') {
+    res.status(409);
+    throw createOrderError(lang, 'ORDER_INVENTORY_REVIEW_REQUIRED', 'orders.order_cannot_be_edited');
   }
 
   if (isDelivered !== undefined && order.isDelivered !== isDelivered) {
