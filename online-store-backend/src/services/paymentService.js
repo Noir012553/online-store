@@ -17,7 +17,6 @@ const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 const { sendOrderPaymentSuccessEmail } = require('./emailService');
-const { markOrderPaid, releaseReservedOrderInventory } = require('./inventoryService');
 
 const createPaymentFailure = (code, params = {}) => ({
   success: false,
@@ -106,14 +105,6 @@ class PaymentService {
         throw new Error(getMessage(lang, 'checkout.error_order_already_paid'));
       }
 
-      if (order.inventoryStatus === 'released' || order.inventoryStatus === 'needs_review') {
-        throw new Error(getMessage(lang, 'checkout.error_order_not_found'));
-      }
-      if (order.inventoryStatus === 'reserved' && order.inventoryHoldExpiresAt <= new Date()) {
-        await releaseReservedOrderInventory(order._id, new Date());
-        throw new Error(getMessage(lang, 'checkout.error_order_not_found'));
-      }
-
       const amount = Number(order.totalPrice);
       const currency = order.currencyCode;
       if (!Number.isFinite(amount) || amount <= 0) {
@@ -168,7 +159,6 @@ class PaymentService {
         payment.status = 'failed';
         payment.failureReason = paymentResult.error;
         await payment.save();
-        await releaseReservedOrderInventory(order._id);
 
         throw new Error(getMessage(lang, 'checkout.error_payment_url_creation'));
       }
@@ -311,15 +301,20 @@ class PaymentService {
       payment.rawResponse = transactionInfo.metadata?.rawIpnData || webhookData;
       payment.metadata = transactionInfo.metadata || {};
 
-      let paymentNeedsReview = false;
-
       // Nếu thanh toán thành công
       if (transactionInfo.status === 'success') {
         payment.paidAt = new Date();
 
-        const paidResult = await markOrderPaid(transactionInfo.orderId, gateway.toLowerCase());
-        paymentNeedsReview = paidResult.needsReview;
-        const paidOrder = await Order.findById(transactionInfo.orderId)
+        // Cập nhật Order
+        const paidOrder = await Order.findByIdAndUpdate(
+          transactionInfo.orderId,
+          {
+            isPaid: true,
+            paidAt: new Date(),
+            paymentMethod: gateway.toLowerCase(),
+          },
+          { returnDocument: 'after' }
+        )
           .populate('customer', 'name email phone')
           .populate('user', 'name email');
 
@@ -334,7 +329,6 @@ class PaymentService {
           broadcastPaymentSuccess(io, {
             orderId: paidOrder._id.toString(),
             isPaid: paidOrder.isPaid,
-            inventoryStatus: paidOrder.inventoryStatus,
             createdAt: paidOrder.createdAt.toISOString(),
           });
         }
@@ -343,14 +337,9 @@ class PaymentService {
         payment.failureCode = transactionInfo.failureCode || 'PAYMENT_STATUS_FAILED';
       } else if (transactionInfo.status === 'cancelled') {
         payment.failureCode = 'PAYMENT_STATUS_CANCELLED';
-      } else if (transactionInfo.status === 'expired') {
-        payment.failureCode = 'PAYMENT_STATUS_EXPIRED';
       }
 
       await payment.save();
-      if (['failed', 'cancelled', 'expired'].includes(transactionInfo.status)) {
-        await releaseReservedOrderInventory(transactionInfo.orderId);
-      }
 
       return {
         success: true,
@@ -358,7 +347,6 @@ class PaymentService {
         params: {},
         orderId: transactionInfo.orderId,
         transactionStatus: transactionInfo.status,
-        needsReview: paymentNeedsReview,
       };
     } catch (error) {
       console.error('[PaymentService.handleWebhook] Error:', error.message);
