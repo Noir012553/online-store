@@ -245,8 +245,8 @@ describe('Order Controller', () => {
   });
 
   describe('deleteOrder', () => {
-    it('should soft delete an order', async () => {
-      const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false, save: sandbox.stub().resolves() };
+    it('should soft delete an unpaid undelivered order', async () => {
+      const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false, isPaid: false, isDelivered: false, save: sandbox.stub().resolves() };
       sandbox.stub(Order, 'findOne').resolves(order);
 
       const req = { params: { id: order._id.toString() }, app: { get: sandbox.stub().returns(null) }, lang: 'en' };
@@ -254,6 +254,22 @@ describe('Order Controller', () => {
       
       await deleteOrder(req, res);
       expect(order.isDeleted).to.be.true;
+    });
+
+    it('rejects soft deletion of a paid order', async () => {
+      const order = { _id: new mongoose.Types.ObjectId(), isDeleted: false, isPaid: true, isDelivered: false, save: sandbox.stub() };
+      sandbox.stub(Order, 'findOne').resolves(order);
+      const req = { params: { id: order._id.toString() }, lang: 'en' };
+      const res = { status: sandbox.stub().returnsThis() };
+
+      try {
+        await deleteOrder(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+        expect(error.errorCode).to.equal('ORDER_CANNOT_BE_DELETED');
+      }
+      expect(order.save.called).to.be.false;
     });
   });
 
@@ -268,6 +284,23 @@ describe('Order Controller', () => {
       
       await hardDeleteOrder(req, res);
       expect(res.json.calledOnce).to.be.true;
+    });
+
+    it('rejects hard deletion of a delivered order', async () => {
+      const orderId = new mongoose.Types.ObjectId();
+      sandbox.stub(Order, 'findById').resolves({ _id: orderId, isDeleted: true, isPaid: true, isDelivered: true });
+      const deleteStub = sandbox.stub(Order, 'findByIdAndDelete');
+      const req = { params: { id: orderId.toString() }, lang: 'en' };
+      const res = { status: sandbox.stub().returnsThis() };
+
+      try {
+        await hardDeleteOrder(req, res);
+        throw new Error('Expected deletion to be rejected');
+      } catch (error) {
+        expect(res.status.calledWith(409)).to.be.true;
+        expect(error.errorCode).to.equal('ORDER_CANNOT_BE_DELETED');
+      }
+      expect(deleteStub.called).to.be.false;
     });
 
     it('should reject hard deletion of an active order', async () => {

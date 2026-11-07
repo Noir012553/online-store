@@ -12,6 +12,7 @@ const {
   createCategory,
   updateCategory,
   deleteCategory,
+  restoreCategory,
   hardDeleteCategory,
 } = require('../controllers/categoryController');
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -37,6 +38,9 @@ router.route('/:id')
 /**
  * DELETE /api/categories/:id/hard - Xóa cứng danh mục (Admin only)
  */
+router.route('/:id/restore')
+  .put(protect, admin, restoreCategory);
+
 router.route('/:id/hard')
   .delete(protect, admin, hardDeleteCategory);
 

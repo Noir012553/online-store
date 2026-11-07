@@ -18,6 +18,7 @@ import {
   DialogFooter,
 } from "../../ui/dialog";
 import { toast } from "sonner";
+import { showMutationError } from "../../../lib/errorHandler";
 import { Pagination } from "../Pagination";
 
 interface OrderItem {
@@ -191,16 +192,17 @@ export function OrdersList() {
   const handleDeleteOrder = async (orderId: string) => {
     try {
       setIsUpdating(true);
-      await orderAPI.deleteOrder(orderId);
       if (viewDeletedTab) {
+        await orderAPI.hardDeleteOrder(orderId);
         await fetchDeletedOrders();
       } else {
+        await orderAPI.deleteOrder(orderId);
         await fetchOrders();
       }
-      toast.success(t('toast_delete_success'));
+      toast.success(t('toast_order_deleted', 'admin'));
       setDeleteConfirmOrder(null);
     } catch (error) {
-      toast.error(t('error_delete_data'));
+      showMutationError(error, t, 'error_delete_data');
     } finally {
       setIsUpdating(false);
     }
@@ -210,10 +212,10 @@ export function OrdersList() {
     try {
       setIsUpdating(true);
       await orderAPI.restoreOrder(orderId);
-      toast.success(t('toast_restore_success'));
+      toast.success(t('toast_order_restored', 'admin'));
       await fetchDeletedOrders();
     } catch (error) {
-      toast.error(t('error_save_data'));
+      showMutationError(error, t, 'error_save_data');
     } finally {
       setIsUpdating(false);
     }
@@ -418,24 +420,36 @@ export function OrdersList() {
                       {!viewDeletedTab && <td className="hidden px-4 py-4 sm:px-6 lg:table-cell">{getPaymentMethodBadge(order.paymentMethod)}</td>}
                       <td className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push(`/admin/orders/${order._id}/edit`)}
-                            title={t('update', 'common')}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          {viewDeletedTab ? (
+                          {!viewDeletedTab && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRestoreOrder(order._id)}
-                              disabled={isUpdating}
-                              title={t('admin_restore', 'admin')}
+                              onClick={() => router.push(`/admin/orders/${order._id}/edit`)}
+                              title={t('update', 'common')}
                             >
-                              <RotateCcw className="w-4 h-4 text-green-600" />
+                              <Pencil className="w-4 h-4" />
                             </Button>
+                          )}
+                          {viewDeletedTab ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRestoreOrder(order._id)}
+                                disabled={isUpdating}
+                                title={t('admin_restore', 'admin')}
+                              >
+                                <RotateCcw className="w-4 h-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteConfirmOrder(order)}
+                                title={t('admin_hard_delete', 'admin')}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </>
                           ) : (
                             <Button
                               variant="ghost"
@@ -473,11 +487,11 @@ export function OrdersList() {
                 <AlertCircle className="h-6 w-6 text-orange-600" />
               </div>
               <DialogTitle className="text-lg font-semibold">
-                {t('confirm_delete_title', 'common')}
+                {viewDeletedTab ? t('admin_hard_delete', 'admin') : t('confirm_delete_title', 'common')}
               </DialogTitle>
             </div>
             <DialogDescription>
-              {t('confirm_delete_description', 'common')}
+              {viewDeletedTab ? t('confirm_hard_delete_description', 'common') : t('confirm_delete_description', 'common')}
             </DialogDescription>
           </DialogHeader>
           <div className="bg-white rounded-lg p-4 my-2">
@@ -491,7 +505,7 @@ export function OrdersList() {
               disabled={isUpdating}
               className="bg-red-600 hover:bg-red-700 text-white flex-1"
             >
-              {isUpdating ? t('loading', 'common') : t('remove', 'common')}
+              {isUpdating ? t('loading', 'common') : viewDeletedTab ? t('admin_hard_delete_btn', 'admin') : t('remove', 'common')}
             </Button>
             <Button
               variant="outline"

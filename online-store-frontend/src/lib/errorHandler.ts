@@ -18,6 +18,7 @@ export interface ApiError {
   message: string;
   code?: string;
   params?: Record<string, unknown>;
+  validationMessages?: string[];
   endpoint?: string;
   method?: string;
 }
@@ -62,11 +63,16 @@ export function handleApiError(error: ApiError, t?: TranslationFn) {
   if (status >= 400 && status < 500) {
     const statusMessage = translate?.('error_request_status', 'common') || String(status);
     const codeMessage = code ? translate?.(code, 'common') : '';
-    const errorReference = code || statusMessage.replace('{status}', String(status));
-    toast.error(translate?.('error_request_title', 'common') || '', {
-      description: `${codeMessage && codeMessage !== code ? `${codeMessage} ` : ''}(${errorReference})`,
-      duration: 4000,
-    });
+    const requestTitle = translate?.('error_request_title', 'common') || '';
+    const isReadableMessage = Boolean(message)
+      && !/^[a-z][a-z0-9_.-]*$/i.test(message)
+      && message !== requestTitle;
+    const hasTranslatedCode = Boolean(codeMessage && codeMessage !== code);
+    const description = error.validationMessages?.join('\n')
+      || (isReadableMessage ? message : hasTranslatedCode
+        ? codeMessage
+        : `(${code || statusMessage.replace('{status}', String(status))})`);
+    toast.error(requestTitle, { description, duration: 5000 });
     return;
   }
 
@@ -154,7 +160,16 @@ export function showSlowRequestWarning(endpoint: string, method: string, duratio
 
 export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): string {
   const translate = t ?? apiErrorTranslator;
+  const validationMessages = Array.isArray(error?.validationMessages)
+    ? error.validationMessages.filter((message: unknown): message is string => typeof message === 'string' && Boolean(message.trim()))
+    : [];
+  if (validationMessages.length) return validationMessages.join('\n');
+
   const rawMessage = error && typeof error === 'object' ? error.message : undefined;
+  if (typeof rawMessage === 'string' && rawMessage.trim() && !/^[a-z][a-z0-9_.-]*$/i.test(rawMessage)) {
+    return rawMessage;
+  }
+
   const messageKey = typeof rawMessage === 'string' && /^[a-z][a-z0-9_.-]*$/i.test(rawMessage)
     ? rawMessage
     : undefined;
@@ -162,10 +177,15 @@ export function getUserFriendlyErrorMessage(error: any, t?: TranslationFn): stri
 
   if (code) {
     const translatedCode = translate?.(code, 'common');
-    if (translatedCode && translatedCode !== code) {
-      return translatedCode;
-    }
+    if (translatedCode && translatedCode !== code) return translatedCode;
   }
 
   return translate?.('error_generic_fallback', 'common') || 'error_generic_fallback';
+}
+
+export function showMutationError(error: unknown, t: TranslationFn, fallbackKey = 'error_generic_fallback', namespace = 'common') {
+  if (error && typeof error === 'object' && 'toastShown' in error && Boolean(error.toastShown)) return;
+  const message = getUserFriendlyErrorMessage(error, t);
+  const genericFallback = t('error_generic_fallback', 'common');
+  toast.error(message === genericFallback || message === 'error_generic_fallback' ? t(fallbackKey, namespace) : message);
 }

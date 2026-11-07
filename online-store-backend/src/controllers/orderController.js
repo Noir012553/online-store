@@ -76,7 +76,19 @@ const getPagination = (query, defaultPageSize = 10) => {
 const createOrderError = (lang, errorCode, messageKey, values = {}) => {
   const error = new Error(getMessage(lang, messageKey, values));
   error.errorCode = errorCode;
+  error.exposeMessage = true;
   return error;
+};
+
+const ensureOrderCanBeDeleted = (order, lang, res) => {
+  if (!order.isPaid && !order.isDelivered) return;
+
+  res.status(409);
+  throw createOrderError(
+    lang,
+    'ORDER_CANNOT_BE_DELETED',
+    'admin-controllers-messages.order_cannot_be_deleted_paid_or_delivered',
+  );
 };
 
 const roundCurrencyAmount = (amount, decimalPlaces) => {
@@ -1164,6 +1176,7 @@ const deleteOrder = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.order_already_deleted'));
   }
 
+  ensureOrderCanBeDeleted(order, lang, res);
   await releaseReservedOrderInventory(order._id);
   order.isDeleted = true;
   await order.save();
@@ -1346,6 +1359,7 @@ const hardDeleteOrder = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.order_not_deleted'));
   }
 
+  ensureOrderCanBeDeleted(order, lang, res);
   await withTimeout(Order.findByIdAndDelete(req.params.id), ORDER_QUERY_TIMEOUT_MS);
 
   res.json({

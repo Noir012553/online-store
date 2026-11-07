@@ -206,14 +206,59 @@ const deleteCategory = asyncHandler(async (req, res) => {
   const lang = req.lang;
   const category = await Category.findById(req.params.id);
 
-  if (category) {
-    category.isDeleted = true;
-    await category.save();
-    res.json({ message: getMessage(lang, 'admin-controllers-messages.category_removed') });
-  } else {
+  if (!category) {
     res.status(404);
-    throw new Error(getMessage(lang, 'admin-controllers-messages.category_not_found'));
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_not_found'));
+    error.errorCode = 'CATEGORY_NOT_FOUND';
+    error.exposeMessage = true;
+    throw error;
   }
+
+  if (category.isDeleted) {
+    res.status(400);
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_already_deleted'));
+    error.errorCode = 'CATEGORY_ALREADY_DELETED';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  const linkedProducts = await Product.exists({ category: category._id });
+  if (linkedProducts) {
+    res.status(409);
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_has_products'));
+    error.errorCode = 'CATEGORY_HAS_PRODUCTS';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  category.isDeleted = true;
+  await category.save();
+  res.json({ message: getMessage(lang, 'admin-controllers-messages.category_removed') });
+});
+
+const restoreCategory = asyncHandler(async (req, res) => {
+  const lang = req.lang;
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    res.status(404);
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_not_found'));
+    error.errorCode = 'CATEGORY_NOT_FOUND';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  if (!category.isDeleted) {
+    res.status(400);
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_not_deleted'));
+    error.errorCode = 'CATEGORY_NOT_DELETED';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  category.isDeleted = false;
+  await category.save();
+  res.json({ message: getMessage(lang, 'admin-controllers-messages.category_restored') });
 });
 
 /**
@@ -231,13 +276,25 @@ const hardDeleteCategory = asyncHandler(async (req, res) => {
     throw new Error(getMessage(lang, 'admin-controllers-messages.category_not_found'));
   }
 
-  const productCount = await Product.countDocuments({ category: category._id });
-  if (productCount > 0) {
+  if (!category.isDeleted) {
     res.status(409);
-    throw new Error('Cannot permanently delete a category that is linked to products.');
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_not_deleted'));
+    error.errorCode = 'CATEGORY_NOT_DELETED';
+    error.exposeMessage = true;
+    throw error;
+  }
+
+  const linkedProducts = await Product.exists({ category: category._id });
+  if (linkedProducts) {
+    res.status(409);
+    const error = new Error(getMessage(lang, 'admin-controllers-messages.category_has_products'));
+    error.errorCode = 'CATEGORY_HAS_PRODUCTS';
+    error.exposeMessage = true;
+    throw error;
   }
 
   await category.deleteOne();
+  await CategoryCatalogTranslationCache.deleteMany({ entityId: String(category._id) });
   res.json({ message: getMessage(lang, 'admin-controllers-messages.category_permanently_removed') });
 });
 
@@ -247,5 +304,6 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
+  restoreCategory,
   hardDeleteCategory,
 };

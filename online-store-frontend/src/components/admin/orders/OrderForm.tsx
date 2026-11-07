@@ -9,7 +9,7 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { toast } from 'sonner';
 import { getIntlLocale } from '../../../lib/localeUtils';
-import { getUserFriendlyErrorMessage } from '../../../lib/errorHandler';
+import { showMutationError } from '../../../lib/errorHandler';
 
 interface OrderItem {
   product: string;
@@ -254,8 +254,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       }
       onSuccess?.();
     } catch (error) {
-      const apiError = error as Error & { code?: string };
-      toast.error(apiError.code === 'ORDER_CANNOT_BE_EDITED' ? apiError.message : getUserFriendlyErrorMessage(error, t));
+      showMutationError(error, t, 'error_save_data');
     } finally {
       setIsSubmitting(false);
     }

@@ -9,6 +9,7 @@ import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { Checkbox } from "../../ui/checkbox";
 import { toast } from "sonner";
+import { showMutationError } from "../../../lib/errorHandler";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from '@/lib/i18n';
 import { useR2Upload } from "@/hooks/useR2Upload";
@@ -239,7 +240,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
       
       onSuccess?.();
     } catch (error) {
-      toast.error(t('error_save_data', 'admin'));
+      showMutationError(error, t, 'error_save_data', 'admin');
     } finally {
       setIsSubmitting(false);
     }

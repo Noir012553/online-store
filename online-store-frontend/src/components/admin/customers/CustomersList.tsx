@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from '../../ui/dialog';
 import { toast } from 'sonner';
+import { showMutationError } from '../../../lib/errorHandler';
 import { Pagination } from '../Pagination';
 
 interface Customer {
@@ -165,7 +166,7 @@ export function CustomersList() {
         await fetchCustomers();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'common'));
+      showMutationError(error, t, 'error_delete_data');
     } finally {
       setIsUpdating(false);
     }
@@ -178,7 +179,7 @@ export function CustomersList() {
       toast.success(t('toast_customer_restored', 'admin'));
       await fetchDeletedCustomers();
     } catch (error) {
-      toast.error(t('error_save_data', 'common'));
+      showMutationError(error, t, 'error_save_data');
     } finally {
       setIsUpdating(false);
     }
@@ -192,7 +193,7 @@ export function CustomersList() {
       toast.success(t('toast_customer_deleted', 'admin'));
       setDeleteConfirmCustomer(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'common'));
+      showMutationError(error, t, 'error_delete_data');
     } finally {
       setIsUpdating(false);
     }

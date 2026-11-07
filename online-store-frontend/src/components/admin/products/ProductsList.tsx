@@ -15,6 +15,7 @@ import {
   DialogDescription,
 } from "../../ui/dialog";
 import { toast } from "sonner";
+import { showMutationError } from "../../../lib/errorHandler";
 import { Pagination } from "../Pagination";
 import { joinAdminRoom, leaveAdminRoom, onProductCreated, onProductUpdated, onProductDeleted, onProductRestored, offEvent } from "../../../lib/socket";
 import { useAuth } from "../../../lib/context/AuthContext";
@@ -174,9 +175,9 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         setCurrentPage(1);
         await fetchProducts();
       }
-      toast.success(t('admin_toast_delete_success', 'admin'));
+      toast.success(t('toast_product_deleted', 'admin'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
+      showMutationError(error, t, 'error_delete_data', 'admin');
     }
   };
 
@@ -190,7 +191,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       await fetchDeletedProducts();
       await fetchProducts();
     } catch (error) {
-      toast.error(t('error_save_data', 'admin'));
+      showMutationError(error, t, 'error_save_data', 'admin');
     } finally {
       setIsSubmitting(false);
     }
@@ -201,10 +202,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       setIsSubmitting(true);
       await productAPI.hardDeleteProduct(id);
       await fetchDeletedProducts();
-      toast.success(t('admin_toast_delete_success', 'admin'));
+      toast.success(t('toast_product_deleted', 'admin'));
       setDeleteConfirmProduct(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
+      showMutationError(error, t, 'error_delete_data', 'admin');
     } finally {
       setIsSubmitting(false);
     }

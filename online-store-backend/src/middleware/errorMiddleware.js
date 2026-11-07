@@ -40,7 +40,8 @@ const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || err.status || (res.statusCode === 200 ? 500 : res.statusCode);
   const applicationCode = err.errorCode || (typeof err.code === 'string' ? err.code : null);
   let code = applicationCode || 'REQUEST_FAILED';
-  let message = applicationCode && err.exposeMessage
+  const hasExplicitClientStatus = statusCode >= 400 && statusCode < 500;
+  let message = err.exposeMessage || hasExplicitClientStatus
     ? err.message
     : getMessage(req.lang, 'common.error_request_title');
   let params = err.params || {};
