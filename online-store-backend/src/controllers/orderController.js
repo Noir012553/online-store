@@ -55,7 +55,19 @@ const buildOrderListQuery = async (query, isDeleted) => {
       { customer: { $in: customers.map(({ _id }) => _id) } },
       { user: { $in: users.map(({ _id }) => _id) } },
     ];
-    if (mongoose.Types.ObjectId.isValid(keyword)) matches.push({ _id: keyword });
+    if (mongoose.Types.ObjectId.isValid(keyword)) {
+      matches.push({ _id: keyword });
+    } else if (/^[a-f\d]{8}$/i.test(keyword)) {
+      matches.push({
+        $expr: {
+          $regexMatch: {
+            input: { $toString: '$_id' },
+            regex: `${keyword}$`,
+            options: 'i',
+          },
+        },
+      });
+    }
     filters.$or = matches;
   }
 

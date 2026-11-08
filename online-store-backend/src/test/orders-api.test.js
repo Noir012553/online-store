@@ -94,6 +94,46 @@ describe('Order HTTP API', () => {
     expect(listQuery.skip.calledWith(5)).to.equal(true);
   });
 
+  it('searches orders by the eight-character ID shown in the admin list', async () => {
+    const customerLookup = {
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    const userLookup = {
+      select: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    sandbox.stub(Customer, 'find').returns(customerLookup);
+    sandbox.stub(User, 'find').returns(userLookup);
+
+    const countQuery = { maxTimeMS: sandbox.stub().resolves(0) };
+    const countDocuments = sandbox.stub(Order, 'countDocuments').returns(countQuery);
+    const listQuery = {
+      populate: sandbox.stub().returnsThis(),
+      sort: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
+      skip: sandbox.stub().returnsThis(),
+      maxTimeMS: sandbox.stub().returnsThis(),
+      lean: sandbox.stub().resolves([]),
+    };
+    sandbox.stub(Order, 'find').returns(listQuery);
+
+    const response = await request(app)
+      .get('/api/orders?keyword=B5B71E73')
+      .set('Authorization', auth(adminUser));
+
+    expect(response.status).to.equal(200);
+    expect(countDocuments.firstCall.args[0].$or).to.deep.include({
+      $expr: {
+        $regexMatch: {
+          input: { $toString: '$_id' },
+          regex: 'B5B71E73$',
+          options: 'i',
+        },
+      },
+    });
+  });
+
   it('returns field-level validation errors for an invalid list filter', async () => {
     const response = await request(app)
       .get('/api/orders?status=unknown')

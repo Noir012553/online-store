@@ -3,6 +3,7 @@
  */
 
 import type { Locale } from '../i18n/types';
+import { apiCall } from '../api';
 
 export interface Currency {
   _id: string;
@@ -64,6 +65,7 @@ class CurrencyService {
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -113,22 +115,12 @@ class CurrencyService {
    */
   async createCurrency(currencyData: Omit<Currency, '_id' | 'createdAt' | 'updatedAt'>): Promise<Currency> {
     try {
-      const response = await fetch(`${this.baseUrl}/currencies`, {
+      const response = await apiCall<{ data: Currency }>('/currencies', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(currencyData),
+        skipErrorToast: true,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      const data = await response.json();
-      return data.data;
+      return response.data;
     } catch (error) {
       console.error('[CurrencyService] Error creating currency:', error);
       throw error;
@@ -139,27 +131,12 @@ class CurrencyService {
    * Cập nhật mệnh giá
    */
   async updateCurrency(id: string, updates: Partial<Currency>): Promise<Currency> {
-    try {
-      const response = await fetch(`${this.baseUrl}/currencies/${id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error) {
-      console.error('[CurrencyService] Error updating currency:', error);
-      throw error;
-    }
+    const response = await apiCall<{ data: Currency }>(`/currencies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+      skipErrorToast: true,
+    });
+    return response.data;
   }
 
   /**
@@ -167,18 +144,10 @@ class CurrencyService {
    */
   async deleteCurrency(id: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/currencies/${id}`, {
+      await apiCall(`/currencies/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        skipErrorToast: true,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
     } catch (error) {
       console.error('[CurrencyService] Error deleting currency:', error);
       throw error;
@@ -280,22 +249,12 @@ class CurrencyService {
     rateData: Omit<ExchangeRate, '_id' | 'createdAt' | 'updatedAt' | 'rateUpdatedAt'>
   ): Promise<ExchangeRate> {
     try {
-      const response = await fetch(`${this.baseUrl}/exchange-rates`, {
+      const response = await apiCall<{ data: ExchangeRate }>('/exchange-rates', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(rateData),
+        skipErrorToast: true,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      const data = await response.json();
-      return data.data;
+      return response.data;
     } catch (error) {
       console.error('[CurrencyService] Error creating exchange rate:', error);
       throw error;
@@ -307,22 +266,12 @@ class CurrencyService {
    */
   async updateExchangeRate(id: string, updates: Partial<ExchangeRate>): Promise<ExchangeRate> {
     try {
-      const response = await fetch(`${this.baseUrl}/exchange-rates/${id}`, {
+      const response = await apiCall<{ data: ExchangeRate }>(`/exchange-rates/${id}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
+        skipErrorToast: true,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      const data = await response.json();
-      return data.data;
+      return response.data;
     } catch (error) {
       console.error('[CurrencyService] Error updating exchange rate:', error);
       throw error;
@@ -334,18 +283,10 @@ class CurrencyService {
    */
   async deleteExchangeRate(id: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/exchange-rates/${id}`, {
+      await apiCall(`/exchange-rates/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        skipErrorToast: true,
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
     } catch (error) {
       console.error('[CurrencyService] Error deleting exchange rate:', error);
       throw error;

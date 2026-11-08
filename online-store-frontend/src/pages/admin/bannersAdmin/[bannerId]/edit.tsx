@@ -274,12 +274,14 @@ function BannerEditPageContent() {
         setIsSubmitting(true);
         const uploadResult = await uploadToR2(imageFile, 'banners');
         if (!uploadResult) {
+          setIsSubmitting(false);
           return;
         }
 
         // Validate the uploaded image
         const isValid = validateUploadedAsset(uploadResult);
         if (!isValid) {
+          setIsSubmitting(false);
           return;
         }
 

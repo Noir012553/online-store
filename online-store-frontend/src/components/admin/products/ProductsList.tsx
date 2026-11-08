@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle, Star } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, RotateCcw, AlertCircle, Star, LoaderCircle } from "lucide-react";
 import { getTranslatedValue, getCategoryName } from "../../../lib/data";
 import { productAPI } from "../../../lib/api";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
@@ -52,6 +52,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<any>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const itemsPerPage = 10;
   const latestRequestRef = useRef(0);
@@ -121,12 +122,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
 
     const handleProductCreated = () => {
       fetchProducts();
-      toast.success(t('admin_toast_product_created', 'admin'));
     };
 
     const handleProductUpdated = () => {
       fetchProducts();
-      toast.info(t('admin_toast_product_updated', 'admin'));
     };
 
     const handleProductDeleted = () => {
@@ -135,12 +134,10 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       } else {
         fetchProducts();
       }
-      toast.info(t('admin_toast_product_deleted', 'admin'));
     };
 
     const handleProductRestored = () => {
       fetchProducts();
-      toast.success(t('admin_toast_product_restored', 'admin'));
     };
 
     onProductCreated(handleProductCreated);
@@ -165,6 +162,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
   const displayedProducts = viewDeletedTab ? deletedProducts : products;
 
   const handleDelete = async (id: string) => {
+    setDeletingProductId(id);
     try {
       await productAPI.deleteProduct(id);
       if (viewDeletedTab) {
@@ -174,9 +172,14 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
         setCurrentPage(1);
         await fetchProducts();
       }
-      toast.success(t('admin_toast_delete_success', 'admin'));
+      toast.success(t('admin_toast_delete_success', 'admin').replace(/^✓\s*/, ''));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
+      const description = error instanceof Error ? error.message : '';
+      toast.error(t('error_delete_data', 'admin'), {
+        description: description || t('error_delete_data', 'admin'),
+      });
+    } finally {
+      setDeletingProductId(null);
     }
   };
 
@@ -184,7 +187,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
     try {
       setIsSubmitting(true);
       await productAPI.restoreProduct(id);
-      toast.success(t('admin_toast_product_restored', 'admin'));
+      toast.success(t('admin_toast_product_restored', 'admin').replace(/^✓\s*/, ''));
       setDeletedCurrentPage(1);
       setCurrentPage(1);
       await fetchDeletedProducts();
@@ -201,7 +204,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
       setIsSubmitting(true);
       await productAPI.hardDeleteProduct(id);
       await fetchDeletedProducts();
-      toast.success(t('admin_toast_delete_success', 'admin'));
+      toast.success(t('admin_toast_delete_success', 'admin').replace(/^✓\s*/, ''));
       setDeleteConfirmProduct(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('error_delete_data', 'admin'));
@@ -428,8 +431,15 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(product._id)}
+                            disabled={deletingProductId !== null}
+                            title={t('delete', 'common')}
+                            aria-label={t('delete', 'common')}
                           >
-                            <Trash2 className="w-4 h-4 text-red-600" />
+                            {deletingProductId === product._id ? (
+                              <LoaderCircle className="w-4 h-4 animate-spin text-red-600" />
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            )}
                           </Button>
                         </>
                       )}

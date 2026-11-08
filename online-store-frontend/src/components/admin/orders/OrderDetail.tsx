@@ -105,11 +105,15 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         locale,
         currencyCode,
       });
-      await apiCall(`/orders/${order._id}/deliver?${params.toString()}`, { method: 'PUT' });
+      await apiCall(`/orders/${order._id}/deliver?${params.toString()}`, {
+        method: 'PUT',
+        skipErrorToast: true,
+      });
 
-      toast.success(t('toast_update_success', 'admin'));
+      toast.success(t('toast_order_updated', 'admin'));
       setOrder({ ...order, isDelivered: true });
     } catch {
+      toast.error(t('error_save_data', 'common'));
     } finally {
       setIsUpdating(false);
     }

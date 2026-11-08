@@ -598,13 +598,14 @@ async function executeRequest<T = any>(
         // This is a retry request → token refresh failed → logout
         handleUnauthorized();
 
-        // Show toast
-        handleApiError({
-          status: 401,
-          message: 'error_session_expired',
-          endpoint: endpointName,
-          method: methodName,
-        });
+        if (!fetchOptions.skipErrorToast) {
+          handleApiError({
+            status: 401,
+            message: 'error_session_expired',
+            endpoint: endpointName,
+            method: methodName,
+          });
+        }
 
         throw new Error('error_session_expired');
       }
@@ -613,24 +614,27 @@ async function executeRequest<T = any>(
       const refreshResult = await refreshAccessToken();
 
       if (refreshResult === 'rate_limited') {
-        handleApiError({
-          status: 429,
-          message: 'error_rate_limited',
-          endpoint: endpointName,
-          method: methodName,
-        });
+        if (!fetchOptions.skipErrorToast) {
+          handleApiError({
+            status: 429,
+            message: 'error_rate_limited',
+            endpoint: endpointName,
+            method: methodName,
+          });
+        }
         throw new Error('error_rate_limited');
       }
 
       if (!refreshResult) {
         // Refresh failed → logout
-        // Show toast
-        handleApiError({
-          status: 401,
-          message: 'error_session_expired',
-          endpoint: endpointName,
-          method: methodName,
-        });
+        if (!fetchOptions.skipErrorToast) {
+          handleApiError({
+            status: 401,
+            message: 'error_session_expired',
+            endpoint: endpointName,
+            method: methodName,
+          });
+        }
 
         throw new Error('error_session_expired');
       }
@@ -1140,11 +1144,11 @@ export const productAPI = {
    * Xóa sản phẩm (Admin only)
    */
   deleteProduct: async (id: string) => {
-    return apiCall(`/products/${id}`, { method: 'DELETE' });
+    return apiCall(`/products/${id}`, { method: 'DELETE', skipErrorToast: true });
   },
 
   hardDeleteProduct: async (id: string) => {
-    return apiCall(`/products/${id}/hard`, { method: 'DELETE' });
+    return apiCall(`/products/${id}/hard`, { method: 'DELETE', skipErrorToast: true });
   },
 
   /**
@@ -1171,7 +1175,8 @@ export const productAPI = {
   restoreProduct: async (id: string) => {
     return apiCall(`/products/${id}/restore`, {
       method: 'PUT',
-      adapter: (data) => productAdapter.transform(data)
+      adapter: (data) => productAdapter.transform(data),
+      skipErrorToast: true,
     });
   },
 
@@ -1604,6 +1609,7 @@ export const categoryAPI = {
     return apiCall('/categories', {
       method: 'POST',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -1745,6 +1751,7 @@ export const couponAPI = {
     return apiCall('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -1755,6 +1762,7 @@ export const couponAPI = {
     return apiCall(`/coupons/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -1764,6 +1772,7 @@ export const couponAPI = {
   deleteCoupon: async (id: string) => {
     return apiCall(`/coupons/${id}`, {
       method: 'DELETE',
+      skipErrorToast: true,
     });
   },
 
@@ -1773,6 +1782,7 @@ export const couponAPI = {
   restoreCoupon: async (id: string) => {
     return apiCall(`/coupons/${id}/restore`, {
       method: 'PUT',
+      skipErrorToast: true,
     });
   },
 
@@ -1782,6 +1792,7 @@ export const couponAPI = {
   hardDeleteCoupon: async (id: string) => {
     return apiCall(`/coupons/${id}/hard`, {
       method: 'DELETE',
+      skipErrorToast: true,
     });
   },
 
@@ -1878,15 +1889,15 @@ export const bannerAPI = {
   },
 
   deleteBanner: async (id: string) => {
-    return apiCall(`/banners/${id}`, { method: 'DELETE' });
+    return apiCall(`/banners/${id}`, { method: 'DELETE', skipErrorToast: true });
   },
 
   restoreBanner: async (id: string) => {
-    return apiCall(`/banners/${id}/restore`, { method: 'PUT' });
+    return apiCall(`/banners/${id}/restore`, { method: 'PUT', skipErrorToast: true });
   },
 
   hardDeleteBanner: async (id: string) => {
-    return apiCall(`/banners/${id}/hard`, { method: 'DELETE' });
+    return apiCall(`/banners/${id}/hard`, { method: 'DELETE', skipErrorToast: true });
   },
 
   getBannerSlots: async (locale?: string) => {
@@ -1944,11 +1955,17 @@ export const reviewAPI = {
  * Order API endpoints
  */
 export const orderAPI = {
-  getSummary: async (data: CheckoutSummaryRequest, lang: string, locale: string) => {
+  getSummary: async (
+    data: CheckoutSummaryRequest,
+    lang: string,
+    locale: string,
+    requestOptions?: Pick<FetchOptions, 'skipErrorToast'>,
+  ) => {
     const params = new URLSearchParams({ lang, locale, currencyCode: data.currencyCode });
     return apiCall<{ success: boolean; data: unknown }>(`/orders/summary?${params.toString()}`, {
       method: 'POST',
       body: JSON.stringify(data),
+      ...requestOptions,
     });
   },
 
@@ -2039,6 +2056,7 @@ export const orderAPI = {
     return apiCall(`/orders/${id}${query ? `?${query}` : ''}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -2046,15 +2064,15 @@ export const orderAPI = {
    * Khôi phục đơn hàng đã xóa (Admin only)
    */
   deleteOrder: async (id: string) => {
-    return apiCall(`/orders/${id}`, { method: 'DELETE' });
+    return apiCall(`/orders/${id}`, { method: 'DELETE', skipErrorToast: true });
   },
 
   restoreOrder: async (id: string) => {
-    return apiCall(`/orders/${id}/restore`, { method: 'PUT' });
+    return apiCall(`/orders/${id}/restore`, { method: 'PUT', skipErrorToast: true });
   },
 
   hardDeleteOrder: async (id: string) => {
-    return apiCall(`/orders/${id}/hard`, { method: 'DELETE' });
+    return apiCall(`/orders/${id}/hard`, { method: 'DELETE', skipErrorToast: true });
   },
 
   /**
@@ -2066,6 +2084,7 @@ export const orderAPI = {
     return apiCall(`/orders/${orderId}/status`, {
       method: 'PUT',
       body: JSON.stringify(status),
+      skipErrorToast: true,
     });
   },
 
@@ -2150,6 +2169,7 @@ export const customerAPI = {
     return apiCall('/customers', {
       method: 'POST',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -2160,6 +2180,7 @@ export const customerAPI = {
     return apiCall(`/customers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+      skipErrorToast: true,
     });
   },
 
@@ -2169,6 +2190,7 @@ export const customerAPI = {
   deleteCustomer: async (id: string) => {
     return apiCall(`/customers/${id}`, {
       method: 'DELETE',
+      skipErrorToast: true,
     });
   },
 
@@ -2176,14 +2198,14 @@ export const customerAPI = {
    * Khôi phục khách hàng đã xóa (Admin only)
    */
   restoreCustomer: async (id: string) => {
-    return apiCall(`/customers/${id}/restore`, { method: 'PUT' });
+    return apiCall(`/customers/${id}/restore`, { method: 'PUT', skipErrorToast: true });
   },
 
   /**
    * Xóa cứng khách hàng (Admin only)
    */
   hardDeleteCustomer: async (id: string) => {
-    return apiCall(`/customers/${id}/hard`, { method: 'DELETE' });
+    return apiCall(`/customers/${id}/hard`, { method: 'DELETE', skipErrorToast: true });
   },
 };
 

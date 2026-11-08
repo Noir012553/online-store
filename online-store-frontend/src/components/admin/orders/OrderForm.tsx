@@ -33,6 +33,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   useEffect(() => {
     loadNamespace('admin');
+    loadNamespace('payment');
   }, [loadNamespace]);
 
   const [isLoading, setIsLoading] = useState(mode === 'edit' && !!orderId);
@@ -50,6 +51,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [summary, setSummary] = useState<CheckoutSummary | null>(null);
+  const [summaryRetryCount, setSummaryRetryCount] = useState(0);
   const [editOrder, setEditOrder] = useState<any>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -167,6 +169,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     }
 
     let cancelled = false;
+    setSummary(null);
     setIsLoadingSummary(true);
 
     orderAPI.getSummary({
@@ -176,12 +179,15 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       shippingProvider: mode === 'edit' ? editOrder?.shippingProvider : undefined,
       shippingService: mode === 'edit' ? editOrder?.shippingService : undefined,
       currencyCode: mode === 'edit' ? editOrder?.currencyCode || currency.code : currency.code,
-    }, locale, getIntlLocale(locale))
+    }, locale, getIntlLocale(locale), { skipErrorToast: true })
       .then((response) => {
         if (!cancelled) setSummary(response.data as CheckoutSummary);
       })
-      .catch(() => {
-        if (!cancelled) setSummary(null);
+      .catch((error) => {
+        if (!cancelled) {
+          setSummary(null);
+          toast.error(getUserFriendlyErrorMessage(error, t));
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoadingSummary(false);
@@ -190,7 +196,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
     return () => {
       cancelled = true;
     };
-  }, [currency.code, editOrder, locale, mode, orderItems]);
+  }, [currency.code, editOrder, locale, mode, orderItems, summaryRetryCount, t]);
 
   const handleSubmit = async () => {
     if (!form.customerName || !form.customerPhone || !form.customerAddress) {
@@ -249,6 +255,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
             paymentMethod: form.paymentMethod,
             currencyCode: currency.code,
           }),
+          skipErrorToast: true,
         });
         toast.success(t('toast_order_created', 'admin'));
       }
@@ -543,7 +550,14 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
                   <span className="text-lg font-bold text-red-600">{summary.formattedTotalPrice}</span>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="flex items-center justify-between gap-3 text-sm text-red-700">
+                <span>{t('error_load_data', 'common')}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => setSummaryRetryCount((count) => count + 1)}>
+                  {t('retry_button', 'payment')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -551,7 +565,7 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
         <div className="flex flex-col gap-3 pt-6 sm:flex-row border-t">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || orderItems.length === 0}
+            disabled={isSubmitting || orderItems.length === 0 || isLoadingSummary || !summary}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
           >
             {isSubmitting ? t('loading', 'common') : mode === 'create' ? t('create_order_button', 'admin') : t('update', 'common')}

@@ -988,8 +988,12 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   if (originalPrice !== undefined) {
-    const numOriginalPrice = parseFloat(originalPrice);
-    product.originalPrice = (isNaN(numOriginalPrice) || numOriginalPrice < product.price) ? product.originalPrice : numOriginalPrice;
+    if (originalPrice === null || (typeof originalPrice === 'string' && originalPrice.trim() === '')) {
+      product.originalPrice = undefined;
+    } else {
+      const numOriginalPrice = parseFloat(originalPrice);
+      product.originalPrice = (isNaN(numOriginalPrice) || numOriginalPrice < product.price) ? product.originalPrice : numOriginalPrice;
+    }
   }
 
   if (baseCurrencyCode !== undefined) {
