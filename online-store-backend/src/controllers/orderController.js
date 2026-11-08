@@ -952,9 +952,11 @@ const addOrderItems = asyncHandler(async (req, res) => {
  */
 const getOrderById = asyncHandler(async (req, res) => {
   const lang = req.lang;
+  const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'super-admin');
+  const orderQuery = { _id: req.params.id, ...(!isAdmin && { isDeleted: false }) };
 
-  let order = await withTimeout(
-    Order.findOne({ _id: req.params.id, isDeleted: false })
+  const order = await withTimeout(
+    Order.findOne(orderQuery)
       .populate('user', 'username email')
       .populate('customer', 'name email phone'),
     ORDER_QUERY_TIMEOUT_MS
@@ -965,7 +967,6 @@ const getOrderById = asyncHandler(async (req, res) => {
       String(order.user?._id || order.user || '') === String(req.user._id) ||
       (order.customer && order.customer.email && order.customer.email.toLowerCase() === req.user.email.toLowerCase())
     );
-    const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'super-admin');
 
     if (!isOwner && !isAdmin) {
       res.status(403);

@@ -48,6 +48,7 @@ interface Order {
   inventoryStatus?: string;
   paidAt?: Date;
   deliveredAt?: Date;
+  isDeleted?: boolean;
   createdAt: Date;
 }
 
@@ -292,7 +293,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
         </div>
 
         {/* Action Buttons */}
-        {!order.isPaid && !order.isDelivered
+        {!order.isDeleted && !order.isPaid && !order.isDelivered
           && (!order.shipmentStatus || order.shipmentStatus === 'pending')
           && !order.shippingProvider && !order.shippingService && !order.trackingNumber && !order.ghnOrderCode && (
           <Button
@@ -304,7 +305,7 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
             {t('update', 'common')}
           </Button>
         )}
-        {!order.isDelivered && order.inventoryStatus !== 'needs_review' && (
+        {!order.isDeleted && !order.isDelivered && order.inventoryStatus !== 'needs_review' && (
           <div className="flex gap-2 pt-4 border-t">
             <Button
               onClick={handleMarkAsDelivered}
