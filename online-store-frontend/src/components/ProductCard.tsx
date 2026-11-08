@@ -131,13 +131,13 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
                 className="object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
-                <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none">
+                <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none overflow-visible">
                   -{discount}%
                 </Badge>
               )}
               {(hasActiveDeal || hasShockDiscount) && (
                 <Badge
-                  className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
+                  className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white overflow-visible ${
                     hasShockDiscount
                       ? 'bg-red-600'
                       : isFeaturedHotDeal
@@ -154,7 +154,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
                 </Badge>
               )}
               {convertedLaptop.featured && !hasActiveDeal && !hasShockDiscount && (
-                <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
+                <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none overflow-visible">
                   <R2Icon name="star" size={16} />
                   {t('featured_badge', 'products')}
                 </Badge>
