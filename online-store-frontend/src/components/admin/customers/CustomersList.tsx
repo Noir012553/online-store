@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Search, Eye, Mail, Phone, Plus, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
+import { Search, Pencil, Mail, Phone, Plus, Trash2, RotateCcw, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
 import { customerAPI } from '../../../lib/api';
 import { Button } from '../../ui/button';
@@ -357,10 +357,11 @@ export function CustomersList() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => router.push(`/admin/customers/${customer._id}`)}
-                                title={t('view_details', 'common')}
+                                onClick={() => router.push(`/admin/customers/${customer._id}/edit`)}
+                                title={t('edit', 'common')}
+                                aria-label={t('edit', 'common')}
                               >
-                                <Eye className="w-4 h-4 text-blue-600" />
+                                <Pencil className="w-4 h-4 text-blue-600" />
                               </Button>
                               <Button
                                 variant="ghost"
