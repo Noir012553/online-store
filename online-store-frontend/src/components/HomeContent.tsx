@@ -539,7 +539,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     const handleBannerDeleted = () => refetchBanners();
     const handleBannerRestored = () => refetchBanners();
 
-    void refetchBanners();
+    if (initialHeroBanners.length === 0) void refetchBanners();
     onBannerCreated(handleBannerCreated);
     onBannerUpdated(handleBannerUpdated);
     onBannerDeleted(handleBannerDeleted);
@@ -552,7 +552,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
       offEvent('banner-deleted', handleBannerDeleted);
       offEvent('banner-restored', handleBannerRestored);
     };
-  }, [locale, isHydrated]);
+  }, [initialHeroBanners.length, locale, isHydrated]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1024px)');
@@ -759,7 +759,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             : isDesktopViewport
               ? index < slideCount && logicalIndex === currentSlide
               : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
-          const isPriorityHeroSlide = isAccessibleSlide || (logicalIndex === 0 && (index === 0 || index === slideCount));
+          const isPriorityHeroSlide = index === 0;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
@@ -776,7 +776,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 fill
                 sizes="100vw"
                 className="object-cover"
-                preload={isPriorityHeroSlide}
                 loading={isPriorityHeroSlide ? 'eager' : 'lazy'}
                 fetchPriority={isPriorityHeroSlide ? 'high' : 'low'}
                 onLoad={isPriorityHeroSlide ? () => setIsHeroImageLoaded(true) : undefined}
@@ -856,7 +855,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             inert={!isBannerVisible}
             className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
-            <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
+            {isDesktopViewport && <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />}
           </div>
 
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
@@ -865,7 +864,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             inert={!isBannerVisible}
             className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
-            <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
+            {isDesktopViewport && <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />}
           </div>
           {categoryCount > 0 && (
             <section
