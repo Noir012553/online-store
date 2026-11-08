@@ -130,17 +130,12 @@ class CurrencyService {
    * Cập nhật mệnh giá
    */
   async updateCurrency(id: string, updates: Partial<Currency>): Promise<Currency> {
-    try {
-      const response = await apiCall<{ data: Currency }>(`/currencies/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-        skipErrorToast: true,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('[CurrencyService] Error updating currency:', error);
-      throw error;
-    }
+    const response = await apiCall<{ data: Currency }>(`/currencies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+      skipErrorToast: true,
+    });
+    return response.data;
   }
 
   /**

@@ -16,7 +16,7 @@ interface CurrencyFormProps {
 }
 
 export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProps) {
-  const { t } = useTranslation();
+  const { t, loadNamespace } = useTranslation();
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -29,6 +29,10 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    loadNamespace('checkout');
+  }, [loadNamespace]);
 
   useEffect(() => {
     if (currency) {
@@ -90,6 +94,19 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
       setIsSubmitting(true);
 
       if (currency) {
+        if (currency.isDefault && !formData.isDefault) {
+          const currencies = await currencyService.fetchCurrencies();
+          const hasOtherDefault = currencies.some(
+            item => item._id !== currency._id && item.isDefault
+          );
+
+          if (!hasOtherDefault) {
+            setFormData(prev => ({ ...prev, isDefault: true }));
+            toast.error(t('error_currency_required', 'checkout'));
+            return;
+          }
+        }
+
         await currencyService.updateCurrency(currency._id, formData);
         toast.success(t('toast_update_success', 'admin'));
       } else {
@@ -99,7 +116,11 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
 
       onSuccess();
     } catch (error) {
-      toast.error(getUserFriendlyErrorMessage(error, t));
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'NO_DEFAULT_CURRENCY') {
+        toast.error(t('error_currency_required', 'checkout'));
+      } else {
+        toast.error(getUserFriendlyErrorMessage(error, t));
+      }
     } finally {
       setIsSubmitting(false);
     }
