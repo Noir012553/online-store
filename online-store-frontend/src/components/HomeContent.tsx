@@ -1027,7 +1027,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                       <div
                         aria-hidden={isDesktopViewport}
                         inert={isDesktopViewport}
-                        className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                        className={`hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6 ${products.length === 1 ? 'justify-center' : ''}`}
                       >
                         {!isDesktopViewport && products.map((product) => (
                           <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
@@ -1096,7 +1096,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div
                   aria-hidden={isDesktopViewport}
                   inert={isDesktopViewport}
-                  className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                  className={`hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6 ${dealProducts.length === 1 ? 'justify-center' : ''}`}
                 >
                   {!isDesktopViewport && dealProducts.map((product) => (
                     <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
