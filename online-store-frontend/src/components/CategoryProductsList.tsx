@@ -660,7 +660,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           <p className="text-sm text-gray-600">
             {isLoading ? t('filter_loading_wait', 'products') : `${sortedProducts.length} ${t('filter_items_count', 'products')}`}
           </p>
-          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="border-input flex h-9 w-40 rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+          <select aria-label={locale.startsWith('vi') ? 'Sắp xếp sản phẩm' : 'Sort products'} value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="border-input flex h-9 w-40 rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
             <option value="featured">{t('badge_featured', 'products')}</option>
             <option value="name">{t('filter_popular', 'products')}</option>
             <option value="price-asc">{t('sort_price_low_to_high', 'products')}</option>
