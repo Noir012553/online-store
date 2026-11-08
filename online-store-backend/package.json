@@ -12,6 +12,7 @@
     "test:integration": "node src/test/test-runner.js -- --suite=backend",
     "test:integration:import-export": "node src/test/test-runner.js -- --suite=import-export",
     "test:offline": "node src/test/frontend-offline-manual.test.js",
+    "test:python": "python python/run_tests.py",
     "test:export:dynamic": "node scripts/test-export-dynamic.test.js",
     "test:export:production": "node src/test/export-production.test.js",
     "test:import:export:dynamic": "node src/test/import-export.test.js",
