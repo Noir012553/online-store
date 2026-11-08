@@ -640,7 +640,7 @@ const run = async args => {
 (async () => {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/test-export-dynamic.js --environment local --target backend --limit 10 [--report report.json]');
+    console.log('Usage: node scripts/test-export-dynamic.test.js --environment local --target backend --limit 10 [--report report.json]');
     console.log('Options: --base-url --frontend-base-url --backend-base-url --credential-path --import --import-file --format json|csv --mode insert|update|upsert --commit-import --max-wait-minutes --request-timeout-seconds --poll-interval-seconds --zip-output --tunnel-log');
     return;
   }

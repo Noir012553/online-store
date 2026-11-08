@@ -64,7 +64,7 @@ const checkedFiles = [
   'src/scripts/analyze-files.js',
   'src/scripts/analyze-translation-status.js',
   'src/scripts/verify-key-consistency.js',
-  'src/scripts/test-translation-quality.js',
+  'src/scripts/test-translation-quality.test.js',
   'src/scripts/fix-category-translations.js',
   'src/scripts/retranslate.js',
   'src/scripts/translate-reject.js',
