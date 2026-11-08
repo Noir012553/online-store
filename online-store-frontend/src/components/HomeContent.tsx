@@ -376,7 +376,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     if (!carousel || window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
 
     requestAnimationFrame(() => {
-      carousel.scrollTo({ left: carousel.clientWidth, behavior: 'auto' });
+      carousel.scrollTo({ left: carousel.clientWidth * heroSlidesToRender.length, behavior: 'auto' });
     });
   }, [heroSlidesToRender.length]);
 
@@ -759,7 +759,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             : isDesktopViewport
               ? index < slideCount && logicalIndex === currentSlide
               : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
-          const isPriorityHeroSlide = index === 0;
+          const isPriorityHeroSlide = index === 0 || index === slideCount;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
