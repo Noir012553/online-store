@@ -187,7 +187,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
     try {
       setIsSubmitting(true);
       await productAPI.restoreProduct(id);
-      toast.success(t('admin_toast_product_restored', 'admin'));
+      toast.success(t('admin_toast_product_restored', 'admin').replace(/^✓\s*/, ''));
       setDeletedCurrentPage(1);
       setCurrentPage(1);
       await fetchDeletedProducts();
