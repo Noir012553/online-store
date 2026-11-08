@@ -439,7 +439,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
             )}
           </div>
 
-          <Accordion type="multiple" defaultValue={["price", "discount", "highlights", "rating", "brands", "stock"]} className="w-full">
+          <Accordion type="multiple" defaultValue={[]} className="w-full">
             {/* Price Range Filter */}
             {sliderMax > sliderMin && (
               <AccordionItem value="price">
@@ -771,8 +771,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {sortedProducts.length > 0 ? (
-                sortedProducts.map((product) => (
-                  <ProductCard key={product._id} laptop={product} />
+                sortedProducts.map((product, index) => (
+                  <ProductCard key={product._id} laptop={product} preloadImage={index === 0} />
                 ))
               ) : (
                 <div className="col-span-full">

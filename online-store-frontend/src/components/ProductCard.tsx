@@ -20,6 +20,7 @@ const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mo
 
 interface ProductCardProps {
   laptop: BackendProduct;
+  preloadImage?: boolean;
   onQuickViewToggle?: (isOpen: boolean) => void;
 }
 
@@ -30,7 +31,7 @@ const ProductDetailsContainer = ({ href, children, className, ...rest }: { href?
   return <div className={className} {...rest}>{children}</div>;
 };
 
-export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
+export function ProductCard({ laptop, preloadImage = false, onQuickViewToggle }: ProductCardProps) {
   const { addToCart } = useCart();
   const { t, locale } = useLanguage();
   const [showQuickView, setShowQuickView] = useState(false);
@@ -124,8 +125,9 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 src={convertedLaptop.image}
                 alt={String(convertedLaptop.name)}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
-                loading="lazy"
+                sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) calc(50vw - 2rem), 256px"
+                preload={preloadImage}
+                loading={preloadImage ? undefined : 'lazy'}
                 className="object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
