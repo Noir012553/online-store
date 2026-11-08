@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../../lib/context/AuthContext";
-import { ArrowLeft, AlertCircle, TriangleAlert } from "lucide-react";
+import { ArrowLeft, AlertCircle, TriangleAlert, Upload } from "lucide-react";
 import { apiCall } from "../../../lib/api";
 import { useR2Upload } from "../../../hooks/useR2Upload";
 import { Button } from "../../../components/ui/button";
@@ -217,15 +217,23 @@ function EditUserContent() {
                 </div>
               )}
               <div>
-                <Input
-                  id="profileImage"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={handleAvatarChange}
-                  disabled={isUploading}
-                  className="max-w-xs"
-                />
-                {isUploading && <p className="mt-1 text-sm text-gray-500">{uploadProgress}%</p>}
+                <div className="relative mt-2 inline-flex max-w-xs">
+                  <div className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm font-medium text-gray-700">
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    {t('avatar_choose_image', 'users')}
+                  </div>
+                  <Input
+                    id="profileImage"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleAvatarChange}
+                    disabled={isUploading}
+                    aria-label={t('avatar_choose_image', 'users')}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">{t('avatar_upload_formats', 'users')}</p>
+                {isUploading && <p className="mt-1 text-sm text-gray-500">{t('avatar_uploading', 'users')} {uploadProgress}%</p>}
               </div>
             </div>
           </div>

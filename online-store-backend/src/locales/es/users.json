@@ -73,5 +73,8 @@
   "users_confirm_password_placeholder": "••••••••",
   "users_email_cannot_change": "El correo electrónico no puede ser cambiado",
   "users_user_update_success_message": "Información de usuario actualizada correctamente",
-  "avatar": "Avatar"
+  "avatar": "Avatar",
+  "avatar_choose_image": "Elegir imagen",
+  "avatar_upload_formats": "JPEG, PNG, WebP, GIF",
+  "avatar_uploading": "Subiendo..."
 }
