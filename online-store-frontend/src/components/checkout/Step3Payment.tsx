@@ -203,8 +203,6 @@ export function Step3Payment() {
         return;
       }
 
-      await createShipment(orderId);
-
       const paymentPayload = {
         orderId,
         gateway: 'vnpay',
@@ -226,15 +224,21 @@ export function Step3Payment() {
       });
 
       if (!paymentResponse.success) {
+        clearIdempotencyKey('vnpay_payment');
+        vnpayIdempotencyKeyRef.current = null;
         toast.error(t('error_create_payment_link', 'checkout'));
         return;
       }
 
       const redirectUrl = paymentResponse.data?.redirectUrl;
       if (!redirectUrl) {
+        clearIdempotencyKey('vnpay_payment');
+        vnpayIdempotencyKeyRef.current = null;
         toast.error(t('error_vnpay_link', 'checkout'));
         return;
       }
+
+      await createShipment(orderId);
 
       clearIdempotencyKey('vnpay_payment');
       vnpayIdempotencyKeyRef.current = null;
@@ -257,6 +261,8 @@ export function Step3Payment() {
         }
       }, 30000);
     } catch (error) {
+      clearIdempotencyKey('vnpay_payment');
+      vnpayIdempotencyKeyRef.current = null;
       toast.error(getCheckoutErrorMessage(error, 'error_payment_init'));
     } finally {
       setIsLoading(false);

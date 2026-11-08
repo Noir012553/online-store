@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+const { normalizePhone } = require('../utils/phone');
 
 /**
  * Schema cho khách hàng
@@ -39,7 +40,8 @@ const CustomerSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        set: normalizePhone
     },
     address: {
         type: String,

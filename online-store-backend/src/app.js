@@ -46,6 +46,7 @@ const swaggerOptions = require('./config/swagger');
 const { getMessage } = require('./i18n/messages');
 const { getDefaultLanguage, getActiveLangCodes } = require('./config/languageInventory');
 const { startExportJobWorker } = require('./services/exportJobService');
+const { startInventoryReservationWorker } = require('./services/inventoryService');
 const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
 const { getR2StorageStatus } = require('./services/r2AssetService');
 
@@ -320,6 +321,7 @@ const connectDB = async () => {
     assertStorageConfigured();
     await startServer();
     startExportJobWorker();
+    startInventoryReservationWorker();
     startupReady = true;
     if (process.env.NODE_ENV === 'development') {
       console.info('[STARTUP] backend ready');
