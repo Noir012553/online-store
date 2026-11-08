@@ -2072,7 +2072,7 @@ export const orderAPI = {
   },
 
   hardDeleteOrder: async (id: string) => {
-    return apiCall(`/orders/${id}/hard`, { method: 'DELETE' });
+    return apiCall(`/orders/${id}/hard`, { method: 'DELETE', skipErrorToast: true });
   },
 
   /**

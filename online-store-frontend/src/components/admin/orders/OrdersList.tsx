@@ -74,6 +74,7 @@ export function OrdersList() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<Order | null>(null);
+  const [hardDeleteConfirmOrder, setHardDeleteConfirmOrder] = useState<Order | null>(null);
   const [viewDeletedTab, setViewDeletedTab] = useState(false);
   const latestRequestRef = useRef(0);
 
@@ -210,6 +211,20 @@ export function OrdersList() {
       await fetchDeletedOrders();
     } catch (error) {
       toast.error(t('error_save_data'));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleHardDeleteOrder = async (orderId: string) => {
+    try {
+      setIsUpdating(true);
+      await orderAPI.hardDeleteOrder(orderId);
+      await fetchDeletedOrders();
+      toast.success(t('toast_delete_success'));
+      setHardDeleteConfirmOrder(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('error_delete_data'));
     } finally {
       setIsUpdating(false);
     }
@@ -423,15 +438,27 @@ export function OrdersList() {
                             <Pencil className="w-4 h-4" />
                           </Button>
                           {viewDeletedTab ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRestoreOrder(order._id)}
-                              disabled={isUpdating}
-                              title={t('admin_restore', 'admin')}
-                            >
-                              <RotateCcw className="w-4 h-4 text-green-600" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRestoreOrder(order._id)}
+                                disabled={isUpdating}
+                                title={t('admin_restore', 'admin')}
+                              >
+                                <RotateCcw className="w-4 h-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setHardDeleteConfirmOrder(order)}
+                                disabled={isUpdating}
+                                title={t('admin_hard_delete', 'admin')}
+                                aria-label={t('admin_hard_delete', 'admin')}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </>
                           ) : (
                             <Button
                               variant="ghost"
@@ -492,6 +519,46 @@ export function OrdersList() {
             <Button
               variant="outline"
               onClick={() => setDeleteConfirmOrder(null)}
+              className="flex-1"
+            >
+              {t('cancel', 'common')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!hardDeleteConfirmOrder} onOpenChange={() => !isUpdating && setHardDeleteConfirmOrder(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md animate-in fade-in zoom-in-95 duration-200">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-red-100">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <DialogTitle className="text-lg font-semibold">
+                {t('admin_hard_delete', 'admin')}
+              </DialogTitle>
+            </div>
+            <DialogDescription>
+              {t('confirm_hard_delete_description', 'common')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-white rounded-lg p-4 my-2">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {t('admin_order_id', 'admin')}: <span className="font-semibold text-gray-900">#{hardDeleteConfirmOrder?._id.slice(-8).toUpperCase()}</span>
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2 flex flex-row-reverse">
+            <Button
+              onClick={() => hardDeleteConfirmOrder && handleHardDeleteOrder(hardDeleteConfirmOrder._id)}
+              disabled={isUpdating}
+              className="bg-red-600 hover:bg-red-700 text-white flex-1"
+            >
+              {isUpdating ? t('loading', 'common') : t('admin_hard_delete', 'admin')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setHardDeleteConfirmOrder(null)}
+              disabled={isUpdating}
               className="flex-1"
             >
               {t('cancel', 'common')}
