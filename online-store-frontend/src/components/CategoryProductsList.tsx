@@ -142,6 +142,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadedListingKey, setLoadedListingKey] = useState('');
   const [filters, setFilters] = useState<FilterState>(getDefaultFilters());
   const [sortBy, setSortBy] = useState('featured');
   const [priceStats, setPriceStats] = useState({ minPrice: 0, maxPrice: 0 });
@@ -189,13 +190,13 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     localStorage.setItem(getFilterStorageKey(categoryId), JSON.stringify(payload));
   }, [categoryId, filters, hasRestoredFilters, page, sortBy]);
 
-  // Initial fetch to get all products for stats
   useEffect(() => {
-    const controller = new AbortController();
+    const listingKey = `${categoryId}:${locale}:${currencyCode}`;
+    if (!categoryId || !hasRestoredFilters || loadedListingKey !== listingKey) return;
 
+    const controller = new AbortController();
     const fetchInitialProducts = async () => {
       try {
-        setIsLoading(true);
         const response = await productAPI.getProducts(
           1,
           undefined,
@@ -216,25 +217,15 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           currencyCode,
           { signal: controller.signal },
         );
-        if (controller.signal.aborted) return;
-        setAllProducts(response.products || []);
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setAllProducts([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted) setAllProducts(response.products || []);
+      } catch {
+        if (!controller.signal.aborted) setAllProducts([]);
       }
     };
 
-    if (categoryId && categoryId.length > 10 && hasRestoredFilters) {
-      void fetchInitialProducts();
-    }
-
+    void fetchInitialProducts();
     return () => controller.abort();
-  }, [categoryId, currencyCode, hasRestoredFilters, locale]);
+  }, [categoryId, currencyCode, hasRestoredFilters, loadedListingKey, locale]);
 
   // Extract stats and brands from products
   useEffect(() => {
@@ -329,7 +320,10 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
         setProducts([]);
         setTotalPages(1);
       } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+          setLoadedListingKey(`${categoryId}:${locale}:${currencyCode}`);
+        }
       }
     };
 
@@ -772,7 +766,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {sortedProducts.length > 0 ? (
                 sortedProducts.map((product, index) => (
-                  <ProductCard key={product._id} laptop={product} preloadImage={index === 0} />
+                  <ProductCard key={product._id} laptop={product} eagerImage={index === 0} />
                 ))
               ) : (
                 <div className="col-span-full">
