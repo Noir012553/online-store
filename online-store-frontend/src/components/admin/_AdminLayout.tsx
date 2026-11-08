@@ -56,6 +56,7 @@ const DEFAULT_OPEN_GROUPS = {
   management: true,
   design: true,
   translations: true,
+  currency: true,
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
