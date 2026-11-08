@@ -194,7 +194,7 @@ export function OrdersList() {
       } else {
         await fetchOrders();
       }
-      toast.success(t('toast_delete_success'));
+      toast.success(t('toast_delete_success').replace(/^✓\s*/, ''));
       setDeleteConfirmOrder(null);
     } catch (error) {
       toast.error(t('error_delete_data'));
@@ -221,7 +221,7 @@ export function OrdersList() {
       setIsUpdating(true);
       await orderAPI.hardDeleteOrder(orderId);
       await fetchDeletedOrders();
-      toast.success(t('toast_delete_success'));
+      toast.success(t('toast_delete_success').replace(/^✓\s*/, ''));
       setHardDeleteConfirmOrder(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('error_delete_data'));
