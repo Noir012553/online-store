@@ -51,7 +51,7 @@ export function useStickyBannerScroll({
         containerBottomDoc - bannerHeight - maxBottomOffset,
       );
       bannerTopDoc = Math.min(bannerTopDoc, maxBannerTopDoc);
-      bannerElement.style.setProperty('--banner-top', `${bannerTopDoc - scrollY}px`);
+      bannerElement.style.setProperty('--banner-offset-y', `${bannerTopDoc - scrollY - initialStickyPos}px`);
     };
 
     const handlePositionChange = () => {

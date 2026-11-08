@@ -213,7 +213,8 @@ html body .layout-gutter-xwide {
 }
 
 .sticky-side-banner {
-  top: var(--banner-top, 96px);
+  top: 96px;
+  transform: translate3d(0, var(--banner-offset-y, 0px), 0);
 }
 
 .hide-scrollbar {
