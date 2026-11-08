@@ -20,6 +20,7 @@ const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mo
 
 interface ProductCardProps {
   laptop: BackendProduct;
+  eagerImage?: boolean;
   onQuickViewToggle?: (isOpen: boolean) => void;
 }
 
@@ -30,7 +31,7 @@ const ProductDetailsContainer = ({ href, children, className, ...rest }: { href?
   return <div className={className} {...rest}>{children}</div>;
 };
 
-export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
+export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: ProductCardProps) {
   const { addToCart } = useCart();
   const { t, locale } = useLanguage();
   const [showQuickView, setShowQuickView] = useState(false);
@@ -124,18 +125,19 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 src={convertedLaptop.image}
                 alt={String(convertedLaptop.name)}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"
-                loading="lazy"
+                sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) calc(50vw - 2rem), 256px"
+                loading={eagerImage ? 'eager' : 'lazy'}
+                fetchPriority={eagerImage ? 'high' : undefined}
                 className="object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
-                <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none">
+                <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none overflow-visible">
                   -{discount}%
                 </Badge>
               )}
               {(hasActiveDeal || hasShockDiscount) && (
                 <Badge
-                  className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white ${
+                  className={`absolute top-2 left-2 z-10 flex items-center gap-1 pointer-events-none text-white overflow-visible ${
                     hasShockDiscount
                       ? 'bg-red-600'
                       : isFeaturedHotDeal
@@ -152,7 +154,7 @@ export function ProductCard({ laptop, onQuickViewToggle }: ProductCardProps) {
                 </Badge>
               )}
               {convertedLaptop.featured && !hasActiveDeal && !hasShockDiscount && (
-                <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none">
+                <Badge className="absolute top-2 left-2 bg-red-600 text-white z-10 flex items-center gap-1 pointer-events-none overflow-visible">
                   <R2Icon name="star" size={16} />
                   {t('featured_badge', 'products')}
                 </Badge>

@@ -372,12 +372,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   useEffect(() => {
     setCurrentSlide(0);
-    const carousel = heroCarouselRef.current;
-    if (!carousel || window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
-
-    requestAnimationFrame(() => {
-      carousel.scrollTo({ left: carousel.clientWidth, behavior: 'auto' });
-    });
   }, [heroSlidesToRender.length]);
 
   useEffect(() => {
@@ -539,7 +533,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     const handleBannerDeleted = () => refetchBanners();
     const handleBannerRestored = () => refetchBanners();
 
-    void refetchBanners();
+    if (initialHeroBanners.length === 0) void refetchBanners();
     onBannerCreated(handleBannerCreated);
     onBannerUpdated(handleBannerUpdated);
     onBannerDeleted(handleBannerDeleted);
@@ -552,7 +546,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
       offEvent('banner-deleted', handleBannerDeleted);
       offEvent('banner-restored', handleBannerRestored);
     };
-  }, [locale, isHydrated]);
+  }, [initialHeroBanners.length, locale, isHydrated]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1024px)');
@@ -606,7 +600,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   useEffect(() => {
     setCurrentCategoryCardSlide((prev) => (categoryCount > 0 ? prev % categoryCount : 0));
-    if (categoryCount <= 1) return;
+    if (categoryCount <= 3) return;
 
     requestAnimationFrame(() => {
       const navigationCarousel = categoryNavigationMobileCarouselRef.current;
@@ -759,7 +753,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             : isDesktopViewport
               ? index < slideCount && logicalIndex === currentSlide
               : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
-          const isPriorityHeroSlide = isAccessibleSlide || (logicalIndex === 0 && (index === 0 || index === slideCount));
+          const isPriorityHeroSlide = index === 0 || index === slideCount;
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
@@ -776,7 +770,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 fill
                 sizes="100vw"
                 className="object-cover"
-                preload={isPriorityHeroSlide}
                 loading={isPriorityHeroSlide ? 'eager' : 'lazy'}
                 fetchPriority={isPriorityHeroSlide ? 'high' : 'low'}
                 onLoad={isPriorityHeroSlide ? () => setIsHeroImageLoaded(true) : undefined}
@@ -856,7 +849,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             inert={!isBannerVisible}
             className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
-            <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />
+            {isDesktopViewport && <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />}
           </div>
 
           {/* RIGHT BANNER - sticky with scroll constraints, confined to container, hidden when hero/footer visible */}
@@ -865,7 +858,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             inert={!isBannerVisible}
             className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
-            <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />
+            {isDesktopViewport && <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />}
           </div>
           {categoryCount > 0 && (
             <section
@@ -876,10 +869,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             >
               <div
                 ref={categoryNavigationMobileCarouselRef}
-                className="hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden"
-                onScroll={(event) => handleInfiniteCarouselScroll(event, categoryCount)}
+                className={`hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden ${categoryCount <= 2 ? 'justify-center' : ''} ${categoryCount === 3 ? 'sm:justify-center' : ''}`}
+                onScroll={(event) => {
+                  if (categoryCount > 3) handleInfiniteCarouselScroll(event, categoryCount);
+                }}
               >
-                {getRepeatedItems(categories).map((category, index) => {
+                {(categoryCount > 3 ? getRepeatedItems(categories) : categories).map((category, index) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
                   const displayName = getCategoryName(category, locale);
@@ -914,7 +909,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div className="flex-1 overflow-hidden">
                   <div
                     key={currentCategoryCardSlide}
-                    className="grid grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700"
+                    className={`grid gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
                   >
                     {getCircularItems(categories, currentCategoryCardSlide, CATEGORY_CARDS_PER_VIEW)
                       .map((category, index) => {
@@ -1034,10 +1029,10 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                       <div
                         aria-hidden={isDesktopViewport}
                         inert={isDesktopViewport}
-                        className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                        className={`hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6 ${products.length === 1 ? 'justify-center' : ''}`}
                       >
                         {!isDesktopViewport && products.map((product) => (
-                          <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                          <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
                             <LazyProductCard laptop={product} />
                           </div>
                         ))}
@@ -1103,10 +1098,10 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div
                   aria-hidden={isDesktopViewport}
                   inert={isDesktopViewport}
-                  className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
+                  className={`hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6 ${dealProducts.length === 1 ? 'justify-center' : ''}`}
                 >
                   {!isDesktopViewport && dealProducts.map((product) => (
-                    <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                    <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
                       <LazyProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
                     </div>
                   ))}

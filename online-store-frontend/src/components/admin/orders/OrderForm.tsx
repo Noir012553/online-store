@@ -168,6 +168,23 @@ export function OrderForm({ mode, orderId, onSuccess, onCancel }: OrderFormProps
       return;
     }
 
+    if (mode === 'edit') {
+      const originalItems = (editOrder.orderItems || []).map((item: any) => ({
+        product: String(typeof item.product === 'object' ? item.product?._id || item.product?.id : item.product),
+        qty: Number(item.qty),
+      }));
+      const matchesSavedOrder = orderItems.length === originalItems.length
+        && orderItems.every((item) => originalItems.some(
+          (original: OrderItem) => original.product === item.product && original.qty === item.qty,
+        ));
+
+      if (matchesSavedOrder) {
+        setSummary(editOrder as CheckoutSummary);
+        setIsLoadingSummary(false);
+        return;
+      }
+    }
+
     let cancelled = false;
     setSummary(null);
     setIsLoadingSummary(true);

@@ -1,5 +1,5 @@
 import dynamicImport from "next/dynamic";
-import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
+import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import { BACKEND_URL } from "../config";
 import type { BannerRecord } from "../lib/api";
 import HomeContent from "../components/HomeContent";
@@ -8,12 +8,11 @@ type HomePageProps = {
   initialHeroBanners: BannerRecord[];
 };
 
-export default function Home({ initialHeroBanners }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function Home({ initialHeroBanners }: InferGetStaticPropsType<typeof getStaticProps>) {
   return <HomeContent initialHeroBanners={initialHeroBanners} />;
 }
 
-export const getServerSideProps: GetServerSideProps<HomePageProps> = async ({ res }) => {
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+export const getStaticProps: GetStaticProps<HomePageProps> = async () => {
   let initialHeroBanners: BannerRecord[] = [];
 
   try {
@@ -28,5 +27,5 @@ export const getServerSideProps: GetServerSideProps<HomePageProps> = async ({ re
     initialHeroBanners = [];
   }
 
-  return { props: { initialHeroBanners } };
+  return { props: { initialHeroBanners }, revalidate: 60 };
 };
