@@ -93,10 +93,11 @@ export function ProductGallery({
               <ImageWithFallback
                 src={image}
                 alt={`${productName} ${index + 1}`}
-                fill
+                width={320}
+                height={180}
                 sizes="96px"
                 loading="lazy"
-                className="rounded-lg object-cover"
+                className="absolute inset-0 h-full w-full rounded-lg object-cover"
               />
             </button>
           ))}

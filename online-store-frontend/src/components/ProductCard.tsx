@@ -124,11 +124,12 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
               <ImageWithFallback
                 src={convertedLaptop.image}
                 alt={String(convertedLaptop.name)}
-                fill
+                width={800}
+                height={800}
                 sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) calc(50vw - 2rem), 256px"
                 loading={eagerImage ? 'eager' : 'lazy'}
                 fetchPriority={eagerImage ? 'high' : undefined}
-                className="object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
                 <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none overflow-visible">

@@ -342,6 +342,8 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                         <img
                           src={product.image}
                           alt={getTranslatedValue(product.name, locale)}
+                          width={48}
+                          height={48}
                           loading="lazy"
                           className="w-12 h-12 object-cover rounded"
                         />

@@ -115,9 +115,10 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
         <ImageWithFallback
           src={displaySrc}
           alt={localizedTitle}
-          fill
+          width={600}
+          height={800}
           sizes={imageSizes}
-          className="object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />
       </div>
@@ -147,9 +148,10 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
       <ImageWithFallback
         src={displaySrc}
         alt={localizedTitle}
-        fill
+        width={1600}
+        height={900}
         sizes={imageSizes}
-        className="object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />

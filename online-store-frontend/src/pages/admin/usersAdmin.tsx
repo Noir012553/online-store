@@ -311,6 +311,8 @@ function UsersAdminContent() {
                           <img
                             src={user.profileImage}
                             alt={user.username}
+                            width={40}
+                            height={40}
                             className="h-10 w-10 rounded-full object-cover"
                             loading="lazy"
                           />

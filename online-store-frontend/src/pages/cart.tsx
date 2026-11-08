@@ -138,6 +138,8 @@ export default function Cart() {
                         <ImageWithFallback
                           src={item.laptop.image}
                           alt={typeof item.laptop.name === 'object' && item.laptop.name !== null && DEFAULT_LOCALE in item.laptop.name ? (item.laptop.name as any)[DEFAULT_LOCALE] || '' : (item.laptop.name as any) || ''}
+                          width={112}
+                          height={112}
                           loading="lazy"
                           className="w-28 h-28 object-cover rounded border hover:shadow-md transition-shadow"
                         />

@@ -176,10 +176,11 @@ function AboutContent() {
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1706101035106-119828e7b564?w=600"
                 alt={t('history_image_alt', 'about')}
-                fill
+                width={1200}
+                height={900}
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 loading="lazy"
-                className="object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
           </div>
@@ -243,6 +244,8 @@ function AboutContent() {
                     srcSet={image?.srcSet}
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     alt={t(member.nameKey, 'about')}
+                    width={600}
+                    height={800}
                     loading="lazy"
                     className="w-full h-80 object-cover"
                   />
@@ -302,6 +305,8 @@ function AboutContent() {
                         src={testimonial.avatar}
                         fallbackSrc={reviewerFallback}
                         alt={testimonial.name}
+                        width={48}
+                        height={48}
                         loading="lazy"
                         className="w-12 h-12 rounded-full object-cover"
                       />

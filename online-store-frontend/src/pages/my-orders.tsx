@@ -84,6 +84,8 @@ const OrderItemRow = ({ item, t, locale, currencyCode }: OrderItemRowProps & { t
     <img
       src={item.image}
       alt={item.name || ''}
+      width={48}
+      height={48}
       className="w-12 h-12 object-cover rounded flex-shrink-0"
       loading="lazy"
     />

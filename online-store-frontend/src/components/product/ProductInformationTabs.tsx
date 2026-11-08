@@ -93,10 +93,11 @@ export function ProductInformationTabs({
                     <ImageWithFallback
                       src={image.src}
                       alt={image.alt}
-                      fill
+                      width={1200}
+                      height={900}
                       sizes="(max-width: 768px) 100vw, 896px"
                       loading="lazy"
-                      className="object-contain"
+                      className="absolute inset-0 h-full w-full object-contain"
                     />
                   </button>
                   {image.caption && <figcaption className="mt-2 text-center text-sm text-slate-600">{image.caption}</figcaption>}
