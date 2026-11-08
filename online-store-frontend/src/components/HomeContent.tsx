@@ -372,12 +372,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   useEffect(() => {
     setCurrentSlide(0);
-    const carousel = heroCarouselRef.current;
-    if (!carousel || window.innerWidth >= 1024 || heroSlidesToRender.length <= 1) return;
-
-    requestAnimationFrame(() => {
-      carousel.scrollTo({ left: carousel.clientWidth * heroSlidesToRender.length, behavior: 'auto' });
-    });
   }, [heroSlidesToRender.length]);
 
   useEffect(() => {
