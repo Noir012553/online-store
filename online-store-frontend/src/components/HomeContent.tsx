@@ -777,7 +777,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
               <div className="absolute inset-0 bg-black/50" />
               <div className="absolute inset-0 mx-auto flex w-full items-center px-3 sm:px-4 lg:px-8">
                 <div className="max-w-xl text-white">
-                  <h1 className="mb-4 text-3xl font-bold sm:text-4xl lg:text-5xl">{slide.title}</h1>
+                  <h1 className="mb-4 text-2xl font-bold sm:text-3xl lg:text-5xl">{slide.title}</h1>
                   {slide.subtitle && <p className="mb-2 text-base font-medium sm:text-lg lg:text-2xl">{slide.subtitle}</p>}
                   {slide.description && <p className="mb-6 text-xs sm:text-sm lg:text-lg">{slide.description}</p>}
                   {href && slide.cta ? (
@@ -1030,7 +1030,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                         className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
                       >
                         {!isDesktopViewport && products.map((product) => (
-                          <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                          <div key={product._id} className="min-w-[84vw] snap-start sm:min-w-[20rem]">
                             <LazyProductCard laptop={product} />
                           </div>
                         ))}
@@ -1099,7 +1099,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                   className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
                 >
                   {!isDesktopViewport && dealProducts.map((product) => (
-                    <div key={product._id} className="min-w-[78vw] snap-start sm:min-w-[20rem]">
+                    <div key={product._id} className="min-w-[84vw] snap-start sm:min-w-[20rem]">
                       <LazyProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
                     </div>
                   ))}
