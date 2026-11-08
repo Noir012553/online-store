@@ -1030,7 +1030,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                         className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
                       >
                         {!isDesktopViewport && products.map((product) => (
-                          <div key={product._id} className="min-w-[84vw] snap-start sm:min-w-[20rem]">
+                          <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
                             <LazyProductCard laptop={product} />
                           </div>
                         ))}
@@ -1099,7 +1099,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                   className="hide-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto lg:hidden sm:gap-6"
                 >
                   {!isDesktopViewport && dealProducts.map((product) => (
-                    <div key={product._id} className="min-w-[84vw] snap-start sm:min-w-[20rem]">
+                    <div key={product._id} className="min-w-[88vw] snap-start sm:min-w-[20rem]">
                       <LazyProductCard laptop={product} onQuickViewToggle={setIsDealQuickViewOpen} />
                     </div>
                   ))}
