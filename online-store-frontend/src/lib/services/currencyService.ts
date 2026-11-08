@@ -65,6 +65,7 @@ class CurrencyService {
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
         },

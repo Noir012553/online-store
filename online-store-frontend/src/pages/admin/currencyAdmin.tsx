@@ -8,6 +8,7 @@ import { ExchangeRateList } from '../../components/admin/ExchangeRateList';
 import { ExchangeRateForm } from '../../components/admin/ExchangeRateForm';
 import { PermissionDenied } from '../../components/admin/PermissionDenied';
 import { Currency, ExchangeRate } from '../../lib/services/currencyService';
+import { useCurrencyContext } from '../../lib/context/CurrencyContext';
 import { useAuth } from '../../lib/context/AuthContext';
 import { useTranslation } from '../../lib/i18n';
 
@@ -19,6 +20,7 @@ export const getServerSideProps = async () => {
 
 export function CurrencyAdminContent() {
   const { isSuperAdmin } = useAuth();
+  const { refreshCurrencies } = useCurrencyContext();
   const { t, loadNamespace } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'currencies' | 'rates'>('currencies');
@@ -33,6 +35,7 @@ export function CurrencyAdminContent() {
   }, [loadNamespace]);
 
   const handleCurrencySuccess = () => {
+    refreshCurrencies();
     setShowCurrencyForm(false);
     setEditingCurrency(null);
     setRefreshKey(prev => prev + 1);

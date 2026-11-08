@@ -7,6 +7,7 @@ interface CurrencyContextValue {
   currencyCode: string;
   activeCurrencies: Currency[];
   isLoadingCurrency: boolean;
+  refreshCurrencies: () => void;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -26,6 +27,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { locale, localeConfigs } = useLanguage();
   const [activeCurrencies, setActiveCurrencies] = useState<Currency[]>([]);
   const [isLoadingCurrency, setIsLoadingCurrency] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshCurrencies = useCallback(() => setRefreshKey(key => key + 1), []);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,11 +48,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [locale]);
+  }, [locale, refreshKey]);
 
   const localeCurrencyCode = localeConfigs.find((item) => item.code === locale)?.currencyCode;
-  const currency = activeCurrencies.find((item) => item.code === localeCurrencyCode)
-    ?? activeCurrencies.find((item) => item.isDefault)
+  const currency = activeCurrencies.find((item) => item.isDefault)
+    ?? activeCurrencies.find((item) => item.code === localeCurrencyCode)
     ?? FALLBACK_CURRENCY;
 
   const value = useMemo<CurrencyContextValue>(() => ({
@@ -57,7 +60,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     currencyCode: currency.code,
     activeCurrencies,
     isLoadingCurrency,
-  }), [currency, activeCurrencies, isLoadingCurrency]);
+    refreshCurrencies,
+  }), [currency, activeCurrencies, isLoadingCurrency, refreshCurrencies]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
