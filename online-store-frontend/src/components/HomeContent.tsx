@@ -600,7 +600,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   useEffect(() => {
     setCurrentCategoryCardSlide((prev) => (categoryCount > 0 ? prev % categoryCount : 0));
-    if (categoryCount <= 1) return;
+    if (categoryCount <= 3) return;
 
     requestAnimationFrame(() => {
       const navigationCarousel = categoryNavigationMobileCarouselRef.current;
@@ -869,10 +869,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             >
               <div
                 ref={categoryNavigationMobileCarouselRef}
-                className="hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden"
-                onScroll={(event) => handleInfiniteCarouselScroll(event, categoryCount)}
+                className={`hide-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto lg:hidden ${categoryCount <= 2 ? 'justify-center' : ''} ${categoryCount === 3 ? 'sm:justify-center' : ''}`}
+                onScroll={(event) => {
+                  if (categoryCount > 3) handleInfiniteCarouselScroll(event, categoryCount);
+                }}
               >
-                {getRepeatedItems(categories).map((category, index) => {
+                {(categoryCount > 3 ? getRepeatedItems(categories) : categories).map((category, index) => {
                   const iconKey = getCategoryIconKey(category);
                   const Icon = iconMap[iconKey] || LaptopIcon;
                   const displayName = getCategoryName(category, locale);
@@ -907,7 +909,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div className="flex-1 overflow-hidden">
                   <div
                     key={currentCategoryCardSlide}
-                    className="grid grid-cols-4 gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700"
+                    className={`grid gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
                   >
                     {getCircularItems(categories, currentCategoryCardSlide, CATEGORY_CARDS_PER_VIEW)
                       .map((category, index) => {
