@@ -586,14 +586,6 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
       },
     },
     {
-      $lookup: {
-        from: 'categories',
-        localField: 'productInfo.category',
-        foreignField: '_id',
-        as: 'categoryInfo',
-      },
-    },
-    {
       $project: {
         _id: 1,
         productName: { $ifNull: [{ $arrayElemAt: ['$productInfo.name', 0] }, '$productName'] },
@@ -603,7 +595,6 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
         numReviews: { $ifNull: [{ $arrayElemAt: ['$productInfo.numReviews', 0] }, 0] },
         baseCurrencyCode: { $arrayElemAt: ['$productInfo.baseCurrencyCode', 0] },
         countInStock: { $ifNull: [{ $arrayElemAt: ['$productInfo.countInStock', 0] }, 0] },
-        category: { $arrayElemAt: ['$categoryInfo', 0] },
         count: '$totalQty',
       },
     },
@@ -617,6 +608,11 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
 
   const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
   const productIds = topProducts.map(p => p._id.toString());
+  const productDetails = await Product.find({ _id: { $in: topProducts.map(product => product._id) } })
+    .select('category countInStock')
+    .populate('category')
+    .lean();
+  const productDetailsById = new Map(productDetails.map(product => [product._id.toString(), product]));
 
   // Get ALL translations for all products (for all languages, not just requested lang)
   const translations = await ProductCatalogTranslationCache.find({
@@ -660,8 +656,8 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
       image: product.image,
       rating: product.rating,
       numReviews: product.numReviews,
-      countInStock: product.countInStock,
-      category: product.category,
+      countInStock: productDetailsById.get(product._id.toString())?.countInStock ?? product.countInStock,
+      category: productDetailsById.get(product._id.toString())?.category,
       count: product.count,
     };
   });

@@ -430,6 +430,26 @@ function StatisticsContent() {
     setDetailMode('view');
     setDetailForm(null);
     setDetailImageFile(null);
+
+    if (resolvedDetail.type === 'product' && !getStatisticsCategoryName(resolvedDetail.item)) {
+      const productId = String(resolvedDetail.item._id || resolvedDetail.item.id);
+      productAPI.getAdminProductById(productId, locale, { skipErrorToast: true }).then((product) => {
+        if (!getStatisticsCategoryName(product)) return;
+        setSelectedDetail((current) => (
+          current?.type === 'product'
+          && String(current.item._id || current.item.id) === productId
+            ? {
+                ...current,
+                item: {
+                  ...current.item,
+                  category: product.category,
+                  categoryName: product.categoryName,
+                },
+              }
+            : current
+        ));
+      }).catch(() => undefined);
+    }
   };
 
   const closeDetail = () => {
