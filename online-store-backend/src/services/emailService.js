@@ -404,14 +404,14 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
 };
 
 const sendContactEmails = async ({ name, email, phone, subject, message }, lang) => {
-  const recipient = process.env.EMAIL_USER;
+  const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
+  const recipient = process.env.CONTACT_SUPPORT_EMAIL || getMessage(emailLang, 'contact.contact_email');
   const transporter = createTransporter();
   if (!recipient || !transporter) {
     throw createEmailDeliveryError('EMAIL_CONTACT_NOT_CONFIGURED');
   }
 
   try {
-    const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
     const confirmationSubject = getMessage(emailLang, 'contact.email_confirmation_subject');
     const confirmationTitle = getMessage(emailLang, 'contact.email_confirmation_title');
     const greeting = getMessage(emailLang, 'contact.email_confirmation_greeting', { name });

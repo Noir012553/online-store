@@ -3,7 +3,7 @@ const sinon = require('sinon');
 const nodemailer = require('nodemailer');
 const { sendContactEmails } = require('../services/emailService');
 
-const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE'];
+const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'CONTACT_SUPPORT_EMAIL'];
 const originalEnv = Object.fromEntries(emailEnvKeys.map(key => [key, process.env[key]]));
 const sandbox = sinon.createSandbox();
 let sendMail;
@@ -17,9 +17,10 @@ const restoreEmailEnvironment = () => {
 
 describe('Contact email delivery', () => {
   beforeEach(() => {
-    process.env.EMAIL_USER = 'support@example.com';
+    process.env.EMAIL_USER = 'smtp@example.com';
     process.env.EMAIL_PASSWORD = 'test-password';
-    process.env.EMAIL_FROM = 'LaptopStore <support@example.com>';
+    process.env.EMAIL_FROM = 'LaptopStore <smtp@example.com>';
+    process.env.CONTACT_SUPPORT_EMAIL = 'support@example.com';
     delete process.env.EMAIL_SERVICE;
     sendMail = sandbox.stub().resolves({ accepted: ['recipient@example.com'] });
     sandbox.stub(nodemailer, 'createTransport').returns({ sendMail });
@@ -30,7 +31,7 @@ describe('Contact email delivery', () => {
     restoreEmailEnvironment();
   });
 
-  it('sends the store notification and a localized customer confirmation', async () => {
+  it('sends the store notification to the configured support inbox', async () => {
     await sendContactEmails({
       name: '<Customer>',
       email: 'customer@example.com',
@@ -54,5 +55,19 @@ describe('Contact email delivery', () => {
       subject: 'LaptopStore received your message',
     });
     chai.expect(sendMail.secondCall.args[0].text).to.include('get back to you as soon as possible');
+  });
+
+  it('defaults the store notification to the contact page email', async () => {
+    delete process.env.CONTACT_SUPPORT_EMAIL;
+
+    await sendContactEmails({
+      name: 'Customer',
+      email: 'customer@example.com',
+      phone: '+84 901 234 567',
+      subject: 'Question',
+      message: 'Please contact me',
+    }, 'en');
+
+    chai.expect(sendMail.firstCall.args[0].to).to.equal('info@laptopstore.vn');
   });
 });
