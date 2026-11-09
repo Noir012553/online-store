@@ -68,6 +68,6 @@ describe('Contact email delivery', () => {
       message: 'Please contact me',
     }, 'en');
 
-    chai.expect(sendMail.firstCall.args[0].to).to.equal('info@laptopstore.vn');
+    chai.expect(sendMail.firstCall.args[0].to).to.equal('noir002534@gmail.com');
   });
 });
