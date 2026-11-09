@@ -409,7 +409,24 @@ function StatisticsContent() {
   );
 
   const openDetail = (detail: SelectedDetail) => {
-    setSelectedDetail(detail);
+    let resolvedDetail = detail;
+    if (detail.type === 'product') {
+      const selectedProduct = products.find(
+        (product) => String(product._id || product.id) === String(detail.item._id || detail.item.id)
+      );
+      if (selectedProduct) {
+        resolvedDetail = {
+          ...detail,
+          item: {
+            ...detail.item,
+            category: selectedProduct.category || detail.item.category,
+            categoryName: selectedProduct.categoryName || detail.item.categoryName,
+          },
+        };
+      }
+    }
+
+    setSelectedDetail(resolvedDetail);
     setDetailMode('view');
     setDetailForm(null);
     setDetailImageFile(null);
