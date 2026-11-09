@@ -465,7 +465,7 @@ function StatisticsContent() {
     if (selectedDetail.type === 'product') {
       setDetailForm({
         type: 'product',
-        name: String(selectedDetail.item.name || ''),
+        name: getProductName(selectedDetail.item, locale),
         brand: String(selectedDetail.item.brand || ''),
         price: String(selectedDetail.item.price),
         originalPrice: selectedDetail.item.originalPrice ? String(selectedDetail.item.originalPrice) : '',
