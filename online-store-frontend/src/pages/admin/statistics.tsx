@@ -144,6 +144,7 @@ function StatisticsContent() {
   const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view');
   const [detailForm, setDetailForm] = useState<DetailFormState | null>(null);
   const [detailImageFile, setDetailImageFile] = useState<File | null>(null);
+  const detailImageInputRef = useRef<HTMLInputElement>(null);
   const [isSavingDetail, setIsSavingDetail] = useState(false);
 
   // Negative insights state
@@ -1575,9 +1576,24 @@ function StatisticsContent() {
                     <Textarea id="product-description" className="mt-1 min-h-28" value={detailForm.description} onChange={(event) => setDetailForm({ ...detailForm, description: event.target.value })} />
                   </div>
                   <div>
-                    <Label htmlFor="product-image">{t('product_image_label')}</Label>
-                    <Input id="product-image" type="file" accept="image/*" className="mt-1" onChange={(event) => setDetailImageFile(event.target.files?.[0] || null)} />
-                    <p className="mt-2 text-xs text-gray-500">{t('product_image_help')}</p>
+                    <Label htmlFor="product-image">{t('product_image_label', 'admin')}</Label>
+                    <input
+                      ref={detailImageInputRef}
+                      id="product-image"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(event) => setDetailImageFile(event.target.files?.[0] || null)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-1 w-full justify-start truncate"
+                      onClick={() => detailImageInputRef.current?.click()}
+                    >
+                      {detailImageFile?.name || t('upload_image', 'admin')}
+                    </Button>
+                    <p className="mt-2 text-xs text-gray-500">{t('product_image_help', 'admin')}</p>
                   </div>
                 </div>
               )}
