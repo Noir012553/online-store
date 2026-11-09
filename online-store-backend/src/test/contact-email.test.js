@@ -1,7 +1,7 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const nodemailer = require('nodemailer');
-const { sendContactEmails } = require('../services/emailService');
+const { sendContactEmails, sendNewsletterConfirmationEmail } = require('../services/emailService');
 
 const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'CONTACT_SUPPORT_EMAIL'];
 const originalEnv = Object.fromEntries(emailEnvKeys.map(key => [key, process.env[key]]));
@@ -55,6 +55,19 @@ describe('Contact email delivery', () => {
       subject: 'LaptopStore received your message',
     });
     chai.expect(sendMail.secondCall.args[0].text).to.include('get back to you as soon as possible');
+  });
+
+  it('renders the newsletter confirmation without missing translation values', async () => {
+    await sendNewsletterConfirmationEmail('subscriber@example.com', 'vi');
+
+    const message = sendMail.firstCall.args[0];
+    chai.expect(message).to.include({
+      to: 'subscriber@example.com',
+      subject: 'Cảm ơn bạn đã đăng ký nhận bản tin',
+    });
+    chai.expect(message.html).to.include('Hủy đăng ký');
+    chai.expect(message.html).not.to.include('undefined');
+    chai.expect(message.text).not.to.include('undefined');
   });
 
   it('defaults the store notification to the contact page email', async () => {
