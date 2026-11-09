@@ -460,20 +460,32 @@ function StatisticsContent() {
     setDetailImageFile(null);
   };
 
-  const startEditDetail = () => {
+  const startEditDetail = async () => {
     if (!selectedDetail) return;
 
     if (selectedDetail.type === 'product') {
-      setDetailForm({
-        type: 'product',
-        name: getProductName(selectedDetail.item, locale),
-        brand: String(selectedDetail.item.brand || ''),
-        price: String(selectedDetail.item.price),
-        originalPrice: selectedDetail.item.originalPrice ? String(selectedDetail.item.originalPrice) : '',
-        countInStock: String(selectedDetail.item.countInStock ?? 0),
-        description: String(selectedDetail.item.description || ''),
-        featured: Boolean(selectedDetail.item.featured),
-      });
+      try {
+        const response = await productAPI.getAdminProductById(
+          String(selectedDetail.item._id || selectedDetail.item.id),
+          locale,
+          { skipErrorToast: true }
+        );
+        const product = response.product || response;
+        setSelectedDetail({ ...selectedDetail, item: product });
+        setDetailForm({
+          type: 'product',
+          name: getProductName(product, locale),
+          brand: String(product.brand || ''),
+          price: String(product.price),
+          originalPrice: product.originalPrice ? String(product.originalPrice) : '',
+          countInStock: String(product.countInStock ?? 0),
+          description: String(product.description || ''),
+          featured: Boolean(product.featured),
+        });
+      } catch (error) {
+        toast.error(getUserFriendlyErrorMessage(error, t));
+        return;
+      }
     } else if (selectedDetail.type === 'coupon') {
       setDetailForm({
         type: 'coupon',
