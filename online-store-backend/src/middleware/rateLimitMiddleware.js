@@ -107,6 +107,14 @@ const globalLimiter = rateLimit({
   },
 });
 
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  handler: rateLimitHandler('RATE_LIMIT_CONTACT'),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const translationAiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -213,6 +221,7 @@ module.exports = {
   registerLimiter,
   passwordResetLimiter,
   globalLimiter,
+  contactLimiter,
   translationAiLimiter,
   dynamicTranslationLimiter,
   createOrderLimiter,

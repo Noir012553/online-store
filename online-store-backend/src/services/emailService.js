@@ -403,6 +403,60 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
   }
 };
 
+const sendContactEmails = async ({ name, email, phone, subject, message }, lang) => {
+  const recipient = process.env.EMAIL_USER;
+  const transporter = createTransporter();
+  if (!recipient || !transporter) {
+    throw createEmailDeliveryError('EMAIL_CONTACT_NOT_CONFIGURED');
+  }
+
+  try {
+    const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
+    const confirmationSubject = getMessage(emailLang, 'contact.email_confirmation_subject');
+    const confirmationTitle = getMessage(emailLang, 'contact.email_confirmation_title');
+    const greeting = getMessage(emailLang, 'contact.email_confirmation_greeting', { name });
+    const received = getMessage(emailLang, 'contact.email_confirmation_received');
+    const responsePromise = getMessage(emailLang, 'contact.email_confirmation_response');
+    const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+    await transporter.sendMail({
+      from,
+      to: recipient,
+      replyTo: { name, address: email },
+      subject: `[Contact] ${subject}`,
+      text: [`Name: ${name}`, `Email: ${email}`, `Phone: ${phone}`, `Subject: ${subject}`, '', message].join('\n'),
+      html: `
+        <h2>New contact form message</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from,
+      to: email,
+      subject: confirmationSubject,
+      text: [greeting, '', received, responsePromise, '', `Subject: ${subject}`, message].join('\n\n'),
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h1 style="color: #ef4444;">${escapeHtml(confirmationTitle)}</h1>
+          <p>${escapeHtml(greeting)}</p>
+          <p>${escapeHtml(received)}</p>
+          <p>${escapeHtml(responsePromise)}</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;">
+          <p><strong>${escapeHtml(subject)}</strong></p>
+          <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    throw createEmailDeliveryError('EMAIL_CONTACT_SEND_FAILED', error);
+  }
+};
+
 const sendOrderPaymentSuccessEmail = async (order, lang) => {
   try {
     const recipient = order?.customer?.email || order?.user?.email;
@@ -492,5 +546,6 @@ module.exports = {
   sendResetPasswordEmail,
   sendOTPEmail,
   sendNewsletterConfirmationEmail,
+  sendContactEmails,
   sendOrderPaymentSuccessEmail,
 };

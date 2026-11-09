@@ -12,6 +12,7 @@ import {
 } from "../components/ui/accordion";
 import { faqKeys } from "../lib/data";
 import { toast } from "sonner";
+import { apiCall } from "../lib/api";
 import { useTranslation } from "../lib/i18n";
 
 export const getServerSideProps = async () => {
@@ -34,16 +35,28 @@ export default function Contact() {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success(t('form_success_message', 'contact'));
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      subject: "",
-      message: "",
-    });
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await apiCall('/contact', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+        skipErrorToast: true,
+        skipRetry: true,
+        timeout: 20000,
+      });
+      toast.success(t('form_success_message', 'contact'));
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    } catch {
+      toast.error(t('form_error_message', 'contact'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const branches = [
@@ -188,7 +201,7 @@ export default function Contact() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
+              <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full bg-red-600 hover:bg-red-700">
                 {t('form_send_button', 'contact')}
               </Button>
             </form>

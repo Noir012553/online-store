@@ -29,6 +29,7 @@ const shippingProviderRoutes = require('./routes/shippingProviderRoutes');
 const shipmentRoutes = require('./routes/shipmentRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 const translationRoutes = require('./routes/translationRoutes');
 const languageRoutes = require('./routes/languageRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
@@ -483,6 +484,7 @@ app.all('/vnpay-api/webhook/:gateway', asyncHandler(paymentController.handleWebh
  * Tất cả routes sử dụng /api/... prefix
  */
 app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
+app.use('/api/contact', contactRoutes);
 app.use('/api', requireDatabase);
 app.use('/api/users', userRoutes);           // User authentication & admin
 app.use('/api/products', productRoutes);     // Product management
