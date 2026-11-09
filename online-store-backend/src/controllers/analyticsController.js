@@ -586,6 +586,14 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
       },
     },
     {
+      $lookup: {
+        from: 'categories',
+        localField: 'productInfo.category',
+        foreignField: '_id',
+        as: 'categoryInfo',
+      },
+    },
+    {
       $project: {
         _id: 1,
         productName: { $ifNull: [{ $arrayElemAt: ['$productInfo.name', 0] }, '$productName'] },
@@ -594,6 +602,8 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
         rating: { $ifNull: [{ $arrayElemAt: ['$productInfo.rating', 0] }, 0] },
         numReviews: { $ifNull: [{ $arrayElemAt: ['$productInfo.numReviews', 0] }, 0] },
         baseCurrencyCode: { $arrayElemAt: ['$productInfo.baseCurrencyCode', 0] },
+        countInStock: { $ifNull: [{ $arrayElemAt: ['$productInfo.countInStock', 0] }, 0] },
+        category: { $arrayElemAt: ['$categoryInfo', 0] },
         count: '$totalQty',
       },
     },
@@ -650,6 +660,8 @@ async function getTopProductsQuery(limit = 5, days = 30, startDateParam = null, 
       image: product.image,
       rating: product.rating,
       numReviews: product.numReviews,
+      countInStock: product.countInStock,
+      category: product.category,
       count: product.count,
     };
   });
