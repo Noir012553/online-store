@@ -136,7 +136,7 @@ export function Footer() {
                   alt={t('brand_name', 'footer')}
                   width={260}
                   height={146}
-                  className={`${styles.logoImage} h-20 w-auto object-left sm:h-24`}
+                  className="h-20 w-auto max-h-full max-w-full object-contain object-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)] sm:h-24"
                 />
               </Link>
               <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 leading-relaxed">
@@ -244,7 +244,7 @@ export function Footer() {
                           <li key={category._id}>
                             <Link
                               href={`/products/${slug}`}
-                              className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                              className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                             >
                               {displayName}
                             </Link>
@@ -269,7 +269,7 @@ export function Footer() {
                     <li>
                       <Link
                         href="/about"
-                        className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                        className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {t('aboutUs', 'footer')}
                       </Link>
@@ -277,7 +277,7 @@ export function Footer() {
                     <li>
                       <Link
                         href="/contact"
-                        className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                        className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {t('contactUs', 'footer')}
                       </Link>
@@ -285,7 +285,7 @@ export function Footer() {
                     <li>
                       <Link
                         href="/warranty-policy"
-                        className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                        className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {t('warrantyPolicy', 'footer')}
                       </Link>
@@ -293,7 +293,7 @@ export function Footer() {
                     <li>
                       <Link
                         href="/return-policy"
-                        className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                        className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {t('returnPolicy', 'footer')}
                       </Link>
@@ -301,7 +301,7 @@ export function Footer() {
                     <li>
                       <Link
                         href="/shopping-guide"
-                        className="hover:text-red-500 hover:translate-x-1 inline-block transition-all duration-300 text-xs sm:text-sm"
+                        className="inline-block text-xs motion-safe:transition-all motion-safe:duration-300 sm:text-sm hover:text-red-500 motion-safe:hover:translate-x-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                       >
                         {t('shoppingGuide', 'footer')}
                       </Link>
@@ -326,7 +326,7 @@ export function Footer() {
                       <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-600 transition-colors">
                         <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
-                      <a href={`tel:${t('contact_phone_display', 'footer').replace(/\s/g, '')}`} className="hover:text-red-500 transition-colors text-xs sm:text-sm">
+                      <a href={`tel:${t('contact_phone_display', 'footer').replace(/\s/g, '')}`} className="text-xs transition-colors hover:text-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:text-sm">
                         {t('contact_phone_display', 'footer')}
                       </a>
                     </li>
@@ -334,7 +334,7 @@ export function Footer() {
                       <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-600 transition-colors">
                         <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
-                      <a href={`mailto:${t('contact_email_display', 'footer')}`} className="hover:text-red-500 transition-colors text-xs sm:text-sm break-all">
+                      <a href={`mailto:${t('contact_email_display', 'footer')}`} className="break-all text-xs transition-colors hover:text-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:text-sm">
                         {t('contact_email_display', 'footer')}
                       </a>
                     </li>
@@ -355,7 +355,7 @@ export function Footer() {
                       height="33"
                       loading="lazy"
                       decoding="async"
-                      className={styles.logoImage}
+                      className="max-h-full max-w-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
                     />
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export function Footer() {
                       height="56"
                       loading="lazy"
                       decoding="async"
-                      className={styles.logoImage}
+                      className="max-h-full max-w-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
                     />
                   </div>
                 </div>
@@ -391,11 +391,11 @@ export function Footer() {
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4 text-gray-400 flex-wrap justify-center">
-              <Link href="/terms-of-service" className="hover:text-red-500 transition-colors">{t('termsOfService', 'footer')}</Link>
+              <Link href="/terms-of-service" className="transition-colors hover:text-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">{t('termsOfService', 'footer')}</Link>
               <span className="divider-separator">{t('separator', 'footer')}</span>
-              <Link href="/privacy-policy" className="hover:text-red-500 transition-colors">{t('privacyPolicy', 'footer')}</Link>
+              <Link href="/privacy-policy" className="transition-colors hover:text-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">{t('privacyPolicy', 'footer')}</Link>
               <span className="divider-separator">{t('separator', 'footer')}</span>
-              <Link href="/sitemap" className="hover:text-red-500 transition-colors">{t('sitemap', 'footer')}</Link>
+              <Link href="/sitemap" className="transition-colors hover:text-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400">{t('sitemap', 'footer')}</Link>
             </div>
           </div>
         </div>
