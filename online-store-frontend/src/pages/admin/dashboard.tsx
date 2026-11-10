@@ -373,6 +373,8 @@ function DashboardContent() {
   ];
 
   const COLORS = ['#ef4444', '#3b82f6', '#10b981'];
+  const COLOR_CLASSES = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500'];
+  const PRODUCT_COLOR_CLASSES = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500'];
 
   const timeFrameOptions: { label: string; value: TimeFrame }[] = [
     { label: t('period_day', 'admin'), value: 'day' },
@@ -591,7 +593,7 @@ function DashboardContent() {
               <div className="mt-6 space-y-2">
                 {orderStatusData.map((status: any, index: number) => (
                   <div key={`status-legend-${index}`} className="flex items-center gap-3 p-2 text-sm">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                    <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[index % COLOR_CLASSES.length]}`} />
                     <p className="font-medium">{getStatusDisplayName(status.name, t)}: {status.value} {t('menu_orders')}</p>
                   </div>
                 ))}
@@ -630,7 +632,7 @@ function DashboardContent() {
 
                   return (
                   <div key={`legend-${index}`} className="flex items-start gap-3 p-2 text-sm" title={displayName}>
-                    <div className="w-3 h-3 rounded-full mt-1" style={{ backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'][index % 5] }} />
+                    <div className={`w-3 h-3 rounded-full mt-1 ${PRODUCT_COLOR_CLASSES[index % PRODUCT_COLOR_CLASSES.length]}`} />
                     <p className="font-medium flex-1">{displayName}</p>
                     <span className="text-gray-600 ml-2">{product.count}</span>
                   </div>
