@@ -361,11 +361,6 @@ const sendContactEmails = async ({ name, email, phone, subject, message }, lang)
   }
 
   try {
-    const confirmationSubject = getMessage(emailLang, 'contact.email_confirmation_subject');
-    const confirmationTitle = getMessage(emailLang, 'contact.email_confirmation_title');
-    const greeting = getMessage(emailLang, 'contact.email_confirmation_greeting', { name });
-    const received = getMessage(emailLang, 'contact.email_confirmation_received');
-    const responsePromise = getMessage(emailLang, 'contact.email_confirmation_response');
     const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
     await transporter.sendMail({
@@ -381,24 +376,6 @@ const sendContactEmails = async ({ name, email, phone, subject, message }, lang)
         <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
         <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
         <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
-      `,
-    });
-
-    await transporter.sendMail({
-      from,
-      to: email,
-      subject: confirmationSubject,
-      text: [greeting, '', received, responsePromise, '', `Subject: ${subject}`, message].join('\n\n'),
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <h1 style="color: #ef4444;">${escapeHtml(confirmationTitle)}</h1>
-          <p>${escapeHtml(greeting)}</p>
-          <p>${escapeHtml(received)}</p>
-          <p>${escapeHtml(responsePromise)}</p>
-          <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;">
-          <p><strong>${escapeHtml(subject)}</strong></p>
-          <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
-        </div>
       `,
     });
   } catch (error) {

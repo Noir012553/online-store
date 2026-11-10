@@ -40,7 +40,7 @@ describe('Contact email delivery', () => {
       message: '<script>alert(1)</script>',
     }, 'en');
 
-    chai.expect(sendMail.callCount).to.equal(2);
+    chai.expect(sendMail.calledOnce).to.equal(true);
     chai.expect(sendMail.firstCall.args[0]).to.include({
       to: 'support@example.com',
       subject: '[Contact] Order question',
@@ -50,11 +50,7 @@ describe('Contact email delivery', () => {
       address: 'customer@example.com',
     });
     chai.expect(sendMail.firstCall.args[0].html).to.include('&lt;script&gt;alert(1)&lt;/script&gt;');
-    chai.expect(sendMail.secondCall.args[0]).to.include({
-      to: 'customer@example.com',
-      subject: 'LaptopStore received your message',
-    });
-    chai.expect(sendMail.secondCall.args[0].text).to.include('get back to you as soon as possible');
+    chai.expect(sendMail.firstCall.args[0].to).not.to.equal('customer@example.com');
   });
 
   it('renders the newsletter confirmation without missing translation values', async () => {
