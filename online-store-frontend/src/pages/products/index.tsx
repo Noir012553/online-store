@@ -273,7 +273,7 @@ export default function AllProductsPage() {
                       <a
                         key={category._id}
                         href={`/products/${category.slug || category._id}`}
-                        className="category-card group bg-white border border-gray-200 rounded-lg hover:border-red-600 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                        className="group bg-white border border-gray-200 rounded-lg hover:border-red-600 hover:shadow-xl transition-all duration-300 overflow-hidden"
                       >
                         <div className="p-4 sm:p-6 flex flex-col h-full">
                           <div className="flex-1">

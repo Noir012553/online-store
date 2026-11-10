@@ -886,12 +886,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                     <Link
                       key={`${category._id}-${index}`}
                       href={`/products/${slug}`}
-                      className="category-card flex min-w-[calc((100vw-3rem)/2)] snap-start flex-col items-center gap-2 rounded-lg border p-3 transition-all hover:border-red-600 hover:shadow-lg sm:min-w-[calc((100vw-5rem)/3)] sm:gap-3 sm:p-4"
+                      className="flex min-w-[calc((100vw-3rem)/2)] snap-start flex-col items-center gap-2 rounded-lg border p-3 transition-all hover:border-red-600 hover:shadow-lg sm:min-w-[calc((100vw-5rem)/3)] sm:gap-3 sm:p-4"
                     >
-                      <div className="category-icon-container w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center overflow-hidden">
                         <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
                       </div>
-                      <span className="category-name text-center text-xs sm:text-sm">{displayName}</span>
+                      <span className="text-center text-xs sm:text-sm">{displayName}</span>
                     </Link>
                   );
                 })}
@@ -924,12 +924,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                           <Link
                             key={`${category._id}-${index}`}
                             href={`/products/${slug}`}
-                            className="category-card flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
+                            className="flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
                           >
-                            <div className="category-icon-container flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-red-50">
+                            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-red-50">
                               <Icon className="h-8 w-8 text-red-600" />
                             </div>
-                            <span className="category-name text-center text-sm">{displayName}</span>
+                            <span className="text-center text-sm">{displayName}</span>
                           </Link>
                         );
                       })}
