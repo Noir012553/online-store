@@ -15,18 +15,25 @@ Không chuyển một nhóm utility nhỏ, chỉ dùng một lần, sang file CS
 ## Dùng file CSS khi
 
 - Quy tắc áp dụng toàn ứng dụng như reset, nền tảng, theme hoặc biến CSS: `src/styles/index.css`.
-- Cần selector phức tạp, hiệu ứng/keyframes đặc thù hoặc cấu trúc không phù hợp với utility class.
-- Một component thực sự cần style riêng khó biểu đạt rõ ràng bằng Tailwind: dùng CSS Module cạnh component hoặc trong `src/styles/`.
+- Một component hoặc trang cần nhiều quy tắc riêng, selector phức tạp, responsive đặc thù, trạng thái tương tác hoặc keyframes: dùng CSS Module cạnh component/trang, ví dụ `Component.module.css`.
+- Khối CSS trong JSX dài hoặc lặp lại cần được tách ra để dễ đọc, bảo trì và giới hạn phạm vi selector: chuyển sang CSS Module.
 
-Tránh khai báo lại trong CSS những style đã có thể diễn đạt gọn bằng Tailwind. Không trộn nhiều cách cho cùng một thuộc tính nếu không có lý do rõ ràng.
+Ưu tiên CSS Module cho CSS tĩnh gắn với component. Không viết `<style>` thường trong JSX vì selector có thể áp dụng toàn cục; cũng không dùng `<style jsx>` làm nơi lưu các khối CSS tĩnh dài. Chỉ giữ style trong JSX khi có lý do kỹ thuật cụ thể và phạm vi ảnh hưởng đã rõ.
+
+Không chuyển một nhóm utility nhỏ, chỉ dùng một lần, sang file CSS. Tránh khai báo lại trong CSS những style đã có thể diễn đạt gọn bằng Tailwind và không trộn nhiều cách cho cùng một thuộc tính nếu không có lý do rõ ràng.
 
 ## Dùng inline style khi
 
-Chỉ dùng `style={{...}}` cho giá trị động tại runtime, chẳng hạn giá trị tính toán từ dữ liệu hoặc biến CSS được cập nhật bằng JavaScript. Với giá trị cố định, ưu tiên utility class hoặc CSS phù hợp.
+Chỉ dùng `style={{...}}` cho giá trị động tại runtime, chẳng hạn giá trị tính toán từ dữ liệu hoặc biến CSS được cập nhật bằng JavaScript. Với giá trị cố định, ưu tiên utility class hoặc CSS phù hợp. Nếu CSS Module cần nhận giá trị động, truyền giá trị đó qua CSS custom property thay vì chuyển toàn bộ style tĩnh sang inline style.
+
+## Chuyển đổi CSS hiện có
+
+Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoint hiện tại; không đồng thời chỉnh lại thiết kế hoặc sửa selector toàn cục. Thực hiện theo từng component/trang và kiểm tra giao diện sau mỗi lần chuyển để phát hiện thay đổi do specificity hoặc scope.
 
 ## Tóm tắt
 
-1. Tailwind trong JSX là lựa chọn mặc định.
-2. CSS toàn cục dành cho quy tắc toàn ứng dụng.
-3. CSS Module dành cho selector/hiệu ứng phức tạp hoặc style đặc thù của component.
-4. Inline style chỉ dành cho giá trị động.
+1. Tailwind trong JSX là lựa chọn mặc định cho style component thông thường.
+2. CSS toàn cục chỉ dành cho quy tắc áp dụng toàn ứng dụng.
+3. CSS Module là nơi ưu tiên cho CSS tĩnh, dài hoặc phức tạp của component/trang.
+4. Tránh `<style>` và các khối `<style jsx>` tĩnh dài trong JSX.
+5. Inline style chỉ dành cho giá trị động.
