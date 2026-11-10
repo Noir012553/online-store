@@ -26,6 +26,32 @@ Không chuyển một nhóm utility nhỏ, chỉ dùng một lần, sang file CS
 
 Chỉ dùng `style={{...}}` cho giá trị động tại runtime, chẳng hạn giá trị tính toán từ dữ liệu hoặc biến CSS được cập nhật bằng JavaScript. Với giá trị cố định, ưu tiên utility class hoặc CSS phù hợp. Nếu CSS Module cần nhận giá trị động, truyền giá trị đó qua CSS custom property thay vì chuyển toàn bộ style tĩnh sang inline style.
 
+## Responsive layout
+
+Ưu tiên cách viết mobile-first: đặt kiểu mặc định cho màn hình nhỏ, rồi dùng breakpoint như `sm:`, `md:`, `lg:` khi bố cục cần thay đổi. Dùng utility responsive cho các điều chỉnh thông thường; chỉ đưa media query vào CSS Module khi quy tắc responsive phức tạp hoặc gắn với selector riêng của component.
+
+Khi chỉnh CSS hiện có, giữ nguyên breakpoint và hành vi responsive nếu yêu cầu không bao gồm thay đổi thiết kế.
+
+## Trạng thái tương tác và accessibility
+
+Dùng variant Tailwind ngay trong `className` cho các trạng thái phổ biến mà component cung cấp, như `hover:`, `focus-visible:`, `disabled:`, `data-[state=active]:` và `aria-invalid:`.
+
+```tsx
+<button className="bg-red-600 text-white hover:bg-red-700 focus-visible:outline-2 disabled:opacity-50">
+  Lưu
+</button>
+```
+
+Không chỉ dựa vào `hover` để thể hiện trạng thái; giữ kiểu focus nhìn thấy được khi điều hướng bằng bàn phím. Dùng CSS Module khi trạng thái cần selector kết hợp hoặc hiệu ứng không thể diễn đạt gọn bằng variant.
+
+## Motion
+
+Dùng utility cho transition đơn giản. Dùng CSS Module cho keyframes hoặc animation nhiều trạng thái; hỗ trợ `prefers-reduced-motion` khi hiệu ứng chuyển động có thể ảnh hưởng đến người dùng.
+
+## Màu sắc và theme
+
+Ưu tiên utility/token theme sẵn có cho màu mang ý nghĩa như `bg-primary`, `text-muted-foreground` hoặc `border-border`. Duy trì bảng màu hiện tại của giao diện; chỉ dùng màu tùy chỉnh khi token hiện có không đáp ứng đúng thiết kế. Tránh lặp lại giá trị màu cố định qua inline style.
+
 ## Chuyển đổi CSS hiện có
 
 Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoint hiện tại; không đồng thời chỉnh lại thiết kế hoặc sửa selector toàn cục. Thực hiện theo từng component/trang và kiểm tra giao diện sau mỗi lần chuyển để phát hiện thay đổi do specificity hoặc scope.
@@ -37,3 +63,6 @@ Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoin
 3. CSS Module là nơi ưu tiên cho CSS tĩnh, dài hoặc phức tạp của component/trang.
 4. Tránh `<style>` và các khối `<style jsx>` tĩnh dài trong JSX.
 5. Inline style chỉ dành cho giá trị động.
+6. Dùng breakpoint mobile-first và giữ nguyên hành vi responsive hiện có khi không có yêu cầu đổi thiết kế.
+7. Dùng variant Tailwind cho trạng thái tương tác; giữ trạng thái focus bàn phím và tôn trọng reduced motion.
+8. Ưu tiên theme token cho màu ngữ nghĩa, tránh sao chép màu tĩnh vào inline style.
