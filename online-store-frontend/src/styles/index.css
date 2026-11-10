@@ -206,11 +206,6 @@ html body .layout-gutter-wide {
   padding-right: var(--layout-gutter-wide);
 }
 
-.sticky-side-banner {
-  top: 96px;
-  transform: translate3d(0, var(--banner-offset-y, 0px), 0);
-}
-
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
