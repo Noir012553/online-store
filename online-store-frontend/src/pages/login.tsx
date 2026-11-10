@@ -159,7 +159,7 @@ export default function Login() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="inline-flex h-auto w-full items-center justify-center gap-0 rounded-none border-2 border-gray-200 bg-[#f5f5f5] p-0">
+            <TabsList className="inline-flex h-auto w-full items-center justify-center gap-0 rounded-none border-2 border-gray-200 bg-muted p-0">
               <TabsTrigger
                 value="login"
                 className={`${styles.toggleTrigger} h-11 flex-1 cursor-pointer rounded-none border-0 border-r-2 border-gray-200 bg-transparent text-sm font-medium text-gray-500 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]`}

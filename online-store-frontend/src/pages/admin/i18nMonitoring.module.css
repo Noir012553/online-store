@@ -446,3 +446,9 @@
             grid-template-columns: 1fr;
           }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .monitoringSpin {
+            animation: none;
+          }
+        }

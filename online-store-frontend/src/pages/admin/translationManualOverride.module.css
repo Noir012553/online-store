@@ -433,3 +433,9 @@
             margin: 0;
           }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .overrideSpinner {
+            animation: none;
+          }
+        }

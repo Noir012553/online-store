@@ -498,3 +498,9 @@
         .audit-log-changes,
         .audit-log-expand {
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .audit-log-spin {
+            animation: none;
+          }
+        }

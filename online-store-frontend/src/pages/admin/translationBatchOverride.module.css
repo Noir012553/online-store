@@ -492,3 +492,9 @@
 .batch-row-pending {}
 .batch-row-success {}
 .batch-row-error {}
+
+@media (prefers-reduced-motion: reduce) {
+  .batch-spinner {
+    animation: none;
+  }
+}
