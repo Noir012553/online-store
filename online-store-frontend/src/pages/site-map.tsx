@@ -62,13 +62,13 @@ export default function SitemapPage() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="group flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-red-50 hover:text-red-600"
+                      className="group flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                     >
                       <span className="flex items-center gap-3 text-gray-700 group-hover:text-red-600">
                         <Icon className="h-4 w-4 shrink-0" />
                         <span>{t(item.labelKey, 'pages')}</span>
                       </span>
-                      <ArrowRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-red-600" />
+                      <ArrowRight className="h-4 w-4 text-gray-400 transition-transform motion-safe:group-hover:translate-x-1 group-hover:text-red-600" />
                     </Link>
                   );
                 })}
@@ -79,13 +79,13 @@ export default function SitemapPage() {
           <div className="rounded-lg border bg-white p-6 shadow-sm lg:col-span-3">
             <h2 className="mb-4 text-xl font-semibold text-black">{t('sitemap_policies_section', 'pages')}</h2>
             <div className="grid gap-3 md:grid-cols-3">
-              <Link href="/return-policy" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+              <Link href="/return-policy" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                 {t('sitemap_return_policy', 'pages')}
               </Link>
-              <Link href="/warranty-policy" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+              <Link href="/warranty-policy" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                 {t('sitemap_warranty_policy', 'pages')}
               </Link>
-              <Link href="/shopping-guide" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+              <Link href="/shopping-guide" className="rounded-md border px-4 py-3 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                 {t('sitemap_shopping_guide', 'pages')}
               </Link>
             </div>
