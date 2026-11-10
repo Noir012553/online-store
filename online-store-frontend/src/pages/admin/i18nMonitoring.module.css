@@ -1,0 +1,449 @@
+        .monitoringContainer {
+          padding: 20px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .monitoringHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .monitoringTitle {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 4px 0;
+          color: #1a1a1a;
+        }
+
+        .monitoringSubtitle {
+          font-size: 14px;
+          color: #666;
+          margin: 0;
+        }
+
+        .monitoringControls {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+
+        .monitoringRefreshBtn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          background-color: #f5f5f5;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .monitoringRefreshBtn:hover:not(:disabled) {
+          background-color: #e8e8e8;
+          border-color: #999;
+        }
+
+        .monitoringRefreshBtn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .monitoringSpin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .monitoringAutoRefresh {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          color: #333;
+        }
+
+        .monitoringIntervalSelect {
+          padding: 8px 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+
+        .monitoringMessage {
+          padding: 12px 16px;
+          border-radius: 6px;
+          margin-bottom: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 14px;
+        }
+
+        .monitoringMessageSuccess {
+          background-color: #d4edda;
+          color: #155724;
+          border: 1px solid #c3e6cb;
+        }
+
+        .monitoringMessageError {
+          background-color: #f8d7da;
+          color: #721c24;
+          border: 1px solid #f5c6cb;
+        }
+
+        .monitoringMessageInfo {
+          background-color: #d1ecf1;
+          color: #0c5460;
+          border: 1px solid #bee5eb;
+        }
+
+        .monitoringMessageClose {
+          background: none;
+          border: none;
+          color: inherit;
+          cursor: pointer;
+          font-size: 20px;
+          padding: 0;
+          line-height: 1;
+        }
+
+        .monitoringLoading,
+        .monitoringError {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          color: #666;
+        }
+
+        .monitoringRetryBtn {
+          margin-top: 16px;
+          padding: 10px 20px;
+          background-color: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .monitoringRetryBtn:hover {
+          background-color: #0056b3;
+        }
+
+        .monitoringStatusCard {
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 20px;
+          margin-bottom: 24px;
+          border-left: 4px solid;
+        }
+
+        .monitoringStatusHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .monitoringStatusInfo {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .monitoringStatusInfo h2 {
+          margin: 0;
+          font-size: 18px;
+        }
+
+        .monitoringStatusText {
+          margin: 4px 0 0 0;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .monitoringStatusTime {
+          text-align: right;
+        }
+
+        .monitoringMetricsGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .monitoringMetricCard {
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .monitoringMetricHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .monitoringMetricHeader h3 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .monitoringMetricValue {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin-bottom: 8px;
+        }
+
+        .monitoringMetricStatus {
+          display: inline-block;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 4px;
+          margin-bottom: 12px;
+        }
+
+        .monitoringMetricStatus.healthy {
+          background-color: #d4edda;
+          color: #155724;
+        }
+
+        .monitoringMetricStatus.warning {
+          background-color: #fff3cd;
+          color: #856404;
+        }
+
+        .monitoringMetricStatus.critical {
+          background-color: #f8d7da;
+          color: #721c24;
+        }
+
+        .monitoringMetricBar {
+          height: 8px;
+          background-color: #f0f0f0;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .monitoringMetricFill {
+          height: 100%;
+          transition: width 0.3s ease;
+        }
+
+        .monitoringStatsSection,
+        .monitoringLanguageSection,
+        .monitoringAlertsSection {
+          margin-bottom: 24px;
+        }
+
+        .monitoringStatsSection h2,
+        .monitoringLanguageSection h2,
+        .monitoringAlertsSection h2 {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0 0 16px 0;
+          color: #1a1a1a;
+        }
+
+        .monitoringStatsGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .monitoringStatItem {
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .monitoringStatLabel {
+          font-size: 12px;
+          font-weight: 600;
+          color: #666;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .monitoringStatValue {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin-bottom: 8px;
+        }
+
+        .monitoringStatItem small {
+          display: block;
+          font-size: 12px;
+          color: #999;
+        }
+
+        .monitoringLanguageGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 16px;
+        }
+
+        .monitoringLanguageCard {
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .monitoringLanguageHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #eee;
+        }
+
+        .monitoringLanguageHeader h3 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 700;
+        }
+
+        .monitoringLanguageStatus {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 4px;
+        }
+
+        .monitoringLanguageStatus.healthy {
+          background-color: #d4edda;
+          color: #155724;
+        }
+
+        .monitoringLanguageStatus.warning {
+          background-color: #fff3cd;
+          color: #856404;
+        }
+
+        .monitoringLanguageStatus.critical {
+          background-color: #f8d7da;
+          color: #721c24;
+        }
+
+        .monitoringLanguageMetrics {
+          display: grid;
+          gap: 12px;
+        }
+
+        .monitoringLanguageMetrics > div {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .monitoringLanguageLabel {
+          font-size: 12px;
+          color: #666;
+        }
+
+        .monitoringLanguageValue {
+          font-size: 14px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .monitoringAlertsList {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .monitoringAlert {
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          gap: 12px;
+        }
+
+        .monitoringAlertIcon {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .monitoringAlertError .monitoringAlertIcon {
+          color: #ef4444;
+        }
+
+        .monitoringAlertWarning .monitoringAlertIcon {
+          color: #f59e0b;
+        }
+
+        .monitoringAlertInfo .monitoringAlertIcon {
+          color: #3b82f6;
+        }
+
+        .monitoringAlertContent {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .monitoringAlertMessage {
+          margin: 0;
+          font-size: 14px;
+          color: #333;
+        }
+
+        .monitoringAlert small {
+          display: block;
+          margin-top: 4px;
+          font-size: 12px;
+          color: #999;
+        }
+
+        @media (max-width: 768px) {
+          .monitoringHeader {
+            flex-direction: column;
+          }
+
+          .monitoringControls {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .monitoringMetricsGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .monitoringStatsGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .monitoringLanguageGrid {
+            grid-template-columns: 1fr;
+          }
+        }
+      

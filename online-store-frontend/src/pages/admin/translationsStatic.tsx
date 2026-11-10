@@ -8,6 +8,7 @@ import { getAuthToken } from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { API_BASE_PATH } from '../../config';
+import styles from './translationsStatic.module.css';
 
 interface StaticTranslation {
   _id: string;
@@ -22,6 +23,12 @@ interface TranslationKey {
   key: string;
   value: string;
 }
+
+const messageTypeClasses = {
+  success: styles.success,
+  error: styles.error,
+  info: styles.info,
+};
 
 const TranslationsAdminTier1Content = () => {
   const { t, loadNamespace, locale } = useTranslation();
@@ -284,372 +291,21 @@ const TranslationsAdminTier1Content = () => {
 
   return (
     <>
-    <div className="tier1-translations-container">
-        <style jsx>{`
-          .tier1-translations-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-          }
+    <div className={styles['tier1-translations-container']}>
 
-          .tier1-header {
-            margin-bottom: 30px;
-          }
-
-          .tier1-header h1 {
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            font-weight: 600;
-            color: #1a1a1a;
-          }
-
-          .tier1-header p {
-            margin: 0;
-            color: #666;
-            font-size: 14px;
-          }
-
-          .tier1-controls {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            flex-wrap: wrap;
-          }
-
-          .tier1-select-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            min-width: 200px;
-          }
-
-          .tier1-select-group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-          }
-
-          .tier1-select-group select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-          }
-
-          .tier1-actions {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-          }
-
-          .tier1-search-group {
-            flex: 1;
-            min-width: 200px;
-          }
-
-          .tier1-search-input {
-            margin: 0;
-          }
-
-          .tier1-add-actions {
-            display: flex;
-            gap: 5px;
-          }
-
-          .tier1-btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-
-          .tier1-btn-primary {
-            background: #007bff;
-            color: white;
-          }
-
-          .tier1-btn-primary:hover:not(:disabled) {
-            background: #0056b3;
-          }
-
-          .tier1-btn-secondary {
-            background: #ddd;
-            color: #333;
-          }
-
-          .tier1-btn-success {
-            background: #28a745;
-            color: white;
-          }
-
-          .tier1-btn-success:hover:not(:disabled) {
-            background: #218838;
-          }
-
-          .tier1-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-
-          .tier1-pagination {
-            margin-top: 20px;
-            text-align: center;
-          }
-
-          .tier1-pagination-btn {
-            background: #007bff;
-            color: white;
-          }
-
-          .tier1-pagination-btn:disabled {
-            background: #ddd;
-          }
-
-          .tier1-pagination-status {
-            margin: 0 15px;
-          }
-
-          .tier1-table th:nth-child(1) {
-            width: 25%;
-          }
-
-          .tier1-table th:nth-child(2) {
-            width: 60%;
-          }
-
-          .tier1-table th:nth-child(3) {
-            width: 15%;
-          }
-
-          .tier1-message {
-            padding: 12px 16px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 14px;
-          }
-
-          .tier1-message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-          }
-
-          .tier1-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-          }
-
-          .tier1-message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-          }
-
-          .tier1-table-wrapper {
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            overflow: hidden;
-          }
-
-          .tier1-table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-
-          .tier1-table thead {
-            background: #f5f5f5;
-            border-bottom: 1px solid #ddd;
-          }
-
-          .tier1-table th {
-            padding: 15px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-          }
-
-          .tier1-table td {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-          }
-
-          .tier1-table tr:hover {
-            background: #f9f9f9;
-          }
-
-          .tier1-table tr:last-child td {
-            border-bottom: none;
-          }
-
-          .tier1-key-cell {
-            color: #0056b3;
-            font-family: 'Courier New', monospace;
-            font-weight: 500;
-          }
-
-          .tier1-value-cell {
-            color: #333;
-            word-break: break-word;
-            max-width: 500px;
-          }
-
-          .tier1-value-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            font-family: 'Courier New', monospace;
-          }
-
-          .tier1-actions-cell {
-            display: flex;
-            gap: 8px;
-          }
-
-          .tier1-icon-btn {
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-          }
-
-          .tier1-icon-btn-edit {
-            background: #e7f3ff;
-            color: #0056b3;
-          }
-
-          .tier1-icon-btn-edit:hover {
-            background: #0056b3;
-            color: white;
-          }
-
-          .tier1-icon-btn-delete {
-            background: #ffe7e7;
-            color: #dc3545;
-          }
-
-          .tier1-icon-btn-delete:hover {
-            background: #dc3545;
-            color: white;
-          }
-
-          .tier1-icon-btn-check {
-            background: #d4edda;
-            color: #28a745;
-          }
-
-          .tier1-icon-btn-check:hover {
-            background: #28a745;
-            color: white;
-          }
-
-          .tier1-icon-btn-cancel {
-            background: #f5f5f5;
-            color: #666;
-          }
-
-          .tier1-icon-btn-cancel:hover {
-            background: #ddd;
-          }
-
-          .tier1-add-section {
-            margin: 20px 0;
-            padding: 20px;
-            background: #f0f8ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 4px;
-          }
-
-          .tier1-add-section h3 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            color: #0056b3;
-          }
-
-          .tier1-add-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 10px;
-            margin-bottom: 10px;
-          }
-
-          .tier1-add-input {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-          }
-
-          .tier1-loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-          }
-
-          .tier1-empty {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            font-size: 14px;
-          }
-
-          @media (max-width: 768px) {
-            .tier1-add-inputs {
-              grid-template-columns: 1fr;
-            }
-
-            .tier1-controls {
-              flex-direction: column;
-            }
-
-            .tier1-actions {
-              flex-direction: column;
-              width: 100%;
-            }
-
-            .tier1-btn {
-              width: 100%;
-            }
-          }
-        `}</style>
-
-        <div className="tier1-header">
+        <div className={styles['tier1-header']}>
           <h1>{t('tier1_title', 'admin-translation')}</h1>
           <p>{t('tier1_description', 'admin-translation')}</p>
         </div>
 
         {message && (
-          <div className={`tier1-message ${message.type}`}>
+          <div className={`${styles['tier1-message']} ${messageTypeClasses[message.type]}`}>
             {message.text}
           </div>
         )}
 
-        <div className="tier1-controls">
-          <div className="tier1-select-group">
+        <div className={styles['tier1-controls']}>
+          <div className={styles['tier1-select-group']}>
             <label htmlFor="lang-select">{t('tier1_language_label', 'admin-translation')}</label>
             <select
               id="lang-select"
@@ -664,7 +320,7 @@ const TranslationsAdminTier1Content = () => {
             </select>
           </div>
 
-          <div className="tier1-select-group">
+          <div className={styles['tier1-select-group']}>
             <label htmlFor="namespace-select">{t('tier1_namespace_label', 'admin-translation')}</label>
             <select
               id="namespace-select"
@@ -679,7 +335,7 @@ const TranslationsAdminTier1Content = () => {
             </select>
           </div>
 
-          <div className="tier1-select-group tier1-search-group">
+          <div className={styles['tier1-select-group'] + ' ' + styles['tier1-search-group']}>
             <label htmlFor="search-input">{t('search_label', 'admin-translation')}</label>
             <input
               id="search-input"
@@ -690,20 +346,20 @@ const TranslationsAdminTier1Content = () => {
                 setSearchText(e.target.value);
                 setPageIndex(0);
               }}
-              className="tier1-add-input tier1-search-input"
+              className={styles['tier1-add-input'] + ' ' + styles['tier1-search-input']}
             />
           </div>
 
-          <div className="tier1-actions">
+          <div className={styles['tier1-actions']}>
             <button
-              className="tier1-btn tier1-btn-success"
+              className={styles['tier1-btn'] + ' ' + styles['tier1-btn-success']}
               onClick={handleBulkTranslate}
               disabled={isTranslating}
             >
               <RefreshCw size={16} /> {t('tier1_bulk_translate_btn', 'admin-translation')}
             </button>
             <button
-              className="tier1-btn tier1-btn-primary"
+              className={styles['tier1-btn'] + ' ' + styles['tier1-btn-primary']}
               onClick={() => setIsAddingNew(!isAddingNew)}
             >
               <Plus size={16} /> {t('tier1_add_key_btn', 'admin-translation')}
@@ -712,32 +368,32 @@ const TranslationsAdminTier1Content = () => {
         </div>
 
         {isAddingNew && (
-          <div className="tier1-add-section">
+          <div className={styles['tier1-add-section']}>
             <h3>{t('tier1_add_key_title', 'admin-translation')}</h3>
-            <div className="tier1-add-inputs">
+            <div className={styles['tier1-add-inputs']}>
               <input
                 type="text"
                 placeholder={t('tier1_key_placeholder', 'admin-translation')}
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
-                className="tier1-add-input"
+                className={styles['tier1-add-input']}
               />
               <input
                 type="text"
                 placeholder={t('tier1_value_placeholder', 'admin-translation')}
                 value={newKeyValue}
                 onChange={(e) => setNewKeyValue(e.target.value)}
-                className="tier1-add-input"
+                className={styles['tier1-add-input']}
               />
-              <div className="tier1-add-actions">
+              <div className={styles['tier1-add-actions']}>
                 <button
-                  className="tier1-btn tier1-btn-primary"
+                  className={styles['tier1-btn'] + ' ' + styles['tier1-btn-primary']}
                   onClick={handleAddNewKey}
                 >
                   <Check size={16} /> {t('tier1_save_btn', 'admin-translation')}
                 </button>
                 <button
-                  className="tier1-btn tier1-btn-secondary"
+                  className={styles['tier1-btn'] + ' ' + styles['tier1-btn-secondary']}
                   onClick={() => {
                     setIsAddingNew(false);
                     setNewKeyName('');
@@ -752,11 +408,11 @@ const TranslationsAdminTier1Content = () => {
         )}
 
         {loading ? (
-          <div className="tier1-loading">{t('tier1_loading', 'admin-translation')}</div>
+          <div className={styles['tier1-loading']}>{t('tier1_loading', 'admin-translation')}</div>
         ) : currentTranslation && translationKeys.length > 0 ? (
           <>
-            <div className="tier1-table-wrapper">
-              <table className="tier1-table">
+            <div className={styles['tier1-table-wrapper']}>
+              <table className={styles['tier1-table']}>
                 <thead>
                   <tr>
                     <th>{t('tier1_key_column', 'admin-translation')}</th>
@@ -767,14 +423,14 @@ const TranslationsAdminTier1Content = () => {
                 <tbody>
                   {paginatedKeys.map((item) => (
                   <tr key={item.key}>
-                    <td className="tier1-key-cell">{item.key}</td>
-                    <td className="tier1-value-cell">
+                    <td className={styles['tier1-key-cell']}>{item.key}</td>
+                    <td className={styles['tier1-value-cell']}>
                       {editingKey === item.key ? (
                         <input
                           type="text"
                           value={editingValue}
                           onChange={(e) => setEditingValue(e.target.value)}
-                          className="tier1-value-input"
+                          className={styles['tier1-value-input']}
                           autoFocus
                         />
                       ) : (
@@ -782,18 +438,18 @@ const TranslationsAdminTier1Content = () => {
                       )}
                     </td>
                     <td>
-                      <div className="tier1-actions-cell">
+                      <div className={styles['tier1-actions-cell']}>
                         {editingKey === item.key ? (
                           <>
                             <button
-                              className="tier1-icon-btn tier1-icon-btn-check"
+                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-check']}
                               onClick={handleUpdateKey}
                               title={t('admin_save', 'admin')}
                             >
                               <Check size={16} />
                             </button>
                             <button
-                              className="tier1-icon-btn tier1-icon-btn-cancel"
+                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-cancel']}
                               onClick={() => {
                                 setEditingKey(null);
                                 setEditingValue('');
@@ -806,7 +462,7 @@ const TranslationsAdminTier1Content = () => {
                         ) : (
                           <>
                             <button
-                              className="tier1-icon-btn tier1-icon-btn-edit"
+                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-edit']}
                               onClick={() => {
                                 setEditingKey(item.key);
                                 setEditingValue(item.value);
@@ -816,7 +472,7 @@ const TranslationsAdminTier1Content = () => {
                               <Edit2 size={16} />
                             </button>
                             <button
-                              className="tier1-icon-btn tier1-icon-btn-delete"
+                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-delete']}
                               onClick={() => handleDeleteKey(item.key)}
                               title={t('admin_delete', 'admin')}
                             >
@@ -833,20 +489,20 @@ const TranslationsAdminTier1Content = () => {
             </div>
 
             {totalPages > 1 && (
-              <div className="tier1-pagination">
+              <div className={styles['tier1-pagination']}>
                 <button
                   onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
                   disabled={pageIndex === 0}
-                  className="tier1-btn tier1-pagination-btn"
+                  className={styles['tier1-btn'] + ' ' + styles['tier1-pagination-btn']}
                 >
                   <ChevronLeft size={16} aria-hidden="true" />
                   {t('tier1_prev_page', 'admin-translation')}
                 </button>
-                <span className="tier1-pagination-status">{t('tier1_page_info', 'admin-translation').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
+                <span className={styles['tier1-pagination-status']}>{t('tier1_page_info', 'admin-translation').replace('{page}', `${pageIndex + 1}/${totalPages}`)}</span>
                 <button
                   onClick={() => setPageIndex(pageIndex + 1)}
                   disabled={pageIndex === totalPages - 1}
-                  className="tier1-btn tier1-pagination-btn"
+                  className={styles['tier1-btn'] + ' ' + styles['tier1-pagination-btn']}
                 >
                   {t('tier1_next_page', 'admin-translation')}
                   <ChevronRight size={16} aria-hidden="true" />
@@ -855,7 +511,7 @@ const TranslationsAdminTier1Content = () => {
             )}
           </>
         ) : (
-          <div className="tier1-empty">{t('tier1_no_translations', 'admin-translation')}</div>
+          <div className={styles['tier1-empty']}>{t('tier1_no_translations', 'admin-translation')}</div>
         )}
       </div>
 
