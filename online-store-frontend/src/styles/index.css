@@ -42,7 +42,6 @@
   --sidebar-ring: #dc2626;
   --layout-gutter: clamp(1rem, 2vw + 0.5rem, 4rem);
   --layout-gutter-wide: clamp(1.5rem, 3vw + 0.75rem, 5.5rem);
-  --container-padding-x: 1rem;
 }
 
 .dark {
@@ -205,23 +204,7 @@ html body .container {
   display: none;
 }
 
-.header-container-px,
-.section-container-px {
-  padding-left: var(--container-padding-x);
-  padding-right: var(--container-padding-x);
-}
-
-@media (min-width: 640px) {
-  :root {
-    --container-padding-x: 1.5rem;
-  }
-}
-
 @media (min-width: 768px) {
-  :root {
-    --container-padding-x: 2rem;
-  }
-
   html body .container {
     width: 63%;
   }
@@ -236,7 +219,6 @@ html body .container {
 @media (max-width: 1023px) {
   :root {
     --layout-gutter: 0.75rem;
-    --container-padding-x: 0.5rem;
   }
 
   html body .container {

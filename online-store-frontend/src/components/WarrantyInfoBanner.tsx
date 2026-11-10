@@ -166,7 +166,7 @@ export function WarrantyInfoBanner() {
 
   return (
     <div className={styles.warrantyBanner}>
-      <div className={`container mx-auto section-container-px ${styles.warrantyBannerContent}`}>
+      <div className={`container mx-auto ${styles.warrantyBannerContent}`}>
         <div className={styles.warrantyGrid}>
           {warrantyInfo.map((item, index) => (
             <div key={index} className={styles.warrantyItem}>

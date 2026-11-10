@@ -126,7 +126,7 @@ export function Footer() {
 
       {/* Content */}
       <div className="relative z-10">
-        <div className="container mx-auto section-container-px py-8 sm:py-12">
+        <div className="container mx-auto py-8 sm:py-12">
           <div className="flex flex-col md:flex-row gap-8 sm:gap-12 mb-8 sm:mb-12">
             {/* Left Column: Brand, Inputs, Social Icons (3/10) */}
             <div className="md:flex-3">
