@@ -226,11 +226,7 @@ html body .layout-gutter-xwide {
   display: none;
 }
 
-.header-container-px {
-  padding-left: var(--container-padding-x);
-  padding-right: var(--container-padding-x);
-}
-
+.header-container-px,
 .section-container-px {
   padding-left: var(--container-padding-x);
   padding-right: var(--container-padding-x);
@@ -249,12 +245,6 @@ html body .layout-gutter-xwide {
 
   html body .container {
     width: 63%;
-  }
-}
-
-@media (min-width: 1024px) {
-  :root {
-    --container-padding-x: 2rem;
   }
 }
 
