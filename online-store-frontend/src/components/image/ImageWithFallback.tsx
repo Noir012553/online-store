@@ -71,10 +71,11 @@ export function ImageWithFallback({
           <Image
             src={ERROR_IMG_SRC}
             alt={errorAlt}
-            fill
+            width={88}
+            height={88}
             sizes={sizes ?? '100vw'}
             loading={loading}
-            className="object-contain"
+            className="absolute inset-0 h-full w-full object-contain"
             unoptimized
           />
         </div>

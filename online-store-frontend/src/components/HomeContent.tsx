@@ -767,9 +767,10 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
               <ImageWithFallback
                 src={slide.image}
                 alt={slide.title}
-                fill
+                width={1920}
+                height={1080}
                 sizes="100vw"
-                className="object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
                 loading={isPriorityHeroSlide ? 'eager' : 'lazy'}
                 fetchPriority={isPriorityHeroSlide ? 'high' : 'low'}
                 onLoad={isPriorityHeroSlide ? () => setIsHeroImageLoaded(true) : undefined}
@@ -1185,10 +1186,11 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                               src={logo}
                               fallbackSrc={remoteLogo ? localLogo : undefined}
                               alt={brand.name || t('brand', 'common')}
-                              fill
+                              width={300}
+                              height={100}
                               sizes="(max-width: 639px) 42vw, (max-width: 1023px) 28vw, 220px"
                               loading="lazy"
-                              className="max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
+                              className="absolute inset-0 h-full w-full max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
                             />
                           ) : (
                             <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>

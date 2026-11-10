@@ -441,7 +441,7 @@ describe('Safe remote image URLs', () => {
     try {
       let error;
       try {
-        await fetchSafeRemoteImage('https://example.invalid/image.jpg');
+        await fetchSafeRemoteImage('https://203.0.113.1/image.jpg');
       } catch (caught) {
         error = caught;
       }
@@ -605,7 +605,7 @@ describe('Product export serialization', () => {
         products: [{
           productId: 'product-id',
           images: [{
-            url: 'https://example.invalid/retry.jpg',
+            url: 'https://203.0.113.1/retry.jpg',
             position: 0,
             type: 'main',
           }],
@@ -642,7 +642,7 @@ describe('Product export serialization', () => {
         products: [{
           productId: 'product-id',
           images: [{
-            url: 'https://example.invalid/http-retry.jpg',
+            url: 'https://203.0.113.1/http-retry.jpg',
             position: 0,
             type: 'main',
           }],

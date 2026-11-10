@@ -1,8 +1,0 @@
-◇ injected env (121) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
-[AdapterManager] Registered: JSONAdapter
-[AdapterManager] Registered: CSVAdapter
-[STARTUP] mongo-connect completed in 694ms
-[ExchangeRateScheduler] Bắt đầu scheduler (interval: 86400s)
-[ExchangeRateScheduler] Bắt đầu cập nhật tỷ giá...
-[STARTUP] backend ready
-[ExchangeRateScheduler] Không có tỷ giá thay đổi

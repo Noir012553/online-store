@@ -380,12 +380,12 @@ export function Footer() {
                 </div>
 
                 {/* Shipping Units Column */}
-                <div className="text-center">
+                <div>
                   <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
                     {t('shippingPartners', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card mx-auto">
+                  <div className="laminated-card">
                     <img
                       src="/assets/ghnLogo-brandfetch.png"
                       alt={t('ghn_icon_alt', 'footer')}
@@ -399,12 +399,12 @@ export function Footer() {
                 </div>
 
                 {/* Payment Methods Column */}
-                <div className="text-center">
+                <div>
                   <h3 className="mb-3 sm:mb-4 relative inline-block font-bold text-sm sm:text-base">
                     {t('paymentMethods', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card mx-auto">
+                  <div className="laminated-card">
                     <img
                       src="/assets/vnpay.svg"
                       alt={t('vnpay_logo_alt', 'footer')}

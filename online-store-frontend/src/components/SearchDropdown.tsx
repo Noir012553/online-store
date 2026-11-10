@@ -49,6 +49,8 @@ function SearchResultItem({
         <img
           src={product.image || "/placeholder.png"}
           alt={displayName}
+          width={48}
+          height={48}
           loading="lazy"
           className="w-full h-full object-cover"
           onError={(e) => {

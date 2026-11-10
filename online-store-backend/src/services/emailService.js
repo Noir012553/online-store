@@ -319,8 +319,9 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
       return { code: 'EMAIL_DISABLED' };
     }
 
-    const emailLang = lang || getDefaultLanguage().code.toUpperCase();
+    const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
     const msg = getMessage(emailLang, 'email.newsletter');
+    const copyright = getMessage(emailLang, 'email.copyright');
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -330,76 +331,55 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
           <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #ef4444;">
             <h1 style="color: #ef4444; margin: 0; font-size: 28px;">LaptopStore</h1>
           </div>
-
           <div style="padding: 30px 0;">
-            <h2 style="color: #333; text-align: center; margin-bottom: 20px;">
-              ${msg.title}
-            </h2>
-
-            <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
-              ${msg.greeting}
-            </p>
-
-            <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
-              ${msg.thankYou}
-            </p>
-
-            <div style="background-color: #f8f8f8; border-left: 4px solid #ef4444; padding: 20px; margin: 30px 0; border-radius: 4px;">
-              <h3 style="color: #ef4444; margin-top: 0;">
-                ✨ ${msg.promises}
-              </h3>
-              <ul style="color: #666; font-size: 15px; line-height: 1.8; margin: 10px 0; padding-left: 20px;">
-                <li>${msg.promise1}</li>
-                <li>${msg.promise2}</li>
-                <li>${msg.promise3}</li>
-                <li>${msg.promise4}</li>
-              </ul>
-            </div>
-
-            <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
-              ${msg.content}
-            </p>
-
-            <p style="color: #999; font-size: 14px; line-height: 1.6; margin-top: 30px;">
-              ${msg.unsubscribe}
-            </p>
+            <h2 style="color: #333; text-align: center; margin-bottom: 20px;">${escapeHtml(msg.title)}</h2>
+            <p style="color: #666; font-size: 16px; line-height: 1.6;">${escapeHtml(msg.message)}</p>
+            <p style="color: #999; font-size: 14px; line-height: 1.6; margin-top: 30px;">${escapeHtml(msg.unsubscribe)}</p>
           </div>
-
-          <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #eee; margin-top: 40px;">
-            <p style="color: #999; font-size: 12px; margin: 0;">
-              ${msg.copyright}
-            </p>
-            <p style="color: #999; font-size: 12px; margin: 5px 0 0 0;">
-              📧 ${email}
-            </p>
+          <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px; margin: 0;">${escapeHtml(copyright)}</p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0 0;">📧 ${escapeHtml(email)}</p>
           </div>
         </div>
       `,
-      text: `
-        ${msg.title}
-
-        ${msg.greeting}
-
-        ${msg.thankYou}
-
-        ${msg.promises}:
-        ${msg.promise1}
-        ${msg.promise2}
-        ${msg.promise3}
-        ${msg.promise4}
-
-        ${msg.content}
-
-        ${msg.unsubscribe}
-
-        ${msg.copyright}
-      `,
+      text: [msg.title, msg.message, msg.unsubscribe, `Email: ${email}`, copyright].join('\n\n'),
     };
 
     const result = await transporter.sendMail(mailOptions);
     return result;
   } catch (error) {
     throw createEmailDeliveryError('EMAIL_NEWSLETTER_SEND_FAILED', error);
+  }
+};
+
+const sendContactEmails = async ({ name, email, phone, subject, message }, lang) => {
+  const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
+  const recipient = process.env.CONTACT_SUPPORT_EMAIL || getMessage(emailLang, 'contact.contact_email');
+  const transporter = createTransporter();
+  if (!recipient || !transporter) {
+    throw createEmailDeliveryError('EMAIL_CONTACT_NOT_CONFIGURED');
+  }
+
+  try {
+    const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+    await transporter.sendMail({
+      from,
+      to: recipient,
+      replyTo: { name, address: email },
+      subject: `[Contact] ${subject}`,
+      text: [`Name: ${name}`, `Email: ${email}`, `Phone: ${phone}`, `Subject: ${subject}`, '', message].join('\n'),
+      html: `
+        <h2>New contact form message</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+      `,
+    });
+  } catch (error) {
+    throw createEmailDeliveryError('EMAIL_CONTACT_SEND_FAILED', error);
   }
 };
 
@@ -492,5 +472,6 @@ module.exports = {
   sendResetPasswordEmail,
   sendOTPEmail,
   sendNewsletterConfirmationEmail,
+  sendContactEmails,
   sendOrderPaymentSuccessEmail,
 };

@@ -80,9 +80,10 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
               <ImageWithFallback
                 src={laptop.image}
                 alt={String(laptop.name || '')}
-                fill
+                width={1200}
+                height={900}
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="rounded-xl object-cover cursor-zoom-in"
+                className="absolute inset-0 h-full w-full rounded-xl object-cover cursor-zoom-in"
                 onClick={() => setIsImageViewerOpen(true)}
               />
               {discount > 0 && (

@@ -12,6 +12,7 @@ import {
 } from "../components/ui/accordion";
 import { faqKeys } from "../lib/data";
 import { toast } from "sonner";
+import { apiCall } from "../lib/api";
 import { useTranslation } from "../lib/i18n";
 
 export const getServerSideProps = async () => {
@@ -34,16 +35,59 @@ export default function Contact() {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success(t('form_success_message', 'contact'));
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      subject: "",
-      message: "",
-    });
+    if (isSubmitting) return;
+
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const phone = formData.phone.trim();
+    const subject = formData.subject.trim();
+    const message = formData.message.trim();
+
+    if (!name || !email || !phone || !subject || !message) {
+      toast.error(t('form_validation_required', 'contact'));
+      return;
+    }
+
+    if (name.length > 100
+      || /[\r\n]/.test(name)
+      || email.length > 254
+      || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      || phone.length > 30
+      || !/^[+()\d .-]+$/.test(phone)
+      || phone.replace(/\D/g, '').length < 7
+      || subject.length > 160
+      || /[\r\n]/.test(subject)
+      || message.length > 5000) {
+      toast.error(t('form_validation_invalid', 'contact'));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiCall('/contact', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, phone, subject, message }),
+        skipErrorToast: true,
+        skipRetry: true,
+        timeout: 20000,
+      });
+      toast.success(t('form_success_message', 'contact'));
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      const messageKey = code === 'CONTACT_FORM_INVALID'
+        ? 'form_validation_invalid'
+        : code === 'RATE_LIMIT_CONTACT'
+          ? 'form_rate_limit_error'
+          : 'form_error_message';
+      toast.error(t(messageKey, 'contact'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const branches = [
@@ -122,7 +166,7 @@ export default function Contact() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
             <h2 className="mb-6">{t('form_section_title', 'contact')}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form noValidate onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="contact-name">{t('form_full_name_label', 'contact')}</Label>
                 <Input
@@ -132,6 +176,7 @@ export default function Contact() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   autoComplete="name"
+                  maxLength={100}
                   required
                 />
               </div>
@@ -146,6 +191,7 @@ export default function Contact() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     autoComplete="email"
+                    maxLength={254}
                     required
                   />
                 </div>
@@ -159,6 +205,7 @@ export default function Contact() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     autoComplete="tel"
+                    maxLength={30}
                     required
                   />
                 </div>
@@ -172,6 +219,7 @@ export default function Contact() {
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   autoComplete="off"
+                  maxLength={160}
                   required
                 />
               </div>
@@ -185,10 +233,11 @@ export default function Contact() {
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   rows={6}
                   autoComplete="off"
+                  maxLength={5000}
                   required
                 />
               </div>
-              <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
+              <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full bg-red-600 hover:bg-red-700">
                 {t('form_send_button', 'contact')}
               </Button>
             </form>

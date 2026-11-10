@@ -144,6 +144,7 @@ function StatisticsContent() {
   const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view');
   const [detailForm, setDetailForm] = useState<DetailFormState | null>(null);
   const [detailImageFile, setDetailImageFile] = useState<File | null>(null);
+  const detailImageInputRef = useRef<HTMLInputElement>(null);
   const [isSavingDetail, setIsSavingDetail] = useState(false);
 
   // Negative insights state
@@ -409,10 +410,47 @@ function StatisticsContent() {
   );
 
   const openDetail = (detail: SelectedDetail) => {
-    setSelectedDetail(detail);
+    let resolvedDetail = detail;
+    if (detail.type === 'product') {
+      const selectedProduct = products.find(
+        (product) => String(product._id || product.id) === String(detail.item._id || detail.item.id)
+      );
+      if (selectedProduct) {
+        resolvedDetail = {
+          ...detail,
+          item: {
+            ...detail.item,
+            category: selectedProduct.category || detail.item.category,
+            categoryName: selectedProduct.categoryName || detail.item.categoryName,
+          },
+        };
+      }
+    }
+
+    setSelectedDetail(resolvedDetail);
     setDetailMode('view');
     setDetailForm(null);
     setDetailImageFile(null);
+
+    if (resolvedDetail.type === 'product' && !getStatisticsCategoryName(resolvedDetail.item)) {
+      const productId = String(resolvedDetail.item._id || resolvedDetail.item.id);
+      productAPI.getAdminProductById(productId, locale, { skipErrorToast: true }).then((product) => {
+        if (!getStatisticsCategoryName(product)) return;
+        setSelectedDetail((current) => (
+          current?.type === 'product'
+          && String(current.item._id || current.item.id) === productId
+            ? {
+                ...current,
+                item: {
+                  ...current.item,
+                  category: product.category,
+                  categoryName: product.categoryName,
+                },
+              }
+            : current
+        ));
+      }).catch(() => undefined);
+    }
   };
 
   const closeDetail = () => {
@@ -422,20 +460,32 @@ function StatisticsContent() {
     setDetailImageFile(null);
   };
 
-  const startEditDetail = () => {
+  const startEditDetail = async () => {
     if (!selectedDetail) return;
 
     if (selectedDetail.type === 'product') {
-      setDetailForm({
-        type: 'product',
-        name: String(selectedDetail.item.name || ''),
-        brand: String(selectedDetail.item.brand || ''),
-        price: String(selectedDetail.item.price),
-        originalPrice: selectedDetail.item.originalPrice ? String(selectedDetail.item.originalPrice) : '',
-        countInStock: String(selectedDetail.item.countInStock ?? 0),
-        description: String(selectedDetail.item.description || ''),
-        featured: Boolean(selectedDetail.item.featured),
-      });
+      try {
+        const response = await productAPI.getAdminProductById(
+          String(selectedDetail.item._id || selectedDetail.item.id),
+          locale,
+          { skipErrorToast: true }
+        );
+        const product = response.product || response;
+        setSelectedDetail({ ...selectedDetail, item: product });
+        setDetailForm({
+          type: 'product',
+          name: getProductName(product, locale),
+          brand: String(product.brand || ''),
+          price: String(product.price),
+          originalPrice: product.originalPrice ? String(product.originalPrice) : '',
+          countInStock: String(product.countInStock ?? 0),
+          description: String(product.description || ''),
+          featured: Boolean(product.featured),
+        });
+      } catch (error) {
+        toast.error(getUserFriendlyErrorMessage(error, t));
+        return;
+      }
     } else if (selectedDetail.type === 'coupon') {
       setDetailForm({
         type: 'coupon',
@@ -1538,9 +1588,24 @@ function StatisticsContent() {
                     <Textarea id="product-description" className="mt-1 min-h-28" value={detailForm.description} onChange={(event) => setDetailForm({ ...detailForm, description: event.target.value })} />
                   </div>
                   <div>
-                    <Label htmlFor="product-image">{t('product_image_label')}</Label>
-                    <Input id="product-image" type="file" accept="image/*" className="mt-1" onChange={(event) => setDetailImageFile(event.target.files?.[0] || null)} />
-                    <p className="mt-2 text-xs text-gray-500">{t('product_image_help')}</p>
+                    <Label htmlFor="product-image">{t('product_image_label', 'admin')}</Label>
+                    <input
+                      ref={detailImageInputRef}
+                      id="product-image"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(event) => setDetailImageFile(event.target.files?.[0] || null)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-1 w-full justify-start truncate"
+                      onClick={() => detailImageInputRef.current?.click()}
+                    >
+                      {detailImageFile?.name || t('upload_image', 'admin')}
+                    </Button>
+                    <p className="mt-2 text-xs text-gray-500">{t('product_image_help', 'admin')}</p>
                   </div>
                 </div>
               )}

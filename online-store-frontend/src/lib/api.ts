@@ -1030,11 +1030,16 @@ export const productAPI = {
   /**
    * Lấy chi tiết sản phẩm
    */
-  getAdminProductById: async (id: string, lang: Locale = getCurrentLang()) => {
+  getAdminProductById: async (
+    id: string,
+    lang: Locale = getCurrentLang(),
+    requestOptions?: Pick<FetchOptions, 'skipErrorToast'>,
+  ) => {
     const params = new URLSearchParams({ lang, locale: lang });
     return apiCall(`/products/admin/${id}?${params.toString()}`, {
       adapter: (data) => productAdapter.transform(data),
       skipCache: true,
+      ...requestOptions,
     });
   },
 
