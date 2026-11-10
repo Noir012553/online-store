@@ -46,7 +46,7 @@ Không chỉ dựa vào `hover` để thể hiện trạng thái; giữ kiểu f
 
 ## Motion
 
-Dùng utility cho transition đơn giản. Dùng CSS Module cho keyframes hoặc animation nhiều trạng thái; hỗ trợ `prefers-reduced-motion` khi hiệu ứng chuyển động có thể ảnh hưởng đến người dùng.
+Dùng utility cho transition đơn giản. Dùng CSS Module cho keyframes hoặc animation nhiều trạng thái. Global stylesheet áp dụng baseline `prefers-reduced-motion` để rút ngắn animation, transition và cuộn mượt trên toàn ứng dụng. Với hiệu ứng còn gây chuyển động đáng kể, như dịch chuyển hoặc lắc lặp, dùng `motion-safe:` cho hiệu ứng hoặc tắt riêng bằng `motion-reduce:`/CSS Module; giữ chỉ báo trạng thái cần thiết ở dạng tĩnh.
 
 ## Màu sắc và theme
 
