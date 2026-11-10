@@ -440,7 +440,7 @@ export function ProductForm({ mode, productId, onSuccess, onCancel }: ProductFor
               <Label htmlFor="product-base-currency" className="text-sm font-medium">
                 {t('admin_currency_label', 'admin-common')} <span className="text-red-500">*</span>
               </Label>
-              <select id="product-base-currency" value={product.baseCurrencyCode || ""} onChange={(event) => setProduct({ ...product, baseCurrencyCode: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+              <select id="product-base-currency" value={product.baseCurrencyCode || ""} onChange={(event) => setProduct({ ...product, baseCurrencyCode: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="" disabled>{t('admin_select_currency', 'admin-common')}</option>
                 {activeCurrencies.map((currency) => (
                   <option key={currency.code} value={currency.code}>

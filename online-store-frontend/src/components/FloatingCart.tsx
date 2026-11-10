@@ -24,7 +24,7 @@ export function FloatingCart() {
       <div className="fixed right-8 bottom-8 z-40">
         <button
           onClick={() => setIsMinimized(false)}
-          className="bg-red-600 hover:bg-red-700 text-white w-12 h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center"
+          className="bg-red-600 hover:bg-red-700 text-white w-12 h-12 rounded-full shadow-lg motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:scale-105 flex items-center justify-center"
           aria-label={t('floating_cart_open', 'components')}
           title={t('floating_cart_open', 'components')}
         >
@@ -39,7 +39,7 @@ export function FloatingCart() {
       <div className="relative inline-block">
         <button
           onClick={handleCartClick}
-          className="min-h-12 min-w-12 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-3 group"
+          className="min-h-12 min-w-12 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-full shadow-lg motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:scale-105 flex items-center gap-3 group"
           aria-label={t('floating_cart_view', 'components')}
           title={t('floating_cart_view', 'components')}
         >

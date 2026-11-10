@@ -1191,7 +1191,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                               height={100}
                               sizes="(max-width: 639px) 42vw, (max-width: 1023px) 28vw, 220px"
                               loading="lazy"
-                              className="absolute inset-0 h-full w-full max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
+                              className="absolute inset-0 h-full w-full max-h-14 max-w-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105 sm:max-h-16"
                             />
                           ) : (
                             <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>

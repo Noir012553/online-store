@@ -295,7 +295,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
             </div>
             {!viewDeletedTab && (
               <>
-                <select value={filterCategory} onChange={(event) => { setFilterCategory(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterCategory} onChange={(event) => { setFilterCategory(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'admin')}</option>
                   {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
@@ -303,7 +303,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                     </option>
                   ))}
                 </select>
-                <select value={filterBrand} onChange={(event) => { setFilterBrand(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterBrand} onChange={(event) => { setFilterBrand(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   {brandNames.map((brand) => (
                     <option key={brand} value={brand}>

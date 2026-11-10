@@ -51,7 +51,7 @@ export function ProductGallery({
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
               loading="eager"
-              className="object-contain transition-transform duration-300 group-hover:scale-110"
+              className="object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-110"
             />
           </button>
         ) : (
@@ -86,7 +86,7 @@ export function ProductGallery({
               key={image}
               type="button"
               onClick={() => onSelectImage(index)}
-              className={`relative aspect-video overflow-hidden rounded-xl border-2 bg-white p-1 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+              className={`relative aspect-video overflow-hidden rounded-xl border-2 bg-white p-1 motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-md ${
                 selectedImage === index ? 'border-red-600 shadow-md shadow-red-600/15' : 'border-transparent'
               }`}
             >

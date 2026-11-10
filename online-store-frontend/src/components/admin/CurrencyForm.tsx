@@ -181,7 +181,7 @@ export function CurrencyForm({ currency, onSuccess, onCancel }: CurrencyFormProp
 
           <div>
             <Label htmlFor="position">{t('admin_currency_position', 'admin')}</Label>
-            <select value={formData.position} onChange={(event) => handleSelectChange(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+            <select value={formData.position} onChange={(event) => handleSelectChange(event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
               <option value="before">{t('admin_currency_position_before', 'admin')}</option>
               <option value="after">{t('admin_currency_position_after', 'admin')}</option>
             </select>

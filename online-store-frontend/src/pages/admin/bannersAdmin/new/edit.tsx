@@ -346,7 +346,7 @@ function BannerCreatePageContent() {
             <div className="rounded-xl border border-gray-200 bg-white p-4">
               <div className="space-y-2">
                 <Label>{t('banner_form_position_required', 'admin-banners')}</Label>
-                <select value={banner.slot} onChange={(event) => setBanner({ ...banner, slot: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                <select value={banner.slot} onChange={(event) => setBanner({ ...banner, slot: event.target.value })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
                   {slotOptions.map((slot) => (
                     <option key={slot.value} value={slot.value}>
                       {slot.label}

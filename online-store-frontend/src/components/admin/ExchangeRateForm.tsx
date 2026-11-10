@@ -146,7 +146,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
         <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="fromCode">{t('admin_exchange_from', 'admin')} *</Label>
-            <select value={formData.fromCode} onChange={(event) => handleSelectChange('fromCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+            <select value={formData.fromCode} onChange={(event) => handleSelectChange('fromCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
               <option value="" disabled>{t('admin_currency_list', 'admin')}</option>
               {currencyOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -158,7 +158,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
           <div>
             <Label htmlFor="toCode">{t('admin_exchange_to', 'admin')} *</Label>
-            <select value={formData.toCode} onChange={(event) => handleSelectChange('toCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+            <select value={formData.toCode} onChange={(event) => handleSelectChange('toCode', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
               <option value="" disabled>{t('admin_currency_list', 'admin')}</option>
               {currencyOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -184,7 +184,7 @@ export function ExchangeRateForm({ rate, onSuccess, onCancel }: ExchangeRateForm
 
           <div>
             <Label htmlFor="source">{t('admin_exchange_source', 'admin')}</Label>
-            <select value={formData.source} onChange={(event) => handleSelectChange('source', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+            <select value={formData.source} onChange={(event) => handleSelectChange('source', event.target.value)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
               <option value="manual">{t('admin_exchange_source_manual', 'admin')}</option>
               <option value="api">{t('admin_exchange_source_api', 'admin')}</option>
               <option value="import">{t('admin_exchange_source_import', 'admin')}</option>
