@@ -438,7 +438,7 @@ export function ProductsList({ discountMode = false }: ProductsListProps) {
                             aria-label={t('delete', 'common')}
                           >
                             {deletingProductId === product._id ? (
-                              <LoaderCircle className="w-4 h-4 animate-spin text-red-600" />
+                              <LoaderCircle className="w-4 h-4 animate-spin motion-reduce:animate-none text-red-600" />
                             ) : (
                               <Trash2 className="w-4 h-4 text-red-600" />
                             )}

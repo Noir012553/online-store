@@ -116,7 +116,7 @@ export function LanguageManagementPanel() {
               </div>
               <div className="flex items-center gap-2">
                 {lang.syncStatus === 'syncing' && (
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <Loader2 className="w-5 h-5 animate-spin motion-reduce:animate-none text-blue-600" />
                 )}
                 {lang.syncStatus === 'done' && (
                   <Check className="w-5 h-5 text-green-600" />
@@ -156,7 +156,7 @@ export function LanguageManagementPanel() {
               className="w-full gap-2 sm:w-auto"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
               ) : (
                 <Plus className="w-4 h-4" />
               )}

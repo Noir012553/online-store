@@ -399,7 +399,7 @@ export default function ProductDetail() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="animate-pulse space-y-8">
+        <div className="animate-pulse motion-reduce:animate-none space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="aspect-video bg-gray-200 rounded-lg"></div>
             <div className="space-y-4">

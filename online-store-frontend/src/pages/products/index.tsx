@@ -161,7 +161,7 @@ export default function AllProductsPage() {
         </div>
 
         {isSearchLoading ? (
-          <div className="animate-pulse space-y-8">
+          <div className="animate-pulse motion-reduce:animate-none space-y-8">
             <div className="h-80 bg-gray-200 rounded-lg"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (

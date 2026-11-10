@@ -99,7 +99,7 @@ export function AddLanguageModal({
                 : 'bg-orange-600 hover:bg-orange-700'
             }`}
           >
-            {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isProcessing && <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />}
             {isProcessing
               ? t('admin_processing', 'admin-translation')
               : t('admin_confirm_and_translate', 'admin-translation')}

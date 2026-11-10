@@ -60,7 +60,7 @@ export function LiveTranslationButton({
         className="w-fit gap-2 text-xs"
       >
         {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
         ) : (
           <Globe className="w-4 h-4" />
         )}

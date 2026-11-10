@@ -169,7 +169,7 @@ export function NotificationBell() {
         >
           <Bell className="h-5 w-5 text-blue-600 transition-colors" />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full animate-pulse">
+            <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full animate-pulse motion-reduce:animate-none">
               {unreadCount > 99 ? t('need_processing', 'notifications').replace('{count}', '99') : unreadCount}
             </span>
           )}
