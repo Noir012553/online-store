@@ -105,8 +105,8 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
       ? 'min-h-7.5 md:min-h-17.5'
       : 'min-h-40 md:min-h-55';
   const contentPaddingClassName = effectiveVariant === 'hero'
-    ? 'layout-gutter-wide'
-    : 'layout-gutter';
+    ? 'px-[var(--layout-gutter-wide)]'
+    : 'px-[var(--layout-gutter)]';
 
   // Image-only variant: just show image without text, labels, or CTA
   if (effectiveVariant === 'image-only') {

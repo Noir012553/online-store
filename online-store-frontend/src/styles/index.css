@@ -196,16 +196,6 @@ html body .container {
   padding-right: var(--layout-gutter);
 }
 
-html body .layout-gutter {
-  padding-left: var(--layout-gutter);
-  padding-right: var(--layout-gutter);
-}
-
-html body .layout-gutter-wide {
-  padding-left: var(--layout-gutter-wide);
-  padding-right: var(--layout-gutter-wide);
-}
-
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
