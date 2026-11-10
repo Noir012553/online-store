@@ -136,7 +136,7 @@ export function Footer() {
                   alt={t('brand_name', 'footer')}
                   width={260}
                   height={146}
-                  className={`${styles.logoImage} h-20 w-auto max-w-full object-contain object-left sm:h-24`}
+                  className={`${styles.logoImage} h-20 w-auto object-left sm:h-24`}
                 />
               </Link>
               <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 leading-relaxed">

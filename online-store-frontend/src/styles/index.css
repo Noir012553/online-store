@@ -42,7 +42,6 @@
   --sidebar-ring: #dc2626;
   --layout-gutter: clamp(1rem, 2vw + 0.5rem, 4rem);
   --layout-gutter-wide: clamp(1.5rem, 3vw + 0.75rem, 5.5rem);
-  --layout-gutter-xwide: clamp(1rem, 4vw + 0.5rem, 7rem);
   --container-padding-x: 1rem;
 }
 
@@ -207,11 +206,6 @@ html body .layout-gutter-wide {
   padding-right: var(--layout-gutter-wide);
 }
 
-html body .layout-gutter-xwide {
-  padding-left: var(--layout-gutter-xwide);
-  padding-right: var(--layout-gutter-xwide);
-}
-
 .sticky-side-banner {
   top: 96px;
   transform: translate3d(0, var(--banner-offset-y, 0px), 0);
@@ -333,52 +327,4 @@ input[type="number"] {
 
 .sonner-toast[data-type="error"] .sonner-icon {
   color: #ef4444;
-}
-
-/* ===== Animations ===== */
-@keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ===== Utility Classes ===== */
-@layer utilities {
-  .animate-modal-in {
-    animation: modalIn 0.2s ease-out;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.2s ease-out;
-  }
-
-  .animate-slide-in-up {
-    animation: slideInUp 0.3s ease-out;
-  }
-
 }
