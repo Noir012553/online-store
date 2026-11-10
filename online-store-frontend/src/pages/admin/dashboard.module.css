@@ -1,0 +1,13 @@
+.chart :global(.recharts-cartesian-axis-tick text) {
+  font-size: 12px;
+}
+
+.chart :global(.recharts-default-tooltip) {
+  background-color: #fff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+}
+
+.chart :global(.recharts-legend-wrapper) {
+  padding-top: 20px !important;
+}

@@ -12,6 +12,7 @@ import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { DateRangePickerModal } from "../../components/admin/DateRangePickerModal";
 import { HamsterLoader } from "../../components/HamsterLoader";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
+import styles from "./dashboard.module.css";
 
 // In-memory cache manager (safe, TTL-based, no localStorage)
 interface CacheEntry {
@@ -511,7 +512,7 @@ function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
+        <div className={`${styles.chart} bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8`}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('revenue_trend', 'admin')}</h2>
@@ -525,13 +526,10 @@ function DashboardContent() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="period" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(_, __, item: any) => [item?.payload?.formattedRevenue || '', t('revenue_label', 'admin')]}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <XAxis dataKey="period" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(_, __, item: any) => [item?.payload?.formattedRevenue || '', t('revenue_label', 'admin')]} />
+                <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#ef4444" name={t('revenue_label', 'admin')} strokeWidth={3} dot={{ fill: '#ef4444', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -540,7 +538,7 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
+        <div className={`${styles.chart} bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8`}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('orders_trend', 'admin')}</h2>
@@ -554,13 +552,10 @@ function DashboardContent() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={ordersTimelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="period" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value: any) => [`${value || 0} ${t('menu_orders', 'common')}`, t('menu_orders', 'common')]}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <XAxis dataKey="period" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(value: any) => [`${value || 0} ${t('menu_orders', 'common')}`, t('menu_orders', 'common')]} />
+                <Legend />
                 <Line type="monotone" dataKey="orders" stroke="#3b82f6" name={t('orders_label', 'admin')} strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
