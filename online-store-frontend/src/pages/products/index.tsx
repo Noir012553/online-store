@@ -216,7 +216,7 @@ export default function AllProductsPage() {
         ) : (
           <>
             {/* Hero Banner */}
-            <div className="hero-banner rounded-lg bg-linear-to-r from-red-600 to-red-800 text-white px-4 sm:px-8 py-8 sm:py-16 mb-8 sm:mb-12">
+            <div className="rounded-lg bg-linear-to-r from-red-600 to-red-800 text-white px-4 sm:px-8 py-8 sm:py-16 mb-8 sm:mb-12">
               <div className="max-w-2xl">
                 <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4">{t('hero_title')}</h1>
                 <p className="text-xs sm:text-lg text-red-100 mb-1 sm:mb-2">{t('hero_subtitle')}</p>
@@ -225,8 +225,8 @@ export default function AllProductsPage() {
             </div>
 
             {/* Statistics Section */}
-            <div className="statistics-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-8 sm:mb-12">
-              <div className="stats-card bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-4 sm:p-6 border border-blue-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-8 sm:mb-12">
+              <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-4 sm:p-6 border border-blue-200">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm font-medium">{t('stats_total_products')}</p>
@@ -236,7 +236,7 @@ export default function AllProductsPage() {
                 </div>
               </div>
 
-              <div className="stats-card bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-4 sm:p-6 border border-purple-200">
+              <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-4 sm:p-6 border border-purple-200">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm font-medium">{t('stats_categories')}</p>
@@ -246,7 +246,7 @@ export default function AllProductsPage() {
                 </div>
               </div>
 
-              <div className="stats-card bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-4 sm:p-6 border border-orange-200">
+              <div className="bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-4 sm:p-6 border border-orange-200">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-gray-600 text-xs sm:text-sm font-medium">{t('stats_rating', 'products')}</p>
@@ -264,7 +264,7 @@ export default function AllProductsPage() {
                 <p className="text-gray-600 text-base sm:text-lg">{t('no_categories')}</p>
               </div>
             ) : (
-              <div className="categories-section">
+              <div>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8">{t('categories_section_title')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {categories.map((category) => {
