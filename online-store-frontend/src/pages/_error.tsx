@@ -4,11 +4,11 @@ function Error({ statusCode }: { statusCode: number }) {
   const { t } = useLanguage();
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-      <h1 style={{ fontSize: '48px', fontWeight: 'bold', margin: '0 0 10px 0' }}>
+    <div className="flex min-h-screen flex-col items-center justify-center p-5 text-center">
+      <h1 className="m-0 mb-2.5 text-5xl font-bold">
         {statusCode || 500}
       </h1>
-      <p style={{ fontSize: '18px', color: '#666', margin: 0 }}>
+      <p className="m-0 text-lg text-[#666]">
         {statusCode === 404 ? t('error_page_not_found', 'errors') : t('error_server_error', 'errors')}
       </p>
     </div>

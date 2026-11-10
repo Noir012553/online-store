@@ -6,6 +6,14 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, AVAILABLE_LOCALES, Locale } from '../../lib/i18n/types';
+import styles from './translationManualOverride.module.css';
+
+const messageTypeClasses = {
+  success: styles.overrideMessageSuccess,
+  error: styles.overrideMessageError,
+  warning: styles.overrideMessageWarning,
+  info: styles.overrideMessageInfo,
+};
 
 interface OverrideForm {
   entityId: string;
@@ -144,21 +152,21 @@ const TranslationManualOverride = () => {
   };
 
   return (
-    <div className="override-container">
-      <div className="override-header">
+    <div className={styles.overrideContainer}>
+      <div className={styles.overrideHeader}>
         <div>
-          <h1 className="override-title">
+          <h1 className={styles.overrideTitle}>
             {t('admin_override_title', 'admin-translation-override')}
           </h1>
-          <p className="override-subtitle">
+          <p className={styles.overrideSubtitle}>
             {t('admin_override_subtitle', 'admin-translation-override')}
           </p>
         </div>
       </div>
 
       {message && (
-        <div className={`override-message override-message-${message.type}`}>
-          <div className="override-message-content">
+        <div className={`${styles.overrideMessage} ${messageTypeClasses[message.type]}`}>
+          <div className={styles.overrideMessageContent}>
             {message.type === 'success' && <Check size={18} />}
             {message.type === 'error' && <AlertCircle size={18} />}
             {message.type === 'warning' && <AlertCircle size={18} />}
@@ -167,7 +175,7 @@ const TranslationManualOverride = () => {
           </div>
           <button
             onClick={() => setMessage(null)}
-            className="override-message-close"
+            className={styles.overrideMessageClose}
             aria-label={t('close_button', 'admin')}
           >
             <X size={18} />
@@ -175,11 +183,11 @@ const TranslationManualOverride = () => {
         </div>
       )}
 
-      <div className="override-content">
-        <div className="override-form-section">
-          <form onSubmit={handleSubmit} className="override-form">
-            <div className="override-form-group">
-              <label htmlFor="entityId" className="override-label">
+      <div className={styles.overrideContent}>
+        <div className={styles.overrideFormSection}>
+          <form onSubmit={handleSubmit} className={styles.overrideForm}>
+            <div className={styles.overrideFormGroup}>
+              <label htmlFor="entityId" className={styles.overrideLabel}>
                 {t('admin_override_entity_id', 'admin-translation-override')} *
               </label>
               <input
@@ -188,24 +196,24 @@ const TranslationManualOverride = () => {
                 placeholder={t('admin_override_entity_id_placeholder', 'admin-translation-override')}
                 value={form.entityId}
                 onChange={e => handleFormChange('entityId', e.target.value)}
-                className="override-input"
+                className={styles.overrideInput}
                 disabled={submitting}
               />
-              <small className="override-help-text">
+              <small className={styles.overrideHelpText}>
                 {t('admin_override_entity_id_help', 'admin-translation-override')}
               </small>
             </div>
 
-            <div className="override-form-row">
-              <div className="override-form-group">
-                <label htmlFor="entityType" className="override-label">
+            <div className={styles.overrideFormRow}>
+              <div className={styles.overrideFormGroup}>
+                <label htmlFor="entityType" className={styles.overrideLabel}>
                   {t('admin_override_entity_type', 'admin-translation-override')} *
                 </label>
                 <select
                   id="entityType"
                   value={form.entityType}
                   onChange={e => handleFormChange('entityType', e.target.value)}
-                  className="override-select"
+                  className={styles.overrideSelect}
                   disabled={submitting}
                 >
                   {getEntityTypes(t).map(type => (
@@ -216,15 +224,15 @@ const TranslationManualOverride = () => {
                 </select>
               </div>
 
-              <div className="override-form-group">
-                <label htmlFor="targetLang" className="override-label">
+              <div className={styles.overrideFormGroup}>
+                <label htmlFor="targetLang" className={styles.overrideLabel}>
                   {t('admin_override_language', 'admin-translation-override')}
                 </label>
                 <select
                   id="targetLang"
                   value={form.targetLang}
                   onChange={e => handleFormChange('targetLang', e.target.value)}
-                  className="override-select"
+                  className={styles.overrideSelect}
                   disabled={submitting}
                 >
                   {SUPPORTED_LOCALES.map((code: Locale) => (
@@ -236,8 +244,8 @@ const TranslationManualOverride = () => {
               </div>
             </div>
 
-            <div className="override-form-group">
-              <label htmlFor="oldValue" className="override-label">
+            <div className={styles.overrideFormGroup}>
+              <label htmlFor="oldValue" className={styles.overrideLabel}>
                 {t('admin_override_old_value', 'admin-translation-override')}
               </label>
               <textarea
@@ -245,17 +253,17 @@ const TranslationManualOverride = () => {
                 placeholder={t('admin_override_old_value_placeholder', 'admin-translation-override')}
                 value={form.oldValue}
                 onChange={e => handleFormChange('oldValue', e.target.value)}
-                className="override-textarea"
+                className={styles.overrideTextarea}
                 disabled={submitting}
                 rows={3}
               />
-              <small className="override-help-text">
+              <small className={styles.overrideHelpText}>
                 {t('admin_override_old_value_help', 'admin-translation-override')}
               </small>
             </div>
 
-            <div className="override-form-group">
-              <label htmlFor="newValue" className="override-label">
+            <div className={styles.overrideFormGroup}>
+              <label htmlFor="newValue" className={styles.overrideLabel}>
                 {t('admin_override_new_value', 'admin-translation-override')} *
               </label>
               <textarea
@@ -263,17 +271,17 @@ const TranslationManualOverride = () => {
                 placeholder={t('admin_override_new_value_placeholder', 'admin-translation-override')}
                 value={form.newValue}
                 onChange={e => handleFormChange('newValue', e.target.value)}
-                className="override-textarea"
+                className={styles.overrideTextarea}
                 disabled={submitting}
                 rows={4}
               />
-              <small className="override-help-text">
+              <small className={styles.overrideHelpText}>
                 {t('admin_override_new_value_help', 'admin-translation-override')}
               </small>
             </div>
 
-            <div className="override-form-group">
-              <label htmlFor="reason" className="override-label">
+            <div className={styles.overrideFormGroup}>
+              <label htmlFor="reason" className={styles.overrideLabel}>
                 {t('admin_override_reason', 'admin-translation-override')} *
               </label>
               <textarea
@@ -281,20 +289,20 @@ const TranslationManualOverride = () => {
                 placeholder={t('admin_override_reason_placeholder', 'admin-translation-override')}
                 value={form.reason}
                 onChange={e => handleFormChange('reason', e.target.value)}
-                className="override-textarea"
+                className={styles.overrideTextarea}
                 disabled={submitting}
                 rows={3}
               />
-              <small className="override-help-text">
+              <small className={styles.overrideHelpText}>
                 {t('admin_override_reason_help', 'admin-translation-override')}
               </small>
             </div>
 
-            <div className="override-form-actions">
+            <div className={styles.overrideFormActions}>
               <button
                 type="button"
                 onClick={() => setShowPreview(!showPreview)}
-                className="override-preview-btn"
+                className={styles.overridePreviewBtn}
                 disabled={submitting}
               >
                 {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -303,12 +311,12 @@ const TranslationManualOverride = () => {
 
               <button
                 type="submit"
-                className="override-submit-btn"
+                className={styles.overrideSubmitBtn}
                 disabled={submitting || !form.entityId || !form.newValue}
               >
                 {submitting ? (
                   <>
-                    <span className="override-spinner"></span>
+                    <span className={styles.overrideSpinner}></span>
                     {t('admin_override_saving', 'admin-translation-override')}
                   </>
                 ) : (
@@ -322,33 +330,33 @@ const TranslationManualOverride = () => {
           </form>
 
           {showPreview && (
-            <div className="override-preview">
+            <div className={styles.overridePreview}>
               <h3>{t('admin_override_preview_title', 'admin-translation-override')}</h3>
-              <div className="override-preview-grid">
-                <div className="override-preview-item">
-                  <span className="override-preview-label">{t('admin_override_preview_entity', 'admin-translation-override')}:</span>
-                  <span className="override-preview-value">{form.entityId || '-'}</span>
+              <div className={styles.overridePreviewGrid}>
+                <div className={styles.overridePreviewItem}>
+                  <span className={styles.overridePreviewLabel}>{t('admin_override_preview_entity', 'admin-translation-override')}:</span>
+                  <span className={styles.overridePreviewValue}>{form.entityId || '-'}</span>
                 </div>
-                <div className="override-preview-item">
-                  <span className="override-preview-label">{t('admin_override_preview_type', 'admin-translation-override')}:</span>
-                  <span className="override-preview-value">{form.entityType}</span>
+                <div className={styles.overridePreviewItem}>
+                  <span className={styles.overridePreviewLabel}>{t('admin_override_preview_type', 'admin-translation-override')}:</span>
+                  <span className={styles.overridePreviewValue}>{form.entityType}</span>
                 </div>
-                <div className="override-preview-item">
-                  <span className="override-preview-label">{t('admin_override_preview_language', 'admin-translation-override')}:</span>
-                  <span className="override-preview-value">{getLanguageName(form.targetLang as Locale)}</span>
+                <div className={styles.overridePreviewItem}>
+                  <span className={styles.overridePreviewLabel}>{t('admin_override_preview_language', 'admin-translation-override')}:</span>
+                  <span className={styles.overridePreviewValue}>{getLanguageName(form.targetLang as Locale)}</span>
                 </div>
-                <div className="override-preview-item">
-                  <span className="override-preview-label">{t('admin_override_preview_reason', 'admin-translation-override')}:</span>
-                  <span className="override-preview-value">{form.reason || '-'}</span>
+                <div className={styles.overridePreviewItem}>
+                  <span className={styles.overridePreviewLabel}>{t('admin_override_preview_reason', 'admin-translation-override')}:</span>
+                  <span className={styles.overridePreviewValue}>{form.reason || '-'}</span>
                 </div>
               </div>
-              <div className="override-preview-change">
-                <div className="override-preview-old">
+              <div className={styles.overridePreviewChange}>
+                <div className={styles.overridePreviewOld}>
                   <h4>{t('admin_override_old_value', 'admin-translation-override')}</h4>
                   <pre>{form.oldValue || t('admin_override_empty', 'admin-translation-override')}</pre>
                 </div>
-                <div className="override-preview-arrow"><ArrowRight className="h-5 w-5" aria-hidden="true" /></div>
-                <div className="override-preview-new">
+                <div className={styles.overridePreviewArrow}><ArrowRight className="h-5 w-5" aria-hidden="true" /></div>
+                <div className={styles.overridePreviewNew}>
                   <h4>{t('admin_override_new_value', 'admin-translation-override')}</h4>
                   <pre>{form.newValue || t('admin_override_empty', 'admin-translation-override')}</pre>
                 </div>
@@ -358,24 +366,24 @@ const TranslationManualOverride = () => {
         </div>
 
         {recentOverrides.length > 0 && (
-          <div className="override-recent-section">
+          <div className={styles.overrideRecentSection}>
             <h2>{t('admin_override_recent_title', 'admin-translation-override')}</h2>
-            <div className="override-recent-list">
+            <div className={styles.overrideRecentList}>
               {recentOverrides.map((override, idx) => (
-                <div key={idx} className="override-recent-item">
-                  <div className="override-recent-header">
-                    <span className="override-recent-entity">{override.entityId}</span>
-                    <span className="override-recent-lang">{getLanguageName(override.targetLang as Locale)}</span>
-                    <span className="override-recent-type">{override.entityType}</span>
+                <div key={idx} className={styles.overrideRecentItem}>
+                  <div className={styles.overrideRecentHeader}>
+                    <span className={styles.overrideRecentEntity}>{override.entityId}</span>
+                    <span className={styles.overrideRecentLang}>{getLanguageName(override.targetLang as Locale)}</span>
+                    <span className={styles.overrideRecentType}>{override.entityType}</span>
                   </div>
-                  <div className="override-recent-preview">
-                    <div className="override-recent-old">{override.oldValue?.substring(0, 50)}...</div>
-                    <div className="override-recent-arrow">→</div>
-                    <div className="override-recent-new">{override.newValue?.substring(0, 50)}...</div>
+                  <div className={styles.overrideRecentPreview}>
+                    <div className={styles.overrideRecentOld}>{override.oldValue?.substring(0, 50)}...</div>
+                    <div className={styles.overrideRecentArrow}>→</div>
+                    <div className={styles.overrideRecentNew}>{override.newValue?.substring(0, 50)}...</div>
                   </div>
                   <button
                     onClick={() => handlePrefillFromRecent(override)}
-                    className="override-recent-btn"
+                    className={styles.overrideRecentBtn}
                     disabled={submitting}
                   >
                     {t('admin_override_use_this', 'admin-translation-override')}
@@ -386,444 +394,6 @@ const TranslationManualOverride = () => {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .override-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-
-        .override-header {
-          margin-bottom: 24px;
-        }
-
-        .override-title {
-          font-size: 28px;
-          font-weight: 700;
-          margin: 0 0 4px 0;
-          color: #1a1a1a;
-        }
-
-        .override-subtitle {
-          font-size: 14px;
-          color: #666;
-          margin: 0;
-        }
-
-        .override-message {
-          padding: 12px 16px;
-          border-radius: 6px;
-          margin-bottom: 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 14px;
-        }
-
-        .override-message-success {
-          background-color: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-
-        .override-message-error {
-          background-color: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-
-        .override-message-warning {
-          background-color: #fff3cd;
-          color: #856404;
-          border: 1px solid #ffeaa7;
-        }
-
-        .override-message-info {
-          background-color: #d1ecf1;
-          color: #0c5460;
-          border: 1px solid #bee5eb;
-        }
-
-        .override-message-content {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .override-message-close {
-          background: none;
-          border: none;
-          color: inherit;
-          cursor: pointer;
-          padding: 0;
-          line-height: 1;
-        }
-
-        .override-content {
-          display: grid;
-          grid-template-columns: 1fr 350px;
-          gap: 20px;
-        }
-
-        .override-form-section {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 24px;
-        }
-
-        .override-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .override-form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .override-form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .override-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .override-input,
-        .override-select,
-        .override-textarea {
-          padding: 10px 12px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-          font-family: inherit;
-          background-color: white;
-        }
-
-        .override-input:focus,
-        .override-select:focus,
-        .override-textarea:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-        }
-
-        .override-input:disabled,
-        .override-select:disabled,
-        .override-textarea:disabled {
-          background-color: #f5f5f5;
-          color: #999;
-        }
-
-        .override-help-text {
-          font-size: 12px;
-          color: #666;
-        }
-
-        .override-form-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-          padding-top: 12px;
-          border-top: 1px solid #eee;
-        }
-
-        .override-preview-btn,
-        .override-submit-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 16px;
-          border-radius: 4px;
-          border: 1px solid #ddd;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s ease;
-        }
-
-        .override-preview-btn {
-          background-color: white;
-          color: #333;
-        }
-
-        .override-preview-btn:hover:not(:disabled) {
-          background-color: #f5f5f5;
-        }
-
-        .override-submit-btn {
-          background-color: #007bff;
-          color: white;
-          border-color: #007bff;
-        }
-
-        .override-submit-btn:hover:not(:disabled) {
-          background-color: #0056b3;
-        }
-
-        .override-submit-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .override-spinner {
-          display: inline-block;
-          width: 14px;
-          height: 14px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .override-preview {
-          margin-top: 24px;
-          padding: 16px;
-          background-color: #f9f9f9;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-
-        .override-preview h3 {
-          margin: 0 0 16px 0;
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        .override-preview-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .override-preview-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 8px;
-          background-color: white;
-          border-radius: 4px;
-        }
-
-        .override-preview-label {
-          font-weight: 600;
-          font-size: 12px;
-          color: #666;
-        }
-
-        .override-preview-value {
-          font-size: 13px;
-          color: #333;
-          text-align: right;
-        }
-
-        .override-preview-change {
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .override-preview-old,
-        .override-preview-new {
-          background-color: white;
-          border-radius: 4px;
-          padding: 12px;
-        }
-
-        .override-preview-old h4 {
-          margin: 0 0 8px 0;
-          font-size: 12px;
-          color: #d32f2f;
-        }
-
-        .override-preview-new h4 {
-          margin: 0 0 8px 0;
-          font-size: 12px;
-          color: #388e3c;
-        }
-
-        .override-preview-old pre,
-        .override-preview-new pre {
-          margin: 0;
-          font-size: 12px;
-          white-space: pre-wrap;
-          word-break: break-word;
-          max-height: 100px;
-          overflow-y: auto;
-        }
-
-        .override-preview-old pre {
-          color: #d32f2f;
-        }
-
-        .override-preview-new pre {
-          color: #388e3c;
-        }
-
-        .override-preview-arrow {
-          text-align: center;
-          color: #999;
-          font-weight: 600;
-        }
-
-        .override-recent-section {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 16px;
-          max-height: 600px;
-          overflow-y: auto;
-        }
-
-        .override-recent-section h2 {
-          margin: 0 0 12px 0;
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        .override-recent-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .override-recent-item {
-          padding: 10px;
-          background-color: #f9f9f9;
-          border: 1px solid #eee;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .override-recent-item:hover {
-          background-color: #f0f0f0;
-          border-color: #ddd;
-        }
-
-        .override-recent-header {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 6px;
-          font-size: 11px;
-        }
-
-        .override-recent-entity {
-          font-weight: 600;
-          color: #333;
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .override-recent-lang {
-          background-color: #e7f3ff;
-          color: #0056b3;
-          padding: 2px 6px;
-          border-radius: 2px;
-          font-weight: 500;
-        }
-
-        .override-recent-type {
-          background-color: #f0f0f0;
-          color: #666;
-          padding: 2px 6px;
-          border-radius: 2px;
-          font-size: 10px;
-        }
-
-        .override-recent-preview {
-          display: flex;
-          gap: 4px;
-          margin-bottom: 8px;
-          font-size: 11px;
-        }
-
-        .override-recent-old,
-        .override-recent-new {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          padding: 4px;
-          background-color: white;
-          border-radius: 2px;
-        }
-
-        .override-recent-old {
-          color: #d32f2f;
-        }
-
-        .override-recent-new {
-          color: #388e3c;
-        }
-
-        .override-recent-arrow {
-          color: #999;
-          font-size: 10px;
-        }
-
-        .override-recent-btn {
-          width: 100%;
-          padding: 6px 10px;
-          background-color: #007bff;
-          color: white;
-          border: none;
-          border-radius: 3px;
-          font-size: 11px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .override-recent-btn:hover:not(:disabled) {
-          background-color: #0056b3;
-        }
-
-        .override-recent-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        @media (max-width: 968px) {
-          .override-content {
-            grid-template-columns: 1fr;
-          }
-
-          .override-form-row {
-            grid-template-columns: 1fr;
-          }
-
-          .override-recent-section {
-            max-height: none;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .override-preview-change {
-            grid-template-columns: 1fr;
-          }
-
-          .override-preview-arrow {
-            text-align: center;
-            margin: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };

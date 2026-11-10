@@ -19,6 +19,7 @@ import { R2Icon } from "../components/icons/R2Icon";
 import { ProductSkeleton } from "../components/ProductSkeleton";
 import { EmptyState } from "../components/EmptyState";
 import { getImageUrl } from "../lib/utils";
+import styles from "./HomeContent.module.css";
 
 
 const DeferredProductCard = dynamic(
@@ -848,7 +849,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
             inert={!isBannerVisible}
-            className={`sticky-side-banner fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+            className={`${styles.stickySideBanner} fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             {isDesktopViewport && <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />}
           </div>
@@ -857,13 +858,13 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
           <div
             aria-hidden={!isBannerVisible}
             inert={!isBannerVisible}
-            className={`sticky-side-banner fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+            className={`${styles.stickySideBanner} fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             {isDesktopViewport && <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />}
           </div>
           {categoryCount > 0 && (
             <section
-              className="bg-white container mx-auto section-container-px py-4 sm:py-6"
+              className="bg-white container mx-auto py-4 sm:py-6"
               role={categoryCount > 1 ? 'region' : undefined}
               aria-roledescription={categoryCount > 1 ? t('carousel_role', 'common') : undefined}
               aria-label={categoryCount > 1 ? t('category_carousel', 'categories') : undefined}
@@ -885,12 +886,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                     <Link
                       key={`${category._id}-${index}`}
                       href={`/products/${slug}`}
-                      className="category-card flex min-w-[calc((100vw-3rem)/2)] snap-start flex-col items-center gap-2 rounded-lg border p-3 transition-all hover:border-red-600 hover:shadow-lg sm:min-w-[calc((100vw-5rem)/3)] sm:gap-3 sm:p-4"
+                      className="flex min-w-[calc((100vw-3rem)/2)] snap-start flex-col items-center gap-2 rounded-lg border p-3 transition-all hover:border-red-600 hover:shadow-lg sm:min-w-[calc((100vw-5rem)/3)] sm:gap-3 sm:p-4"
                     >
-                      <div className="category-icon-container w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-full flex items-center justify-center overflow-hidden">
                         <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
                       </div>
-                      <span className="category-name text-center text-xs sm:text-sm">{displayName}</span>
+                      <span className="text-center text-xs sm:text-sm">{displayName}</span>
                     </Link>
                   );
                 })}
@@ -923,12 +924,12 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                           <Link
                             key={`${category._id}-${index}`}
                             href={`/products/${slug}`}
-                            className="category-card flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
+                            className="flex flex-col items-center gap-3 border rounded-lg p-6 transition-all hover:border-red-600 hover:shadow-lg"
                           >
-                            <div className="category-icon-container flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-red-50">
+                            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-red-50">
                               <Icon className="h-8 w-8 text-red-600" />
                             </div>
-                            <span className="category-name text-center text-sm">{displayName}</span>
+                            <span className="text-center text-sm">{displayName}</span>
                           </Link>
                         );
                       })}
@@ -964,7 +965,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
           {!isLoading && productLoadError && (
             <section className="bg-white py-6 sm:py-8">
-              <div className="container mx-auto section-container-px">
+              <div className="container mx-auto">
                 <EmptyState
                   icon={PackageSearch}
                   title={t('products_unavailable_title')}
@@ -978,7 +979,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
           {(isLoading || sectionsToRender.length > 0) && (
             <section className="mt-4 bg-white pt-6 pb-6 sm:mt-0 sm:pt-8 sm:pb-8">
-              <div className="container mx-auto section-container-px">
+              <div className="container mx-auto">
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
                   {Array(8).fill(null).map((_, index) => (
@@ -1052,7 +1053,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
           )}
 
           {dealProducts.length > 0 && (
-            <section className="bg-white container mx-auto section-container-px py-8 sm:py-12">
+            <section className="bg-white container mx-auto py-8 sm:py-12">
               <div className="bg-cyan-100 rounded-lg sm:rounded-2xl p-4 sm:p-8 border-2 border-red-500">
                 <div className="text-center mb-6 sm:mb-8">
                   <h2 className="text-black mb-3 sm:mb-4 flex items-center justify-center gap-2 font-bold text-xl sm:text-2xl">
@@ -1126,7 +1127,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
           )}
 
           <section className="bg-white py-8 sm:py-12">
-            <div className="container mx-auto section-container-px">
+            <div className="container mx-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {features.map((feature, index) => {
                   const Icon = iconMap[feature.icon as keyof typeof iconMap];
@@ -1147,7 +1148,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             </div>
           </section>
 
-          <section className="bg-white container mx-auto section-container-px py-8 sm:py-12">
+          <section className="bg-white container mx-auto py-8 sm:py-12">
             <div className="mb-5 flex items-end justify-between gap-4 sm:mb-6">
               <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">{t('brands_title', 'products')}</h2>
             </div>

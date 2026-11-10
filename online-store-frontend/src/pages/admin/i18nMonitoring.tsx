@@ -7,6 +7,7 @@ import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { HamsterLoader } from '../../components/HamsterLoader';
+import styles from './i18nMonitoring.module.css';
 
 interface HealthMetrics {
   timestamp: string;
@@ -43,6 +44,24 @@ interface SystemHealth {
     timestamp: string;
   }>;
 }
+
+const messageTypeClasses = {
+  success: styles.monitoringMessageSuccess,
+  error: styles.monitoringMessageError,
+  info: styles.monitoringMessageInfo,
+};
+
+const metricStatusClasses = {
+  healthy: styles.healthy,
+  warning: styles.warning,
+  critical: styles.critical,
+};
+
+const alertLevelClasses = {
+  warning: styles.monitoringAlertWarning,
+  error: styles.monitoringAlertError,
+  info: styles.monitoringAlertInfo,
+};
 
 const I18nMonitoringContent = () => {
   const { t, loadNamespace, locale } = useTranslation();
@@ -117,7 +136,7 @@ const I18nMonitoringContent = () => {
 
   if (loading) {
     return (
-      <div className="monitoring-loading">
+      <div className={styles.monitoringLoading}>
         <HamsterLoader size={96} className="mb-4" />
         <p>{t('admin_monitoring_loading', 'admin-i18n-monitoring')}</p>
       </div>
@@ -126,10 +145,10 @@ const I18nMonitoringContent = () => {
 
   if (!health) {
     return (
-      <div className="monitoring-error">
+      <div className={styles.monitoringError}>
         <AlertCircle size={48} />
         <p>{t('admin_monitoring_error')}</p>
-        <button onClick={fetchHealthData} className="monitoring-retry-btn">
+        <button onClick={fetchHealthData} className={styles.monitoringRetryBtn}>
           {t('admin_monitoring_retry')}
         </button>
       </div>
@@ -155,28 +174,28 @@ const I18nMonitoringContent = () => {
   };
 
   return (
-    <div className="monitoring-container">
-      <div className="monitoring-header">
+    <div className={styles.monitoringContainer}>
+      <div className={styles.monitoringHeader}>
         <div>
-          <h1 className="monitoring-title">
+          <h1 className={styles.monitoringTitle}>
             {t('admin_monitoring_title')}
           </h1>
-          <p className="monitoring-subtitle">
+          <p className={styles.monitoringSubtitle}>
             {t('admin_monitoring_subtitle')}
           </p>
         </div>
-        <div className="monitoring-controls">
+        <div className={styles.monitoringControls}>
           <button
             onClick={fetchHealthData}
-            className="monitoring-refresh-btn"
+            className={styles.monitoringRefreshBtn}
             disabled={loading}
             title={t('admin_monitoring_refresh')}
           >
-            <RefreshCw size={18} className={loading ? 'monitoring-spin' : ''} />
+            <RefreshCw size={18} className={loading ? styles.monitoringSpin : undefined} />
             {t('admin_monitoring_refresh')}
           </button>
 
-          <label className="monitoring-auto-refresh">
+          <label className={styles.monitoringAutoRefresh}>
             <input
               type="checkbox"
               checked={autoRefresh}
@@ -189,7 +208,7 @@ const I18nMonitoringContent = () => {
             <select
               value={refreshInterval}
               onChange={e => setRefreshInterval(Number(e.target.value))}
-              className="monitoring-interval-select"
+              className={styles.monitoringIntervalSelect}
             >
               <option value={5000}>{t('admin_monitoring_interval_5s')}</option>
               <option value={10000}>{t('admin_monitoring_interval_10s')}</option>
@@ -201,25 +220,25 @@ const I18nMonitoringContent = () => {
       </div>
 
       {message && (
-        <div className={`monitoring-message monitoring-message-${message.type}`}>
+        <div className={`${styles.monitoringMessage} ${messageTypeClasses[message.type]}`}>
           {message.text}
-          <button onClick={() => setMessage(null)} className="monitoring-message-close">×</button>
+          <button onClick={() => setMessage(null)} className={styles.monitoringMessageClose}>×</button>
         </div>
       )}
 
       {/* System Status Card */}
-      <div className="monitoring-status-card" style={{ borderLeftColor: statusColor[health.status] }}>
-        <div className="monitoring-status-header">
-          <div className="monitoring-status-info">
+      <div className={styles.monitoringStatusCard} style={{ borderLeftColor: statusColor[health.status] }}>
+        <div className={styles.monitoringStatusHeader}>
+          <div className={styles.monitoringStatusInfo}>
             {getStatusIcon(health.status)}
             <div>
               <h2>{t('admin_monitoring_system_status')}</h2>
-              <p className="monitoring-status-text" style={{ color: statusColor[health.status] }}>
+              <p className={styles.monitoringStatusText} style={{ color: statusColor[health.status] }}>
                 {t(`admin_monitoring_status_${health.status}`, 'admin-i18n-monitoring')}
               </p>
             </div>
           </div>
-          <div className="monitoring-status-time">
+          <div className={styles.monitoringStatusTime}>
             <small>{new Intl.DateTimeFormat(getIntlLocale(locale), {
               hour: 'numeric',
               minute: '2-digit',
@@ -230,29 +249,29 @@ const I18nMonitoringContent = () => {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="monitoring-metrics-grid">
+      <div className={styles.monitoringMetricsGrid}>
         {/* Error Rate */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_error_rate')}</h3>
             {metricsHistory.length >= 2 && getTrendIcon(
               health.metrics.errorRate,
               metricsHistory[metricsHistory.length - 2].errorRate
             )}
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {formatNumber(health.metrics.errorRate, locale, 2)}%
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.errorRate > 5 ? 'critical' : health.metrics.errorRate > 1 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.errorRate > 5 ? 'critical' : health.metrics.errorRate > 1 ? 'warning' : 'healthy']}`}>
             {health.metrics.errorRate > 5
               ? t('admin_monitoring_critical')
               : health.metrics.errorRate > 1
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_normal')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min(health.metrics.errorRate, 100)}%`,
                 backgroundColor: health.metrics.errorRate > 5 ? '#ef4444' : health.metrics.errorRate > 1 ? '#f59e0b' : '#10b981',
@@ -262,27 +281,27 @@ const I18nMonitoringContent = () => {
         </div>
 
         {/* Cache Hit Rate */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_cache_hit_rate')}</h3>
             {metricsHistory.length >= 2 && getTrendIcon(
               health.metrics.cacheHitRate,
               metricsHistory[metricsHistory.length - 2].cacheHitRate
             )}
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {formatNumber(health.metrics.cacheHitRate, locale, 2)}%
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.cacheHitRate < 80 ? 'critical' : health.metrics.cacheHitRate < 90 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.cacheHitRate < 80 ? 'critical' : health.metrics.cacheHitRate < 90 ? 'warning' : 'healthy']}`}>
             {health.metrics.cacheHitRate < 80
               ? t('admin_monitoring_critical')
               : health.metrics.cacheHitRate < 90
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_healthy')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min(health.metrics.cacheHitRate, 100)}%`,
                 backgroundColor: health.metrics.cacheHitRate < 80 ? '#ef4444' : health.metrics.cacheHitRate < 90 ? '#f59e0b' : '#10b981',
@@ -292,27 +311,27 @@ const I18nMonitoringContent = () => {
         </div>
 
         {/* API Latency */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_api_latency')}</h3>
             {metricsHistory.length >= 2 && getTrendIcon(
               health.metrics.apiLatency,
               metricsHistory[metricsHistory.length - 2].apiLatency
             )}
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {formatNumber(health.metrics.apiLatency, locale, 0)}ms
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.apiLatency > 2000 ? 'critical' : health.metrics.apiLatency > 1000 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.apiLatency > 2000 ? 'critical' : health.metrics.apiLatency > 1000 ? 'warning' : 'healthy']}`}>
             {health.metrics.apiLatency > 2000
               ? t('admin_monitoring_critical')
               : health.metrics.apiLatency > 1000
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_normal')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min((health.metrics.apiLatency / 5000) * 100, 100)}%`,
                 backgroundColor: health.metrics.apiLatency > 2000 ? '#ef4444' : health.metrics.apiLatency > 1000 ? '#f59e0b' : '#10b981',
@@ -322,23 +341,23 @@ const I18nMonitoringContent = () => {
         </div>
 
         {/* Queue Length */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_queue_length')}</h3>
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {health.metrics.queueLength}
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.queueLength > 100 ? 'critical' : health.metrics.queueLength > 50 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.queueLength > 100 ? 'critical' : health.metrics.queueLength > 50 ? 'warning' : 'healthy']}`}>
             {health.metrics.queueLength > 100
               ? t('admin_monitoring_critical')
               : health.metrics.queueLength > 50
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_normal')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min((health.metrics.queueLength / 200) * 100, 100)}%`,
                 backgroundColor: health.metrics.queueLength > 100 ? '#ef4444' : health.metrics.queueLength > 50 ? '#f59e0b' : '#10b981',
@@ -348,27 +367,27 @@ const I18nMonitoringContent = () => {
         </div>
 
         {/* Database Latency */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_db_latency')}</h3>
             {metricsHistory.length >= 2 && getTrendIcon(
               health.metrics.databaseLatency,
               metricsHistory[metricsHistory.length - 2].databaseLatency
             )}
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {formatNumber(health.metrics.databaseLatency, locale, 0)}ms
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.databaseLatency > 500 ? 'critical' : health.metrics.databaseLatency > 200 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.databaseLatency > 500 ? 'critical' : health.metrics.databaseLatency > 200 ? 'warning' : 'healthy']}`}>
             {health.metrics.databaseLatency > 500
               ? t('admin_monitoring_critical')
               : health.metrics.databaseLatency > 200
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_normal')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min((health.metrics.databaseLatency / 1000) * 100, 100)}%`,
                 backgroundColor: health.metrics.databaseLatency > 500 ? '#ef4444' : health.metrics.databaseLatency > 200 ? '#f59e0b' : '#10b981',
@@ -378,23 +397,23 @@ const I18nMonitoringContent = () => {
         </div>
 
         {/* Memory Usage */}
-        <div className="monitoring-metric-card">
-          <div className="monitoring-metric-header">
+        <div className={styles.monitoringMetricCard}>
+          <div className={styles.monitoringMetricHeader}>
             <h3>{t('admin_monitoring_memory_usage')}</h3>
           </div>
-          <div className="monitoring-metric-value">
+          <div className={styles.monitoringMetricValue}>
             {formatNumber(health.metrics.memoryUsage, locale, 0)}MB
           </div>
-          <div className={`monitoring-metric-status ${health.metrics.memoryUsage > 1024 ? 'critical' : health.metrics.memoryUsage > 512 ? 'warning' : 'healthy'}`}>
+          <div className={`${styles.monitoringMetricStatus} ${metricStatusClasses[health.metrics.memoryUsage > 1024 ? 'critical' : health.metrics.memoryUsage > 512 ? 'warning' : 'healthy']}`}>
             {health.metrics.memoryUsage > 1024
               ? t('admin_monitoring_critical')
               : health.metrics.memoryUsage > 512
               ? t('admin_monitoring_warning')
               : t('admin_monitoring_normal')}
           </div>
-          <div className="monitoring-metric-bar">
+          <div className={styles.monitoringMetricBar}>
             <div
-              className="monitoring-metric-fill"
+              className={styles.monitoringMetricFill}
               style={{
                 width: `${Math.min((health.metrics.memoryUsage / 2048) * 100, 100)}%`,
                 backgroundColor: health.metrics.memoryUsage > 1024 ? '#ef4444' : health.metrics.memoryUsage > 512 ? '#f59e0b' : '#10b981',
@@ -405,22 +424,22 @@ const I18nMonitoringContent = () => {
       </div>
 
       {/* Request Statistics */}
-      <div className="monitoring-stats-section">
+      <div className={styles.monitoringStatsSection}>
         <h2>{t('admin_monitoring_request_stats')}</h2>
-        <div className="monitoring-stats-grid">
-          <div className="monitoring-stat-item">
-            <div className="monitoring-stat-label">{t('admin_monitoring_total_requests')}</div>
-            <div className="monitoring-stat-value">{health.metrics.totalRequests.toLocaleString()}</div>
+        <div className={styles.monitoringStatsGrid}>
+          <div className={styles.monitoringStatItem}>
+            <div className={styles.monitoringStatLabel}>{t('admin_monitoring_total_requests')}</div>
+            <div className={styles.monitoringStatValue}>{health.metrics.totalRequests.toLocaleString()}</div>
             <small>{t('admin_monitoring_success')}: {health.metrics.successCount} | {t('admin_monitoring_failure')}: {health.metrics.failureCount}</small>
           </div>
-          <div className="monitoring-stat-item">
-            <div className="monitoring-stat-label">{t('admin_monitoring_rate_limited')}</div>
-            <div className="monitoring-stat-value">{health.metrics.rateLimitedRequests}</div>
+          <div className={styles.monitoringStatItem}>
+            <div className={styles.monitoringStatLabel}>{t('admin_monitoring_rate_limited')}</div>
+            <div className={styles.monitoringStatValue}>{health.metrics.rateLimitedRequests}</div>
             <small>{((health.metrics.rateLimitedRequests / health.metrics.totalRequests) * 100).toFixed(2)}% {t('admin_monitoring_of_total')}</small>
           </div>
-          <div className="monitoring-stat-item">
-            <div className="monitoring-stat-label">{t('admin_monitoring_retried')}</div>
-            <div className="monitoring-stat-value">{health.metrics.retriedRequests}</div>
+          <div className={styles.monitoringStatItem}>
+            <div className={styles.monitoringStatLabel}>{t('admin_monitoring_retried')}</div>
+            <div className={styles.monitoringStatValue}>{health.metrics.retriedRequests}</div>
             <small>{((health.metrics.retriedRequests / health.metrics.totalRequests) * 100).toFixed(2)}% {t('admin_monitoring_of_total')}</small>
           </div>
         </div>
@@ -428,29 +447,29 @@ const I18nMonitoringContent = () => {
 
       {/* Language Metrics */}
       {Object.keys(health.languageMetrics).length > 0 && (
-        <div className="monitoring-language-section">
+        <div className={styles.monitoringLanguageSection}>
           <h2>{t('admin_monitoring_language_metrics')}</h2>
-          <div className="monitoring-language-grid">
+          <div className={styles.monitoringLanguageGrid}>
             {Object.entries(health.languageMetrics).map(([lang, metrics]) => (
-              <div key={lang} className="monitoring-language-card">
-                <div className="monitoring-language-header">
+              <div key={lang} className={styles.monitoringLanguageCard}>
+                <div className={styles.monitoringLanguageHeader}>
                   <h3>{t(`locale_label_${lang}`, 'admin-translation')}</h3>
-                  <span className={`monitoring-language-status ${metrics.errorRate > 5 ? 'critical' : metrics.errorRate > 1 ? 'warning' : 'healthy'}`}>
+                  <span className={`${styles.monitoringLanguageStatus} ${metricStatusClasses[metrics.errorRate > 5 ? 'critical' : metrics.errorRate > 1 ? 'warning' : 'healthy']}`}>
                     {metrics.errorRate.toFixed(2)}% {t('admin_monitoring_error_percent')}
                   </span>
                 </div>
-                <div className="monitoring-language-metrics">
+                <div className={styles.monitoringLanguageMetrics}>
                   <div>
-                    <span className="monitoring-language-label">{t('admin_monitoring_translations')}</span>
-                    <span className="monitoring-language-value">{metrics.translationCount.toLocaleString()}</span>
+                    <span className={styles.monitoringLanguageLabel}>{t('admin_monitoring_translations')}</span>
+                    <span className={styles.monitoringLanguageValue}>{metrics.translationCount.toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="monitoring-language-label">{t('admin_monitoring_cache_size')}</span>
-                    <span className="monitoring-language-value">{(metrics.cacheSize / 1024 / 1024).toFixed(2)}MB</span>
+                    <span className={styles.monitoringLanguageLabel}>{t('admin_monitoring_cache_size')}</span>
+                    <span className={styles.monitoringLanguageValue}>{(metrics.cacheSize / 1024 / 1024).toFixed(2)}MB</span>
                   </div>
                   <div>
-                    <span className="monitoring-language-label">{t('admin_monitoring_last_updated')}</span>
-                    <span className="monitoring-language-value">{new Date(metrics.lastUpdated).toLocaleTimeString()}</span>
+                    <span className={styles.monitoringLanguageLabel}>{t('admin_monitoring_last_updated')}</span>
+                    <span className={styles.monitoringLanguageValue}>{new Date(metrics.lastUpdated).toLocaleTimeString()}</span>
                   </div>
                 </div>
               </div>
@@ -461,18 +480,18 @@ const I18nMonitoringContent = () => {
 
       {/* Alerts */}
       {health.alerts.length > 0 && (
-        <div className="monitoring-alerts-section">
+        <div className={styles.monitoringAlertsSection}>
           <h2>{t('admin_monitoring_alerts')}</h2>
-          <div className="monitoring-alerts-list">
+          <div className={styles.monitoringAlertsList}>
             {health.alerts.map(alert => (
-              <div key={alert.id} className={`monitoring-alert monitoring-alert-${alert.level}`}>
-                <div className="monitoring-alert-icon">
+              <div key={alert.id} className={`${styles.monitoringAlert} ${alertLevelClasses[alert.level]}`}>
+                <div className={styles.monitoringAlertIcon}>
                   {alert.level === 'error' && <AlertCircle size={20} />}
                   {alert.level === 'warning' && <AlertCircle size={20} />}
                   {alert.level === 'info' && <Activity size={20} />}
                 </div>
-                <div className="monitoring-alert-content">
-                  <p className="monitoring-alert-message">{alert.message}</p>
+                <div className={styles.monitoringAlertContent}>
+                  <p className={styles.monitoringAlertMessage}>{alert.message}</p>
                   <small>{new Date(alert.timestamp).toLocaleString()}</small>
                 </div>
               </div>
@@ -481,456 +500,7 @@ const I18nMonitoringContent = () => {
         </div>
       )}
 
-      <style jsx>{`
-        .monitoring-container {
-          padding: 20px;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
 
-        .monitoring-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-
-        .monitoring-title {
-          font-size: 28px;
-          font-weight: 700;
-          margin: 0 0 4px 0;
-          color: #1a1a1a;
-        }
-
-        .monitoring-subtitle {
-          font-size: 14px;
-          color: #666;
-          margin: 0;
-        }
-
-        .monitoring-controls {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-
-        .monitoring-refresh-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 16px;
-          background-color: #f5f5f5;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s ease;
-        }
-
-        .monitoring-refresh-btn:hover:not(:disabled) {
-          background-color: #e8e8e8;
-          border-color: #999;
-        }
-
-        .monitoring-refresh-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .monitoring-spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .monitoring-auto-refresh {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 14px;
-          color: #333;
-        }
-
-        .monitoring-interval-select {
-          padding: 8px 12px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-        }
-
-        .monitoring-message {
-          padding: 12px 16px;
-          border-radius: 6px;
-          margin-bottom: 16px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 14px;
-        }
-
-        .monitoring-message-success {
-          background-color: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-
-        .monitoring-message-error {
-          background-color: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-
-        .monitoring-message-info {
-          background-color: #d1ecf1;
-          color: #0c5460;
-          border: 1px solid #bee5eb;
-        }
-
-        .monitoring-message-close {
-          background: none;
-          border: none;
-          color: inherit;
-          cursor: pointer;
-          font-size: 20px;
-          padding: 0;
-          line-height: 1;
-        }
-
-        .monitoring-loading,
-        .monitoring-error {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
-          color: #666;
-        }
-
-        .monitoring-retry-btn {
-          margin-top: 16px;
-          padding: 10px 20px;
-          background-color: #007bff;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .monitoring-retry-btn:hover {
-          background-color: #0056b3;
-        }
-
-        .monitoring-status-card {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 20px;
-          margin-bottom: 24px;
-          border-left: 4px solid;
-        }
-
-        .monitoring-status-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .monitoring-status-info {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .monitoring-status-info h2 {
-          margin: 0;
-          font-size: 18px;
-        }
-
-        .monitoring-status-text {
-          margin: 4px 0 0 0;
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .monitoring-status-time {
-          text-align: right;
-        }
-
-        .monitoring-metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        .monitoring-metric-card {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 16px;
-        }
-
-        .monitoring-metric-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-
-        .monitoring-metric-header h3 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .monitoring-metric-value {
-          font-size: 28px;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin-bottom: 8px;
-        }
-
-        .monitoring-metric-status {
-          display: inline-block;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 4px 10px;
-          border-radius: 4px;
-          margin-bottom: 12px;
-        }
-
-        .monitoring-metric-status.healthy {
-          background-color: #d4edda;
-          color: #155724;
-        }
-
-        .monitoring-metric-status.warning {
-          background-color: #fff3cd;
-          color: #856404;
-        }
-
-        .monitoring-metric-status.critical {
-          background-color: #f8d7da;
-          color: #721c24;
-        }
-
-        .monitoring-metric-bar {
-          height: 8px;
-          background-color: #f0f0f0;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .monitoring-metric-fill {
-          height: 100%;
-          transition: width 0.3s ease;
-        }
-
-        .monitoring-stats-section,
-        .monitoring-language-section,
-        .monitoring-alerts-section {
-          margin-bottom: 24px;
-        }
-
-        .monitoring-stats-section h2,
-        .monitoring-language-section h2,
-        .monitoring-alerts-section h2 {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 0 0 16px 0;
-          color: #1a1a1a;
-        }
-
-        .monitoring-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
-        }
-
-        .monitoring-stat-item {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 16px;
-        }
-
-        .monitoring-stat-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #666;
-          text-transform: uppercase;
-          margin-bottom: 8px;
-        }
-
-        .monitoring-stat-value {
-          font-size: 28px;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin-bottom: 8px;
-        }
-
-        .monitoring-stat-item small {
-          display: block;
-          font-size: 12px;
-          color: #999;
-        }
-
-        .monitoring-language-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 16px;
-        }
-
-        .monitoring-language-card {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 16px;
-        }
-
-        .monitoring-language-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #eee;
-        }
-
-        .monitoring-language-header h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 700;
-        }
-
-        .monitoring-language-status {
-          font-size: 12px;
-          font-weight: 600;
-          padding: 4px 10px;
-          border-radius: 4px;
-        }
-
-        .monitoring-language-status.healthy {
-          background-color: #d4edda;
-          color: #155724;
-        }
-
-        .monitoring-language-status.warning {
-          background-color: #fff3cd;
-          color: #856404;
-        }
-
-        .monitoring-language-status.critical {
-          background-color: #f8d7da;
-          color: #721c24;
-        }
-
-        .monitoring-language-metrics {
-          display: grid;
-          gap: 12px;
-        }
-
-        .monitoring-language-metrics > div {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .monitoring-language-label {
-          font-size: 12px;
-          color: #666;
-        }
-
-        .monitoring-language-value {
-          font-size: 14px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .monitoring-alerts-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .monitoring-alert {
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 12px;
-          display: flex;
-          gap: 12px;
-        }
-
-        .monitoring-alert-icon {
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-        }
-
-        .monitoring-alert-error .monitoring-alert-icon {
-          color: #ef4444;
-        }
-
-        .monitoring-alert-warning .monitoring-alert-icon {
-          color: #f59e0b;
-        }
-
-        .monitoring-alert-info .monitoring-alert-icon {
-          color: #3b82f6;
-        }
-
-        .monitoring-alert-content {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .monitoring-alert-message {
-          margin: 0;
-          font-size: 14px;
-          color: #333;
-        }
-
-        .monitoring-alert small {
-          display: block;
-          margin-top: 4px;
-          font-size: 12px;
-          color: #999;
-        }
-
-        @media (max-width: 768px) {
-          .monitoring-header {
-            flex-direction: column;
-          }
-
-          .monitoring-controls {
-            width: 100%;
-            justify-content: flex-start;
-          }
-
-          .monitoring-metrics-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .monitoring-stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .monitoring-language-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 };

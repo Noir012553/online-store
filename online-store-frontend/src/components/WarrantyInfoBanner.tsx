@@ -3,6 +3,7 @@ import { useLanguage } from '../lib/i18n';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../lib/i18n/types';
 import { bannerAPI, getAuthToken, type BannerRecord } from '../lib/api';
 import { Shield, RefreshCw, Headphones } from 'lucide-react';
+import styles from './WarrantyInfoBanner.module.css';
 
 interface WarrantyInfo {
   icon: React.ReactNode;
@@ -164,97 +165,20 @@ export function WarrantyInfoBanner() {
   }, [locale, isHydrated]);
 
   return (
-    <div className="warranty-banner">
-      <div className="container mx-auto section-container-px warranty-banner-content">
-        <div className="warranty-grid">
+    <div className={styles.warrantyBanner}>
+      <div className={`container mx-auto ${styles.warrantyBannerContent}`}>
+        <div className={styles.warrantyGrid}>
           {warrantyInfo.map((item, index) => (
-            <div key={index} className="warranty-item">
-              <div className="warranty-icon-wrapper">
-                <div className="warranty-icon">{item.icon}</div>
+            <div key={index} className={styles.warrantyItem}>
+              <div className={styles.warrantyIconWrapper}>
+                <div className={styles.warrantyIcon}>{item.icon}</div>
               </div>
-              <p className="warranty-text">{item.text}</p>
+              <p className={styles.warrantyText}>{item.text}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <style>{`
-        .warranty-banner {
-          background-color: white;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .warranty-banner-content {
-          padding: 1rem 0;
-        }
-
-        @media (min-width: 640px) {
-          .warranty-banner-content {
-            padding: 1.5rem 0;
-          }
-        }
-
-        .warranty-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-
-        @media (min-width: 640px) {
-          .warranty-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-          }
-        }
-
-        .warranty-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          text-align: center;
-        }
-
-        @media (min-width: 640px) {
-          .warranty-item {
-            gap: 1rem;
-            text-align: left;
-          }
-        }
-
-        .warranty-icon-wrapper {
-          flex-shrink: 0;
-          width: 2.5rem;
-          height: 2.5rem;
-          background-color: #fef2f2;
-          border-radius: 9999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        @media (min-width: 640px) {
-          .warranty-icon-wrapper {
-            width: 3rem;
-            height: 3rem;
-          }
-        }
-
-        .warranty-icon {
-          color: #dc2626;
-        }
-
-        .warranty-text {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #111827;
-        }
-
-        @media (min-width: 640px) {
-          .warranty-text {
-            font-size: 1rem;
-          }
-        }
-      `}</style>
     </div>
   );
 }

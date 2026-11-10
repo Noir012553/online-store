@@ -11,6 +11,7 @@ import { useCategories } from "../lib/context/CategoryContext";
 import { useTranslation } from "../lib/i18n";
 import { apiCall } from "../lib/api";
 import { FacebookIcon, InstagramIcon, TwitterIcon, YoutubeIcon } from "./icons/SocialIcons";
+import styles from "./Footer.module.css";
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -123,48 +124,9 @@ export function Footer() {
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-linear-to-br from-black via-gray-900 to-red-950/30" />
 
-      <style>{`
-        .laminated-card {
-          position: relative;
-          width: 45px;
-          height: 30px;
-          padding: 4px;
-          border-radius: 6px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow:
-            0 4px 16px rgba(0, 0, 0, 0.3),
-            inset 0 0.5px 0.5px rgba(255, 255, 255, 0.1),
-            inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.1);
-          backdrop-filter: blur(10px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-          transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
-        }
-
-        .laminated-card:hover {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
-          border-color: rgba(255, 255, 255, 0.3);
-          box-shadow:
-            0 5px 18px rgba(0, 0, 0, 0.4),
-            inset 0 0.5px 0.5px rgba(255, 255, 255, 0.15),
-            inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.2);
-          transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateY(-1px);
-        }
-
-        .logo-image {
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-        }
-      `}</style>
-
       {/* Content */}
       <div className="relative z-10">
-        <div className="container mx-auto section-container-px py-8 sm:py-12">
+        <div className="container mx-auto py-8 sm:py-12">
           <div className="flex flex-col md:flex-row gap-8 sm:gap-12 mb-8 sm:mb-12">
             {/* Left Column: Brand, Inputs, Social Icons (3/10) */}
             <div className="md:flex-3">
@@ -174,7 +136,7 @@ export function Footer() {
                   alt={t('brand_name', 'footer')}
                   width={260}
                   height={146}
-                  className="logo-image h-20 w-auto max-w-full object-contain object-left sm:h-24"
+                  className={`${styles.logoImage} h-20 w-auto object-left sm:h-24`}
                 />
               </Link>
               <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 leading-relaxed">
@@ -385,7 +347,7 @@ export function Footer() {
                     {t('shippingPartners', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card">
+                  <div className={styles.laminatedCard}>
                     <img
                       src="/assets/ghnLogo-brandfetch.png"
                       alt={t('ghn_icon_alt', 'footer')}
@@ -393,7 +355,7 @@ export function Footer() {
                       height="33"
                       loading="lazy"
                       decoding="async"
-                      className="logo-image"
+                      className={styles.logoImage}
                     />
                   </div>
                 </div>
@@ -404,7 +366,7 @@ export function Footer() {
                     {t('paymentMethods', 'footer')}
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600" />
                   </h3>
-                  <div className="laminated-card">
+                  <div className={styles.laminatedCard}>
                     <img
                       src="/assets/vnpay.svg"
                       alt={t('vnpay_logo_alt', 'footer')}
@@ -412,7 +374,7 @@ export function Footer() {
                       height="56"
                       loading="lazy"
                       decoding="async"
-                      className="logo-image"
+                      className={styles.logoImage}
                     />
                   </div>
                 </div>
