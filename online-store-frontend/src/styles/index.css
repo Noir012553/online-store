@@ -287,6 +287,20 @@ input[type="number"] {
 }
 
 /* ===== Toast Notifications (Sonner) ===== */
+.toaster {
+  --normal-bg: #ffffff;
+  --normal-text: #000000;
+  --normal-border: #e5e7eb;
+  --success-bg: #f0fdf4;
+  --success-text: #166534;
+  --success-border: #86efac;
+  --success-icon-color: #22c55e;
+  --error-bg: #fef2f2;
+  --error-text: #991b1b;
+  --error-border: #fca5a5;
+  --error-icon-color: #ef4444;
+}
+
 .sonner-toast {
   touch-action: pan-y;
 }
@@ -377,31 +391,4 @@ input[type="number"] {
     animation: slideInUp 0.3s ease-out;
   }
 
-  .input-focus {
-    @apply transition-all focus:ring-2 focus:ring-offset-0;
-  }
-
-  .form-label {
-    @apply text-sm font-medium text-gray-700;
-  }
-
-  .modal-header {
-    @apply flex items-center gap-3;
-  }
-
-  .badge-success {
-    @apply bg-green-50 border border-green-200 text-green-700;
-  }
-
-  .badge-warning {
-    @apply bg-yellow-50 border border-yellow-200 text-yellow-700;
-  }
-
-  .badge-danger {
-    @apply bg-red-50 border border-red-200 text-red-700;
-  }
-
-  .badge-info {
-    @apply bg-blue-50 border border-blue-200 text-blue-700;
-  }
 }
