@@ -178,7 +178,7 @@ export function WarrantyInfoBanner() {
         </div>
       </div>
 
-      <style>{`
+      <style jsx>{`
         .warranty-banner {
           background-color: white;
           border-bottom: 1px solid #e5e7eb;

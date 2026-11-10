@@ -285,7 +285,7 @@ const TranslationsAdminTier1Content = () => {
   return (
     <>
     <div className="tier1-translations-container">
-        <style>{`
+        <style jsx>{`
           .tier1-translations-container {
             max-width: 1200px;
             margin: 0 auto;

@@ -123,7 +123,7 @@ export function Footer() {
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-linear-to-br from-black via-gray-900 to-red-950/30" />
 
-      <style>{`
+      <style jsx>{`
         .laminated-card {
           position: relative;
           width: 45px;

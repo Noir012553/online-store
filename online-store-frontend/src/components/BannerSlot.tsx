@@ -111,7 +111,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
   // Image-only variant: just show image without text, labels, or CTA
   if (effectiveVariant === 'image-only') {
     const content = (
-      <div className="relative w-full pointer-events-auto" style={{ aspectRatio: '3/4', maxHeight: '500px' }}>
+      <div className="relative w-full pointer-events-auto aspect-[3/4] max-h-[500px]">
         <ImageWithFallback
           src={displaySrc}
           alt={localizedTitle}

@@ -435,7 +435,7 @@ const TranslationBatchOverride = () => {
                   <table className="batch-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '40px' }}>
+                        <th className="w-10">
                           <input
                             type="checkbox"
                             checked={selectedRows.size === rows.length}

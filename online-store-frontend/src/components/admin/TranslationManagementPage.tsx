@@ -175,7 +175,7 @@ export function TranslationManagementPage() {
 
   return (
     <div className="translation-management">
-      <style>{`
+      <style jsx>{`
         .translation-management {
           max-width: 900px;
           margin: 0 auto;
@@ -418,7 +418,7 @@ export function TranslationManagementPage() {
       <div className="section">
         <h2 className="section-title">{t('translation_management_bulk_translate_title', 'admin')}</h2>
 
-        <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
+        <p className="mb-5 text-sm text-[#666]">
           {t('translation_management_bulk_translate_description', 'admin')}
         </p>
 
@@ -471,7 +471,7 @@ export function TranslationManagementPage() {
 
       <div className="section">
         <h2 className="section-title">{t('translation_management_how_it_works_title', 'admin')}</h2>
-        <div style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
+        <div className="text-sm leading-[1.6] text-[#666]">
           <p>
             {t('translation_management_tier_1_info', 'admin')}
           </p>
