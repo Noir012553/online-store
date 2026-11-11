@@ -9,6 +9,7 @@ const juice = require('juice');
 const nodemailer = require('nodemailer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, getIntlLocale } = require('../config/languageInventory');
+const { createNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
 
 const emailStyles = fs.readFileSync(path.join(__dirname, '../email/email.css'), 'utf8');
 const inlineEmailStyles = (html) => juice.inlineContent(html, emailStyles);
@@ -302,10 +303,18 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
     const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
     const msg = getMessage(emailLang, 'email.newsletter');
     const copyright = getMessage(emailLang, 'email.copyright');
+    const baseUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const unsubscribeUrl = new URL('/api/newsletter/unsubscribe', baseUrl);
+    unsubscribeUrl.searchParams.set('token', createNewsletterUnsubscribeToken(email));
+    unsubscribeUrl.searchParams.set('lang', emailLang);
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: msg.subject,
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl.toString()}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
       html: inlineEmailStyles(`
         <div class="email-shell email-shell-body">
           <div class="email-brand-header">
@@ -314,7 +323,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
           <div class="email-content">
             <h2 class="email-content-title">${escapeHtml(msg.title)}</h2>
             <p class="email-content-copy">${escapeHtml(msg.message)}</p>
-            <p class="email-unsubscribe">${escapeHtml(msg.unsubscribe)}</p>
+            <p class="email-unsubscribe"><a class="email-link" href="${unsubscribeUrl.href}">${escapeHtml(msg.unsubscribe)}</a></p>
           </div>
           <div class="email-footer">
             <p class="email-footer-copy">${escapeHtml(copyright)}</p>
@@ -322,7 +331,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
           </div>
         </div>
       `),
-      text: [msg.title, msg.message, msg.unsubscribe, `Email: ${email}`, copyright].join('\n\n'),
+      text: [msg.title, msg.message, `${msg.unsubscribe}: ${unsubscribeUrl}`, `Email: ${email}`, copyright].join('\n\n'),
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -358,6 +367,34 @@ const sendContactEmails = async ({ name, email, phone, subject, message }, lang)
         <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
       `,
     });
+
+    const confirmation = {
+      subject: getMessage(emailLang, 'contact.email_confirmation_subject'),
+      title: getMessage(emailLang, 'contact.email_confirmation_title'),
+      greeting: getMessage(emailLang, 'contact.email_confirmation_greeting', { name }),
+      received: getMessage(emailLang, 'contact.email_confirmation_received'),
+      response: getMessage(emailLang, 'contact.email_confirmation_response'),
+    };
+    try {
+      await transporter.sendMail({
+        from,
+        to: email,
+        subject: confirmation.subject,
+        text: [confirmation.greeting, confirmation.received, confirmation.response].join('\n\n'),
+        html: inlineEmailStyles(`
+          <div class="email-shell email-shell-body">
+            <h2 class="email-title">${escapeHtml(confirmation.title)}</h2>
+            <p class="email-copy">${escapeHtml(confirmation.greeting)}</p>
+            <p class="email-copy">${escapeHtml(confirmation.received)}</p>
+            <p class="email-copy">${escapeHtml(confirmation.response)}</p>
+          </div>
+        `),
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[CONTACT_CONFIRMATION_EMAIL_FAILED]', { code: error.code || 'UNKNOWN' });
+      }
+    }
   } catch (error) {
     throw createEmailDeliveryError('EMAIL_CONTACT_SEND_FAILED', error);
   }

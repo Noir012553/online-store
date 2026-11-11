@@ -7,6 +7,28 @@ const asyncHandler = require('express-async-handler');
 const Newsletter = require('../models/Newsletter');
 const { sendNewsletterConfirmationEmail } = require('../services/emailService');
 const { getMessage } = require('../i18n/messages');
+const { verifyNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
+
+const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const renderUnsubscribePage = (lang, message, token, buttonLabel) => `
+    <!doctype html>
+    <html lang="${escapeHtml(lang)}">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LaptopStore</title></head>
+      <body>
+        <main>
+          <h1>LaptopStore</h1>
+          <p>${escapeHtml(message)}</p>
+          ${token ? `<form method="post" action="/api/newsletter/unsubscribe"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit">${escapeHtml(buttonLabel)}</button></form>` : ''}
+        </main>
+      </body>
+    </html>
+`;
 
 /**
  * POST /api/newsletter
@@ -91,42 +113,48 @@ const subscribe = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * POST /api/newsletter/unsubscribe
- * Hủy đăng ký newsletter
- * 
- * Body:
- * {
- *   "email": "user@example.com"
- * }
- */
-const unsubscribe = asyncHandler(async (req, res) => {
-    const { email } = req.body;
+const showUnsubscribeConfirmation = asyncHandler(async (req, res) => {
+    const token = req.query.token;
+    const email = verifyNewsletterUnsubscribeToken(token);
 
     if (!email) {
-        return res.status(400).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.email_required'),
-        });
+        return res.status(400).type('html').send(renderUnsubscribePage(
+            req.lang,
+            getMessage(req.lang, 'email.newsletter.unsubscribeInvalid'),
+        ));
     }
 
-    const subscriber = await Newsletter.findOneAndUpdate(
-        { email: email.toLowerCase() },
-        { status: 'unsubscribed' },
-        { returnDocument: 'after' }
+    res.type('html').send(renderUnsubscribePage(
+        req.lang,
+        getMessage(req.lang, 'email.newsletter.unsubscribeConfirmation'),
+        token,
+        getMessage(req.lang, 'email.newsletter.unsubscribeConfirmButton'),
+    ));
+});
+
+const unsubscribe = asyncHandler(async (req, res) => {
+    const email = verifyNewsletterUnsubscribeToken(req.body?.token || req.query.token);
+    const isFormRequest = req.is('application/x-www-form-urlencoded');
+
+    if (!email) {
+        const message = getMessage(req.lang, 'email.newsletter.unsubscribeInvalid');
+        if (isFormRequest) {
+            return res.status(400).type('html').send(renderUnsubscribePage(req.lang, message));
+        }
+        return res.status(400).json({ success: false, message });
+    }
+
+    await Newsletter.updateOne(
+        { email, status: 'active' },
+        { $set: { status: 'unsubscribed' } }
     );
 
-    if (!subscriber) {
-        return res.status(404).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.newsletter_unsubscribe_success'),
-        });
+    const message = getMessage(req.lang, 'email.newsletter.unsubscribeComplete');
+    if (isFormRequest) {
+        return res.type('html').send(renderUnsubscribePage(req.lang, message));
     }
 
-    res.json({
-        success: true,
-        message: getMessage(req.lang, 'admin-controllers-messages.newsletter_unsubscribe_success'),
-    });
+    res.json({ success: true, message });
 });
 
 /**
@@ -163,6 +191,7 @@ const getSubscribers = asyncHandler(async (req, res) => {
 
 module.exports = {
     subscribe,
+    showUnsubscribeConfirmation,
     unsubscribe,
     getSubscribers,
 };

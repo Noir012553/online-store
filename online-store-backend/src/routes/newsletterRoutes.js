@@ -4,6 +4,7 @@
  * 
  * Routes:
  * POST   /api/newsletter              - Subscribe (public)
+ * GET    /api/newsletter/unsubscribe  - Confirm unsubscribe (public)
  * POST   /api/newsletter/unsubscribe  - Unsubscribe (public)
  * GET    /api/newsletter/subscribers  - Get subscribers list (admin only)
  */
@@ -26,16 +27,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
  */
 router.post('/', newsletterController.subscribe);
 
-/**
- * POST /api/newsletter/unsubscribe
- * Unsubscribe from newsletter
- * Public route
- * 
- * Body:
- * {
- *   "email": "user@example.com"
- * }
- */
+router.get('/unsubscribe', newsletterController.showUnsubscribeConfirmation);
 router.post('/unsubscribe', newsletterController.unsubscribe);
 
 /**

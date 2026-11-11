@@ -30,7 +30,11 @@
     "subject": "Cảm ơn bạn đã đăng ký nhận bản tin",
     "title": "Cảm ơn!",
     "message": "Bạn đã thành công đăng ký nhận bản tin mới nhất từ chúng tôi.",
-    "unsubscribe": "Hủy đăng ký"
+    "unsubscribe": "Hủy đăng ký",
+    "unsubscribeConfirmation": "Bạn có chắc muốn hủy đăng ký nhận bản tin của LaptopStore?",
+    "unsubscribeConfirmButton": "Xác nhận hủy đăng ký",
+    "unsubscribeComplete": "Bạn đã hủy đăng ký nhận bản tin thành công.",
+    "unsubscribeInvalid": "Liên kết hủy đăng ký không hợp lệ hoặc đã hết hạn."
   },
   "paymentSuccess": {
     "subject": "Thanh toán thành công - Đơn hàng {{orderId}}",

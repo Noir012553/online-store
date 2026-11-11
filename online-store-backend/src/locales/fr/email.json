@@ -30,7 +30,11 @@
     "subject": "Merci de vous être abonné à notre newsletter",
     "title": "Merci !",
     "message": "Nous enverrons des offres exclusives à votre e-mail. Vérifiez votre boîte de réception !",
-    "unsubscribe": "Se désabonner"
+    "unsubscribe": "Se désabonner",
+    "unsubscribeConfirmation": "Voulez-vous vraiment vous désabonner de la newsletter LaptopStore ?",
+    "unsubscribeConfirmButton": "Confirmer le désabonnement",
+    "unsubscribeComplete": "Votre désabonnement à la newsletter est confirmé.",
+    "unsubscribeInvalid": "Ce lien de désabonnement est invalide ou expiré."
   },
   "paymentSuccess": {
     "subject": "Paiement confirmé - Commande {{orderId}}",
