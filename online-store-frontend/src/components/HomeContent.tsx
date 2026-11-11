@@ -611,13 +611,13 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   // Auto-rotate deal carousel slides (paused when quick view is open)
   useEffect(() => {
-    if (dealProducts.length > 1 && !isDealQuickViewOpen) {
+    if (dealProducts.length > 1 && !isDealQuickViewOpen && !prefersReducedMotion) {
       const timer = setInterval(() => {
         setCurrentDealSlide((prev) => (prev + 1) % dealProducts.length);
       }, 6500);
       return () => clearInterval(timer);
     }
-  }, [dealProducts.length, isDealQuickViewOpen]);
+  }, [dealProducts.length, isDealQuickViewOpen, prefersReducedMotion]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);

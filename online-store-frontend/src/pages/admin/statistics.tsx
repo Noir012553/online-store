@@ -1154,7 +1154,7 @@ function StatisticsContent() {
                   {recentOrders.slice(0, 5).map((order: any, index: number) => (
                     <tr
                       key={order._id || index}
-                      className="group cursor-pointer text-sm transition hover:bg-red-50 active:bg-red-100"
+                      className="group cursor-pointer text-sm transition hover:bg-red-50 active:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-600"
                       onClick={() => openDetail({ type: 'order', title: String(order._id || '').slice(-6).toUpperCase(), item: order })}
                       role="button"
                       tabIndex={0}

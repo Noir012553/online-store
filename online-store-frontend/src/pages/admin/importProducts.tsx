@@ -323,7 +323,7 @@ function ImportProductsContent() {
                   onDragOver={(event) => event.preventDefault()}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
-                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
                 >
                   <input ref={fileInputRef} type="file" accept=".zip" onChange={handleFileChange} className="hidden" disabled={isImporting} />
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm">
