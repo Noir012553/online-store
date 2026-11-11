@@ -80,7 +80,19 @@ git mv src/pages/admin/translationManualOverride.module.css src/css/pages/admin/
 git mv src/pages/admin/translationsStatic.module.css src/css/pages/admin/translationsStatic.module.css
 ```
 
-Sau khi di chuyển, cập nhật tất cả import CSS Module và import stylesheet toàn cục tới vị trí mới; không giữ bản sao ở đường dẫn cũ. Chạy typecheck, build và kiểm tra các trang/component đã đổi import trước khi hoàn tất. Các file CSS mới cũng phải được tạo trong nhóm thư mục tương ứng dưới `src/css/`.
+Sau khi di chuyển, cập nhật tất cả import CSS Module và import stylesheet toàn cục tới vị trí mới; không giữ bản sao ở đường dẫn cũ. Kiểm tra và cập nhật các glob quét nội dung trong `tailwind.config.ts` nếu thư mục nguồn đã đổi. Chạy typecheck, build và kiểm tra các trang/component đã đổi import trước khi hoàn tất. Các file CSS mới cũng phải được tạo trong nhóm thư mục tương ứng dưới `src/css/`.
+
+## Đổi tên file và cập nhật đường dẫn
+
+Trong `src/components/ui/` và `src/hooks/`, thống nhất phần mở rộng `.tsx`. Sau khi đổi tên hoặc di chuyển file, tìm và cập nhật mọi tham chiếu tới đường dẫn cũ: import tĩnh/động, cấu hình, test và tài liệu. Theo quy ước hiện tại, import TypeScript không ghi phần mở rộng; giữ cách viết đó nếu dự án chưa dùng phần mở rộng tường minh.
+
+Từ thư mục gốc repository, dùng `git grep` để rà tham chiếu cũ và xác nhận không còn sót:
+
+```sh
+git grep -n -E 'old/path|old-file-name' -- online-store-frontend
+```
+
+Thay các giá trị mẫu bằng đường dẫn/tên file cũ. Sau khi cập nhật, kiểm tra các import mới trỏ tới file tồn tại, chạy typecheck và kiểm tra build; không coi việc import extensionless là đường dẫn cũ nếu TypeScript phân giải đúng tới file mới.
 
 ## Chuyển đổi CSS hiện có
 
@@ -96,4 +108,5 @@ Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoin
 6. Dùng breakpoint mobile-first và giữ nguyên hành vi responsive hiện có khi không có yêu cầu đổi thiết kế.
 7. Dùng variant Tailwind cho trạng thái tương tác; giữ trạng thái focus bàn phím và tôn trọng reduced motion.
 8. Ưu tiên theme token cho màu ngữ nghĩa, tránh sao chép màu tĩnh vào inline style.
-9. Lưu stylesheet trong `src/css/` theo nhóm `styles/`, `components/` hoặc `pages/`; cập nhật import khi di chuyển.
+9. Lưu stylesheet trong `src/css/` theo nhóm `styles/`, `components/` hoặc `pages/`; cập nhật mọi tham chiếu sau khi di chuyển hoặc đổi tên file.
+10. Thống nhất `.tsx` trong `src/components/ui/` và `src/hooks/`; rà đường dẫn cũ và xác minh import sau mỗi lần đổi tên.
