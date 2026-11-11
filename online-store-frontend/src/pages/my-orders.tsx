@@ -114,8 +114,24 @@ const OrderCard = ({ order, currencyCode, isExpanded, onToggle, onViewDetails, l
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       {/* Order Header */}
       <div
-        className="p-4 sm:p-6 cursor-pointer hover:bg-white transition-colors"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        className="p-4 sm:p-6 cursor-pointer hover:bg-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-inset"
         onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            onToggle();
+          }
+          if (event.key === ' ') event.preventDefault();
+        }}
+        onKeyUp={(event) => {
+          if (event.key === ' ') {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
