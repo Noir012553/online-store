@@ -59,8 +59,8 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
   const isFeaturedHotDeal = laptop.featured && hasActiveDeal;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[2147483647] flex items-end justify-center bg-black/50 p-2 animate-in fade-in duration-200 sm:items-center sm:p-5">
-      <div className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-200 sm:max-h-[90vh] sm:rounded-2xl sm:animate-in sm:zoom-in-95 sm:slide-in-from-bottom-0">
+    <div role="dialog" aria-modal="true" aria-labelledby="quick-view-title" className="fixed inset-0 z-[2147483647] flex items-end justify-center bg-black/50 p-2 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200 sm:items-center sm:p-5">
+      <div className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-t-2xl bg-white shadow-2xl motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-200 sm:max-h-[90vh] sm:rounded-2xl sm:motion-safe:animate-in sm:motion-safe:zoom-in-95 sm:motion-safe:slide-in-from-bottom-0">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
           <h2 id="quick-view-title" className="text-lg font-semibold text-black sm:text-xl">{t('quick_view_title', 'products')}</h2>
           <Button

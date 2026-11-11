@@ -123,7 +123,7 @@ export default function Cart() {
 
             <div className="divide-y">
               {items.map((item) => (
-                <div key={item.laptop.id} className="p-3 md:p-4 hover:bg-white transition-colors animate-in slide-in-from-right duration-300">
+                <div key={item.laptop.id} className="p-3 md:p-4 hover:bg-white transition-colors motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                     <div className="md:col-span-6 flex gap-3 items-center">
                       <button

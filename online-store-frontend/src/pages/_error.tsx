@@ -8,7 +8,7 @@ function Error({ statusCode }: { statusCode: number }) {
       <h1 className="m-0 mb-2.5 text-5xl font-bold">
         {statusCode || 500}
       </h1>
-      <p className="m-0 text-lg text-[#666]">
+      <p className="m-0 text-lg text-muted-foreground">
         {statusCode === 404 ? t('error_page_not_found', 'errors') : t('error_server_error', 'errors')}
       </p>
     </div>

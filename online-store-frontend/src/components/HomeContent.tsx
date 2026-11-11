@@ -911,7 +911,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div className="flex-1 overflow-hidden">
                   <div
                     key={currentCategoryCardSlide}
-                    className={`grid gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
+                    className={`grid gap-3 sm:gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
                   >
                     {getCircularItems(categories, currentCategoryCardSlide, CATEGORY_CARDS_PER_VIEW)
                       .map((category, index) => {
@@ -1011,7 +1011,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                         </button>
 
                         <div className="flex-1 overflow-hidden">
-                          <div className="grid grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
+                          <div className="grid grid-cols-4 gap-4 sm:gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700">
                             {isDesktopViewport && getCircularItems(products, currentCategorySlides[category._id] ?? 0, PRODUCT_CARDS_PER_VIEW)
                               .map((product) => (
                                 <LazyProductCard key={product._id} laptop={product} />
@@ -1074,7 +1074,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                   )}
 
                   <div className="flex-1 overflow-hidden">
-                    <div className="grid grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
+                    <div className="grid grid-cols-3 gap-4 sm:gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700">
                       {isDesktopViewport && getCircularItems(dealProducts, currentDealSlide, dealCardsPerView)
                         .map((product) => (
                           <LazyProductCard

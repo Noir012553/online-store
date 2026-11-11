@@ -48,7 +48,7 @@ export function DetailEditCouponForm({
           </Label>
           <select
             id="coupon-discount-type"
-            className="mt-1 flex h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-base outline-none md:text-sm"
+            className="mt-1 flex h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:text-sm"
             value={form.discountType}
             onChange={(event) =>
               onFormChange({

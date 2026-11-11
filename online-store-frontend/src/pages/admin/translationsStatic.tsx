@@ -442,14 +442,14 @@ const TranslationsAdminTier1Content = () => {
                         {editingKey === item.key ? (
                           <>
                             <button
-                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-check']}
+                              className={styles['tier1-icon-btn'] + ' size-8 items-center justify-center rounded ' + styles['tier1-icon-btn-check']}
                               onClick={handleUpdateKey}
                               title={t('admin_save', 'admin')}
                             >
                               <Check size={16} />
                             </button>
                             <button
-                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-cancel']}
+                              className={styles['tier1-icon-btn'] + ' size-8 items-center justify-center rounded ' + styles['tier1-icon-btn-cancel']}
                               onClick={() => {
                                 setEditingKey(null);
                                 setEditingValue('');
@@ -462,7 +462,7 @@ const TranslationsAdminTier1Content = () => {
                         ) : (
                           <>
                             <button
-                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-edit']}
+                              className={styles['tier1-icon-btn'] + ' size-8 items-center justify-center rounded ' + styles['tier1-icon-btn-edit']}
                               onClick={() => {
                                 setEditingKey(item.key);
                                 setEditingValue(item.value);
@@ -472,7 +472,7 @@ const TranslationsAdminTier1Content = () => {
                               <Edit2 size={16} />
                             </button>
                             <button
-                              className={styles['tier1-icon-btn'] + ' ' + styles['tier1-icon-btn-delete']}
+                              className={styles['tier1-icon-btn'] + ' size-8 items-center justify-center rounded ' + styles['tier1-icon-btn-delete']}
                               onClick={() => handleDeleteKey(item.key)}
                               title={t('admin_delete', 'admin')}
                             >
