@@ -341,19 +341,19 @@ export function Step2OrderReview() {
 
       {/* Action Buttons */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
-        <div className="flex justify-between gap-4">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Button
             type="button"
             onClick={goBack}
             variant="outline"
-            className="flex-1 px-8 py-3 h-11"
+            className="min-h-11 w-full whitespace-normal px-4 py-3 text-center leading-tight sm:flex-1 sm:px-8"
           >
             {t('back_button', 'checkout')}
           </Button>
           <Button
             onClick={handleNext}
             disabled={isLoading || !checkoutSummary}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-3 h-11 disabled:opacity-50"
+            className="min-h-11 w-full whitespace-normal bg-red-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-red-700 disabled:opacity-50 sm:flex-1 sm:px-8"
           >
             {isLoading ? t('checkout_processing', 'checkout') : t('checkout_continue_payment', 'checkout')}
           </Button>

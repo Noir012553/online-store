@@ -311,9 +311,11 @@ export function Step3Payment() {
 
         <div className="space-y-4">
           {/* COD Option */}
-          <div
+          <button
+            type="button"
+            aria-pressed={selectedMethod === 'cod'}
             onClick={() => handleSelectPaymentMethod('cod')}
-            className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+            className={`w-full text-left border-2 rounded-lg p-6 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 ${
               selectedMethod === 'cod'
                 ? 'border-green-600 bg-green-50'
                 : 'border-gray-200 hover:border-green-300'
@@ -330,12 +332,14 @@ export function Step3Payment() {
                 </p>
               </div>
             </div>
-          </div>
+          </button>
 
           {supportsVnpay && (
-            <div
+            <button
+              type="button"
+              aria-pressed={selectedMethod === 'vnpay'}
               onClick={() => handleSelectPaymentMethod('vnpay')}
-              className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+              className={`w-full text-left border-2 rounded-lg p-6 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 selectedMethod === 'vnpay'
                   ? 'border-blue-600 bg-blue-50'
                   : 'border-gray-200 hover:border-blue-300'
@@ -352,19 +356,19 @@ export function Step3Payment() {
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
           )}
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
-        <div className="flex justify-between gap-4">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Button
             type="button"
             onClick={goBack}
             variant="outline"
-            className="flex-1 px-8 py-3 h-11"
+            className="min-h-11 w-full whitespace-normal px-4 py-3 text-center leading-tight sm:flex-1 sm:px-8"
           >
             {t('back_button', 'checkout')}
           </Button>
@@ -382,7 +386,7 @@ export function Step3Payment() {
               }
             }}
             disabled={isLoading || !selectedMethod || !checkoutSummary}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-3 h-11 disabled:opacity-50"
+            className="min-h-11 w-full whitespace-normal bg-red-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-red-700 disabled:opacity-50 sm:flex-1 sm:px-8"
           >
             {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : t('confirm_order_button', 'checkout')}
           </Button>
