@@ -131,6 +131,7 @@
   "newsletter_email_phone_required": "E-mail en telefoon vereist",
   "email_already_subscribed": "E-mail is al ingeschreven op nieuwsbrief",
   "newsletter_subscription_thanks": "Bedankt voor uw inschrijving! Wij sturen exclusieve aanbiedingen naar uw e-mail.",
+  "newsletter_email_delivery_failed": "De bevestigingsmail kon niet worden verzonden. Probeer het later opnieuw.",
   "newsletter_unsubscribe_success": "U bent afgemeld voor de nieuwsbrief",
   "language_setup_started": "Taal toegevoegd. Achtergrondinstelling gestart (FASE 1-3). Controleer setupStatus-eindpunt om voortgang te volgen.",
   "marked_failed_translations_retry": "{{count}} mislukte vertalingen gemarkeerd voor hernieuwde poging. Controleer setupStatus-eindpunt.",

@@ -30,7 +30,11 @@
     "subject": "Vielen Dank für Ihre Anmeldung zu unserem Newsletter",
     "title": "Vielen Dank!",
     "message": "Wir senden exklusive Angebote an Ihre E-Mail. Überprüfen Sie Ihren Posteingang!",
-    "unsubscribe": "Abbestellen"
+    "unsubscribe": "Abbestellen",
+    "unsubscribeConfirmation": "Möchten Sie den LaptopStore-Newsletter wirklich abbestellen?",
+    "unsubscribeConfirmButton": "Abbestellung bestätigen",
+    "unsubscribeComplete": "Sie haben den Newsletter erfolgreich abbestellt.",
+    "unsubscribeInvalid": "Dieser Abmeldelink ist ungültig oder abgelaufen."
   },
   "paymentSuccess": {
     "subject": "Zahlung bestätigt - Bestellung {{orderId}}",

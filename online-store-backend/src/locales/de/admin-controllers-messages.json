@@ -131,6 +131,7 @@
   "newsletter_email_phone_required": "Email und Telefon erforderlich",
   "email_already_subscribed": "Email ist bereits für Newsletter angemeldet",
   "newsletter_subscription_thanks": "Danke für Ihre Anmeldung! Wir senden exklusive Angebote an Ihre E-Mail.",
+  "newsletter_email_delivery_failed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.",
   "newsletter_unsubscribe_success": "Sie haben sich von der Newsletter abgemeldet",
   "language_setup_started": "Sprache hinzugefügt. Hintergrund-Setup gestartet (PHASE 1-3). Überprüfen Sie setupStatus-Endpunkt um Fortschritt zu überwachen.",
   "marked_failed_translations_retry": "{{count}} fehlgeschlagene Übersetzungen zum Wiederholen markiert. Überprüfen Sie setupStatus-Endpunkt.",

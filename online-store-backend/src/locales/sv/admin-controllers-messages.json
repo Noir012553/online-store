@@ -131,6 +131,7 @@
   "newsletter_email_phone_required": "E-post och telefon krävs",
   "email_already_subscribed": "E-post redan prenumererad på nyhetsbrev",
   "newsletter_subscription_thanks": "Tack för din prenumeration! Vi skickar exklusiva erbjudanden till din e-post.",
+  "newsletter_email_delivery_failed": "Vi kunde inte skicka bekräftelsemeddelandet. Försök igen senare.",
   "newsletter_unsubscribe_success": "Du har avslutit prenumerationen på nyhetsbrevet",
   "language_setup_started": "Språk tillagt. Bakgrundsinstallation igång (FASE 1-3). Kontrollera setupStatus-slutpunkt för att övervaka framsteg.",
   "marked_failed_translations_retry": "Markerade {{count}} misslyckade översättningar för omförsök. Kontrollera setupStatus-slutpunkt.",

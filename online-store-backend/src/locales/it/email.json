@@ -30,7 +30,11 @@
     "subject": "Grazie per esserti iscritto alla nostra newsletter",
     "title": "Grazie!",
     "message": "Invieremo offerte esclusive alla tua email. Controlla la tua casella di posta!",
-    "unsubscribe": "Annulla iscrizione"
+    "unsubscribe": "Annulla iscrizione",
+    "unsubscribeConfirmation": "Vuoi davvero annullare l'iscrizione alla newsletter di LaptopStore?",
+    "unsubscribeConfirmButton": "Conferma annullamento",
+    "unsubscribeComplete": "L'iscrizione alla newsletter è stata annullata.",
+    "unsubscribeInvalid": "Questo link per annullare l'iscrizione non è valido o è scaduto."
   },
   "paymentSuccess": {
     "subject": "Pagamento confermato - Ordine {{orderId}}",

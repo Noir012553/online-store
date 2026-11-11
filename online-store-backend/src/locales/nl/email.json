@@ -30,7 +30,11 @@
     "subject": "Bedankt voor uw aanmelding voor onze nieuwsbrief",
     "title": "Dank je wel!",
     "message": "We sturen exclusieve aanbiedingen naar uw e-mail. Controleer uw inbox!",
-    "unsubscribe": "Uitschrijven"
+    "unsubscribe": "Uitschrijven",
+    "unsubscribeConfirmation": "Weet u zeker dat u zich wilt uitschrijven voor de nieuwsbrief van LaptopStore?",
+    "unsubscribeConfirmButton": "Uitschrijven bevestigen",
+    "unsubscribeComplete": "U bent uitgeschreven voor de nieuwsbrief.",
+    "unsubscribeInvalid": "Deze uitschrijflink is ongeldig of verlopen."
   },
   "paymentSuccess": {
     "subject": "Betaling bevestigd - Bestelling {{orderId}}",

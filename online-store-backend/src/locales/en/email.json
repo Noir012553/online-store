@@ -30,7 +30,11 @@
     "subject": "Thank you for subscribing to our newsletter",
     "title": "Thank You!",
     "message": "We'll send exclusive offers to your email. Check your inbox!",
-    "unsubscribe": "Unsubscribe"
+    "unsubscribe": "Unsubscribe",
+    "unsubscribeConfirmation": "Are you sure you want to unsubscribe from the LaptopStore newsletter?",
+    "unsubscribeConfirmButton": "Confirm unsubscribe",
+    "unsubscribeComplete": "You have successfully unsubscribed from the newsletter.",
+    "unsubscribeInvalid": "This unsubscribe link is invalid or has expired."
   },
   "paymentSuccess": {
     "subject": "Payment confirmed - Order {{orderId}}",

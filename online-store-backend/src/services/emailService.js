@@ -3,9 +3,16 @@
  * Sử dụng Nodemailer hoặc service khác
  */
 
+const fs = require('fs');
+const path = require('path');
+const juice = require('juice');
 const nodemailer = require('nodemailer');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, getIntlLocale } = require('../config/languageInventory');
+const { createNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
+
+const emailStyles = fs.readFileSync(path.join(__dirname, '../email/email.css'), 'utf8');
+const inlineEmailStyles = (html) => juice.inlineContent(html, emailStyles);
 
 const createEmailDeliveryError = (code, cause) => {
   const error = new Error(code);
@@ -106,36 +113,26 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: msg.subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; text-align: center;">${msg.title}</h2>
-          <p style="color: #666; font-size: 16px;">
-            ${msg.thank_you}
-          </p>
-          <p style="color: #666; font-size: 16px;">
-            ${msg.instruction}
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}"
-               style="display: inline-block; padding: 12px 30px; background-color: #ef4444;
-                      color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              ${msg.button}
-            </a>
+      html: inlineEmailStyles(`
+        <div class="email-shell">
+          <h2 class="email-title">${msg.title}</h2>
+          <p class="email-copy">${msg.thank_you}</p>
+          <p class="email-copy">${msg.instruction}</p>
+          <div class="email-center">
+            <a href="${verificationUrl}" class="email-button">${msg.button}</a>
           </div>
-          <p style="color: #999; font-size: 14px;">
+          <p class="email-muted">
             ${msg.link_text}<br/>
-            <a href="${verificationUrl}" style="color: #ef4444;">${verificationUrl}</a>
+            <a href="${verificationUrl}" class="email-link">${verificationUrl}</a>
           </p>
-          <p style="color: #999; font-size: 14px; margin-top: 30px;">
+          <p class="email-muted email-expiry">
             ${msg.expiry}<br/>
             ${msg.ignore}
           </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            ${msg.copyright}
-          </p>
+          <hr class="email-rule">
+          <p class="email-copyright">${msg.copyright}</p>
         </div>
-      `,
+      `),
       text: `
         ${msg.title}
 
@@ -180,36 +177,26 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: msg.subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; text-align: center;">${msg.title}</h2>
-          <p style="color: #666; font-size: 16px;">
-            ${msg.received}
-          </p>
-          <p style="color: #666; font-size: 16px;">
-            ${msg.instruction}
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}"
-               style="display: inline-block; padding: 12px 30px; background-color: #ef4444;
-                      color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              ${msg.button}
-            </a>
+      html: inlineEmailStyles(`
+        <div class="email-shell">
+          <h2 class="email-title">${msg.title}</h2>
+          <p class="email-copy">${msg.received}</p>
+          <p class="email-copy">${msg.instruction}</p>
+          <div class="email-center">
+            <a href="${resetUrl}" class="email-button">${msg.button}</a>
           </div>
-          <p style="color: #999; font-size: 14px;">
+          <p class="email-muted">
             ${msg.link_text}<br/>
-            <a href="${resetUrl}" style="color: #ef4444;">${resetUrl}</a>
+            <a href="${resetUrl}" class="email-link">${resetUrl}</a>
           </p>
-          <p style="color: #999; font-size: 14px; margin-top: 30px;">
+          <p class="email-muted email-expiry">
             ${msg.expiry}<br/>
             ${msg.ignore}
           </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            ${msg.copyright}
-          </p>
+          <hr class="email-rule">
+          <p class="email-copyright">${msg.copyright}</p>
         </div>
-      `,
+      `),
       text: `
         ${msg.title}
 
@@ -262,27 +249,21 @@ const sendOTPEmail = async (email, otp, lang) => {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: msg.subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; text-align: center;">${msg.title}</h2>
-          <p style="color: #666; font-size: 16px;">
-            ${msg.description}
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <div style="font-size: 32px; font-weight: bold; color: #ef4444; letter-spacing: 5px;">
-              ${otp}
-            </div>
+      html: inlineEmailStyles(`
+        <div class="email-shell">
+          <h2 class="email-title">${msg.title}</h2>
+          <p class="email-copy">${msg.description}</p>
+          <div class="email-center">
+            <div class="email-otp">${otp}</div>
           </div>
-          <p style="color: #999; font-size: 14px;">
+          <p class="email-muted">
             ${msg.expiry}<br/>
             ${msg.ignore}
           </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            ${msg.copyright}
-          </p>
+          <hr class="email-rule">
+          <p class="email-copyright">${msg.copyright}</p>
         </div>
-      `,
+      `),
       text: `
         ${msg.title}
 
@@ -314,35 +295,47 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
   try {
     const transporter = createTransporter();
 
-    // If email is not configured, skip sending
     if (!transporter) {
-      return { code: 'EMAIL_DISABLED' };
+      throw createEmailDeliveryError('EMAIL_DISABLED');
     }
 
     const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
     const msg = getMessage(emailLang, 'email.newsletter');
     const copyright = getMessage(emailLang, 'email.copyright');
+    const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://manln.online';
+    const unsubscribeUrl = new URL('/api/newsletter/unsubscribe', backendUrl);
+    const unsubscribePageUrl = new URL('/newsletter/unsubscribe', frontendUrl);
+    const token = createNewsletterUnsubscribeToken(email);
+    unsubscribeUrl.searchParams.set('token', token);
+    unsubscribeUrl.searchParams.set('lang', emailLang);
+    unsubscribePageUrl.searchParams.set('token', token);
+    unsubscribePageUrl.searchParams.set('lang', emailLang);
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: msg.subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #ef4444;">
-            <h1 style="color: #ef4444; margin: 0; font-size: 28px;">LaptopStore</h1>
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl.toString()}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+      html: inlineEmailStyles(`
+        <div class="email-shell email-shell-body">
+          <div class="email-brand-header">
+            <h1 class="email-brand">LaptopStore</h1>
           </div>
-          <div style="padding: 30px 0;">
-            <h2 style="color: #333; text-align: center; margin-bottom: 20px;">${escapeHtml(msg.title)}</h2>
-            <p style="color: #666; font-size: 16px; line-height: 1.6;">${escapeHtml(msg.message)}</p>
-            <p style="color: #999; font-size: 14px; line-height: 1.6; margin-top: 30px;">${escapeHtml(msg.unsubscribe)}</p>
+          <div class="email-content">
+            <h2 class="email-content-title">${escapeHtml(msg.title)}</h2>
+            <p class="email-content-copy">${escapeHtml(msg.message)}</p>
+            <p class="email-unsubscribe"><a class="email-link" href="${unsubscribePageUrl.href}">${escapeHtml(msg.unsubscribe)}</a></p>
           </div>
-          <div style="background-color: #f8f8f8; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-            <p style="color: #999; font-size: 12px; margin: 0;">${escapeHtml(copyright)}</p>
-            <p style="color: #999; font-size: 12px; margin: 5px 0 0;">📧 ${escapeHtml(email)}</p>
+          <div class="email-footer">
+            <p class="email-footer-copy">${escapeHtml(copyright)}</p>
+            <p class="email-footer-address">📧 ${escapeHtml(email)}</p>
           </div>
         </div>
-      `,
-      text: [msg.title, msg.message, msg.unsubscribe, `Email: ${email}`, copyright].join('\n\n'),
+      `),
+      text: [msg.title, msg.message, `${msg.unsubscribe}: ${unsubscribePageUrl}`, `Email: ${email}`, copyright].join('\n\n'),
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -378,6 +371,34 @@ const sendContactEmails = async ({ name, email, phone, subject, message }, lang)
         <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
       `,
     });
+
+    const confirmation = {
+      subject: getMessage(emailLang, 'contact.email_confirmation_subject'),
+      title: getMessage(emailLang, 'contact.email_confirmation_title'),
+      greeting: getMessage(emailLang, 'contact.email_confirmation_greeting', { name }),
+      received: getMessage(emailLang, 'contact.email_confirmation_received'),
+      response: getMessage(emailLang, 'contact.email_confirmation_response'),
+    };
+    try {
+      await transporter.sendMail({
+        from,
+        to: email,
+        subject: confirmation.subject,
+        text: [confirmation.greeting, confirmation.received, confirmation.response].join('\n\n'),
+        html: inlineEmailStyles(`
+          <div class="email-shell email-shell-body">
+            <h2 class="email-title">${escapeHtml(confirmation.title)}</h2>
+            <p class="email-copy">${escapeHtml(confirmation.greeting)}</p>
+            <p class="email-copy">${escapeHtml(confirmation.received)}</p>
+            <p class="email-copy">${escapeHtml(confirmation.response)}</p>
+          </div>
+        `),
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[CONTACT_CONFIRMATION_EMAIL_FAILED]', { code: error.code || 'UNKNOWN' });
+      }
+    }
   } catch (error) {
     throw createEmailDeliveryError('EMAIL_CONTACT_SEND_FAILED', error);
   }
@@ -430,26 +451,26 @@ const sendOrderPaymentSuccessEmail = async (order, lang) => {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: recipient,
       subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #ef4444;">
-            <h1 style="color: #ef4444; margin: 0;">LaptopStore</h1>
+      html: inlineEmailStyles(`
+        <div class="email-shell email-shell-body">
+          <div class="email-brand-header">
+            <h1 class="email-order-brand">LaptopStore</h1>
           </div>
-          <div style="padding: 24px 0;">
-            <h2 style="color: #333;">${escapeHtml(title)}</h2>
+          <div class="email-order-content">
+            <h2 class="email-order-title">${escapeHtml(title)}</h2>
             <p>${escapeHtml(greeting)}</p>
             <p>${escapeHtml(body)}</p>
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-              <tr><td style="padding: 8px 0;">${escapeHtml(orderLabel)}</td><td style="padding: 8px 0; text-align: right;">${escapeHtml(orderId)}</td></tr>
-              <tr><td style="padding: 8px 0;">${escapeHtml(totalLabel)}</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${escapeHtml(formattedTotal)}</td></tr>
-              <tr><td style="padding: 8px 0;">${escapeHtml(itemsLabel)}</td><td style="padding: 8px 0; text-align: right;">${itemCount}</td></tr>
+            <table class="email-order-table">
+              <tr><td class="email-order-cell">${escapeHtml(orderLabel)}</td><td class="email-order-cell-right">${escapeHtml(orderId)}</td></tr>
+              <tr><td class="email-order-cell">${escapeHtml(totalLabel)}</td><td class="email-order-cell-right email-order-total">${escapeHtml(formattedTotal)}</td></tr>
+              <tr><td class="email-order-cell">${escapeHtml(itemsLabel)}</td><td class="email-order-cell-right">${itemCount}</td></tr>
             </table>
             ${itemRows ? `<p>${escapeHtml(itemsLabel)}:</p><ul>${itemRows}</ul>` : ''}
             <p>${escapeHtml(thanks)}</p>
           </div>
-          <p style="color: #999; font-size: 12px; text-align: center; border-top: 1px solid #eee; padding-top: 16px;">${escapeHtml(getMessage(emailLang, 'email.copyright'))}</p>
+          <p class="email-order-copyright">${escapeHtml(getMessage(emailLang, 'email.copyright'))}</p>
         </div>
-      `,
+      `),
       text: [
         title,
         greeting,

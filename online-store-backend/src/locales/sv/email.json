@@ -30,7 +30,11 @@
     "subject": "Tack för att du prenumererar på vårt nyhetsbrev",
     "title": "Tack!",
     "message": "Vi skickar exklusiva erbjudanden till din e-post. Kontrollera din inkorg!",
-    "unsubscribe": "Avsluta prenumeration"
+    "unsubscribe": "Avsluta prenumeration",
+    "unsubscribeConfirmation": "Vill du avsluta prenumerationen på LaptopStores nyhetsbrev?",
+    "unsubscribeConfirmButton": "Bekräfta avslut",
+    "unsubscribeComplete": "Du har avslutat prenumerationen på nyhetsbrevet.",
+    "unsubscribeInvalid": "Den här länken är ogiltig eller har gått ut."
   },
   "paymentSuccess": {
     "subject": "Betalning bekräftad - Beställning {{orderId}}",

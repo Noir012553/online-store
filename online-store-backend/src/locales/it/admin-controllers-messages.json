@@ -131,6 +131,7 @@
   "newsletter_email_phone_required": "Email e telefono richiesti",
   "email_already_subscribed": "Email già iscritto alla newsletter",
   "newsletter_subscription_thanks": "Grazie per l'iscrizione! Invieremo offerte esclusive al tuo email.",
+  "newsletter_email_delivery_failed": "Non è stato possibile inviare l'email di conferma. Riprova più tardi.",
   "newsletter_unsubscribe_success": "Ti sei cancellato dalla newsletter",
   "language_setup_started": "Lingua aggiunta. Configurazione di sfondo avviata (FASE 1-3). Controlla l'endpoint setupStatus per monitorare il progresso.",
   "marked_failed_translations_retry": "Marcate {{count}} traduzioni fallite per ritentativi. Controlla l'endpoint setupStatus.",

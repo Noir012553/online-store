@@ -143,6 +143,7 @@
   "newsletter_email_phone_required": "Email and phone are required",
   "email_already_subscribed": "Email is already subscribed to the newsletter",
   "newsletter_subscription_thanks": "Thank you for subscribing! We will send exclusive offers to your email.",
+  "newsletter_email_delivery_failed": "We couldn't send the confirmation email. Please try again later.",
   "newsletter_unsubscribe_success": "You have unsubscribed from the newsletter",
   "language_setup_started": "Language added. Background setup started (PHASE 1-3). Check setupStatus endpoint to monitor progress.",
   "marked_failed_translations_retry": "Marked {{count}} failed translations for retry. Check setupStatus endpoint to monitor progress.",

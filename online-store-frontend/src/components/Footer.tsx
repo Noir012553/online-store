@@ -97,6 +97,7 @@ export function Footer() {
       await apiCall('/newsletter', {
         method: 'POST',
         body: JSON.stringify({ email, phone }),
+        skipErrorToast: true,
       });
 
       toast.success(t('successMessage', 'newsletter'));
@@ -112,7 +113,8 @@ export function Footer() {
         setShowThankYou(false);
       }, 5000);
     } catch (error) {
-      toast.error(t('errorMessage', 'newsletter'));
+      const apiError = error as Error & { status?: number };
+      toast.error(apiError.status === 400 ? apiError.message : t('errorMessage', 'newsletter'));
     } finally {
       setIsSubmitting(false);
     }

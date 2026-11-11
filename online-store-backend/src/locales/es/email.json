@@ -30,7 +30,11 @@
     "subject": "Gracias por suscribirte a nuestro boletín",
     "title": "¡Gracias!",
     "message": "Enviaremos ofertas exclusivas a tu correo electrónico. ¡Revisa tu bandeja de entrada!",
-    "unsubscribe": "Cancelar suscripción"
+    "unsubscribe": "Cancelar suscripción",
+    "unsubscribeConfirmation": "¿Seguro que quieres cancelar tu suscripción al boletín de LaptopStore?",
+    "unsubscribeConfirmButton": "Confirmar cancelación",
+    "unsubscribeComplete": "Has cancelado correctamente tu suscripción al boletín.",
+    "unsubscribeInvalid": "Este enlace para cancelar la suscripción no es válido o ha caducado."
   },
   "paymentSuccess": {
     "subject": "Pago confirmado - Pedido {{orderId}}",

@@ -5,8 +5,30 @@
 
 const asyncHandler = require('express-async-handler');
 const Newsletter = require('../models/Newsletter');
-const { sendNewsletterConfirmationEmail } = require('../services/emailService');
+const emailService = require('../services/emailService');
 const { getMessage } = require('../i18n/messages');
+const { verifyNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
+
+const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const renderUnsubscribePage = (lang, message, token, buttonLabel) => `
+    <!doctype html>
+    <html lang="${escapeHtml(lang)}">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LaptopStore</title></head>
+      <body>
+        <main>
+          <h1>LaptopStore</h1>
+          <p>${escapeHtml(message)}</p>
+          ${token ? `<form method="post" action="/api/newsletter/unsubscribe"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit">${escapeHtml(buttonLabel)}</button></form>` : ''}
+        </main>
+      </body>
+    </html>
+`;
 
 /**
  * POST /api/newsletter
@@ -42,15 +64,7 @@ const subscribe = asyncHandler(async (req, res) => {
         status: 'active',
     });
 
-    if (existingSubscriber) {
-        return res.status(400).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.email_already_subscribed'),
-        });
-    }
-
-    // Create or update subscriber
-    let subscriber = await Newsletter.findOneAndUpdate(
+    const subscriber = existingSubscriber || await Newsletter.findOneAndUpdate(
         { email: email.toLowerCase() },
         {
             email: email.toLowerCase(),
@@ -64,21 +78,23 @@ const subscribe = asyncHandler(async (req, res) => {
         }
     );
 
-    // Send confirmation email
     try {
-        await sendNewsletterConfirmationEmail(email, req.lang);
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[NEWSLETTER] Confirmation email sent to ${email}`);
-        }
+        await emailService.sendNewsletterConfirmationEmail(email, req.lang);
     } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[NEWSLETTER] Failed to send confirmation email to ${email}:`, error.message);
         }
-        // Don't fail the subscription if email fails
-        // Customer is subscribed even if email send fails
+        return res.status(503).json({
+            success: false,
+            message: getMessage(req.lang, 'admin-controllers-messages.newsletter_email_delivery_failed'),
+        });
     }
 
-    res.status(201).json({
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[NEWSLETTER] Confirmation email sent to ${email}`);
+    }
+
+    res.status(existingSubscriber ? 200 : 201).json({
         success: true,
         message: getMessage(req.lang, 'admin-controllers-messages.newsletter_subscription_thanks'),
         subscriber: {
@@ -91,42 +107,42 @@ const subscribe = asyncHandler(async (req, res) => {
     });
 });
 
-/**
- * POST /api/newsletter/unsubscribe
- * Hủy đăng ký newsletter
- * 
- * Body:
- * {
- *   "email": "user@example.com"
- * }
- */
+const showUnsubscribeConfirmation = asyncHandler(async (req, res) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    const email = verifyNewsletterUnsubscribeToken(token);
+    const lang = typeof req.query.lang === 'string' ? req.query.lang : req.lang;
+    const pageUrl = new URL('/newsletter/unsubscribe', process.env.FRONTEND_URL || 'https://manln.online');
+
+    if (token) pageUrl.searchParams.set('token', token);
+    if (lang) pageUrl.searchParams.set('lang', lang);
+    if (!email) pageUrl.searchParams.set('invalid', '1');
+
+    res.redirect(pageUrl.toString());
+});
+
 const unsubscribe = asyncHandler(async (req, res) => {
-    const { email } = req.body;
+    const email = verifyNewsletterUnsubscribeToken(req.body?.token || req.query.token);
+    const isFormRequest = req.is('application/x-www-form-urlencoded');
 
     if (!email) {
-        return res.status(400).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.email_required'),
-        });
+        const message = getMessage(req.lang, 'email.newsletter.unsubscribeInvalid');
+        if (isFormRequest) {
+            return res.status(400).type('html').send(renderUnsubscribePage(req.lang, message));
+        }
+        return res.status(400).json({ success: false, message });
     }
 
-    const subscriber = await Newsletter.findOneAndUpdate(
-        { email: email.toLowerCase() },
-        { status: 'unsubscribed' },
-        { returnDocument: 'after' }
+    await Newsletter.updateOne(
+        { email, status: 'active' },
+        { $set: { status: 'unsubscribed' } }
     );
 
-    if (!subscriber) {
-        return res.status(404).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.newsletter_unsubscribe_success'),
-        });
+    const message = getMessage(req.lang, 'email.newsletter.unsubscribeComplete');
+    if (isFormRequest) {
+        return res.type('html').send(renderUnsubscribePage(req.lang, message));
     }
 
-    res.json({
-        success: true,
-        message: getMessage(req.lang, 'admin-controllers-messages.newsletter_unsubscribe_success'),
-    });
+    res.json({ success: true, message });
 });
 
 /**
@@ -163,6 +179,7 @@ const getSubscribers = asyncHandler(async (req, res) => {
 
 module.exports = {
     subscribe,
+    showUnsubscribeConfirmation,
     unsubscribe,
     getSubscribers,
 };
