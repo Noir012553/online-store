@@ -3,8 +3,8 @@
 }
 
 .chart :global(.recharts-default-tooltip) {
-  background-color: #fff !important;
-  border: 1px solid #e5e7eb !important;
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
 }
 

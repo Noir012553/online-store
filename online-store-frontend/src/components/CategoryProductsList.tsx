@@ -667,84 +667,67 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-4">
             {filters.brands.map((brand) => (
-              <Badge
-                key={brand}
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={() => toggleBrand(brand)}
-              >
-                {brand}
-                <X className="w-3 h-3" />
+              <Badge key={brand} asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={() => toggleBrand(brand)}>
+                  {brand}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             ))}
             {(filters.discountRange[0] > 0 || filters.discountRange[1] > 0) && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={() => setDiscountRange([0, 0])}
-              >
-                {t('filter_discount_range', 'products')}: {filters.discountRange[0]}% - {filters.discountRange[1]}%
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={() => setDiscountRange([0, 0])}>
+                  {t('filter_discount_range', 'products')}: {filters.discountRange[0]}% - {filters.discountRange[1]}%
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {(filters.ratingRange[0] > 0 || filters.ratingRange[1] < 5) && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={() => setRatingRange([0, 5])}
-              >
-                {t('filter_rating_range', 'products')}: {formatNumber(filters.ratingRange[0], locale)} - {formatNumber(filters.ratingRange[1], locale)}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={() => setRatingRange([0, 5])}>
+                  {t('filter_rating_range', 'products')}: {formatNumber(filters.ratingRange[0], locale)} - {formatNumber(filters.ratingRange[1], locale)}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {filters.featuredOnly && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={toggleFeaturedFilter}
-              >
-                {t('badge_featured', 'products')}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={toggleFeaturedFilter}>
+                  {t('badge_featured', 'products')}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {filters.hotDealOnly && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={toggleHotDealFilter}
-              >
-                {t('badge_hot_deal', 'products')}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={toggleHotDealFilter}>
+                  {t('badge_hot_deal', 'products')}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {filters.shockDealOnly && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={toggleShockDealFilter}
-              >
-                {t('badge_shock_discount', 'products')}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={toggleShockDealFilter}>
+                  {t('badge_shock_discount', 'products')}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {(minPrice > 0 || maxPrice > 0) && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={() => setPriceRange([0, 0])}
-              >
-                {getFormattedPrice(minPrice)} - {getFormattedPrice(maxPrice)}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={() => setPriceRange([0, 0])}>
+                  {getFormattedPrice(minPrice)} - {getFormattedPrice(maxPrice)}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
             {filters.inStock !== undefined && (
-              <Badge
-                variant="secondary"
-                className="gap-1 cursor-pointer hover:bg-red-100"
-                onClick={() => toggleStockFilter(undefined)}
-              >
-                {filters.inStock ? t('filter_in_stock', 'products') : t('filter_out_of_stock', 'products')}
-                <X className="w-3 h-3" />
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+                <button type="button" onClick={() => toggleStockFilter(undefined)}>
+                  {filters.inStock ? t('filter_in_stock', 'products') : t('filter_out_of_stock', 'products')}
+                  <X className="w-3 h-3" />
+                </button>
               </Badge>
             )}
           </div>

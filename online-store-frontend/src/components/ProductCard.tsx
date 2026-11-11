@@ -182,7 +182,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
 
           <div className="p-2 sm:p-3 flex flex-col flex-1">
             <ProductDetailsContainer href={productHref} className="flex flex-1 flex-col">
-              <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide h-4 sm:h-5">{convertedLaptop.brand}</p>
+              <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide h-4 sm:h-5">{convertedLaptop.brand}</p>
               <h3 className="mb-2 text-xs sm:text-sm text-black group-hover:text-red-600 transition-colors h-16 sm:h-20 line-clamp-3 flex items-start">
                 {String(convertedLaptop.name)}
               </h3>
@@ -210,7 +210,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
 
                   return specEntries.map(([key, value]) => (
                     <div key={key} className="space-y-0.5">
-                      <span className="block font-medium text-gray-500">{convertedLaptop.specLabels?.[key] || specDisplayByField.get(key) || key}:</span>
+                      <span className="block font-medium text-muted-foreground">{convertedLaptop.specLabels?.[key] || specDisplayByField.get(key) || key}:</span>
                       <span className="block space-y-0.5 pl-2 text-gray-700">
                         {String(value).split(';').map((item, index) => (
                           <span key={`${item}-${index}`} className="block">{item.trim()}</span>
@@ -237,7 +237,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
               type="button"
               onClick={handleAddToCart}
               disabled={!convertedLaptop.inStock || isAddingToCart}
-              className="w-full bg-red-600 hover:bg-red-700 transition-all duration-300 hover:shadow-lg text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm py-1.5 sm:py-2"
+              className="w-full bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm py-1.5 sm:py-2"
             >
               <span className="flex items-center justify-center gap-1">
                 <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
