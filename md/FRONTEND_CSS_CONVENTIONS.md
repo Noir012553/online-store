@@ -52,6 +52,36 @@ Dùng utility cho transition đơn giản. Dùng CSS Module cho keyframes hoặc
 
 Ưu tiên utility/token theme sẵn có cho màu mang ý nghĩa như `bg-primary`, `text-muted-foreground` hoặc `border-border`. Duy trì bảng màu hiện tại của giao diện; chỉ dùng màu tùy chỉnh khi token hiện có không đáp ứng đúng thiết kế. Tránh lặp lại giá trị màu cố định qua inline style.
 
+## Tổ chức thư mục CSS
+
+Tập trung các file CSS dưới `online-store-frontend/src/css/`, giữ thư mục con theo nhóm để tránh trùng tên:
+
+- `src/css/styles/`: stylesheet toàn cục và style dùng chung như `index.css`.
+- `src/css/components/` và `src/css/components/admin/`: CSS Module của component.
+- `src/css/pages/admin/`: CSS Module của trang admin.
+
+Khi chuyển các file hiện có, chạy từ thư mục gốc repository. Dùng `git mv` với đường dẫn đích rõ ràng; không gom phẳng bằng wildcard vì có thể trùng tên file:
+
+```sh
+cd online-store-frontend
+mkdir -p src/css/styles src/css/components/admin src/css/pages/admin
+
+git mv src/styles/index.css src/css/styles/index.css
+git mv src/styles/login.module.css src/css/styles/login.module.css
+git mv src/components/Footer.module.css src/css/components/Footer.module.css
+git mv src/components/HamsterLoader.module.css src/css/components/HamsterLoader.module.css
+git mv src/components/HomeContent.module.css src/css/components/HomeContent.module.css
+git mv src/components/admin/TranslationManagementPage.module.css src/css/components/admin/TranslationManagementPage.module.css
+git mv src/pages/admin/auditLogViewer.module.css src/css/pages/admin/auditLogViewer.module.css
+git mv src/pages/admin/dashboard.module.css src/css/pages/admin/dashboard.module.css
+git mv src/pages/admin/i18nMonitoring.module.css src/css/pages/admin/i18nMonitoring.module.css
+git mv src/pages/admin/translationBatchOverride.module.css src/css/pages/admin/translationBatchOverride.module.css
+git mv src/pages/admin/translationManualOverride.module.css src/css/pages/admin/translationManualOverride.module.css
+git mv src/pages/admin/translationsStatic.module.css src/css/pages/admin/translationsStatic.module.css
+```
+
+Sau khi di chuyển, cập nhật tất cả import CSS Module và import stylesheet toàn cục tới vị trí mới; không giữ bản sao ở đường dẫn cũ. Chạy typecheck, build và kiểm tra các trang/component đã đổi import trước khi hoàn tất. Các file CSS mới cũng phải được tạo trong nhóm thư mục tương ứng dưới `src/css/`.
+
 ## Chuyển đổi CSS hiện có
 
 Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoint hiện tại; không đồng thời chỉnh lại thiết kế hoặc sửa selector toàn cục. Thực hiện theo từng component/trang và kiểm tra giao diện sau mỗi lần chuyển để phát hiện thay đổi do specificity hoặc scope.
@@ -66,3 +96,4 @@ Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoin
 6. Dùng breakpoint mobile-first và giữ nguyên hành vi responsive hiện có khi không có yêu cầu đổi thiết kế.
 7. Dùng variant Tailwind cho trạng thái tương tác; giữ trạng thái focus bàn phím và tôn trọng reduced motion.
 8. Ưu tiên theme token cho màu ngữ nghĩa, tránh sao chép màu tĩnh vào inline style.
+9. Lưu stylesheet trong `src/css/` theo nhóm `styles/`, `components/` hoặc `pages/`; cập nhật import khi di chuyển.
