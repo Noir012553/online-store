@@ -8,7 +8,7 @@ import { getAuthToken } from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { API_BASE_PATH } from '../../config';
-import styles from './translationsStatic.module.css';
+import styles from '../../css/pages/admin/translationsStatic.module.css';
 
 interface StaticTranslation {
   _id: string;

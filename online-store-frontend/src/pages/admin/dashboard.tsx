@@ -12,7 +12,7 @@ import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { DateRangePickerModal } from "../../components/admin/DateRangePickerModal";
 import { HamsterLoader } from "../../components/HamsterLoader";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
-import styles from "./dashboard.module.css";
+import styles from "../../css/pages/admin/dashboard.module.css";
 
 // In-memory cache manager (safe, TTL-based, no localStorage)
 interface CacheEntry {

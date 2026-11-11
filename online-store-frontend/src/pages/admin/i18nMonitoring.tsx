@@ -7,7 +7,7 @@ import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { formatNumber } from '../../lib/utils';
 import { getIntlLocale } from '../../lib/localeUtils';
 import { HamsterLoader } from '../../components/HamsterLoader';
-import styles from './i18nMonitoring.module.css';
+import styles from '../../css/pages/admin/i18nMonitoring.module.css';
 
 interface HealthMetrics {
   timestamp: string;

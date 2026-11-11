@@ -1,4 +1,4 @@
-import '../styles/index.css';
+import '../css/styles/index.css';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';

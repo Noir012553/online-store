@@ -11,7 +11,7 @@ import { useCategories } from "../lib/context/CategoryContext";
 import { useTranslation } from "../lib/i18n";
 import { apiCall } from "../lib/api";
 import { FacebookIcon, InstagramIcon, TwitterIcon, YoutubeIcon } from "./icons/SocialIcons";
-import styles from "./Footer.module.css";
+import styles from "../css/components/Footer.module.css";
 
 export function Footer() {
   const [email, setEmail] = useState("");

@@ -19,7 +19,7 @@ import { R2Icon } from "../components/icons/R2Icon";
 import { ProductSkeleton } from "../components/ProductSkeleton";
 import { EmptyState } from "../components/EmptyState";
 import { getImageUrl } from "../lib/utils";
-import styles from "./HomeContent.module.css";
+import styles from "../css/components/HomeContent.module.css";
 
 
 const DeferredProductCard = dynamic(

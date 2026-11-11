@@ -4,7 +4,7 @@ import { getAuthToken } from '../../lib/api';
 import { Locale, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../../lib/i18n/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
-import styles from './TranslationManagementPage.module.css';
+import styles from '../../css/components/admin/TranslationManagementPage.module.css';
 
 interface CacheStats {
   totalCachedTranslations: number;

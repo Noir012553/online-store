@@ -9,7 +9,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
-import styles from "../styles/login.module.css";
+import styles from "../css/styles/login.module.css";
 import { getLocalUiFallback, useTranslation } from "../lib/i18n";
 
 export const getServerSideProps = async () => {
