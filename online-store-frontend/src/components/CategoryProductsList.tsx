@@ -417,16 +417,16 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left sidebar: Filters */}
       <aside className="w-full lg:w-64 shrink-0">
-        <div className="bg-white border rounded-lg overflow-hidden">
+        <div className="bg-card border rounded-lg overflow-hidden">
           {/* Filter header with clear button */}
-          <div className="px-4 py-3 border-b bg-white flex items-center justify-between">
+          <div className="px-4 py-3 border-b bg-card flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">{t('filter_title', 'products')}</h3>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-auto px-2 py-1"
+                className="text-xs text-primary hover:text-primary/90 hover:bg-accent h-auto px-2 py-1"
               >
                 {t('filter_clear_all', 'products')}
               </Button>
@@ -456,8 +456,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                         <span>{t('filter_max_price', 'products')}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-900 font-semibold">
-                        <span className="text-red-600">{getFormattedPrice(minPrice || sliderMin)}</span>
-                        <span className="text-red-600">{getFormattedPrice(maxPrice || sliderMax)}</span>
+                        <span className="text-primary">{getFormattedPrice(minPrice || sliderMin)}</span>
+                        <span className="text-primary">{getFormattedPrice(maxPrice || sliderMax)}</span>
                       </div>
                     </div>
                   </div>
@@ -487,8 +487,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                         <span>{t('filter_max_discount', 'products')}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-900 font-semibold">
-                        <span className="text-red-600">{(filters.discountRange[0] || discountStats.minDiscount)}%</span>
-                        <span className="text-red-600">{(filters.discountRange[1] || discountStats.maxDiscount)}%</span>
+                        <span className="text-primary">{(filters.discountRange[0] || discountStats.minDiscount)}%</span>
+                        <span className="text-primary">{(filters.discountRange[1] || discountStats.maxDiscount)}%</span>
                       </div>
                     </div>
                   </div>
@@ -503,7 +503,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-2 ml-0.5">
-                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer">
                     <Checkbox
                       id="highlight-featured"
                       checked={filters.featuredOnly === true}
@@ -516,7 +516,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                       {t('badge_featured', 'products')}
                     </Label>
                   </div>
-                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer">
                     <Checkbox
                       id="highlight-hot-deal"
                       checked={filters.hotDealOnly === true}
@@ -524,12 +524,12 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     />
                     <Label
                       htmlFor="highlight-hot-deal"
-                      className="text-sm cursor-pointer font-normal flex-1 truncate text-red-600 hover:text-red-700"
+                      className="text-sm cursor-pointer font-normal flex-1 truncate text-primary hover:text-primary/90"
                     >
                       {t('badge_hot_deal', 'products')}
                     </Label>
                   </div>
-                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer">
                     <Checkbox
                       id="highlight-shock-discount"
                       checked={filters.shockDealOnly === true}
@@ -537,7 +537,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     />
                     <Label
                       htmlFor="highlight-shock-discount"
-                      className="text-sm cursor-pointer font-normal flex-1 truncate text-red-600 hover:text-red-700"
+                      className="text-sm cursor-pointer font-normal flex-1 truncate text-primary hover:text-primary/90"
                     >
                       {t('badge_shock_discount', 'products')}
                     </Label>
@@ -567,8 +567,8 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                       <span>{t('filter_max_rating', 'products')}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-900 font-semibold">
-                      <span className="text-red-600">{formatNumber(filters.ratingRange[0], locale)}</span>
-                      <span className="text-red-600">{formatNumber(filters.ratingRange[1], locale)}</span>
+                      <span className="text-primary">{formatNumber(filters.ratingRange[0], locale)}</span>
+                      <span className="text-primary">{formatNumber(filters.ratingRange[1], locale)}</span>
                     </div>
                   </div>
                 </div>
@@ -587,7 +587,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     {brands.map((brand) => (
                       <div
                         key={brand}
-                        className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer"
+                        className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer"
                       >
                         <Checkbox
                           id={`brand-${brand}`}
@@ -614,7 +614,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-2 ml-0.5">
-                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer">
                     <Checkbox
                       id="stock-in"
                       checked={filters.inStock === true}
@@ -627,7 +627,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                       {t('filter_in_stock', 'products')}
                     </Label>
                   </div>
-                  <div className="flex items-center gap-2 group hover:bg-white px-2 py-1 rounded transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 group hover:bg-card px-2 py-1 rounded transition-colors cursor-pointer">
                     <Checkbox
                       id="stock-out"
                       checked={filters.inStock === false}
@@ -667,7 +667,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-4">
             {filters.brands.map((brand) => (
-              <Badge key={brand} asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge key={brand} asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={() => toggleBrand(brand)}>
                   {brand}
                   <X className="w-3 h-3" />
@@ -675,7 +675,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             ))}
             {(filters.discountRange[0] > 0 || filters.discountRange[1] > 0) && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={() => setDiscountRange([0, 0])}>
                   {t('filter_discount_range', 'products')}: {filters.discountRange[0]}% - {filters.discountRange[1]}%
                   <X className="w-3 h-3" />
@@ -683,7 +683,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {(filters.ratingRange[0] > 0 || filters.ratingRange[1] < 5) && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={() => setRatingRange([0, 5])}>
                   {t('filter_rating_range', 'products')}: {formatNumber(filters.ratingRange[0], locale)} - {formatNumber(filters.ratingRange[1], locale)}
                   <X className="w-3 h-3" />
@@ -691,7 +691,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {filters.featuredOnly && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={toggleFeaturedFilter}>
                   {t('badge_featured', 'products')}
                   <X className="w-3 h-3" />
@@ -699,7 +699,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {filters.hotDealOnly && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={toggleHotDealFilter}>
                   {t('badge_hot_deal', 'products')}
                   <X className="w-3 h-3" />
@@ -707,7 +707,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {filters.shockDealOnly && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={toggleShockDealFilter}>
                   {t('badge_shock_discount', 'products')}
                   <X className="w-3 h-3" />
@@ -715,7 +715,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {(minPrice > 0 || maxPrice > 0) && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={() => setPriceRange([0, 0])}>
                   {getFormattedPrice(minPrice)} - {getFormattedPrice(maxPrice)}
                   <X className="w-3 h-3" />
@@ -723,7 +723,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
               </Badge>
             )}
             {filters.inStock !== undefined && (
-              <Badge asChild variant="secondary" className="gap-1 hover:bg-red-100">
+              <Badge asChild variant="secondary" className="gap-1 hover:bg-accent">
                 <button type="button" onClick={() => toggleStockFilter(undefined)}>
                   {filters.inStock ? t('filter_in_stock', 'products') : t('filter_out_of_stock', 'products')}
                   <X className="w-3 h-3" />
@@ -764,7 +764,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-1 mt-8">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-1">
                 <Button
                   variant="outline"
                   size="sm"
@@ -775,6 +775,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                   <><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t('filter_prev', 'products')}</>
                 </Button>
 
+                <span className="px-2 text-sm text-muted-foreground sm:hidden">{page} / {totalPages}</span>
                 {(() => {
                   const pages = [];
                   const maxVisible = 5;
@@ -812,8 +813,9 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                         key={i}
                         variant={page === i ? 'default' : 'outline'}
                         size="sm"
+                        aria-current={page === i ? 'page' : undefined}
                         onClick={() => setPage(i)}
-                        className={`px-3 ${page === i ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                        className="px-3"
                       >
                         {i}
                       </Button>
@@ -841,7 +843,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
                     );
                   }
 
-                  return pages;
+                  return <div className="hidden items-center gap-1 sm:flex">{pages}</div>;
                 })()}
 
                 <Button
