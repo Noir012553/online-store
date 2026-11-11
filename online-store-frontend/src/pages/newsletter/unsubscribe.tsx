@@ -233,7 +233,7 @@ export default function NewsletterUnsubscribe(pageProps: Partial<UnsubscribePage
         <div className="absolute -top-24 right-[-5rem] h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-0 left-[-5rem] h-64 w-64 rounded-full bg-red-100/70 blur-3xl" />
 
-        <div className="relative w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] sm:p-12" style={{ textAlign: 'center' }}>
+        <div className="relative w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] sm:p-12">
           <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${isSuccess ? 'bg-emerald-50 text-emerald-600' : isError ? 'bg-red-50 text-red-600' : 'bg-red-50 text-red-600'}`}>
             {isSuccess ? <Check aria-hidden="true" className="h-8 w-8" /> : isError ? <CircleAlert aria-hidden="true" className="h-8 w-8" /> : <Mail aria-hidden="true" className="h-8 w-8" />}
           </div>
