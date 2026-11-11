@@ -484,15 +484,6 @@
         }
       }
 
-/* These classes have no declarations in the original embedded styles. */
-.batch-upload-section {}
-.batch-data-section {}
-.batch-results-section {}
-.batch-row {}
-.batch-row-pending {}
-.batch-row-success {}
-.batch-row-error {}
-
 @media (prefers-reduced-motion: reduce) {
   .batch-spinner {
     animation: none;

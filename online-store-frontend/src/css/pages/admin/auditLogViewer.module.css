@@ -491,14 +491,6 @@
           }
         }
 
-        .audit-log-user,
-        .audit-log-action,
-        .audit-log-entity,
-        .audit-log-lang,
-        .audit-log-changes,
-        .audit-log-expand {
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .audit-log-spin {
             animation: none;

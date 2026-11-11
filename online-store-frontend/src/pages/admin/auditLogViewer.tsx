@@ -403,24 +403,24 @@ const AuditLogViewerContent = () => {
                         <td className={styles['audit-log-timestamp']}>
                           {new Date(log.timestamp).toLocaleString()}
                         </td>
-                        <td className={styles['audit-log-user']}>
+                        <td>
                           <div className={styles['audit-log-user-info']}>
                             <div className={styles['audit-log-user-name']}>{log.userName}</div>
                             <div className={styles['audit-log-user-id']}>{log.userId}</div>
                           </div>
                         </td>
-                        <td className={styles['audit-log-action']}>
+                        <td>
                           <span className={`${styles['audit-log-action-badge']} ${ACTION_BADGE_CLASSES[log.action] ?? ''}`}>
                             {t(`admin_audit_log_action_${log.action}`)}
                           </span>
                         </td>
-                        <td className={styles['audit-log-entity']}>
+                        <td>
                           {log.entityId}
                         </td>
-                        <td className={styles['audit-log-lang']}>
+                        <td>
                           <span className={styles['audit-log-lang-badge']}>{t(`locale_label_${log.targetLang}`, 'admin-translation')}</span>
                         </td>
-                        <td className={styles['audit-log-changes']}>
+                        <td>
                           {log.oldValue || log.newValue ? (
                             <div className={styles['audit-log-change-preview']}>
                               <div className={styles['audit-log-old']}>{log.oldValue?.substring(0, 30)}...</div>
@@ -431,7 +431,7 @@ const AuditLogViewerContent = () => {
                             <span className={styles['audit-log-no-change']}>-</span>
                           )}
                         </td>
-                        <td className={styles['audit-log-expand']}>
+                        <td>
                           <button
                             onClick={() => setExpandedId(expandedId === log._id ? null : log._id)}
                             className={styles['audit-log-expand-btn']}
