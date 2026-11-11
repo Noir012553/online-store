@@ -5,7 +5,7 @@
 
 const asyncHandler = require('express-async-handler');
 const Newsletter = require('../models/Newsletter');
-const { sendNewsletterConfirmationEmail } = require('../services/emailService');
+const emailService = require('../services/emailService');
 const { getMessage } = require('../i18n/messages');
 const { verifyNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
 
@@ -64,15 +64,7 @@ const subscribe = asyncHandler(async (req, res) => {
         status: 'active',
     });
 
-    if (existingSubscriber) {
-        return res.status(400).json({
-            success: false,
-            message: getMessage(req.lang, 'admin-controllers-messages.email_already_subscribed'),
-        });
-    }
-
-    // Create or update subscriber
-    let subscriber = await Newsletter.findOneAndUpdate(
+    const subscriber = existingSubscriber || await Newsletter.findOneAndUpdate(
         { email: email.toLowerCase() },
         {
             email: email.toLowerCase(),
@@ -86,21 +78,23 @@ const subscribe = asyncHandler(async (req, res) => {
         }
     );
 
-    // Send confirmation email
     try {
-        await sendNewsletterConfirmationEmail(email, req.lang);
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[NEWSLETTER] Confirmation email sent to ${email}`);
-        }
+        await emailService.sendNewsletterConfirmationEmail(email, req.lang);
     } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error(`[NEWSLETTER] Failed to send confirmation email to ${email}:`, error.message);
         }
-        // Don't fail the subscription if email fails
-        // Customer is subscribed even if email send fails
+        return res.status(503).json({
+            success: false,
+            message: getMessage(req.lang, 'admin-controllers-messages.newsletter_email_delivery_failed'),
+        });
     }
 
-    res.status(201).json({
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[NEWSLETTER] Confirmation email sent to ${email}`);
+    }
+
+    res.status(existingSubscriber ? 200 : 201).json({
         success: true,
         message: getMessage(req.lang, 'admin-controllers-messages.newsletter_subscription_thanks'),
         subscriber: {

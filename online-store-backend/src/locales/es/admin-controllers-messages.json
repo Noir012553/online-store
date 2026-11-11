@@ -131,6 +131,7 @@
   "newsletter_email_phone_required": "Se requieren correo electrónico y teléfono",
   "email_already_subscribed": "El correo electrónico ya está suscrito al boletín",
   "newsletter_subscription_thanks": "¡Gracias por suscribirse! Enviaremos ofertas exclusivas a su correo electrónico.",
+  "newsletter_email_delivery_failed": "No pudimos enviar el correo de confirmación. Inténtelo de nuevo más tarde.",
   "newsletter_unsubscribe_success": "Se ha cancelado su suscripción al boletín",
   "language_setup_started": "Idioma añadido. Configuración de fondo iniciada (FASE 1-3). Verifique endpoint setupStatus para monitorear progreso.",
   "marked_failed_translations_retry": "Marcadas {{count}} traducciones fallidas para reintentar. Verifique endpoint setupStatus.",

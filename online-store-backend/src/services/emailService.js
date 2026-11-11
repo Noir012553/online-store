@@ -295,9 +295,8 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
   try {
     const transporter = createTransporter();
 
-    // If email is not configured, skip sending
     if (!transporter) {
-      return { code: 'EMAIL_DISABLED' };
+      throw createEmailDeliveryError('EMAIL_DISABLED');
     }
 
     const emailLang = (lang || getDefaultLanguage().code).toLowerCase();

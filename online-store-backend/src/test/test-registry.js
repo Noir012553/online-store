@@ -106,6 +106,7 @@ const TEST_SUITES = {
       'backend-endpoints.test.js',
       'contact-email.test.js',
       'contact-submission.test.js',
+      'newsletter-subscribe.test.js',
       'newsletter-unsubscribe.test.js',
       'orders-api.test.js',
       'translation-migration-smoke.test.js',

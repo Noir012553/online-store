@@ -143,6 +143,7 @@
   "newsletter_email_phone_required": "Email và số điện thoại bắt buộc",
   "email_already_subscribed": "Email đã được đăng ký newsletter",
   "newsletter_subscription_thanks": "Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi ưu đãi độc quyền tới email của bạn.",
+  "newsletter_email_delivery_failed": "Không gửi được email xác nhận. Vui lòng thử lại sau.",
   "newsletter_unsubscribe_success": "Bạn đã hủy đăng ký newsletter",
   "language_setup_started": "Thêm ngôn ngữ thành công. Bắt đầu thiết lập (PHASE 1-3). Kiểm tra setupStatus endpoint để giám sát tiến độ.",
   "marked_failed_translations_retry": "Đánh dấu {{count}} bản dịch lỗi để thử lại. Kiểm tra setupStatus endpoint để giám sát tiến độ.",
