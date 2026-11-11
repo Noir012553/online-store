@@ -1,0 +1,161 @@
+.email-shell {
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+.email-shell-body {
+  color: #333;
+}
+
+.email-title {
+  color: #333;
+  text-align: center;
+}
+
+.email-order-title {
+  color: #333;
+}
+
+.email-copy {
+  color: #666;
+  font-size: 16px;
+}
+
+.email-center {
+  margin: 30px 0;
+  text-align: center;
+}
+
+.email-button {
+  display: inline-block;
+  padding: 12px 30px;
+  border-radius: 5px;
+  background-color: #ef4444;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.email-muted {
+  color: #999;
+  font-size: 14px;
+}
+
+.email-expiry {
+  margin-top: 30px;
+}
+
+.email-link {
+  color: #ef4444;
+}
+
+.email-rule {
+  margin: 30px 0;
+  border: none;
+  border-top: 1px solid #eee;
+}
+
+.email-copyright {
+  color: #999;
+  font-size: 12px;
+  text-align: center;
+}
+
+.email-otp {
+  color: #ef4444;
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+
+.email-brand-header {
+  padding: 20px 0;
+  border-bottom: 3px solid #ef4444;
+  text-align: center;
+}
+
+.email-brand,
+.email-order-brand {
+  margin: 0;
+  color: #ef4444;
+}
+
+.email-brand {
+  font-size: 28px;
+}
+
+.email-content {
+  padding: 30px 0;
+}
+
+.email-content-title {
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+}
+
+.email-content-copy {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.email-unsubscribe {
+  margin-top: 30px;
+  color: #999;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.email-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  background-color: #f8f8f8;
+  text-align: center;
+}
+
+.email-footer-copy,
+.email-footer-address {
+  color: #999;
+  font-size: 12px;
+}
+
+.email-footer-copy {
+  margin: 0;
+}
+
+.email-footer-address {
+  margin: 5px 0 0;
+}
+
+.email-order-content {
+  padding: 24px 0;
+}
+
+.email-order-table {
+  width: 100%;
+  margin: 20px 0;
+  border-collapse: collapse;
+}
+
+.email-order-cell {
+  padding: 8px 0;
+}
+
+.email-order-cell-right {
+  padding: 8px 0;
+  text-align: right;
+}
+
+.email-order-total {
+  font-weight: bold;
+}
+
+.email-order-copyright {
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  color: #999;
+  font-size: 12px;
+  text-align: center;
+}

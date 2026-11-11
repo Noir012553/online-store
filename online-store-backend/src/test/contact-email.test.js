@@ -62,6 +62,9 @@ describe('Contact email delivery', () => {
       subject: 'Cảm ơn bạn đã đăng ký nhận bản tin',
     });
     chai.expect(message.html).to.include('Hủy đăng ký');
+    chai.expect(message.html).to.include('font-family: Arial, sans-serif');
+    chai.expect(message.html).to.include('background-color: #f8f8f8');
+    chai.expect(message.html).not.to.include('<style');
     chai.expect(message.html).not.to.include('undefined');
     chai.expect(message.text).not.to.include('undefined');
   });

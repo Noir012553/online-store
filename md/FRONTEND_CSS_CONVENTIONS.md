@@ -26,6 +26,10 @@ Không chuyển một nhóm utility nhỏ, chỉ dùng một lần, sang file CS
 
 Chỉ dùng `style={{...}}` cho giá trị động tại runtime, chẳng hạn giá trị tính toán từ dữ liệu hoặc biến CSS được cập nhật bằng JavaScript. Với giá trị cố định, ưu tiên utility class hoặc CSS phù hợp. Nếu CSS Module cần nhận giá trị động, truyền giá trị đó qua CSS custom property thay vì chuyển toàn bộ style tĩnh sang inline style.
 
+## HTML email
+
+Email HTML được tạo ở backend là ngoại lệ cho quy tắc inline style phía trên. Lưu CSS tĩnh trong `online-store-backend/src/email/email.css`, dùng class trong template HTML và inline CSS vào HTML sau khi render, ngay trước khi gửi email, để tương thích với email client. Không dùng Tailwind, CSS Module của frontend hoặc stylesheet bên ngoài cho email. HTML gửi đi cần chứa inline styles; không cần giữ `<style>` trong email output.
+
 ## Responsive layout
 
 Ưu tiên cách viết mobile-first: đặt kiểu mặc định cho màn hình nhỏ, rồi dùng breakpoint như `sm:`, `md:`, `lg:` khi bố cục cần thay đổi. Dùng utility responsive cho các điều chỉnh thông thường; chỉ đưa media query vào CSS Module khi quy tắc responsive phức tạp hoặc gắn với selector riêng của component.
@@ -104,7 +108,7 @@ Khi tách style từ JSX sang CSS Module, giữ nguyên giá trị và breakpoin
 2. CSS toàn cục chỉ dành cho quy tắc áp dụng toàn ứng dụng.
 3. CSS Module là nơi ưu tiên cho CSS tĩnh, dài hoặc phức tạp của component/trang.
 4. Tránh `<style>` và các khối `<style jsx>` tĩnh dài trong JSX.
-5. Inline style chỉ dành cho giá trị động.
+5. Inline style trong giao diện chỉ dành cho giá trị động; email là ngoại lệ và phải inline từ stylesheet nguồn trước khi gửi.
 6. Dùng breakpoint mobile-first và giữ nguyên hành vi responsive hiện có khi không có yêu cầu đổi thiết kế.
 7. Dùng variant Tailwind cho trạng thái tương tác; giữ trạng thái focus bàn phím và tôn trọng reduced motion.
 8. Ưu tiên theme token cho màu ngữ nghĩa, tránh sao chép màu tĩnh vào inline style.
