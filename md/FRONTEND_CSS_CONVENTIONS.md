@@ -14,8 +14,8 @@ Không chuyển một nhóm utility nhỏ, chỉ dùng một lần, sang file CS
 
 ## Dùng file CSS khi
 
-- Quy tắc áp dụng toàn ứng dụng như reset, nền tảng, theme hoặc biến CSS: `src/styles/index.css`.
-- Một component hoặc trang cần nhiều quy tắc riêng, selector phức tạp, responsive đặc thù, trạng thái tương tác hoặc keyframes: dùng CSS Module cạnh component/trang, ví dụ `Component.module.css`.
+- Quy tắc áp dụng toàn ứng dụng như reset, nền tảng, theme hoặc biến CSS: `src/css/styles/index.css`.
+- Một component hoặc trang cần nhiều quy tắc riêng, selector phức tạp, responsive đặc thù, trạng thái tương tác hoặc keyframes: dùng CSS Module dưới `src/css/components/` hoặc `src/css/pages/`, theo nhóm đã nêu trong phần tổ chức thư mục.
 - Khối CSS trong JSX dài hoặc lặp lại cần được tách ra để dễ đọc, bảo trì và giới hạn phạm vi selector: chuyển sang CSS Module.
 
 Ưu tiên CSS Module cho CSS tĩnh gắn với component. Không viết `<style>` thường trong JSX vì selector có thể áp dụng toàn cục; cũng không dùng `<style jsx>` làm nơi lưu các khối CSS tĩnh dài. Chỉ giữ style trong JSX khi có lý do kỹ thuật cụ thể và phạm vi ảnh hưởng đã rõ.
