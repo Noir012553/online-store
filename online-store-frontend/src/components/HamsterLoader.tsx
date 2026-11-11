@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import styles from './HamsterLoader.module.css';
+import styles from '../css/components/HamsterLoader.module.css';
 
 type HamsterLoaderProps = {
   size?: number;

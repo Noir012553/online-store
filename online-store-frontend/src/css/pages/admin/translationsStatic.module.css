@@ -237,13 +237,7 @@
 }
 
 .tier1-icon-btn {
-  width: 32px;
-  height: 32px;
   border: none;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;

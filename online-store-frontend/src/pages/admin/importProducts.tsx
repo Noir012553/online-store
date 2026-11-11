@@ -323,7 +323,7 @@ function ImportProductsContent() {
                   onDragOver={(event) => event.preventDefault()}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
-                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50'}`}
                 >
                   <input ref={fileInputRef} type="file" accept=".zip" onChange={handleFileChange} className="hidden" disabled={isImporting} />
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm">
@@ -404,7 +404,7 @@ function ImportProductsContent() {
                   disabled={!selectedFile || isImporting}
                   className="h-11 bg-blue-600 px-6 text-white hover:bg-blue-700"
                 >
-                  {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : dryRun ? <ShieldCheck className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
+                  {isImporting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : dryRun ? <ShieldCheck className="h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
                   {isImporting ? t('processing', 'admin-import') : dryRun ? t('preview', 'admin-import') : t('start_import', 'admin-import')}
                 </Button>
                 {!selectedFile && <span className="text-xs text-slate-500">{t('choose_file_first', 'admin-import')}</span>}
@@ -424,7 +424,7 @@ function ImportProductsContent() {
                       disabled={isImporting}
                       className="mt-4 h-10 bg-amber-600 text-white hover:bg-amber-700"
                     >
-                      {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {isImporting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <CheckCircle2 className="h-4 w-4" />}
                       {t('confirm_import', 'admin-import')}
                     </Button>
                   </div>
@@ -540,7 +540,7 @@ function ImportProductsContent() {
             </div>
             <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 has-[:disabled]:opacity-60">
               <input type="file" accept=".json,application/json" onChange={handleTranslationFileUpload} className="hidden" disabled={isTranslationLoading} />
-              {isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+              {isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <UploadCloud className="h-4 w-4" />}
               {t('choose_json_file', 'admin-import')}
             </label>
           </div>
@@ -552,7 +552,7 @@ function ImportProductsContent() {
             <div className={`mt-4 rounded-xl border p-4 ${translationResult.success ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
               <p className="text-sm font-medium text-slate-800">{translationResult.message}</p>
               {translationResult.success && <p className="mt-1 text-xs text-slate-600">{translationResult.data?.importedCount ?? translationResult.data?.totalRecords ?? 0} {t('records_checked', 'admin-import')}</p>}
-              {translationResult.dryRun && translationImport && <Button type="button" onClick={confirmTranslationImport} disabled={isTranslationLoading} className="mt-3 bg-purple-600 text-white hover:bg-purple-700">{isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} {t('confirm_translation_import', 'admin-import')}</Button>}
+              {translationResult.dryRun && translationImport && <Button type="button" onClick={confirmTranslationImport} disabled={isTranslationLoading} className="mt-3 bg-purple-600 text-white hover:bg-purple-700">{isTranslationLoading ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <CheckCircle2 className="h-4 w-4" />} {t('confirm_translation_import', 'admin-import')}</Button>}
             </div>
           )}
         </section>

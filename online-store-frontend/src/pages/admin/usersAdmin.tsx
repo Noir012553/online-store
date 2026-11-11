@@ -267,7 +267,7 @@ function UsersAdminContent() {
           <select value={filterRole} onChange={(event) => {
             setFilterRole(event.target.value);
             setCurrentPage(1);
-          }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+          }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
             <option value="all">{t('all_roles')}</option>
             <option value="user">{t('role_user')}</option>
             <option value="admin">{t('role_admin')}</option>

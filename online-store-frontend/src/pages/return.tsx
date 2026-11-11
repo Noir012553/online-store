@@ -233,7 +233,7 @@ export default function PaymentResultPage() {
 
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex justify-center">
-              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-yellow-100 animate-in fade-in zoom-in duration-500">
+              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-yellow-100 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
                 <AlertCircle className="w-12 h-12 text-yellow-600" />
               </div>
             </div>
@@ -295,11 +295,11 @@ export default function PaymentResultPage() {
               <div className="flex justify-center">
                 {orderDetails?.paymentMethod === 'cod' || !transactionId ? (
                   // COD Icon - Truck
-                  <div className="flex items-center justify-center w-24 h-24 rounded-none bg-yellow-100 animate-in fade-in zoom-in duration-500">
+                  <div className="flex items-center justify-center w-24 h-24 rounded-none bg-yellow-100 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
                     <Truck className="w-12 h-12 text-yellow-600" />
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center w-24 h-24 rounded-none bg-blue-100 animate-in fade-in zoom-in duration-500">
+                  <div className="flex items-center justify-center w-24 h-24 rounded-none bg-blue-100 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
                     <img
                       src="/assets/vnpay.svg"
                       alt={t('payment_vnpay_logo_alt', 'payment')}
@@ -496,7 +496,7 @@ export default function PaymentResultPage() {
             <div className="space-y-6">
               {/* Result Icon */}
               <div className="flex justify-center">
-                <div className={`flex items-center justify-center w-24 h-24 rounded-full animate-in fade-in zoom-in duration-500 ${isPending ? 'bg-yellow-100' : 'bg-red-100'}`}>
+                <div className={`flex items-center justify-center w-24 h-24 rounded-full motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500 ${isPending ? 'bg-yellow-100' : 'bg-red-100'}`}>
                   <AlertCircle className={`w-12 h-12 ${isPending ? 'text-yellow-600' : 'text-red-600'}`} />
                 </div>
               </div>

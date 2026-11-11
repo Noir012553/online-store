@@ -654,7 +654,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           <p className="text-sm text-gray-600">
             {isLoading ? t('filter_loading_wait', 'products') : `${sortedProducts.length} ${t('filter_items_count', 'products')}`}
           </p>
-          <select aria-label={locale.startsWith('vi') ? 'Sắp xếp sản phẩm' : 'Sort products'} value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="border-input flex h-9 w-40 rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50">
+          <select aria-label={locale.startsWith('vi') ? 'Sắp xếp sản phẩm' : 'Sort products'} value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="border-input flex h-9 w-40 rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
             <option value="featured">{t('badge_featured', 'products')}</option>
             <option value="name">{t('filter_popular', 'products')}</option>
             <option value="price-asc">{t('sort_price_low_to_high', 'products')}</option>
@@ -754,7 +754,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="animate-pulse">
+              <div key={i} className="animate-pulse motion-reduce:animate-none">
                 <div className="aspect-video bg-gray-200 rounded-lg mb-4"></div>
                 <div className="h-4 bg-gray-200 rounded mb-2"></div>
                 <div className="h-4 bg-gray-200 rounded"></div>

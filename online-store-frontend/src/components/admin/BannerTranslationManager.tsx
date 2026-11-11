@@ -223,7 +223,7 @@ export function BannerTranslationManager({ bannerId, bannerTitle, onClose }: Ban
               >
                 {isAutoTranslating ? (
                   <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-emerald-300 border-t-emerald-700" />
+                    <div className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none rounded-full border-2 border-emerald-300 border-t-emerald-700" />
                     {t('banner_translation_auto_translating', 'admin-banners')}
                   </>
                 ) : (

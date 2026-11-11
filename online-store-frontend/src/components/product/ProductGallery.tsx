@@ -51,7 +51,7 @@ export function ProductGallery({
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
               loading="eager"
-              className="object-contain transition-transform duration-300 group-hover:scale-110"
+              className="object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-110"
             />
           </button>
         ) : (
@@ -62,18 +62,18 @@ export function ProductGallery({
           </div>
         )}
         {discount > 0 && (
-          <Badge className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-red-600/20 animate-in zoom-in duration-300">
+          <Badge className="absolute right-4 top-4 rounded-full bg-red-600 px-3 py-1.5 text-sm font-bold text-white shadow-lg shadow-red-600/20 motion-safe:animate-in motion-safe:zoom-in motion-safe:duration-300">
             -{discount}%
           </Badge>
         )}
         {(hasDeal || isShockDiscount(discount)) && (
-          <Badge className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-sm font-semibold text-white shadow-lg animate-in zoom-in duration-300 flex items-center gap-1 ${isShockDiscount(discount) ? 'bg-red-600 shadow-red-600/20' : 'bg-slate-950/90 shadow-slate-950/20'}`}>
+          <Badge className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-sm font-semibold text-white shadow-lg motion-safe:animate-in motion-safe:zoom-in motion-safe:duration-300 flex items-center gap-1 ${isShockDiscount(discount) ? 'bg-red-600 shadow-red-600/20' : 'bg-slate-950/90 shadow-slate-950/20'}`}>
             <R2Icon name="fire" size={16} />
             {isShockDiscount(discount) ? shockDiscountLabel : dealLabel}
           </Badge>
         )}
         {featured && !hasDeal && !isShockDiscount(discount) && (
-          <Badge className="absolute left-4 top-4 rounded-full bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-red-600/20 animate-in zoom-in duration-300 flex items-center gap-1">
+          <Badge className="absolute left-4 top-4 rounded-full bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-red-600/20 motion-safe:animate-in motion-safe:zoom-in motion-safe:duration-300 flex items-center gap-1">
             <R2Icon name="star" size={16} />
             {featuredLabel}
           </Badge>
@@ -86,7 +86,7 @@ export function ProductGallery({
               key={image}
               type="button"
               onClick={() => onSelectImage(index)}
-              className={`relative aspect-video overflow-hidden rounded-xl border-2 bg-white p-1 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+              className={`relative aspect-video overflow-hidden rounded-xl border-2 bg-white p-1 motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:-translate-y-0.5 hover:shadow-md ${
                 selectedImage === index ? 'border-red-600 shadow-md shadow-red-600/15' : 'border-transparent'
               }`}
             >

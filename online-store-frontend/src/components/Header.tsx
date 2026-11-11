@@ -64,7 +64,7 @@ function HeaderComponent() {
 
           {/* Center: Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 flex-1 justify-center text-sm">
-            <Link href="/" className="hover:text-red-600 transition-colors">
+            <Link href="/" className="transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
               {t('home', 'common')}
             </Link>
 
@@ -76,7 +76,7 @@ function HeaderComponent() {
             >
               <button
                 type="button"
-                className="flex items-center gap-1 hover:text-red-600 transition-colors cursor-pointer py-2"
+                className="flex cursor-pointer items-center gap-1 py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 aria-expanded={productDropdownOpen}
                 aria-haspopup="menu"
                 onClick={() => setProductDropdownOpen((isOpen) => !isOpen)}
@@ -95,7 +95,7 @@ function HeaderComponent() {
                 <Link
                   href="/products"
                   onClick={() => setProductDropdownOpen(false)}
-                  className="block px-4 py-3 hover:bg-gray-100 hover:text-red-600 transition-colors text-gray-900 first:rounded-t-lg border-b border-gray-200 text-sm"
+                  className="block border-b border-gray-200 px-4 py-3 text-sm text-gray-900 transition-colors first:rounded-t-lg hover:bg-gray-100 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600"
                 >
                   {t('allProducts')}
                 </Link>
@@ -107,7 +107,7 @@ function HeaderComponent() {
                       key={category._id}
                       href={`/products/${slug}`}
                       onClick={() => setProductDropdownOpen(false)}
-                      className={`block px-4 py-3 hover:bg-gray-100 hover:text-red-600 transition-colors text-gray-900 border-b border-gray-200 last:border-b-0 text-sm ${index === categories.length - 1 ? 'rounded-b-lg' : ''}`}
+                      className={`block border-b border-gray-200 px-4 py-3 text-sm text-gray-900 transition-colors last:border-b-0 hover:bg-gray-100 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600 ${index === categories.length - 1 ? 'rounded-b-lg' : ''}`}
                     >
                       {displayName}
                     </Link>
@@ -116,14 +116,14 @@ function HeaderComponent() {
               </div>
             </div>
 
-            <Link href="/about" className="hover:text-red-600 transition-colors">
+            <Link href="/about" className="transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
               {t('about', 'common')}
             </Link>
-            <Link href="/contact" className="hover:text-red-600 transition-colors">
+            <Link href="/contact" className="transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
               {t('contact', 'common')}
             </Link>
             {isAdmin && (
-              <Link href="/admin" className="hover:text-red-600 transition-colors">
+              <Link href="/admin" className="transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                 {t('admin', 'common')}
               </Link>
             )}
@@ -138,11 +138,11 @@ function HeaderComponent() {
             <Link
               href="/cart"
               aria-label={t('shopping_cart', 'cart')}
-              className="relative flex h-11 w-11 items-center justify-center"
+              className="relative flex h-11 w-11 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
             >
               <ShoppingCartIcon className="w-5 h-5" />
               {totalItems > 0 && (
-                <Badge className="absolute -top-2 -right-2 bg-red-600 animate-in zoom-in duration-300 px-1 py-0 text-[8px] h-4 w-4 flex items-center justify-center">
+                <Badge className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center bg-red-600 px-1 py-0 text-[8px] motion-safe:animate-in motion-safe:zoom-in motion-safe:duration-300">
                   {totalItems}
                 </Badge>
               )}
@@ -155,7 +155,7 @@ function HeaderComponent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11 hover:text-red-600"
+                  className="h-11 w-11 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                   aria-label={t('profile', 'common')}
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
@@ -175,7 +175,7 @@ function HeaderComponent() {
                         handleNavigate("/profile");
                         setAccountMenuOpen(false);
                       }}
-                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600"
                       role="menuitem"
                     >
                       {t('profile', 'common')}
@@ -186,7 +186,7 @@ function HeaderComponent() {
                         handleNavigate("/my-orders");
                         setAccountMenuOpen(false);
                       }}
-                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600"
                       role="menuitem"
                     >
                       {t('myOrders', 'common')}
@@ -198,7 +198,7 @@ function HeaderComponent() {
                           handleNavigate("/admin");
                           setAccountMenuOpen(false);
                         }}
-                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600"
                         role="menuitem"
                       >
                         {t('admin', 'common')}
@@ -211,7 +211,7 @@ function HeaderComponent() {
                         handleLogoutClick();
                         setAccountMenuOpen(false);
                       }}
-                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-red-600"
                       role="menuitem"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
@@ -225,7 +225,7 @@ function HeaderComponent() {
                 asChild
                 variant="ghost"
                 size="icon"
-                className="h-11 w-11 hover:text-red-600"
+                className="h-11 w-11 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 aria-label={t('login', 'common')}
               >
                 <Link href="/login">
@@ -236,7 +236,7 @@ function HeaderComponent() {
 
             {/* Mobile Hamburger Menu */}
             <button
-              className="inline-flex h-11 w-11 items-center justify-center lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={t('toggle_menu', 'components')}
               title={t('toggle_menu', 'components')}
@@ -257,7 +257,7 @@ function HeaderComponent() {
             <nav className="flex flex-col gap-3 border-t pt-3">
               <Link
                 href="/"
-                className="py-2 hover:text-red-600 transition-colors"
+                className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t('home', 'common')}
@@ -267,16 +267,16 @@ function HeaderComponent() {
               <div>
                 <button
                   onClick={() => setMobileProductsOpen(!mobileProductsOpen)}
-                  className="py-2 w-full text-left flex items-center justify-between hover:text-red-600 transition-colors"
+                  className="flex w-full items-center justify-between py-2 text-left transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 >
                   {t('products', 'common')}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${mobileProductsOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 motion-safe:transition-transform ${mobileProductsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {mobileProductsOpen && (
                   <div className="flex flex-col gap-2 pl-4 border-l-2 border-gray-200 my-2">
                     <Link
                       href="/products"
-                      className="py-2 hover:text-red-600 transition-colors text-sm"
+                      className="py-2 text-sm transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {t('allProducts', 'common')}
@@ -288,7 +288,7 @@ function HeaderComponent() {
                         <Link
                           key={category._id}
                           href={`/products/${slug}`}
-                          className="py-2 hover:text-red-600 transition-colors text-sm"
+                          className="py-2 text-sm transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {displayName}
@@ -301,14 +301,14 @@ function HeaderComponent() {
 
               <Link
                 href="/about"
-                className="py-2 hover:text-red-600 transition-colors"
+                className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t('about', 'common')}
               </Link>
               <Link
                 href="/contact"
-                className="py-2 hover:text-red-600 transition-colors"
+                className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {t('contact', 'common')}
@@ -317,7 +317,7 @@ function HeaderComponent() {
                 <>
                   <Link
                     href="/profile"
-                    className="py-2 hover:text-red-600 transition-colors"
+                    className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {t('profile', 'common')}
@@ -325,7 +325,7 @@ function HeaderComponent() {
                   {isAdmin && (
                     <Link
                       href="/admin"
-                      className="py-2 hover:text-red-600 transition-colors"
+                      className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {t('admin', 'common')}
@@ -336,7 +336,7 @@ function HeaderComponent() {
                       handleLogoutClick();
                       setMobileMenuOpen(false);
                     }}
-                    className="py-2 text-left hover:text-red-600 transition-colors text-red-600"
+                    className="py-2 text-left text-red-600 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                   >
                     {t('logout', 'common')}
                   </button>
@@ -344,7 +344,7 @@ function HeaderComponent() {
               ) : (
                 <Link
                   href="/login"
-                  className="py-2 hover:text-red-600 transition-colors"
+                  className="py-2 transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('login', 'common')}

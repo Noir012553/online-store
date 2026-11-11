@@ -28,7 +28,7 @@ export function LanguageSwitcher() {
         onClick={() => setLanguageMenuOpen((isOpen) => !isOpen)}
       >
         {isChangingLocale ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className="w-5 h-5 animate-spin motion-reduce:animate-none" />
         ) : (
           <Globe className="w-5 h-5" />
         )}

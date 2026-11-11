@@ -7,7 +7,7 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { HamsterLoader } from '../../components/HamsterLoader';
-import styles from './auditLogViewer.module.css';
+import styles from '../../css/pages/admin/auditLogViewer.module.css';
 
 const MESSAGE_TYPE_CLASSES = {
   success: styles['audit-log-message-success'],

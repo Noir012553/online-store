@@ -19,7 +19,7 @@ import { R2Icon } from "../components/icons/R2Icon";
 import { ProductSkeleton } from "../components/ProductSkeleton";
 import { EmptyState } from "../components/EmptyState";
 import { getImageUrl } from "../lib/utils";
-import styles from "./HomeContent.module.css";
+import styles from "../css/components/HomeContent.module.css";
 
 
 const DeferredProductCard = dynamic(
@@ -611,13 +611,13 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
 
   // Auto-rotate deal carousel slides (paused when quick view is open)
   useEffect(() => {
-    if (dealProducts.length > 1 && !isDealQuickViewOpen) {
+    if (dealProducts.length > 1 && !isDealQuickViewOpen && !prefersReducedMotion) {
       const timer = setInterval(() => {
         setCurrentDealSlide((prev) => (prev + 1) % dealProducts.length);
       }, 6500);
       return () => clearInterval(timer);
     }
-  }, [dealProducts.length, isDealQuickViewOpen]);
+  }, [dealProducts.length, isDealQuickViewOpen, prefersReducedMotion]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlidesToRender.length);
@@ -911,7 +911,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                 <div className="flex-1 overflow-hidden">
                   <div
                     key={currentCategoryCardSlide}
-                    className={`grid gap-3 sm:gap-4 animate-in fade-in slide-in-from-right-4 duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
+                    className={`grid gap-3 sm:gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700 ${categoryCount === 1 ? 'mx-auto w-fit grid-cols-1' : categoryCount === 2 ? 'mx-auto w-fit grid-cols-2' : categoryCount === 3 ? 'mx-auto w-fit grid-cols-3' : 'grid-cols-4'}`}
                   >
                     {getCircularItems(categories, currentCategoryCardSlide, CATEGORY_CARDS_PER_VIEW)
                       .map((category, index) => {
@@ -1011,7 +1011,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                         </button>
 
                         <div className="flex-1 overflow-hidden">
-                          <div className="grid grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
+                          <div className="grid grid-cols-4 gap-4 sm:gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700">
                             {isDesktopViewport && getCircularItems(products, currentCategorySlides[category._id] ?? 0, PRODUCT_CARDS_PER_VIEW)
                               .map((product) => (
                                 <LazyProductCard key={product._id} laptop={product} />
@@ -1074,7 +1074,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                   )}
 
                   <div className="flex-1 overflow-hidden">
-                    <div className="grid grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
+                    <div className="grid grid-cols-3 gap-4 sm:gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-700">
                       {isDesktopViewport && getCircularItems(dealProducts, currentDealSlide, dealCardsPerView)
                         .map((product) => (
                           <LazyProductCard
@@ -1191,7 +1191,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
                               height={100}
                               sizes="(max-width: 639px) 42vw, (max-width: 1023px) 28vw, 220px"
                               loading="lazy"
-                              className="absolute inset-0 h-full w-full max-h-14 max-w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-16"
+                              className="absolute inset-0 h-full w-full max-h-14 max-w-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105 sm:max-h-16"
                             />
                           ) : (
                             <span className="text-center text-sm font-semibold text-gray-600">{brand.name}</span>

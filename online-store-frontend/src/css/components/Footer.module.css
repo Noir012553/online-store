@@ -28,9 +28,10 @@
   transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateY(-1px);
 }
 
-.logoImage {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+@media (prefers-reduced-motion: reduce) {
+  .laminatedCard,
+  .laminatedCard:hover {
+    transition: none;
+    transform: none;
+  }
 }

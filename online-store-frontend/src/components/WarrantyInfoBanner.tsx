@@ -3,7 +3,6 @@ import { useLanguage } from '../lib/i18n';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '../lib/i18n/types';
 import { bannerAPI, getAuthToken, type BannerRecord } from '../lib/api';
 import { Shield, RefreshCw, Headphones } from 'lucide-react';
-import styles from './WarrantyInfoBanner.module.css';
 
 interface WarrantyInfo {
   icon: React.ReactNode;
@@ -165,20 +164,19 @@ export function WarrantyInfoBanner() {
   }, [locale, isHydrated]);
 
   return (
-    <div className={styles.warrantyBanner}>
-      <div className={`container mx-auto ${styles.warrantyBannerContent}`}>
-        <div className={styles.warrantyGrid}>
+    <div className="border-b border-gray-200 bg-white">
+      <div className="container mx-auto py-4 sm:py-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
           {warrantyInfo.map((item, index) => (
-            <div key={index} className={styles.warrantyItem}>
-              <div className={styles.warrantyIconWrapper}>
-                <div className={styles.warrantyIcon}>{item.icon}</div>
+            <div key={index} className="flex items-center gap-3 text-center sm:gap-4 sm:text-left">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 sm:h-12 sm:w-12">
+                {item.icon}
               </div>
-              <p className={styles.warrantyText}>{item.text}</p>
+              <p className="text-sm font-medium text-gray-900 sm:text-base">{item.text}</p>
             </div>
           ))}
         </div>
       </div>
-
     </div>
   );
 }

@@ -1314,7 +1314,7 @@ function ProductTranslationCard({
                   aria-busy={isRetranslating}
                   className="w-full"
                 >
-                  <RotateCcw className={`mr-2 h-4 w-4 ${isRetranslating ? 'animate-spin' : ''}`} />
+                  <RotateCcw className={`mr-2 h-4 w-4 motion-reduce:animate-none ${isRetranslating ? 'animate-spin' : ''}`} />
                   {isRetranslating
                     ? t('retranslating_language_progress', 'productsTranslations')
                       .replace('{language}', retranslatingLanguageName)

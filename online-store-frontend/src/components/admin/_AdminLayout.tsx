@@ -153,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // page never goes fully blank during the client-side navigation.
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50" role="status" aria-live="polite">
-        <p className="text-sm text-slate-500 animate-pulse">Loading…</p>
+        <p className="text-sm text-slate-500 animate-pulse motion-reduce:animate-none">Loading…</p>
       </div>
     );
   }

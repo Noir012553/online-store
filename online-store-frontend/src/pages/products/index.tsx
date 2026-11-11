@@ -161,7 +161,7 @@ export default function AllProductsPage() {
         </div>
 
         {isSearchLoading ? (
-          <div className="animate-pulse space-y-8">
+          <div className="animate-pulse motion-reduce:animate-none space-y-8">
             <div className="h-80 bg-gray-200 rounded-lg"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -285,7 +285,7 @@ export default function AllProductsPage() {
                             </p>
                           </div>
                           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-                            <span className="inline-block text-red-600 font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
+                            <span className="inline-block text-red-600 font-medium text-xs sm:text-sm motion-safe:group-hover:translate-x-1 motion-safe:transition-transform">
                               {t('category_discover_more', 'products')}
                             </span>
                           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import styles from './translationBatchOverride.module.css';
+import styles from '../../css/pages/admin/translationBatchOverride.module.css';
 import { Upload, Download, Play, Check, AlertCircle, X, Eye, FileDown, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, Locale } from '../../lib/i18n/types';

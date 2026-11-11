@@ -116,7 +116,7 @@ export function LanguageManagementPanel() {
               </div>
               <div className="flex items-center gap-2">
                 {lang.syncStatus === 'syncing' && (
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <Loader2 className="w-5 h-5 animate-spin motion-reduce:animate-none text-blue-600" />
                 )}
                 {lang.syncStatus === 'done' && (
                   <Check className="w-5 h-5 text-green-600" />
@@ -144,7 +144,7 @@ export function LanguageManagementPanel() {
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold mb-4">{t('language_management_add_language', 'admin')}</h3>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <select value={selectedLang} onChange={(event) => setSelectedLang(event.target.value as Locale)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 flex-1">
+            <select value={selectedLang} onChange={(event) => setSelectedLang(event.target.value as Locale)} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 flex-1">
               <option value="" disabled>{t('language_management_select_placeholder', 'admin')}</option>
               {availableLangs.map((lang) => (
                 <option key={lang} value={lang}>{lang.toUpperCase() + ' ' + t(AVAILABLE_LOCALES[lang].labelKey, 'admin-translation')}</option>
@@ -156,7 +156,7 @@ export function LanguageManagementPanel() {
               className="w-full gap-2 sm:w-auto"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
               ) : (
                 <Plus className="w-4 h-4" />
               )}

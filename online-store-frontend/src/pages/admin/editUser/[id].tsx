@@ -281,7 +281,7 @@ function EditUserContent() {
             <Label htmlFor="role" className="text-gray-700 font-medium">
               {t('role_label')} <span className="text-red-600">*</span>
             </Label>
-            <select value={formData.role} onChange={(event) => setFormData({ ...formData, role: event.target.value as FormData['role'] })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 mt-2">
+            <select value={formData.role} onChange={(event) => setFormData({ ...formData, role: event.target.value as FormData['role'] })} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 mt-2">
               <option value="user">{t('user_role')}</option>
               <option value="admin">{t('admin_role')}</option>
               <option value="super-admin">{t('super_admin_role')}</option>

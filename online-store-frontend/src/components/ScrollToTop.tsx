@@ -10,7 +10,7 @@ export function ScrollToTop() {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
   };
 
@@ -30,7 +30,7 @@ export function ScrollToTop() {
       <Button
         onClick={scrollToTop}
         size="icon"
-        className="bg-red-600 hover:bg-red-700 shadow-lg rounded-full w-12 h-12 transition-all duration-300 hover:scale-110"
+        className="bg-red-600 hover:bg-red-700 shadow-lg rounded-full w-12 h-12 motion-safe:transition-all motion-safe:duration-300 motion-safe:hover:scale-110"
         aria-label={t('scroll_to_top', 'components')}
         title={t('scroll_to_top', 'components')}
       >

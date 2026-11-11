@@ -377,14 +377,14 @@ export function Step2ShippingOptions() {
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between pt-4">
-        <Button type="button" onClick={goBack} variant="outline" className="px-8 py-3 h-11">
+      <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-between">
+        <Button type="button" onClick={goBack} variant="outline" className="min-h-11 w-full whitespace-normal px-4 py-3 text-center leading-tight sm:w-auto sm:px-8">
           {t('back')}
         </Button>
         <Button
           type="submit"
           onClick={handleSubmit}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 h-11 disabled:opacity-50"
+          className="min-h-11 w-full whitespace-normal bg-blue-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto sm:px-8"
         >
           {t('continue_button')}
         </Button>

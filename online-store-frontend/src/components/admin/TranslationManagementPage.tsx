@@ -4,7 +4,7 @@ import { getAuthToken } from '../../lib/api';
 import { Locale, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../../lib/i18n/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
-import styles from './TranslationManagementPage.module.css';
+import styles from '../../css/components/admin/TranslationManagementPage.module.css';
 
 interface CacheStats {
   totalCachedTranslations: number;
@@ -224,7 +224,7 @@ export function TranslationManagementPage() {
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>{t('translation_management_bulk_translate_title', 'admin')}</h2>
 
-        <p className="mb-5 text-sm text-[#666]">
+        <p className="mb-5 text-sm text-muted-foreground">
           {t('translation_management_bulk_translate_description', 'admin')}
         </p>
 
@@ -277,7 +277,7 @@ export function TranslationManagementPage() {
 
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>{t('translation_management_how_it_works_title', 'admin')}</h2>
-        <div className="text-sm leading-[1.6] text-[#666]">
+        <div className="text-sm leading-[1.6] text-muted-foreground">
           <p>
             {t('translation_management_tier_1_info', 'admin')}
           </p>

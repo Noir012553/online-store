@@ -178,10 +178,12 @@ export function ShippingProviderSelector({
         ) : (
           <div className="space-y-3">
             {providers.map((provider) => (
-              <div
+              <button
                 key={provider.code}
+                type="button"
+                aria-pressed={activeProvider === provider.code}
                 onClick={() => handleProviderChange(provider.code)}
-                className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:border-blue-400 hover:bg-blue-50 transition cursor-pointer"
+                className={`flex w-full items-center gap-3 rounded-lg border p-4 text-left transition hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${activeProvider === provider.code ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
               >
                 {provider.code === 'ghn' ? (
                   <img
@@ -206,7 +208,7 @@ export function ShippingProviderSelector({
                     </p>
                   )}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -233,10 +235,12 @@ export function ShippingProviderSelector({
           ) : (
             <div className="space-y-3">
               {services.map((service, idx) => (
-                <div
+                <button
                   key={idx}
+                  type="button"
+                  aria-pressed={selectedService?.provider === service.provider && selectedService.serviceType === service.serviceType}
                   onClick={() => onSelectService?.(service)}
-                  className="rounded-lg border border-gray-200 p-4 hover:border-green-400 hover:bg-green-50 transition cursor-pointer"
+                  className={`w-full rounded-lg border p-4 text-left transition hover:border-green-400 hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 ${selectedService?.provider === service.provider && selectedService.serviceType === service.serviceType ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -253,7 +257,7 @@ export function ShippingProviderSelector({
                       </p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}

@@ -12,6 +12,7 @@ import { withAdminLayout } from "../../components/admin/withAdminLayout";
 import { DateRangePickerModal } from "../../components/admin/DateRangePickerModal";
 import { HamsterLoader } from "../../components/HamsterLoader";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
+import styles from "../../css/pages/admin/dashboard.module.css";
 
 // In-memory cache manager (safe, TTL-based, no localStorage)
 interface CacheEntry {
@@ -372,6 +373,8 @@ function DashboardContent() {
   ];
 
   const COLORS = ['#ef4444', '#3b82f6', '#10b981'];
+  const COLOR_CLASSES = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500'];
+  const PRODUCT_COLOR_CLASSES = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500'];
 
   const timeFrameOptions: { label: string; value: TimeFrame }[] = [
     { label: t('period_day', 'admin'), value: 'day' },
@@ -511,7 +514,7 @@ function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
+        <div className={`${styles.chart} bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8`}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('revenue_trend', 'admin')}</h2>
@@ -525,13 +528,10 @@ function DashboardContent() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="period" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(_, __, item: any) => [item?.payload?.formattedRevenue || '', t('revenue_label', 'admin')]}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <XAxis dataKey="period" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(_, __, item: any) => [item?.payload?.formattedRevenue || '', t('revenue_label', 'admin')]} />
+                <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#ef4444" name={t('revenue_label', 'admin')} strokeWidth={3} dot={{ fill: '#ef4444', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -540,7 +540,7 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8">
+        <div className={`${styles.chart} bg-linear-to-br from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 p-4 sm:p-8`}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('orders_trend', 'admin')}</h2>
@@ -554,13 +554,10 @@ function DashboardContent() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={ordersTimelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="period" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value: any) => [`${value || 0} ${t('menu_orders', 'common')}`, t('menu_orders', 'common')]}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <XAxis dataKey="period" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(value: any) => [`${value || 0} ${t('menu_orders', 'common')}`, t('menu_orders', 'common')]} />
+                <Legend />
                 <Line type="monotone" dataKey="orders" stroke="#3b82f6" name={t('orders_label', 'admin')} strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -596,7 +593,7 @@ function DashboardContent() {
               <div className="mt-6 space-y-2">
                 {orderStatusData.map((status: any, index: number) => (
                   <div key={`status-legend-${index}`} className="flex items-center gap-3 p-2 text-sm">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                    <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[index % COLOR_CLASSES.length]}`} />
                     <p className="font-medium">{getStatusDisplayName(status.name, t)}: {status.value} {t('menu_orders')}</p>
                   </div>
                 ))}
@@ -635,7 +632,7 @@ function DashboardContent() {
 
                   return (
                   <div key={`legend-${index}`} className="flex items-start gap-3 p-2 text-sm" title={displayName}>
-                    <div className="w-3 h-3 rounded-full mt-1" style={{ backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'][index % 5] }} />
+                    <div className={`w-3 h-3 rounded-full mt-1 ${PRODUCT_COLOR_CLASSES[index % PRODUCT_COLOR_CLASSES.length]}`} />
                     <p className="font-medium flex-1">{displayName}</p>
                     <span className="text-gray-600 ml-2">{product.count}</span>
                   </div>

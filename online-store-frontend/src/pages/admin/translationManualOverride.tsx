@@ -6,7 +6,7 @@ import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { getAuthToken } from '../../lib/api';
 import { getUserFriendlyErrorMessage } from '../../lib/errorHandler';
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, AVAILABLE_LOCALES, Locale } from '../../lib/i18n/types';
-import styles from './translationManualOverride.module.css';
+import styles from '../../css/pages/admin/translationManualOverride.module.css';
 
 const messageTypeClasses = {
   success: styles.overrideMessageSuccess,

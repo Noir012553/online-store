@@ -129,7 +129,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
                 sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) calc(50vw - 2rem), 256px"
                 loading={eagerImage ? 'eager' : 'lazy'}
                 fetchPriority={eagerImage ? 'high' : undefined}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110 transform-gpu pointer-events-none"
+                className="absolute inset-0 h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out sm:motion-safe:group-hover:scale-110 transform-gpu pointer-events-none"
               />
               {discount > 0 && (
                 <Badge className="absolute top-2 right-2 bg-red-600 text-white z-10 pointer-events-none overflow-visible">
@@ -172,7 +172,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
                 type="button"
                 onClick={handleQuickView}
                 size="sm"
-                className="min-h-11 w-full max-w-52 justify-center rounded-full bg-white/95 text-black shadow-lg shadow-black/20 transition-all duration-300 hover:bg-white sm:min-h-10 sm:w-auto sm:translate-y-2 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"
+                className="min-h-11 w-full max-w-52 justify-center rounded-full bg-white/95 text-black shadow-lg shadow-black/20 hover:bg-white sm:min-h-10 sm:w-auto motion-safe:transition-all motion-safe:duration-300 sm:motion-safe:translate-y-2 sm:motion-safe:group-hover:translate-y-0 sm:motion-safe:group-focus-within:translate-y-0"
               >
                 <Eye className="mr-2 h-4 w-4" />
                 {t('quick_view', 'products')}

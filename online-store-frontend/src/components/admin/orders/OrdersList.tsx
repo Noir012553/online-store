@@ -361,13 +361,13 @@ export function OrdersList() {
             </div>
             {!viewDeletedTab && (
               <>
-                <select value={filterStatus} onChange={(event) => { setFilterStatus(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterStatus} onChange={(event) => { setFilterStatus(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   <option value="pending">{t('order_status_pending', 'admin')}</option>
                   <option value="paid">{t('order_status_paid', 'admin')}</option>
                   <option value="delivered">{t('order_status_delivered', 'admin')}</option>
                 </select>
-                <select value={filterPaymentMethod} onChange={(event) => { setFilterPaymentMethod(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
+                <select value={filterPaymentMethod} onChange={(event) => { setFilterPaymentMethod(event.target.value); setCurrentPage(1); }} className="border-input flex h-9 w-full rounded-md border bg-input-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-48">
                   <option value="all">{t('view_all', 'common')}</option>
                   <option value="cod">{t('payment_method_cod', 'admin')}</option>
                   <option value="vnpay">{t('payment_method_vnpay', 'admin')}</option>

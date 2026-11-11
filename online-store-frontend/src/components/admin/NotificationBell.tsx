@@ -169,13 +169,13 @@ export function NotificationBell() {
         >
           <Bell className="h-5 w-5 text-blue-600 transition-colors" />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full animate-pulse">
+            <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full animate-pulse motion-reduce:animate-none">
               {unreadCount > 99 ? t('need_processing', 'notifications').replace('{count}', '99') : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0">
+      <PopoverContent className="w-[calc(100vw-2rem)] p-0 sm:w-96">
         <div className="space-y-0">
           <div className="bg-linear-to-r from-blue-50 to-blue-50 p-4 border-b space-y-2">
             <div className="flex items-center justify-between">
@@ -219,7 +219,7 @@ export function NotificationBell() {
                     <div
                       key={order._id}
                       onClick={() => handleOpenOrderModal(order)}
-                      className={`p-3 rounded-lg border transition-all hover:shadow-sm cursor-pointer active:shadow-md ${
+                      className={`p-3 rounded-lg border transition-all hover:shadow-sm cursor-pointer active:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${
                         statusColor === "yellow"
                           ? "bg-yellow-50 border-yellow-200 hover:bg-yellow-100 active:bg-yellow-200"
                           : "bg-blue-50 border-blue-200 hover:bg-blue-100 active:bg-blue-200"

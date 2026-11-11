@@ -104,7 +104,7 @@ export function ProductOverview({
             max={stockCount > 0 ? stockCount : undefined}
             value={quantity}
             onChange={(event) => onQuantityChange(Math.max(1, parseInt(event.target.value) || 1))}
-            className="w-12 border-x border-slate-200 bg-transparent text-center text-sm font-semibold text-slate-900 outline-none sm:w-16"
+            className="w-12 border-x border-slate-200 bg-transparent text-center text-sm font-semibold text-slate-900 outline-none focus-visible:border-red-600 focus-visible:ring-2 focus-visible:ring-red-600/30 sm:w-16"
           />
           <button
             type="button"
@@ -122,7 +122,7 @@ export function ProductOverview({
           onClick={onAddToCart}
           disabled={stockCount <= 0}
           variant="outline"
-          className="h-11 flex-1 rounded-xl border-slate-300 text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5 sm:text-sm"
+          className="h-11 flex-1 rounded-xl border-slate-300 text-xs font-semibold shadow-sm motion-safe:transition-transform motion-safe:hover:-translate-y-0.5 sm:text-sm"
         >
           <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">{t('btn_add_to_cart', 'products')}</span>
@@ -131,7 +131,7 @@ export function ProductOverview({
         <Button
           onClick={onBuyNow}
           disabled={stockCount <= 0}
-          className="h-11 flex-1 rounded-xl bg-red-600 text-xs font-semibold text-white shadow-lg shadow-red-600/20 transition-transform hover:-translate-y-0.5 hover:bg-red-700 sm:text-sm"
+          className="h-11 flex-1 rounded-xl bg-red-600 text-xs font-semibold text-white shadow-lg shadow-red-600/20 motion-safe:transition-transform motion-safe:hover:-translate-y-0.5 hover:bg-red-700 sm:text-sm"
         >
           {t('btn_buy_now', 'products')}
         </Button>
