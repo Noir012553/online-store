@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer');
 const { sendContactEmails, sendNewsletterConfirmationEmail } = require('../services/emailService');
 const { verifyNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
 
-const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'CONTACT_SUPPORT_EMAIL', 'JWT_ACCESS_SECRET'];
+const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'CONTACT_SUPPORT_EMAIL', 'JWT_ACCESS_SECRET', 'BACKEND_URL', 'FRONTEND_URL'];
 const originalEnv = Object.fromEntries(emailEnvKeys.map(key => [key, process.env[key]]));
 const sandbox = sinon.createSandbox();
 let sendMail;
@@ -23,6 +23,8 @@ describe('Contact email delivery', () => {
     process.env.EMAIL_FROM = 'LaptopStore <smtp@example.com>';
     process.env.CONTACT_SUPPORT_EMAIL = 'support@example.com';
     process.env.JWT_ACCESS_SECRET = 'newsletter-email-test-secret';
+    process.env.BACKEND_URL = 'https://api.example.com';
+    process.env.FRONTEND_URL = 'https://shop.example.com';
     delete process.env.EMAIL_SERVICE;
     sendMail = sandbox.stub().resolves({ accepted: ['recipient@example.com'] });
     sandbox.stub(nodemailer, 'createTransport').returns({ sendMail });
@@ -93,13 +95,15 @@ describe('Contact email delivery', () => {
     const unsubscribeHref = message.html.match(/class="email-link" href="([^"]+)"/)?.[1]?.replace(/&amp;/g, '&');
     chai.expect(unsubscribeHref).to.be.a('string');
     const unsubscribeUrl = new URL(unsubscribeHref);
-    chai.expect(unsubscribeUrl.pathname).to.equal('/api/newsletter/unsubscribe');
+    chai.expect(unsubscribeUrl.origin).to.equal('https://shop.example.com');
+    chai.expect(unsubscribeUrl.pathname).to.equal('/newsletter/unsubscribe');
     chai.expect(verifyNewsletterUnsubscribeToken(unsubscribeUrl.searchParams.get('token'))).to.equal('subscriber@example.com');
     chai.expect(message.text).to.include(unsubscribeHref);
-    chai.expect(message.headers).to.deep.include({
-      'List-Unsubscribe': `<${unsubscribeHref}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    });
+    const oneClickUrl = new URL(message.headers['List-Unsubscribe'].slice(1, -1));
+    chai.expect(oneClickUrl.origin).to.equal('https://api.example.com');
+    chai.expect(oneClickUrl.pathname).to.equal('/api/newsletter/unsubscribe');
+    chai.expect(verifyNewsletterUnsubscribeToken(oneClickUrl.searchParams.get('token'))).to.equal('subscriber@example.com');
+    chai.expect(message.headers).to.have.property('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
     chai.expect(message.html).to.include('font-family: Arial, sans-serif');
     chai.expect(message.html).to.include('background-color: #f8f8f8');
     chai.expect(message.html).not.to.include('<style');

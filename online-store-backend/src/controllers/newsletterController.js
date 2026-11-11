@@ -108,22 +108,16 @@ const subscribe = asyncHandler(async (req, res) => {
 });
 
 const showUnsubscribeConfirmation = asyncHandler(async (req, res) => {
-    const token = req.query.token;
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
     const email = verifyNewsletterUnsubscribeToken(token);
+    const lang = typeof req.query.lang === 'string' ? req.query.lang : req.lang;
+    const pageUrl = new URL('/newsletter/unsubscribe', process.env.FRONTEND_URL || 'https://manln.online');
 
-    if (!email) {
-        return res.status(400).type('html').send(renderUnsubscribePage(
-            req.lang,
-            getMessage(req.lang, 'email.newsletter.unsubscribeInvalid'),
-        ));
-    }
+    if (token) pageUrl.searchParams.set('token', token);
+    if (lang) pageUrl.searchParams.set('lang', lang);
+    if (!email) pageUrl.searchParams.set('invalid', '1');
 
-    res.type('html').send(renderUnsubscribePage(
-        req.lang,
-        getMessage(req.lang, 'email.newsletter.unsubscribeConfirmation'),
-        token,
-        getMessage(req.lang, 'email.newsletter.unsubscribeConfirmButton'),
-    ));
+    res.redirect(pageUrl.toString());
 });
 
 const unsubscribe = asyncHandler(async (req, res) => {

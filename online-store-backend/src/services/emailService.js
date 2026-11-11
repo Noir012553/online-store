@@ -302,10 +302,15 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
     const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
     const msg = getMessage(emailLang, 'email.newsletter');
     const copyright = getMessage(emailLang, 'email.copyright');
-    const baseUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-    const unsubscribeUrl = new URL('/api/newsletter/unsubscribe', baseUrl);
-    unsubscribeUrl.searchParams.set('token', createNewsletterUnsubscribeToken(email));
+    const backendUrl = process.env.BACKEND_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://manln.online';
+    const unsubscribeUrl = new URL('/api/newsletter/unsubscribe', backendUrl);
+    const unsubscribePageUrl = new URL('/newsletter/unsubscribe', frontendUrl);
+    const token = createNewsletterUnsubscribeToken(email);
+    unsubscribeUrl.searchParams.set('token', token);
     unsubscribeUrl.searchParams.set('lang', emailLang);
+    unsubscribePageUrl.searchParams.set('token', token);
+    unsubscribePageUrl.searchParams.set('lang', emailLang);
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
@@ -322,7 +327,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
           <div class="email-content">
             <h2 class="email-content-title">${escapeHtml(msg.title)}</h2>
             <p class="email-content-copy">${escapeHtml(msg.message)}</p>
-            <p class="email-unsubscribe"><a class="email-link" href="${unsubscribeUrl.href}">${escapeHtml(msg.unsubscribe)}</a></p>
+            <p class="email-unsubscribe"><a class="email-link" href="${unsubscribePageUrl.href}">${escapeHtml(msg.unsubscribe)}</a></p>
           </div>
           <div class="email-footer">
             <p class="email-footer-copy">${escapeHtml(copyright)}</p>
@@ -330,7 +335,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
           </div>
         </div>
       `),
-      text: [msg.title, msg.message, `${msg.unsubscribe}: ${unsubscribeUrl}`, `Email: ${email}`, copyright].join('\n\n'),
+      text: [msg.title, msg.message, `${msg.unsubscribe}: ${unsubscribePageUrl}`, `Email: ${email}`, copyright].join('\n\n'),
     };
 
     const result = await transporter.sendMail(mailOptions);
