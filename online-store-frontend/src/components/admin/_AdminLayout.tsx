@@ -20,6 +20,7 @@ import {
   Languages,
   Globe,
   DollarSign,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -229,6 +230,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           icon: DollarSign,
           children: [{ path: "/admin/currencyAdmin", icon: DollarSign, label: t('admin_currency_management', 'admin-common') }],
         },
+      },
+      {
+        type: "link" as const,
+        id: "settings",
+        item: { path: "/admin/settings", icon: Settings, label: "Cài đặt hệ thống" },
       },
     ] : []),
     ...(isAdmin ? [
