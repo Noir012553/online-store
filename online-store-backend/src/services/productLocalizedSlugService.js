@@ -124,6 +124,83 @@ const syncProductLocalizedSlugs = async (productIds) => {
   return { created };
 };
 
+const changeCanonicalProductSlug = async ({ productId, locale, slug }) => {
+  const fail = (status, errorCode, message) => Object.assign(new Error(message), {
+    status,
+    errorCode,
+    exposeMessage: true,
+  });
+
+  if (typeof slug !== 'string') {
+    throw fail(400, 'INVALID_PRODUCT_SLUG', 'A non-empty product slug is required');
+  }
+  const normalizedSlug = slugifyProductName(slug);
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw fail(400, 'INVALID_PRODUCT_ID', 'A valid product ID is required');
+  }
+  if (!getActiveLangCodes().includes(locale)) {
+    throw fail(400, 'INVALID_PRODUCT_SLUG_LOCALE', 'An active locale is required');
+  }
+  if (!normalizedSlug) {
+    throw fail(400, 'INVALID_PRODUCT_SLUG', 'A non-empty product slug is required');
+  }
+
+  const session = await mongoose.startSession();
+  let changedSlug;
+  try {
+    await session.withTransaction(async () => {
+      const current = await ProductLocalizedSlug.findOne({
+        productId,
+        locale,
+        status: 'canonical',
+      }).session(session);
+      if (!current) throw fail(404, 'PRODUCT_SLUG_NOT_FOUND', 'No canonical slug exists for this product and locale');
+      if (current.slug === normalizedSlug) {
+        changedSlug = { slug: current.slug, previousSlug: null };
+        return;
+      }
+
+      const destination = await ProductLocalizedSlug.findOne({ slug: normalizedSlug }).session(session);
+      const belongsToProduct = destination
+        && String(destination.productId) === String(productId)
+        && destination.locale === locale
+        && destination.status === 'alias';
+      if (destination && !belongsToProduct) {
+        throw fail(409, 'PRODUCT_SLUG_CONFLICT', 'This slug is already assigned to another URL');
+      }
+
+      current.status = 'alias';
+      await current.save({ session });
+
+      if (destination) {
+        destination.status = 'canonical';
+        destination.sourceName = current.sourceName;
+        await destination.save({ session });
+      } else {
+        const [created] = await ProductLocalizedSlug.create([{
+          productId,
+          locale,
+          slug: normalizedSlug,
+          sourceName: current.sourceName,
+          status: 'canonical',
+        }], { session });
+        changedSlug = { slug: created.slug, previousSlug: current.slug };
+        return;
+      }
+
+      changedSlug = { slug: destination.slug, previousSlug: current.slug };
+    });
+    return changedSlug;
+  } catch (error) {
+    if (error.code === 11000) {
+      throw fail(409, 'PRODUCT_SLUG_CONFLICT', 'This slug is already assigned to another URL');
+    }
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 const attachLocalizedSlugs = async (products) => {
   if (!Array.isArray(products) || products.length === 0) return products;
 
@@ -152,6 +229,7 @@ const attachLocalizedSlugs = async (products) => {
 
 module.exports = {
   attachLocalizedSlugs,
+  changeCanonicalProductSlug,
   getApprovedTranslations,
   getSlugCandidates,
   slugifyProductName,

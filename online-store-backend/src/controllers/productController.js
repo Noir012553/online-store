@@ -42,7 +42,11 @@ const getProductSourceHash = product => getProductTranslationSourceHash(
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
-const { attachLocalizedSlugs, syncProductLocalizedSlugs } = require('../services/productLocalizedSlugService');
+const {
+  attachLocalizedSlugs,
+  changeCanonicalProductSlug,
+  syncProductLocalizedSlugs,
+} = require('../services/productLocalizedSlugService');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
@@ -853,6 +857,29 @@ const getProductBySlug = asyncHandler(async (req, res) => {
     requestedSlug: slugRecord.slug,
     canonicalSlug: currentSlug?.slug || slugRecord.slug,
   });
+});
+
+const changeProductSlug = asyncHandler(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error('A valid product ID is required');
+  }
+
+  const product = await withTimeout(
+    Product.findOne({ _id: req.params.id, isDeleted: false }).select('_id'),
+    8000,
+  );
+  if (!product) {
+    res.status(404);
+    throw new Error(getMessage(req.lang, 'admin-controllers-messages.product_not_found'));
+  }
+
+  const result = await changeCanonicalProductSlug({
+    productId: product._id,
+    locale: req.body?.locale,
+    slug: req.body?.slug,
+  });
+  res.json({ productId: String(product._id), locale: req.body.locale, ...result });
 });
 
 /**
@@ -1743,6 +1770,7 @@ module.exports = {
   getFeaturedProducts,
   getProductById,
   getProductBySlug,
+  changeProductSlug,
   getProductSitemap,
   getAdminProductById,
   createProduct,

@@ -15,6 +15,7 @@ const {
   getFeaturedProducts,
   getProductById,
   getProductBySlug,
+  changeProductSlug,
   getProductSitemap,
   getAdminProductById,
   createProduct,
@@ -147,6 +148,7 @@ router.get('/deleted/list', protect, admin, getDeletedProducts);
 router.get('/:id/translations', getProductTranslations);
 router.get('/sitemap.xml', getProductSitemap);
 router.get('/slug/:slug', getProductBySlug);
+router.put('/admin/:id/slug', protect, admin, changeProductSlug);
 
 /**
  * GET /api/products/:id - Lấy chi tiết sản phẩm

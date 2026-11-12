@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Đề xuất triển khai; tài liệu này chưa thay đổi code.
+Đang triển khai. Backend lưu trữ, tạo slug, resolver, sitemap và endpoint quản trị đổi slug/lưu alias đã có; frontend đã được nối với slug URL, server-render và SEO metadata. Backfill và deploy production chưa được xác nhận; test backend mới thêm chưa chạy được trong môi trường hiện tại do thiếu dependency `dotenv`.
 
 ## Mục tiêu
 
@@ -15,12 +15,13 @@ Không thêm tiền tố locale vào URL. Slug phải xác định duy nhất s�
 
 ## Hiện trạng
 
-- Trang chi tiết nằm ở `online-store-frontend/src/pages/product/[id].tsx`, hiện chỉ nhận Mongo ObjectId và tải dữ liệu phía client.
-- API chi tiết sản phẩm tra cứu theo ObjectId; model sản phẩm chưa có slug.
-- Link sản phẩm được tạo ở nhiều nơi như product card, quick view, search và cart.
-- Canonical/OG URL hiện dùng Mongo ID; chưa có XML sitemap sản phẩm và hreflang.
-- Locale hiện được lưu ở browser storage, không nằm trong URL.
-- Backend đã có dữ liệu tên sản phẩm dịch theo locale; các slug nên được tạo từ những tên này và lưu độc lập để không đổi khi nội dung dịch được sửa.
+- `ProductLocalizedSlug` và slug service tách slug khỏi product, tạo canonical theo locale và giữ slug ổn định khi nội dung thay đổi.
+- Backfill script hỗ trợ dry-run và `--apply`; script chưa được chạy trên production.
+- Backend có API resolver theo slug và sitemap động với alternates; resolver trả canonical slug để frontend redirect alias.
+- Trang `online-store-frontend/src/pages/product/[id].tsx` resolve slug/ID phía server, redirect ID cũ và alias khi có canonical slug, đồng thời xuất metadata SEO.
+- Product card, quick view, search và cart dùng localized slug khi API có dữ liệu; nếu không có slug, các link tiếp tục fallback về ID.
+- Production API đã được kiểm tra cho một sản phẩm và hiện trả `localizedSlugs: {}`; vì vậy cần chạy backfill trước khi link sản phẩm dùng slug.
+- Chưa có liên kết sản phẩm trong email đặt hàng hiện tại; URL callback thanh toán và tích hợp ngoài không thay đổi.
 
 ## Quy tắc URL và slug
 
@@ -66,13 +67,13 @@ Không đổi route callback thanh toán, webhook, OAuth hay endpoint tích hợ
 
 ## Các giai đoạn triển khai
 
-1. Chốt quy tắc locale mặc định, hậu tố khi trùng, và hành vi khi locale chưa có bản dịch.
-2. Thêm model/index và generator slug có kiểm thử Unicode, tiếng Việt và va chạm.
-3. Viết dry-run/backfill cho sản phẩm hiện tại; xuất báo cáo va chạm trước khi ghi dữ liệu và tạo index.
-4. Tạo slug trong import/seed và cập nhật slug khi có bản dịch mới, nhưng không thay slug current tự động.
-5. Thêm API resolver, redirect ID/alias và server-render route chi tiết.
-6. Cập nhật link producer, chuyển ngôn ngữ, email links, canonical/hreflang và XML sitemap.
-7. Triển khai tương thích trước: bật resolver/redirect rồi mới chuyển canonical và link nội bộ sang slug.
+1. Quy tắc locale mặc định, hậu tố va chạm và xử lý locale chưa có bản dịch đã được thể hiện trong slug service.
+2. Model/index, generator slug và kiểm thử Unicode/tiếng Việt/va chạm đã có.
+3. Dry-run/backfill đã có; cần chạy dry-run, rà báo cáo va chạm và chỉ apply sau khi xác nhận đúng database.
+4. Import/seed và readiness flow đồng bộ slug mới nhưng không tự đổi slug canonical hiện tại.
+5. API resolver, redirect ID/alias và SSR product route đã có trong code.
+6. Product card, quick view, search, cart, locale switching, metadata, hreflang và sitemap đã được nối; chưa có email product links để chuyển đổi.
+7. API admin đổi slug có lưu alias đã được bổ sung. Còn cần chạy test backend, chạy backfill theo quy trình được duyệt, deploy backend/frontend và xác minh end-to-end trên production.
 
 ## Kiểm thử và nghiệm thu
 
