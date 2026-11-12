@@ -72,6 +72,10 @@ const nextConfig: NextConfig = {
         destination: `${backendUrl}/api/:path*`,
       },
       {
+        source: '/sitemap.xml',
+        destination: `${backendUrl}/api/products/sitemap.xml`,
+      },
+      {
         source: '/sitemap',
         destination: '/site-map',
       },

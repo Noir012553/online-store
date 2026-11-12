@@ -1,6 +1,7 @@
 const Currency = require('../models/Currency');
 const { formatCurrency, formatExchangeRate } = require('./currencyFormatter');
 const { convertOrderAmount, getActiveExchangeRates } = require('./orderRevenue');
+const { attachLocalizedSlugs } = require('../services/productLocalizedSlugService');
 
 const getCurrencyMetadata = async (codes) => {
   const uniqueCodes = [...new Set(codes.filter(Boolean).map((code) => code.toUpperCase()))];
@@ -61,9 +62,10 @@ const toPublicDescriptionImages = (descriptionImages) => (
 );
 
 const formatProducts = async (products, lang) => {
-  const currencies = await getCurrencyMetadata(products.map((product) => product.baseCurrencyCode));
+  const localizedProducts = await attachLocalizedSlugs(products);
+  const currencies = await getCurrencyMetadata(localizedProducts.map((product) => product.baseCurrencyCode));
 
-  return products.map((product) => {
+  return localizedProducts.map((product) => {
     const data = product.toObject ? product.toObject() : product;
     const publicProduct = {
       ...data,

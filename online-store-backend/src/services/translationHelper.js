@@ -25,6 +25,7 @@ const { normalizeSpecFieldName } = require('../utils/specNormalizer');
 const specKeyTranslations = require('../data/specKeyTranslations.json');
 const { getCanonicalSpecKey, getSpecKeyLabels, registerUnknownSpecKeys } = require('./specKeyTranslationService');
 const { getProductTranslationSourceHash } = require('../utils/productTranslationFingerprint');
+const { syncProductLocalizedSlugs } = require('./productLocalizedSlugService');
 const {
   containsNoInputTranslationResponse,
   restoreNoInputTranslationResponses,
@@ -257,6 +258,9 @@ const refreshTranslationReadiness = async (productIds, options = {}) => {
       },
     },
   })));
+  await syncProductLocalizedSlugs(ids).catch((error) => {
+    console.warn('[TRANSLATION_READINESS] Failed to sync localized product slugs:', error.message);
+  });
 
   return {
     matchedCount: result.matchedCount || 0,

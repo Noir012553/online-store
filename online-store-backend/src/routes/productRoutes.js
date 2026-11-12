@@ -14,6 +14,8 @@ const {
   getAdminTranslationProducts,
   getFeaturedProducts,
   getProductById,
+  getProductBySlug,
+  getProductSitemap,
   getAdminProductById,
   createProduct,
   updateProduct,
@@ -143,6 +145,8 @@ router.get('/deleted/list', protect, admin, getDeletedProducts);
  * Query params: lang (default: from config DEFAULT_LANGUAGE)
  */
 router.get('/:id/translations', getProductTranslations);
+router.get('/sitemap.xml', getProductSitemap);
+router.get('/slug/:slug', getProductBySlug);
 
 /**
  * GET /api/products/:id - Lấy chi tiết sản phẩm
