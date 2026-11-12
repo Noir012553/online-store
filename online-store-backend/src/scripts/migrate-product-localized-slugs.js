@@ -12,9 +12,14 @@ const {
 
 const BATCH_SIZE = 250;
 const APPLY = process.argv.includes('--apply');
+const APPLY_CONFIRMATION = '--confirm=APPLY_PRODUCT_SLUG_BACKFILL';
 const slugKey = (productId, locale) => `${productId}:${locale}`;
 
 async function main() {
+  if (APPLY && !process.argv.includes(APPLY_CONFIRMATION)) {
+    throw new Error(`Apply mode requires ${APPLY_CONFIRMATION}`);
+  }
+
   await connectMongo();
 
   const occupiedSlugs = new Set(await ProductLocalizedSlug.distinct('slug'));

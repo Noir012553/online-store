@@ -35,6 +35,8 @@
     "seed:spec-key-cache": "node --expose-gc src/seeds/index.js -- --only-module=specKeyCache",
     "audit:spec-key-cache": "node src/scripts/audit-spec-key-cache.js",
     "migrate:spec-key-cache": "node src/scripts/migrate-spec-key-cache.js",
+    "migrate:product-slugs": "node src/scripts/migrate-product-localized-slugs.js",
+    "migrate:product-slugs:apply": "node src/scripts/migrate-product-localized-slugs.js --apply --confirm=APPLY_PRODUCT_SLUG_BACKFILL",
     "backup:spec-key-cache": "node scripts/backup-spec-key-cache.js",
     "backup:retranslation": "node scripts/backup-retranslation-data.js",
     "backup:full-database": "node scripts/backup-full-database.js",
