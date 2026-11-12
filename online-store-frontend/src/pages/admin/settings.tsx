@@ -24,9 +24,12 @@ import { withAdminMeta } from '../../components/admin/withAdminLayout';
 import { apiCall } from '../../lib/api';
 import { useLanguage } from '../../lib/i18n';
 import { SITE_URL } from '../../lib/seo';
+import { interpolateTranslation } from '../../lib/translationInterpolate';
+import { INTL_LOCALES } from '../../lib/i18n/types';
 
 type SectionKey = 'overview' | 'branding' | 'email' | 'payment' | 'cloudflare' | 'security';
 type StatusTone = 'good' | 'warning' | 'danger' | 'neutral';
+type SettingsTextKey = string;
 type SettingsStatus = {
   generatedAt: string;
   email: {
@@ -80,13 +83,20 @@ type SettingsStatus = {
 };
 
 const sections = [
-  { id: 'overview', label: 'Tổng quan', icon: Globe2 },
-  { id: 'branding', label: 'Thương hiệu', icon: Building2 },
-  { id: 'email', label: 'Email cửa hàng', icon: Mail },
-  { id: 'payment', label: 'Thanh toán VNPay', icon: CreditCard },
-  { id: 'cloudflare', label: 'Cloudflare', icon: Cloud },
-  { id: 'security', label: 'Bảo mật & môi trường', icon: ShieldCheck },
+  { id: 'overview', label: 'overview', icon: Globe2 },
+  { id: 'branding', label: 'branding', icon: Building2 },
+  { id: 'email', label: 'email', icon: Mail },
+  { id: 'payment', label: 'payment', icon: CreditCard },
+  { id: 'cloudflare', label: 'cloudflare', icon: Cloud },
+  { id: 'security', label: 'security', icon: ShieldCheck },
 ] as const;
+
+function useSettingsText() {
+  const { t } = useLanguage();
+  return (key: SettingsTextKey, variables?: Record<string, string | number>) => (
+    interpolateTranslation(t(key, 'admin-settings'), variables)
+  );
+}
 
 const statusStyles: Record<StatusTone, string> = {
   good: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -106,11 +116,12 @@ function StatusBadge({ tone, children }: { tone: StatusTone; children: React.Rea
 }
 
 function DataField({ label, value }: { label: string; value: string | number }) {
+  const text = useSettingsText();
   return (
     <label className="block space-y-2">
       <span className="text-sm font-medium text-gray-700">{label}</span>
       <input
-        value={value === '' ? 'Chưa cấu hình' : value}
+        value={value === '' ? text('not_configured') : value}
         readOnly
         aria-readonly="true"
         className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-700 outline-none"
@@ -120,6 +131,7 @@ function DataField({ label, value }: { label: string; value: string | number }) 
 }
 
 function SecretField({ label, configured }: { label: string; configured: boolean }) {
+  const text = useSettingsText();
   const [value, setValue] = useState('');
   const [visible, setVisible] = useState(false);
 
@@ -128,7 +140,7 @@ function SecretField({ label, configured }: { label: string; configured: boolean
       <span className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700">
         <span>{label}</span>
         <span className={`text-xs font-medium ${configured ? 'text-emerald-700' : 'text-amber-700'}`}>
-          {configured ? 'Đã cấu hình · không thể đọc lại' : 'Chưa cấu hình'}
+          {configured ? text('configured_cannot_read') : text('not_configured')}
         </span>
       </span>
       <span className="relative block">
@@ -137,13 +149,13 @@ function SecretField({ label, configured }: { label: string; configured: boolean
           value={value}
           onChange={(event) => setValue(event.target.value)}
           autoComplete="new-password"
-          placeholder={configured ? 'Chỉ nhập nếu muốn thay đổi secret' : 'Nhập secret mới'}
+          placeholder={configured ? text('replace_secret_placeholder') : text('enter_secret_placeholder')}
           className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3.5 pr-11 text-sm text-gray-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
         />
         <button
           type="button"
           onClick={() => setVisible(current => !current)}
-          aria-label={visible ? `Ẩn ${label}` : `Hiện ${label}`}
+          aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })}
           aria-pressed={visible}
           className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-lg text-gray-500 transition hover:bg-gray-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
@@ -159,7 +171,8 @@ function SettingsPage() {
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const { t, loadNamespace } = useLanguage();
+  const { t, loadNamespace, locale } = useLanguage();
+  const text = useSettingsText();
 
   const loadStatus = async () => {
     setIsLoading(true);
@@ -180,12 +193,13 @@ function SettingsPage() {
   useEffect(() => {
     void loadStatus();
     void loadNamespace('footer');
+    void loadNamespace('admin-settings');
   }, [loadNamespace]);
 
   const openSection = (section: SectionKey) => setActiveSection(section);
   const currentSection = sections.find((section) => section.id === activeSection) ?? sections[0];
   const CurrentIcon = currentSection.icon;
-  const storeName = t('store_name', 'admin');
+  const storeName = text('store_name');
   const supportEmail = t('contact_email_display', 'footer');
   const supportPhone = t('contact_phone_display', 'footer');
 
@@ -219,23 +233,23 @@ function SettingsPage() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">
-            <span>Quản trị</span><ChevronRight className="h-4 w-4" /><span className="text-gray-800">Cài đặt hệ thống</span>
+            <span>{text('admin_crumb')}</span><ChevronRight className="h-4 w-4" /><span className="text-gray-800">{text('page_title')}</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">Cài đặt hệ thống</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">Trạng thái cấu hình đang chạy của cửa hàng và các dịch vụ tích hợp.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">{text('page_title')}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">{text('page_description')}</p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700">
-          <LockKeyhole className="h-3.5 w-3.5" /> Super Admin
+          <LockKeyhole className="h-3.5 w-3.5" /> {text('super_admin')}
         </span>
       </div>
 
       <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status">
         <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-amber-900">Thông tin được đọc trực tiếp từ backend</p>
-          <p className="mt-1 text-sm leading-5 text-amber-800">Mật khẩu và token chỉ hiển thị trạng thái đã cấu hình, không gửi giá trị hiện tại về trình duyệt. Thay đổi cấu hình chưa khả dụng vì hệ thống chưa có kho secret mã hóa và quy trình reload an toàn.</p>
+          <p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p>
+          <p className="mt-1 text-sm leading-5 text-amber-800">{text('secret_safety_notice')}</p>
         </div>
-        <button type="button" onClick={() => void loadStatus()} disabled={isLoading} aria-label="Làm mới trạng thái" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">
+        <button type="button" onClick={() => void loadStatus()} disabled={isLoading} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -243,12 +257,12 @@ function SettingsPage() {
       {loadError && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
           <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-          <div><p className="text-sm font-semibold text-red-900">Không tải được trạng thái cấu hình</p><p className="mt-1 text-sm text-red-800">Kiểm tra kết nối backend và quyền Super Admin, sau đó thử tải lại.</p></div>
+          <div><p className="text-sm font-semibold text-red-900">{text('load_error_title')}</p><p className="mt-1 text-sm text-red-800">{text('load_error_hint')}</p></div>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav aria-label="Nhóm cài đặt" className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+        <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
           {sections.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -258,12 +272,12 @@ function SettingsPage() {
               className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <Icon className={`h-4 w-4 ${activeSection === id ? 'text-red-600' : 'text-gray-400'}`} />
-              {label}
+              {text(label)}
               {activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}
             </button>
           ))}
           <div className="mt-3 border-t border-gray-100 px-3 pt-3">
-            <p className="text-xs leading-5 text-gray-500">Chỉ tài khoản Super Admin được truy cập khu vực này.</p>
+            <p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p>
           </div>
         </nav>
 
@@ -272,25 +286,25 @@ function SettingsPage() {
             <>
               <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                  <div><h2 className="text-lg font-bold text-gray-900">Tình trạng cấu hình</h2><p className="mt-1 text-sm text-gray-500">{isLoading ? 'Đang đọc cấu hình runtime…' : 'Trạng thái lấy từ cấu hình của backend đang chạy.'}</p></div>
-                  <span className="text-xs font-medium text-gray-400">{status ? `Cập nhật: ${new Date(status.generatedAt).toLocaleString()}` : 'Chưa tải dữ liệu'}</span>
+                  <div><h2 className="text-lg font-bold text-gray-900">{text('status_title')}</h2><p className="mt-1 text-sm text-gray-500">{isLoading ? text('status_loading') : text('status_loaded')}</p></div>
+                  <span className="text-xs font-medium text-gray-400">{status ? text('updated_at', { date: new Date(status.generatedAt).toLocaleString(INTL_LOCALES[locale]) }) : text('not_loaded')}</span>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <StatusTile icon={Building2} label="Thương hiệu" detail={storeName || 'LaptopStore'} tone="good" />
-                  <StatusTile icon={Mail} label="Email" detail={status ? status.email.configured ? `${status.email.service.toUpperCase()} · ${status.email.host}` : 'Thiếu thông tin gửi email' : 'Đang tải'} tone={emailTone} />
-                  <StatusTile icon={CreditCard} label="VNPay" detail={status ? `${status.payment.mode === 'sandbox' ? 'Sandbox' : 'Production'} · ${status.payment.configured ? 'đủ credentials' : 'thiếu credentials'}` : 'Đang tải'} tone={paymentTone} />
-                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? `R2 ${status.r2.configured ? 'đã cấu hình' : 'chưa cấu hình'} · AI ${status.cloudflareAi.configuredCount} key` : 'Đang tải'} tone={cloudflareTone} />
+                  <StatusTile icon={Building2} label={text('branding')} detail={storeName || 'LaptopStore'} tone="good" />
+                  <StatusTile icon={Mail} label={text('email')} detail={status ? status.email.configured ? `${status.email.service.toUpperCase()} · ${status.email.host}` : text('email_missing') : text('loading')} tone={emailTone} />
+                  <StatusTile icon={CreditCard} label="VNPay" detail={status ? `${text(status.payment.mode)} · ${status.payment.configured ? text('credentials_complete') : text('credentials_missing')}` : text('loading')} tone={paymentTone} />
+                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? `${text('r2_title')} · ${status.r2.configured ? text('configured') : text('not_configured')} · ${text('cloudflare_ai_title')} ${status.cloudflareAi.configuredCount}` : text('loading')} tone={cloudflareTone} />
                 </div>
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="mb-4"><h2 className="text-lg font-bold text-gray-900">Nhóm cấu hình</h2><p className="mt-1 text-sm text-gray-500">Chọn nhóm để xem giá trị không nhạy cảm và trạng thái credentials.</p></div>
+                <div className="mb-4"><h2 className="text-lg font-bold text-gray-900">{text('groups_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('groups_description')}</p></div>
                 <div className="divide-y divide-gray-100">
-                  <OverviewRow icon={Image} title="Thương hiệu & cửa hàng" description={`${storeName || 'LaptopStore'} · ${supportEmail || 'Chưa có email hỗ trợ'}`} status="Đang hoạt động" tone="good" onClick={() => openSection('branding')} />
-                  <OverviewRow icon={Mail} title="Email cửa hàng" description={status ? `${status.email.host}:${status.email.port} · From ${status.email.from || 'chưa cấu hình'}` : 'Đang tải cấu hình email'} status={status ? status.email.configured ? 'Đã cấu hình' : 'Thiếu credentials' : 'Đang tải'} tone={emailTone} onClick={() => openSection('email')} />
-                  <OverviewRow icon={CreditCard} title="VNPay" description={status ? `${status.payment.mode} · ${status.payment.endpoint}` : 'Đang tải cấu hình thanh toán'} status={status ? status.payment.configured ? status.payment.mode : 'Thiếu credentials' : 'Đang tải'} tone={paymentTone} onClick={() => openSection('payment')} />
-                  <OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${status.r2.accounts.length} R2 account · ${status.cloudflareAi.configuredCount} AI key` : 'Đang tải trạng thái Cloudflare'} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? 'Có cấu hình' : 'Cần kiểm tra' : 'Đang tải'} tone={cloudflareTone} onClick={() => openSection('cloudflare')} />
-                  <OverviewRow icon={KeyRound} title="Bảo mật & môi trường" description="Secret được che; hiện chưa có kho lưu cấu hình để chỉnh sửa." status={status?.security.encryptedSecretStoreAvailable ? 'Kho secret sẵn sàng' : 'Chỉ đọc'} tone={status?.security.encryptedSecretStoreAvailable ? 'good' : 'warning'} onClick={() => openSection('security')} />
+                  <OverviewRow icon={Image} title={text('store_name')} description={`${storeName || 'LaptopStore'} · ${supportEmail || text('support_email_missing')}`} status={text('active')} tone="good" onClick={() => openSection('branding')} />
+                  <OverviewRow icon={Mail} title={text('email')} description={status ? `${status.email.host}:${status.email.port} · ${text('from_address')}: ${status.email.from || text('not_configured')}` : text('email_loading')} status={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('loading')} tone={emailTone} onClick={() => openSection('email')} />
+                  <OverviewRow icon={CreditCard} title="VNPay" description={status ? `${text(status.payment.mode)} · ${status.payment.endpoint}` : text('payment_loading')} status={status ? status.payment.configured ? text(status.payment.mode) : text('credentials_missing') : text('loading')} tone={paymentTone} onClick={() => openSection('payment')} />
+                  <OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${text('accounts_configured', { count: status.r2.accounts.length })} · ${text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}` : text('cloudflare_loading')} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('has_configuration') : text('needs_check') : text('loading')} tone={cloudflareTone} onClick={() => openSection('cloudflare')} />
+                  <OverviewRow icon={KeyRound} title={text('security')} description={text('secret_safety_notice')} status={status?.security.encryptedSecretStoreAvailable ? text('secret_store_ready') : text('read_only')} tone={status?.security.encryptedSecretStoreAvailable ? 'good' : 'warning'} onClick={() => openSection('security')} />
                 </div>
               </section>
             </>
@@ -298,62 +312,62 @@ function SettingsPage() {
             <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3"><span className="rounded-lg bg-red-50 p-2.5 text-red-600"><CurrentIcon className="h-5 w-5" /></span><div><h2 className="text-lg font-bold text-gray-900">{currentSection.label}</h2><p className="mt-1 text-sm text-gray-500">Giá trị đang hoạt động, lấy từ frontend hoặc backend tùy cấu hình.</p></div></div>
-                  <StatusBadge tone={loadError ? 'danger' : isLoading ? 'neutral' : 'warning'}>{loadError ? 'Không tải được' : isLoading ? 'Đang tải' : 'Chế độ chỉ đọc'}</StatusBadge>
+                  <div className="flex items-start gap-3"><span className="rounded-lg bg-red-50 p-2.5 text-red-600"><CurrentIcon className="h-5 w-5" /></span><div><h2 className="text-lg font-bold text-gray-900">{text(currentSection.label)}</h2><p className="mt-1 text-sm text-gray-500">{text('section_value_description')}</p></div></div>
+                  <StatusBadge tone={loadError ? 'danger' : isLoading ? 'neutral' : 'warning'}>{loadError ? text('load_failed') : isLoading ? text('loading') : text('read_only_mode')}</StatusBadge>
                 </div>
               </div>
 
               <div className="space-y-6 p-5 sm:p-6">
                 {activeSection === 'branding' && (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Tên cửa hàng" value={storeName || 'LaptopStore'} /><DataField label="Email hỗ trợ" value={supportEmail} /><DataField label="Điện thoại hỗ trợ" value={supportPhone} /><DataField label="Website" value={SITE_URL} /></div>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-5"><div className="flex flex-wrap items-center gap-4"><img src="/assets/branding/logo-cropped.png" alt="Logo cửa hàng" className="h-16 w-auto rounded bg-white object-contain p-2" /><div><p className="text-sm font-semibold text-gray-800">Logo đang sử dụng</p><p className="mt-1 text-xs text-gray-500">/assets/branding/logo-cropped.png</p></div></div></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('store_name')} value={storeName || 'LaptopStore'} /><DataField label={text('support_email')} value={supportEmail} /><DataField label={text('support_phone')} value={supportPhone} /><DataField label={text('website')} value={SITE_URL} /></div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-5"><div className="flex flex-wrap items-center gap-4"><img src="/assets/branding/logo-cropped.png" alt={text('logo_alt')} className="h-16 w-auto rounded bg-white object-contain p-2" /><div><p className="text-sm font-semibold text-gray-800">{text('logo_current')}</p><p className="mt-1 text-xs text-gray-500">/assets/branding/logo-cropped.png</p></div></div></div>
                   </>
                 )}
                 {activeSection === 'email' && status && (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Nhà cung cấp" value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label="SMTP host" value={status.email.host} /><DataField label="Cổng" value={status.email.port} /><DataField label="TLS / secure" value={status.email.secure ? 'Bật' : 'Tắt'} /><DataField label="Tài khoản SMTP" value={status.email.account} /><DataField label="Địa chỉ From" value={status.email.from} /></div>
-                    <div className="grid gap-4 sm:grid-cols-2"><SecretField label="Mật khẩu SMTP" configured={status.email.passwordConfigured} /><SecretField label="SendGrid API key" configured={status.email.sendgridKeyConfigured} /></div>
-                    <SecretNotice text="Email credentials chỉ được hiển thị trạng thái. Giá trị mới nhập chỉ nằm trong form hiện tại và chưa được gửi/lưu." />
+                    <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label={text('smtp_host')} value={status.email.host} /><DataField label={text('port')} value={status.email.port} /><DataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><DataField label={text('smtp_account')} value={status.email.account} /><DataField label={text('from_address')} value={status.email.from} /></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><SecretField label={text('smtp_password')} configured={status.email.passwordConfigured} /><SecretField label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} /></div>
+                    <SecretNotice text={text('email_secret_notice')} />
                   </>
                 )}
                 {activeSection === 'payment' && status && (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Môi trường" value={status.payment.mode === 'sandbox' ? 'Sandbox' : 'Production'} /><DataField label="Merchant / Terminal code" value={status.payment.merchantCode} /><DataField label="Endpoint" value={status.payment.endpoint} /><DataField label="Return URL" value={status.payment.returnUrl} /><DataField label="Callback URL" value={status.payment.callbackUrl} /></div>
-                    <SecretField label="VNPay hash secret" configured={status.payment.secretConfigured} />
-                    <SecretNotice text="Không thể đọc lại hash secret. Cấu hình VNPay được khởi tạo khi backend start nên cần quy trình deploy an toàn để thay đổi." />
+                    <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('environment')} value={text(status.payment.mode)} /><DataField label={text('merchant_code')} value={status.payment.merchantCode} /><DataField label={text('endpoint')} value={status.payment.endpoint} /><DataField label={text('return_url')} value={status.payment.returnUrl} /><DataField label={text('callback_url')} value={status.payment.callbackUrl} /></div>
+                    <SecretField label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} />
+                    <SecretNotice text={text('vnpay_secret_notice')} />
                   </>
                 )}
                 {activeSection === 'cloudflare' && status && (
                   <>
-                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">Cloudflare R2</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? `${status.r2.accounts.length} account đã cấu hình` : 'Cấu hình account không hợp lệ hoặc thiếu trường'}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? 'Cấu hình không hợp lệ' : !status.r2.configured ? 'Chưa cấu hình' : !status.r2.policyValid ? 'Policy không hợp lệ' : status.r2.uploadEnabled ? 'Upload bật' : 'Upload tắt'}</StatusBadge></div>
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label="R2 access key ID" configured={status.r2.credentialsConfigured} /><SecretField label="R2 secret access key" configured={status.r2.credentialsConfigured} /></div>
-                      {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">Account ID</th><th className="pb-2 pr-4 font-medium">Bucket</th><th className="pb-2 font-medium">Public base URL</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4">{account.accountId}</td><td className="py-2 pr-4">{account.bucket}</td><td className="break-all py-2">{account.publicBaseUrl}</td></tr>)}</tbody></table></div>}
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label="Upload policy" value={status.r2.uploadEnabled ? 'Bật' : 'Tắt'} /><DataField label="Số file tối đa" value={status.r2.policy.maxAssets} /><DataField label="Dung lượng tối đa (bytes)" value={status.r2.policy.maxBytes} /></div>
+                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label={text('r2_access_key')} configured={status.r2.credentialsConfigured} /><SecretField label={text('r2_secret_key')} configured={status.r2.credentialsConfigured} /></div>
+                      {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4">{account.accountId}</td><td className="py-2 pr-4">{account.bucket}</td><td className="break-all py-2">{account.publicBaseUrl}</td></tr>)}</tbody></table></div>}
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><DataField label={text('max_files')} value={status.r2.policy.maxAssets} /><DataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div>
                     </div>
-                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">Cloudflare AI</p><p className="mt-1 text-xs text-gray-500">{status.cloudflareAi.configuredCount} cấu hình credential · {status.cloudflareAi.enabled ? 'được bật' : 'đang tắt'}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? 'Sẵn sàng' : 'Đang tắt' : 'Thiếu credentials'}</StatusBadge></div>
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label="Giới hạn request/ngày" value={status.cloudflareAi.maxRequestsPerDay} /><DataField label="Giới hạn ký tự/ngày" value={status.cloudflareAi.maxInputCharsPerDay} /></div>
-                      <div className="mt-4 flex flex-wrap gap-2">{status.cloudflareAi.models.length ? status.cloudflareAi.models.map((model, index) => <span key={`${model}-${index}`} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700">{model}</span>) : <span className="text-sm text-gray-500">Chưa cấu hình model</span>}</div>
-                      {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label="Cloudflare API token" configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label="Account ID" value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
+                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><DataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /></div>
+                      <div className="mt-4 flex flex-wrap gap-2">{status.cloudflareAi.models.length ? status.cloudflareAi.models.map((model, index) => <span key={`${model}-${index}`} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700">{model}</span>) : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
+                      {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label={text('cloudflare_api_token')} configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
                     </div>
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">Tunnel và DNS chưa được quản lý qua ứng dụng</p><p className="mt-1 text-sm leading-5 text-amber-800">API Cloudflare và cơ chế cập nhật tunnel agent chưa được tích hợp. Không có thao tác DNS nào được thực hiện từ trang này.</p></div>
-                    <SecretNotice text="Access key, secret key và API token không bao giờ được trả về từ backend." />
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div>
+                    <SecretNotice text={text('cloudflare_secret_notice')} />
                   </>
                 )}
                 {activeSection === 'security' && status && (
                   <>
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold text-emerald-900">Secret không được trả về trình duyệt</p><p className="mt-1 text-sm leading-5 text-emerald-800">API hiện chỉ trả trạng thái đã cấu hình và dữ liệu vận hành đã lọc.</p></div></div></div>
-                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Kho secret mã hóa" value={status.security.encryptedSecretStoreAvailable ? 'Sẵn sàng' : 'Chưa được cấu hình'} /><DataField label="Override quản lý trong ứng dụng" value={status.security.managedOverridesAvailable ? 'Sẵn sàng' : 'Chưa được cấu hình'} /><DataField label="Số nhóm cần restart/redeploy" value={status.security.restartRequiredGroups.length} /><DataField label="Cloudflare Tunnel / DNS" value="Chưa được ứng dụng quản lý" /></div>
-                    <div className="rounded-lg border border-gray-200 p-4"><p className="text-sm font-semibold text-gray-900">Nhóm cần restart/redeploy</p><div className="mt-3 flex flex-wrap gap-2">{status.security.restartRequiredGroups.map(group => <span key={group} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{group}</span>)}</div></div>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold text-emerald-900">{text('secret_never_returned')}</p><p className="mt-1 text-sm leading-5 text-emerald-800">{text('filtered_response_notice')}</p></div></div></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('encrypted_secret_store')} value={status.security.encryptedSecretStoreAvailable ? text('ready') : text('not_configured_yet')} /><DataField label={text('managed_overrides')} value={status.security.managedOverridesAvailable ? text('ready') : text('not_configured_yet')} /><DataField label={text('restart_groups_count')} value={status.security.restartRequiredGroups.length} /><DataField label={text('tunnel_dns_label')} value={text('not_managed_by_app')} /></div>
+                    <div className="rounded-lg border border-gray-200 p-4"><p className="text-sm font-semibold text-gray-900">{text('restart_groups')}</p><div className="mt-3 flex flex-wrap gap-2">{status.security.restartRequiredGroups.map(group => <span key={group} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{group}</span>)}</div></div>
                   </>
                 )}
-                {(activeSection === 'email' && !status || activeSection === 'payment' && !status || activeSection === 'cloudflare' && !status || activeSection === 'security' && !status) && !isLoading && <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">Chưa có dữ liệu để hiển thị. Hãy tải lại trạng thái cấu hình.</p>}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5"><p className="text-xs text-gray-500">Chỉ xem cấu hình runtime · hiện không ghi dữ liệu mới.</p><button type="button" disabled className="inline-flex h-10 items-center gap-2 rounded-lg bg-gray-200 px-4 text-sm font-semibold text-gray-500">Lưu thay đổi</button></div>
+                {(activeSection === 'email' && !status || activeSection === 'payment' && !status || activeSection === 'cloudflare' && !status || activeSection === 'security' && !status) && !isLoading && <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">{text('empty_data')}</p>}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5"><p className="text-xs text-gray-500">{text('runtime_read_only')}</p><button type="button" disabled className="inline-flex h-10 items-center gap-2 rounded-lg bg-gray-200 px-4 text-sm font-semibold text-gray-500">{text('save_changes')}</button></div>
               </div>
             </section>
           )}
 
-          <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p className="text-sm leading-5 text-gray-600"><span className="font-semibold text-gray-800">Mã màu trạng thái:</span> đỏ là nguy hiểm, vàng là cần chú ý, xanh là tốt. Secret hiện có không thể xem lại; nút mắt chỉ áp dụng cho giá trị mới nhập.</p></div>
+          <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p className="text-sm leading-5 text-gray-600"><span className="font-semibold text-gray-800">{text('status_color_legend')}</span> {text('status_color_description')}</p></div>
         </div>
       </div>
     </div>
