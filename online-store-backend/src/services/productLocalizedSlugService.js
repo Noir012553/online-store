@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ProductLocalizedSlug = require('../models/ProductLocalizedSlug');
@@ -83,10 +82,10 @@ const syncProductLocalizedSlugs = async (productIds) => {
   const activeProducts = products.filter((product) => product.name?.trim());
   if (activeProducts.length === 0) return { created: 0 };
 
-  const productIds = activeProducts.map((product) => product._id);
+  const activeProductIds = activeProducts.map((product) => product._id);
   const [translations, currentRecords] = await Promise.all([
     getApprovedTranslations(activeProducts),
-    ProductLocalizedSlug.find({ productId: { $in: productIds }, status: 'canonical' }).lean(),
+    ProductLocalizedSlug.find({ productId: { $in: activeProductIds }, status: 'canonical' }).lean(),
   ]);
   const translationsByProduct = new Map();
   translations.forEach((translation) => {
