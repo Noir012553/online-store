@@ -30,6 +30,7 @@ import { INTL_LOCALES } from '../../lib/i18n/types';
 type SectionKey = 'overview' | 'branding' | 'email' | 'payment' | 'cloudflare' | 'security';
 type StatusTone = 'good' | 'warning' | 'danger' | 'neutral';
 type SettingsTextKey = string;
+type RuntimeSetting = { key: string; value: string; secret: boolean };
 type SettingsStatus = {
   generatedAt: string;
   email: {
@@ -140,7 +141,7 @@ function SecretField({ label, configured }: { label: string; configured: boolean
       <span className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700">
         <span>{label}</span>
         <span className={`text-xs font-medium ${configured ? 'text-emerald-700' : 'text-amber-700'}`}>
-          {configured ? text('configured_cannot_read') : text('not_configured')}
+          {configured ? text('configured') : text('not_configured')}
         </span>
       </span>
       <span className="relative block">
@@ -166,13 +167,63 @@ function SecretField({ label, configured }: { label: string; configured: boolean
   );
 }
 
+function RuntimeSettingRow({ setting }: { setting: RuntimeSetting }) {
+  const text = useSettingsText();
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="grid gap-2 border-t border-gray-100 py-3 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
+      <code className="break-all text-xs font-semibold text-gray-700">{setting.key}</code>
+      <span className="relative block min-w-0">
+        <input
+          type={visible || !setting.secret ? 'text' : 'password'}
+          value={setting.value}
+          readOnly
+          aria-readonly="true"
+          className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 pr-11 font-mono text-xs text-gray-700 outline-none"
+        />
+        {setting.secret && (
+          <button
+            type="button"
+            onClick={() => setVisible(current => !current)}
+            aria-label={text(visible ? 'hide_value' : 'show_value', { field: setting.key })}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center rounded-r-lg text-gray-500 transition hover:bg-gray-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
 function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [status, setStatus] = useState<SettingsStatus | null>(null);
+  const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSetting[]>([]);
+  const [valuesLoading, setValuesLoading] = useState(true);
+  const [valuesError, setValuesError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const { t, loadNamespace, locale } = useLanguage();
   const text = useSettingsText();
+
+  const loadRuntimeSettings = async () => {
+    setValuesLoading(true);
+    setValuesError(false);
+    try {
+      const response = await apiCall<{ success: boolean; data: { settings: RuntimeSetting[] } }>('/admin/settings/values', {
+        skipCache: true,
+        skipErrorToast: true,
+      });
+      setRuntimeSettings(response.data.settings);
+    } catch {
+      setValuesError(true);
+    } finally {
+      setValuesLoading(false);
+    }
+  };
 
   const loadStatus = async () => {
     setIsLoading(true);
@@ -192,6 +243,7 @@ function SettingsPage() {
 
   useEffect(() => {
     void loadStatus();
+    void loadRuntimeSettings();
     void loadNamespace('footer');
     void loadNamespace('admin-settings');
   }, [loadNamespace]);
@@ -249,7 +301,7 @@ function SettingsPage() {
           <p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p>
           <p className="mt-1 text-sm leading-5 text-amber-800">{text('secret_safety_notice')}</p>
         </div>
-        <button type="button" onClick={() => void loadStatus()} disabled={isLoading} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">
+        <button type="button" onClick={() => { void loadStatus(); void loadRuntimeSettings(); }} disabled={isLoading || valuesLoading} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50">
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -298,6 +350,24 @@ function SettingsPage() {
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div><h2 className="text-lg font-bold text-gray-900">{text('runtime_settings_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('runtime_settings_description')}</p></div>
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{text('runtime_settings_count', { count: runtimeSettings.length })}</span>
+                </div>
+                {valuesError ? (
+                  <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{text('runtime_settings_error')}</p>
+                ) : valuesLoading ? (
+                  <p className="mt-4 text-sm text-gray-500">{text('loading')}</p>
+                ) : runtimeSettings.length ? (
+                  <div className="mt-4">
+                    {runtimeSettings.map(setting => <RuntimeSettingRow key={setting.key} setting={setting} />)}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-500">{text('runtime_settings_empty')}</p>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="mb-4"><h2 className="text-lg font-bold text-gray-900">{text('groups_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('groups_description')}</p></div>
                 <div className="divide-y divide-gray-100">
                   <OverviewRow icon={Image} title={text('store_name')} description={`${storeName || 'LaptopStore'} · ${supportEmail || text('support_email_missing')}`} status={text('active')} tone="good" onClick={() => openSection('branding')} />
@@ -328,14 +398,14 @@ function SettingsPage() {
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label={text('smtp_host')} value={status.email.host} /><DataField label={text('port')} value={status.email.port} /><DataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><DataField label={text('smtp_account')} value={status.email.account} /><DataField label={text('from_address')} value={status.email.from} /></div>
                     <div className="grid gap-4 sm:grid-cols-2"><SecretField label={text('smtp_password')} configured={status.email.passwordConfigured} /><SecretField label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} /></div>
-                    <SecretNotice text={text('email_secret_notice')} />
+                    <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'payment' && status && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('environment')} value={text(status.payment.mode)} /><DataField label={text('merchant_code')} value={status.payment.merchantCode} /><DataField label={text('endpoint')} value={status.payment.endpoint} /><DataField label={text('return_url')} value={status.payment.returnUrl} /><DataField label={text('callback_url')} value={status.payment.callbackUrl} /></div>
                     <SecretField label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} />
-                    <SecretNotice text={text('vnpay_secret_notice')} />
+                    <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'cloudflare' && status && (
