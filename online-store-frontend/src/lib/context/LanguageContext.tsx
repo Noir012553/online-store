@@ -125,14 +125,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   useEffect(() => {
     let isMounted = true;
-    const storedLocale = getStoredLocale();
-
     fetchActiveLocaleConfig()
       .then(({ defaultLocale, locales }) => {
-        if (isMounted) applyLocaleConfig(defaultLocale || DEFAULT_LOCALE, locales, storedLocale);
+        if (isMounted) applyLocaleConfig(defaultLocale || DEFAULT_LOCALE, locales, getStoredLocale());
       })
       .catch(() => {
-        if (isMounted) setLocaleState(storedLocale ?? DEFAULT_LOCALE);
+        if (isMounted) setLocaleState(getStoredLocale() ?? DEFAULT_LOCALE);
       })
       .finally(() => {
         if (isMounted) setIsHydrated(true);
