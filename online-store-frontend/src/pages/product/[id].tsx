@@ -290,7 +290,6 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
     }
   }, [laptop, loadReviews]);
 
-  // Fetch product detail from backend
   useEffect(() => {
     if (!router.isReady || !isHydrated) return;
     if (initialProduct && routeSegment === canonicalSlug) {
@@ -298,7 +297,7 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
       setIsLoading(false);
       return;
     }
-    if (laptop && locale !== routeLocale) return;
+    if (initialProduct && locale !== routeLocale) return;
 
     const requestId = ++productRequestIdRef.current;
     const controller = new AbortController();
@@ -371,7 +370,7 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
               },
             );
             if (!isCurrentRequest()) return;
-            const currentProductId = String(product._id || product.id || productId);
+            const currentProductId = String(product._id || product.id || routeProductId || '');
             setRelatedLaptops(
               (Array.isArray(allProducts.products) ? allProducts.products : [])
                 .filter((relatedProduct: any) => String(relatedProduct._id || relatedProduct.id) !== currentProductId)
@@ -399,7 +398,15 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
       controller.abort();
       reviewAbortControllerRef.current?.abort();
     };
-  }, [canonicalSlug, currencyCode, initialProduct, isHydrated, laptop, locale, routeProductId, routeSegment, routeLocale, router.isReady]);
+  }, [canonicalSlug, currencyCode, initialProduct, isHydrated, locale, routeProductId, routeSegment, routeLocale, router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady || !routeProductId || !laptop) return;
+    const canonicalSlug = laptop.localizedSlugs?.[routeLocale];
+    if (canonicalSlug && canonicalSlug !== routeSegment) {
+      void router.replace(`/product/${canonicalSlug}`);
+    }
+  }, [laptop, routeLocale, routeProductId, routeSegment, router]);
 
   useEffect(() => {
     if (!router.isReady || !isHydrated || !laptop || !productId) return;
