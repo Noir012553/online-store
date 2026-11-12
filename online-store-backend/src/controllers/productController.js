@@ -42,7 +42,7 @@ const getProductSourceHash = product => getProductTranslationSourceHash(
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
-const { attachLocalizedSlugs, syncProductLocalizedSlugs } = require('../services/productLocalizedSlugService');
+const { attachLocalizedSlugs, getApprovedTranslations, syncProductLocalizedSlugs } = require('../services/productLocalizedSlugService');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
@@ -745,6 +745,14 @@ const loadProductById = async (req, res, includeUnpublished) => {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
+  if (!includeUnpublished) {
+    const hasDefaultSlug = await ProductLocalizedSlug.exists({
+      productId: product._id,
+      locale: DEFAULT_LANG,
+      status: 'canonical',
+    });
+    if (!hasDefaultSlug) await syncProductLocalizedSlugs([product._id]);
+  }
 
   const productObj = product.toObject ? product.toObject() : product;
   const translatedProduct = await overlayTranslation(productObj, 'product', lang);
@@ -773,12 +781,15 @@ const getProductSitemap = asyncHandler(async (req, res) => {
     isDeleted: false,
     isPublished: true,
     ...EXCLUDED_BRAND_FILTER,
-  }).select('_id updatedAt').lean();
+  }).select('_id name description brand specs technicalDescription descriptionImages promotions updatedAt').lean();
   const productsById = new Map(products.map((product) => [String(product._id), product]));
+  const approvedTranslations = await getApprovedTranslations(products);
+  const approvedTranslationKeys = new Set(approvedTranslations.map(({ entityId, targetLang }) => `${entityId}:${targetLang}`));
   const slugsByProduct = new Map();
   records.forEach((record) => {
     const productId = String(record.productId);
     if (!productsById.has(productId)) return;
+    if (record.locale !== DEFAULT_LANG && !approvedTranslationKeys.has(`${productId}:${record.locale}`)) return;
     const localized = slugsByProduct.get(productId) || [];
     localized.push(record);
     slugsByProduct.set(productId, localized);
@@ -831,6 +842,13 @@ const getProductBySlug = asyncHandler(async (req, res) => {
   if (!product) {
     res.status(404);
     throw new Error(getMessage(slugRecord.locale, 'admin-controllers-messages.product_not_found'));
+  }
+  if (slugRecord.locale !== DEFAULT_LANG) {
+    const approvedTranslations = await getApprovedTranslations([product.toObject ? product.toObject() : product]);
+    if (!approvedTranslations.some((translation) => translation.targetLang === slugRecord.locale)) {
+      res.status(404);
+      throw new Error(getMessage(slugRecord.locale, 'admin-controllers-messages.product_not_found'));
+    }
   }
 
   const currentSlug = await ProductLocalizedSlug.findOne({

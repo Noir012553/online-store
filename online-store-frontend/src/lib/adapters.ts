@@ -130,6 +130,7 @@ export const LaptopSchema = z.object({
   })).optional().default([]),
   featured: z.boolean().default(false),
   isPublished: z.boolean().default(true),
+  localizedSlugs: z.record(z.string(), z.string()).optional(),
   deal: z.object({
     discount: z.number().optional().default(0),
     endTime: z.union([z.string(), z.date()]).optional(),

@@ -109,6 +109,7 @@ export interface BackendProduct {
   specDisplay?: Array<{ field: string; label: string; value: string }>;
   featured?: boolean;
   deal?: { discount: number; endTime?: string | Date };
+  localizedSlugs?: Partial<Record<Locale, string>>;
 }
 
 // API Base URL = proxy path (cùng domain với frontend)
@@ -1060,6 +1061,18 @@ export const productAPI = {
       ...requestOptions
     });
   },
+
+  getProductBySlug: async (
+    slug: string,
+    requestOptions?: Pick<FetchOptions, 'signal'>,
+  ) => apiCall(`/products/slug/${encodeURIComponent(slug)}`, {
+    adapter: (data) => ({
+      ...data,
+      product: productAdapter.transform(data.product),
+    }),
+    ...requestOptions,
+  }),
+
 
   /**
    * Lấy sản phẩm được đánh giá cao nhất

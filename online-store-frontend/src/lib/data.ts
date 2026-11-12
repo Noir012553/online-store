@@ -1,5 +1,7 @@
 import { DEFAULT_LOCALE } from './i18n/types';
 
+import type { Locale } from './i18n/types';
+
 // Data types for the laptop store
 
 export interface AssetReference {
@@ -64,6 +66,7 @@ export interface Laptop {
   promotions?: ProductPromotion[];
   featured?: boolean;
   isPublished?: boolean;
+  localizedSlugs?: Partial<Record<Locale, string>>;
   deal?: {
     discount: number;
     endTime?: Date | string;

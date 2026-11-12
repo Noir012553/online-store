@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { BackendProduct } from "../lib/api";
 import { isNoInputTranslationResponse } from "../lib/translationResponseGuard";
+import { getProductPath } from "../lib/seo";
 
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((mod) => mod.QuickViewModal), {
   ssr: false,
@@ -76,6 +77,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
       promotions: laptop.promotions || [],
       featured: laptop.featured || false,
       deal: laptop.deal,
+      localizedSlugs: laptop.localizedSlugs,
     };
   }, [laptop, locale, t]);
 
@@ -110,10 +112,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
   const hasShockDiscount = isShockDiscount(discount);
   const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 
-  // Check if ID is valid MongoDB ObjectId (24 hex characters)
-  const isValidId = useMemo(() => /^[a-f0-9]{24}$/.test(convertedLaptop.id || ''), [convertedLaptop.id]);
-
-  const productHref = isValidId ? `/product/${convertedLaptop.id}` : undefined;
+  const productHref = getProductPath(convertedLaptop, locale);
 
   return (
     <>

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { formatNumber } from "../lib/utils";
 import { ImageViewer } from "./ImageViewer";
+import { getProductPath } from "../lib/seo";
 
 interface QuickViewModalProps {
   laptop: Laptop;
@@ -185,7 +186,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   {isAddingToCart ? t('adding_to_cart', 'products') : t('add_to_cart_btn', 'products')}
                 </Button>
-                <Link href={`/product/${laptop.id}`} onClick={onClose} className="block">
+                <Link href={getProductPath(laptop, locale) || `/product/${laptop.id}`} onClick={onClose} className="block">
                   <Button variant="ghost" className="pointer-events-auto w-full border-2 border-red-600 bg-white font-semibold text-red-600 hover:border-red-700 hover:bg-red-50">
                     {t('view_details', 'products')}
                   </Button>
