@@ -1,7 +1,7 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
-const { getR2StorageStatus, getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
+const { getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
 const cloudflareAiService = require('../services/cloudflareAiService');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ const safePublicUrl = value => {
   try {
     const url = new URL(value);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
-    return `${url.protocol}//${url.host}${url.pathname}`;
+    return url.origin;
   } catch {
     return '';
   }
@@ -33,7 +33,6 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
     secure: environment.EMAIL_SECURE === 'true',
     account: environment.EMAIL_USER || '',
     from: environment.EMAIL_FROM || environment.EMAIL_USER || '',
-    replyTo: environment.EMAIL_REPLY_TO || '',
     userConfigured: hasValue('EMAIL_USER'),
     passwordConfigured: hasValue('EMAIL_PASSWORD'),
     sendgridKeyConfigured: hasValue('SENDGRID_API_KEY'),
@@ -54,24 +53,26 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
   payment.mode = rawPaymentEndpoint.includes('sandbox') ? 'sandbox' : 'production';
   payment.configured = payment.merchantConfigured && payment.secretConfigured;
 
-  let r2;
-  let r2Accounts;
-  let uploadPolicy;
+  let r2Accounts = [];
   let r2ConfigurationValid = true;
   try {
-    r2 = getR2StorageStatus();
     r2Accounts = getR2Accounts().map(account => ({
       id: account.id,
       accountId: account.accountId,
       bucket: account.bucket,
       publicBaseUrl: safePublicUrl(account.publicBaseUrl),
     }));
-    uploadPolicy = getR2UploadPolicy();
   } catch {
     r2ConfigurationValid = false;
-    r2 = { configured: false, uploadEnabled: false, uploadBudgetConfigured: false, accounts: [] };
-    r2Accounts = [];
-    uploadPolicy = { maxAssets: 0, maxBytes: 0, maxRetries: 0 };
+  }
+
+  let uploadPolicy;
+  let uploadPolicyValid = true;
+  try {
+    uploadPolicy = getR2UploadPolicy();
+  } catch {
+    uploadPolicyValid = false;
+    uploadPolicy = { enabled: false, maxAssets: 0, maxBytes: 0, maxRetries: 0 };
   }
 
   const aiConfig = cloudflareAiService.getConfigInfo();
@@ -85,11 +86,12 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
       email,
       payment,
       r2: {
-        configured: r2.configured,
-        credentialsConfigured: r2ConfigurationValid && r2.configured,
+        configured: r2ConfigurationValid && r2Accounts.length > 0,
+        credentialsConfigured: r2ConfigurationValid && r2Accounts.length > 0,
         configurationValid: r2ConfigurationValid,
-        uploadEnabled: r2.uploadEnabled,
-        uploadBudgetConfigured: r2.uploadBudgetConfigured,
+        policyValid: uploadPolicyValid,
+        uploadEnabled: uploadPolicy.enabled,
+        uploadBudgetConfigured: uploadPolicyValid && uploadPolicy.maxAssets > 0 && uploadPolicy.maxBytes > 0,
         policy: {
           maxAssets: uploadPolicy.maxAssets,
           maxBytes: uploadPolicy.maxBytes,

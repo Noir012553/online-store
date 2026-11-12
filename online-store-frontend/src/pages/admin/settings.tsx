@@ -36,7 +36,6 @@ type SettingsStatus = {
     secure: boolean;
     account: string;
     from: string;
-    replyTo: string;
     userConfigured: boolean;
     passwordConfigured: boolean;
     sendgridKeyConfigured: boolean;
@@ -56,6 +55,7 @@ type SettingsStatus = {
     configured: boolean;
     credentialsConfigured: boolean;
     configurationValid: boolean;
+    policyValid: boolean;
     uploadEnabled: boolean;
     uploadBudgetConfigured: boolean;
     policy: { maxAssets: number; maxBytes: number; maxRetries: number };
@@ -206,6 +206,13 @@ function SettingsPage() {
   const aiTone = status
     ? !status.cloudflareAi.allCredentialsConfigured ? 'danger' : !status.cloudflareAi.enabled ? 'warning' : 'good'
     : 'neutral';
+  const cloudflareTone = status
+    ? r2Tone === 'danger' || aiTone === 'danger'
+      ? 'danger'
+      : r2Tone === 'warning' || aiTone === 'warning' || !status.cloudflareOperations.tunnelManaged || !status.cloudflareOperations.dnsManaged
+        ? 'warning'
+        : 'good'
+    : 'neutral';
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-7 pb-10">
@@ -272,7 +279,7 @@ function SettingsPage() {
                   <StatusTile icon={Building2} label="Thương hiệu" detail={storeName || 'LaptopStore'} tone="good" />
                   <StatusTile icon={Mail} label="Email" detail={status ? status.email.configured ? `${status.email.service.toUpperCase()} · ${status.email.host}` : 'Thiếu thông tin gửi email' : 'Đang tải'} tone={emailTone} />
                   <StatusTile icon={CreditCard} label="VNPay" detail={status ? `${status.payment.mode === 'sandbox' ? 'Sandbox' : 'Production'} · ${status.payment.configured ? 'đủ credentials' : 'thiếu credentials'}` : 'Đang tải'} tone={paymentTone} />
-                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? `R2 ${status.r2.configured ? 'đã cấu hình' : 'chưa cấu hình'} · AI ${status.cloudflareAi.configuredCount} key` : 'Đang tải'} tone={status ? r2Tone === 'danger' || aiTone === 'danger' ? 'danger' : r2Tone === 'warning' || aiTone === 'warning' ? 'warning' : 'good' : 'neutral'} />
+                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? `R2 ${status.r2.configured ? 'đã cấu hình' : 'chưa cấu hình'} · AI ${status.cloudflareAi.configuredCount} key` : 'Đang tải'} tone={cloudflareTone} />
                 </div>
               </section>
 
@@ -282,7 +289,7 @@ function SettingsPage() {
                   <OverviewRow icon={Image} title="Thương hiệu & cửa hàng" description={`${storeName || 'LaptopStore'} · ${supportEmail || 'Chưa có email hỗ trợ'}`} status="Đang hoạt động" tone="good" onClick={() => openSection('branding')} />
                   <OverviewRow icon={Mail} title="Email cửa hàng" description={status ? `${status.email.host}:${status.email.port} · From ${status.email.from || 'chưa cấu hình'}` : 'Đang tải cấu hình email'} status={status ? status.email.configured ? 'Đã cấu hình' : 'Thiếu credentials' : 'Đang tải'} tone={emailTone} onClick={() => openSection('email')} />
                   <OverviewRow icon={CreditCard} title="VNPay" description={status ? `${status.payment.mode} · ${status.payment.endpoint}` : 'Đang tải cấu hình thanh toán'} status={status ? status.payment.configured ? status.payment.mode : 'Thiếu credentials' : 'Đang tải'} tone={paymentTone} onClick={() => openSection('payment')} />
-                  <OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${status.r2.accounts.length} R2 account · ${status.cloudflareAi.configuredCount} AI key` : 'Đang tải trạng thái Cloudflare'} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? 'Có cấu hình' : 'Cần kiểm tra' : 'Đang tải'} tone={status ? r2Tone === 'danger' || aiTone === 'danger' ? 'danger' : r2Tone === 'warning' || aiTone === 'warning' ? 'warning' : 'good' : 'neutral'} onClick={() => openSection('cloudflare')} />
+                  <OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${status.r2.accounts.length} R2 account · ${status.cloudflareAi.configuredCount} AI key` : 'Đang tải trạng thái Cloudflare'} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? 'Có cấu hình' : 'Cần kiểm tra' : 'Đang tải'} tone={cloudflareTone} onClick={() => openSection('cloudflare')} />
                   <OverviewRow icon={KeyRound} title="Bảo mật & môi trường" description="Secret được che; hiện chưa có kho lưu cấu hình để chỉnh sửa." status={status?.security.encryptedSecretStoreAvailable ? 'Kho secret sẵn sàng' : 'Chỉ đọc'} tone={status?.security.encryptedSecretStoreAvailable ? 'good' : 'warning'} onClick={() => openSection('security')} />
                 </div>
               </section>
@@ -305,7 +312,7 @@ function SettingsPage() {
                 )}
                 {activeSection === 'email' && status && (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Nhà cung cấp" value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label="SMTP host" value={status.email.host} /><DataField label="Cổng" value={status.email.port} /><DataField label="TLS / secure" value={status.email.secure ? 'Bật' : 'Tắt'} /><DataField label="Tài khoản SMTP" value={status.email.account} /><DataField label="Địa chỉ From" value={status.email.from} /><DataField label="Reply-To" value={status.email.replyTo} /></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><DataField label="Nhà cung cấp" value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label="SMTP host" value={status.email.host} /><DataField label="Cổng" value={status.email.port} /><DataField label="TLS / secure" value={status.email.secure ? 'Bật' : 'Tắt'} /><DataField label="Tài khoản SMTP" value={status.email.account} /><DataField label="Địa chỉ From" value={status.email.from} /></div>
                     <div className="grid gap-4 sm:grid-cols-2"><SecretField label="Mật khẩu SMTP" configured={status.email.passwordConfigured} /><SecretField label="SendGrid API key" configured={status.email.sendgridKeyConfigured} /></div>
                     <SecretNotice text="Email credentials chỉ được hiển thị trạng thái. Giá trị mới nhập chỉ nằm trong form hiện tại và chưa được gửi/lưu." />
                   </>
@@ -319,7 +326,7 @@ function SettingsPage() {
                 )}
                 {activeSection === 'cloudflare' && status && (
                   <>
-                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">Cloudflare R2</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? `${status.r2.accounts.length} account đã cấu hình` : 'Cấu hình account không hợp lệ hoặc thiếu trường'}</p></div><StatusBadge tone={r2Tone}>{status.r2.configured ? status.r2.uploadEnabled ? 'Upload bật' : 'Upload tắt' : 'Chưa cấu hình'}</StatusBadge></div>
+                    <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">Cloudflare R2</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? `${status.r2.accounts.length} account đã cấu hình` : 'Cấu hình account không hợp lệ hoặc thiếu trường'}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? 'Cấu hình không hợp lệ' : !status.r2.configured ? 'Chưa cấu hình' : !status.r2.policyValid ? 'Policy không hợp lệ' : status.r2.uploadEnabled ? 'Upload bật' : 'Upload tắt'}</StatusBadge></div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label="R2 access key ID" configured={status.r2.credentialsConfigured} /><SecretField label="R2 secret access key" configured={status.r2.credentialsConfigured} /></div>
                       {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">Account ID</th><th className="pb-2 pr-4 font-medium">Bucket</th><th className="pb-2 font-medium">Public base URL</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4">{account.accountId}</td><td className="py-2 pr-4">{account.bucket}</td><td className="break-all py-2">{account.publicBaseUrl}</td></tr>)}</tbody></table></div>}
                       <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label="Upload policy" value={status.r2.uploadEnabled ? 'Bật' : 'Tắt'} /><DataField label="Số file tối đa" value={status.r2.policy.maxAssets} /><DataField label="Dung lượng tối đa (bytes)" value={status.r2.policy.maxBytes} /></div>
