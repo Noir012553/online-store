@@ -56,6 +56,7 @@ const ImportAdapterManager = require('../utils/importAdapters/ImportAdapterManag
 const { validateCategoryName, sanitizeCategoryName } = require('../utils/productImportValidator');
 const { normalizeSpecs } = require('../utils/specNormalizer');
 const { registerUnknownSpecKeys } = require('../services/specKeyTranslationService');
+const { syncProductLocalizedSlugs } = require('../services/productLocalizedSlugService');
 const { getMessage } = require('../i18n/messages');
 const {
   getDefaultLanguage,
@@ -671,6 +672,12 @@ const getProductLookupFilter = (product) => {
   return { name: product.name, brand: product.brand, isDeleted: false };
 };
 
+const syncImportedProductSlugs = async (products) => {
+  if (!products.length) return { created: 0 };
+  const imported = await Product.find({ $or: products.map(getProductLookupFilter) }).select('_id').lean();
+  return syncProductLocalizedSlugs(imported.map(({ _id }) => _id));
+};
+
 const getChangedTranslatableFields = (existing, product) => {
   const existingSource = getProductTranslationSource(existing);
   const updatedSource = getProductTranslationSource(product);
@@ -1195,6 +1202,7 @@ const importProductsFromFile = asyncHandler(async (req, res) => {
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     const importedTranslationSummary = await importProductTranslations(validProducts);
+    await syncImportedProductSlugs(validProducts);
     res.json({
       success: true,
       code: 'IMPORT_COMPLETED',
@@ -1387,6 +1395,7 @@ const importProducts = asyncHandler(async (req, res) => {
     await queueObsoleteProductImages(results.obsoleteImagePublicIds);
     const translationSummary = await invalidateChangedProductTranslations(results.affectedTranslations);
     const importedTranslationSummary = await importProductTranslations(validProducts);
+    await syncImportedProductSlugs(validProducts);
     res.json({
       success: true,
       message: getMessage(req.lang, 'frontend-import.import_success'),

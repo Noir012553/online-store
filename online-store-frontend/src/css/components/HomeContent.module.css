@@ -1,4 +1,3 @@
 .stickySideBanner {
-  top: 96px;
   transform: translate3d(0, var(--banner-offset-y, 0px), 0);
 }

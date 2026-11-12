@@ -849,7 +849,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             ref={bannerRef}
             aria-hidden={!isBannerVisible}
             inert={!isBannerVisible}
-            className={`${styles.stickySideBanner} fixed left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+            className={`${styles.stickySideBanner} fixed top-24 left-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             {isDesktopViewport && <BannerSlot slot="homepage_left" variant="image-only" className="w-full" limit={3} />}
           </div>
@@ -858,7 +858,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
           <div
             aria-hidden={!isBannerVisible}
             inert={!isBannerVisible}
-            className={`${styles.stickySideBanner} fixed right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
+            className={`${styles.stickySideBanner} fixed top-24 right-[5px] z-30 hidden h-fit w-60 transition-opacity duration-300 xl:block 2xl:w-70 ${!isBannerVisible ? 'opacity-0 pointer-events-none [&_*]:pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
           >
             {isDesktopViewport && <BannerSlot slot="homepage_right" variant="image-only" className="w-full" limit={3} />}
           </div>

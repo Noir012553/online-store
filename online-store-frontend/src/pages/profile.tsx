@@ -57,6 +57,7 @@ export default function Profile() {
 
   useEffect(() => {
     loadNamespace('profile');
+    loadNamespace('users');
   }, [loadNamespace]);
 
   useEffect(() => {
@@ -249,18 +250,19 @@ export default function Profile() {
                       </div>
                     )}
 
-                    <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 rounded-full bg-black/50 p-2 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                      <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </label>
                     <input
                       id="avatar-upload"
                       name="avatar"
                       type="file"
                       accept="image/*"
+                      aria-label={t('avatar_choose_image', 'users')}
                       onChange={handleAvatarChange}
                       disabled={isUploadingAvatar}
-                      className="hidden"
+                      className="peer sr-only"
                     />
+                    <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 rounded-full bg-black/50 p-2 opacity-0 group-hover:opacity-100 peer-focus-visible:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-red-600 peer-focus-visible:ring-offset-2 cursor-pointer transition-opacity">
+                      <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </label>
                   </div>
                   <div className="text-white text-center sm:text-left flex-grow">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">{user?.name || t('user_unnamed', 'profile')}</h1>

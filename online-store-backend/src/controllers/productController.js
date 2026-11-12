@@ -15,6 +15,7 @@ const Currency = require('../models/Currency');
 const UserContentTranslationCache = require('../models/UserContentTranslationCache');
 const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
+const ProductLocalizedSlug = require('../models/ProductLocalizedSlug');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -41,6 +42,7 @@ const getProductSourceHash = product => getProductTranslationSourceHash(
 const { localizeProductCategory, localizeProductCategories } = require('../services/categoryLocalizationService');
 const { convertOrderAmount, getActiveExchangeRates, getReportingCurrency, sumOrdersInCurrency } = require('../utils/orderRevenue');
 const { getCurrencyMetadata, formatAmountFields, formatProducts } = require('../utils/currencyResponseFormatter');
+const { attachLocalizedSlugs, syncProductLocalizedSlugs } = require('../services/productLocalizedSlugService');
 
 const DEFAULT_LANG = getDefaultLanguage().code;
 const SHOCK_DISCOUNT_THRESHOLD = 30;
@@ -116,12 +118,13 @@ const formatProductsForDisplay = async (products, reportingCurrency, locale) => 
     const data = product.toObject ? product.toObject() : product;
     return data.baseCurrencyCode?.toUpperCase() !== reportingCurrency.toUpperCase();
   });
-  const [currencies, activeRates] = await Promise.all([
+  const [currencies, activeRates, productsWithSlugs] = await Promise.all([
     getCurrencyMetadata([reportingCurrency]),
     needsConversion ? getActiveExchangeRates() : Promise.resolve([]),
+    attachLocalizedSlugs(products),
   ]);
 
-  return products.map((product) => {
+  return productsWithSlugs.map((product) => {
     const data = product.toObject ? product.toObject() : product;
     const displayPrice = convertOrderAmount(
       data.price,
@@ -752,6 +755,106 @@ const loadProductById = async (req, res, includeUnpublished) => {
 const getProductById = asyncHandler((req, res) => loadProductById(req, res, false));
 const getAdminProductById = asyncHandler((req, res) => loadProductById(req, res, true));
 
+const xmlEscape = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
+
+const getProductSitemap = asyncHandler(async (req, res) => {
+  const records = await ProductLocalizedSlug.find({ status: 'canonical' })
+    .select('productId locale slug')
+    .sort({ productId: 1, locale: 1 })
+    .lean();
+  const productIds = [...new Set(records.map((record) => String(record.productId)))];
+  const products = await Product.find({
+    _id: { $in: productIds },
+    isDeleted: false,
+    isPublished: true,
+    ...EXCLUDED_BRAND_FILTER,
+  }).select('_id updatedAt').lean();
+  const productsById = new Map(products.map((product) => [String(product._id), product]));
+  const slugsByProduct = new Map();
+  records.forEach((record) => {
+    const productId = String(record.productId);
+    if (!productsById.has(productId)) return;
+    const localized = slugsByProduct.get(productId) || [];
+    localized.push(record);
+    slugsByProduct.set(productId, localized);
+  });
+
+  const frontendUrl = new URL(process.env.FRONTEND_URL || 'https://manln.online').origin;
+  const entries = [...slugsByProduct.entries()].flatMap(([productId, localized]) => {
+    const product = productsById.get(productId);
+    const alternates = localized.map(({ locale, slug }) => (
+      `<xhtml:link rel="alternate" hreflang="${xmlEscape(locale)}" href="${xmlEscape(`${frontendUrl}/product/${slug}`)}" />`
+    ));
+    const defaultSlug = localized.find(({ locale }) => locale === DEFAULT_LANG) || localized[0];
+    if (defaultSlug) {
+      alternates.push(`<xhtml:link rel="alternate" hreflang="x-default" href="${xmlEscape(`${frontendUrl}/product/${defaultSlug.slug}`)}" />`);
+    }
+
+    return localized.map(({ slug }) => (
+      `<url><loc>${xmlEscape(`${frontendUrl}/product/${slug}`)}</loc><lastmod>${new Date(product.updatedAt).toISOString()}</lastmod>${alternates.join('')}</url>`
+    ));
+  });
+
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${entries.join('')}</urlset>`);
+});
+
+const getProductBySlug = asyncHandler(async (req, res) => {
+  const slugRecord = await ProductLocalizedSlug.findOne({ slug: req.params.slug }).lean();
+  if (!slugRecord) {
+    res.status(404);
+    throw new Error(getMessage(req.lang, 'admin-controllers-messages.product_not_found'));
+  }
+
+  req.lang = slugRecord.locale;
+  req.locale = slugRecord.locale;
+  const reportingCurrency = req.query.currencyCode
+    ? await getReportingCurrency(req.query.currencyCode)
+    : null;
+  const product = await withTimeout(
+    Product.findOne({
+      _id: slugRecord.productId,
+      isDeleted: false,
+      isPublished: true,
+      ...EXCLUDED_BRAND_FILTER,
+    })
+      .populate({ path: 'reviews', options: { limit: 50 } })
+      .populate('category'),
+    15000
+  );
+  if (!product) {
+    res.status(404);
+    throw new Error(getMessage(slugRecord.locale, 'admin-controllers-messages.product_not_found'));
+  }
+
+  const currentSlug = await ProductLocalizedSlug.findOne({
+    productId: slugRecord.productId,
+    locale: slugRecord.locale,
+    status: 'canonical',
+  }).select('slug').lean();
+  const productObj = product.toObject ? product.toObject() : product;
+  const translatedProduct = await overlayTranslation(productObj, 'product', slugRecord.locale);
+  const localizedProduct = await localizeProductCategory(translatedProduct, slugRecord.locale);
+  const formattedProduct = (await formatProductsForDisplay(
+    [localizedProduct],
+    reportingCurrency,
+    slugRecord.locale,
+  ))[0];
+
+  res.json({
+    product: formattedProduct,
+    locale: slugRecord.locale,
+    requestedSlug: slugRecord.slug,
+    canonicalSlug: currentSlug?.slug || slugRecord.slug,
+  });
+});
+
 /**
  * Tạo sản phẩm mới (Admin only)
  * Bắt buộc phải upload ảnh, tối đa 5MB
@@ -888,6 +991,10 @@ const createProduct = asyncHandler(async (req, res) => {
     }
     throw error;
   }
+
+  await syncProductLocalizedSlugs([createdProduct._id]).catch((error) => {
+    console.warn('[PRODUCT_CREATE] Failed to create localized slugs:', error.message);
+  });
 
   // Populate fields để response data consistent với getProductById
   const populatedProduct = await withTimeout(
@@ -1376,7 +1483,8 @@ const hardDeleteProduct = asyncHandler(async (req, res) => {
       ProductCatalogTranslationCache.deleteMany({ entityId: String(req.params.id) }),
       8000
     );
-    console.log('[PRODUCT_HARD_DELETE] Product document and catalog translations deleted');
+    await withTimeout(ProductLocalizedSlug.deleteMany({ productId: req.params.id }), 8000);
+    console.log('[PRODUCT_HARD_DELETE] Product document, catalog translations, and URL slugs deleted');
   } catch (dbError) {
     console.error('[PRODUCT_HARD_DELETE] Failed to delete product from database:', dbError.message);
     res.status(500);
@@ -1634,6 +1742,8 @@ module.exports = {
   getAdminTranslationProducts,
   getFeaturedProducts,
   getProductById,
+  getProductBySlug,
+  getProductSitemap,
   getAdminProductById,
   createProduct,
   updateProduct,

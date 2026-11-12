@@ -3,9 +3,9 @@
 }
 
 .toggleTrigger[data-state="active"] {
-  background-color: #dc2626;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .toggleTrigger:hover:not([data-state="active"]) {

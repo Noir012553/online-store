@@ -40,12 +40,6 @@ const MESSAGE_TYPE_CLASSES = {
   info: styles['batch-message-info'],
 } as const;
 
-const ROW_STATUS_CLASSES = {
-  pending: styles['batch-row-pending'],
-  success: styles['batch-row-success'],
-  error: styles['batch-row-error'],
-} as const;
-
 const STATUS_MODIFIER_CLASSES = {
   success: styles.success,
   error: styles.error,
@@ -396,7 +390,7 @@ const TranslationBatchOverride = () => {
 
       <div className={styles['batch-content']}>
         {/* Upload Section */}
-        <div className={styles['batch-upload-section']}>
+        <div>
           <div className={styles['batch-card']}>
             <h2>{t('admin_batch_upload_title', 'admin-translation-batch')}</h2>
             
@@ -436,7 +430,7 @@ const TranslationBatchOverride = () => {
 
         {/* Data Preview Section */}
         {rows.length > 0 && (
-          <div className={styles['batch-data-section']}>
+          <div>
             <div className={styles['batch-card']}>
               <div className={styles['batch-data-header']}>
                 <h2>{t('admin_batch_preview_title', 'admin-translation-batch')} ({rows.length})</h2>
@@ -474,7 +468,7 @@ const TranslationBatchOverride = () => {
                       {visibleRows.map((row, visibleIndex) => {
                         const idx = (currentPage - 1) * pageSize + visibleIndex;
                         return (
-                        <tr key={idx} className={`${styles['batch-row']} ${ROW_STATUS_CLASSES[row.status || 'pending']}`}>
+                        <tr key={idx}>
                           <td>
                             <input
                               type="checkbox"
@@ -562,7 +556,7 @@ const TranslationBatchOverride = () => {
 
         {/* Results Section */}
         {batchResult && (
-          <div className={styles['batch-results-section']}>
+          <div>
             <div className={styles['batch-card']}>
               <h2>{t('admin_batch_results_title', 'admin-translation-batch')}</h2>
               

@@ -77,15 +77,20 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
         <div className="p-4 sm:p-6">
           <div className="grid gap-7 md:grid-cols-2 md:gap-8">
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50 sm:aspect-square">
-              <ImageWithFallback
-                src={laptop.image}
-                alt={String(laptop.name || '')}
-                width={1200}
-                height={900}
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="absolute inset-0 h-full w-full rounded-xl object-cover cursor-zoom-in"
+              <button
+                type="button"
                 onClick={() => setIsImageViewerOpen(true)}
-              />
+                className="absolute inset-0 h-full w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-inset"
+              >
+                <ImageWithFallback
+                  src={laptop.image}
+                  alt={String(laptop.name || '')}
+                  width={1200}
+                  height={900}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="h-full w-full rounded-xl object-cover"
+                />
+              </button>
               {discount > 0 && (
                 <Badge className="absolute top-3 right-3 bg-red-600 text-white">
                   -{discount}%
