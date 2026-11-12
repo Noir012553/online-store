@@ -75,10 +75,13 @@ const cleanProductDescription = (value: unknown): string => {
     : description;
 };
 
+const serializeProduct = (product: Laptop): Laptop => JSON.parse(JSON.stringify(product)) as Laptop;
+
 interface ProductPageProps {
   initialProduct: Laptop | null;
   routeLocale: Locale;
   canonicalSlug: string | null;
+  initialError: string | null;
 }
 
 export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params, query }) => {
@@ -93,6 +96,16 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
 
   try {
     const response = await fetch(`${BACKEND_URL}${endpoint}`);
+    if (response.status === 429) {
+      return {
+        props: {
+          initialProduct: null,
+          routeLocale: DEFAULT_LOCALE,
+          canonicalSlug: null,
+          initialError: 'error_server_overloaded',
+        },
+      };
+    }
     if (!response.ok) return { notFound: true };
 
     const payload = await response.json();
@@ -109,9 +122,10 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
 
       return {
         props: {
-          initialProduct: productAdapter.transform(payload),
+          initialProduct: serializeProduct(productAdapter.transform(payload)),
           routeLocale: DEFAULT_LOCALE,
           canonicalSlug: null,
+          initialError: null,
         },
       };
     }
@@ -127,9 +141,10 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
 
     return {
       props: {
-        initialProduct: productAdapter.transform(payload.product),
+        initialProduct: serializeProduct(productAdapter.transform(payload.product)),
         routeLocale: payload.locale as Locale,
         canonicalSlug: payload.canonicalSlug as string,
+        initialError: null,
       },
     };
   } catch {
@@ -137,7 +152,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
   }
 };
 
-export default function ProductDetail({ initialProduct, routeLocale, canonicalSlug }: ProductPageProps) {
+export default function ProductDetail({ initialProduct, routeLocale, canonicalSlug, initialError }: ProductPageProps) {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
@@ -149,8 +164,8 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
-  const [isLoading, setIsLoading] = useState(!initialProduct);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(!initialProduct && !initialError);
+  const [error, setError] = useState<string | null>(initialError);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -292,12 +307,16 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
 
   useEffect(() => {
     if (!router.isReady || !isHydrated) return;
-    if (initialProduct && routeSegment === canonicalSlug) {
+    if (initialError) {
+      setError(initialError);
+      setIsLoading(false);
+      return;
+    }
+    if (initialProduct) {
       setLaptop(initialProduct);
       setIsLoading(false);
       return;
     }
-    if (initialProduct && locale !== routeLocale) return;
 
     const requestId = ++productRequestIdRef.current;
     const controller = new AbortController();
@@ -383,7 +402,7 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
         }
       } catch (err) {
         if (!isCurrentRequest()) return;
-        setError('error_load_product');
+        setError((err as { status?: number })?.status === 429 ? 'error_server_overloaded' : 'error_load_product');
         setLaptop(null);
       } finally {
         if (isCurrentRequest()) {
@@ -398,7 +417,7 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
       controller.abort();
       reviewAbortControllerRef.current?.abort();
     };
-  }, [canonicalSlug, currencyCode, initialProduct, isHydrated, locale, routeProductId, routeSegment, routeLocale, router.isReady]);
+  }, [canonicalSlug, currencyCode, initialError, initialProduct, isHydrated, locale, routeProductId, routeSegment, routeLocale, router.isReady]);
 
   useEffect(() => {
     if (!router.isReady || !routeProductId || !laptop) return;
@@ -515,10 +534,11 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
   }
 
   if (error || !laptop) {
+    const isRateLimited = error === 'error_server_overloaded';
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <h2>{t('error_no_products_found', 'products')}</h2>
-        {error && <p className="text-red-600 mt-2">{error}</p>}
+        <h2>{t(isRateLimited ? 'error_server_overloaded_title' : 'error_no_products_found', isRateLimited ? 'common' : 'products')}</h2>
+        {error && <p className="mt-2">{t(isRateLimited ? 'error_server_overloaded_desc' : error, isRateLimited ? 'common' : 'products')}</p>}
         <Link href="/products">
           <Button className="mt-4 bg-red-600 hover:bg-red-700">{t('error_back_to_products', 'products')}</Button>
         </Link>

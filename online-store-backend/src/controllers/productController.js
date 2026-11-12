@@ -745,6 +745,14 @@ const loadProductById = async (req, res, includeUnpublished) => {
     res.status(404);
     throw new Error(getMessage(lang, 'admin-controllers-messages.product_not_found'));
   }
+  if (!includeUnpublished) {
+    const hasDefaultSlug = await ProductLocalizedSlug.exists({
+      productId: product._id,
+      locale: DEFAULT_LANG,
+      status: 'canonical',
+    });
+    if (!hasDefaultSlug) await syncProductLocalizedSlugs([product._id]);
+  }
 
   const productObj = product.toObject ? product.toObject() : product;
   const translatedProduct = await overlayTranslation(productObj, 'product', lang);
