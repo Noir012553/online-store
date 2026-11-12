@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "../../lib/i18n";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import type { GetServerSideProps } from 'next';
+import { BACKEND_URL } from '../../config';
+import { productAdapter } from '../../lib/adapters';
+import { DEFAULT_LOCALE } from '../../lib/i18n/types';
 import Link from "next/link";
 import { productAPI, reviewAPI } from "../../lib/api";
 import { useCart } from "../../lib/context/CartContext";
@@ -27,7 +31,7 @@ import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 import { isNoInputTranslationResponse } from "../../lib/translationResponseGuard";
-import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL } from "../../lib/seo";
+import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL, getProductPath } from "../../lib/seo";
 
 const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
@@ -71,25 +75,81 @@ const cleanProductDescription = (value: unknown): string => {
     : description;
 };
 
-export const getServerSideProps = async () => {
-  return {
-    props: {},
-  };
+interface ProductPageProps {
+  initialProduct: Laptop | null;
+  routeLocale: Locale;
+  canonicalSlug: string | null;
+}
+
+export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params, query }) => {
+  const segment = typeof params?.id === 'string' ? params.id : '';
+  if (!segment) return { notFound: true };
+
+  const isLegacyId = PRODUCT_ID_PATTERN.test(segment);
+  const queryString = new URLSearchParams({ lang: DEFAULT_LOCALE, locale: DEFAULT_LOCALE });
+  const endpoint = isLegacyId
+    ? `/api/products/${segment}?${queryString.toString()}`
+    : `/api/products/slug/${encodeURIComponent(segment)}?${queryString.toString()}`;
+
+  try {
+    const response = await fetch(`${BACKEND_URL}${endpoint}`);
+    if (!response.ok) return { notFound: true };
+
+    const payload = await response.json();
+    if (isLegacyId) {
+      const canonicalSlug = payload.localizedSlugs?.[DEFAULT_LOCALE];
+      if (canonicalSlug) {
+        return {
+          redirect: {
+            destination: `/product/${canonicalSlug}${typeof query.tab === 'string' ? `?tab=${encodeURIComponent(query.tab)}` : ''}`,
+            statusCode: 301,
+          },
+        };
+      }
+
+      return {
+        props: {
+          initialProduct: productAdapter.transform(payload),
+          routeLocale: DEFAULT_LOCALE,
+          canonicalSlug: null,
+        },
+      };
+    }
+
+    if (payload.requestedSlug !== payload.canonicalSlug) {
+      return {
+        redirect: {
+          destination: `/product/${payload.canonicalSlug}`,
+          statusCode: 301,
+        },
+      };
+    }
+
+    return {
+      props: {
+        initialProduct: productAdapter.transform(payload.product),
+        routeLocale: payload.locale as Locale,
+        canonicalSlug: payload.canonicalSlug as string,
+      },
+    };
+  } catch {
+    return { notFound: true };
+  }
 };
 
-export default function ProductDetail() {
+export default function ProductDetail({ initialProduct, routeLocale, canonicalSlug }: ProductPageProps) {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
   const { user } = useAuth();
-  const { loadNamespace, t, locale, isHydrated, isLoadingNamespace } = useLanguage();
+  const { loadNamespace, t, locale, setLocale, isHydrated, isLoadingNamespace } = useLanguage();
   const { currencyCode } = useCurrencyContext();
   const { uploadToR2, validateUploadedAsset } = useR2Upload();
-  const [laptop, setLaptop] = useState<any>(null);
+  const [laptop, setLaptop] = useState<any>(initialProduct);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialProduct);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -101,8 +161,34 @@ export default function ProductDetail() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>('description');
-  const productId = normalizeProductId(id);
+  const routeSegment = Array.isArray(id) ? id[0] : id;
+  const routeProductId = normalizeProductId(routeSegment);
+  const productId = normalizeProductId(laptop?._id || laptop?.id) || routeProductId;
   const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
+
+  const routeLocaleRef = useRef(routeLocale);
+  const hasSyncedRouteLocaleRef = useRef(false);
+
+  useEffect(() => {
+    if (routeLocaleRef.current !== routeLocale) {
+      routeLocaleRef.current = routeLocale;
+      hasSyncedRouteLocaleRef.current = false;
+    }
+    if (!isHydrated || !laptop) return;
+    if (!hasSyncedRouteLocaleRef.current) {
+      hasSyncedRouteLocaleRef.current = true;
+      if (locale !== routeLocale) void setLocale(routeLocale);
+      return;
+    }
+    if (locale === routeLocale) return;
+
+    const localizedPath = getProductPath(laptop, locale);
+    if (localizedPath && localizedPath !== `/product/${routeSegment}`) {
+      void router.replace(localizedPath);
+    } else {
+      void setLocale(routeLocale);
+    }
+  }, [isHydrated, laptop, locale, routeLocale, routeSegment, router, setLocale]);
 
   useEffect(() => {
     loadNamespace('products');
@@ -191,7 +277,7 @@ export default function ProductDetail() {
   }, [locale]);
 
   const handleRetryReviews = useCallback(async () => {
-    const productId = normalizeProductId(router.query.id);
+    const productId = normalizeProductId(laptop?._id || laptop?.id);
     const productRequestId = productRequestIdRef.current;
     if (!productId) return;
 
@@ -202,11 +288,17 @@ export default function ProductDetail() {
     if (reviewAbortControllerRef.current === controller) {
       reviewAbortControllerRef.current = null;
     }
-  }, [loadReviews, router.query.id]);
+  }, [laptop, loadReviews]);
 
   // Fetch product detail from backend
   useEffect(() => {
     if (!router.isReady || !isHydrated) return;
+    if (initialProduct && routeSegment === canonicalSlug) {
+      setLaptop(initialProduct);
+      setIsLoading(false);
+      return;
+    }
+    if (laptop && locale !== routeLocale) return;
 
     const requestId = ++productRequestIdRef.current;
     const controller = new AbortController();
@@ -222,20 +314,22 @@ export default function ProductDetail() {
     setIsLoadingReviews(false);
 
     const fetchProduct = async () => {
-      if (!productId) {
+      if (!routeSegment) {
         setError('error_no_products_found');
         setIsLoading(false);
         return;
       }
 
       try {
-        const product = await productAPI.getProductById(
-          productId,
-          locale,
-          { signal: controller.signal },
-          getIntlLocale(locale),
-          currencyCode
-        );
+        const product = routeProductId
+          ? await productAPI.getProductById(
+            routeProductId,
+            locale,
+            { signal: controller.signal },
+            getIntlLocale(locale),
+            currencyCode
+          )
+          : (await productAPI.getProductBySlug(routeSegment, { signal: controller.signal })).product;
         if (!isCurrentRequest()) return;
         setLaptop(product);
         setSelectedImage(0);
@@ -305,7 +399,7 @@ export default function ProductDetail() {
       controller.abort();
       reviewAbortControllerRef.current?.abort();
     };
-  }, [currencyCode, isHydrated, locale, productId, router.isReady]);
+  }, [canonicalSlug, currencyCode, initialProduct, isHydrated, laptop, locale, routeProductId, routeSegment, routeLocale, router.isReady]);
 
   useEffect(() => {
     if (!router.isReady || !isHydrated || !laptop || !productId) return;
@@ -343,13 +437,13 @@ export default function ProductDetail() {
       return;
     }
 
-    const productId = normalizeProductId(id);
+    const productId = normalizeProductId(laptop?._id || laptop?.id);
     const productRequestId = productRequestIdRef.current;
     if (!productId) return;
 
     const isCurrentProduct = () => (
       productRequestId === productRequestIdRef.current
-      && normalizeProductId(router.query.id) === productId
+      && normalizeProductId(laptop?._id || laptop?.id) === productId
     );
     const controller = new AbortController();
     reviewAbortControllerRef.current?.abort();
@@ -505,6 +599,7 @@ export default function ProductDetail() {
     promotions: localizedPromotions,
     featured: laptop.featured ?? false,
     deal: laptop.deal,
+    localizedSlugs: laptop.localizedSlugs,
   };
 
   const handleAddToCart = () => {
@@ -540,6 +635,25 @@ export default function ProductDetail() {
   const pageImage = typeof mainImage === 'string' && /^https?:\/\//i.test(mainImage)
     ? mainImage
     : DEFAULT_SITE_IMAGE;
+  const canonicalPath = getProductPath(laptop, routeLocale) || `/product/${canonicalSlug || routeSegment}`;
+  const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+  const localizedSlugs = laptop.localizedSlugs || {};
+  const defaultSlug = localizedSlugs[DEFAULT_LOCALE];
+  const productStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: convertedLaptop.name,
+    description: pageDescription,
+    image: pageImage,
+    sku: laptop.sku,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: laptop.baseCurrencyCode,
+      price: laptop.price,
+      availability: laptop.countInStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: canonicalUrl,
+    },
+  };
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
@@ -552,8 +666,16 @@ export default function ProductDetail() {
         <meta property="og:title" content={pageTitle} key="og-title" />
         <meta property="og:description" content={pageDescription} key="og-description" />
         <meta property="og:image" content={pageImage} key="og-image" />
-        <meta property="og:url" content={`${SITE_URL}/product/${productId}`} key="og-url" />
-        <link rel="canonical" href={`${SITE_URL}/product/${productId}`} key="canonical" />
+        <meta property="og:url" content={canonicalUrl} key="og-url" />
+        <link rel="canonical" href={canonicalUrl} key="canonical" />
+        {Object.entries(localizedSlugs).map(([alternateLocale, slug]) => (
+          <link key={alternateLocale} rel="alternate" hrefLang={alternateLocale} href={`${SITE_URL}/product/${slug}`} />
+        ))}
+        {defaultSlug && <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/product/${defaultSlug}`} />}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData).replace(/</g, '\\u003c') }}
+        />
       </Head>
       <div className="container relative mx-auto max-w-360 px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs

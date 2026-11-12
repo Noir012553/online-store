@@ -92,10 +92,11 @@ function setStoredLocale(locale: Locale): void {
 
 interface LanguageProviderProps {
   children: ReactNode;
+  initialLocale?: Locale;
 }
 
-export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+export function LanguageProvider({ children, initialLocale }: LanguageProviderProps) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? DEFAULT_LOCALE);
   const [loadedTranslations, setLoadedTranslations] = useState<Record<string, any>>({});
   const [fallbackTranslations, setFallbackTranslations] = useState<Record<string, any>>({});
   const [loadingNamespaces, setLoadingNamespaces] = useState<Record<string, boolean>>({});
@@ -129,10 +130,10 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
     fetchActiveLocaleConfig()
       .then(({ defaultLocale, locales }) => {
-        if (isMounted) applyLocaleConfig(defaultLocale || DEFAULT_LOCALE, locales, storedLocale);
+        if (isMounted) applyLocaleConfig(defaultLocale || DEFAULT_LOCALE, locales, initialLocale ?? storedLocale);
       })
       .catch(() => {
-        if (isMounted) setLocaleState(storedLocale ?? DEFAULT_LOCALE);
+        if (isMounted) setLocaleState(initialLocale ?? storedLocale ?? DEFAULT_LOCALE);
       })
       .finally(() => {
         if (isMounted) setIsHydrated(true);
@@ -141,7 +142,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     return () => {
       isMounted = false;
     };
-  }, [applyLocaleConfig]);
+  }, [applyLocaleConfig, initialLocale]);
 
   const refreshLocaleConfig = useCallback(async () => {
     const { defaultLocale, locales } = await fetchActiveLocaleConfig();

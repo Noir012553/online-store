@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ProductLocalizedSlug = require('../models/ProductLocalizedSlug');
@@ -83,10 +82,10 @@ const syncProductLocalizedSlugs = async (productIds) => {
   const activeProducts = products.filter((product) => product.name?.trim());
   if (activeProducts.length === 0) return { created: 0 };
 
-  const productIds = activeProducts.map((product) => product._id);
+  const activeProductIds = activeProducts.map((product) => product._id);
   const [translations, currentRecords] = await Promise.all([
     getApprovedTranslations(activeProducts),
-    ProductLocalizedSlug.find({ productId: { $in: productIds }, status: 'canonical' }).lean(),
+    ProductLocalizedSlug.find({ productId: { $in: activeProductIds }, status: 'canonical' }).lean(),
   ]);
   const translationsByProduct = new Map();
   translations.forEach((translation) => {
@@ -133,13 +132,22 @@ const attachLocalizedSlugs = async (products) => {
     .filter((id) => mongoose.Types.ObjectId.isValid(id));
   if (productIds.length === 0) return products;
 
-  const records = await ProductLocalizedSlug.find({
-    productId: { $in: productIds },
-    status: 'canonical',
-  }).select('productId locale slug').lean();
+  const [records, sourceProducts] = await Promise.all([
+    ProductLocalizedSlug.find({
+      productId: { $in: productIds },
+      status: 'canonical',
+    }).select('productId locale slug').lean(),
+    Product.find({ _id: { $in: productIds }, isDeleted: false })
+      .select('_id name description brand specs technicalDescription descriptionImages promotions')
+      .lean(),
+  ]);
+  const approvedTranslations = await getApprovedTranslations(sourceProducts);
+  const approvedTranslationKeys = new Set(approvedTranslations.map(({ entityId, targetLang }) => `${entityId}:${targetLang}`));
+  const defaultLocale = getDefaultLanguage().code;
   const slugsByProduct = new Map();
   records.forEach(({ productId, locale, slug }) => {
     const id = String(productId);
+    if (locale !== defaultLocale && !approvedTranslationKeys.has(`${id}:${locale}`)) return;
     const slugs = slugsByProduct.get(id) || {};
     slugs[locale] = slug;
     slugsByProduct.set(id, slugs);

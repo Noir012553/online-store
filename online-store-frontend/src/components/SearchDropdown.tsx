@@ -13,6 +13,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCurrencyContext } from "@/lib/context/CurrencyContext";
 import { HamsterLoader } from './HamsterLoader';
+import { getProductPath } from '../lib/seo';
 
 function SearchResultItem({
   product,
@@ -250,13 +251,14 @@ export function SearchDropdown({
 
   // Navigate to product detail page
   const handleSelectProduct = useCallback((product: BackendProduct) => {
-    if (router.isReady) {
-      router.push(`/product/${product._id}`);
+    const productPath = getProductPath(product, locale);
+    if (router.isReady && productPath) {
+      router.push(productPath);
       setSearchQuery("");
       setSuggestions([]);
       setIsOpen(false);
     }
-  }, [router]);
+  }, [locale, router]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

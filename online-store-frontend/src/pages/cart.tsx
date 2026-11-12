@@ -16,6 +16,7 @@ import { Badge } from "../components/ui/badge";
 import { useCartSummary } from "../hooks/useCartSummary";
 import { ImageViewer } from "../components/ImageViewer";
 import { interpolateTranslation } from "../lib/translationInterpolate";
+import { getProductPath } from "../lib/seo";
 
 export const getServerSideProps = async () => {
   return {
@@ -146,7 +147,7 @@ export default function Cart() {
                       </button>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <Link
-                          href={`/product/${item.laptop.id}`}
+                          href={getProductPath(item.laptop, locale) || `/product/${item.laptop.id}`}
                           className="hover:text-red-600 transition-colors"
                         >
                           <h3 className="line-clamp-2 text-sm"><CartItemName itemLaptop={item.laptop} /></h3>

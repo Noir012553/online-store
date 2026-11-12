@@ -195,7 +195,8 @@ function AppContent({ Component, pageProps }: AppContentProps) {
     }
   }, [router?.isReady, router?.pathname]);
 
-  if ((!isHydrated || !isCriticalTranslationsReady) && router?.pathname !== '/') {
+  const isProductDetailPage = router?.pathname === '/product/[id]';
+  if ((!isHydrated || !isCriticalTranslationsReady) && router?.pathname !== '/' && !isProductDetailPage) {
     return (
       <LoadingGate />
     );
@@ -259,7 +260,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <meta name="twitter:card" content="summary_large_image" key="twitter-card" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <LanguageProvider>
+      <LanguageProvider initialLocale={pageProps.routeLocale}>
         <CurrencyProvider>
           <AuthProvider>
             <CategoryProvider>
