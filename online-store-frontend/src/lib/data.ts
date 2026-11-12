@@ -68,7 +68,16 @@ export interface Laptop {
     discount: number;
     endTime?: Date | string;
   };
+  localizedSlugs?: Record<string, string>;
 }
+
+export const getProductHref = (product: Pick<Laptop, 'id' | '_id' | 'localizedSlugs'>, locale: string): string | undefined => {
+  const slug = product.localizedSlugs?.[locale];
+  if (slug) return `/product/${encodeURIComponent(slug)}`;
+
+  const id = product.id || product._id;
+  return id ? `/product/${id}` : undefined;
+};
 
 export type ProductDeal = Laptop['deal'];
 

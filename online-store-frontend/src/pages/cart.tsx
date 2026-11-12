@@ -6,7 +6,7 @@ import { useCart } from "../lib/context/CartContext";
 import { useTranslation } from "../lib/i18n";
 import { useLanguage } from "../lib/i18n";
 import { useProductTranslation } from "../hooks/useProductTranslation";
-import { getTranslatedValue } from "../lib/data";
+import { getProductHref, getTranslatedValue } from "../lib/data";
 import { DEFAULT_LOCALE } from "../lib/i18n/types";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/image/ImageWithFallback";
@@ -146,7 +146,7 @@ export default function Cart() {
                       </button>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <Link
-                          href={`/product/${item.laptop.id}`}
+                          href={getProductHref(item.laptop, locale) || '/products'}
                           className="hover:text-red-600 transition-colors"
                         >
                           <h3 className="line-clamp-2 text-sm"><CartItemName itemLaptop={item.laptop} /></h3>

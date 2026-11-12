@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import type { GetServerSideProps } from 'next';
 import { useLanguage } from "../../lib/i18n";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -7,7 +8,6 @@ import { productAPI, reviewAPI } from "../../lib/api";
 import { useCart } from "../../lib/context/CartContext";
 import { useAuth } from "../../lib/context/AuthContext";
 import { useCurrencyContext } from "../../lib/context/CurrencyContext";
-import { useProductTranslation } from "../../hooks/useProductTranslation";
 import { getIntlLocale } from "../../lib/localeUtils";
 import { useR2Upload } from "../../hooks/useR2Upload";
 import { Laptop, isActiveDeal } from "../../lib/data";
@@ -25,7 +25,8 @@ import { toast } from "sonner";
 import { getImageUrl, isLoginPath } from "../../lib/utils";
 import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
-import type { Locale } from "../../lib/i18n/types";
+import { DEFAULT_LOCALE, type Locale } from "../../lib/i18n/types";
+import { BACKEND_URL } from "../../config";
 import { isNoInputTranslationResponse } from "../../lib/translationResponseGuard";
 import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL } from "../../lib/seo";
 
@@ -71,25 +72,69 @@ const cleanProductDescription = (value: unknown): string => {
     : description;
 };
 
-export const getServerSideProps = async () => {
-  return {
-    props: {},
-  };
+interface ProductPageProps {
+  initialProduct: any;
+  initialLocale: Locale;
+}
+
+export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params, query }) => {
+  const routeValue = typeof params?.id === 'string' ? params.id : '';
+  if (!routeValue) return { notFound: true };
+
+  const isLegacyId = PRODUCT_ID_PATTERN.test(routeValue);
+  const endpoint = isLegacyId
+    ? `/api/products/${encodeURIComponent(routeValue)}?lang=${DEFAULT_LOCALE}&locale=${DEFAULT_LOCALE}`
+    : `/api/products/slug/${encodeURIComponent(routeValue)}`;
+
+  try {
+    const backendUrl = (process.env.BACKEND_URL || BACKEND_URL).replace(/\/+$/, '');
+    const response = await fetch(`${backendUrl}${endpoint}`, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return { notFound: true };
+
+    const data = await response.json();
+    const product = isLegacyId ? data : data.product;
+    const locale = isLegacyId ? DEFAULT_LOCALE : data.locale;
+    const canonicalSlug = isLegacyId
+      ? product?.localizedSlugs?.[DEFAULT_LOCALE]
+      : data.canonicalSlug;
+
+    if (!product || typeof product !== 'object') return { notFound: true };
+
+    if (canonicalSlug && canonicalSlug !== routeValue) {
+      const destination = new URLSearchParams();
+      Object.entries(query).forEach(([key, value]) => {
+        if (key === 'id' || typeof value !== 'string') return;
+        destination.set(key, value);
+      });
+      const queryString = destination.toString();
+      return {
+        redirect: {
+          destination: `/product/${encodeURIComponent(canonicalSlug)}${queryString ? `?${queryString}` : ''}`,
+          statusCode: 301,
+        },
+      };
+    }
+
+    return { props: { initialProduct: product, initialLocale: locale } };
+  } catch {
+    return { notFound: true };
+  }
 };
 
-export default function ProductDetail() {
+export default function ProductDetail({ initialProduct, initialLocale }: ProductPageProps) {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
   const { user } = useAuth();
-  const { loadNamespace, t, locale, isHydrated, isLoadingNamespace } = useLanguage();
+  const { loadNamespace, t, locale, setLocale, isHydrated, isLoadingNamespace } = useLanguage();
   const { currencyCode } = useCurrencyContext();
   const { uploadToR2, validateUploadedAsset } = useR2Upload();
-  const [laptop, setLaptop] = useState<any>(null);
+  const [laptop, setLaptop] = useState<any>(initialProduct || null);
+  const [productLocale, setProductLocale] = useState<Locale>(initialLocale || locale);
   const [relatedLaptops, setRelatedLaptops] = useState<any[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [totalReviews, setTotalReviews] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialProduct);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -101,8 +146,10 @@ export default function ProductDetail() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>('description');
+  const routeValue = Array.isArray(id) ? id[0] : id;
   const productId = normalizeProductId(id);
-  const { translation } = useProductTranslation(laptop && locale !== 'vi' ? productId : null);
+  const resolvedProductId = normalizeProductId(laptop?._id || laptop?.id || productId || undefined);
+  const localeInitializedForProductRef = useRef(false);
 
   useEffect(() => {
     loadNamespace('products');
@@ -113,6 +160,23 @@ export default function ProductDetail() {
     if (!router.isReady) return;
     setActiveTab(getSafeProductTab(router.query.tab));
   }, [router.isReady, router.query.tab]);
+
+  useEffect(() => {
+    if (!isHydrated || !laptop) return;
+    if (!localeInitializedForProductRef.current) {
+      localeInitializedForProductRef.current = true;
+      if (locale !== productLocale) void setLocale(productLocale);
+      return;
+    }
+    if (locale === productLocale) return;
+
+    const localizedSlug = laptop.localizedSlugs?.[locale];
+    if (localizedSlug) {
+      void router.replace(`/product/${encodeURIComponent(localizedSlug)}`);
+    } else {
+      void setLocale(productLocale);
+    }
+  }, [isHydrated, laptop, locale, productLocale, router, setLocale]);
 
   const handleTabChange = (value: string) => {
     const nextTab = getSafeProductTab(value);
@@ -160,7 +224,7 @@ export default function ProductDetail() {
     setReviewsError(null);
 
     try {
-      const reviewsResponse = await reviewAPI.getProductReviews(productId, locale, {
+      const reviewsResponse = await reviewAPI.getProductReviews(productId, productLocale, {
         signal,
         timeout: 8000,
         skipErrorToast: true,
@@ -188,10 +252,10 @@ export default function ProductDetail() {
         setIsLoadingReviews(false);
       }
     }
-  }, [locale]);
+  }, [productLocale]);
 
   const handleRetryReviews = useCallback(async () => {
-    const productId = normalizeProductId(router.query.id);
+    const productId = resolvedProductId;
     const productRequestId = productRequestIdRef.current;
     if (!productId) return;
 
@@ -202,7 +266,7 @@ export default function ProductDetail() {
     if (reviewAbortControllerRef.current === controller) {
       reviewAbortControllerRef.current = null;
     }
-  }, [loadReviews, router.query.id]);
+  }, [loadReviews, resolvedProductId]);
 
   // Fetch product detail from backend
   useEffect(() => {
@@ -211,6 +275,43 @@ export default function ProductDetail() {
     const requestId = ++productRequestIdRef.current;
     const controller = new AbortController();
     const isCurrentRequest = () => requestId === productRequestIdRef.current && !controller.signal.aborted;
+
+    if (initialProduct) {
+      setLaptop(initialProduct);
+      setProductLocale(initialLocale);
+      setIsLoading(false);
+
+      const rawCategoryId = initialProduct.categoryId
+        || (typeof initialProduct.category === 'object' && initialProduct.category !== null
+          ? initialProduct.category._id || initialProduct.category.id
+          : undefined);
+      const categoryId = typeof rawCategoryId === 'string' && PRODUCT_ID_PATTERN.test(rawCategoryId)
+        ? rawCategoryId
+        : null;
+
+      if (categoryId) {
+        void productAPI.getProducts(
+          1, undefined, categoryId, undefined, 4,
+          undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+          initialLocale, getIntlLocale(initialLocale), currencyCode,
+          { signal: controller.signal, timeout: 8000, skipErrorToast: true },
+        ).then((response) => {
+          if (!isCurrentRequest()) return;
+          const currentProductId = String(initialProduct._id || initialProduct.id || '');
+          setRelatedLaptops(
+            (Array.isArray(response.products) ? response.products : [])
+              .filter((relatedProduct: any) => String(relatedProduct._id || relatedProduct.id) !== currentProductId)
+              .slice(0, 4),
+          );
+        }).catch(() => {
+          if (isCurrentRequest()) setRelatedLaptops([]);
+        });
+      } else {
+        setRelatedLaptops([]);
+      }
+
+      return () => controller.abort();
+    }
 
     setLaptop(null);
     setRelatedLaptops([]);
@@ -222,21 +323,25 @@ export default function ProductDetail() {
     setIsLoadingReviews(false);
 
     const fetchProduct = async () => {
-      if (!productId) {
+      if (!routeValue) {
         setError('error_no_products_found');
         setIsLoading(false);
         return;
       }
 
       try {
-        const product = await productAPI.getProductById(
-          productId,
-          locale,
-          { signal: controller.signal },
-          getIntlLocale(locale),
-          currencyCode
-        );
+        const productResult = productId
+          ? { product: await productAPI.getProductById(
+              productId,
+              locale,
+              { signal: controller.signal },
+              getIntlLocale(locale),
+              currencyCode,
+            ), locale }
+          : await productAPI.getProductBySlug(routeValue, currencyCode, { signal: controller.signal });
+        const product = productResult.product;
         if (!isCurrentRequest()) return;
+        setProductLocale(productResult.locale);
         setLaptop(product);
         setSelectedImage(0);
         setQuantity(1);
@@ -305,17 +410,17 @@ export default function ProductDetail() {
       controller.abort();
       reviewAbortControllerRef.current?.abort();
     };
-  }, [currencyCode, isHydrated, locale, productId, router.isReady]);
+  }, [currencyCode, initialProduct, initialLocale, isHydrated, locale, productId, routeValue, router.isReady]);
 
   useEffect(() => {
-    if (!router.isReady || !isHydrated || !laptop || !productId) return;
+    if (!router.isReady || !isHydrated || !laptop || !resolvedProductId) return;
 
     const requestId = productRequestIdRef.current;
     reviewAbortControllerRef.current?.abort();
     const controller = new AbortController();
     reviewAbortControllerRef.current = controller;
 
-    void loadReviews(productId, requestId, controller.signal).finally(() => {
+    void loadReviews(resolvedProductId, requestId, controller.signal).finally(() => {
       if (reviewAbortControllerRef.current === controller) {
         reviewAbortControllerRef.current = null;
       }
@@ -327,7 +432,7 @@ export default function ProductDetail() {
         reviewAbortControllerRef.current = null;
       }
     };
-  }, [isHydrated, laptop, loadReviews, productId, router.isReady]);
+  }, [isHydrated, laptop, loadReviews, resolvedProductId, router.isReady]);
 
   const recentlyViewedProducts = useRecentlyViewedProducts(laptop);
 
@@ -343,13 +448,13 @@ export default function ProductDetail() {
       return;
     }
 
-    const productId = normalizeProductId(id);
+    const productId = resolvedProductId;
     const productRequestId = productRequestIdRef.current;
     if (!productId) return;
 
     const isCurrentProduct = () => (
       productRequestId === productRequestIdRef.current
-      && normalizeProductId(router.query.id) === productId
+      && String(router.query.id || '') === String(routeValue || '')
     );
     const controller = new AbortController();
     reviewAbortControllerRef.current?.abort();
@@ -432,52 +537,37 @@ export default function ProductDetail() {
   const mainImage = images && images.length > 0 ? images[selectedImage] : undefined;
 
   // Convert backend product to frontend Laptop format for cart
-  const isSourceLocale = locale === 'vi';
-  const localizedName = isSourceLocale
-    ? cleanProductDescription(laptop.name)
-    : cleanProductDescription(translation?.name) || cleanProductDescription(laptop.name);
-  const localizedDescription = isSourceLocale
-    ? cleanProductDescription(laptop.description)
-    : cleanProductDescription(translation?.description) || cleanProductDescription(laptop.description);
-  const localizedBrand = isSourceLocale
-    ? cleanProductDescription(laptop.brand)
-    : cleanProductDescription(translation?.brand) || cleanProductDescription(laptop.brand);
-  const localizedTechnicalDescription = isSourceLocale
-    ? cleanProductDescription(laptop.technicalDescription)
-    : cleanProductDescription(translation?.technicalDescription) || cleanProductDescription(laptop.technicalDescription);
-  const localizedDescriptionImages = isSourceLocale
-    ? laptop.descriptionImages ?? []
-    : (translation?.descriptionImages?.length ? translation.descriptionImages : laptop.descriptionImages ?? []);
-  const localizedPromotions = isSourceLocale
-    ? laptop.promotions ?? []
-    : (translation?.promotions?.length ? translation.promotions : laptop.promotions ?? []);
+  const localizedName = cleanProductDescription(laptop.name);
+  const localizedDescription = cleanProductDescription(laptop.description);
+  const localizedBrand = cleanProductDescription(laptop.brand);
+  const localizedTechnicalDescription = cleanProductDescription(laptop.technicalDescription);
+  const localizedDescriptionImages = laptop.descriptionImages ?? [];
+  const localizedPromotions = laptop.promotions ?? [];
   const sourceSpecs = laptop.specs ?? {};
-  const localizedSpecs = Object.fromEntries(Object.entries(isSourceLocale
-    ? sourceSpecs
-    : { ...sourceSpecs, ...(translation?.specs ?? {}) })
+  const localizedSpecs = Object.fromEntries(Object.entries(sourceSpecs)
     .filter((entry): entry is [string, string | number] => {
       const value = entry[1];
       return (typeof value === 'string' || typeof value === 'number')
         && !isNoInputTranslationResponse(value);
     }));
-  const specLabels = isSourceLocale
-    ? (laptop.specLabels ?? {})
-    : (translation?.specLabels ?? laptop.specLabels ?? {});
+  const specLabels = laptop.specLabels ?? {};
   const category = laptop.category;
   const categoryId = typeof category === 'object' && category !== null
     ? category._id ?? category.id
     : category;
-  const formattedPrice = formatProductAmount(laptop.price, laptop.formattedPrice, locale, laptop.baseCurrencyCode);
+  const formattedPrice = formatProductAmount(laptop.price, laptop.formattedPrice, productLocale, laptop.baseCurrencyCode);
   const formattedOriginalPrice = formatProductAmount(
     laptop.originalPrice,
     laptop.formattedOriginalPrice,
-    locale,
+    productLocale,
     laptop.baseCurrencyCode,
   );
   const canDisplayPrice = Boolean(formattedPrice && Number.isFinite(laptop.price) && laptop.price > 0);
 
   const convertedLaptop: Laptop = {
-    id: laptop._id,
+    id: laptop._id || laptop.id,
+    _id: laptop._id || laptop.id,
+    localizedSlugs: laptop.localizedSlugs,
     name: localizedName,
     brand: localizedBrand ?? t('no_brand', 'products'),
     category: categoryId ?? t('no_category', 'products'),
@@ -540,6 +630,23 @@ export default function ProductDetail() {
   const pageImage = typeof mainImage === 'string' && /^https?:\/\//i.test(mainImage)
     ? mainImage
     : DEFAULT_SITE_IMAGE;
+  const canonicalSlug = laptop.localizedSlugs?.[productLocale] || (typeof routeValue === 'string' && !PRODUCT_ID_PATTERN.test(routeValue) ? routeValue : undefined);
+  const canonicalUrl = `${SITE_URL}/product/${canonicalSlug ? encodeURIComponent(canonicalSlug) : productId}`;
+  const alternateUrls = Object.entries(laptop.localizedSlugs || {}) as [Locale, string][];
+  const productStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: convertedLaptop.name,
+    description: pageDescription,
+    image: pageImage,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: laptop.baseCurrencyCode,
+      price: Number(laptop.price).toFixed(2),
+      availability: laptop.countInStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: canonicalUrl,
+    },
+  };
 
   const loginHref = isLoginPath(router.asPath) ? '/login' : `/login?from=${encodeURIComponent(router.asPath)}`;
 
@@ -552,8 +659,15 @@ export default function ProductDetail() {
         <meta property="og:title" content={pageTitle} key="og-title" />
         <meta property="og:description" content={pageDescription} key="og-description" />
         <meta property="og:image" content={pageImage} key="og-image" />
-        <meta property="og:url" content={`${SITE_URL}/product/${productId}`} key="og-url" />
-        <link rel="canonical" href={`${SITE_URL}/product/${productId}`} key="canonical" />
+        <meta property="og:url" content={canonicalUrl} key="og-url" />
+        <link rel="canonical" href={canonicalUrl} key="canonical" />
+        {alternateUrls.map(([alternateLocale, slug]) => (
+          <link key={alternateLocale} rel="alternate" hrefLang={alternateLocale} href={`${SITE_URL}/product/${encodeURIComponent(slug)}`} />
+        ))}
+        {laptop.localizedSlugs?.[DEFAULT_LOCALE] && (
+          <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/product/${encodeURIComponent(laptop.localizedSlugs[DEFAULT_LOCALE])}`} />
+        )}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData).replace(/</g, '\\u003c') }} />
       </Head>
       <div className="container relative mx-auto max-w-360 px-4 py-8 animate-in fade-in duration-300 sm:py-10">
       <Breadcrumbs

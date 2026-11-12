@@ -109,6 +109,7 @@ export interface BackendProduct {
   specDisplay?: Array<{ field: string; label: string; value: string }>;
   featured?: boolean;
   deal?: { discount: number; endTime?: string | Date };
+  localizedSlugs?: Record<string, string>;
 }
 
 // API Base URL = proxy path (cùng domain với frontend)
@@ -1039,6 +1040,24 @@ export const productAPI = {
     return apiCall(`/products/admin/${id}?${params.toString()}`, {
       adapter: (data) => productAdapter.transform(data),
       skipCache: true,
+      ...requestOptions,
+    });
+  },
+
+  getProductBySlug: async (
+    slug: string,
+    currencyCode?: string,
+    requestOptions?: Pick<FetchOptions, 'signal'>,
+  ) => {
+    const params = new URLSearchParams();
+    if (currencyCode) params.set('currencyCode', currencyCode);
+    return apiCall<{
+      product: ReturnType<typeof productAdapter.transform>;
+      locale: Locale;
+      requestedSlug: string;
+      canonicalSlug: string;
+    }>(`/products/slug/${encodeURIComponent(slug)}?${params.toString()}`, {
+      adapter: (data) => ({ ...data, product: productAdapter.transform(data.product) }),
       ...requestOptions,
     });
   },

@@ -1,5 +1,5 @@
 import { Star, ShoppingCart, X, Flame } from "lucide-react";
-import { Laptop, isActiveDeal, isShockDiscount } from "../lib/data";
+import { Laptop, getProductHref, isActiveDeal, isShockDiscount } from "../lib/data";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../lib/context/CartContext";
@@ -23,6 +23,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
   const { addToCart } = useCart();
   const { t } = useTranslation();
   const { locale } = useLanguage();
+  const productHref = getProductHref(laptop, locale);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -185,7 +186,7 @@ export function QuickViewModal({ laptop, onClose }: QuickViewModalProps) {
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   {isAddingToCart ? t('adding_to_cart', 'products') : t('add_to_cart_btn', 'products')}
                 </Button>
-                <Link href={`/product/${laptop.id}`} onClick={onClose} className="block">
+                <Link href={productHref || '/products'} onClick={onClose} className="block">
                   <Button variant="ghost" className="pointer-events-auto w-full border-2 border-red-600 bg-white font-semibold text-red-600 hover:border-red-700 hover:bg-red-50">
                     {t('view_details', 'products')}
                   </Button>

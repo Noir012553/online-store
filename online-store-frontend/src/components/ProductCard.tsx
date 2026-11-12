@@ -1,7 +1,7 @@
 import { ShoppingCart, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Laptop, getCategoryName, getTranslatedValue, isActiveDeal, isShockDiscount } from "../lib/data";
+import { Laptop, getCategoryName, getProductHref, getTranslatedValue, isActiveDeal, isShockDiscount } from "../lib/data";
 import { formatCurrency, formatNumber, getImageUrl } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -76,6 +76,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
       promotions: laptop.promotions || [],
       featured: laptop.featured || false,
       deal: laptop.deal,
+      localizedSlugs: laptop.localizedSlugs,
     };
   }, [laptop, locale, t]);
 
@@ -110,10 +111,7 @@ export function ProductCard({ laptop, eagerImage = false, onQuickViewToggle }: P
   const hasShockDiscount = isShockDiscount(discount);
   const isFeaturedHotDeal = convertedLaptop.featured && hasActiveDeal;
 
-  // Check if ID is valid MongoDB ObjectId (24 hex characters)
-  const isValidId = useMemo(() => /^[a-f0-9]{24}$/.test(convertedLaptop.id || ''), [convertedLaptop.id]);
-
-  const productHref = isValidId ? `/product/${convertedLaptop.id}` : undefined;
+  const productHref = getProductHref(convertedLaptop, locale);
 
   return (
     <>

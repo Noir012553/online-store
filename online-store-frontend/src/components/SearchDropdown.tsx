@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import { Search, X } from "lucide-react";
 import { productAPI, BackendProduct } from "../lib/api";
 import { getImageUrl } from "../lib/utils";
-import { getTranslatedValue, getCategoryName } from "../lib/data";
+import { getProductHref, getTranslatedValue, getCategoryName } from "../lib/data";
 import { Input } from "./ui/input";
 import { useTranslation } from "@/lib/i18n";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -251,12 +251,12 @@ export function SearchDropdown({
   // Navigate to product detail page
   const handleSelectProduct = useCallback((product: BackendProduct) => {
     if (router.isReady) {
-      router.push(`/product/${product._id}`);
+      router.push(getProductHref({ id: product._id, localizedSlugs: product.localizedSlugs }, locale) || '/products');
       setSearchQuery("");
       setSuggestions([]);
       setIsOpen(false);
     }
-  }, [router]);
+  }, [locale, router]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
