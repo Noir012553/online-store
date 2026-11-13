@@ -105,6 +105,16 @@
 - Người dùng đã cho phép dùng cấu hình môi trường, MongoDB, terminal và PowerShell cho các bước kiểm tra/sửa dữ liệu trong phạm vi công việc này. Do dữ liệu và `.env` nằm trên máy Windows local, một số thao tác không truy cập được từ môi trường assistant; khi đó người dùng chạy lệnh PowerShell cục bộ và gửi lại output.
 - Quyền này không bao gồm xóa database, chạy `npm run clear`, thay đổi dữ liệu rộng ngoài mục tiêu, hoặc vượt qua giới hạn ACL. Xác nhận riêng trước thao tác phá hủy hoặc có phạm vi lớn; quyền truy cập thực tế phụ thuộc ACL của môi trường.
 
+### Bảo mật env và áp dụng cấu hình
+
+- `process.env` không phải file hay kho lưu trữ; đó là các biến môi trường mà tiến trình Node.js đang chạy đọc được. Local thường nạp `.env` bằng `dotenv` trong `online-store-backend/src/app.js`; production thường nhận biến từ cấu hình Secrets/Environment của nền tảng deploy.
+- Muốn giao diện đọc cấu hình không bắt buộc phải đưa env vào DB: backend có thể đọc `process.env` rồi trả dữ liệu đã allowlist qua API Super Admin. Tuy nhiên, trả secret qua API nghĩa là plaintext đã tới trình duyệt; input `type="password"` hoặc nút mắt chỉ che hiển thị, không bảo vệ khỏi Network/DevTools. Ưu tiên API chỉ trả giá trị không nhạy cảm và trạng thái `configured` cho secret.
+- Gán `process.env.KEY` chỉ thay đổi bộ nhớ tiến trình hiện tại, không lưu bền. Sửa `.env` cũng không tự cập nhật tiến trình đang chạy; cần restart và có thể cần khởi tạo lại các service/client đang giữ cấu hình cũ.
+- Nếu cần chỉnh secret qua giao diện mà không đưa vào DB, cần tích hợp API quản lý biến môi trường/secrets của nền tảng deploy với quyền tối thiểu và redeploy. Nếu lưu cấu hình trong DB thì secret phải mã hóa bằng KMS/key được giữ ngoài DB; không lưu plaintext hoặc lưu key mã hóa cạnh ciphertext.
+- Không gọi `npm run tunnel` như lệnh redeploy: script chỉ chạy `cloudflared tunnel run`. Không dùng `src/scripts/deploy-seed.js` cho thao tác cấu hình vì script còn dừng API và chạy seed dữ liệu.
+- Nút áp dụng/restart cần job nền do orchestrator/process manager quản lý, tách adapter restart backend khỏi adapter Tunnel; không chạy command, path hay service name tùy ý từ request. Xác nhận đúng service và port, không kill tiến trình chỉ dựa vào port; health check phải nhắm đúng backend mới và Tunnel origin.
+- Không ghi giá trị env, token hoặc secret vào nhật ký Markdown, log, audit trail, lỗi API hay frontend state.
+
 ### Cloudflared tunnel
 
 - Chẩn đoán `spawn UNKNOWN` là do `cloudflared.exe` trong thư mục làm việc thực chất là Git LFS pointer dạng văn bản, không phải file thực thi.
