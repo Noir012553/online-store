@@ -118,6 +118,7 @@
   "runtime_settings_title": "Runtime-configuratiesleutels en -waarden",
   "runtime_settings_description": "De backend retourneert niet-gevoelige waarden; geheimen tonen alleen de configuratiestatus.",
   "runtime_settings_count": "{{count}} sleutels",
+  "restart_required": "Wijzigingen vereisen een backend-herstart",
   "runtime_settings_error": "Configuratiewaarden laden is mislukt. Controleer Super Admin-toegang en probeer opnieuw.",
   "runtime_settings_empty": "De backend heeft geen toegestane configuratiesleutels om weer te geven."
 }

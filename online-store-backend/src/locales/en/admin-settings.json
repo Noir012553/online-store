@@ -118,6 +118,7 @@
   "runtime_settings_title": "Runtime configuration keys and values",
   "runtime_settings_description": "The backend returns non-sensitive values; secrets show configuration status only.",
   "runtime_settings_count": "{{count}} keys",
+  "restart_required": "Changes require backend restart",
   "runtime_settings_error": "Could not load configuration values. Check Super Admin access and try again.",
   "runtime_settings_empty": "The backend has no allowlisted configuration keys to show."
 }

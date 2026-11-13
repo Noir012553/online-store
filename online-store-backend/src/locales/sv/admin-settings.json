@@ -118,6 +118,7 @@
   "runtime_settings_title": "Runtime-konfigurationsnycklar och värden",
   "runtime_settings_description": "Backend returnerar icke-känsliga värden; hemligheter visar endast konfigurationsstatus.",
   "runtime_settings_count": "{{count}} nycklar",
+  "restart_required": "Ändringar kräver omstart av backend",
   "runtime_settings_error": "Det gick inte att läsa in konfigurationsvärden. Kontrollera Super Admin-åtkomst och försök igen.",
   "runtime_settings_empty": "Backend har inga tillåtna konfigurationsnycklar att visa."
 }

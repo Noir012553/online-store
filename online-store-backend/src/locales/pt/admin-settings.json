@@ -118,6 +118,7 @@
   "runtime_settings_title": "Chaves e valores da configuração em tempo de execução",
   "runtime_settings_description": "O backend retorna valores não sensíveis; os segredos mostram apenas o estado da configuração.",
   "runtime_settings_count": "{{count}} chaves",
+  "restart_required": "As alterações exigem reiniciar o backend",
   "runtime_settings_error": "Não foi possível carregar os valores. Verifique o acesso Super Admin e tente novamente.",
   "runtime_settings_empty": "O backend não tem chaves de configuração permitidas para mostrar."
 }

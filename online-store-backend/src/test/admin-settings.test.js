@@ -74,18 +74,30 @@ describe('Super-admin settings boundary', () => {
     else process.env.JWT_REFRESH_SECRET = originalRefreshSecret;
   });
 
-  it('accepts only registry keys and exposes secrets only as configured flags', () => {
-    const settings = getRuntimeSettings(process.env);
+  it('validates typed settings and exposes secrets only as configured flags', () => {
+    const settings = getRuntimeSettings({
+      EMAIL_PASSWORD: 'test-secret',
+      EMAIL_HOST: 'smtp.example.test',
+      EMAIL_PORT: '70000',
+      EMAIL_SERVICE: 'unsupported',
+      CLOUDFLARE_API_TOKEN_1: 'token-test-secret',
+      CLOUDFLARE_API_TOKEN_14: 'unapproved',
+      JWT_SECRET: 'jwt-test-secret',
+      R2_ACCOUNT_ROLE_UNREVIEWED: '1',
+      R2_ACCOUNT_ROLE_PRODUCT: '10',
+    });
     const byKey = Object.fromEntries(settings.map(setting => [setting.key, setting]));
 
-    expect(runtimeSettingRegistry.EMAIL_PASSWORD).to.deep.equal({ secret: true });
-    expect(byKey.EMAIL_PASSWORD).to.deep.equal({ key: 'EMAIL_PASSWORD', secret: true, configured: true });
-    expect(byKey.R2_ACCESS_KEY_ID).to.deep.equal({ key: 'R2_ACCESS_KEY_ID', secret: true, configured: true });
-    expect(byKey.CLOUDFLARE_API_TOKEN_1).to.deep.equal({ key: 'CLOUDFLARE_API_TOKEN_1', secret: true, configured: true });
-    expect(byKey.EMAIL_HOST).to.deep.equal({ key: 'EMAIL_HOST', secret: false, value: 'smtp.example.test' });
+    expect(runtimeSettingRegistry.EMAIL_PASSWORD).to.include({ group: 'email', type: 'secret', secret: true, restartRequired: true });
+    expect(byKey.EMAIL_PASSWORD).to.include({ secret: true, configured: true, valid: true });
+    expect(byKey.CLOUDFLARE_API_TOKEN_1).to.include({ group: 'cloudflare-ai', secret: true, configured: true, valid: true });
+    expect(byKey.EMAIL_HOST).to.include({ group: 'email', type: 'string', value: 'smtp.example.test', valid: true });
+    expect(byKey.EMAIL_PORT).to.include({ type: 'integer', valid: false, restartRequired: true });
+    expect(byKey.EMAIL_SERVICE).to.include({ type: 'enum', valid: false });
     expect(byKey).not.to.have.property('CLOUDFLARE_API_TOKEN_14');
     expect(byKey).not.to.have.property('JWT_SECRET');
     expect(byKey).not.to.have.property('R2_ACCOUNT_ROLE_UNREVIEWED');
+    expect(byKey.R2_ACCOUNT_ROLE_PRODUCT).to.include({ type: 'enum', valid: false });
     expect(JSON.stringify(settings)).not.to.include('test-secret');
   });
 
@@ -108,11 +120,8 @@ describe('Super-admin settings boundary', () => {
 
     expect(response.status).to.equal(200);
     expect(response.headers['cache-control']).to.equal('no-store');
-    expect(response.body.data.settings).to.deep.include({
-      key: 'EMAIL_PASSWORD',
-      secret: true,
-      configured: true,
-    });
+    const passwordSetting = response.body.data.settings.find(setting => setting.key === 'EMAIL_PASSWORD');
+    expect(passwordSetting).to.include({ secret: true, configured: true, valid: true });
     expect(response.text).not.to.include('email-test-secret');
     expect(response.text).not.to.include('sendgrid-test-secret');
     expect(response.text).not.to.include('vnpay-test-secret');

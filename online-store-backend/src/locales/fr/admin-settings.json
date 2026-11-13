@@ -118,6 +118,7 @@
   "runtime_settings_title": "Clés et valeurs de configuration à l’exécution",
   "runtime_settings_description": "Le backend renvoie des valeurs non sensibles ; les secrets affichent uniquement leur état de configuration.",
   "runtime_settings_count": "{{count}} clés",
+  "restart_required": "Les modifications nécessitent un redémarrage du backend",
   "runtime_settings_error": "Impossible de charger les valeurs. Vérifiez l’accès Super Admin et réessayez.",
   "runtime_settings_empty": "Le backend n’a aucune clé de configuration autorisée à afficher."
 }

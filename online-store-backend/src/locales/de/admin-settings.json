@@ -118,6 +118,7 @@
   "runtime_settings_title": "Laufzeit-Konfigurationsschlüssel und -werte",
   "runtime_settings_description": "Das Backend gibt nicht sensible Werte zurück; Geheimnisse zeigen nur den Konfigurationsstatus.",
   "runtime_settings_count": "{{count}} Schlüssel",
+  "restart_required": "Änderungen erfordern einen Backend-Neustart",
   "runtime_settings_error": "Konfigurationswerte konnten nicht geladen werden. Super-Admin-Zugriff prüfen und erneut versuchen.",
   "runtime_settings_empty": "Das Backend hat keine freigegebenen Konfigurationsschlüssel zur Anzeige."
 }

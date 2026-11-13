@@ -118,6 +118,7 @@
   "runtime_settings_title": "Các khóa và giá trị cấu hình runtime",
   "runtime_settings_description": "Backend trả giá trị không nhạy cảm; với secret, giao diện chỉ hiển thị trạng thái đã cấu hình.",
   "runtime_settings_count": "{{count}} khóa",
+  "restart_required": "Thay đổi cần restart backend",
   "runtime_settings_error": "Không tải được các giá trị cấu hình. Hãy kiểm tra quyền Super Admin rồi thử lại.",
   "runtime_settings_empty": "Backend hiện không có khóa cấu hình nào trong danh sách được phép hiển thị."
 }
