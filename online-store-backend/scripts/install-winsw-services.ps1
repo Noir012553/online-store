@@ -188,7 +188,7 @@ $tunnelEnvironment</service>
     }
     if ($service.Id -eq 'LaptopStoreBackend') {
       Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
-      Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)RX")
+      Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)M")
       foreach ($envFile in $envFiles) {
         Invoke-Icacls @($envFile.FullName, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', "$operatorAccount`:R", "$account`:R")
       }

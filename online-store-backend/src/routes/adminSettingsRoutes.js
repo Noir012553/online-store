@@ -1,12 +1,14 @@
+'use strict';
+
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
 const { getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const { getRuntimeSettings, runtimeSettingRegistry } = require('../services/adminSettingsRegistry');
+const { getRuntimeSettings } = require('../services/adminSettingsRegistry');
+const settingsDraftStore = require('../services/adminSettingsDraftStore');
 
 const router = express.Router();
-
 const environment = process.env;
 const hasValue = key => Boolean(environment[key]?.trim());
 const parseNumber = (value, fallback) => {
@@ -24,26 +26,11 @@ const safePublicUrl = value => {
     return '';
   }
 };
-
-router.get('/secrets/:key', protect, superAdmin, asyncHandler(async (req, res) => {
-  const { key } = req.params;
-  const definition = runtimeSettingRegistry[key];
-  const value = environment[key];
-
-  if (definition?.secret !== true || !value?.trim()) {
-    res.status(404).json({ success: false, message: 'Secret not available' });
-    return;
-  }
-
-  console.info('[AdminSettings] Secret revealed', { userId: String(req.user._id), key });
-  res.set({ 'Cache-Control': 'no-store, private', Pragma: 'no-cache' });
-  res.status(200).json({ success: true, data: { value } });
-}));
+const noStore = res => res.set({ 'Cache-Control': 'no-store, private', Pragma: 'no-cache' });
 
 router.get('/values', protect, superAdmin, asyncHandler(async (_req, res) => {
   const settings = getRuntimeSettings(environment);
-
-  res.set('Cache-Control', 'no-store');
+  noStore(res);
   res.status(200).json({ success: true, data: { settings } });
 }));
 
@@ -100,8 +87,8 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
 
   const aiConfig = cloudflareAiService.getConfigInfo();
   const aiPolicy = cloudflareAiService.getUsagePolicy();
-
-  res.set('Cache-Control', 'no-store');
+  const storage = settingsDraftStore.getAvailability();
+  noStore(res);
   res.status(200).json({
     success: true,
     data: {
@@ -137,13 +124,50 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
         dnsManaged: false,
       },
       security: {
-        secretsRequireExplicitReveal: true,
-        encryptedSecretStoreAvailable: false,
+        secretsWriteOnly: true,
+        encryptedSecretStoreAvailable: storage.available,
+        managedDraftAvailable: storage.available,
+        applyWorkerAvailable: false,
         managedOverridesAvailable: false,
         restartRequiredGroups: ['VNPay', 'Email', 'R2', 'Cloudflare AI'],
       },
     },
   });
+}));
+
+// API contract: GET /draft reads only the current version and non-secret settings;
+// secrets are returned as configured flags. PUT /draft requires { expectedVersion,
+// settings }, rejects every key outside the editable allowlist, and treats blank
+// secret values as "retain existing". POST /apply-jobs requires { expectedVersion }.
+// Apply jobs are persisted as unavailable until a verified fixed WinSW worker exists.
+router.get('/draft', protect, superAdmin, asyncHandler(async (_req, res) => {
+  noStore(res);
+  const draft = await settingsDraftStore.getDraft();
+  res.status(200).json({ success: true, data: { draft } });
+}));
+
+router.put('/draft', protect, superAdmin, asyncHandler(async (req, res) => {
+  noStore(res);
+  const { expectedVersion, settings } = req.body || {};
+  const draft = await settingsDraftStore.saveDraft({ expectedVersion, settings, userId: req.user._id });
+  res.status(200).json({ success: true, data: { draft } });
+}));
+
+router.post('/apply-jobs', protect, superAdmin, asyncHandler(async (req, res) => {
+  noStore(res);
+  const { expectedVersion } = req.body || {};
+  const job = await settingsDraftStore.createApplyJob({ expectedVersion, userId: req.user._id });
+  res.status(202).json({ success: true, data: { job } });
+}));
+
+router.get('/apply-jobs/:id', protect, superAdmin, asyncHandler(async (req, res) => {
+  noStore(res);
+  const job = await settingsDraftStore.getApplyJob(req.params.id);
+  if (!job) {
+    res.status(404).json({ success: false, code: 'SETTINGS_APPLY_JOB_NOT_FOUND', message: 'Apply job not found.' });
+    return;
+  }
+  res.status(200).json({ success: true, data: { job } });
 }));
 
 module.exports = router;
