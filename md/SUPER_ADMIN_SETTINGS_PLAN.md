@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất; Save vẫn chưa khả dụng.
+Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và registry key tường minh, typed cho `/values`; response báo group, type, trạng thái hợp lệ và yêu cầu restart, secret chỉ trả trạng thái cấu hình. UI đánh dấu giá trị không hợp lệ và cảnh báo cấu hình cần restart; Save vẫn bị khóa. Suite kiểm thử allowlist, validation, redaction và quyền truy cập đã pass; frontend typecheck cũng pass. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất.
 
 ## Mục tiêu
 
