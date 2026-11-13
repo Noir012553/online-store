@@ -2,6 +2,7 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$WinSWPath,
+  [string]$WinSWSha256,
   [switch]$InstallServices
 )
 
@@ -20,6 +21,9 @@ $tunnelSecretRoot = Join-Path $secretRoot 'tunnel'
 $settingsSecretRoot = Join-Path $secretRoot 'settings'
 $tokenPath = Join-Path $tunnelSecretRoot 'tunnel-token.dpapi'
 $winswSource = (Resolve-Path $WinSWPath).Path
+$winswHash = (Get-FileHash -LiteralPath $winswSource -Algorithm SHA256).Hash
+if ($WinSWSha256 -and $winswHash -ne $WinSWSha256.ToUpperInvariant()) { throw 'WinSW SHA-256 checksum does not match.' }
+if ($InstallServices -and -not $WinSWSha256) { throw 'Pass the SHA-256 checksum verified from the official WinSW release before installation.' }
 $node = Get-Command node.exe -ErrorAction Stop
 $cloudflared = Get-Command cloudflared.exe -ErrorAction Stop
 
@@ -27,6 +31,9 @@ if (-not (Test-Path (Join-Path $backendRoot 'node_modules\express'))) { throw 'B
 if (-not (Test-Path (Join-Path $frontendRoot '.next\BUILD_ID'))) { throw 'Frontend production build is missing.' }
 if (-not (Test-Path (Join-Path $backendRoot '.env'))) { throw 'Backend .env is missing; service configuration needs review.' }
 if (Test-Path $programDataRoot) { throw "Refusing to modify existing service data directory: $programDataRoot" }
+$frontendEnvFiles = @(Get-ChildItem -LiteralPath $frontendRoot -Force -File -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -eq '.env' -or $_.Name -like '.env.*' })
+if ($frontendEnvFiles.Count -gt 0) { throw 'Frontend root contains .env files; remove or relocate them before granting the frontend service access.' }
 
 $services = @(
   @{ Id = 'LaptopStoreBackend'; Name = 'Laptop Store Backend'; Executable = $node.Source; Arguments = '--max-old-space-size=1024 src/app.js'; WorkingDirectory = $backendRoot; LogPath = Join-Path $logRoot 'backend'; ReadPath = $backendRoot; WritePaths = @((Join-Path $backendRoot 'uploads'), (Join-Path $backendRoot '.retranslate-progress'), (Join-Path $backendRoot 'reports')) },
@@ -48,6 +55,7 @@ $listeners = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue 
 'Frontend: {0}' -f $frontendRoot
 'Node: {0}' -f $node.Source
 'cloudflared: {0}' -f $cloudflared.Source
+'WinSW SHA-256: {0}' -f $winswHash
 'Tunnel DPAPI token path: {0}' -f $tokenPath
 'Existing .env and Tunnel token contents were not read or printed.'
 if ($listeners.Count -gt 0) { 'Ports 3000/5000 are occupied; existing listeners will not be stopped.'; $listeners | Format-Table -AutoSize }
@@ -57,59 +65,75 @@ $isAdministrator = ([Security.Principal.WindowsPrincipal] [Security.Principal.Wi
   [Security.Principal.WindowsBuiltInRole]::Administrator
 )
 if (-not $isAdministrator) { throw 'Run with Administrator privileges to install services.' }
-if (-not (Test-Path $tokenPath)) {
-  Add-Type -AssemblyName System.Security
-  $secureToken = Read-Host 'Paste the Cloudflare Tunnel token (input is hidden)' -AsSecureString
-  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
-  $tokenBytes = $null
-  $protectedToken = $null
-  try {
-    $plainToken = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-    if ([string]::IsNullOrWhiteSpace($plainToken)) { throw 'Tunnel token cannot be empty.' }
-    $tokenBytes = [Text.Encoding]::UTF8.GetBytes($plainToken)
-    $protectedToken = [Security.Cryptography.ProtectedData]::Protect(
-      $tokenBytes,
-      $null,
-      [Security.Cryptography.DataProtectionScope]::LocalMachine
-    )
-  } finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-    if ($tokenBytes) { [Array]::Clear($tokenBytes, 0, $tokenBytes.Length) }
-    $plainToken = $null
-  }
+if (-not $PSCmdlet.ShouldProcess('Windows host', 'Install three stopped WinSW services and protect the Tunnel token')) { return }
+
+Add-Type -AssemblyName System.Security
+$secureToken = Read-Host 'Paste the Cloudflare Tunnel token (input is hidden)' -AsSecureString
+$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
+$tokenBytes = $null
+$protectedToken = $null
+$createdServices = @()
+$createdProgramData = $false
+$aclBackupDirectory = Join-Path $env:TEMP ('LaptopStoreAcl-' + [guid]::NewGuid().ToString('N'))
+$backendAclBackup = Join-Path $aclBackupDirectory 'backend.acl'
+$frontendAclBackup = Join-Path $aclBackupDirectory 'frontend.acl'
+
+function Invoke-Icacls {
+  param([string[]]$Arguments)
+  & icacls.exe @Arguments | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "icacls failed: $($Arguments -join ' ')" }
 }
 
-$createdServices = @()
+function Set-RestrictedDirectoryAcl {
+  param([string]$Path, [string[]]$Grants)
+  Invoke-Icacls @($Path, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F')
+  foreach ($grant in $Grants) { Invoke-Icacls @($Path, '/grant', $grant) }
+}
+
 try {
-  if ($PSCmdlet.ShouldProcess($programDataRoot, 'Create protected service directories')) {
-    New-Item -ItemType Directory -Path $programDataRoot -Force | Out-Null
-    New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $settingsSecretRoot -Force | Out-Null
-    [IO.File]::WriteAllBytes($tokenPath, $protectedToken)
-    & icacls.exe $programDataRoot /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Could not restrict ProgramData ACL.' }
-    & icacls.exe $tunnelSecretRoot /grant 'NT SERVICE\LaptopStoreTunnel:(OI)(CI)RX' | Out-Null
-    & icacls.exe $settingsSecretRoot /grant 'NT SERVICE\LaptopStoreBackend:(OI)(CI)RX' | Out-Null
-    & icacls.exe $tokenPath /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' 'NT SERVICE\LaptopStoreTunnel:R' | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Could not restrict DPAPI Tunnel token ACL.' }
-  }
+  New-Item -ItemType Directory -Path $aclBackupDirectory -Force | Out-Null
+  & icacls.exe $backendRoot /save $backendAclBackup /T /C | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Could not back up backend ACLs; no host changes were made.' }
+  & icacls.exe $frontendRoot /save $frontendAclBackup /T /C | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Could not back up frontend ACLs; no host changes were made.' }
+
+  $plainToken = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  if ([string]::IsNullOrWhiteSpace($plainToken)) { throw 'Tunnel token cannot be empty.' }
+  $tokenBytes = [Text.Encoding]::UTF8.GetBytes($plainToken)
+  $protectedToken = [Security.Cryptography.ProtectedData]::Protect(
+    $tokenBytes,
+    $null,
+    [Security.Cryptography.DataProtectionScope]::LocalMachine
+  )
+  $plainToken = $null
+
+  $envAcl = Get-Acl (Join-Path $backendRoot '.env')
+  New-Item -ItemType Directory -Path $programDataRoot -Force | Out-Null
+  $createdProgramData = $true
+  New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $settingsSecretRoot -Force | Out-Null
+  Set-RestrictedDirectoryAcl $programDataRoot @()
+  Set-RestrictedDirectoryAcl $serviceRoot @()
+  Set-RestrictedDirectoryAcl $logRoot @()
+  Set-RestrictedDirectoryAcl $secretRoot @()
+  Set-RestrictedDirectoryAcl $tunnelSecretRoot @()
+  Set-RestrictedDirectoryAcl $settingsSecretRoot @()
+  [IO.File]::WriteAllBytes($tokenPath, $protectedToken)
+  Invoke-Icacls @($tokenPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', 'NT SERVICE\LaptopStoreTunnel:R')
 
   foreach ($service in $services) {
     $directory = Join-Path $serviceRoot $service.Id
-    $logDirectory = $service.LogPath
-    New-Item -ItemType Directory -Path $directory, $logDirectory -Force | Out-Null
-    & icacls.exe $directory /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "NT SERVICE\$($service.Id):(OI)(CI)RX" | Out-Null
-    & icacls.exe $logDirectory /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "NT SERVICE\$($service.Id):(OI)(CI)M" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Could not set service directory ACL for $($service.Id)." }
-
+    New-Item -ItemType Directory -Path $directory, $service.LogPath -Force | Out-Null
     $exePath = Join-Path $directory ($service.Id + '.exe')
     $xmlPath = Join-Path $directory ($service.Id + '.xml')
     Copy-Item -LiteralPath $winswSource -Destination $exePath
+
     $tunnelEnvironment = ''
     if ($service.Tunnel) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'tunnel.js') -Destination (Join-Path $directory 'tunnel.js')
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
       $tunnelEnvironment = @"
   <env name="CLOUDFLARED_BIN" value="$([Security.SecurityElement]::Escape($cloudflared.Source))" />
+  <env name="LAPTOP_STORE_BACKEND_ROOT" value="$([Security.SecurityElement]::Escape($backendRoot))" />
   <env name="CLOUDFLARED_TUNNEL_TOKEN_DPAPI_FILE" value="$([Security.SecurityElement]::Escape($tokenPath))" />
 "@
     }
@@ -121,46 +145,74 @@ try {
   <executable>$([Security.SecurityElement]::Escape($service.Executable))</executable>
   <arguments>$([Security.SecurityElement]::Escape($service.Arguments))</arguments>
   <workingdirectory>$([Security.SecurityElement]::Escape($service.WorkingDirectory))</workingdirectory>
-  <startmode>Automatic</startmode>
-  <logpath>$([Security.SecurityElement]::Escape($logDirectory))</logpath>
+  <startmode>Manual</startmode>
+  <logpath>$([Security.SecurityElement]::Escape($service.LogPath))</logpath>
   <log mode="roll" />
 $tunnelEnvironment</service>
 "@
     [IO.File]::WriteAllText($xmlPath, $xml, [Text.UTF8Encoding]::new($false))
+    Invoke-Icacls @($directory, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F')
+    Invoke-Icacls @($service.LogPath, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F')
 
-    & icacls.exe $exePath /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' "NT SERVICE\$($service.Id):RX" | Out-Null
-    & icacls.exe $xmlPath /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' "NT SERVICE\$($service.Id):R" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Could not set WinSW file ACL for $($service.Id)." }
-
-    & icacls.exe $service.ReadPath /grant "NT SERVICE\$($service.Id):(OI)(CI)RX" /T /C | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Could not grant read access to $($service.ReadPath)." }
-    foreach ($writePath in $service.WritePaths) {
-      New-Item -ItemType Directory -Path $writePath -Force | Out-Null
-      & icacls.exe $writePath /grant "NT SERVICE\$($service.Id):(OI)(CI)M" /T /C | Out-Null
-      if ($LASTEXITCODE -ne 0) { throw "Could not grant runtime write access to $writePath." }
-    }
-    if ($service.Id -eq 'LaptopStoreBackend') {
-      & icacls.exe (Join-Path $backendRoot '.env') /grant 'NT SERVICE\LaptopStoreBackend:R' | Out-Null
-      if ($LASTEXITCODE -ne 0) { throw 'Could not grant backend read access to .env.' }
-    }
-
+    $createdServices += [PSCustomObject]@{ Id = $service.Id; Exe = $exePath; Xml = $xmlPath }
     & $exePath install $xmlPath
     if ($LASTEXITCODE -ne 0) { throw "WinSW install failed for $($service.Id)." }
-    $createdServices += [PSCustomObject]@{ Id = $service.Id; Exe = $exePath; Xml = $xmlPath }
     & sc.exe config $service.Id 'obj=' "NT SERVICE\$($service.Id)" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not assign the virtual service account to $($service.Id)." }
     & sc.exe config $service.Id 'start=' 'demand' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not keep $($service.Id) stopped until cutover." }
+
+    $account = "NT SERVICE\$($service.Id)"
+    Invoke-Icacls @($programDataRoot, '/grant', "$account`:(RX)")
+    Invoke-Icacls @($serviceRoot, '/grant', "$account`:(RX)")
+    Invoke-Icacls @($logRoot, '/grant', "$account`:(RX)")
+    Invoke-Icacls @($directory, '/grant', "$account`:(OI)(CI)RX")
+    Invoke-Icacls @($service.LogPath, '/grant', "$account`:(OI)(CI)M")
+    Invoke-Icacls @($exePath, '/grant', "$account`:RX")
+    Invoke-Icacls @($xmlPath, '/grant', "$account`:R")
+    Invoke-Icacls @($service.ReadPath, '/grant', "$account`:(OI)(CI)RX", '/T', '/C')
+    if ($LASTEXITCODE -ne 0) { throw "Could not grant read access to $($service.ReadPath)." }
+    foreach ($writePath in $service.WritePaths) {
+      New-Item -ItemType Directory -Path $writePath -Force | Out-Null
+      Invoke-Icacls @($writePath, '/grant', "$account`:(OI)(CI)M", '/T', '/C')
+    }
+    if ($service.Tunnel) {
+      Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
+      Invoke-Icacls @($tunnelSecretRoot, '/grant', "$account`:(OI)(CI)RX")
+      Invoke-Icacls @($tokenPath, '/grant', "$account`:R")
+    }
+    if ($service.Id -eq 'LaptopStoreBackend') {
+      Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
+      Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)RX")
+      Invoke-Icacls @((Join-Path $backendRoot '.env'), '/grant', "$account`:R")
+      Invoke-Icacls @((Join-Path $backendRoot '.env'), '/deny', 'NT SERVICE\LaptopStoreFrontend:R', 'NT SERVICE\LaptopStoreTunnel:R')
+    }
+  }
+
+  foreach ($service in $services) {
+    & sc.exe config $service.Id 'start=' 'auto' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not set automatic startup for $($service.Id)." }
   }
 } catch {
-  foreach ($service in $createdServices) {
-    & $service.Exe uninstall $service.Xml | Out-Null
+  for ($index = $createdServices.Count - 1; $index -ge 0; $index -= 1) {
+    $service = $createdServices[$index]
+    try { & $service.Exe uninstall $service.Xml | Out-Null } catch {}
+  }
+  if ($envAcl) { try { Set-Acl -LiteralPath (Join-Path $backendRoot '.env') -AclObject $envAcl } catch {} }
+  if (Test-Path $backendAclBackup) { try { & icacls.exe $backendRoot /restore $backendAclBackup /C | Out-Null } catch {} }
+  if (Test-Path $frontendAclBackup) { try { & icacls.exe $frontendRoot /restore $frontendAclBackup /C | Out-Null } catch {} }
+  if ($createdProgramData -and (Test-Path $programDataRoot)) {
+    Remove-Item -LiteralPath $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
   }
   throw
 } finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+  if ($tokenBytes) { [Array]::Clear($tokenBytes, 0, $tokenBytes.Length) }
   if ($protectedToken) { [Array]::Clear($protectedToken, 0, $protectedToken.Length) }
+  $plainToken = $null
+  if (Test-Path $aclBackupDirectory) { Remove-Item -LiteralPath $aclBackupDirectory -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-'WinSW services are installed but remain stopped. Existing cmd.exe processes and port listeners were not stopped.'
-'After reviewing service status and ACLs, schedule a maintenance window to stop old consoles and start the three services.'
+'WinSW services are installed but remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'After reviewing service status and ACLs, schedule a separate maintenance-window cutover to stop old consoles and start the services.'
 'No .env content or Tunnel token was printed.'

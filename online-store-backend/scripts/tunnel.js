@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync, spawn } = require('child_process');
 
-const backendRoot = path.resolve(__dirname, '..');
+const backendRoot = path.resolve(process.env.LAPTOP_STORE_BACKEND_ROOT || path.join(__dirname, '..'));
 const isWindows = process.platform === 'win32';
 const config = path.join(backendRoot, '.cloudflared', isWindows ? 'config.windows.yml' : 'config.yaml');
 
