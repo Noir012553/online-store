@@ -78,6 +78,16 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Với runtime variable không thể đổi an toàn nóng, apply chỉ được qua deploy/restart orchestrator đã được xác nhận. Nếu chưa có integration này, UI chỉ lưu pending change và hướng dẫn vận hành; không ghi trực tiếp vào host/container.
 - Cloudflare Tunnel/DNS thao tác qua API độc lập với app config; kiểm tra API response và probe dịch vụ sau apply, rollback khi health check thất bại.
 
+## Quyết định: áp dụng cấu hình, restart và Cloudflare Tunnel
+
+- Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend, restart/kết nối lại Cloudflare Tunnel, rồi kiểm tra health của backend và tunnel.
+- Tác vụ phải chạy ngoài request handler của backend đang bị restart; UI nhận job ID và theo dõi trạng thái `queued`, `running`, `succeeded` hoặc `failed`. Chỉ cho phép một thao tác apply/restart cùng phạm vi chạy đồng thời; yêu cầu xác nhận trước khi chạy và ghi audit, không ghi secret vào log.
+- Nếu validate hoặc health check thất bại, không đánh dấu cấu hình là applied; giữ version trước để rollback và trả lỗi/trạng thái job rõ ràng. Không báo thành công chỉ vì tiến trình restart đã được gọi.
+- `npm run tunnel` hiện chạy `scripts/tunnel.js`, gọi `cloudflared tunnel run` với token hoặc file config. Lệnh này chỉ chạy Cloudflare Tunnel, không build/redeploy hay restart backend; không dùng nó một mình làm thao tác áp dụng cấu hình.
+- `src/scripts/deploy-seed.js` dừng API, chạy seed dữ liệu rồi khởi động service; không gọi script này từ Settings vì apply cấu hình không được phép kéo theo thao tác seed.
+- Tách `DeploymentAdapter` (restart/redeploy backend) và `TunnelAdapter` (restart/reconnect tunnel) khỏi UI và config service. Adapter chỉ gọi provider/service đã cấu hình sẵn, không nhận command, đường dẫn hoặc service name tùy ý từ request.
+- Khi đổi nền tảng deploy, chỉ thay/thêm adapter phù hợp; không đổi quy trình Settings hay cho phép ứng dụng tự chạy lệnh shell động trong thư mục dự án. Trước khi triển khai cần xác nhận backend và cloudflared đang chạy ở đâu, process manager nào quản lý chúng, cũng như quyền tối thiểu để restart.
+
 ## Các giai đoạn triển khai
 
 1. **Chốt allowlist**: phân loại từng key theo nhóm, validation, sensitivity, hot-reload/restart, impact và rollback; lập danh sách key bị cấm; xác nhận secrets runtime/KMS.
