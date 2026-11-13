@@ -83,11 +83,24 @@ const createHeartbeatPublisher = ({ store = settingsStore, privateKey, clock = D
 const processOneJob = async ({ store = settingsStore, adapter = createProcessAdapter() } = {}) => {
   const job = await store.claimApplyJob();
   if (!job) return false;
-  let activated = false;
+  let activated = job.status === 'applying' || job.status === 'rolling-back';
+  let rollingBack = job.status === 'rolling-back';
   try {
     store.normalizeSettings(job.settings);
-    await store.activateClaimedJob(job.id);
-    activated = true;
+    if (rollingBack) {
+      await adapter.restartBackend();
+      await adapter.waitForHealthyVersion(job.previousActive?.version || 0);
+      await store.completeApplyJob(job.id, {
+        succeeded: false,
+        rollbackVerified: true,
+        message: 'Apply failed; the previous settings version was restored and verified.',
+      });
+      return true;
+    }
+    if (!activated) {
+      await store.activateClaimedJob(job.id);
+      activated = true;
+    }
     await adapter.restartBackend();
     await adapter.waitForHealthyVersion(job.version);
     await store.completeApplyJob(job.id, {
@@ -95,9 +108,12 @@ const processOneJob = async ({ store = settingsStore, adapter = createProcessAda
       message: 'Settings activated and backend health/version check succeeded.',
     });
   } catch (error) {
-    let rollbackVerified = true;
+    let rollbackVerified = !activated;
     if (activated) {
-      await store.beginApplyRollback(job.id);
+      if (!rollingBack) {
+        await store.beginApplyRollback(job.id);
+        rollingBack = true;
+      }
       rollbackVerified = false;
       try {
         const previousVersion = job.previousActive?.version || 0;

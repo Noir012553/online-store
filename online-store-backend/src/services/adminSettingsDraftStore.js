@@ -16,6 +16,7 @@ const JOB_ID_PATTERN = /^[a-f0-9]{32}$/;
 const WORKER_PUBLIC_KEY_FILENAME = 'settings-worker-heartbeat-public.pem';
 const WORKER_ID = 'LaptopStoreSettingsApplyWorker';
 const HEARTBEAT_MAX_AGE_MS = 15000;
+const SETTINGS_LOCK_MAX_AGE_MS = 60000;
 
 class SettingsStoreError extends Error {
   constructor(code, statusCode, message) {
@@ -205,15 +206,9 @@ const recoverStaleLock = paths => {
     return false;
   }
   try {
-    let ownerPid;
-    try { ownerPid = Number(fs.readFileSync(paths.lock, 'utf8').trim()); } catch { return false; }
-    if (!Number.isSafeInteger(ownerPid) || ownerPid < 1) return false;
-    try {
-      process.kill(ownerPid, 0);
-      return false;
-    } catch (error) {
-      if (error.code !== 'ESRCH') return false;
-    }
+    let lockStat;
+    try { lockStat = fs.lstatSync(paths.lock); } catch { return false; }
+    if (!lockStat.isFile() || lockStat.isSymbolicLink() || Date.now() - lockStat.mtimeMs < SETTINGS_LOCK_MAX_AGE_MS) return false;
     try {
       fs.unlinkSync(paths.lock);
       return true;
@@ -366,7 +361,7 @@ const getApplyJob = async id => {
 const claimApplyJob = async () => withLock(async paths => {
   const state = readState(paths);
   if (!getWorkerStatusFromState(paths, state).available) return null;
-  const staleBefore = Date.now() - 120000;
+  const staleBefore = Date.now() - 600000;
   let index = state.jobs.findIndex(job => job.status === 'queued');
   if (index < 0) {
     index = state.jobs.findIndex(job => ['claimed', 'applying', 'rolling-back'].includes(job.status)
@@ -375,7 +370,8 @@ const claimApplyJob = async () => withLock(async paths => {
   }
   if (index < 0) return null;
   const existing = state.jobs[index];
-  const job = { ...existing, status: 'claimed', claimedAt: new Date().toISOString(), previousActive: existing.previousActive ?? state.active ?? null };
+  const recoveredStatus = existing.status === 'rolling-back' ? 'rolling-back' : existing.status === 'applying' ? 'applying' : 'claimed';
+  const job = { ...existing, status: recoveredStatus, claimedAt: new Date().toISOString(), previousActive: existing.previousActive ?? state.active ?? null };
   const jobs = [...state.jobs];
   jobs[index] = job;
   writeState(paths, { ...state, jobs });

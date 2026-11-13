@@ -92,6 +92,24 @@ describe('Fixed settings apply worker lifecycle', () => {
     expect(store.calls[0][2].succeeded).to.equal(false);
   });
 
+  it('resumes an interrupted rollback without reactivating failed settings', async () => {
+    const store = makeStore({
+      id: 'job-resume', status: 'rolling-back', version: 9,
+      settings: { EMAIL_PORT: '587' }, previousActive: { version: 7, settings: { EMAIL_PORT: '465' } },
+    });
+    const events = [];
+    await processOneJob({
+      store,
+      adapter: {
+        restartBackend: async () => events.push('restart'),
+        waitForHealthyVersion: async version => events.push(`healthy:${version}`),
+      },
+    });
+    expect(events).to.deep.equal(['restart', 'healthy:7']);
+    expect(store.calls.map(call => call[0])).to.deep.equal(['complete']);
+    expect(store.calls[0][2]).to.include({ succeeded: false, rollbackVerified: true });
+  });
+
   it('reports operator review when rollback health cannot be verified', async () => {
     const store = makeStore({ id: 'job-rollback', version: 9, settings: { EMAIL_PORT: '587' }, previousActive: { version: 7, settings: { EMAIL_PORT: '465' } } });
     const originalError = console.error;

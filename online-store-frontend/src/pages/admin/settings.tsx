@@ -237,6 +237,11 @@ function SettingsPage() {
   ), [values, baseline, secretInputs]);
 
   useEffect(() => {
+    if (applyJob && ['succeeded', 'failed', 'rollback-failed'].includes(applyJob.status)) {
+      void loadStatus();
+      void loadRuntimeSettings();
+      return;
+    }
     if (!applyJob || !['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status)) return;
     let cancelled = false;
     const timer = window.setTimeout(async () => {
@@ -329,6 +334,7 @@ function SettingsPage() {
   const cloudflareTone = status ? r2Tone === 'danger' || aiTone === 'danger' ? 'danger' : r2Tone === 'warning' || aiTone === 'warning' || !status.cloudflareOperations.tunnelManaged || !status.cloudflareOperations.dnsManaged ? 'warning' : 'good' : 'neutral';
   const securityReady = Boolean(status?.security.encryptedSecretStoreAvailable);
   const selectedGroups = settingsGroups.filter(group => group.section === activeSection);
+  const applyInProgress = Boolean(applyJob && ['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status));
 
   const renderEditableSettings = () => (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="editable-settings-title">
@@ -349,9 +355,9 @@ function SettingsPage() {
               return <label key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
                 <span className="min-w-0"><span className="block text-sm font-medium text-gray-700">{label}</span><code className="break-all text-[11px] text-gray-400">{key}</code></span>
                 {secret ? <span className="min-w-0">
-                  <input type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading} onChange={event => setSecretInputs(current => ({ ...current, [key]: event.target.value }))} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} />
+                  <input type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setSecretInputs(current => ({ ...current, [key]: event.target.value }))} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} />
                   <span className="mt-1 block text-xs text-gray-500">{isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Bí mật hiện tại không thể xem lại.' : 'Trạng thái: chưa cấu hình.'}</span>
-                </span> : <input type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
+                </span> : <input type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
               </label>;
             })}
           </div>
@@ -377,7 +383,7 @@ function SettingsPage() {
             {applyPollingError && <p role="alert" className="mt-1 text-sm text-red-700">{applyPollingError}</p>}
             {applyError && <p role="alert" className="mt-1 text-sm text-red-700">{applyError}</p>}
           </div>
-          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !status?.security.applyWorkerAvailable || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || Boolean(applyJob && ['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
+          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !status?.security.applyWorkerAvailable || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || applyInProgress} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
         </div>
       </div>
     </section>
@@ -385,7 +391,7 @@ function SettingsPage() {
 
   return <div className="mx-auto w-full max-w-7xl space-y-7 pb-10">
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="mb-3 flex items-center gap-2 text-sm text-gray-500"><span>{text('admin_crumb')}</span><ChevronRight className="h-4 w-4" /><span className="text-gray-800">{text('page_title')}</span></div><h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">{text('page_title')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">{text('page_description')}</p></div><span className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700"><LockKeyhole className="h-3.5 w-3.5" />{text('super_admin')}</span></div>
-    <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">Bí mật chỉ được ghi, không bao giờ hiển thị hoặc sao chép. Lưu bản nháp và áp dụng là hai thao tác riêng biệt.</p></div><button type="button" onClick={() => void refreshAll()} disabled={isLoading || valuesLoading || hasUnsavedChanges} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /></button></div>
+    <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">Bí mật chỉ được ghi, không bao giờ hiển thị hoặc sao chép. Lưu bản nháp và áp dụng là hai thao tác riêng biệt.</p></div><button type="button" onClick={() => void refreshAll()} disabled={isLoading || valuesLoading || hasUnsavedChanges || applyInProgress} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /></button></div>
     {loadError && <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert"><XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><div><p className="text-sm font-semibold text-red-900">{text('load_error_title')}</p><p className="mt-1 text-sm text-red-800">{text('load_error_hint')}</p></div></div>}
     <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
       <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">{sections.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => openSection(id)} aria-current={activeSection === id ? 'page' : undefined} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}><Icon className={`h-4 w-4 ${activeSection === id ? 'text-red-600' : 'text-gray-400'}`} />{text(label)}{activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}</button>)}<div className="mt-3 border-t border-gray-100 px-3 pt-3"><p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p></div></nav>
