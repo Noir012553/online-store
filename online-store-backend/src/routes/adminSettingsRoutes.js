@@ -5,7 +5,7 @@ const asyncHandler = require('express-async-handler');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
 const { getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const { getRuntimeSettings } = require('../services/adminSettingsRegistry');
+const { getRuntimeSettings, runtimeSettingRegistry } = require('../services/adminSettingsRegistry');
 const settingsDraftStore = require('../services/adminSettingsDraftStore');
 
 const router = express.Router();
@@ -33,6 +33,17 @@ router.get('/values', protect, superAdmin, asyncHandler(async (_req, res) => {
   noStore(res);
   res.status(200).json({ success: true, data: { settings } });
 }));
+
+router.get('/secrets/:key', protect, superAdmin, (req, res) => {
+  noStore(res);
+  const definition = runtimeSettingRegistry[req.params.key];
+  const value = environment[req.params.key];
+  if (!definition?.secret || !value?.trim()) {
+    res.status(404).json({ success: false, code: 'SETTINGS_SECRET_NOT_FOUND', message: 'Secret setting not found or not configured.' });
+    return;
+  }
+  res.status(200).json({ success: true, data: { value } });
+});
 
 router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
   const emailService = environment.EMAIL_SERVICE === 'sendgrid' ? 'sendgrid' : 'smtp';
@@ -125,7 +136,7 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
         dnsManaged: false,
       },
       security: {
-        secretsWriteOnly: true,
+        secretsRevealOnDemand: true,
         encryptedSecretStoreAvailable: storage.available,
         managedDraftAvailable: storage.available,
         applyWorkerAvailable: worker.available,
@@ -138,7 +149,8 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
 }));
 
 // API contract: GET /draft reads only the current version and non-secret settings;
-// secrets are returned as configured flags. PUT /draft requires { expectedVersion,
+// GET /secrets/:key reveals one allowlisted secret to a super-admin on request.
+// PUT /draft requires { expectedVersion,
 // settings }, rejects every key outside the editable allowlist, treats blank
 // secret values as "retain existing", and treats null as removal of a managed override.
 // POST /apply-jobs requires { expectedVersion }.
