@@ -38,7 +38,12 @@ const safePublicUrl = value => {
 router.get('/values', protect, superAdmin, asyncHandler(async (_req, res) => {
   const settings = Object.entries(environment)
     .filter(([key]) => isRuntimeSettingKey(key))
-    .map(([key, value]) => ({ key, value, secret: isSecretSettingKey(key) }))
+    .map(([key, value]) => {
+      const secret = isSecretSettingKey(key);
+      return secret
+        ? { key, secret: true, configured: Boolean(value?.trim()) }
+        : { key, secret: false, value };
+    })
     .sort((left, right) => left.key.localeCompare(right.key));
 
   res.set('Cache-Control', 'no-store');

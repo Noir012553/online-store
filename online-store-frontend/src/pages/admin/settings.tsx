@@ -30,7 +30,9 @@ import { INTL_LOCALES } from '../../lib/i18n/types';
 type SectionKey = 'overview' | 'branding' | 'email' | 'payment' | 'cloudflare' | 'security';
 type StatusTone = 'good' | 'warning' | 'danger' | 'neutral';
 type SettingsTextKey = string;
-type RuntimeSetting = { key: string; value: string; secret: boolean };
+type RuntimeSetting =
+  | { key: string; secret: true; configured: boolean }
+  | { key: string; secret: false; value: string };
 type SettingsStatus = {
   generatedAt: string;
   email: {
@@ -169,31 +171,26 @@ function SecretField({ label, configured }: { label: string; configured: boolean
 
 function RuntimeSettingRow({ setting }: { setting: RuntimeSetting }) {
   const text = useSettingsText();
-  const [visible, setVisible] = useState(false);
+  const value = setting.secret
+    ? setting.configured ? text('configured') : text('not_configured')
+    : setting.value;
 
   return (
     <div className="grid gap-2 border-t border-gray-100 py-3 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
       <code className="break-all text-xs font-semibold text-gray-700">{setting.key}</code>
-      <span className="relative block min-w-0">
+      {setting.secret ? (
+        <span className={`h-10 rounded-lg border px-3 py-2.5 text-xs font-medium ${setting.configured ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+          {value}
+        </span>
+      ) : (
         <input
-          type={visible || !setting.secret ? 'text' : 'password'}
-          value={setting.value}
+          type="text"
+          value={value}
           readOnly
           aria-readonly="true"
-          className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 pr-11 font-mono text-xs text-gray-700 outline-none"
+          className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3 font-mono text-xs text-gray-700 outline-none"
         />
-        {setting.secret && (
-          <button
-            type="button"
-            onClick={() => setVisible(current => !current)}
-            aria-label={text(visible ? 'hide_value' : 'show_value', { field: setting.key })}
-            aria-pressed={visible}
-            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center rounded-r-lg text-gray-500 transition hover:bg-gray-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          >
-            {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        )}
-      </span>
+      )}
     </div>
   );
 }
