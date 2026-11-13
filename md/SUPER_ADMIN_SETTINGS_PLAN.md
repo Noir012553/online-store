@@ -83,6 +83,8 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend, restart/kết nối lại Cloudflare Tunnel, rồi kiểm tra health của backend và tunnel.
 - Tác vụ phải chạy ngoài request handler của backend đang bị restart; UI nhận job ID và theo dõi trạng thái `queued`, `running`, `succeeded` hoặc `failed`. Chỉ cho phép một thao tác apply/restart cùng phạm vi chạy đồng thời; yêu cầu xác nhận trước khi chạy và ghi audit, không ghi secret vào log.
 - Nếu validate hoặc health check thất bại, không đánh dấu cấu hình là applied; giữ version trước để rollback và trả lỗi/trạng thái job rõ ràng. Không báo thành công chỉ vì tiến trình restart đã được gọi.
+- Không cho Settings sửa `PORT` hoặc tự chọn port tùy ý. Orchestrator phải dùng port đã cấu hình cho đúng service; trước khi restart xác minh port chưa bị tiến trình lạ chiếm. Nếu bind thất bại, dừng apply và không kill tiến trình chỉ dựa trên số port.
+- Health check phải gọi đúng host/port của backend vừa khởi động, có timeout và phân biệt instance/version cũ với instance mới. Xác nhận Tunnel origin service vẫn trỏ đúng địa chỉ và port; Tunnel kết nối được nhưng trỏ sai port không được xem là thành công.
 - `npm run tunnel` hiện chạy `scripts/tunnel.js`, gọi `cloudflared tunnel run` với token hoặc file config. Lệnh này chỉ chạy Cloudflare Tunnel, không build/redeploy hay restart backend; không dùng nó một mình làm thao tác áp dụng cấu hình.
 - `src/scripts/deploy-seed.js` dừng API, chạy seed dữ liệu rồi khởi động service; không gọi script này từ Settings vì apply cấu hình không được phép kéo theo thao tác seed.
 - Tách `DeploymentAdapter` (restart/redeploy backend) và `TunnelAdapter` (restart/reconnect tunnel) khỏi UI và config service. Adapter chỉ gọi provider/service đã cấu hình sẵn, không nhận command, đường dẫn hoặc service name tùy ý từ request.
@@ -107,6 +109,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Email: gửi thử thành công/thất bại, TLS/port, From/Reply-To và bảo đảm không làm lộ danh sách người nhận.
 - VNPay: kiểm tra sandbox, chữ ký, return/IPN URL; giữ callback đang chạy và không tạo giao dịch production trong test.
 - Env allowlist: key ngoài registry bị từ chối; test type/range/URL validation, secret masking, pending restart, invalid config giữ nguyên config hoạt động và rollback version.
+- Restart/port: port đang bị chiếm hoặc backend bind sai port thì job phải fail an toàn, không dừng tiến trình không thuộc service; health check và Tunnel origin phải xác nhận đúng host/port của backend mới.
 - Cloudflare: test quyền tối thiểu và allowlist; Tunnel ingress/hostname, DNS record validation, preview diff, apply, health check và rollback; xác minh upload/read R2; không log key/token.
 - Branding: upload file hợp lệ, từ chối file sai loại/quá dung lượng, preview và xác nhận logo dùng đúng ở header/email.
 - Gỡ hoặc vô hiệu hóa demo credentials ở môi trường production; đảm bảo tài khoản super-admin được bootstrap an toàn, không có mật khẩu mặc định dùng chung.
