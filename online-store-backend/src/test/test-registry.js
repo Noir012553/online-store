@@ -39,6 +39,14 @@ const TEST_SUITES = {
     ],
   },
 
+  settings: {
+    name: 'Super-admin Settings Security Tests',
+    category: 'LAYER 2',
+    importance: 'HIGH',
+    tags: ['settings', 'security', 'admin'],
+    files: ['admin-settings.test.js'],
+  },
+
   // LAYER 2: Core Entity Tests
   currency: {
     name: 'Currency Formatting Tests',

@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất; Save vẫn chưa khả dụng.
+Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và registry key tường minh cho `/values`; secret chỉ trả trạng thái cấu hình. Đã thêm kiểm thử allowlist, redaction và quyền truy cập nhưng chưa chạy được suite do môi trường thiếu dependency backend `dotenv`. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất; Save vẫn chưa khả dụng.
 
 ## Mục tiêu
 
