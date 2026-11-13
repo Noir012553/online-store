@@ -282,6 +282,7 @@ function SettingsPage() {
   const openSection = (section: SectionKey) => setActiveSection(section);
   const currentSection = sections.find((section) => section.id === activeSection) ?? sections[0];
   const CurrentIcon = currentSection.icon;
+  const cloudflareTokenSettings = runtimeSettings.filter(setting => /^CLOUDFLARE_API_TOKEN(?:_\d+)?$/.test(setting.key));
   const storeName = SITE_NAME;
   const supportEmail = 'noir002534@gmail.com';
   const supportPhone = t('contact_phone_display', 'footer');
@@ -452,7 +453,16 @@ function SettingsPage() {
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><DataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /></div>
                       <div className="mt-4">{status.cloudflareAi.models.length ? <DataField label={text('cloudflare_ai_title')} value={status.cloudflareAi.models.join(', ')} /> : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
-                      {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('cloudflare_api_token')} configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        {cloudflareTokenSettings.length > 0
+                          ? cloudflareTokenSettings.map(setting => <SecretStatus key={setting.key} label={setting.key} configured={setting.configured} />)
+                          : valuesLoading
+                            ? <p className="text-sm text-gray-500">{text('loading')}</p>
+                            : valuesError
+                              ? <p className="text-sm text-red-700">{text('runtime_settings_error')}</p>
+                              : <SecretStatus label={text('cloudflare_api_token')} configured={false} />}
+                        {status.cloudflareAi.accountIds.length > 0 && <DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} />}
+                      </div>
                     </div>
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div>
                     <SecretNotice text={text('cloudflare_secret_notice')} />
