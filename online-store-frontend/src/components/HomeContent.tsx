@@ -754,7 +754,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
             : isDesktopViewport
               ? index < slideCount && logicalIndex === currentSlide
               : index >= slideCount && index < slideCount * 2 && logicalIndex === currentSlide;
-          const isPriorityHeroSlide = index === 0 || index === slideCount;
+          const isPriorityHeroSlide = logicalIndex === currentSlide && (isDesktopSlide || (index >= slideCount && index < slideCount * 2));
           const href = slide.link?.trim();
           const isInternalLink = Boolean(href && href.startsWith('/'));
 
