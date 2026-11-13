@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Đề xuất triển khai; tài liệu này chỉ là kế hoạch, chưa thay đổi code tính năng.
+Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất; Save vẫn chưa khả dụng.
 
 ## Mục tiêu
 
@@ -78,6 +78,21 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Với runtime variable không thể đổi an toàn nóng, apply chỉ được qua deploy/restart orchestrator đã được xác nhận. Nếu chưa có integration này, UI chỉ lưu pending change và hướng dẫn vận hành; không ghi trực tiếp vào host/container.
 - Cloudflare Tunnel/DNS thao tác qua API độc lập với app config; kiểm tra API response và probe dịch vụ sau apply, rollback khi health check thất bại.
 
+## Quyết định: áp dụng cấu hình, restart và Cloudflare Tunnel
+
+- Hướng đã được duyệt cho host Windows: WinSW quản lý các service cố định cho backend và cloudflared; không dùng `npm run tunnel` như lệnh redeploy.
+- Hướng đã được duyệt cho secrets: file trong `ProgramData` được mã hóa bằng Windows DPAPI, không lưu secret vào MongoDB. Allowlist v1 gồm Email, VNPay, R2 upload policy/metadata và Cloudflare AI model/policy; secret chỉ nhập/rotate, API không đọc lại.
+- Trước khi bật ghi/apply cần chốt WinSW service names, service identity và ACL của thư mục `ProgramData`; DPAPI CurrentUser phụ thuộc identity và cần mã hóa lại nếu đổi service account. Chưa cài service hoặc thay đổi tiến trình host trong phiên này.
+- Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend rồi kiểm tra health. Chỉ restart/kết nối lại Cloudflare Tunnel khi chính cấu hình Tunnel thay đổi; cấu hình v1 Email/VNPay/R2/Cloudflare AI không tự restart Tunnel.
+- Tác vụ phải chạy ngoài request handler của backend đang bị restart; UI nhận job ID và theo dõi trạng thái `queued`, `running`, `succeeded` hoặc `failed`. Chỉ cho phép một thao tác apply/restart cùng phạm vi chạy đồng thời; yêu cầu xác nhận trước khi chạy và ghi audit, không ghi secret vào log.
+- Nếu validate hoặc health check thất bại, không đánh dấu cấu hình là applied; giữ version trước để rollback và trả lỗi/trạng thái job rõ ràng. Không báo thành công chỉ vì tiến trình restart đã được gọi.
+- Không cho Settings sửa `PORT` hoặc tự chọn port tùy ý. Orchestrator phải dùng port đã cấu hình cho đúng service; trước khi restart xác minh port chưa bị tiến trình lạ chiếm. Nếu bind thất bại, dừng apply và không kill tiến trình chỉ dựa trên số port.
+- Health check phải gọi đúng host/port của backend vừa khởi động, có timeout và phân biệt instance/version cũ với instance mới. Xác nhận Tunnel origin service vẫn trỏ đúng địa chỉ và port; Tunnel kết nối được nhưng trỏ sai port không được xem là thành công.
+- `npm run tunnel` chạy `scripts/tunnel.js` để khởi chạy Cloudflare Tunnel; token mới được truyền cho tiến trình cloudflared qua `TUNNEL_TOKEN`, không còn nằm trong command-line arguments. Tiến trình tunnel đang chạy theo cách cũ chỉ đổi sau khi được restart; `npm run tunnel` không build/redeploy hay restart backend.
+- `src/scripts/deploy-seed.js` dừng API, chạy seed dữ liệu rồi khởi động service; không gọi script này từ Settings vì apply cấu hình không được phép kéo theo thao tác seed.
+- Tách `DeploymentAdapter` (restart/redeploy backend) và `TunnelAdapter` (restart/reconnect tunnel) khỏi UI và config service. Adapter chỉ gọi provider/service đã cấu hình sẵn, không nhận command, đường dẫn hoặc service name tùy ý từ request.
+- Khi đổi nền tảng deploy, chỉ thay/thêm adapter phù hợp; không đổi quy trình Settings hay cho phép ứng dụng tự chạy lệnh shell động trong thư mục dự án. Trước khi triển khai cần xác nhận backend và cloudflared đang chạy ở đâu, process manager nào quản lý chúng, cũng như quyền tối thiểu để restart.
+
 ## Các giai đoạn triển khai
 
 1. **Chốt allowlist**: phân loại từng key theo nhóm, validation, sensitivity, hot-reload/restart, impact và rollback; lập danh sách key bị cấm; xác nhận secrets runtime/KMS.
@@ -97,6 +112,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Email: gửi thử thành công/thất bại, TLS/port, From/Reply-To và bảo đảm không làm lộ danh sách người nhận.
 - VNPay: kiểm tra sandbox, chữ ký, return/IPN URL; giữ callback đang chạy và không tạo giao dịch production trong test.
 - Env allowlist: key ngoài registry bị từ chối; test type/range/URL validation, secret masking, pending restart, invalid config giữ nguyên config hoạt động và rollback version.
+- Restart/port: port đang bị chiếm hoặc backend bind sai port thì job phải fail an toàn, không dừng tiến trình không thuộc service; health check và Tunnel origin phải xác nhận đúng host/port của backend mới.
 - Cloudflare: test quyền tối thiểu và allowlist; Tunnel ingress/hostname, DNS record validation, preview diff, apply, health check và rollback; xác minh upload/read R2; không log key/token.
 - Branding: upload file hợp lệ, từ chối file sai loại/quá dung lượng, preview và xác nhận logo dùng đúng ở header/email.
 - Gỡ hoặc vô hiệu hóa demo credentials ở môi trường production; đảm bảo tài khoản super-admin được bootstrap an toàn, không có mật khẩu mặc định dùng chung.

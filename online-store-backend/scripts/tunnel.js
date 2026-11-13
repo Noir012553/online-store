@@ -3,9 +3,9 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 
-const backendRoot = path.resolve(__dirname, '..');
+const backendRoot = path.resolve(process.env.LAPTOP_STORE_BACKEND_ROOT || path.join(__dirname, '..'));
 const isWindows = process.platform === 'win32';
 const config = path.join(backendRoot, '.cloudflared', isWindows ? 'config.windows.yml' : 'config.yaml');
 
@@ -65,21 +65,32 @@ const resolveExecutable = () => {
   );
 };
 
+const readDpapiSecret = filePath => execFileSync(
+  path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+  ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'read-dpapi-secret.ps1'), filePath],
+  { encoding: 'utf8', windowsHide: true },
+).trim();
+
 const startTunnel = () => {
   const executable = resolveExecutable();
+  const protectedTokenFile = process.env.CLOUDFLARED_TUNNEL_TOKEN_DPAPI_FILE?.trim();
+  const tokenFromDpapi = protectedTokenFile ? readDpapiSecret(protectedTokenFile) : '';
   const tokenFile = process.env.CLOUDFLARED_TUNNEL_TOKEN_FILE?.trim()
     || (isWindows ? path.join(os.homedir(), '.cloudflared', 'online-store.token') : null);
   const tokenFromFile = tokenFile && fs.existsSync(tokenFile)
     ? fs.readFileSync(tokenFile, 'utf8').trim()
     : '';
-  const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim() || tokenFromFile;
+  const token = process.env.CLOUDFLARED_TUNNEL_TOKEN?.trim()
+    || process.env.TUNNEL_TOKEN?.trim()
+    || tokenFromDpapi
+    || tokenFromFile;
 
   if (isWindows && !token) {
     throw new Error(`Cloudflare tunnel token not found. Create ${tokenFile} or set CLOUDFLARED_TUNNEL_TOKEN`);
   }
 
   const args = token
-    ? ['tunnel', 'run', '--token', token]
+    ? ['tunnel', 'run']
     : ['tunnel', '--protocol', 'auto', '--ha-connections', '2', '--config', config, 'run'];
 
   if (!token && !fs.existsSync(config)) {
@@ -88,6 +99,8 @@ const startTunnel = () => {
 
   const childEnv = { ...process.env };
   delete childEnv.CLOUDFLARED_TUNNEL_TOKEN;
+  delete childEnv.TUNNEL_TOKEN;
+  if (token) childEnv.TUNNEL_TOKEN = token;
 
   const child = spawn(executable, args, {
     cwd: backendRoot,
@@ -95,17 +108,23 @@ const startTunnel = () => {
     stdio: 'inherit',
   });
 
+  let stopRequested = false;
+  const forwardStopSignal = signal => {
+    stopRequested = true;
+    if (child.exitCode !== null) return;
+    child.kill(signal);
+  };
+
+  process.on('SIGINT', () => forwardStopSignal('SIGINT'));
+  process.on('SIGTERM', () => forwardStopSignal('SIGTERM'));
+
   child.on('error', error => {
     console.error(`Unable to start cloudflared: ${error.message}`);
     process.exitCode = 1;
   });
 
   child.on('exit', (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-    process.exitCode = code ?? 1;
+    process.exitCode = signal && stopRequested ? 0 : code ?? 1;
   });
 };
 

@@ -20,6 +20,7 @@ import {
   Languages,
   Globe,
   DollarSign,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -97,6 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       loadNamespace('admin-notifications'),
       loadNamespace('admin-orders'),
       loadNamespace('admin-translation'),
+      loadNamespace('admin-settings'),
       loadNamespace('admin-users'),
       loadNamespace('export'),
       loadNamespace('import'),
@@ -244,6 +246,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             { path: "/admin/translationsDynamic", icon: Globe, label: t('admin_products_translations', 'admin-common') },
           ],
         },
+      },
+    ] : []),
+    ...(user?.role === 'super-admin' ? [
+      {
+        type: "link" as const,
+        id: "settings",
+        item: { path: "/admin/settings", icon: Settings, label: t('menu_label', 'admin-settings') },
       },
     ] : []),
   ] : [];
