@@ -215,7 +215,7 @@ $tunnelEnvironment</service>
     & $exePath install $xmlPath
     if ($LASTEXITCODE -ne 0) { throw "WinSW install failed for $($service.Id)." }
     if ($service.Id -eq 'LaptopStoreBackend') { $serviceDaclBackups[$service.Id] = Get-ServiceDacl $service.Id }
-    & sc.exe config $service.Id 'obj=' "NT SERVICE\$($service.Id)" | Out-Null
+    & sc.exe config $service.Id 'obj=' "NT SERVICE\$($service.Id)" 'password=' '' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not assign the virtual service account to $($service.Id)." }
     & sc.exe config $service.Id 'start=' 'demand' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not keep $($service.Id) stopped until cutover." }

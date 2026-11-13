@@ -377,7 +377,7 @@ function SettingsPage() {
             {applyPollingError && <p role="alert" className="mt-1 text-sm text-red-700">{applyPollingError}</p>}
             {applyError && <p role="alert" className="mt-1 text-sm text-red-700">{applyError}</p>}
           </div>
-          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || Boolean(applyJob && ['queued', 'running'].includes(applyJob.status))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
+          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !status?.security.applyWorkerAvailable || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || Boolean(applyJob && ['queued', 'running'].includes(applyJob.status))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
         </div>
       </div>
     </section>
