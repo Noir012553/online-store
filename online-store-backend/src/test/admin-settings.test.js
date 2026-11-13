@@ -104,12 +104,18 @@ describe('Super-admin settings boundary', () => {
   it('requires authentication and rejects non-super-admin roles', async () => {
     const anonymous = await request(app).get('/api/admin/settings/values');
     expect(anonymous.status).to.equal(401);
+    const anonymousSecret = await request(app).get('/api/admin/settings/secrets/EMAIL_PASSWORD');
+    expect(anonymousSecret.status).to.equal(401);
 
     const token = authenticateAs('admin');
     const adminResponse = await request(app)
       .get('/api/admin/settings/values')
       .set('Authorization', `Bearer ${token}`);
     expect(adminResponse.status).to.equal(403);
+    const adminSecret = await request(app)
+      .get('/api/admin/settings/secrets/EMAIL_PASSWORD')
+      .set('Authorization', `Bearer ${token}`);
+    expect(adminSecret.status).to.equal(403);
   });
 
   it('returns the allowlisted status without secret values and disables caching', async () => {
@@ -130,5 +136,27 @@ describe('Super-admin settings boundary', () => {
     expect(response.text).not.to.include('cloudflare-test-secret');
     expect(response.text).not.to.include('unapproved-cloudflare-test-secret');
     expect(response.text).not.to.include('jwt-test-secret');
+  });
+
+  it('reveals only a requested configured secret to super admins without caching', async () => {
+    const token = authenticateAs('super-admin');
+    const response = await request(app)
+      .get('/api/admin/settings/secrets/EMAIL_PASSWORD')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).to.equal(200);
+    expect(response.headers['cache-control']).to.equal('no-store, private');
+    expect(response.body).to.deep.equal({ success: true, data: { value: 'email-test-secret' } });
+    expect(response.text).not.to.include('sendgrid-test-secret');
+
+    const nonSecret = await request(app)
+      .get('/api/admin/settings/secrets/EMAIL_HOST')
+      .set('Authorization', `Bearer ${token}`);
+    expect(nonSecret.status).to.equal(404);
+
+    const unapproved = await request(app)
+      .get('/api/admin/settings/secrets/CLOUDFLARE_API_TOKEN_14')
+      .set('Authorization', `Bearer ${token}`);
+    expect(unapproved.status).to.equal(404);
   });
 });

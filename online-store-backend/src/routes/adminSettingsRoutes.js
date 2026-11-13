@@ -3,7 +3,7 @@ const asyncHandler = require('express-async-handler');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
 const { getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const { getRuntimeSettings } = require('../services/adminSettingsRegistry');
+const { getRuntimeSettings, runtimeSettingRegistry } = require('../services/adminSettingsRegistry');
 
 const router = express.Router();
 
@@ -24,6 +24,21 @@ const safePublicUrl = value => {
     return '';
   }
 };
+
+router.get('/secrets/:key', protect, superAdmin, asyncHandler(async (req, res) => {
+  const { key } = req.params;
+  const definition = runtimeSettingRegistry[key];
+  const value = environment[key];
+
+  if (definition?.secret !== true || !value?.trim()) {
+    res.status(404).json({ success: false, message: 'Secret not available' });
+    return;
+  }
+
+  console.info('[AdminSettings] Secret revealed', { userId: String(req.user._id), key });
+  res.set({ 'Cache-Control': 'no-store, private', Pragma: 'no-cache' });
+  res.status(200).json({ success: true, data: { value } });
+}));
 
 router.get('/values', protect, superAdmin, asyncHandler(async (_req, res) => {
   const settings = getRuntimeSettings(environment);
@@ -122,7 +137,7 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
         dnsManaged: false,
       },
       security: {
-        secretValuesReturned: false,
+        secretsRequireExplicitReveal: true,
         encryptedSecretStoreAvailable: false,
         managedOverridesAvailable: false,
         restartRequiredGroups: ['VNPay', 'Email', 'R2', 'Cloudflare AI'],

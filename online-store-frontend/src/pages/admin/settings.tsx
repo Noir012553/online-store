@@ -88,7 +88,7 @@ type SettingsStatus = {
   };
   cloudflareOperations: { tunnelManaged: boolean; dnsManaged: boolean };
   security: {
-    secretValuesReturned: false;
+    secretsRequireExplicitReveal: true;
     encryptedSecretStoreAvailable: boolean;
     managedOverridesAvailable: boolean;
     restartRequiredGroups: string[];
@@ -193,14 +193,75 @@ function DataField({ label, value }: { label: string; value: string | number }) 
   );
 }
 
-function SecretStatus({ label, configured }: { label: string; configured: boolean }) {
+function MaskableSecret({ label, settingKey, configured }: { label: string; settingKey: string; configured: boolean }) {
+  const [value, setValue] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [revealError, setRevealError] = useState(false);
   const text = useSettingsText();
+
+  const fetchSecret = async () => {
+    const response = await apiCall<{ success: boolean; data: { value: string } }>(
+      `/admin/settings/secrets/${encodeURIComponent(settingKey)}`,
+      { skipCache: true, skipErrorToast: true },
+    );
+    return response.data.value;
+  };
+
+  const toggleVisible = async () => {
+    if (visible) {
+      setVisible(false);
+      setValue(null);
+      return;
+    }
+    setLoading(true);
+    setRevealError(false);
+    try {
+      setValue(await fetchSecret());
+      setVisible(true);
+    } catch {
+      setRevealError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyValue = async () => {
+    setLoading(true);
+    setRevealError(false);
+    try {
+      await navigator.clipboard.writeText(await fetchSecret());
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setRevealError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3.5">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-      <span className={`text-xs font-semibold ${configured ? 'text-emerald-700' : 'text-amber-700'}`}>
-        {configured ? text('configured') : text('not_configured')}
-      </span>
+    <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
+        <input
+          type="text"
+          value={!configured ? text('not_configured') : visible && value !== null ? value : '*****'}
+          readOnly
+          aria-label={label}
+          aria-readonly="true"
+          className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3 font-mono text-xs text-gray-700 outline-none"
+        />
+        {configured && <>
+          <button type="button" disabled={loading} aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })} aria-pressed={visible} onClick={() => void toggleVisible()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50">
+            {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          </button>
+          <button type="button" disabled={loading} aria-label={text(copied ? 'copied_value' : 'copy_value', { field: label })} onClick={() => void copyValue()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50">
+            {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        </>}
+      </div>
+      {revealError && <p role="alert" className="mt-1 text-xs text-red-700">{text('runtime_settings_error')}</p>}
     </div>
   );
 }
@@ -213,9 +274,7 @@ function RuntimeSettingRow({ setting }: { setting: RuntimeSetting }) {
       <code className="break-all text-xs font-semibold text-gray-700">{setting.key}</code>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {setting.secret ? (
-          <span className={`h-10 rounded-lg border px-3 py-2.5 text-xs font-medium ${setting.configured ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-            {setting.configured ? text('configured') : text('not_configured')}
-          </span>
+          <MaskableSecret label={setting.key} settingKey={setting.key} configured={setting.configured} />
         ) : (
           <MaskableValue
             label={setting.key}
@@ -432,21 +491,21 @@ function SettingsPage() {
                 {activeSection === 'email' && status && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label={text('smtp_host')} value={status.email.host} /><DataField label={text('port')} value={status.email.port} /><DataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><DataField label={text('smtp_account')} value={status.email.account} /><DataField label={text('from_address')} value={status.email.from} /></div>
-                    <div className="grid gap-4 sm:grid-cols-2"><SecretStatus label={text('smtp_password')} configured={status.email.passwordConfigured} /><SecretStatus label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} /></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><MaskableSecret label={text('smtp_password')} settingKey="EMAIL_PASSWORD" configured={status.email.passwordConfigured} /><MaskableSecret label={text('sendgrid_api_key')} settingKey="SENDGRID_API_KEY" configured={status.email.sendgridKeyConfigured} /></div>
                     <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'payment' && status && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('environment')} value={text(status.payment.mode)} /><DataField label={text('merchant_code')} value={status.payment.merchantCode} /><DataField label={text('endpoint')} value={status.payment.endpoint} /><DataField label={text('return_url')} value={status.payment.returnUrl} /><DataField label={text('callback_url')} value={status.payment.callbackUrl} /></div>
-                    <SecretStatus label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} />
+                    <MaskableSecret label={text('vnpay_hash_secret')} settingKey="VNPAY_HASH_SECRET" configured={status.payment.secretConfigured} />
                     <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'cloudflare' && status && (
                   <>
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div>
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('r2_access_key')} configured={status.r2.credentialsConfigured} /><SecretStatus label={text('r2_secret_key')} configured={status.r2.credentialsConfigured} /></div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">{runtimeSettings.filter(setting => setting.secret && /^R2_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY)(?:_\d+)?$/.test(setting.key)).map(setting => <MaskableSecret key={setting.key} label={setting.key} settingKey={setting.key} configured={setting.configured} />)}</div>
                       {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4"><MaskableValue label={`${text('account_id')} ${account.id}`} value={account.accountId} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td><td className="py-2 pr-4"><MaskableValue label={`${text('bucket')} ${account.id}`} value={account.bucket} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td><td className="break-all py-2"><MaskableValue label={`${text('public_base_url')} ${account.id}`} value={account.publicBaseUrl} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td></tr>)}</tbody></table></div>}
                       <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><DataField label={text('max_files')} value={status.r2.policy.maxAssets} /><DataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div>
                     </div>
@@ -455,12 +514,12 @@ function SettingsPage() {
                       <div className="mt-4">{status.cloudflareAi.models.length ? <DataField label={text('cloudflare_ai_title')} value={status.cloudflareAi.models.join(', ')} /> : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {cloudflareTokenSettings.length > 0
-                          ? cloudflareTokenSettings.map(setting => <SecretStatus key={setting.key} label={setting.key} configured={setting.configured} />)
+                          ? cloudflareTokenSettings.map(setting => <MaskableSecret key={setting.key} label={setting.key} settingKey={setting.key} configured={setting.configured} />)
                           : valuesLoading
                             ? <p className="text-sm text-gray-500">{text('loading')}</p>
                             : valuesError
                               ? <p className="text-sm text-red-700">{text('runtime_settings_error')}</p>
-                              : <SecretStatus label={text('cloudflare_api_token')} configured={false} />}
+                              : <span className="text-sm text-gray-500">{text('not_configured')}</span>}
                         {status.cloudflareAi.accountIds.length > 0 && <DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} />}
                       </div>
                     </div>
