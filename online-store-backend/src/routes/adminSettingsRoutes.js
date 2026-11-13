@@ -139,8 +139,9 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
 
 // API contract: GET /draft reads only the current version and non-secret settings;
 // secrets are returned as configured flags. PUT /draft requires { expectedVersion,
-// settings }, rejects every key outside the editable allowlist, and treats blank
-// secret values as "retain existing". POST /apply-jobs requires { expectedVersion }.
+// settings }, rejects every key outside the editable allowlist, treats blank
+// secret values as "retain existing", and treats null as removal of a managed override.
+// POST /apply-jobs requires { expectedVersion }.
 // Apply jobs are durable and accepted only while the fixed worker's signed heartbeat is fresh.
 router.get('/draft', protect, superAdmin, asyncHandler(async (_req, res) => {
   noStore(res);

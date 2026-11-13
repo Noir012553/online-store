@@ -122,11 +122,15 @@ describe('Super-admin settings boundary', () => {
       EMAIL_PORT: '587',
       VNPAY_ENDPOINT: 'https://sandbox.vnpayment.vn/paygate',
       EMAIL_PASSWORD: '',
+      SENDGRID_API_KEY: null,
+      VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
     });
     expect(normalized).to.deep.equal({
       EMAIL_PORT: '587',
       VNPAY_ENDPOINT: 'https://sandbox.vnpayment.vn/paygate',
+      SENDGRID_API_KEY: null,
+      VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
     });
     expect(() => settingsDraftStore.normalizeSettings({ JWT_SECRET: 'nope' })).to.throw(/not editable/);

@@ -36,7 +36,7 @@ type RuntimeSetting = {
   valid: boolean | null;
   restartRequired: boolean;
 } & ({ secret: true } | { secret: false; value: string });
-type DraftSetting = string | { configured: boolean };
+type DraftSetting = string | { configured: boolean; reset?: boolean } | null;
 type SettingsDraft = { version: number; settings: Record<string, DraftSetting> };
 type ApplyJob = {
   id: string;
@@ -146,6 +146,7 @@ function SettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [baseline, setBaseline] = useState<Record<string, string>>({});
   const [secretInputs, setSecretInputs] = useState<Record<string, string>>({});
+  const [secretResets, setSecretResets] = useState<Record<string, boolean>>({});
   const [secretConfigured, setSecretConfigured] = useState<Record<string, boolean>>({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -203,7 +204,11 @@ function SettingsPage() {
         Object.entries(loadedDraft.settings).forEach(([key, value]) => {
           if (!allowedKeys.has(key)) return;
           if (secretKeys.has(key)) {
-            if (typeof value === 'object' && value !== null) configuredSecrets[key] = value.configured;
+            if (typeof value === 'object' && value !== null) {
+              configuredSecrets[key] = value.configured;
+            }
+          } else if (value === null) {
+            liveValues[key] = '';
           } else if (typeof value === 'string') {
             liveValues[key] = value;
           }
@@ -214,6 +219,7 @@ function SettingsPage() {
       setValues(liveValues);
       setBaseline(liveValues);
       setSecretInputs({});
+      setSecretResets({});
       setSecretConfigured(configuredSecrets);
     } catch {
       setDraftLoadError('Không thể tải bản nháp cài đặt. Vui lòng thử làm mới trang.');
@@ -234,7 +240,8 @@ function SettingsPage() {
   const hasUnsavedChanges = useMemo(() => (
     Object.keys(values).some(key => (values[key] ?? '') !== (baseline[key] ?? ''))
     || Object.values(secretInputs).some(value => value.length > 0)
-  ), [values, baseline, secretInputs]);
+    || Object.values(secretResets).some(Boolean)
+  ), [values, baseline, secretInputs, secretResets]);
 
   useEffect(() => {
     if (applyJob && ['succeeded', 'failed', 'rollback-failed'].includes(applyJob.status)) {
@@ -263,6 +270,14 @@ function SettingsPage() {
 
   const setFieldValue = (key: string, value: string) => setValues(current => ({ ...current, [key]: value }));
   const isSecretConfigured = (key: string) => secretConfigured[key] ?? false;
+  const isSecretResetSaved = (key: string) => {
+    const value = draft?.settings[key];
+    return typeof value === 'object' && value !== null && value.reset === true;
+  };
+  const isSecretDraftConfigured = (key: string) => {
+    const value = draft?.settings[key];
+    return typeof value === 'object' && value !== null && value.configured;
+  };
 
   const saveDraft = async () => {
     setSaveLoading(true);
@@ -270,13 +285,12 @@ function SettingsPage() {
     setSaveMessage('');
     try {
       const changedKeys = [...allowedKeys].filter(key => secretKeys.has(key)
-        ? Boolean(secretInputs[key])
+        ? Boolean(secretInputs[key]) || Boolean(secretResets[key])
         : (values[key] ?? '') !== (baseline[key] ?? ''));
-      if (changedKeys.some(key => !secretKeys.has(key) && !(values[key] ?? '').trim())) {
-        setSaveError('Không thể lưu giá trị trống. Hãy khôi phục giá trị hoặc nhập giá trị mới.');
-        return;
-      }
-      const settings = Object.fromEntries(changedKeys.map(key => [key, secretKeys.has(key) ? secretInputs[key] : values[key]]));
+      const settings = Object.fromEntries(changedKeys.map(key => [
+        key,
+        secretKeys.has(key) ? secretResets[key] ? null : secretInputs[key] : (values[key] ?? '').trim() || null,
+      ]));
       const response = await apiCall<{ success: boolean; data: { draft: SettingsDraft } }>('/admin/settings/draft', {
         method: 'PUT', body: JSON.stringify({ expectedVersion: draftVersion, settings }), skipErrorToast: true,
       });
@@ -286,10 +300,11 @@ function SettingsPage() {
       const nextBaseline = { ...values };
       setBaseline(nextBaseline);
       setSecretInputs({});
+      setSecretResets({});
       setSecretConfigured(current => {
         const next = { ...current };
         Object.entries(secretInputs).forEach(([key, value]) => { if (secretKeys.has(key) && value.length > 0) next[key] = true; });
-        Object.entries(savedDraft.settings).forEach(([key, value]) => { if (secretKeys.has(key) && typeof value === 'object') next[key] = value.configured; });
+        Object.entries(savedDraft.settings).forEach(([key, value]) => { if (secretKeys.has(key) && typeof value === 'object' && value !== null) next[key] = value.configured; });
         return next;
       });
       setSaveMessage(`Đã lưu bản nháp phiên bản ${savedDraft.version}. Cài đặt chưa được áp dụng.`);
@@ -352,13 +367,24 @@ function SettingsPage() {
             {group.keys.map(key => {
               const secret = secretKeys.has(key);
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
-              return <label key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
-                <span className="min-w-0"><span className="block text-sm font-medium text-gray-700">{label}</span><code className="break-all text-[11px] text-gray-400">{key}</code></span>
+              return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
+                <span className="min-w-0"><label htmlFor={`settings-${key}`} className="block text-sm font-medium text-gray-700">{label}</label><code className="break-all text-[11px] text-gray-400">{key}</code></span>
                 {secret ? <span className="min-w-0">
-                  <input type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setSecretInputs(current => ({ ...current, [key]: event.target.value }))} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} />
-                  <span className="mt-1 block text-xs text-gray-500">{isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Bí mật hiện tại không thể xem lại.' : 'Trạng thái: chưa cấu hình.'}</span>
-                </span> : <input type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
-              </label>;
+                  <input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
+                    setSecretInputs(current => ({ ...current, [key]: event.target.value }));
+                    setSecretResets(current => ({ ...current, [key]: false }));
+                  }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} />
+                  <span className="mt-1 block text-xs text-gray-500">{secretResets[key] ? 'Sẽ xóa bí mật được quản lý khi lưu; giá trị môi trường có thể được dùng lại.' : isSecretResetSaved(key) ? 'Override được quản lý đã bị xóa; giá trị môi trường có thể vẫn được dùng.' : isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Bí mật hiện tại không thể xem lại.' : 'Trạng thái: chưa cấu hình.'}</span>
+                  {(secretResets[key] && !isSecretResetSaved(key)) || (!secretResets[key] && isSecretDraftConfigured(key)) ? <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
+                    if (secretResets[key]) {
+                      setSecretResets(current => ({ ...current, [key]: false }));
+                    } else {
+                      setSecretInputs(current => ({ ...current, [key]: '' }));
+                      setSecretResets(current => ({ ...current, [key]: true }));
+                    }
+                  }} className="mt-1 text-xs font-medium text-red-700 underline disabled:opacity-50">{secretResets[key] ? 'Hủy xóa' : 'Xóa cấu hình quản lý'}</button> : null}
+                </span> : <input id={`settings-${key}`} type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
+              </div>;
             })}
           </div>
         </div>
@@ -373,7 +399,7 @@ function SettingsPage() {
         </div>
         {saveError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{saveError}</p>}
         {saveMessage && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{saveMessage}</p>}
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">Áp dụng cài đặt có thể yêu cầu khởi động lại dịch vụ. Ứng dụng không tự khởi động lại dịch vụ sau khi áp dụng.</div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">Worker sẽ khởi động lại backend LaptopStoreBackend để áp dụng và kiểm tra cấu hình; thao tác có thể làm gián đoạn yêu cầu đang chạy. Cloudflare Tunnel không bị khởi động lại.</div>
         {status && !status.security.applyWorkerAvailable && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Worker WinSW chưa hoạt động hoặc chưa được xác minh. Nút áp dụng sẽ bị khóa; không có dịch vụ nào được khởi động lại và bản nháp chưa có hiệu lực.</p>}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 flex-1">

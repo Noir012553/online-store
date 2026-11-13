@@ -45,8 +45,12 @@ const normalizeSettings = input => {
   const settings = {};
   for (const key of keys) {
     const value = input[key];
-    if (typeof value !== 'string') throw invalid(`Setting ${key} must be a string.`);
     const definition = editableSettingRegistry[key];
+    if (value === null) {
+      settings[key] = null;
+      continue;
+    }
+    if (typeof value !== 'string') throw invalid(`Setting ${key} must be a string.`);
     if (definition.secret && value.trim() === '') continue;
     if (value.length > (definition.secret ? MAX_SECRET_CHARS : 2048)) throw invalid(`Setting ${key} is too long.`);
     if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) throw invalid(`Setting ${key} contains invalid characters.`);
@@ -248,7 +252,9 @@ const draftSummary = draft => {
   if (!draft) return null;
   const settings = {};
   for (const [key, value] of Object.entries(draft.settings)) {
-    settings[key] = isSecret(key) ? { configured: Boolean(value) } : value;
+    settings[key] = isSecret(key)
+      ? { configured: typeof value === 'string' && Boolean(value), reset: value === null }
+      : value;
   }
   return { version: draft.version, updatedAt: draft.updatedAt, updatedBy: draft.updatedBy, settings };
 };
@@ -427,7 +433,9 @@ const loadActiveOverrides = () => {
     throw unavailable('Active settings state is invalid.');
   }
   const settings = normalizeSettings(active.settings);
-  for (const [key, value] of Object.entries(settings)) process.env[key] = value;
+  for (const [key, value] of Object.entries(settings)) {
+    if (value !== null) process.env[key] = value;
+  }
   return { version: active.version, loaded: true };
 };
 
