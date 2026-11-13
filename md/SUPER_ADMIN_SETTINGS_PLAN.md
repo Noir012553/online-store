@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Versioned config store, DPAPI/ProgramData persistence, ghi/apply, Cloudflare operations và restart adapters chưa hoàn tất.
+Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất; Save vẫn chưa khả dụng.
 
 ## Mục tiêu
 
@@ -88,7 +88,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Nếu validate hoặc health check thất bại, không đánh dấu cấu hình là applied; giữ version trước để rollback và trả lỗi/trạng thái job rõ ràng. Không báo thành công chỉ vì tiến trình restart đã được gọi.
 - Không cho Settings sửa `PORT` hoặc tự chọn port tùy ý. Orchestrator phải dùng port đã cấu hình cho đúng service; trước khi restart xác minh port chưa bị tiến trình lạ chiếm. Nếu bind thất bại, dừng apply và không kill tiến trình chỉ dựa trên số port.
 - Health check phải gọi đúng host/port của backend vừa khởi động, có timeout và phân biệt instance/version cũ với instance mới. Xác nhận Tunnel origin service vẫn trỏ đúng địa chỉ và port; Tunnel kết nối được nhưng trỏ sai port không được xem là thành công.
-- `npm run tunnel` hiện chạy `scripts/tunnel.js`, gọi `cloudflared tunnel run` với token hoặc file config. Lệnh này chỉ chạy Cloudflare Tunnel, không build/redeploy hay restart backend; không dùng nó một mình làm thao tác áp dụng cấu hình.
+- `npm run tunnel` chạy `scripts/tunnel.js` để khởi chạy Cloudflare Tunnel; token mới được truyền cho tiến trình cloudflared qua `TUNNEL_TOKEN`, không còn nằm trong command-line arguments. Tiến trình tunnel đang chạy theo cách cũ chỉ đổi sau khi được restart; `npm run tunnel` không build/redeploy hay restart backend.
 - `src/scripts/deploy-seed.js` dừng API, chạy seed dữ liệu rồi khởi động service; không gọi script này từ Settings vì apply cấu hình không được phép kéo theo thao tác seed.
 - Tách `DeploymentAdapter` (restart/redeploy backend) và `TunnelAdapter` (restart/reconnect tunnel) khỏi UI và config service. Adapter chỉ gọi provider/service đã cấu hình sẵn, không nhận command, đường dẫn hoặc service name tùy ý từ request.
 - Khi đổi nền tảng deploy, chỉ thay/thêm adapter phù hợp; không đổi quy trình Settings hay cho phép ứng dụng tự chạy lệnh shell động trong thư mục dự án. Trước khi triển khai cần xác nhận backend và cloudflared đang chạy ở đâu, process manager nào quản lý chúng, cũng như quyền tối thiểu để restart.

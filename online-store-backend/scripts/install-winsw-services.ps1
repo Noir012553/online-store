@@ -196,19 +196,32 @@ $tunnelEnvironment</service>
   }
 
 } catch {
+  $rollbackFailures = @()
   for ($index = $createdServices.Count - 1; $index -ge 0; $index -= 1) {
     $service = $createdServices[$index]
-    try { & $service.Exe uninstall $service.Xml | Out-Null } catch {}
-  }
-  foreach ($envFile in $envFiles) {
-    if ($envAclBackups.ContainsKey($envFile.FullName)) {
-      try { Set-Acl -LiteralPath $envFile.FullName -AclObject $envAclBackups[$envFile.FullName] } catch {}
+    try {
+      & $service.Exe uninstall $service.Xml | Out-Null
+      if ($LASTEXITCODE -ne 0 -or (Get-Service -Name $service.Id -ErrorAction SilentlyContinue)) {
+        throw "WinSW service $($service.Id) remains installed."
+      }
+    } catch {
+      $rollbackFailures += $service.Id
+      Write-Warning "Could not remove $($service.Id); preserving its files and ACLs for manual recovery."
     }
   }
-  if (Test-Path $backendAclBackup) { try { & icacls.exe $backendRoot /restore $backendAclBackup /C | Out-Null } catch {} }
-  if (Test-Path $frontendAclBackup) { try { & icacls.exe $frontendRoot /restore $frontendAclBackup /C | Out-Null } catch {} }
-  if ($createdProgramData -and (Test-Path $programDataRoot)) {
-    Remove-Item -LiteralPath $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+  if ($rollbackFailures.Count -eq 0) {
+    foreach ($envFile in $envFiles) {
+      if ($envAclBackups.ContainsKey($envFile.FullName)) {
+        try { Set-Acl -LiteralPath $envFile.FullName -AclObject $envAclBackups[$envFile.FullName] } catch {}
+      }
+    }
+    if (Test-Path $backendAclBackup) { try { & icacls.exe $backendRoot /restore $backendAclBackup /C | Out-Null } catch {} }
+    if (Test-Path $frontendAclBackup) { try { & icacls.exe $frontendRoot /restore $frontendAclBackup /C | Out-Null } catch {} }
+    if ($createdProgramData -and (Test-Path $programDataRoot)) {
+      Remove-Item -LiteralPath $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  } else {
+    Write-Warning ('Manual recovery required for: {0}. Service files and current ACLs were preserved.' -f ($rollbackFailures -join ', '))
   }
   throw
 } finally {

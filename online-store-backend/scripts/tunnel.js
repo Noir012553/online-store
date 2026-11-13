@@ -66,7 +66,7 @@ const resolveExecutable = () => {
 };
 
 const readDpapiSecret = filePath => execFileSync(
-  'powershell.exe',
+  path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
   ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'read-dpapi-secret.ps1'), filePath],
   { encoding: 'utf8', windowsHide: true },
 ).trim();
