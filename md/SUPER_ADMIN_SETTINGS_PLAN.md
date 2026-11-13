@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Đề xuất triển khai; tài liệu này chỉ là kế hoạch, chưa thay đổi code tính năng.
+Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và đọc allowlist không nhạy cảm; secret chỉ trả trạng thái cấu hình. Versioned config store, DPAPI/ProgramData persistence, ghi/apply, Cloudflare operations và restart adapters chưa hoàn tất.
 
 ## Mục tiêu
 
@@ -80,7 +80,10 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 
 ## Quyết định: áp dụng cấu hình, restart và Cloudflare Tunnel
 
-- Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend, restart/kết nối lại Cloudflare Tunnel, rồi kiểm tra health của backend và tunnel.
+- Hướng đã được duyệt cho host Windows: WinSW quản lý các service cố định cho backend và cloudflared; không dùng `npm run tunnel` như lệnh redeploy.
+- Hướng đã được duyệt cho secrets: file trong `ProgramData` được mã hóa bằng Windows DPAPI, không lưu secret vào MongoDB. Allowlist v1 gồm Email, VNPay, R2 upload policy/metadata và Cloudflare AI model/policy; secret chỉ nhập/rotate, API không đọc lại.
+- Trước khi bật ghi/apply cần chốt WinSW service names, service identity và ACL của thư mục `ProgramData`; DPAPI CurrentUser phụ thuộc identity và cần mã hóa lại nếu đổi service account. Chưa cài service hoặc thay đổi tiến trình host trong phiên này.
+- Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend rồi kiểm tra health. Chỉ restart/kết nối lại Cloudflare Tunnel khi chính cấu hình Tunnel thay đổi; cấu hình v1 Email/VNPay/R2/Cloudflare AI không tự restart Tunnel.
 - Tác vụ phải chạy ngoài request handler của backend đang bị restart; UI nhận job ID và theo dõi trạng thái `queued`, `running`, `succeeded` hoặc `failed`. Chỉ cho phép một thao tác apply/restart cùng phạm vi chạy đồng thời; yêu cầu xác nhận trước khi chạy và ghi audit, không ghi secret vào log.
 - Nếu validate hoặc health check thất bại, không đánh dấu cấu hình là applied; giữ version trước để rollback và trả lỗi/trạng thái job rõ ràng. Không báo thành công chỉ vì tiến trình restart đã được gọi.
 - Không cho Settings sửa `PORT` hoặc tự chọn port tùy ý. Orchestrator phải dùng port đã cấu hình cho đúng service; trước khi restart xác minh port chưa bị tiến trình lạ chiếm. Nếu bind thất bại, dừng apply và không kill tiến trình chỉ dựa trên số port.

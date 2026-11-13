@@ -9,8 +9,6 @@ import {
   CircleAlert,
   Cloud,
   CreditCard,
-  Eye,
-  EyeOff,
   Globe2,
   Image,
   KeyRound,
@@ -133,39 +131,15 @@ function DataField({ label, value }: { label: string; value: string | number }) 
   );
 }
 
-function SecretField({ label, configured }: { label: string; configured: boolean }) {
+function SecretStatus({ label, configured }: { label: string; configured: boolean }) {
   const text = useSettingsText();
-  const [value, setValue] = useState('');
-  const [visible, setVisible] = useState(false);
-
   return (
-    <label className="block space-y-2">
-      <span className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700">
-        <span>{label}</span>
-        <span className={`text-xs font-medium ${configured ? 'text-emerald-700' : 'text-amber-700'}`}>
-          {configured ? text('configured') : text('not_configured')}
-        </span>
+    <div className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3.5">
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className={`text-xs font-semibold ${configured ? 'text-emerald-700' : 'text-amber-700'}`}>
+        {configured ? text('configured') : text('not_configured')}
       </span>
-      <span className="relative block">
-        <input
-          type={visible ? 'text' : 'password'}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          autoComplete="new-password"
-          placeholder={configured ? text('replace_secret_placeholder') : text('enter_secret_placeholder')}
-          className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3.5 pr-11 text-sm text-gray-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
-        />
-        <button
-          type="button"
-          onClick={() => setVisible(current => !current)}
-          aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })}
-          aria-pressed={visible}
-          className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center rounded-r-lg text-gray-500 transition hover:bg-gray-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-        >
-          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </span>
-    </label>
+    </div>
   );
 }
 
@@ -394,28 +368,28 @@ function SettingsPage() {
                 {activeSection === 'email' && status && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label={text('smtp_host')} value={status.email.host} /><DataField label={text('port')} value={status.email.port} /><DataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><DataField label={text('smtp_account')} value={status.email.account} /><DataField label={text('from_address')} value={status.email.from} /></div>
-                    <div className="grid gap-4 sm:grid-cols-2"><SecretField label={text('smtp_password')} configured={status.email.passwordConfigured} /><SecretField label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} /></div>
+                    <div className="grid gap-4 sm:grid-cols-2"><SecretStatus label={text('smtp_password')} configured={status.email.passwordConfigured} /><SecretStatus label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} /></div>
                     <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'payment' && status && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('environment')} value={text(status.payment.mode)} /><DataField label={text('merchant_code')} value={status.payment.merchantCode} /><DataField label={text('endpoint')} value={status.payment.endpoint} /><DataField label={text('return_url')} value={status.payment.returnUrl} /><DataField label={text('callback_url')} value={status.payment.callbackUrl} /></div>
-                    <SecretField label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} />
+                    <SecretStatus label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} />
                     <SecretNotice text={text('runtime_settings_description')} />
                   </>
                 )}
                 {activeSection === 'cloudflare' && status && (
                   <>
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div>
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label={text('r2_access_key')} configured={status.r2.credentialsConfigured} /><SecretField label={text('r2_secret_key')} configured={status.r2.credentialsConfigured} /></div>
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('r2_access_key')} configured={status.r2.credentialsConfigured} /><SecretStatus label={text('r2_secret_key')} configured={status.r2.credentialsConfigured} /></div>
                       {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4">{account.accountId}</td><td className="py-2 pr-4">{account.bucket}</td><td className="break-all py-2">{account.publicBaseUrl}</td></tr>)}</tbody></table></div>}
                       <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><DataField label={text('max_files')} value={status.r2.policy.maxAssets} /><DataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div>
                     </div>
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><DataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /></div>
                       <div className="mt-4 flex flex-wrap gap-2">{status.cloudflareAi.models.length ? status.cloudflareAi.models.map((model, index) => <span key={`${model}-${index}`} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700">{model}</span>) : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
-                      {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretField label={text('cloudflare_api_token')} configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
+                      {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('cloudflare_api_token')} configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
                     </div>
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div>
                     <SecretNotice text={text('cloudflare_secret_notice')} />
