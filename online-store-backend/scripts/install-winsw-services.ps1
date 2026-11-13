@@ -38,7 +38,7 @@ if ($frontendEnvFiles.Count -gt 0) { throw 'Frontend root contains .env files; r
 $services = @(
   @{ Id = 'LaptopStoreBackend'; Name = 'Laptop Store Backend'; Executable = $node.Source; Arguments = '--max-old-space-size=1024 src/app.js'; WorkingDirectory = $backendRoot; LogPath = Join-Path $logRoot 'backend'; ReadPath = $backendRoot; WritePaths = @((Join-Path $backendRoot 'uploads'), (Join-Path $backendRoot '.retranslate-progress'), (Join-Path $backendRoot 'reports')) },
   @{ Id = 'LaptopStoreFrontend'; Name = 'Laptop Store Frontend'; Executable = $node.Source; Arguments = 'node_modules/next/dist/bin/next start'; WorkingDirectory = $frontendRoot; LogPath = Join-Path $logRoot 'frontend'; ReadPath = $frontendRoot; WritePaths = @((Join-Path $frontendRoot '.next\cache')) },
-  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Split-Path $cloudflared.Source -Parent; WritePaths = @(); Tunnel = $true }
+  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Join-Path $serviceRoot 'LaptopStoreTunnel'; WritePaths = @(); Tunnel = $true }
 )
 
 foreach ($service in $services) {
@@ -107,7 +107,10 @@ try {
   )
   $plainToken = $null
 
-  $envAcl = Get-Acl (Join-Path $backendRoot '.env')
+  $envFiles = @(Get-ChildItem -LiteralPath $backendRoot -Force -File -Filter '.env*')
+  $envAclBackups = @{}
+  foreach ($envFile in $envFiles) { $envAclBackups[$envFile.FullName] = Get-Acl $envFile.FullName }
+  $operatorAccount = [Security.Principal.WindowsIdentity]::GetCurrent().Name
   New-Item -ItemType Directory -Path $programDataRoot -Force | Out-Null
   $createdProgramData = $true
   New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $settingsSecretRoot -Force | Out-Null
@@ -131,8 +134,10 @@ try {
     if ($service.Tunnel) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'tunnel.js') -Destination (Join-Path $directory 'tunnel.js')
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
+      $cloudflaredServicePath = Join-Path $directory 'cloudflared.exe'
+      Copy-Item -LiteralPath $cloudflared.Source -Destination $cloudflaredServicePath
       $tunnelEnvironment = @"
-  <env name="CLOUDFLARED_BIN" value="$([Security.SecurityElement]::Escape($cloudflared.Source))" />
+  <env name="CLOUDFLARED_BIN" value="$([Security.SecurityElement]::Escape($cloudflaredServicePath))" />
   <env name="LAPTOP_STORE_BACKEND_ROOT" value="$([Security.SecurityElement]::Escape($backendRoot))" />
   <env name="CLOUDFLARED_TUNNEL_TOKEN_DPAPI_FILE" value="$([Security.SecurityElement]::Escape($tokenPath))" />
 "@
@@ -184,21 +189,22 @@ $tunnelEnvironment</service>
     if ($service.Id -eq 'LaptopStoreBackend') {
       Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
       Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)RX")
-      Invoke-Icacls @((Join-Path $backendRoot '.env'), '/grant', "$account`:R")
-      Invoke-Icacls @((Join-Path $backendRoot '.env'), '/deny', 'NT SERVICE\LaptopStoreFrontend:R', 'NT SERVICE\LaptopStoreTunnel:R')
+      foreach ($envFile in $envFiles) {
+        Invoke-Icacls @($envFile.FullName, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', "$operatorAccount`:R", "$account`:R")
+      }
     }
   }
 
-  foreach ($service in $services) {
-    & sc.exe config $service.Id 'start=' 'auto' | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Could not set automatic startup for $($service.Id)." }
-  }
 } catch {
   for ($index = $createdServices.Count - 1; $index -ge 0; $index -= 1) {
     $service = $createdServices[$index]
     try { & $service.Exe uninstall $service.Xml | Out-Null } catch {}
   }
-  if ($envAcl) { try { Set-Acl -LiteralPath (Join-Path $backendRoot '.env') -AclObject $envAcl } catch {} }
+  foreach ($envFile in $envFiles) {
+    if ($envAclBackups.ContainsKey($envFile.FullName)) {
+      try { Set-Acl -LiteralPath $envFile.FullName -AclObject $envAclBackups[$envFile.FullName] } catch {}
+    }
+  }
   if (Test-Path $backendAclBackup) { try { & icacls.exe $backendRoot /restore $backendAclBackup /C | Out-Null } catch {} }
   if (Test-Path $frontendAclBackup) { try { & icacls.exe $frontendRoot /restore $frontendAclBackup /C | Out-Null } catch {} }
   if ($createdProgramData -and (Test-Path $programDataRoot)) {
@@ -210,9 +216,9 @@ $tunnelEnvironment</service>
   if ($tokenBytes) { [Array]::Clear($tokenBytes, 0, $tokenBytes.Length) }
   if ($protectedToken) { [Array]::Clear($protectedToken, 0, $protectedToken.Length) }
   $plainToken = $null
-  if (Test-Path $aclBackupDirectory) { Remove-Item -LiteralPath $aclBackupDirectory -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-'WinSW services are installed but remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'WinSW services are installed with Manual startup and remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'ACL backups are retained at: {0}' -f $aclBackupDirectory
 'After reviewing service status and ACLs, schedule a separate maintenance-window cutover to stop old consoles and start the services.'
 'No .env content or Tunnel token was printed.'
