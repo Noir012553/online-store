@@ -12,6 +12,8 @@
     "test:integration": "node src/test/test-runner.js -- --suite=backend",
     "test:integration:import-export": "node src/test/test-runner.js -- --suite=import-export",
     "test:offline": "node src/test/frontend-offline-manual.test.js",
+    "test:settings-apply": "mocha --exit --grep \"returns storage unavailable|returns 503|reports the apply worker\" src/test/admin-settings.test.js && mocha --exit src/test/settings-apply-worker.test.js",
+    "check:settings-apply": "node --check scripts/settings-apply-worker.js && node --check scripts/provision-settings-worker-keys.js && node --check src/services/adminSettingsDraftStore.js && node --check src/routes/adminSettingsRoutes.js && node --check src/controllers/healthController.js && node --check src/app.js && node --check src/test/settings-apply-worker.test.js",
     "test:python": "python python/run_tests.py",
     "test:export:dynamic": "node scripts/test-export-dynamic.test.js",
     "test:export:production": "node src/test/export-production.test.js",
