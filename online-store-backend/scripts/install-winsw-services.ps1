@@ -194,6 +194,9 @@ try {
   <env name="CLOUDFLARED_TUNNEL_TOKEN_DPAPI_FILE" value="$([Security.SecurityElement]::Escape($tokenPath))" />
 "@
     }
+    if ($service.Id -eq 'LaptopStoreBackend') {
+      $tunnelEnvironment = "  <env name=`"PORT`" value=`"5000`" />`n$tunnelEnvironment"
+    }
     $xml = @"
 <service>
   <id>$($service.Id)</id>

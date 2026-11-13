@@ -8,6 +8,7 @@ const { editableSettingRegistry, isValidEditableSetting } = require('./adminSett
 
 const STORE_FILENAME = 'admin-settings-v1.dpapi';
 const LOCK_FILENAME = 'admin-settings-v1.lock';
+const RECOVERY_LOCK_FILENAME = 'admin-settings-v1-recovery.lock';
 const POWERSHELL_RELATIVE_PATH = path.win32.join('System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 const MAX_STATE_BYTES = 1024 * 1024;
 const MAX_SECRET_CHARS = 8192;
@@ -69,6 +70,7 @@ const getStorePaths = () => {
     directories: [root, path.win32.join(root, 'LaptopStore'), path.win32.join(root, 'LaptopStore', 'secrets'), directory],
     store: path.win32.join(directory, STORE_FILENAME),
     lock: path.win32.join(directory, LOCK_FILENAME),
+    recoveryLock: path.win32.join(directory, RECOVERY_LOCK_FILENAME),
     temporary: null,
     powershell: path.win32.join(systemRoot, POWERSHELL_RELATIVE_PATH),
   };
@@ -180,37 +182,64 @@ const writeState = (paths, state) => {
   }
 };
 
+const createLock = lockPath => {
+  let descriptor;
+  try {
+    descriptor = fs.openSync(lockPath, 'wx', 0o600);
+    fs.writeSync(descriptor, `${process.pid}\n`);
+    return descriptor;
+  } catch (error) {
+    if (descriptor !== undefined) {
+      try { fs.closeSync(descriptor); } catch {}
+      try { fs.unlinkSync(lockPath); } catch {}
+    }
+    throw error;
+  }
+};
+
+const recoverStaleLock = paths => {
+  let recoveryDescriptor;
+  try {
+    recoveryDescriptor = createLock(paths.recoveryLock);
+  } catch {
+    return false;
+  }
+  try {
+    let ownerPid;
+    try { ownerPid = Number(fs.readFileSync(paths.lock, 'utf8').trim()); } catch { return false; }
+    if (!Number.isSafeInteger(ownerPid) || ownerPid < 1) return false;
+    try {
+      process.kill(ownerPid, 0);
+      return false;
+    } catch (error) {
+      if (error.code !== 'ESRCH') return false;
+    }
+    try {
+      fs.unlinkSync(paths.lock);
+      return true;
+    } catch (error) {
+      return error.code === 'ENOENT';
+    }
+  } finally {
+    try { fs.closeSync(recoveryDescriptor); } catch {}
+    try { fs.unlinkSync(paths.recoveryLock); } catch {}
+  }
+};
+
 const withLock = async operation => {
   const paths = requirePaths();
   let descriptor;
   try {
-    descriptor = fs.openSync(paths.lock, 'wx', 0o600);
-    fs.writeSync(descriptor, `${process.pid}\n`);
+    descriptor = createLock(paths.lock);
   } catch (error) {
-    if (descriptor !== undefined) {
-      try { fs.closeSync(descriptor); } catch {}
-      try { fs.unlinkSync(paths.lock); } catch {}
-    }
     if (error.code !== 'EEXIST') throw unavailable('Settings storage lock is unavailable.');
-    let ownerPid;
-    try { ownerPid = Number(fs.readFileSync(paths.lock, 'utf8').trim()); } catch {}
-    if (Number.isSafeInteger(ownerPid) && ownerPid > 0) {
-      try {
-        process.kill(ownerPid, 0);
-      } catch (ownerError) {
-        if (ownerError.code === 'ESRCH') {
-          try {
-            fs.unlinkSync(paths.lock);
-            return withLock(operation);
-          } catch (recoveryError) {
-            if (recoveryError.code !== 'ENOENT' && !(recoveryError instanceof SettingsStoreError)) {
-              throw unavailable('Stale settings lock could not be recovered.');
-            }
-          }
-        }
-      }
+    if (!recoverStaleLock(paths)) throw conflict('Another settings operation is in progress.');
+    try {
+      descriptor = createLock(paths.lock);
+    } catch (retryError) {
+      if (retryError.code === 'EEXIST') throw conflict('Another settings operation is in progress.');
+      throw unavailable('Settings storage lock is unavailable.');
     }
-    throw conflict('Another settings operation is in progress.');
   }
   try {
     return await operation(paths);
@@ -365,16 +394,28 @@ const activateClaimedJob = async jobId => withLock(async paths => {
   return { version: active.version };
 });
 
-const completeApplyJob = async (jobId, { succeeded, message }) => withLock(async paths => {
+const beginApplyRollback = async jobId => withLock(async paths => {
+  const state = readState(paths);
+  const index = state.jobs.findIndex(job => job.id === jobId && job.status === 'applying');
+  if (index < 0) throw conflict('Apply job is not active.');
+  const job = { ...state.jobs[index], status: 'rolling-back', rollbackStartedAt: new Date().toISOString() };
+  const jobs = [...state.jobs];
+  jobs[index] = job;
+  writeState(paths, { ...state, active: job.previousActive || null, jobs });
+  return publicJob(job);
+});
+
+const completeApplyJob = async (jobId, { succeeded, message, rollbackVerified = true }) => withLock(async paths => {
   const state = readState(paths);
   const index = state.jobs.findIndex(job => job.id === jobId && ['claimed', 'applying', 'rolling-back'].includes(job.status));
   if (index < 0) throw conflict('Apply job is not active.');
   const previous = state.jobs[index].previousActive || null;
   const now = new Date().toISOString();
-  const job = { ...state.jobs[index], status: succeeded ? 'succeeded' : 'failed', applied: Boolean(succeeded), message, completedAt: now };
+  const status = succeeded ? 'succeeded' : rollbackVerified ? 'failed' : 'rollback-failed';
+  const job = { ...state.jobs[index], status, applied: Boolean(succeeded), message, completedAt: now };
   const jobs = [...state.jobs];
   jobs[index] = job;
-  const active = succeeded ? state.active : previous;
+  const active = succeeded || rollbackVerified ? succeeded ? state.active : previous : state.active;
   const audit = auditRecord(succeeded ? 'apply-succeeded' : 'apply-failed', job.createdBy, job.version, Object.keys(job.settings || {}), job.id);
   writeState(paths, { ...state, active, jobs, audit: [...state.audit, audit].slice(-200) });
   return publicJob(job);
@@ -409,6 +450,7 @@ const publishWorkerHeartbeat = async ({ workerId, timestamp, signature }) => wit
 module.exports = {
   SettingsStoreError,
   activateClaimedJob,
+  beginApplyRollback,
   claimApplyJob,
   completeApplyJob,
   createApplyJob,

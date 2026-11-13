@@ -95,19 +95,26 @@ const processOneJob = async ({ store = settingsStore, adapter = createProcessAda
       message: 'Settings activated and backend health/version check succeeded.',
     });
   } catch (error) {
-    await store.completeApplyJob(job.id, {
-      succeeded: false,
-      message: 'Apply failed validation or backend health/version verification; previous active settings were restored.',
-    });
+    let rollbackVerified = true;
     if (activated) {
+      await store.beginApplyRollback(job.id);
+      rollbackVerified = false;
       try {
         const previousVersion = job.previousActive?.version || 0;
         await adapter.restartBackend();
         await adapter.waitForHealthyVersion(previousVersion);
+        rollbackVerified = true;
       } catch {
         console.error('[SettingsApplyWorker] Rollback restart/health verification failed; backend requires operator review.');
       }
     }
+    await store.completeApplyJob(job.id, {
+      succeeded: false,
+      rollbackVerified,
+      message: rollbackVerified
+        ? 'Apply failed; the previous settings version was restored and verified.'
+        : 'Apply failed and rollback could not be verified; operator review is required.',
+    });
     console.error('[SettingsApplyWorker] Apply job failed', { jobId: job.id, reason: error?.message || 'unknown' });
   }
   return true;
@@ -135,7 +142,11 @@ const runWorker = async ({ store = settingsStore, adapter = createProcessAdapter
   heartbeatTimer.unref?.();
   try {
     while (!stopping) {
-      await processOneJob({ store, adapter });
+      try {
+        await processOneJob({ store, adapter });
+      } catch (error) {
+        console.error('[SettingsApplyWorker] Job poll failed; worker will retry', { reason: error?.message || 'unknown' });
+      }
       await sleepImpl(POLL_INTERVAL_MS);
     }
   } finally {

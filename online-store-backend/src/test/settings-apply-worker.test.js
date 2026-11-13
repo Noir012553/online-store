@@ -20,6 +20,7 @@ describe('Fixed settings apply worker lifecycle', () => {
         return settings;
       },
       activateClaimedJob: async id => { calls.push(['activate', id]); },
+      beginApplyRollback: async id => { calls.push(['rollback', id]); },
       completeApplyJob: async (id, result) => { calls.push(['complete', id, result]); },
     };
   };
@@ -68,9 +69,11 @@ describe('Fixed settings apply worker lifecycle', () => {
       console.error = originalError;
     }
     expect(events).to.deep.equal(['restart', 'healthy:8', 'restart', 'healthy:7']);
-    expect(store.calls[1]).to.deep.equal(['complete', 'job-2', {
+    expect(store.calls.map(call => call[0])).to.deep.equal(['activate', 'rollback', 'complete']);
+    expect(store.calls[2]).to.deep.equal(['complete', 'job-2', {
       succeeded: false,
-      message: 'Apply failed validation or backend health/version verification; previous active settings were restored.',
+      rollbackVerified: true,
+      message: 'Apply failed; the previous settings version was restored and verified.',
     }]);
   });
 
@@ -87,6 +90,28 @@ describe('Fixed settings apply worker lifecycle', () => {
     expect(restarts).to.equal(0);
     expect(store.calls.map(call => call[0])).to.deep.equal(['complete']);
     expect(store.calls[0][2].succeeded).to.equal(false);
+  });
+
+  it('reports operator review when rollback health cannot be verified', async () => {
+    const store = makeStore({ id: 'job-rollback', version: 9, settings: { EMAIL_PORT: '587' }, previousActive: { version: 7, settings: { EMAIL_PORT: '465' } } });
+    const originalError = console.error;
+    console.error = () => {};
+    try {
+      await processOneJob({
+        store,
+        adapter: {
+          restartBackend: async () => {},
+          waitForHealthyVersion: async () => { throw new Error('health check failed'); },
+        },
+      });
+    } finally {
+      console.error = originalError;
+    }
+    expect(store.calls.at(-1)).to.deep.equal(['complete', 'job-rollback', {
+      succeeded: false,
+      rollbackVerified: false,
+      message: 'Apply failed and rollback could not be verified; operator review is required.',
+    }]);
   });
 
   it('builds service control calls only from the fixed backend service name', async () => {

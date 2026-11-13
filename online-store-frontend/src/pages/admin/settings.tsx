@@ -40,7 +40,7 @@ type DraftSetting = string | { configured: boolean };
 type SettingsDraft = { version: number; settings: Record<string, DraftSetting> };
 type ApplyJob = {
   id: string;
-  status: 'unavailable' | 'queued' | 'running' | 'succeeded' | 'failed';
+  status: 'unavailable' | 'queued' | 'claimed' | 'applying' | 'rolling-back' | 'succeeded' | 'failed' | 'rollback-failed';
   applied: boolean;
   version: number;
   message?: string;
@@ -237,7 +237,7 @@ function SettingsPage() {
   ), [values, baseline, secretInputs]);
 
   useEffect(() => {
-    if (!applyJob || (applyJob.status !== 'queued' && applyJob.status !== 'running')) return;
+    if (!applyJob || !['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status)) return;
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
@@ -297,7 +297,7 @@ function SettingsPage() {
 
   const applySettings = async () => {
     if (!draft || hasUnsavedChanges || !status?.security.encryptedSecretStoreAvailable) return;
-    const confirmed = window.confirm('Áp dụng bản nháp cài đặt đã lưu? Quá trình áp dụng có thể yêu cầu khởi động lại dịch vụ. Thao tác này không khởi động lại dịch vụ tự động.');
+    const confirmed = window.confirm('Áp dụng bản nháp cài đặt đã lưu? Worker sẽ khởi động lại backend LaptopStoreBackend và kiểm tra health/version; thao tác có thể làm gián đoạn yêu cầu đang chạy. Cloudflare Tunnel không bị khởi động lại.');
     if (!confirmed) return;
     setApplyLoading(true);
     setApplyError('');
@@ -368,16 +368,16 @@ function SettingsPage() {
         {saveError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{saveError}</p>}
         {saveMessage && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{saveMessage}</p>}
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">Áp dụng cài đặt có thể yêu cầu khởi động lại dịch vụ. Ứng dụng không tự khởi động lại dịch vụ sau khi áp dụng.</div>
-        {status && !status.security.applyWorkerAvailable && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Worker WinSW chưa được cài đặt và kiểm chứng. Yêu cầu áp dụng sẽ được ghi nhận là không khả dụng; dịch vụ không được khởi động lại và cài đặt chưa có hiệu lực.</p>}
+        {status && !status.security.applyWorkerAvailable && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Worker WinSW chưa hoạt động hoặc chưa được xác minh. Nút áp dụng sẽ bị khóa; không có dịch vụ nào được khởi động lại và bản nháp chưa có hiệu lực.</p>}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             {applyJob && <p role="status" className={`text-sm ${applyJob.status === 'failed' ? 'text-red-700' : applyJob.status === 'succeeded' && applyJob.applied ? 'text-emerald-700' : 'text-amber-800'}`}>
-              {applyJob.status === 'unavailable' ? `Yêu cầu đang chờ áp dụng; worker hiện không khả dụng nên chưa có thay đổi nào được áp dụng.${applyJob.message ? ` ${applyJob.message}` : ''}` : applyJob.status === 'queued' ? 'Yêu cầu áp dụng đang xếp hàng…' : applyJob.status === 'running' ? 'Đang áp dụng cài đặt…' : applyJob.status === 'succeeded' ? applyJob.applied ? 'Đã áp dụng cài đặt. Có thể cần khởi động lại dịch vụ.' : 'Tác vụ kết thúc nhưng xác nhận chưa áp dụng cài đặt.' : `Áp dụng thất bại.${applyJob.message ? ` ${applyJob.message}` : ''}`}
+              {applyJob.status === 'unavailable' ? `Worker hiện không khả dụng nên chưa có thay đổi nào được áp dụng.${applyJob.message ? ` ${applyJob.message}` : ''}` : applyJob.status === 'queued' ? 'Yêu cầu áp dụng đang xếp hàng…' : applyJob.status === 'claimed' ? 'Worker đã nhận yêu cầu…' : applyJob.status === 'applying' ? 'Đang áp dụng và khởi động lại dịch vụ…' : applyJob.status === 'rolling-back' ? 'Áp dụng không thành công; đang khôi phục cấu hình trước đó…' : applyJob.status === 'succeeded' ? applyJob.applied ? 'Đã áp dụng cài đặt và kiểm tra phiên bản dịch vụ thành công.' : 'Tác vụ kết thúc nhưng xác nhận chưa áp dụng cài đặt.' : applyJob.status === 'rollback-failed' ? `Không xác minh được khôi phục; cần kiểm tra vận hành.${applyJob.message ? ` ${applyJob.message}` : ''}` : `Áp dụng thất bại.${applyJob.message ? ` ${applyJob.message}` : ''}`}
             </p>}
             {applyPollingError && <p role="alert" className="mt-1 text-sm text-red-700">{applyPollingError}</p>}
             {applyError && <p role="alert" className="mt-1 text-sm text-red-700">{applyError}</p>}
           </div>
-          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !status?.security.applyWorkerAvailable || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || Boolean(applyJob && ['queued', 'running'].includes(applyJob.status))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
+          <button type="button" onClick={() => void applySettings()} disabled={!securityReady || !status?.security.applyWorkerAvailable || !draft || Boolean(draftLoadError) || hasUnsavedChanges || applyLoading || Boolean(applyJob && ['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status))} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">{applyLoading ? 'Đang gửi yêu cầu…' : 'Áp dụng bản nháp'}</button>
         </div>
       </div>
     </section>
