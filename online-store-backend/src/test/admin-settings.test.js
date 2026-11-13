@@ -133,6 +133,9 @@ describe('Super-admin settings boundary', () => {
     expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_1: 'nope' })).to.throw(/not editable/);
     expect(() => settingsDraftStore.normalizeSettings({ EMAIL_PORT: '99999' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ VNPAY_ENDPOINT: 'http://example.test' })).to.throw(/invalid value/);
+    expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'ab..cd' })).to.throw(/invalid value/);
+    expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: '192.168.1.1' })).to.throw(/invalid value/);
+    expect(settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'laptop-assets' })).to.deep.equal({ R2_BUCKET_NAME: 'laptop-assets' });
   });
 
   it('requires authentication and rejects non-super-admin roles', async () => {

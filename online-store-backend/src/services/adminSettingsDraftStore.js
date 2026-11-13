@@ -8,7 +8,6 @@ const { editableSettingRegistry, isValidEditableSetting } = require('./adminSett
 
 const STORE_FILENAME = 'admin-settings-v1.dpapi';
 const LOCK_FILENAME = 'admin-settings-v1.lock';
-const TEMP_FILENAME = 'admin-settings-v1.tmp';
 const POWERSHELL_RELATIVE_PATH = path.win32.join('System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 const MAX_STATE_BYTES = 1024 * 1024;
 const MAX_SECRET_CHARS = 8192;
@@ -67,7 +66,7 @@ const getStorePaths = () => {
     directories: [root, path.win32.join(root, 'LaptopStore'), path.win32.join(root, 'LaptopStore', 'secrets'), directory],
     store: path.win32.join(directory, STORE_FILENAME),
     lock: path.win32.join(directory, LOCK_FILENAME),
-    temporary: path.win32.join(directory, TEMP_FILENAME),
+    temporary: null,
     powershell: path.win32.join(systemRoot, POWERSHELL_RELATIVE_PATH),
   };
 };
@@ -158,20 +157,21 @@ const writeState = (paths, state) => {
   } finally {
     plaintext.fill(0);
   }
+  const temporary = path.win32.join(paths.directory, `admin-settings-v1-${crypto.randomBytes(12).toString('hex')}.tmp`);
   let descriptor;
   try {
-    descriptor = fs.openSync(paths.temporary, 'wx', 0o600);
+    descriptor = fs.openSync(temporary, 'wx', 0o600);
     fs.writeFileSync(descriptor, encrypted);
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = null;
-    fs.renameSync(paths.temporary, paths.store);
+    fs.renameSync(temporary, paths.store);
   } catch (error) {
     if (descriptor !== undefined && descriptor !== null) {
       try { fs.closeSync(descriptor); } catch {}
     }
-    try { fs.unlinkSync(paths.temporary); } catch {}
-    throw unavailable(error.code === 'EEXIST' ? 'Settings storage is busy.' : 'Encrypted settings state cannot be written.');
+    try { fs.unlinkSync(temporary); } catch {}
+    throw unavailable('Encrypted settings state cannot be written.');
   } finally {
     encrypted.fill(0);
   }
@@ -184,8 +184,30 @@ const withLock = async operation => {
     descriptor = fs.openSync(paths.lock, 'wx', 0o600);
     fs.writeSync(descriptor, `${process.pid}\n`);
   } catch (error) {
-    if (descriptor !== undefined) try { fs.closeSync(descriptor); } catch {}
-    throw error.code === 'EEXIST' ? conflict('Another settings operation is in progress.') : unavailable('Settings storage lock is unavailable.');
+    if (descriptor !== undefined) {
+      try { fs.closeSync(descriptor); } catch {}
+      try { fs.unlinkSync(paths.lock); } catch {}
+    }
+    if (error.code !== 'EEXIST') throw unavailable('Settings storage lock is unavailable.');
+    let ownerPid;
+    try { ownerPid = Number(fs.readFileSync(paths.lock, 'utf8').trim()); } catch {}
+    if (Number.isSafeInteger(ownerPid) && ownerPid > 0) {
+      try {
+        process.kill(ownerPid, 0);
+      } catch (ownerError) {
+        if (ownerError.code === 'ESRCH') {
+          try {
+            fs.unlinkSync(paths.lock);
+            return withLock(operation);
+          } catch (recoveryError) {
+            if (recoveryError.code !== 'ENOENT' && !(recoveryError instanceof SettingsStoreError)) {
+              throw unavailable('Stale settings lock could not be recovered.');
+            }
+          }
+        }
+      }
+    }
+    throw conflict('Another settings operation is in progress.');
   }
   try {
     return await operation(paths);

@@ -113,7 +113,7 @@ const isValidEditableSetting = (key, value) => {
   if (key === 'EMAIL_HOST') return /^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(value);
   if (key === 'EMAIL_USER' || key === 'EMAIL_FROM') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   if (key.startsWith('R2_ACCOUNT_ID')) return /^[A-Fa-f0-9]{32}$/.test(value);
-  if (key.startsWith('R2_BUCKET_NAME')) return /^(?!xn--)(?!.*\\.\\.)(?!\\d+\\.\\d+\\.\\d+\\.\\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(value);
+  if (key.startsWith('R2_BUCKET_NAME')) return /^(?!xn--)(?!.*\.\.)(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(value);
   if (key === 'VNPAY_TMN_CODE') return /^[A-Za-z0-9_-]{1,128}$/.test(value);
   if (key.startsWith('CLOUDFLARE_AI_MODEL')) return /^[A-Za-z0-9_./:@-]{1,200}$/.test(value);
   return value.length <= 2048;
