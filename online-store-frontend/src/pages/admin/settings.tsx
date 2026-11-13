@@ -9,6 +9,8 @@ import {
   CircleAlert,
   Cloud,
   CreditCard,
+  Eye,
+  EyeOff,
   Globe2,
   Image,
   KeyRound,
@@ -125,18 +127,47 @@ function StatusBadge({ tone, children }: { tone: StatusTone; children: React.Rea
   );
 }
 
-function DataField({ label, value }: { label: string; value: string | number }) {
+function MaskableValue({ label, value, inputClassName }: { label: string; value: string | number; inputClassName: string }) {
+  const [visible, setVisible] = useState(false);
   const text = useSettingsText();
+  const isEmpty = value === '';
+  const displayValue = isEmpty ? text('not_configured') : visible ? String(value) : '*****';
+
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+    <div className="flex min-w-0 items-center gap-2">
       <input
-        value={value === '' ? text('not_configured') : value}
+        type="text"
+        value={displayValue}
         readOnly
+        aria-label={label}
         aria-readonly="true"
-        className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-700 outline-none"
+        className={inputClassName}
       />
-    </label>
+      {!isEmpty && (
+        <button
+          type="button"
+          aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })}
+          aria-pressed={visible}
+          onClick={() => setVisible(current => !current)}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+        >
+          {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DataField({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="block space-y-2">
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <MaskableValue
+        label={label}
+        value={value}
+        inputClassName="h-11 w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-700 outline-none"
+      />
+    </div>
   );
 }
 
@@ -154,9 +185,6 @@ function SecretStatus({ label, configured }: { label: string; configured: boolea
 
 function RuntimeSettingRow({ setting }: { setting: RuntimeSetting }) {
   const text = useSettingsText();
-  const value = setting.secret
-    ? setting.configured ? text('configured') : text('not_configured')
-    : setting.value;
 
   return (
     <div className="grid gap-2 border-t border-gray-100 py-3 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
@@ -164,15 +192,13 @@ function RuntimeSettingRow({ setting }: { setting: RuntimeSetting }) {
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {setting.secret ? (
           <span className={`h-10 rounded-lg border px-3 py-2.5 text-xs font-medium ${setting.configured ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-            {value}
+            {setting.configured ? text('configured') : text('not_configured')}
           </span>
         ) : (
-          <input
-            type="text"
-            value={value}
-            readOnly
-            aria-readonly="true"
-            className="h-10 w-full min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 font-mono text-xs text-gray-700 outline-none"
+          <MaskableValue
+            label={setting.key}
+            value={setting.value}
+            inputClassName="h-10 w-full min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 font-mono text-xs text-gray-700 outline-none"
           />
         )}
         {setting.configured && setting.valid === false && <StatusBadge tone="danger">{text('configuration_invalid')}</StatusBadge>}
@@ -325,10 +351,10 @@ function SettingsPage() {
                   <span className="text-xs font-medium text-gray-400">{status ? text('updated_at', { date: new Date(status.generatedAt).toLocaleString(INTL_LOCALES[locale]) }) : text('not_loaded')}</span>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <StatusTile icon={Building2} label={text('branding')} detail={storeName || 'LaptopStore'} tone="good" />
-                  <StatusTile icon={Mail} label={text('email')} detail={status ? status.email.configured ? `${status.email.service.toUpperCase()} · ${status.email.host}` : text('email_missing') : text('loading')} tone={emailTone} />
-                  <StatusTile icon={CreditCard} label="VNPay" detail={status ? `${text(status.payment.mode)} · ${status.payment.configured ? text('credentials_complete') : text('credentials_missing')}` : text('loading')} tone={paymentTone} />
-                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? `${text('r2_title')} · ${status.r2.configured ? text('configured') : text('not_configured')} · ${text('cloudflare_ai_title')} ${status.cloudflareAi.configuredCount}` : text('loading')} tone={cloudflareTone} />
+                  <StatusTile icon={Building2} label={text('branding')} detail={text('active')} tone="good" />
+                  <StatusTile icon={Mail} label={text('email')} detail={status ? status.email.configured ? text('configured') : text('email_missing') : text('loading')} tone={emailTone} />
+                  <StatusTile icon={CreditCard} label="VNPay" detail={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('loading')} tone={paymentTone} />
+                  <StatusTile icon={Cloud} label="Cloudflare" detail={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('configured') : text('needs_check') : text('loading')} tone={cloudflareTone} />
                 </div>
               </section>
 
@@ -356,9 +382,9 @@ function SettingsPage() {
               <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="mb-4"><h2 className="text-lg font-bold text-gray-900">{text('groups_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('groups_description')}</p></div>
                 <div className="divide-y divide-gray-100">
-                  <OverviewRow icon={Image} title={text('store_name')} description={`${storeName || 'LaptopStore'} · ${supportEmail || text('support_email_missing')}`} status={text('active')} tone="good" onClick={() => openSection('branding')} />
-                  <OverviewRow icon={Mail} title={text('email')} description={status ? `${status.email.host}:${status.email.port} · ${text('from_address')}: ${status.email.from || text('not_configured')}` : text('email_loading')} status={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('loading')} tone={emailTone} onClick={() => openSection('email')} />
-                  <OverviewRow icon={CreditCard} title="VNPay" description={status ? `${text(status.payment.mode)} · ${status.payment.endpoint}` : text('payment_loading')} status={status ? status.payment.configured ? text(status.payment.mode) : text('credentials_missing') : text('loading')} tone={paymentTone} onClick={() => openSection('payment')} />
+                  <OverviewRow icon={Image} title={text('store_name')} description={text('active')} status={text('active')} tone="good" onClick={() => openSection('branding')} />
+                  <OverviewRow icon={Mail} title={text('email')} description={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('email_loading')} status={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('loading')} tone={emailTone} onClick={() => openSection('email')} />
+                  <OverviewRow icon={CreditCard} title="VNPay" description={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('payment_loading')} status={status ? status.payment.configured ? text(status.payment.mode) : text('credentials_missing') : text('loading')} tone={paymentTone} onClick={() => openSection('payment')} />
                   <OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${text('accounts_configured', { count: status.r2.accounts.length })} · ${text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}` : text('cloudflare_loading')} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('has_configuration') : text('needs_check') : text('loading')} tone={cloudflareTone} onClick={() => openSection('cloudflare')} />
                   <OverviewRow icon={KeyRound} title={text('security')} description={text('secret_safety_notice')} status={status?.security.encryptedSecretStoreAvailable ? text('secret_store_ready') : text('read_only')} tone={status?.security.encryptedSecretStoreAvailable ? 'good' : 'warning'} onClick={() => openSection('security')} />
                 </div>
@@ -398,12 +424,12 @@ function SettingsPage() {
                   <>
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('r2_access_key')} configured={status.r2.credentialsConfigured} /><SecretStatus label={text('r2_secret_key')} configured={status.r2.credentialsConfigured} /></div>
-                      {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4">{account.accountId}</td><td className="py-2 pr-4">{account.bucket}</td><td className="break-all py-2">{account.publicBaseUrl}</td></tr>)}</tbody></table></div>}
+                      {status.r2.accounts.length > 0 && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4"><MaskableValue label={`${text('account_id')} ${account.id}`} value={account.accountId} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td><td className="py-2 pr-4"><MaskableValue label={`${text('bucket')} ${account.id}`} value={account.bucket} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td><td className="break-all py-2"><MaskableValue label={`${text('public_base_url')} ${account.id}`} value={account.publicBaseUrl} inputClassName="min-w-0 border-0 bg-transparent p-0 text-xs text-gray-700 outline-none" /></td></tr>)}</tbody></table></div>}
                       <div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><DataField label={text('max_files')} value={status.r2.policy.maxAssets} /><DataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div>
                     </div>
                     <div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><DataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /></div>
-                      <div className="mt-4 flex flex-wrap gap-2">{status.cloudflareAi.models.length ? status.cloudflareAi.models.map((model, index) => <span key={`${model}-${index}`} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700">{model}</span>) : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
+                      <div className="mt-4">{status.cloudflareAi.models.length ? <DataField label={text('cloudflare_ai_title')} value={status.cloudflareAi.models.join(', ')} /> : <span className="text-sm text-gray-500">{text('models_missing')}</span>}</div>
                       {status.cloudflareAi.configuredCount > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2"><SecretStatus label={text('cloudflare_api_token')} configured={status.cloudflareAi.allCredentialsConfigured} /><DataField label={text('account_id')} value={status.cloudflareAi.accountIds.filter(Boolean).join(', ')} /></div>}
                     </div>
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div>
