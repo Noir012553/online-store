@@ -88,6 +88,7 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
   const aiConfig = cloudflareAiService.getConfigInfo();
   const aiPolicy = cloudflareAiService.getUsagePolicy();
   const storage = settingsDraftStore.getAvailability();
+  const worker = settingsDraftStore.getWorkerStatus();
   noStore(res);
   res.status(200).json({
     success: true,
@@ -127,8 +128,9 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
         secretsWriteOnly: true,
         encryptedSecretStoreAvailable: storage.available,
         managedDraftAvailable: storage.available,
-        applyWorkerAvailable: false,
-        managedOverridesAvailable: false,
+        applyWorkerAvailable: worker.available,
+        applyWorkerUnavailableReason: worker.available ? null : worker.reason,
+        managedOverridesAvailable: storage.available,
         restartRequiredGroups: ['VNPay', 'Email', 'R2', 'Cloudflare AI'],
       },
     },
@@ -139,7 +141,7 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
 // secrets are returned as configured flags. PUT /draft requires { expectedVersion,
 // settings }, rejects every key outside the editable allowlist, and treats blank
 // secret values as "retain existing". POST /apply-jobs requires { expectedVersion }.
-// Apply jobs are persisted as unavailable until a verified fixed WinSW worker exists.
+// Apply jobs are durable and accepted only while the fixed worker's signed heartbeat is fresh.
 router.get('/draft', protect, superAdmin, asyncHandler(async (_req, res) => {
   noStore(res);
   const draft = await settingsDraftStore.getDraft();
@@ -156,6 +158,11 @@ router.put('/draft', protect, superAdmin, asyncHandler(async (req, res) => {
 router.post('/apply-jobs', protect, superAdmin, asyncHandler(async (req, res) => {
   noStore(res);
   const { expectedVersion } = req.body || {};
+  const worker = settingsDraftStore.getWorkerStatus();
+  if (!worker.available) {
+    res.status(503).json({ success: false, code: 'SETTINGS_APPLY_WORKER_UNAVAILABLE', message: 'Settings apply worker is unavailable or its authenticated heartbeat is stale.' });
+    return;
+  }
   const job = await settingsDraftStore.createApplyJob({ expectedVersion, userId: req.user._id });
   res.status(202).json({ success: true, data: { job } });
 }));

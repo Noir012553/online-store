@@ -44,7 +44,7 @@ const TEST_SUITES = {
     category: 'LAYER 2',
     importance: 'HIGH',
     tags: ['settings', 'security', 'admin'],
-    files: ['admin-settings.test.js'],
+    files: ['admin-settings.test.js', 'settings-apply-worker.test.js'],
   },
 
   // LAYER 2: Core Entity Tests

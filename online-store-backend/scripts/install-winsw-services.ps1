@@ -19,6 +19,8 @@ $logRoot = Join-Path $programDataRoot 'logs'
 $secretRoot = Join-Path $programDataRoot 'secrets'
 $tunnelSecretRoot = Join-Path $secretRoot 'tunnel'
 $settingsSecretRoot = Join-Path $secretRoot 'settings'
+$workerRoot = Join-Path $serviceRoot 'LaptopStoreSettingsApplyWorker'
+$workerRuntime = Join-Path $workerRoot 'runtime'
 $tokenPath = Join-Path $tunnelSecretRoot 'tunnel-token.dpapi'
 $winswSource = (Resolve-Path $WinSWPath).Path
 $winswHash = (Get-FileHash -LiteralPath $winswSource -Algorithm SHA256).Hash
@@ -38,7 +40,8 @@ if ($frontendEnvFiles.Count -gt 0) { throw 'Frontend root contains .env files; r
 $services = @(
   @{ Id = 'LaptopStoreBackend'; Name = 'Laptop Store Backend'; Executable = $node.Source; Arguments = '--max-old-space-size=1024 src/app.js'; WorkingDirectory = $backendRoot; LogPath = Join-Path $logRoot 'backend'; ReadPath = $backendRoot; WritePaths = @((Join-Path $backendRoot 'uploads'), (Join-Path $backendRoot '.retranslate-progress'), (Join-Path $backendRoot 'reports')) },
   @{ Id = 'LaptopStoreFrontend'; Name = 'Laptop Store Frontend'; Executable = $node.Source; Arguments = 'node_modules/next/dist/bin/next start'; WorkingDirectory = $frontendRoot; LogPath = Join-Path $logRoot 'frontend'; ReadPath = $frontendRoot; WritePaths = @((Join-Path $frontendRoot '.next\cache')) },
-  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Join-Path $serviceRoot 'LaptopStoreTunnel'; WritePaths = @(); Tunnel = $true }
+  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Join-Path $serviceRoot 'LaptopStoreTunnel'; WritePaths = @(); Tunnel = $true },
+  @{ Id = 'LaptopStoreSettingsApplyWorker'; Name = 'Laptop Store Settings Apply Worker'; Executable = $node.Source; Arguments = 'scripts/settings-apply-worker.js'; WorkingDirectory = $workerRuntime; LogPath = Join-Path $logRoot 'settings-worker'; ReadPath = $workerRuntime; WritePaths = @(); SettingsWorker = $true }
 )
 
 foreach ($service in $services) {
@@ -65,7 +68,7 @@ $isAdministrator = ([Security.Principal.WindowsPrincipal] [Security.Principal.Wi
   [Security.Principal.WindowsBuiltInRole]::Administrator
 )
 if (-not $isAdministrator) { throw 'Run with Administrator privileges to install services.' }
-if (-not $PSCmdlet.ShouldProcess('Windows host', 'Install three stopped WinSW services and protect the Tunnel token')) { return }
+if (-not $PSCmdlet.ShouldProcess('Windows host', 'Install four stopped WinSW services, protect the Tunnel token, and provision the settings worker')) { return }
 
 Add-Type -AssemblyName System.Security
 $secureToken = Read-Host 'Paste the Cloudflare Tunnel token (input is hidden)' -AsSecureString
@@ -77,6 +80,9 @@ $createdProgramData = $false
 $aclBackupDirectory = Join-Path $env:TEMP ('LaptopStoreAcl-' + [guid]::NewGuid().ToString('N'))
 $backendAclBackup = Join-Path $aclBackupDirectory 'backend.acl'
 $frontendAclBackup = Join-Path $aclBackupDirectory 'frontend.acl'
+$serviceDaclBackups = @{}
+$envAclBackups = @{}
+$envFiles = @()
 
 function Invoke-Icacls {
   param([string[]]$Arguments)
@@ -88,6 +94,38 @@ function Set-RestrictedDirectoryAcl {
   param([string]$Path, [string[]]$Grants)
   Invoke-Icacls @($Path, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F')
   foreach ($grant in $Grants) { Invoke-Icacls @($Path, '/grant', $grant) }
+}
+
+function Get-ServiceDacl {
+  param([string]$ServiceId)
+  $output = & sc.exe sdshow $ServiceId 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "Could not read service DACL for $ServiceId." }
+  $line = @($output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^\s*(?:O:|G:|D:)' } | Select-Object -First 1)
+  if (-not $line) { throw "Could not parse service DACL for $ServiceId." }
+  return $line.Trim()
+}
+
+function Add-WorkerBackendServiceRights {
+  param([string]$ServiceId, [string]$Account)
+  $sid = (New-Object Security.Principal.NTAccount($Account)).Translate([Security.Principal.SecurityIdentifier])
+  $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new((Get-ServiceDacl $ServiceId))
+  if (-not $descriptor.DiscretionaryAcl) { throw "Service $ServiceId has no DACL; refusing to grant worker access." }
+  $ace = [Security.AccessControl.CommonAce]::new(
+    [Security.AccessControl.AceFlags]::None,
+    [Security.AccessControl.AceQualifier]::AccessAllowed,
+    0x0034,
+    $sid,
+    $false,
+    $null
+  )
+  $insertAt = $descriptor.DiscretionaryAcl.Count
+  for ($index = 0; $index -lt $descriptor.DiscretionaryAcl.Count; $index++) {
+    if ($descriptor.DiscretionaryAcl[$index].IsInherited) { $insertAt = $index; break }
+  }
+  $descriptor.DiscretionaryAcl.InsertAce($insertAt, $ace)
+  $sddl = $descriptor.GetSddlForm([Security.AccessControl.AccessControlSections]::All)
+  & sc.exe sdset $ServiceId $sddl | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Could not grant only query/start/stop access to $ServiceId." }
 }
 
 try {
@@ -108,18 +146,27 @@ try {
   $plainToken = $null
 
   $envFiles = @(Get-ChildItem -LiteralPath $backendRoot -Force -File -Filter '.env*')
-  $envAclBackups = @{}
   foreach ($envFile in $envFiles) { $envAclBackups[$envFile.FullName] = Get-Acl $envFile.FullName }
   $operatorAccount = [Security.Principal.WindowsIdentity]::GetCurrent().Name
   New-Item -ItemType Directory -Path $programDataRoot -Force | Out-Null
   $createdProgramData = $true
-  New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $settingsSecretRoot -Force | Out-Null
+  New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $settingsSecretRoot, $workerRoot, $workerRuntime, (Join-Path $workerRuntime 'scripts'), (Join-Path $workerRuntime 'src\services'), (Join-Path $logRoot 'settings-worker') -Force | Out-Null
   Set-RestrictedDirectoryAcl $programDataRoot @()
   Set-RestrictedDirectoryAcl $serviceRoot @()
   Set-RestrictedDirectoryAcl $logRoot @()
   Set-RestrictedDirectoryAcl $secretRoot @()
   Set-RestrictedDirectoryAcl $tunnelSecretRoot @()
   Set-RestrictedDirectoryAcl $settingsSecretRoot @()
+  Set-RestrictedDirectoryAcl $workerRoot @()
+  Set-RestrictedDirectoryAcl $workerRuntime @()
+  Set-RestrictedDirectoryAcl (Join-Path $logRoot 'settings-worker') @()
+  $workerAccount = 'NT SERVICE\LaptopStoreSettingsApplyWorker'
+  $keyProvision = Start-Process -FilePath $node.Source -ArgumentList @('scripts/provision-settings-worker-keys.js') -WorkingDirectory $backendRoot -Wait -PassThru -NoNewWindow
+  if ($keyProvision.ExitCode -ne 0) { throw 'Could not provision signed worker heartbeat keys.' }
+  $privateKeyPath = Join-Path $workerRoot 'heartbeat-private.pem'
+  Invoke-Icacls @($privateKeyPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F')
+  $publicKeyPath = Join-Path $workerRoot 'settings-worker-heartbeat-public.pem'
+  Invoke-Icacls @($publicKeyPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', "$operatorAccount`:R")
   [IO.File]::WriteAllBytes($tokenPath, $protectedToken)
   Invoke-Icacls @($tokenPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', 'NT SERVICE\LaptopStoreTunnel:R')
 
@@ -131,6 +178,11 @@ try {
     Copy-Item -LiteralPath $winswSource -Destination $exePath
 
     $tunnelEnvironment = ''
+    if ($service.SettingsWorker) {
+      Copy-Item -LiteralPath (Join-Path $backendRoot 'scripts\settings-apply-worker.js') -Destination (Join-Path $workerRuntime 'scripts\settings-apply-worker.js')
+      Copy-Item -LiteralPath (Join-Path $backendRoot 'src\services\adminSettingsDraftStore.js') -Destination (Join-Path $workerRuntime 'src\services\adminSettingsDraftStore.js')
+      Copy-Item -LiteralPath (Join-Path $backendRoot 'src\services\adminSettingsRegistry.js') -Destination (Join-Path $workerRuntime 'src\services\adminSettingsRegistry.js')
+    }
     if ($service.Tunnel) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'tunnel.js') -Destination (Join-Path $directory 'tunnel.js')
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
@@ -162,6 +214,7 @@ $tunnelEnvironment</service>
     $createdServices += [PSCustomObject]@{ Id = $service.Id; Exe = $exePath; Xml = $xmlPath }
     & $exePath install $xmlPath
     if ($LASTEXITCODE -ne 0) { throw "WinSW install failed for $($service.Id)." }
+    if ($service.Id -eq 'LaptopStoreBackend') { $serviceDaclBackups[$service.Id] = Get-ServiceDacl $service.Id }
     & sc.exe config $service.Id 'obj=' "NT SERVICE\$($service.Id)" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not assign the virtual service account to $($service.Id)." }
     & sc.exe config $service.Id 'start=' 'demand' | Out-Null
@@ -188,15 +241,35 @@ $tunnelEnvironment</service>
     }
     if ($service.Id -eq 'LaptopStoreBackend') {
       Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
+      Invoke-Icacls @($workerRoot, '/grant', "$account`:(X)")
       Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)M")
       foreach ($envFile in $envFiles) {
         Invoke-Icacls @($envFile.FullName, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', "$operatorAccount`:R", "$account`:R")
       }
     }
+    if ($service.SettingsWorker) {
+      Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
+      Invoke-Icacls @($settingsSecretRoot, '/grant', "$account`:(OI)(CI)M")
+      Invoke-Icacls @($workerRoot, '/grant', "$account`:(OI)(CI)RX", '/T', '/C')
+      Invoke-Icacls @($privateKeyPath, '/grant', "$account`:R")
+      Invoke-Icacls @((Join-Path $logRoot 'settings-worker'), '/grant', "$account`:(OI)(CI)M")
+      Invoke-Icacls @($publicKeyPath, '/grant', 'NT SERVICE\LaptopStoreBackend:R')
+      Invoke-Icacls @($publicKeyPath, '/grant', "$account`:R")
+      Add-WorkerBackendServiceRights 'LaptopStoreBackend' $account
+    }
   }
 
 } catch {
   $rollbackFailures = @()
+  foreach ($serviceId in $serviceDaclBackups.Keys) {
+    try {
+      & sc.exe sdset $serviceId $serviceDaclBackups[$serviceId] | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Could not restore service DACL for $serviceId." }
+    } catch {
+      $rollbackFailures += "$serviceId-service-acl"
+      Write-Warning "Could not restore service DACL for $serviceId; manual recovery is required."
+    }
+  }
   for ($index = $createdServices.Count - 1; $index -ge 0; $index -= 1) {
     $service = $createdServices[$index]
     try {
@@ -231,7 +304,7 @@ $tunnelEnvironment</service>
   $plainToken = $null
 }
 
-'WinSW services are installed with Manual startup and remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'Four WinSW services are installed with Manual startup and remain stopped; current listeners on ports 3000/5000 were not stopped.'
 'ACL backups are retained at: {0}' -f $aclBackupDirectory
 'After reviewing service status and ACLs, schedule a separate maintenance-window cutover to stop old consoles and start the services.'
 'No .env content or Tunnel token was printed.'

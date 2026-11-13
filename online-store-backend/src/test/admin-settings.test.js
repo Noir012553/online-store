@@ -201,26 +201,15 @@ describe('Super-admin settings boundary', () => {
     expect(invalidKey.text).not.to.include('forbidden');
   });
 
-  it('records apply requests as unavailable and never reports applied when no worker exists', async () => {
+  it('returns 503 and does not enqueue an apply request when no fresh authenticated worker is present', async () => {
     const token = authenticateAs('super-admin');
-    sinon.stub(settingsDraftStore, 'createApplyJob').resolves({
-      id: 'a'.repeat(32), status: 'unavailable', applied: false,
-      message: 'No verified fixed WinSW apply worker is installed.',
-    });
     const created = await request(app)
       .post('/api/admin/settings/apply-jobs')
       .set('Authorization', `Bearer ${token}`)
       .send({ expectedVersion: 2 });
-    expect(created.status).to.equal(202);
-    expect(created.body.data.job).to.include({ status: 'unavailable', applied: false });
+    expect(created.status).to.equal(503);
+    expect(created.body.code).to.equal('SETTINGS_APPLY_WORKER_UNAVAILABLE');
     expect(created.text).not.to.include('EMAIL_PASSWORD');
-
-    sinon.stub(settingsDraftStore, 'getApplyJob').resolves({ id: 'a'.repeat(32), status: 'unavailable', applied: false });
-    const status = await request(app)
-      .get(`/api/admin/settings/apply-jobs/${'a'.repeat(32)}`)
-      .set('Authorization', `Bearer ${token}`);
-    expect(status.status).to.equal(200);
-    expect(status.body.data.job).to.include({ status: 'unavailable', applied: false });
   });
 
   it('reports the apply worker as unavailable in status', async () => {
@@ -230,5 +219,6 @@ describe('Super-admin settings boundary', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(response.status).to.equal(200);
     expect(response.body.data.security).to.include({ secretsWriteOnly: true, applyWorkerAvailable: false });
+    expect(response.body.data.security.applyWorkerUnavailableReason).to.be.a('string');
   });
 });

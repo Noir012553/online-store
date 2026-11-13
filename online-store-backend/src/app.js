@@ -4,6 +4,9 @@
  * Chạy trên port 5000 (hoặc PORT env)
  */
 require('dotenv').config();
+const settingsDraftStore = require('./services/adminSettingsDraftStore');
+const loadedSettings = settingsDraftStore.loadActiveOverrides();
+let activeSettingsVersion = loadedSettings.version;
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -239,6 +242,7 @@ let reconnectTimer = null;
 let connectionInProgress = false;
 let startupReady = false;
 let serverStarted = false;
+app.set('getStartupReadiness', () => ({ startupReady, activeSettingsVersion: startupReady ? activeSettingsVersion : null }));
 
 const scheduleReconnect = (delay) => {
   if (reconnectTimer) return;
@@ -438,6 +442,7 @@ app.get('/readyz', (req, res) => {
     status: ready ? 'ready' : 'not_ready',
     databaseConnected: mongoose.connection.readyState === 1,
     startupReady,
+    activeSettingsVersion: ready ? activeSettingsVersion : null,
     storage,
     assetStorage,
     timestamp: new Date().toISOString(),

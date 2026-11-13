@@ -64,10 +64,14 @@ class HealthController {
       const memoryUsage = process.memoryUsage();
       const cloudflareHealth = cloudflareAiService.getHealth();
       const configInfo = cloudflareAiService.getConfigInfo();
+      const readiness = req.app.get('getStartupReadiness')?.() || { startupReady: false, activeSettingsVersion: null };
+      const ready = readiness.startupReady && cloudflareHealth.status === 'healthy';
 
-      res.json({
+      res.status(ready ? 200 : 503).json({
         service: 'backend',
-        status: cloudflareHealth.status === 'healthy' ? 'healthy' : 'degraded',
+        status: ready ? 'healthy' : 'degraded',
+        startupReady: readiness.startupReady,
+        activeSettingsVersion: readiness.startupReady ? readiness.activeSettingsVersion : null,
         timestamp: new Date().toISOString(),
         uptime: {
           seconds: Math.floor(uptime),

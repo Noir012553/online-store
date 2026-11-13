@@ -12,6 +12,9 @@ const POWERSHELL_RELATIVE_PATH = path.win32.join('System32', 'WindowsPowerShell'
 const MAX_STATE_BYTES = 1024 * 1024;
 const MAX_SECRET_CHARS = 8192;
 const JOB_ID_PATTERN = /^[a-f0-9]{32}$/;
+const WORKER_PUBLIC_KEY_FILENAME = 'settings-worker-heartbeat-public.pem';
+const WORKER_ID = 'LaptopStoreSettingsApplyWorker';
+const HEARTBEAT_MAX_AGE_MS = 15000;
 
 class SettingsStoreError extends Error {
   constructor(code, statusCode, message) {
@@ -126,7 +129,7 @@ const readState = paths => {
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_STATE_BYTES) throw unavailable('Encrypted settings state is invalid.');
     encrypted = fs.readFileSync(paths.store);
   } catch (error) {
-    if (error.code === 'ENOENT') return { version: 0, draft: null, jobs: [], audit: [] };
+    if (error.code === 'ENOENT') return { version: 0, draft: null, active: null, jobs: [], audit: [] };
     if (error instanceof SettingsStoreError) throw error;
     throw unavailable('Encrypted settings state cannot be read.');
   }
@@ -262,43 +265,160 @@ const saveDraft = async ({ expectedVersion, settings, userId }) => {
   });
 };
 
+const getWorkerStatusFromState = (paths, state, now = Date.now()) => {
+  try {
+    const publicKeyPath = path.win32.join(paths.root, 'LaptopStore', 'services', WORKER_ID, WORKER_PUBLIC_KEY_FILENAME);
+    const keyStat = fs.lstatSync(publicKeyPath);
+    if (!keyStat.isFile() || keyStat.isSymbolicLink()) return { available: false, reason: 'worker-key-unavailable' };
+    const heartbeat = state.workerHeartbeat;
+    if (!heartbeat || heartbeat.workerId !== WORKER_ID || !Number.isSafeInteger(heartbeat.timestamp)) {
+      return { available: false, reason: 'worker-heartbeat-missing' };
+    }
+    const ageMs = now - heartbeat.timestamp;
+    if (ageMs < -5000 || ageMs > HEARTBEAT_MAX_AGE_MS) return { available: false, reason: 'worker-heartbeat-stale' };
+    const signed = Buffer.from(JSON.stringify({ workerId: heartbeat.workerId, timestamp: heartbeat.timestamp, version: 1 }));
+    const signature = Buffer.from(heartbeat.signature || '', 'base64');
+    const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+    if (!crypto.verify(null, signed, publicKey, signature)) return { available: false, reason: 'worker-heartbeat-invalid' };
+    return { available: true, reason: null, lastHeartbeatAt: new Date(heartbeat.timestamp).toISOString() };
+  } catch {
+    return { available: false, reason: 'worker-key-unavailable' };
+  }
+};
+
+const getWorkerStatus = () => {
+  const paths = getStorePaths();
+  if (!paths || !getAvailability().available) return { available: false, reason: 'settings-store-unavailable' };
+  try {
+    return getWorkerStatusFromState(paths, readState(paths));
+  } catch {
+    return { available: false, reason: 'settings-store-unavailable' };
+  }
+};
+
 const createApplyJob = async ({ expectedVersion, userId }) => {
   if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw invalid('expectedVersion must be a positive integer.');
   return withLock(async paths => {
     const state = readState(paths);
+    if (!getWorkerStatusFromState(paths, state).available) throw unavailable('Settings apply worker is unavailable or its authenticated heartbeat is stale.');
     if (!state.draft || state.draft.version !== expectedVersion) throw conflict('Draft version does not match expectedVersion.');
+    if (state.jobs.some(job => ['queued', 'claimed', 'applying', 'rolling-back'].includes(job.status))) {
+      throw conflict('Another settings apply job is already in progress.');
+    }
     const job = {
       id: crypto.randomBytes(16).toString('hex'),
-      status: 'unavailable',
+      status: 'queued',
       applied: false,
-      adapter: 'winsw-fixed-service-adapter-unconfigured',
       version: state.draft.version,
+      settings: { ...state.draft.settings },
       createdAt: new Date().toISOString(),
       createdBy: String(userId),
-      completedAt: new Date().toISOString(),
-      message: 'No verified fixed WinSW apply worker is installed; no settings were applied and no service was restarted.',
+      completedAt: null,
+      message: 'Apply request queued for the fixed settings worker.',
     };
-    const audit = auditRecord('apply-request-unavailable', userId, state.draft.version, Object.keys(state.draft.settings), job.id);
+    const audit = auditRecord('apply-request-queued', userId, state.draft.version, Object.keys(state.draft.settings), job.id);
     writeState(paths, { ...state, jobs: [...state.jobs, job].slice(-100), audit: [...state.audit, audit].slice(-200) });
-    console.info('[AdminSettings] Apply request recorded as unavailable', { userId: String(userId), version: job.version, jobId: job.id, keys: audit.keys });
-    return job;
+    console.info('[AdminSettings] Apply request queued', { userId: String(userId), version: job.version, jobId: job.id, keys: audit.keys });
+    return publicJob(job);
   });
+};
+
+const publicJob = job => {
+  if (!job) return null;
+  return Object.fromEntries(Object.entries(job).filter(([key]) => !['settings', 'previousActive'].includes(key)));
 };
 
 const getApplyJob = async id => {
   if (!JOB_ID_PATTERN.test(id)) throw invalid('Apply job id is invalid.');
   const paths = requirePaths();
-  const job = readState(paths).jobs.find(entry => entry.id === id);
-  if (!job) return null;
-  return job;
+  return publicJob(readState(paths).jobs.find(entry => entry.id === id));
 };
+
+const claimApplyJob = async () => withLock(async paths => {
+  const state = readState(paths);
+  if (!getWorkerStatusFromState(paths, state).available) return null;
+  const staleBefore = Date.now() - 120000;
+  let index = state.jobs.findIndex(job => job.status === 'queued');
+  if (index < 0) {
+    index = state.jobs.findIndex(job => ['claimed', 'applying', 'rolling-back'].includes(job.status)
+      && Number.isFinite(Date.parse(job.claimedAt || job.startedAt))
+      && Date.parse(job.claimedAt || job.startedAt) < staleBefore);
+  }
+  if (index < 0) return null;
+  const existing = state.jobs[index];
+  const job = { ...existing, status: 'claimed', claimedAt: new Date().toISOString(), previousActive: existing.previousActive ?? state.active ?? null };
+  const jobs = [...state.jobs];
+  jobs[index] = job;
+  writeState(paths, { ...state, jobs });
+  return { ...job };
+});
+
+const activateClaimedJob = async jobId => withLock(async paths => {
+  const state = readState(paths);
+  const index = state.jobs.findIndex(job => job.id === jobId && job.status === 'claimed');
+  if (index < 0) throw conflict('Apply job is not claimable.');
+  const job = { ...state.jobs[index], status: 'applying', startedAt: new Date().toISOString() };
+  const jobs = [...state.jobs];
+  jobs[index] = job;
+  const active = { version: job.version, settings: { ...job.settings }, activatedAt: new Date().toISOString() };
+  writeState(paths, { ...state, active, jobs });
+  return { version: active.version };
+});
+
+const completeApplyJob = async (jobId, { succeeded, message }) => withLock(async paths => {
+  const state = readState(paths);
+  const index = state.jobs.findIndex(job => job.id === jobId && ['claimed', 'applying', 'rolling-back'].includes(job.status));
+  if (index < 0) throw conflict('Apply job is not active.');
+  const previous = state.jobs[index].previousActive || null;
+  const now = new Date().toISOString();
+  const job = { ...state.jobs[index], status: succeeded ? 'succeeded' : 'failed', applied: Boolean(succeeded), message, completedAt: now };
+  const jobs = [...state.jobs];
+  jobs[index] = job;
+  const active = succeeded ? state.active : previous;
+  const audit = auditRecord(succeeded ? 'apply-succeeded' : 'apply-failed', job.createdBy, job.version, Object.keys(job.settings || {}), job.id);
+  writeState(paths, { ...state, active, jobs, audit: [...state.audit, audit].slice(-200) });
+  return publicJob(job);
+});
+
+const loadActiveOverrides = () => {
+  const paths = getStorePaths();
+  if (!paths || !getAvailability().available) return { version: 0, loaded: false };
+  const state = readState(paths);
+  const active = state.active;
+  if (!active) return { version: 0, loaded: true };
+  if (!Number.isSafeInteger(active.version) || !active.settings || typeof active.settings !== 'object') {
+    throw unavailable('Active settings state is invalid.');
+  }
+  const settings = normalizeSettings(active.settings);
+  for (const [key, value] of Object.entries(settings)) process.env[key] = value;
+  return { version: active.version, loaded: true };
+};
+
+const getActiveSettingsVersion = () => {
+  const paths = getStorePaths();
+  if (!paths || !getAvailability().available) return 0;
+  return readState(paths).active?.version || 0;
+};
+
+const publishWorkerHeartbeat = async ({ workerId, timestamp, signature }) => withLock(async paths => {
+  if (workerId !== WORKER_ID || !Number.isSafeInteger(timestamp) || typeof signature !== 'string') throw invalid('Worker heartbeat is invalid.');
+  const state = readState(paths);
+  writeState(paths, { ...state, workerHeartbeat: { workerId, timestamp, signature } });
+});
 
 module.exports = {
   SettingsStoreError,
+  activateClaimedJob,
+  claimApplyJob,
+  completeApplyJob,
   createApplyJob,
+  getActiveSettingsVersion,
   getApplyJob,
   getAvailability,
   getDraft,
+  getWorkerStatus,
+  loadActiveOverrides,
   normalizeSettings,
+  publishWorkerHeartbeat,
   saveDraft,
 };
