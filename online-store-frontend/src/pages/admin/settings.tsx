@@ -21,7 +21,7 @@ import {
 import { withAdminMeta } from '../../components/admin/withAdminLayout';
 import { apiCall } from '../../lib/api';
 import { useLanguage } from '../../lib/i18n';
-import { SITE_URL } from '../../lib/seo';
+import { SITE_NAME, SITE_URL } from '../../lib/seo';
 import { interpolateTranslation } from '../../lib/translationInterpolate';
 import { INTL_LOCALES } from '../../lib/i18n/types';
 
@@ -234,8 +234,8 @@ function SettingsPage() {
   const openSection = (section: SectionKey) => setActiveSection(section);
   const currentSection = sections.find((section) => section.id === activeSection) ?? sections[0];
   const CurrentIcon = currentSection.icon;
-  const storeName = text('store_name');
-  const supportEmail = t('contact_email_display', 'footer');
+  const storeName = SITE_NAME;
+  const supportEmail = 'noir002534@gmail.com';
   const supportPhone = t('contact_phone_display', 'footer');
 
   const serviceTone = (configured: boolean, enabled?: boolean): StatusTone => {
