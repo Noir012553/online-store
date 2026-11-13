@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Ange en ny hemlighet",
   "hide_value": "Dölj {{field}}",
   "show_value": "Visa {{field}}",
+  "copy_value": "Kopiera {{field}}",
+  "copied_value": "{{field}} kopierat",
   "store_name": "Butiksnamn",
   "support_email": "Support-e-post",
   "support_phone": "Supporttelefon",

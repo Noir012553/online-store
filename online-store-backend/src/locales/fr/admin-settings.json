@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Saisissez un nouveau secret",
   "hide_value": "Masquer {{field}}",
   "show_value": "Afficher {{field}}",
+  "copy_value": "Copier {{field}}",
+  "copied_value": "{{field}} copié",
   "store_name": "Nom de la boutique",
   "support_email": "E-mail d’assistance",
   "support_phone": "Téléphone d’assistance",

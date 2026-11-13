@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Neues Secret eingeben",
   "hide_value": "{{field}} ausblenden",
   "show_value": "{{field}} anzeigen",
+  "copy_value": "{{field}} kopieren",
+  "copied_value": "{{field}} kopiert",
   "store_name": "Shopname",
   "support_email": "Support-E-Mail",
   "support_phone": "Support-Telefon",

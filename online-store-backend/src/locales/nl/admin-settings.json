@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Voer een nieuw geheim in",
   "hide_value": "{{field}} verbergen",
   "show_value": "{{field}} tonen",
+  "copy_value": "{{field}} kopiëren",
+  "copied_value": "{{field}} gekopieerd",
   "store_name": "Winkelnaam",
   "support_email": "Support-e-mail",
   "support_phone": "Supporttelefoon",

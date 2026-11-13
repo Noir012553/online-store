@@ -9,6 +9,7 @@ import {
   CircleAlert,
   Cloud,
   CreditCard,
+  Copy,
   Eye,
   EyeOff,
   Globe2,
@@ -129,9 +130,20 @@ function StatusBadge({ tone, children }: { tone: StatusTone; children: React.Rea
 
 function MaskableValue({ label, value, inputClassName }: { label: string; value: string | number; inputClassName: string }) {
   const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   const text = useSettingsText();
   const isEmpty = value === '';
   const displayValue = isEmpty ? text('not_configured') : visible ? String(value) : '*****';
+
+  const copyValue = async () => {
+    try {
+      await navigator.clipboard.writeText(String(value));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <div className="flex min-w-0 items-center gap-2">
@@ -144,15 +156,25 @@ function MaskableValue({ label, value, inputClassName }: { label: string; value:
         className={inputClassName}
       />
       {!isEmpty && (
-        <button
-          type="button"
-          aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })}
-          aria-pressed={visible}
-          onClick={() => setVisible(current => !current)}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-        >
-          {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-        </button>
+        <>
+          <button
+            type="button"
+            aria-label={text(visible ? 'hide_value' : 'show_value', { field: label })}
+            aria-pressed={visible}
+            onClick={() => setVisible(current => !current)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
+            {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            aria-label={text(copied ? 'copied_value' : 'copy_value', { field: label })}
+            onClick={copyValue}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
+            {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        </>
       )}
     </div>
   );

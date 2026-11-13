@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Nhập secret mới",
   "hide_value": "Ẩn {{field}}",
   "show_value": "Hiện {{field}}",
+  "copy_value": "Sao chép {{field}}",
+  "copied_value": "Đã sao chép {{field}}",
   "store_name": "Tên cửa hàng",
   "support_email": "Email hỗ trợ",
   "support_phone": "Điện thoại hỗ trợ",

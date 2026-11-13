@@ -40,6 +40,8 @@
   "enter_secret_placeholder": "Enter a new secret",
   "hide_value": "Hide {{field}}",
   "show_value": "Show {{field}}",
+  "copy_value": "Copy {{field}}",
+  "copied_value": "Copied {{field}}",
   "store_name": "Store name",
   "support_email": "Support email",
   "support_phone": "Support phone",
