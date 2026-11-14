@@ -113,9 +113,10 @@ describe('Super-admin settings boundary', () => {
     expect(editableSettingRegistry).to.have.property('R2_BUCKET_NAME_2');
     expect(editableSettingRegistry).to.have.property('R2_PUBLIC_BASE_URL');
     expect(editableSettingRegistry).to.have.property('CLOUDFLARE_AI_MODEL_1');
-    expect(editableSettingRegistry).not.to.have.property('R2_ACCESS_KEY_ID');
-    expect(editableSettingRegistry).not.to.have.property('CLOUDFLARE_API_TOKEN_1');
-    expect(editableSettingRegistry).not.to.have.property('CLOUDFLARE_ACCOUNT_ID_1');
+    expect(editableSettingRegistry).to.have.property('R2_ACCESS_KEY_ID');
+    expect(editableSettingRegistry).to.have.property('R2_SECRET_ACCESS_KEY');
+    expect(editableSettingRegistry).to.have.property('CLOUDFLARE_API_TOKEN_1');
+    expect(editableSettingRegistry).to.have.property('CLOUDFLARE_ACCOUNT_ID_1');
     expect(editableSettingRegistry).not.to.have.property('JWT_SECRET');
 
     const normalized = settingsDraftStore.normalizeSettings({
@@ -125,6 +126,10 @@ describe('Super-admin settings boundary', () => {
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
+      R2_ACCESS_KEY_ID: 'r2-access-test-secret',
+      R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
+      CLOUDFLARE_API_TOKEN_1: 'cloudflare-test-secret',
+      CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(normalized).to.deep.equal({
       EMAIL_PORT: '587',
@@ -132,6 +137,10 @@ describe('Super-admin settings boundary', () => {
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
+      R2_ACCESS_KEY_ID: 'r2-access-test-secret',
+      R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
+      CLOUDFLARE_API_TOKEN_1: 'cloudflare-test-secret',
+      CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(() => settingsDraftStore.normalizeSettings({ JWT_SECRET: 'nope' })).to.throw(/not editable/);
     expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_1: 'nope' })).to.throw(/not editable/);
