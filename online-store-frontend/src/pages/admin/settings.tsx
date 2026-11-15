@@ -93,7 +93,7 @@ const runtimeSecretKeys = [
 // Keep this list explicit and in sync with the backend managed-draft allowlist.
 const settingsGroups: SettingsGroup[] = [
   { section: 'email', title: 'Email', keys: ['EMAIL_SERVICE', 'EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_SECURE', 'EMAIL_USER', 'EMAIL_FROM', 'EMAIL_PASSWORD', 'SENDGRID_API_KEY'] },
-  { section: 'payment', title: 'VNPay', keys: ['VNPAY_ENDPOINT', 'VNPAY_TMN_CODE', 'VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL', 'VNPAY_HASH_SECRET'] },
+  { section: 'payment', title: 'Thanh toán', keys: ['VNPAY_ENDPOINT', 'VNPAY_TMN_CODE', 'VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL', 'VNPAY_HASH_SECRET'] },
   { section: 'cloudflare', title: 'Chính sách tải lên R2', keys: ['R2_UPLOAD_ENABLED', 'R2_MAX_UPLOAD_COUNT', 'R2_MAX_UPLOAD_BYTES', 'R2_MAX_RETRIES', 'R2_MAX_IMAGE_BYTES', 'R2_MAX_VIDEO_BYTES'] },
   { section: 'cloudflare', title: 'Thông tin công khai R2', keys: [...r2NumberedKeys('R2_ACCOUNT_ID'), ...r2NumberedKeys('R2_BUCKET_NAME'), ...r2NumberedKeys('R2_PUBLIC_BASE_URL')] },
   { section: 'cloudflare', title: 'Thông tin xác thực R2', keys: [...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY')] },
