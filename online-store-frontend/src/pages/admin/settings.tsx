@@ -119,13 +119,21 @@ const fieldLabels: Record<string, string> = {
 };
 
 const sections = [
-  { id: 'overview', label: 'overview', icon: Globe2 },
-  { id: 'branding', label: 'branding', icon: Building2 },
-  { id: 'email', label: 'email', icon: Mail },
-  { id: 'payment', label: 'payment', icon: CreditCard },
-  { id: 'cloudflare', label: 'cloudflare', icon: Cloud },
-  { id: 'security', label: 'security', icon: ShieldCheck },
+  { id: 'overview', label: 'overview' },
+  { id: 'branding', label: 'branding' },
+  { id: 'email', label: 'email' },
+  { id: 'payment', label: 'payment' },
+  { id: 'cloudflare', label: 'cloudflare' },
+  { id: 'security', label: 'security' },
 ] as const;
+const sectionIcons: Record<SectionKey, typeof Building2> = {
+  overview: Globe2,
+  branding: Building2,
+  email: Mail,
+  payment: CreditCard,
+  cloudflare: Cloud,
+  security: ShieldCheck,
+};
 
 function useSettingsText() {
   const { t } = useLanguage();
@@ -440,7 +448,7 @@ function SettingsPage() {
 
   const openSection = (section: SectionKey) => setActiveSection(section);
   const currentSection = sections.find(section => section.id === activeSection) ?? sections[0];
-  const CurrentIcon = currentSection.icon;
+  const CurrentIcon = sectionIcons[currentSection.id];
   const SectionDataField = ({ label, value }: { label: string; value: string | number }) => <DataField label={label} value={value} icon={CurrentIcon} />;
   const storeName = SITE_NAME;
   const supportEmail = 'noir002534@gmail.com';
@@ -524,7 +532,7 @@ function SettingsPage() {
     <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('cloudflare_secret_notice')} Lưu bản nháp và áp dụng là hai thao tác riêng biệt.</p></div><button type="button" onClick={() => void refreshAll()} disabled={isLoading || valuesLoading || hasUnsavedChanges || applyInProgress} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /></button></div>
     {loadError && <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert"><XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><div><p className="text-sm font-semibold text-red-900">{text('load_error_title')}</p><p className="mt-1 text-sm text-red-800">{text('load_error_hint')}</p></div></div>}
     <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">{sections.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => openSection(id)} aria-current={activeSection === id ? 'page' : undefined} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}><Icon className={`h-4 w-4 ${activeSection === id ? 'text-red-600' : 'text-gray-400'}`} />{text(label)}{activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}</button>)}<div className="mt-3 border-t border-gray-100 px-3 pt-3"><p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p></div></nav>
+      <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">{sections.map(({ id, label }) => { const Icon = sectionIcons[id]; return <button key={id} type="button" onClick={() => openSection(id)} aria-current={activeSection === id ? 'page' : undefined} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}><Icon className={`h-5 w-5 shrink-0 ${activeSection === id ? 'text-red-600' : 'text-gray-500'}`} aria-hidden="true" />{text(label)}{activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}</button>; })}<div className="mt-3 border-t border-gray-100 px-3 pt-3"><p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p></div></nav>
       <div className="min-w-0 space-y-6">
         {activeSection === 'overview' ? <>
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-lg font-bold text-gray-900">{text('status_title')}</h2><p className="mt-1 text-sm text-gray-500">{isLoading ? text('status_loading') : text('status_loaded')}</p></div><span className="text-xs font-medium text-gray-400">{status ? text('updated_at', { date: new Date(status.generatedAt).toLocaleString(INTL_LOCALES[locale]) }) : text('not_loaded')}</span></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatusTile icon={Building2} label={text('branding')} detail={text('active')} tone="good" /><StatusTile icon={Mail} label={text('email')} detail={status ? status.email.configured ? text('configured') : text('email_missing') : text('loading')} tone={emailTone} /><StatusTile icon={CreditCard} label="VNPay" detail={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('loading')} tone={paymentTone} /><StatusTile icon={Cloud} label="Cloudflare" detail={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('configured') : text('needs_check') : text('loading')} tone={cloudflareTone} /></div></section>
