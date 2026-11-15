@@ -43,6 +43,14 @@ type RuntimeSetting = {
 } & ({ secret: true } | { secret: false; value: string });
 type DraftSetting = string | { configured: boolean; reset?: boolean } | null;
 type SettingsDraft = { version: number; settings: Record<string, DraftSetting> };
+type AdminPaymentMethod = {
+  code: 'cod' | 'vnpay';
+  name: string;
+  description: string;
+  isEnabled: boolean;
+  isDeleted: boolean;
+  available: boolean;
+};
 type ApplyJob = {
   id: string;
   status: 'unavailable' | 'queued' | 'claimed' | 'applying' | 'rolling-back' | 'succeeded' | 'failed' | 'rollback-failed';
@@ -169,6 +177,9 @@ function SecretDataField({ label, configured, value, revealed, loading, error, o
 function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [status, setStatus] = useState<SettingsStatus | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
+  const [paymentMethodsError, setPaymentMethodsError] = useState('');
   const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSetting[]>([]);
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
   const [revealedRuntimeValues, setRevealedRuntimeValues] = useState<Record<string, boolean>>({});
@@ -273,11 +284,51 @@ function SettingsPage() {
     await loadDraft(liveSettings);
   };
 
+  const loadPaymentMethods = async () => {
+    setPaymentMethodsLoading(true);
+    setPaymentMethodsError('');
+    try {
+      const response = await apiCall<{ success: boolean; data: { methods: AdminPaymentMethod[] } }>('/admin/payment-methods', { skipCache: true, skipErrorToast: true });
+      setPaymentMethods(response.data.methods);
+    } catch {
+      setPaymentMethodsError('Không thể tải danh sách phương thức thanh toán.');
+    } finally {
+      setPaymentMethodsLoading(false);
+    }
+  };
+
+  const updatePaymentMethod = async (code: AdminPaymentMethod['code'], updates: Partial<Pick<AdminPaymentMethod, 'name' | 'description' | 'isEnabled' | 'isDeleted'>>) => {
+    setPaymentMethodsError('');
+    try {
+      await apiCall(`/admin/payment-methods/${code}`, { method: 'PATCH', body: JSON.stringify(updates), skipErrorToast: true });
+      await loadPaymentMethods();
+      return true;
+    } catch {
+      setPaymentMethodsError('Không thể cập nhật phương thức thanh toán.');
+      return false;
+    }
+  };
+
+  const deletePaymentMethod = async (code: AdminPaymentMethod['code']) => {
+    if (!window.confirm('Ẩn phương thức này khỏi checkout?')) return;
+    setPaymentMethodsError('');
+    try {
+      await apiCall(`/admin/payment-methods/${code}`, { method: 'DELETE', skipErrorToast: true });
+      await loadPaymentMethods();
+    } catch {
+      setPaymentMethodsError('Không thể xóa phương thức thanh toán.');
+    }
+  };
+
   useEffect(() => {
     void refreshAll();
     void loadNamespace('footer');
     void loadNamespace('admin-settings');
   }, [loadNamespace]);
+
+  useEffect(() => {
+    if (activeSection === 'payment') void loadPaymentMethods();
+  }, [activeSection]);
 
   const hasUnsavedChanges = useMemo(() => (
     Object.keys(values).some(key => (values[key] ?? '') !== (baseline[key] ?? ''))
@@ -541,11 +592,11 @@ function SettingsPage() {
           })}</div> : <p className="mt-4 text-sm text-gray-500">{text('runtime_settings_empty')}</p>}</section>
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4"><h2 className="text-lg font-bold text-gray-900">{text('groups_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('groups_description')}</p></div><div className="divide-y divide-gray-100"><OverviewRow icon={Image} title={text('store_name')} description={text('active')} status={text('active')} tone="good" onClick={() => openSection('branding')} /><OverviewRow icon={Mail} title={text('email')} description={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('email_loading')} status={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('loading')} tone={emailTone} onClick={() => openSection('email')} /><OverviewRow icon={CreditCard} title="VNPay" description={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('payment_loading')} status={status ? status.payment.configured ? text(status.payment.mode) : text('credentials_missing') : text('loading')} tone={paymentTone} onClick={() => openSection('payment')} /><OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${text('accounts_configured', { count: status.r2.accounts.length })} · ${text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}` : text('cloudflare_loading')} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('has_configuration') : text('needs_check') : text('loading')} tone={cloudflareTone} onClick={() => openSection('cloudflare')} /><OverviewRow icon={KeyRound} title={text('security')} description="Bản nháp được lưu trữ an toàn; bí mật không thể đọc lại." status={securityReady ? 'Kho bí mật sẵn sàng' : 'Chưa sẵn sàng'} tone={securityReady ? 'good' : 'warning'} onClick={() => openSection('security')} /></div></section>
         </> : <>
-          <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"><div className="border-b border-gray-100 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="rounded-lg bg-red-50 p-2.5 text-red-600"><CurrentIcon className="h-5 w-5" /></span><div><h2 className="text-lg font-bold text-gray-900">{text(currentSection.label)}</h2><p className="mt-1 text-sm text-gray-500">{text('section_value_description')}</p></div></div><StatusBadge tone={activeSection === 'payment' ? 'good' : loadError ? 'danger' : isLoading ? 'neutral' : 'warning'}>{loadError ? text('load_failed') : isLoading ? text('loading') : activeSection === 'payment' ? '2 phương thức' : 'Có thể chỉnh sửa cấu hình'}</StatusBadge></div></div>
+          <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"><div className="border-b border-gray-100 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="rounded-lg bg-red-50 p-2.5 text-red-600"><CurrentIcon className="h-5 w-5" /></span><div><h2 className="text-lg font-bold text-gray-900">{text(currentSection.label)}</h2><p className="mt-1 text-sm text-gray-500">{text('section_value_description')}</p></div></div><StatusBadge tone={activeSection === 'payment' ? 'good' : loadError ? 'danger' : isLoading ? 'neutral' : 'warning'}>{loadError ? text('load_failed') : isLoading ? text('loading') : activeSection === 'payment' ? 'Phương thức thanh toán' : 'Có thể chỉnh sửa cấu hình'}</StatusBadge></div></div>
             <div className="space-y-6 p-5 sm:p-6">
               {activeSection === 'branding' && <><div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('store_name')} value={storeName || 'LaptopStore'} /><SectionDataField label={text('support_email')} value={supportEmail} /><SectionDataField label={text('support_phone')} value={supportPhone} /><SectionDataField label={text('website')} value={SITE_URL} /></div><div className="rounded-lg border border-gray-200 bg-gray-50 p-5"><div className="flex flex-wrap items-center gap-4"><img src="/assets/branding/logo-cropped.png" alt={text('logo_alt')} className="h-16 w-auto rounded bg-white object-contain p-2" /><div><p className="text-sm font-semibold text-gray-800">{text('logo_current')}</p><p className="mt-1 text-xs text-gray-500">/assets/branding/logo-cropped.png</p></div></div><p className="mt-3 text-sm text-gray-600">Thông tin thương hiệu đang ở chế độ chỉ xem; không thuộc danh sách cài đặt có thể quản lý.</p></div></>}
               {activeSection === 'email' && status && <div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><SectionDataField label={text('smtp_host')} value={status.email.host} /><SectionDataField label={text('port')} value={status.email.port} /><SectionDataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><SectionDataField label={text('smtp_account')} value={status.email.account} /><SectionDataField label={text('from_address')} value={status.email.from} /><SecretDataField icon={Mail} label={text('smtp_password')} configured={status.email.passwordConfigured} value={revealedSecrets.EMAIL_PASSWORD} revealed={Object.hasOwn(revealedSecrets, 'EMAIL_PASSWORD')} loading={secretRevealLoading.EMAIL_PASSWORD ?? false} error={secretRevealErrors.EMAIL_PASSWORD ?? ''} onToggle={() => void toggleSecretReveal('EMAIL_PASSWORD')} /><SecretDataField icon={Mail} label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} value={revealedSecrets.SENDGRID_API_KEY} revealed={Object.hasOwn(revealedSecrets, 'SENDGRID_API_KEY')} loading={secretRevealLoading.SENDGRID_API_KEY ?? false} error={secretRevealErrors.SENDGRID_API_KEY ?? ''} onToggle={() => void toggleSecretReveal('SENDGRID_API_KEY')} /></div>}
-              {activeSection === 'payment' && status && <div className="grid gap-4 xl:grid-cols-2"><section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"><div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-3"><span className="rounded-lg bg-blue-50 p-2.5 text-blue-700"><CreditCard className="h-5 w-5" aria-hidden="true" /></span><div><h3 className="font-bold text-gray-900">VNPay</h3><p className="mt-1 text-xs text-gray-500">Cổng thanh toán trực tuyến</p></div></div><StatusBadge tone={paymentTone}>{status.payment.configured ? status.payment.mode === 'sandbox' ? 'Sandbox' : 'Đã cấu hình' : 'Chưa cấu hình'}</StatusBadge></div><div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('merchant_code')} value={status.payment.merchantCode} /><SectionDataField label={text('endpoint')} value={status.payment.endpoint} /><SectionDataField label={text('return_url')} value={status.payment.returnUrl} /><SectionDataField label={text('callback_url')} value={status.payment.callbackUrl} /><SecretDataField icon={CreditCard} label={text('vnpay_hash_secret')} configured={status.payment.secretConfigured} value={revealedSecrets.VNPAY_HASH_SECRET} revealed={Object.hasOwn(revealedSecrets, 'VNPAY_HASH_SECRET')} loading={secretRevealLoading.VNPAY_HASH_SECRET ?? false} error={secretRevealErrors.VNPAY_HASH_SECRET ?? ''} onToggle={() => void toggleSecretReveal('VNPAY_HASH_SECRET')} /></div></section><section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"><div className="mb-4 flex items-start justify-between gap-3"><div className="flex items-center gap-3"><span className="rounded-lg bg-emerald-50 p-2.5 text-emerald-700"><CreditCard className="h-5 w-5" aria-hidden="true" /></span><div><h3 className="font-bold text-gray-900">Thanh toán khi nhận hàng (COD)</h3><p className="mt-1 text-xs text-gray-500">Phương thức thanh toán nội bộ</p></div></div><StatusBadge tone="good">Có sẵn</StatusBadge></div><p className="text-sm leading-6 text-gray-600">Khách thanh toán trực tiếp khi nhận đơn hàng. Phương thức này không cần thông tin xác thực từ cổng thanh toán.</p></section></div>}
+              {activeSection === 'payment' && <PaymentMethodsManager methods={paymentMethods} loading={paymentMethodsLoading} error={paymentMethodsError} paymentStatus={status?.payment ?? null} secretValue={revealedSecrets.VNPAY_HASH_SECRET} secretRevealed={Object.hasOwn(revealedSecrets, 'VNPAY_HASH_SECRET')} secretLoading={secretRevealLoading.VNPAY_HASH_SECRET ?? false} secretError={secretRevealErrors.VNPAY_HASH_SECRET ?? ''} onToggleSecret={() => void toggleSecretReveal('VNPAY_HASH_SECRET')} onUpdate={updatePaymentMethod} onDelete={deletePaymentMethod} />}
               {activeSection === 'cloudflare' && status && <><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4 text-xs text-gray-700">{account.accountId}</td><td className="py-2 pr-4 text-xs text-gray-700">{account.bucket}</td><td className="break-all py-2 text-xs text-gray-700">{account.publicBaseUrl}</td></tr>)}</tbody></table></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><SectionDataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><SectionDataField label={text('max_files')} value={status.r2.policy.maxAssets} /><SectionDataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div></div><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><SectionDataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><SectionDataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /><div className="space-y-2 sm:col-span-2"><p className="text-sm font-medium text-gray-700">{text('cloudflare_ai_title')}</p>{status.cloudflareAi.models.length ? <div className="grid gap-3 sm:grid-cols-2">{status.cloudflareAi.models.map((model, index) => <SectionDataField key={`${model}-${index}`} label={`Model ${index + 1}`} value={model} />)}</div> : <SectionDataField label={text('cloudflare_ai_title')} value={text('models_missing')} />}</div></div><p className="mt-3 text-xs text-gray-600">Mã thông tin Cloudflare AI được giữ kín và không hiển thị tại đây.</p></div><div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div></>}
               {activeSection === 'security' && status && <><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold text-emerald-900">{text('secret_never_returned')}</p><p className="mt-1 text-sm leading-5 text-emerald-800">{text('filtered_response_notice')}</p></div></div></div><div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('encrypted_secret_store')} value={status.security.encryptedSecretStoreAvailable ? text('ready') : text('not_configured_yet')} /><SectionDataField label="Lưu cấu hình có quản lý" value={status.security.managedDraftAvailable ? text('ready') : text('not_configured_yet')} /><SectionDataField label="Worker áp dụng" value={status.security.applyWorkerAvailable ? text('ready') : 'Không khả dụng — chưa thể áp dụng'} /><SectionDataField label={text('restart_groups_count')} value={status.security.restartRequiredGroups.length} /><SectionDataField label="Ứng dụng tự quản lý Cloudflare Tunnel" value={status.cloudflareOperations.tunnelManaged ? 'Có' : 'Không'} /><SectionDataField label="Ứng dụng tự quản lý Cloudflare DNS" value={status.cloudflareOperations.dnsManaged ? 'Có' : 'Không'} /></div><p className="text-xs text-gray-500">Các giá trị này chỉ cho biết ứng dụng có tự quản lý tunnel/DNS hay không; không phản ánh tunnel có tồn tại hoặc đang chạy hay không.</p><div className="rounded-lg border border-gray-200 p-4"><p className="text-sm font-semibold text-gray-900">{text('restart_groups')}</p><div className="mt-3 flex flex-wrap gap-2">{status.security.restartRequiredGroups.map(group => <span key={group} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{group}</span>)}</div></div></>}
               {(activeSection === 'email' || activeSection === 'payment' || activeSection === 'cloudflare' || activeSection === 'security') && !status && !isLoading && <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">{text('empty_data')}</p>}
@@ -556,6 +607,46 @@ function SettingsPage() {
         <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p className="text-sm leading-5 text-gray-600"><span className="font-semibold text-gray-800">{text('status_color_legend')}</span> {text('status_color_description')}</p></div>
       </div>
     </div>
+  </div>;
+}
+
+function PaymentMethodsManager({ methods, loading, error, paymentStatus, secretValue, secretRevealed, secretLoading, secretError, onToggleSecret, onUpdate, onDelete }: {
+  methods: AdminPaymentMethod[];
+  loading: boolean;
+  error: string;
+  paymentStatus: SettingsStatus['payment'] | null;
+  secretValue?: string;
+  secretRevealed: boolean;
+  secretLoading: boolean;
+  secretError: string;
+  onToggleSecret: () => void;
+  onUpdate: (code: AdminPaymentMethod['code'], updates: Partial<Pick<AdminPaymentMethod, 'name' | 'description' | 'isEnabled' | 'isDeleted'>>) => Promise<boolean>;
+  onDelete: (code: AdminPaymentMethod['code']) => Promise<void>;
+}) {
+  const [editingCode, setEditingCode] = useState<AdminPaymentMethod['code'] | null>(null);
+  const [form, setForm] = useState({ name: '', description: '' });
+
+  const beginEdit = (method: AdminPaymentMethod) => {
+    setEditingCode(method.code);
+    setForm({ name: method.name, description: method.description });
+  };
+
+  const statusLabel = (method: AdminPaymentMethod) => method.isDeleted
+    ? 'Đã ẩn'
+    : !method.isEnabled
+      ? 'Đang tắt'
+      : method.code === 'vnpay' && !method.available
+        ? 'Thiếu cấu hình cổng'
+        : 'Đang hoạt động';
+  const statusTone = (method: AdminPaymentMethod): StatusTone => method.isDeleted || !method.isEnabled
+    ? 'neutral'
+    : method.code === 'vnpay' && !method.available
+      ? 'warning'
+      : 'good';
+
+  return <div className="space-y-4">
+    {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+    {loading ? <p className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">Đang tải phương thức thanh toán…</p> : methods.length === 0 ? <p className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-500">Chưa có phương thức thanh toán.</p> : methods.map(method => <section key={method.code} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div className="flex min-w-0 items-start gap-3"><span className={`rounded-lg p-2.5 ${method.code === 'vnpay' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'}`}><CreditCard className="h-5 w-5" aria-hidden="true" /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-gray-900">{method.name}</h3><StatusBadge tone={statusTone(method)}>{statusLabel(method)}</StatusBadge></div><p className="mt-1 text-sm text-gray-600">{method.description}</p><p className="mt-1 text-xs text-gray-400">Mã phương thức: {method.code}</p></div></div><div className="flex flex-wrap items-center gap-2 sm:justify-end"><label className="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={method.isEnabled && !method.isDeleted} disabled={method.isDeleted || loading} onChange={event => void onUpdate(method.code, { isEnabled: event.target.checked })} className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" />Hiển thị ở checkout</label><button type="button" onClick={() => beginEdit(method)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"><Pencil className="h-4 w-4" aria-hidden="true" />Sửa</button>{method.isDeleted ? <button type="button" onClick={() => void onUpdate(method.code, { isDeleted: false })} className="inline-flex h-9 items-center rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50">Khôi phục</button> : <button type="button" onClick={() => void onDelete(method.code)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" />Xóa</button>}</div></div>{editingCode === method.code && <form onSubmit={event => { event.preventDefault(); void onUpdate(method.code, form).then(updated => { if (updated) setEditingCode(null); }); }} className="mt-4 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2"><label className="block text-sm font-medium text-gray-700">Tên hiển thị<input required minLength={2} maxLength={80} value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} className="mt-1 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" /></label><label className="block text-sm font-medium text-gray-700">Mô tả<input maxLength={240} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} className="mt-1 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" /></label><div className="flex gap-2 sm:col-span-2"><button type="submit" className="inline-flex h-9 items-center rounded-lg bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-700">Lưu</button><button type="button" onClick={() => setEditingCode(null)} className="inline-flex h-9 items-center rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button></div></form>}{method.code === 'vnpay' && paymentStatus && <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2"><DataField icon={CreditCard} label="Môi trường" value={paymentStatus.mode} /><DataField icon={CreditCard} label="Mã merchant" value={paymentStatus.merchantCode} /><DataField icon={CreditCard} label="Endpoint" value={paymentStatus.endpoint} /><DataField icon={CreditCard} label="Return URL" value={paymentStatus.returnUrl} /><DataField icon={CreditCard} label="Callback URL" value={paymentStatus.callbackUrl} /><SecretDataField icon={CreditCard} label="Khóa bí mật VNPay" configured={paymentStatus.secretConfigured} value={secretValue} revealed={secretRevealed} loading={secretLoading} error={secretError} onToggle={onToggleSecret} /></div>}</section>)}
   </div>;
 }
 

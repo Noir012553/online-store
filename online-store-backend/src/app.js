@@ -38,6 +38,8 @@ const languageRoutes = require('./routes/languageRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
 const adminSettingsRoutes = require('./routes/adminSettingsRoutes');
+const adminPaymentMethodRoutes = require('./routes/adminPaymentMethodRoutes');
+const paymentMethodService = require('./services/paymentMethodService');
 const healthRoutes = require('./routes/healthRoutes');
 const r2AssetRoutes = require('./routes/r2AssetRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
@@ -325,6 +327,7 @@ const connectDB = async () => {
     connectionAttempts = 0;
     assertMongoConnected();
     assertStorageConfigured();
+    await paymentMethodService.ensurePaymentMethods();
     await startServer();
     startExportJobWorker();
     startInventoryReservationWorker();
@@ -513,6 +516,7 @@ app.use('/api/languages', languageRoutes); // Language management (admin - Tier 
 app.use('/api/currencies', currencyRoutes); // Currency management (admin)
 app.use('/api/exchange-rates', exchangeRateRoutes); // Exchange rate management (admin)
 app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/api/admin/payment-methods', adminPaymentMethodRoutes);
 app.use('/api/assets', r2AssetRoutes); // Backend-only Cloudflare R2 asset upload
 
 // ==================== Error Handling Middleware ====================

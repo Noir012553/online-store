@@ -20,6 +20,7 @@ const { getProductWeightInGrams } = require('../utils/productShippingWeight');
 const { sendOrderPaymentSuccessEmail } = require('../services/emailService');
 const { normalizePhone, phoneLookupQuery } = require('../utils/phone');
 const { markOrderPaid, releaseReservedOrderInventory, reserveOrderInventory } = require('../services/inventoryService');
+const paymentMethodService = require('../services/paymentMethodService');
 
 const configuredOrderTimeout = Number(process.env.ORDER_QUERY_TIMEOUT_MS);
 const ORDER_QUERY_TIMEOUT_MS = Number.isFinite(configuredOrderTimeout) && configuredOrderTimeout > 0
@@ -875,6 +876,16 @@ const addOrderItems = asyncHandler(async (req, res) => {
     return res.json({ success: true, data: summary });
   }
 
+  const selectedPaymentMethod = paymentMethod || 'cod';
+  const methodAvailable = await paymentMethodService.isPaymentMethodAvailable(selectedPaymentMethod);
+  if (!methodAvailable) {
+    res.status(409);
+    const error = new Error('Selected payment method is unavailable.');
+    error.errorCode = 'PAYMENT_METHOD_UNAVAILABLE';
+    error.exposeMessage = true;
+    throw error;
+  }
+
   const order = new Order({
     orderItems,
     user: req.user._id,
@@ -890,7 +901,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
     shippingService, // ← Save shipping service preference
     isPaid: false, // Mặc định chưa thanh toán
     isDelivered: false, // Mặc định chưa giao
-    paymentMethod: paymentMethod || 'cod', // ← Use provided payment method, default to COD
+    paymentMethod: selectedPaymentMethod, // ← Use provided payment method, default to COD
     idempotencyKey, // ← Store idempotency key for duplicate prevention
     currencyCode, // PHASE 3: Save currency code at order creation time
     baseCurrencyCode,

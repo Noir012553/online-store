@@ -36,7 +36,8 @@ router.all('/webhook/:gateway', paymentController.handleWebhook);
 // Forward tới /api/payments/webhook/vnpay
 router.all('/vnpay-api/webhook/:gateway', paymentController.handleWebhook);
 
-// Public endpoint
+// Public endpoints
+router.get('/methods', paymentController.getAvailablePaymentMethods);
 router.get('/gateways', paymentController.getSupportedGateways);
 
 const requireDevelopment = (req, res, next) => {
