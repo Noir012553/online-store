@@ -113,9 +113,10 @@ describe('Super-admin settings boundary', () => {
     expect(editableSettingRegistry).to.have.property('R2_BUCKET_NAME_2');
     expect(editableSettingRegistry).to.have.property('R2_PUBLIC_BASE_URL');
     expect(editableSettingRegistry).to.have.property('CLOUDFLARE_AI_MODEL_1');
-    expect(editableSettingRegistry).not.to.have.property('R2_ACCESS_KEY_ID');
-    expect(editableSettingRegistry).not.to.have.property('CLOUDFLARE_API_TOKEN_1');
-    expect(editableSettingRegistry).not.to.have.property('CLOUDFLARE_ACCOUNT_ID_1');
+    expect(editableSettingRegistry).to.have.property('R2_ACCESS_KEY_ID');
+    expect(editableSettingRegistry).to.have.property('R2_SECRET_ACCESS_KEY');
+    expect(editableSettingRegistry).to.have.property('CLOUDFLARE_API_TOKEN_1');
+    expect(editableSettingRegistry).to.have.property('CLOUDFLARE_ACCOUNT_ID_1');
     expect(editableSettingRegistry).not.to.have.property('JWT_SECRET');
 
     const normalized = settingsDraftStore.normalizeSettings({
@@ -125,6 +126,10 @@ describe('Super-admin settings boundary', () => {
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
+      R2_ACCESS_KEY_ID: 'r2-access-test-secret',
+      R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
+      CLOUDFLARE_API_TOKEN_1: 'cloudflare-test-secret',
+      CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(normalized).to.deep.equal({
       EMAIL_PORT: '587',
@@ -132,6 +137,10 @@ describe('Super-admin settings boundary', () => {
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
       R2_MAX_UPLOAD_BYTES: '2048',
+      R2_ACCESS_KEY_ID: 'r2-access-test-secret',
+      R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
+      CLOUDFLARE_API_TOKEN_1: 'cloudflare-test-secret',
+      CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(() => settingsDraftStore.normalizeSettings({ JWT_SECRET: 'nope' })).to.throw(/not editable/);
     expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_1: 'nope' })).to.throw(/not editable/);
@@ -145,28 +154,44 @@ describe('Super-admin settings boundary', () => {
   it('requires authentication and rejects non-super-admin roles', async () => {
     const anonymous = await request(app).get('/api/admin/settings/values');
     expect(anonymous.status).to.equal(401);
-    const deletedSecretEndpoint = await request(app).get('/api/admin/settings/secrets/EMAIL_PASSWORD');
-    expect(deletedSecretEndpoint.status).to.equal(404);
+    const anonymousSecretResponse = await request(app).get('/api/admin/settings/secrets/EMAIL_PASSWORD');
+    expect(anonymousSecretResponse.status).to.equal(401);
 
     const token = authenticateAs('admin');
     const adminResponse = await request(app)
       .get('/api/admin/settings/values')
       .set('Authorization', `Bearer ${token}`);
     expect(adminResponse.status).to.equal(403);
-  });
-
-  it('removes the plaintext secret endpoint and keeps secret flags only', async () => {
-    const token = authenticateAs('super-admin');
-    const removedSecretEndpoint = await request(app)
+    const adminSecretResponse = await request(app)
       .get('/api/admin/settings/secrets/EMAIL_PASSWORD')
       .set('Authorization', `Bearer ${token}`);
-    expect(removedSecretEndpoint.status).to.equal(404);
+    expect(adminSecretResponse.status).to.equal(403);
+  });
+
+  it('reveals only configured registry secrets on explicit no-store requests', async () => {
+    const token = authenticateAs('super-admin');
+    const revealedSecret = await request(app)
+      .get('/api/admin/settings/secrets/R2_ACCESS_KEY_ID')
+      .set('Authorization', `Bearer ${token}`);
+    expect(revealedSecret.status).to.equal(200);
+    expect(revealedSecret.headers['cache-control']).to.equal('no-store, private');
+    expect(revealedSecret.body.data.value).to.equal('r2-access-test-secret');
+
+    const unknownSecret = await request(app)
+      .get('/api/admin/settings/secrets/CLOUDFLARE_API_TOKEN_14')
+      .set('Authorization', `Bearer ${token}`);
+    expect(unknownSecret.status).to.equal(404);
+    const nonSecret = await request(app)
+      .get('/api/admin/settings/secrets/EMAIL_HOST')
+      .set('Authorization', `Bearer ${token}`);
+    expect(nonSecret.status).to.equal(404);
 
     const response = await request(app)
       .get('/api/admin/settings/values')
       .set('Authorization', `Bearer ${token}`);
     expect(response.status).to.equal(200);
     expect(response.headers['cache-control']).to.equal('no-store, private');
+    expect(response.text).not.to.include('r2-access-test-secret');
     const passwordSetting = response.body.data.settings.find(setting => setting.key === 'EMAIL_PASSWORD');
     expect(passwordSetting).to.include({ secret: true, configured: true, valid: true });
     expect(response.text).not.to.include('email-test-secret');
@@ -222,7 +247,7 @@ describe('Super-admin settings boundary', () => {
       .get('/api/admin/settings/status')
       .set('Authorization', `Bearer ${token}`);
     expect(response.status).to.equal(200);
-    expect(response.body.data.security).to.include({ secretsWriteOnly: true, applyWorkerAvailable: false });
+    expect(response.body.data.security).to.include({ secretsRevealOnDemand: true, applyWorkerAvailable: false });
     expect(response.body.data.security.applyWorkerUnavailableReason).to.be.a('string');
   });
 });

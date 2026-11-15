@@ -126,3 +126,15 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Cần xác nhận `domain management` trong bản đầu là DNS/hostname trên Cloudflare, không bao gồm mua/gia hạn/chuyển domain tại registrar.
 - Thay credentials Cloudflare có thể ảnh hưởng R2, AI, Tunnel hoặc DNS; giữ các token tách biệt và hỗ trợ rollback.
 - Thay VNPay/SMTP trong lúc đang có giao dịch hoặc email gửi dở cần versioning và đổi cấu hình có hiệu lực an toàn.
+
+## Kinh nghiệm xử lý thực tế `/admin/settings`
+
+- Phân biệt rõ ba loại dữ liệu trên UI: giá trị runtime, trạng thái cấu hình và khả năng vận hành của host. Ví dụ `encryptedSecretStoreAvailable` là trạng thái kho secret, không phải một giá trị env; `tunnelManaged`/`dnsManaged` cho biết ứng dụng có tự quản lý tunnel/DNS hay không, không cho biết tài nguyên Cloudflare có tồn tại hoặc đang chạy.
+- `GET /api/admin/settings/values` chỉ trả giá trị thường trong runtime registry; secret không được trả trong danh sách. Secret chỉ được tải theo yêu cầu qua `GET /api/admin/settings/secrets/:key`, sau `protect` + `superAdmin`, với response không cache. UI che mặc định và chỉ hiện secret sau thao tác mắt rõ ràng.
+- Trạng thái “Đã cấu hình” trong status API không đồng nghĩa với giá trị env bị thiếu; status endpoint cố ý chỉ trả boolean cho secret. Nếu Super Admin cần xem secret hiện hành, phải dùng endpoint reveal có kiểm soát, không đưa plaintext vào `/status`, `/values`, log hoặc lỗi.
+- Các thao tác edit/delete/copy/reveal chỉ áp dụng cho key có trong registry đã duyệt. Xóa override chỉ gỡ giá trị do ứng dụng quản lý, không xóa `process.env` trên host; muốn đổi environment thật của hosting cần luồng triển khai riêng.
+- `SETTINGS_STORE_UNAVAILABLE` khi gọi `/draft` là lỗi điều kiện lưu trữ của host, không phải thiếu một setting trong `.env`. Kho hiện phụ thuộc Windows DPAPI và thư mục `ProgramData`; không được bỏ qua lỗi bằng cách lưu secret plaintext hoặc dùng fallback không mã hóa.
+- Khi hiển thị nhiều model/giá trị, không gộp danh sách dài bằng `join(', ')` vào một field: mỗi item cần một ô riêng để tránh tràn/chồng nội dung. Icon cũng cần gắn theo nhóm setting và đặt nhất quán trong từng ô giá trị.
+- Lỗi `401` ở `/status` hoặc `/values` thường cần kiểm tra access token/refresh session; `403` là quyền không đủ. `404` cho route mới có thể do backend đích chưa deploy phiên bản có route đó. Xác minh phiên đăng nhập và phiên bản backend trước khi kết luận registry hoặc UI sai.
+- Typecheck và kiểm tra cú pháp/diff giúp xác nhận source nhưng không thay thế kiểm tra UI. Preview không có phiên Super Admin sẽ redirect về login/“Not Authorized”; không thể xác nhận thao tác trực tiếp khi chưa có phiên hợp lệ. Các hành vi phụ thuộc DPAPI/WinSW phải được kiểm tra trên host Windows phù hợp.
+- Không đổi cờ vận hành thành `true` chỉ vì Tunnel/DNS đang tồn tại bên ngoài ứng dụng. Chỉ báo “đang chạy” khi có probe hoặc nguồn kiểm tra thực trạng; nếu chỉ có cờ quản lý, đặt nhãn giải thích rõ phạm vi của cờ.

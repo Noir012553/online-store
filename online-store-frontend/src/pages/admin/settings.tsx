@@ -3,6 +3,9 @@ import {
   AlertTriangle,
   ArrowRight,
   BadgeCheck,
+  Copy,
+  Pencil,
+  Trash2,
   Building2,
   CheckCircle2,
   ChevronRight,
@@ -14,6 +17,8 @@ import {
   KeyRound,
   LockKeyhole,
   Mail,
+  Eye,
+  EyeOff,
   RefreshCw,
   ShieldCheck,
   XCircle,
@@ -75,7 +80,15 @@ type SettingsStatus = {
 type SettingsGroup = { section: 'email' | 'payment' | 'cloudflare'; title: string; keys: string[] };
 
 const r2NumberedKeys = (base: string) => [base, ...Array.from({ length: 8 }, (_, index) => `${base}_${index + 2}`)];
+const r2AccountRoleKeys = ['R2_ACCOUNT_ROLE', ...['GENERAL', 'PRODUCT', 'MAIN', 'GALLERY', 'DESCRIPTION', 'BANNER', 'BRAND', 'ABOUT_REVIEWER', 'ABOUT_LOADING', 'ABOUT_TEAM', 'ABOUT_HERO'].map(role => `R2_ACCOUNT_ROLE_${role}`)];
 const aiModelKeys = ['CLOUDFLARE_AI_MODEL', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_AI_MODEL_${index + 1}`)];
+const cloudflareAccountKeys = ['CLOUDFLARE_ACCOUNT_ID', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_ACCOUNT_ID_${index + 1}`)];
+const cloudflareTokenKeys = ['CLOUDFLARE_API_TOKEN', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_API_TOKEN_${index + 1}`)];
+const runtimeSecretKeys = [
+  'EMAIL_PASSWORD', 'SENDGRID_API_KEY', 'VNPAY_HASH_SECRET',
+  ...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY'),
+  ...cloudflareTokenKeys,
+];
 
 // Keep this list explicit and in sync with the backend managed-draft allowlist.
 const settingsGroups: SettingsGroup[] = [
@@ -83,11 +96,14 @@ const settingsGroups: SettingsGroup[] = [
   { section: 'payment', title: 'VNPay', keys: ['VNPAY_ENDPOINT', 'VNPAY_TMN_CODE', 'VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL', 'VNPAY_HASH_SECRET'] },
   { section: 'cloudflare', title: 'Chính sách tải lên R2', keys: ['R2_UPLOAD_ENABLED', 'R2_MAX_UPLOAD_COUNT', 'R2_MAX_UPLOAD_BYTES', 'R2_MAX_RETRIES', 'R2_MAX_IMAGE_BYTES', 'R2_MAX_VIDEO_BYTES'] },
   { section: 'cloudflare', title: 'Thông tin công khai R2', keys: [...r2NumberedKeys('R2_ACCOUNT_ID'), ...r2NumberedKeys('R2_BUCKET_NAME'), ...r2NumberedKeys('R2_PUBLIC_BASE_URL')] },
+  { section: 'cloudflare', title: 'Thông tin xác thực R2', keys: [...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY')] },
+  { section: 'cloudflare', title: 'Phân công tài khoản R2', keys: r2AccountRoleKeys },
+  { section: 'cloudflare', title: 'Tài khoản Cloudflare AI', keys: [...cloudflareAccountKeys, ...cloudflareTokenKeys] },
   { section: 'cloudflare', title: 'Chính sách Cloudflare AI', keys: ['CLOUDFLARE_AI_ENABLED', 'CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 'CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 'CLOUDFLARE_AI_MAX_TOKENS', 'CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS', 'CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS', 'CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS', 'CLOUDFLARE_MAX_PARALLEL_PER_KEY', 'CLOUDFLARE_MAX_REQUESTS_PER_SEC', 'CLOUDFLARE_MAX_PARALLEL_REQUESTS'] },
   { section: 'cloudflare', title: 'Mô hình Cloudflare AI', keys: aiModelKeys },
 ];
 const allowedKeys = new Set(settingsGroups.flatMap(group => group.keys));
-const secretKeys = new Set(['EMAIL_PASSWORD', 'SENDGRID_API_KEY', 'VNPAY_HASH_SECRET']);
+const secretKeys = new Set(runtimeSecretKeys);
 const fieldLabels: Record<string, string> = {
   EMAIL_SERVICE: 'Nhà cung cấp email', EMAIL_HOST: 'Máy chủ SMTP', EMAIL_PORT: 'Cổng SMTP', EMAIL_SECURE: 'Kết nối TLS an toàn',
   EMAIL_USER: 'Tài khoản email', EMAIL_FROM: 'Địa chỉ người gửi', EMAIL_PASSWORD: 'Mật khẩu email', SENDGRID_API_KEY: 'Khóa API SendGrid',
@@ -103,13 +119,21 @@ const fieldLabels: Record<string, string> = {
 };
 
 const sections = [
-  { id: 'overview', label: 'overview', icon: Globe2 },
-  { id: 'branding', label: 'branding', icon: Building2 },
-  { id: 'email', label: 'email', icon: Mail },
-  { id: 'payment', label: 'payment', icon: CreditCard },
-  { id: 'cloudflare', label: 'cloudflare', icon: Cloud },
-  { id: 'security', label: 'security', icon: ShieldCheck },
+  { id: 'overview', label: 'overview' },
+  { id: 'branding', label: 'branding' },
+  { id: 'email', label: 'email' },
+  { id: 'payment', label: 'payment' },
+  { id: 'cloudflare', label: 'cloudflare' },
+  { id: 'security', label: 'security' },
 ] as const;
+const sectionIcons: Record<SectionKey, typeof Building2> = {
+  overview: Globe2,
+  branding: Building2,
+  email: Mail,
+  payment: CreditCard,
+  cloudflare: Cloud,
+  security: ShieldCheck,
+};
 
 function useSettingsText() {
   const { t } = useLanguage();
@@ -128,14 +152,31 @@ function StatusBadge({ tone, children }: { tone: StatusTone; children: React.Rea
   return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[tone]}`}><Icon className="h-3.5 w-3.5" aria-hidden="true" />{children}</span>;
 }
 
-function DataField({ label, value }: { label: string; value: string | number }) {
-  return <div className="block space-y-2"><span className="text-sm font-medium text-gray-700">{label}</span><div className="min-h-11 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-700">{value || '—'}</div></div>;
+function BaseDataField({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Building2 }) {
+  return <div className="block space-y-2"><span className="text-sm font-medium text-gray-700">{label}</span><div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm text-gray-700"><Icon className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" /><span className="min-w-0 break-all">{value || '—'}</span></div></div>;
+}
+
+function DataField({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Building2 }) {
+  return <BaseDataField label={label} value={value} icon={Icon} />;
+}
+
+function SecretDataField({ label, configured, value, revealed, loading, error, onToggle, icon: Icon }: {
+  label: string; configured: boolean; value?: string; revealed: boolean; loading: boolean; error: string; onToggle: () => void; icon: typeof Building2;
+}) {
+  return <div className="block space-y-2"><span className="text-sm font-medium text-gray-700">{label}</span><div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2 text-sm text-gray-700"><Icon className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" /><span className="min-w-0 flex-1 break-all font-mono">{configured ? revealed ? value : '••••••••' : 'Chưa cấu hình'}</span><button type="button" onClick={onToggle} disabled={!configured || loading} aria-label={revealed ? `Ẩn ${label}` : `Hiện ${label}`} aria-pressed={revealed} title={configured ? revealed ? 'Ẩn giá trị' : 'Hiện giá trị' : 'Chưa cấu hình'} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50">{loading ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : revealed ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}</button></div>{error && <span role="alert" className="block text-xs text-red-700">{error}</span>}</div>;
 }
 
 function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [status, setStatus] = useState<SettingsStatus | null>(null);
   const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSetting[]>([]);
+  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
+  const [revealedRuntimeValues, setRevealedRuntimeValues] = useState<Record<string, boolean>>({});
+  const [secretRevealLoading, setSecretRevealLoading] = useState<Record<string, boolean>>({});
+  const [secretRevealErrors, setSecretRevealErrors] = useState<Record<string, string>>({});
+  const [runtimeActionErrors, setRuntimeActionErrors] = useState<Record<string, string>>({});
+  const [copiedSettingKey, setCopiedSettingKey] = useState('');
+  const [focusSettingKey, setFocusSettingKey] = useState('');
   const [valuesLoading, setValuesLoading] = useState(true);
   const [valuesError, setValuesError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -159,6 +200,8 @@ function SettingsPage() {
   const text = useSettingsText();
 
   const loadRuntimeSettings = async () => {
+    setRevealedSecrets({});
+    setRevealedRuntimeValues({});
     setValuesLoading(true);
     setValuesError(false);
     try {
@@ -244,6 +287,15 @@ function SettingsPage() {
   ), [values, baseline, secretInputs, secretResets]);
 
   useEffect(() => {
+    if (!focusSettingKey) return;
+    const field = document.getElementById(`settings-${focusSettingKey}`);
+    if (!field) return;
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field.focus();
+    setFocusSettingKey('');
+  }, [activeSection, focusSettingKey]);
+
+  useEffect(() => {
     if (applyJob && ['succeeded', 'failed', 'rollback-failed'].includes(applyJob.status)) {
       void loadStatus();
       void loadRuntimeSettings();
@@ -269,6 +321,65 @@ function SettingsPage() {
   }, [applyJob]);
 
   const setFieldValue = (key: string, value: string) => setValues(current => ({ ...current, [key]: value }));
+  const fetchSecretValue = async (key: string) => {
+    const response = await apiCall<{ success: boolean; data: { value: string } }>(`/admin/settings/secrets/${encodeURIComponent(key)}`, { skipCache: true, skipErrorToast: true });
+    return response.data.value;
+  };
+  const toggleSecretReveal = async (key: string) => {
+    if (Object.hasOwn(revealedSecrets, key)) {
+      setRevealedSecrets(current => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      setSecretRevealErrors(current => ({ ...current, [key]: '' }));
+      return;
+    }
+
+    setSecretRevealLoading(current => ({ ...current, [key]: true }));
+    setSecretRevealErrors(current => ({ ...current, [key]: '' }));
+    try {
+      const value = await fetchSecretValue(key);
+      setRevealedSecrets(current => ({ ...current, [key]: value }));
+    } catch {
+      setSecretRevealErrors(current => ({ ...current, [key]: 'Không thể hiển thị secret.' }));
+    } finally {
+      setSecretRevealLoading(current => ({ ...current, [key]: false }));
+    }
+  };
+  const toggleRuntimeSetting = (setting: RuntimeSetting) => {
+    if (setting.secret) {
+      void toggleSecretReveal(setting.key);
+      return;
+    }
+    setRevealedRuntimeValues(current => ({ ...current, [setting.key]: !current[setting.key] }));
+  };
+  const editRuntimeSetting = (setting: RuntimeSetting) => {
+    setActiveSection(setting.group === 'email' ? 'email' : setting.group === 'vnpay' ? 'payment' : 'cloudflare');
+    setFocusSettingKey(setting.key);
+  };
+  const copyRuntimeSetting = async (setting: RuntimeSetting) => {
+    setRuntimeActionErrors(current => ({ ...current, [setting.key]: '' }));
+    try {
+      const value = setting.secret ? revealedSecrets[setting.key] ?? await fetchSecretValue(setting.key) : setting.value;
+      if (!value) throw new Error('empty_setting');
+      await navigator.clipboard.writeText(value);
+      setCopiedSettingKey(setting.key);
+    } catch {
+      setRuntimeActionErrors(current => ({ ...current, [setting.key]: 'Không thể sao chép giá trị.' }));
+    }
+  };
+  const deleteRuntimeOverride = (setting: RuntimeSetting) => {
+    if (!window.confirm(`Xóa override ứng dụng của ${setting.key}? Giá trị process.env trên host không bị xóa.`)) return;
+    setRuntimeActionErrors(current => ({ ...current, [setting.key]: '' }));
+    if (setting.secret) {
+      setSecretInputs(current => ({ ...current, [setting.key]: '' }));
+      setSecretResets(current => ({ ...current, [setting.key]: true }));
+    } else {
+      setFieldValue(setting.key, '');
+    }
+    editRuntimeSetting(setting);
+  };
   const isSecretConfigured = (key: string) => secretConfigured[key] ?? false;
   const isSecretResetSaved = (key: string) => {
     const value = draft?.settings[key];
@@ -337,7 +448,8 @@ function SettingsPage() {
 
   const openSection = (section: SectionKey) => setActiveSection(section);
   const currentSection = sections.find(section => section.id === activeSection) ?? sections[0];
-  const CurrentIcon = currentSection.icon;
+  const CurrentIcon = sectionIcons[currentSection.id];
+  const SectionDataField = ({ label, value }: { label: string; value: string | number }) => <DataField label={label} value={value} icon={CurrentIcon} />;
   const storeName = SITE_NAME;
   const supportEmail = 'noir002534@gmail.com';
   const supportPhone = t('contact_phone_display', 'footer');
@@ -417,23 +529,26 @@ function SettingsPage() {
 
   return <div className="mx-auto w-full max-w-7xl space-y-7 pb-10">
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="mb-3 flex items-center gap-2 text-sm text-gray-500"><span>{text('admin_crumb')}</span><ChevronRight className="h-4 w-4" /><span className="text-gray-800">{text('page_title')}</span></div><h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">{text('page_title')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">{text('page_description')}</p></div><span className="inline-flex w-fit items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700"><LockKeyhole className="h-3.5 w-3.5" />{text('super_admin')}</span></div>
-    <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">Bí mật chỉ được ghi, không bao giờ hiển thị hoặc sao chép. Lưu bản nháp và áp dụng là hai thao tác riêng biệt.</p></div><button type="button" onClick={() => void refreshAll()} disabled={isLoading || valuesLoading || hasUnsavedChanges || applyInProgress} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /></button></div>
+    <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-amber-900">{text('live_backend_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('cloudflare_secret_notice')} Lưu bản nháp và áp dụng là hai thao tác riêng biệt.</p></div><button type="button" onClick={() => void refreshAll()} disabled={isLoading || valuesLoading || hasUnsavedChanges || applyInProgress} aria-label={text('refresh_status')} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-white text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /></button></div>
     {loadError && <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert"><XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><div><p className="text-sm font-semibold text-red-900">{text('load_error_title')}</p><p className="mt-1 text-sm text-red-800">{text('load_error_hint')}</p></div></div>}
     <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">{sections.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => openSection(id)} aria-current={activeSection === id ? 'page' : undefined} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}><Icon className={`h-4 w-4 ${activeSection === id ? 'text-red-600' : 'text-gray-400'}`} />{text(label)}{activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}</button>)}<div className="mt-3 border-t border-gray-100 px-3 pt-3"><p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p></div></nav>
+      <nav aria-label={text('settings_nav_aria')} className="h-fit rounded-xl border border-gray-200 bg-white p-2 shadow-sm">{sections.map(({ id, label }) => { const Icon = sectionIcons[id]; return <button key={id} type="button" onClick={() => openSection(id)} aria-current={activeSection === id ? 'page' : undefined} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors last:mb-0 ${activeSection === id ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}><Icon className={`h-5 w-5 shrink-0 ${activeSection === id ? 'text-red-600' : 'text-gray-500'}`} aria-hidden="true" />{text(label)}{activeSection === id && <ChevronRight className="ml-auto h-4 w-4" />}</button>; })}<div className="mt-3 border-t border-gray-100 px-3 pt-3"><p className="text-xs leading-5 text-gray-500">{text('super_admin_only')}</p></div></nav>
       <div className="min-w-0 space-y-6">
         {activeSection === 'overview' ? <>
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-lg font-bold text-gray-900">{text('status_title')}</h2><p className="mt-1 text-sm text-gray-500">{isLoading ? text('status_loading') : text('status_loaded')}</p></div><span className="text-xs font-medium text-gray-400">{status ? text('updated_at', { date: new Date(status.generatedAt).toLocaleString(INTL_LOCALES[locale]) }) : text('not_loaded')}</span></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatusTile icon={Building2} label={text('branding')} detail={text('active')} tone="good" /><StatusTile icon={Mail} label={text('email')} detail={status ? status.email.configured ? text('configured') : text('email_missing') : text('loading')} tone={emailTone} /><StatusTile icon={CreditCard} label="VNPay" detail={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('loading')} tone={paymentTone} /><StatusTile icon={Cloud} label="Cloudflare" detail={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('configured') : text('needs_check') : text('loading')} tone={cloudflareTone} /></div></section>
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-gray-900">{text('runtime_settings_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('runtime_settings_description')}</p></div><div className="flex flex-wrap items-center gap-2">{runtimeSettings.some(setting => setting.restartRequired) && <StatusBadge tone="warning">{text('restart_required')}</StatusBadge>}<span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{text('runtime_settings_count', { count: runtimeSettings.length })}</span></div></div>{valuesError ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{text('runtime_settings_error')}</p> : valuesLoading ? <p className="mt-4 text-sm text-gray-500">{text('loading')}</p> : runtimeSettings.length ? <div className="mt-4 divide-y divide-gray-100">{runtimeSettings.map(setting => <div key={setting.key} className="grid gap-2 py-3 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center"><code className="break-all text-xs font-semibold text-gray-700">{setting.key}</code><span className="text-sm text-gray-700">{setting.secret ? setting.configured ? 'Đã cấu hình' : 'Chưa cấu hình' : setting.value}{setting.configured && setting.valid === false && <span className="ml-2 text-red-700">{text('configuration_invalid')}</span>}</span></div>)}</div> : <p className="mt-4 text-sm text-gray-500">{text('runtime_settings_empty')}</p>}</section>
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-gray-900">{text('runtime_settings_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('runtime_settings_description')}</p></div><div className="flex flex-wrap items-center gap-2">{runtimeSettings.some(setting => setting.restartRequired) && <StatusBadge tone="warning">{text('restart_required')}</StatusBadge>}<span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{text('runtime_settings_count', { count: runtimeSettings.length })}</span></div></div>{valuesError ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{text('runtime_settings_error')}</p> : valuesLoading ? <p className="mt-4 text-sm text-gray-500">{text('loading')}</p> : runtimeSettings.length ? <div className="mt-4 divide-y divide-gray-100">{runtimeSettings.map(setting => {
+            const isRevealed = setting.secret ? Object.hasOwn(revealedSecrets, setting.key) : Boolean(revealedRuntimeValues[setting.key]);
+            return <div key={setting.key} className="grid gap-2 py-3 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center"><code className="break-all text-xs font-semibold text-gray-700">{setting.key}</code><span className="flex min-w-0 items-center gap-2 text-sm text-gray-700"><span className="min-w-0 flex-1 break-all">{setting.secret ? setting.configured ? isRevealed ? revealedSecrets[setting.key] : '••••••••' : 'Chưa cấu hình' : isRevealed ? setting.value : '••••••••'}{setting.configured && setting.valid === false && <span className="ml-2 text-red-700">{text('configuration_invalid')}</span>}</span><button type="button" onClick={() => toggleRuntimeSetting(setting)} disabled={setting.secret && (!setting.configured || secretRevealLoading[setting.key])} aria-label={isRevealed ? `Ẩn ${setting.key}` : `Hiện ${setting.key}`} aria-pressed={isRevealed} title={setting.secret && !setting.configured ? 'Chưa cấu hình' : isRevealed ? 'Ẩn giá trị' : 'Hiện giá trị'} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-wait disabled:opacity-50">{secretRevealLoading[setting.key] ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : isRevealed ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}</button>{secretRevealErrors[setting.key] && <span role="alert" className="text-xs text-red-700">{secretRevealErrors[setting.key]}</span>}<button type="button" onClick={() => editRuntimeSetting(setting)} aria-label={`Sửa ${setting.key}`} title="Sửa" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"><Pencil className="h-4 w-4" aria-hidden="true" /></button><button type="button" onClick={() => void copyRuntimeSetting(setting)} disabled={!setting.configured} aria-label={`Sao chép ${setting.key}`} title={copiedSettingKey === setting.key ? 'Đã sao chép' : 'Sao chép'} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-40"><Copy className="h-4 w-4" aria-hidden="true" /></button><button type="button" onClick={() => deleteRuntimeOverride(setting)} aria-label={`Xóa override ${setting.key}`} title="Xóa override; giữ nguyên process.env" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>{runtimeActionErrors[setting.key] && <span role="alert" className="text-xs text-red-700">{runtimeActionErrors[setting.key]}</span>}{copiedSettingKey === setting.key && <span role="status" className="text-xs text-emerald-700">Đã sao chép</span>}</span></div>;
+          })}</div> : <p className="mt-4 text-sm text-gray-500">{text('runtime_settings_empty')}</p>}</section>
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4"><h2 className="text-lg font-bold text-gray-900">{text('groups_title')}</h2><p className="mt-1 text-sm text-gray-500">{text('groups_description')}</p></div><div className="divide-y divide-gray-100"><OverviewRow icon={Image} title={text('store_name')} description={text('active')} status={text('active')} tone="good" onClick={() => openSection('branding')} /><OverviewRow icon={Mail} title={text('email')} description={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('email_loading')} status={status ? status.email.configured ? text('configured') : text('credentials_missing') : text('loading')} tone={emailTone} onClick={() => openSection('email')} /><OverviewRow icon={CreditCard} title="VNPay" description={status ? status.payment.configured ? text('credentials_complete') : text('credentials_missing') : text('payment_loading')} status={status ? status.payment.configured ? text(status.payment.mode) : text('credentials_missing') : text('loading')} tone={paymentTone} onClick={() => openSection('payment')} /><OverviewRow icon={Cloud} title="Cloudflare R2 & AI" description={status ? `${text('accounts_configured', { count: status.r2.accounts.length })} · ${text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}` : text('cloudflare_loading')} status={status ? status.r2.configured && status.cloudflareAi.allCredentialsConfigured ? text('has_configuration') : text('needs_check') : text('loading')} tone={cloudflareTone} onClick={() => openSection('cloudflare')} /><OverviewRow icon={KeyRound} title={text('security')} description="Bản nháp được lưu trữ an toàn; bí mật không thể đọc lại." status={securityReady ? 'Kho bí mật sẵn sàng' : 'Chưa sẵn sàng'} tone={securityReady ? 'good' : 'warning'} onClick={() => openSection('security')} /></div></section>
         </> : <>
           <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"><div className="border-b border-gray-100 p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="rounded-lg bg-red-50 p-2.5 text-red-600"><CurrentIcon className="h-5 w-5" /></span><div><h2 className="text-lg font-bold text-gray-900">{text(currentSection.label)}</h2><p className="mt-1 text-sm text-gray-500">{text('section_value_description')}</p></div></div><StatusBadge tone={loadError ? 'danger' : isLoading ? 'neutral' : 'warning'}>{loadError ? text('load_failed') : isLoading ? text('loading') : 'Có thể chỉnh sửa bản nháp'}</StatusBadge></div></div>
             <div className="space-y-6 p-5 sm:p-6">
-              {activeSection === 'branding' && <><div className="grid gap-4 sm:grid-cols-2"><DataField label={text('store_name')} value={storeName || 'LaptopStore'} /><DataField label={text('support_email')} value={supportEmail} /><DataField label={text('support_phone')} value={supportPhone} /><DataField label={text('website')} value={SITE_URL} /></div><div className="rounded-lg border border-gray-200 bg-gray-50 p-5"><div className="flex flex-wrap items-center gap-4"><img src="/assets/branding/logo-cropped.png" alt={text('logo_alt')} className="h-16 w-auto rounded bg-white object-contain p-2" /><div><p className="text-sm font-semibold text-gray-800">{text('logo_current')}</p><p className="mt-1 text-xs text-gray-500">/assets/branding/logo-cropped.png</p></div></div><p className="mt-3 text-sm text-gray-600">Thông tin thương hiệu đang ở chế độ chỉ xem; không thuộc danh sách cài đặt có thể quản lý.</p></div></>}
-              {activeSection === 'email' && status && <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><DataField label={text('smtp_host')} value={status.email.host} /><DataField label={text('port')} value={status.email.port} /><DataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><DataField label={text('smtp_account')} value={status.email.account} /><DataField label={text('from_address')} value={status.email.from} /><DataField label={text('smtp_password')} value={status.email.passwordConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'} /><DataField label={text('sendgrid_api_key')} value={status.email.sendgridKeyConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'} /></div>}
-              {activeSection === 'payment' && status && <div className="grid gap-4 sm:grid-cols-2"><DataField label={text('environment')} value={text(status.payment.mode)} /><DataField label={text('merchant_code')} value={status.payment.merchantCode} /><DataField label={text('endpoint')} value={status.payment.endpoint} /><DataField label={text('return_url')} value={status.payment.returnUrl} /><DataField label={text('callback_url')} value={status.payment.callbackUrl} /><DataField label={text('vnpay_hash_secret')} value={status.payment.secretConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'} /></div>}
-              {activeSection === 'cloudflare' && status && <><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4 text-xs text-gray-700">{account.accountId}</td><td className="py-2 pr-4 text-xs text-gray-700">{account.bucket}</td><td className="break-all py-2 text-xs text-gray-700">{account.publicBaseUrl}</td></tr>)}</tbody></table></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><DataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><DataField label={text('max_files')} value={status.r2.policy.maxAssets} /><DataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div></div><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><DataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><DataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /><DataField label={text('cloudflare_ai_title')} value={status.cloudflareAi.models.join(', ') || text('models_missing')} /></div><p className="mt-3 text-xs text-gray-600">Mã thông tin Cloudflare AI được giữ kín và không hiển thị tại đây.</p></div><div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div></>}
-              {activeSection === 'security' && status && <><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold text-emerald-900">{text('secret_never_returned')}</p><p className="mt-1 text-sm leading-5 text-emerald-800">Bí mật chỉ được ghi vào bản nháp, không thể xem lại hoặc sao chép.</p></div></div></div><div className="grid gap-4 sm:grid-cols-2"><DataField label={text('encrypted_secret_store')} value={status.security.encryptedSecretStoreAvailable ? text('ready') : text('not_configured_yet')} /><DataField label="Lưu bản nháp có quản lý" value={status.security.managedDraftAvailable ? text('ready') : text('not_configured_yet')} /><DataField label="Worker áp dụng" value={status.security.applyWorkerAvailable ? text('ready') : 'Không khả dụng — chưa thể áp dụng'} /><DataField label={text('restart_groups_count')} value={status.security.restartRequiredGroups.length} /><DataField label={text('tunnel_dns_label')} value={text('not_managed_by_app')} /></div><div className="rounded-lg border border-gray-200 p-4"><p className="text-sm font-semibold text-gray-900">{text('restart_groups')}</p><div className="mt-3 flex flex-wrap gap-2">{status.security.restartRequiredGroups.map(group => <span key={group} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{group}</span>)}</div></div></>}
+              {activeSection === 'branding' && <><div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('store_name')} value={storeName || 'LaptopStore'} /><SectionDataField label={text('support_email')} value={supportEmail} /><SectionDataField label={text('support_phone')} value={supportPhone} /><SectionDataField label={text('website')} value={SITE_URL} /></div><div className="rounded-lg border border-gray-200 bg-gray-50 p-5"><div className="flex flex-wrap items-center gap-4"><img src="/assets/branding/logo-cropped.png" alt={text('logo_alt')} className="h-16 w-auto rounded bg-white object-contain p-2" /><div><p className="text-sm font-semibold text-gray-800">{text('logo_current')}</p><p className="mt-1 text-xs text-gray-500">/assets/branding/logo-cropped.png</p></div></div><p className="mt-3 text-sm text-gray-600">Thông tin thương hiệu đang ở chế độ chỉ xem; không thuộc danh sách cài đặt có thể quản lý.</p></div></>}
+              {activeSection === 'email' && status && <div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('provider')} value={status.email.service === 'sendgrid' ? 'SendGrid SMTP' : 'SMTP'} /><SectionDataField label={text('smtp_host')} value={status.email.host} /><SectionDataField label={text('port')} value={status.email.port} /><SectionDataField label={text('tls_secure')} value={status.email.secure ? text('enabled') : text('disabled')} /><SectionDataField label={text('smtp_account')} value={status.email.account} /><SectionDataField label={text('from_address')} value={status.email.from} /><SecretDataField icon={Mail} label={text('smtp_password')} configured={status.email.passwordConfigured} value={revealedSecrets.EMAIL_PASSWORD} revealed={Object.hasOwn(revealedSecrets, 'EMAIL_PASSWORD')} loading={secretRevealLoading.EMAIL_PASSWORD ?? false} error={secretRevealErrors.EMAIL_PASSWORD ?? ''} onToggle={() => void toggleSecretReveal('EMAIL_PASSWORD')} /><SecretDataField icon={Mail} label={text('sendgrid_api_key')} configured={status.email.sendgridKeyConfigured} value={revealedSecrets.SENDGRID_API_KEY} revealed={Object.hasOwn(revealedSecrets, 'SENDGRID_API_KEY')} loading={secretRevealLoading.SENDGRID_API_KEY ?? false} error={secretRevealErrors.SENDGRID_API_KEY ?? ''} onToggle={() => void toggleSecretReveal('SENDGRID_API_KEY')} /></div>}
+              {activeSection === 'payment' && status && <div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('environment')} value={text(status.payment.mode)} /><SectionDataField label={text('merchant_code')} value={status.payment.merchantCode} /><SectionDataField label={text('endpoint')} value={status.payment.endpoint} /><SectionDataField label={text('return_url')} value={status.payment.returnUrl} /><SectionDataField label={text('callback_url')} value={status.payment.callbackUrl} /><SectionDataField label={text('vnpay_hash_secret')} value={status.payment.secretConfigured ? 'Đã cấu hình' : 'Chưa cấu hình'} /></div>}
+              {activeSection === 'cloudflare' && status && <><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('r2_title')}</p><p className="mt-1 text-xs text-gray-500">{status.r2.configurationValid ? text('accounts_configured', { count: status.r2.accounts.length }) : text('account_invalid')}</p></div><StatusBadge tone={r2Tone}>{!status.r2.configurationValid ? text('configuration_invalid') : !status.r2.configured ? text('not_configured') : !status.r2.policyValid ? text('policy_invalid') : status.r2.uploadEnabled ? text('upload_enabled') : text('upload_disabled')}</StatusBadge></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead className="text-xs uppercase text-gray-500"><tr><th className="pb-2 pr-4 font-medium">{text('account_id')}</th><th className="pb-2 pr-4 font-medium">{text('bucket')}</th><th className="pb-2 font-medium">{text('public_base_url')}</th></tr></thead><tbody className="divide-y divide-gray-100">{status.r2.accounts.map(account => <tr key={account.id}><td className="py-2 pr-4 text-xs text-gray-700">{account.accountId}</td><td className="py-2 pr-4 text-xs text-gray-700">{account.bucket}</td><td className="break-all py-2 text-xs text-gray-700">{account.publicBaseUrl}</td></tr>)}</tbody></table></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><SectionDataField label={text('upload_policy')} value={status.r2.uploadEnabled ? text('enabled') : text('disabled')} /><SectionDataField label={text('max_files')} value={status.r2.policy.maxAssets} /><SectionDataField label={text('max_bytes')} value={status.r2.policy.maxBytes} /></div></div><div className="rounded-lg border border-gray-200 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-gray-900">{text('cloudflare_ai_title')}</p><p className="mt-1 text-xs text-gray-500">{text('credential_configs', { count: status.cloudflareAi.configuredCount, state: status.cloudflareAi.enabled ? text('enabled_state') : text('disabled_state') })}</p></div><StatusBadge tone={aiTone}>{status.cloudflareAi.allCredentialsConfigured ? status.cloudflareAi.enabled ? text('ready') : text('disabled') : text('missing_credentials')}</StatusBadge></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><SectionDataField label={text('daily_request_limit')} value={status.cloudflareAi.maxRequestsPerDay} /><SectionDataField label={text('daily_character_limit')} value={status.cloudflareAi.maxInputCharsPerDay} /><div className="space-y-2 sm:col-span-2"><p className="text-sm font-medium text-gray-700">{text('cloudflare_ai_title')}</p>{status.cloudflareAi.models.length ? <div className="grid gap-3 sm:grid-cols-2">{status.cloudflareAi.models.map((model, index) => <SectionDataField key={`${model}-${index}`} label={`Model ${index + 1}`} value={model} />)}</div> : <SectionDataField label={text('cloudflare_ai_title')} value={text('models_missing')} />}</div></div><p className="mt-3 text-xs text-gray-600">Mã thông tin Cloudflare AI được giữ kín và không hiển thị tại đây.</p></div><div className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-semibold text-amber-900">{text('tunnel_dns_unmanaged_title')}</p><p className="mt-1 text-sm leading-5 text-amber-800">{text('tunnel_dns_unmanaged_description')}</p></div></>}
+              {activeSection === 'security' && status && <><div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><div><p className="text-sm font-semibold text-emerald-900">{text('secret_never_returned')}</p><p className="mt-1 text-sm leading-5 text-emerald-800">{text('filtered_response_notice')}</p></div></div></div><div className="grid gap-4 sm:grid-cols-2"><SectionDataField label={text('encrypted_secret_store')} value={status.security.encryptedSecretStoreAvailable ? text('ready') : text('not_configured_yet')} /><SectionDataField label="Lưu bản nháp có quản lý" value={status.security.managedDraftAvailable ? text('ready') : text('not_configured_yet')} /><SectionDataField label="Worker áp dụng" value={status.security.applyWorkerAvailable ? text('ready') : 'Không khả dụng — chưa thể áp dụng'} /><SectionDataField label={text('restart_groups_count')} value={status.security.restartRequiredGroups.length} /><SectionDataField label="Ứng dụng tự quản lý Cloudflare Tunnel" value={status.cloudflareOperations.tunnelManaged ? 'Có' : 'Không'} /><SectionDataField label="Ứng dụng tự quản lý Cloudflare DNS" value={status.cloudflareOperations.dnsManaged ? 'Có' : 'Không'} /></div><p className="text-xs text-gray-500">Các giá trị này chỉ cho biết ứng dụng có tự quản lý tunnel/DNS hay không; không phản ánh tunnel có tồn tại hoặc đang chạy hay không.</p><div className="rounded-lg border border-gray-200 p-4"><p className="text-sm font-semibold text-gray-900">{text('restart_groups')}</p><div className="mt-3 flex flex-wrap gap-2">{status.security.restartRequiredGroups.map(group => <span key={group} className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{group}</span>)}</div></div></>}
               {(activeSection === 'email' || activeSection === 'payment' || activeSection === 'cloudflare' || activeSection === 'security') && !status && !isLoading && <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">{text('empty_data')}</p>}
               {selectedGroups.length > 0 && renderEditableSettings()}
             </div>
