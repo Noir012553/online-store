@@ -712,6 +712,9 @@ function SettingsPage() {
           <div className="divide-y divide-gray-100">
             {group.keys.map(key => {
               const secret = secretKeys.has(key);
+              const isCloudflareCredential = key.startsWith('CLOUDFLARE_ACCOUNT_ID') || key.startsWith('CLOUDFLARE_API_TOKEN');
+              const isConfigured = secret ? isSecretConfigured(key) : Boolean(values[key]?.trim());
+              if (isCloudflareCredential && !isConfigured) return null;
               const secretInputAllowed = key !== 'VNPAY_HASH_SECRET' && !key.startsWith('CLOUDFLARE_API_TOKEN');
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
               return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
