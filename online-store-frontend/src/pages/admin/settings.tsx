@@ -81,7 +81,9 @@ type SettingsStatus = {
   };
   cloudflareAi: {
     enabled: boolean; configuredCount: number; maxRequestsPerDay: number;
-    maxInputCharsPerDay: number; models: string[]; accountIds: string[]; allCredentialsConfigured: boolean;
+    maxInputCharsPerDay: number;
+    limits: { maxOutputTokens: number; rateLimitCooldownMs: number; cooldownWaitBudgetMs: number; maxParallelPerKey: number };
+    models: string[]; accountIds: string[]; allCredentialsConfigured: boolean;
   };
   cloudflareOperations: { tunnelManaged: boolean; dnsManaged: boolean };
   security: {
@@ -303,6 +305,10 @@ function SettingsPage() {
       else if (!setting.secret && !secretKeys.has(setting.key)) liveValues[setting.key] = setting.value;
     });
     if (runtimeStatus) {
+      liveValues.CLOUDFLARE_AI_MAX_TOKENS = String(runtimeStatus.cloudflareAi.limits.maxOutputTokens);
+      liveValues.CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS = String(runtimeStatus.cloudflareAi.limits.rateLimitCooldownMs);
+      liveValues.CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS = String(runtimeStatus.cloudflareAi.limits.cooldownWaitBudgetMs);
+      liveValues.CLOUDFLARE_MAX_PARALLEL_PER_KEY = String(runtimeStatus.cloudflareAi.limits.maxParallelPerKey);
       liveValues.R2_UPLOAD_ENABLED = String(runtimeStatus.r2.uploadEnabled);
       if (runtimeStatus.r2.policyValid) {
         liveValues.R2_MAX_UPLOAD_COUNT = String(runtimeStatus.r2.policy.maxAssets);

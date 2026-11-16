@@ -342,6 +342,15 @@ class CloudflareAiService {
       .digest('hex');
   }
 
+  getRuntimeLimits() {
+    return {
+      maxOutputTokens: getMaxOutputTokens(),
+      rateLimitCooldownMs: this.rateLimitCooldownMs,
+      cooldownWaitBudgetMs: this.cooldownWaitBudgetMs,
+      maxParallelPerKey: this.maxParallelRequestsPerConfig,
+    };
+  }
+
   getUsagePolicy() {
     return {
       enabled: process.env.CLOUDFLARE_AI_ENABLED === 'true',
