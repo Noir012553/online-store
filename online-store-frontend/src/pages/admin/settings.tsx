@@ -107,6 +107,7 @@ type ShippingProviderEntry = { _id: string; code: string; name: string; descript
 const r2NumberedKeys = (base: string) => [base, ...Array.from({ length: 8 }, (_, index) => `${base}_${index + 2}`)];
 const r2AccountRoleKeys = ['R2_ACCOUNT_ROLE', ...['GENERAL', 'PRODUCT', 'MAIN', 'GALLERY', 'DESCRIPTION', 'BANNER', 'BRAND', 'ABOUT_REVIEWER', 'ABOUT_LOADING', 'ABOUT_TEAM', 'ABOUT_HERO'].map(role => `R2_ACCOUNT_ROLE_${role}`)];
 const aiModelKeys = ['CLOUDFLARE_AI_MODEL', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_AI_MODEL_${index + 1}`)];
+const aiOutputTokenOptions = ['512', '1024', '2048', '4096'];
 const cloudflareAccountKeys = ['CLOUDFLARE_ACCOUNT_ID', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_ACCOUNT_ID_${index + 1}`)];
 const cloudflareTokenKeys = ['CLOUDFLARE_API_TOKEN', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_API_TOKEN_${index + 1}`)];
 const runtimeSecretKeys = [
@@ -137,7 +138,7 @@ const fieldLabels: Record<string, string> = {
   R2_MAX_UPLOAD_COUNT: 'Số tệp tối đa', R2_MAX_UPLOAD_BYTES: 'Dung lượng tối đa', R2_MAX_RETRIES: 'Số lần thử lại',
   R2_MAX_IMAGE_BYTES: 'Dung lượng ảnh tối đa', R2_MAX_VIDEO_BYTES: 'Dung lượng video tối đa', CLOUDFLARE_AI_ENABLED: 'Bật Cloudflare AI',
   CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'Số yêu cầu tối đa mỗi ngày', CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: 'Số ký tự đầu vào tối đa mỗi ngày',
-  CLOUDFLARE_AI_MAX_TOKENS: 'Số token tối đa', CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tốc độ (ms)',
+  CLOUDFLARE_AI_MAX_TOKENS: 'Số token đầu ra', CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tốc độ (ms)',
   CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tối đa (ms)', CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS: 'Ngân sách thời gian chờ (ms)',
   CLOUDFLARE_MAX_PARALLEL_PER_KEY: 'Số yêu cầu đồng thời tối đa mỗi khóa', CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Số yêu cầu tối đa mỗi giây',
   CLOUDFLARE_MAX_PARALLEL_REQUESTS: 'Số yêu cầu đồng thời tối đa', CLOUDFLARE_AI_MODEL: 'Mô hình AI',
@@ -655,7 +656,7 @@ function SettingsPage() {
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
               return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
                 <span className="min-w-0"><label htmlFor={`settings-${key}`} className="block text-sm font-medium text-gray-700">{label}</label><code className="break-all text-[11px] text-gray-400">{key}</code></span>
-                {secret ? <span className="min-w-0">
+                {key === 'CLOUDFLARE_AI_MAX_TOKENS' ? <select id={`settings-${key}`} aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"><option value="">Chọn số token đầu ra</option>{(values[key] && !aiOutputTokenOptions.includes(values[key]) ? [values[key], ...aiOutputTokenOptions] : aiOutputTokenOptions).map((option, index) => <option key={option} value={option} disabled={index === 0 && !aiOutputTokenOptions.includes(option)}>{aiOutputTokenOptions.includes(option) ? `${Number(option).toLocaleString('vi-VN')} token` : `Giá trị hiện tại ${option} — hãy chọn lại`}</option>)}</select> : secret ? <span className="min-w-0">
                   <input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
                     setSecretInputs(current => ({ ...current, [key]: event.target.value }));
                     setSecretResets(current => ({ ...current, [key]: false }));

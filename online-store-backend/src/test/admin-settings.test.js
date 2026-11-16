@@ -143,12 +143,20 @@ describe('Super-admin settings boundary', () => {
       CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(() => settingsDraftStore.normalizeSettings({ JWT_SECRET: 'nope' })).to.throw(/not editable/);
-    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_1: 'nope' })).to.throw(/not editable/);
+    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_14: 'nope' })).to.throw(/not editable/);
     expect(() => settingsDraftStore.normalizeSettings({ EMAIL_PORT: '99999' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ VNPAY_ENDPOINT: 'http://example.test' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'ab..cd' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: '192.168.1.1' })).to.throw(/invalid value/);
     expect(settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'laptop-assets' })).to.deep.equal({ R2_BUCKET_NAME: 'laptop-assets' });
+  });
+
+  it('restricts Cloudflare AI output tokens to supported choices', () => {
+    expect(runtimeSettingRegistry.CLOUDFLARE_AI_MAX_TOKENS).to.include({ type: 'enum' });
+    expect(settingsDraftStore.normalizeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '2048' })).to.deep.equal({ CLOUDFLARE_AI_MAX_TOKENS: '2048' });
+    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '1536' })).to.throw(/invalid value/);
+    const [setting] = getRuntimeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '1536' });
+    expect(setting).to.include({ key: 'CLOUDFLARE_AI_MAX_TOKENS', valid: false });
   });
 
   it('requires authentication and rejects non-super-admin roles', async () => {
@@ -225,7 +233,7 @@ describe('Super-admin settings boundary', () => {
     const invalidKey = await request(app)
       .put('/api/admin/settings/draft')
       .set('Authorization', `Bearer ${token}`)
-      .send({ expectedVersion: 0, settings: { CLOUDFLARE_API_TOKEN_1: 'forbidden' } });
+      .send({ expectedVersion: 0, settings: { CLOUDFLARE_API_TOKEN_14: 'forbidden' } });
     expect(invalidKey.status).to.equal(400);
     expect(invalidKey.text).not.to.include('forbidden');
   });

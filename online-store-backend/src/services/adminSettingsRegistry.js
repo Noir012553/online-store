@@ -29,7 +29,7 @@ const runtimeSettingRegistry = {
   CLOUDFLARE_AI_ENABLED: createSetting('cloudflare-ai', 'boolean'),
   CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: createSetting('cloudflare-ai', 'integer', { min: 0 }),
   CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: createSetting('cloudflare-ai', 'integer', { min: 0 }),
-  CLOUDFLARE_AI_MAX_TOKENS: createSetting('cloudflare-ai', 'integer', { min: 1 }),
+  CLOUDFLARE_AI_MAX_TOKENS: createSetting('cloudflare-ai', 'enum', { values: ['512', '1024', '2048', '4096'] }),
   CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: createSetting('cloudflare-ai', 'integer', { min: 1 }),
   CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS: createSetting('cloudflare-ai', 'integer', { min: 1 }),
   CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS: createSetting('cloudflare-ai', 'integer', { min: 1 }),
