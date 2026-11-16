@@ -166,6 +166,8 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - Super Admin có thể thêm nhà cung cấp/phương thức qua form input riêng trong nhóm tương ứng. Form thu thập thông tin nhận diện và các trường cấu hình theo loại provider; không cho nhập tên biến môi trường tùy ý hoặc dùng một bộ trường chung cho mọi đối tác.
 - Chỉ cho phép cấu hình và kích hoạt provider có loại/adapter được backend hỗ trợ. Nếu Super Admin thêm thông tin cho loại chưa có adapter, có thể lưu như mục chưa kết nối nếu sản phẩm cần ghi nhận, nhưng phải hiển thị rõ chưa thể xử lý nghiệp vụ và không đưa vào checkout/luồng vận hành.
 - Secret được nhập hoặc xoay vòng qua form an toàn, không trả lại đầy đủ về trình duyệt; quyền thao tác và thay đổi phải được kiểm tra phía backend, có audit phù hợp.
+- Nếu việc cấu hình/tích hợp quản lý tài khoản quá phức tạp hoặc chưa nằm trong phạm vi, mục provider có thể cung cấp liên kết mở trang quản lý chính thức để Super Admin tự đăng nhập/đăng ký và thay đổi thông tin tại nền tảng đối tác. Đây là phương án quản lý tài khoản bên ngoài, không thay thế tích hợp vận hành với cửa hàng.
+- Chỉ dùng URL HTTPS chính thức đã allowlist theo từng provider; mở ở tab mới với bảo vệ `noopener`/`noreferrer`. Không yêu cầu, nhận hoặc chuyển tiếp mật khẩu/secret của đối tác qua ứng dụng. Không đánh dấu provider đã kết nối chỉ vì Super Admin đã mở hoặc đăng nhập trang bên ngoài; trạng thái kết nối chỉ cập nhật qua kiểm tra tích hợp đáng tin cậy hoặc xác nhận thủ công được ghi rõ.
 - Khi thiết kế hoặc nghiệm thu, phân biệt rõ ba trạng thái: nhà cung cấp được liệt kê, thông tin đã cấu hình, và dịch vụ thực sự có thể xử lý yêu cầu.
 
 ### Nhà cung cấp khởi đầu và hiện trạng tích hợp
