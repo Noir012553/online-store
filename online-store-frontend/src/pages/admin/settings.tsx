@@ -106,6 +106,10 @@ type ProviderPreset = { code: string; name: string; description: string; managem
 type ShippingProviderEntry = { _id: string; code: string; name: string; description?: string; isActive: boolean; isDeleted?: boolean };
 
 const providerPresets: Partial<Record<ProviderCategory, ProviderPreset[]>> = {
+  email: [
+    { code: 'smtp', name: 'SMTP', description: 'Gửi email qua máy chủ SMTP được cấu hình.', managementUrl: '', statusLabel: 'Đang hỗ trợ' },
+    { code: 'sendgrid', name: 'SendGrid', description: 'Gửi email qua dịch vụ SMTP của SendGrid.', managementUrl: 'https://sendgrid.com/', statusLabel: 'Đang hỗ trợ' },
+  ],
   payment: [
     { code: 'cod', name: 'COD', description: 'Thanh toán khi nhận hàng.', managementUrl: '', statusLabel: 'Đang hỗ trợ' },
     { code: 'vnpay', name: 'VNPay', description: 'Thanh toán trực tuyến qua VNPay.', managementUrl: '', statusLabel: 'Đang hỗ trợ' },
@@ -115,6 +119,9 @@ const providerPresets: Partial<Record<ProviderCategory, ProviderPreset[]>> = {
   ],
   deployment: [
     { code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel', description: 'Mô hình kết nối/định tuyến hiện tại; không tự build hoặc deploy ứng dụng.', managementUrl: 'https://dash.cloudflare.com/', statusLabel: 'Đang sử dụng' },
+  ],
+  storage: [
+    { code: 'cloudflare-r2', name: 'Cloudflare R2', description: 'Lưu trữ tệp qua adapter Cloudflare R2 hiện có.', managementUrl: 'https://dash.cloudflare.com/', statusLabel: 'Đang hỗ trợ' },
   ],
 };
 
@@ -811,7 +818,7 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   const selectedPreset = presets.find(preset => selectedValue === `preset:${preset.code}`);
   const selectedEntry = categoryEntries.find(entry => selectedValue === `entry:${entry.id}`);
   const selectedProvider = selectedPreset ?? selectedEntry;
-  const categoryLabel = category === 'payment' ? 'đối tác thanh toán' : category === 'shipping' ? 'nhà vận chuyển' : category === 'deployment' ? 'nền tảng triển khai' : 'đối tác';
+  const categoryLabel = category === 'payment' ? 'đối tác thanh toán' : category === 'shipping' ? 'nhà vận chuyển' : category === 'deployment' ? 'nền tảng triển khai' : category === 'storage' ? 'nhà cung cấp lưu trữ' : category === 'email' ? 'nhà cung cấp email' : 'đối tác';
   const managementUrl = (() => {
     const value = selectedProvider?.managementUrl;
     if (!value) return null;
