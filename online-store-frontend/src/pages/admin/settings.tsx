@@ -91,7 +91,7 @@ type SettingsStatus = {
 };
 type SettingsGroup = { section: 'email' | 'payment' | 'storage' | 'ai'; title: string; keys: string[] };
 type ProviderCategory = 'email' | 'payment' | 'shipping' | 'deployment' | 'storage';
-type ProviderChoice = { code: string; name: string };
+type ProviderChoice = { code: string; name: string; loginUrl?: string };
 type DeploymentTargets = { backend: string; frontend: string };
 type ProviderDirectoryEntry = {
   id: string;
@@ -107,17 +107,17 @@ type ProviderDirectoryEntry = {
 type ShippingProviderEntry = { _id: string; code: string; name: string; description?: string; isActive: boolean; isDeleted?: boolean };
 
 const backendPlatformChoices: ProviderChoice[] = [
-  { code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel' },
-  { code: 'render', name: 'Render' },
-  { code: 'railway', name: 'Railway' },
-  { code: 'fly-io', name: 'Fly.io' },
+  { code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel', loginUrl: 'https://dash.cloudflare.com/login' },
+  { code: 'render', name: 'Render', loginUrl: 'https://dashboard.render.com/login' },
+  { code: 'railway', name: 'Railway', loginUrl: 'https://railway.app/login' },
+  { code: 'fly-io', name: 'Fly.io', loginUrl: 'https://fly.io/login' },
 ];
 const frontendPlatformChoices: ProviderChoice[] = [
-  { code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel' },
-  { code: 'cloudflare-pages', name: 'Cloudflare Pages' },
-  { code: 'vercel', name: 'Vercel' },
-  { code: 'netlify', name: 'Netlify' },
-  { code: 'render', name: 'Render' },
+  { code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel', loginUrl: 'https://dash.cloudflare.com/login' },
+  { code: 'cloudflare-pages', name: 'Cloudflare Pages', loginUrl: 'https://dash.cloudflare.com/login' },
+  { code: 'vercel', name: 'Vercel', loginUrl: 'https://vercel.com/login' },
+  { code: 'netlify', name: 'Netlify', loginUrl: 'https://app.netlify.com/login' },
+  { code: 'render', name: 'Render', loginUrl: 'https://dashboard.render.com/login' },
 ];
 const providerChoices: Record<ProviderCategory, ProviderChoice[]> = {
   email: [{ code: 'smtp', name: 'SMTP' }, { code: 'sendgrid', name: 'SendGrid' }, { code: 'mailgun', name: 'Mailgun' }, { code: 'resend', name: 'Resend' }],
@@ -788,7 +788,7 @@ function SettingsPage() {
               {activeSection !== 'payment' && selectedGroups.length > 0 && renderEditableSettings()}
               {activeSection === 'storage' && <ProviderDirectoryManager category="storage" entries={providerEntries} loading={providerEntriesLoading} saving={providerSaving} error={providerEntriesError} onCreate={createProviderEntry} onUpdate={updateProviderEntry} onArchive={archiveProviderEntry} onRestore={restoreProviderEntry} />}
               {activeSection === 'shipping' && <><section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"><div><h3 className="font-bold text-gray-900">Nhà vận chuyển đang có</h3><p className="mt-1 text-sm text-gray-600">Chỉ GHN hiện có adapter tính phí và tạo vận đơn. Nhà vận chuyển khác chưa được checkout sử dụng.</p></div>{shippingProvidersError && <p role="alert" className="mt-3 text-sm text-red-700">{shippingProvidersError}</p>}{shippingProvidersLoading ? <p className="mt-3 text-sm text-gray-500">Đang tải…</p> : <div className="mt-3 space-y-2">{shippingProviders.map(provider => <div key={provider._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-3"><div><p className="font-semibold text-gray-900">{provider.name}</p><p className="text-xs text-gray-500">{provider.code}{provider.description ? ` · ${provider.description}` : ''}</p></div><StatusBadge tone={provider.code === 'ghn' && provider.isActive ? 'good' : provider.code === 'ghn' ? 'neutral' : 'warning'}>{provider.code === 'ghn' ? provider.isActive ? 'Đang bật' : 'Đang tắt' : provider.isActive ? 'Chưa có adapter' : 'Đang tắt'}</StatusBadge>{provider.code === 'ghn' && <button type="button" onClick={() => void toggleShippingProvider(provider)} disabled={shippingProviderActionId === provider._id} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">{shippingProviderActionId === provider._id ? 'Đang lưu…' : provider.isActive ? 'Tắt GHN' : 'Bật GHN'}</button>}</div>)}</div>}</section><ProviderDirectoryManager category="shipping" entries={providerEntries} loading={providerEntriesLoading} saving={providerSaving} error={providerEntriesError} onCreate={createProviderEntry} onUpdate={updateProviderEntry} onArchive={archiveProviderEntry} onRestore={restoreProviderEntry} /></>}
-              {activeSection === 'deployment' && <><div className="rounded-lg border border-blue-200 bg-blue-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-blue-950">Chọn nền tảng riêng cho từng phần</p><p className="mt-1 text-sm text-blue-900">Backend và Frontend có thể cùng dùng Cloudflare Tunnel hoặc chọn các nền tảng khác nhau.</p></div><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center rounded-lg border border-blue-300 bg-white px-3 text-sm font-semibold text-blue-900 hover:bg-blue-100">Mở Cloudflare Dashboard</a></div></div><DeploymentTargetsManager targets={deploymentTargets} loading={deploymentTargetsLoading} saving={deploymentTargetsSaving} saved={deploymentTargetsSaved} dirty={deploymentTargetsDirty} error={deploymentTargetsError} onChange={setDeploymentTargets} onSave={saveDeploymentTargets} /></>}
+              {activeSection === 'deployment' && <><div className="rounded-lg border border-blue-200 bg-blue-50 p-4"><div><p className="font-semibold text-blue-950">Chọn nền tảng riêng cho từng phần</p><p className="mt-1 text-sm text-blue-900">Backend và Frontend có thể cùng dùng Cloudflare Tunnel hoặc chọn các nền tảng khác nhau.</p></div></div><DeploymentTargetsManager targets={deploymentTargets} baseline={deploymentTargetsBaseline} loading={deploymentTargetsLoading} saving={deploymentTargetsSaving} saved={deploymentTargetsSaved} dirty={deploymentTargetsDirty} error={deploymentTargetsError} onChange={setDeploymentTargets} onSave={saveDeploymentTargets} /></>}
             </div>
           </section>
         </>}
@@ -798,8 +798,9 @@ function SettingsPage() {
   </div>;
 }
 
-function DeploymentTargetsManager({ targets, loading, saving, saved, dirty, error, onChange, onSave }: {
+function DeploymentTargetsManager({ targets, baseline, loading, saving, saved, dirty, error, onChange, onSave }: {
   targets: DeploymentTargets;
+  baseline: DeploymentTargets;
   loading: boolean;
   saving: boolean;
   saved: boolean;
@@ -808,10 +809,14 @@ function DeploymentTargetsManager({ targets, loading, saving, saved, dirty, erro
   onChange: (targets: DeploymentTargets) => void;
   onSave: () => Promise<void>;
 }) {
+  const backendPlatform = backendPlatformChoices.find(platform => platform.code === targets.backend);
+  const frontendPlatform = frontendPlatformChoices.find(platform => platform.code === targets.frontend);
+  const showBackendLogin = saved || targets.backend !== baseline.backend;
+  const showFrontendLogin = saved || targets.frontend !== baseline.frontend;
   return <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
     <div className="grid gap-4 sm:grid-cols-2">
-      <label className="space-y-1 text-sm font-medium text-gray-700"><span>Nền tảng Backend</span><select value={targets.backend} disabled={loading || saving} onChange={event => onChange({ ...targets, backend: event.target.value })} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100">{backendPlatformChoices.map(platform => <option key={platform.code} value={platform.code}>{platform.name}</option>)}</select></label>
-      <label className="space-y-1 text-sm font-medium text-gray-700"><span>Nền tảng Frontend</span><select value={targets.frontend} disabled={loading || saving} onChange={event => onChange({ ...targets, frontend: event.target.value })} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100">{frontendPlatformChoices.map(platform => <option key={platform.code} value={platform.code}>{platform.name}</option>)}</select></label>
+      <div className="space-y-2"><label className="block space-y-1 text-sm font-medium text-gray-700"><span>Nền tảng Backend</span><select value={targets.backend} disabled={loading || saving} onChange={event => onChange({ ...targets, backend: event.target.value })} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100">{backendPlatformChoices.map(platform => <option key={platform.code} value={platform.code}>{platform.name}</option>)}</select></label>{showBackendLogin && backendPlatform?.loginUrl && <a href={backendPlatform.loginUrl} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang đăng nhập ${new URL(backendPlatform.loginUrl!).host}?`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">Đăng nhập {backendPlatform.name}</a>}</div>
+      <div className="space-y-2"><label className="block space-y-1 text-sm font-medium text-gray-700"><span>Nền tảng Frontend</span><select value={targets.frontend} disabled={loading || saving} onChange={event => onChange({ ...targets, frontend: event.target.value })} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100">{frontendPlatformChoices.map(platform => <option key={platform.code} value={platform.code}>{platform.name}</option>)}</select></label>{showFrontendLogin && frontendPlatform?.loginUrl && <a href={frontendPlatform.loginUrl} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang đăng nhập ${new URL(frontendPlatform.loginUrl!).host}?`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">Đăng nhập {frontendPlatform.name}</a>}</div>
     </div>
     <p className="text-xs text-gray-600">Có thể chọn Cloudflare Tunnel cho cả Backend và Frontend, hoặc chọn nền tảng riêng cho từng phần. Lưu mục tiêu không tự triển khai hay thay đổi hosting đang chạy.</p>
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
