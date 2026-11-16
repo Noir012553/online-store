@@ -675,7 +675,7 @@ function SettingsPage() {
   const aiTone = status ? !status.cloudflareAi.allCredentialsConfigured ? 'danger' : !status.cloudflareAi.enabled ? 'warning' : 'good' : 'neutral';
   const cloudflareTone = status ? r2Tone === 'danger' || aiTone === 'danger' ? 'danger' : r2Tone === 'warning' || aiTone === 'warning' || !status.cloudflareOperations.tunnelManaged || !status.cloudflareOperations.dnsManaged ? 'warning' : 'good' : 'neutral';
   const securityReady = Boolean(status?.security.encryptedSecretStoreAvailable);
-  const selectedGroups = settingsGroups.filter(group => group.section === activeSection);
+  const selectedGroups = settingsGroups.filter(group => group.section === activeSection && group.title !== 'Mô hình Cloudflare AI');
   const applyInProgress = Boolean(applyJob && ['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status));
 
   const renderR2RuntimeSettings = () => {
