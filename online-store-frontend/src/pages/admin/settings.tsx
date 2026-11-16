@@ -286,18 +286,27 @@ function SettingsPage() {
     }
   };
 
-  const loadDraft = async (liveSettings: RuntimeSetting[]) => {
+  const loadDraft = async (liveSettings: RuntimeSetting[], runtimeStatus: SettingsStatus | null) => {
     setDraftLoadError('');
+    const liveValues: Record<string, string> = {};
+    const configuredSecrets: Record<string, boolean> = {};
+    liveSettings.forEach(setting => {
+      if (!allowedKeys.has(setting.key)) return;
+      if (setting.secret && secretKeys.has(setting.key)) configuredSecrets[setting.key] = setting.configured;
+      else if (!setting.secret && !secretKeys.has(setting.key)) liveValues[setting.key] = setting.value;
+    });
+    if (runtimeStatus) {
+      liveValues.R2_UPLOAD_ENABLED = String(runtimeStatus.r2.uploadEnabled);
+      if (runtimeStatus.r2.policyValid) {
+        liveValues.R2_MAX_UPLOAD_COUNT = String(runtimeStatus.r2.policy.maxAssets);
+        liveValues.R2_MAX_UPLOAD_BYTES = String(runtimeStatus.r2.policy.maxBytes);
+        liveValues.R2_MAX_RETRIES = String(runtimeStatus.r2.policy.maxRetries);
+      }
+    }
     try {
       const response = await apiCall<{ success: boolean; data: { draft: SettingsDraft | null } }>('/admin/settings/draft', { skipCache: true, skipErrorToast: true });
       const loadedDraft = response.data.draft;
-      const liveValues: Record<string, string> = {};
-      const configuredSecrets: Record<string, boolean> = {};
-      liveSettings.forEach(setting => {
-        if (!allowedKeys.has(setting.key)) return;
-        if (setting.secret && secretKeys.has(setting.key)) configuredSecrets[setting.key] = setting.configured;
-        else if (!setting.secret && !secretKeys.has(setting.key)) liveValues[setting.key] = setting.value;
-      });
+      const draftValues = { ...liveValues };
       if (loadedDraft) {
         Object.entries(loadedDraft.settings).forEach(([key, value]) => {
           if (!allowedKeys.has(key)) return;
@@ -306,30 +315,37 @@ function SettingsPage() {
               configuredSecrets[key] = value.configured;
             }
           } else if (value === null) {
-            liveValues[key] = '';
+            draftValues[key] = '';
           } else if (typeof value === 'string') {
-            liveValues[key] = value;
+            draftValues[key] = value;
           }
         });
       }
       setDraft(loadedDraft);
       setDraftVersion(loadedDraft?.version ?? 0);
-      setValues(liveValues);
-      setBaseline(liveValues);
+      setValues(draftValues);
+      setBaseline(draftValues);
       setSecretInputs({});
       setSecretResets({});
       setSecretConfigured(configuredSecrets);
     } catch (error) {
       const code = (error as Error & { code?: string }).code;
+      setDraft(null);
+      setDraftVersion(0);
+      setValues(liveValues);
+      setBaseline(liveValues);
+      setSecretInputs({});
+      setSecretResets({});
+      setSecretConfigured(configuredSecrets);
       setDraftLoadError(code === 'SETTINGS_STORE_UNAVAILABLE'
-        ? 'Kho lưu cấu hình mã hóa không khả dụng trên host hiện tại; chưa thể đọc, lưu hoặc áp dụng bản nháp. Đây không có nghĩa là các giá trị runtime đang thiếu.'
-        : 'Không thể tải cấu hình đang chờ áp dụng. Vui lòng thử làm mới trang.');
+        ? 'Kho lưu cấu hình mã hóa không khả dụng trên host hiện tại; chưa thể đọc, lưu hoặc áp dụng bản nháp. Dữ liệu runtime vẫn được hiển thị bên dưới.'
+        : 'Không thể tải cấu hình đang chờ áp dụng. Dữ liệu runtime vẫn được hiển thị bên dưới; hãy tải lại trước khi lưu.');
     }
   };
 
   const refreshAll = async () => {
-    const [liveSettings] = await Promise.all([loadRuntimeSettings(), loadStatus()]);
-    await loadDraft(liveSettings);
+    const [liveSettings, runtimeStatus] = await Promise.all([loadRuntimeSettings(), loadStatus()]);
+    await loadDraft(liveSettings, runtimeStatus);
   };
 
   const loadPaymentMethods = async () => {
