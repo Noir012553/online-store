@@ -138,3 +138,40 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Lỗi `401` ở `/status` hoặc `/values` thường cần kiểm tra access token/refresh session; `403` là quyền không đủ. `404` cho route mới có thể do backend đích chưa deploy phiên bản có route đó. Xác minh phiên đăng nhập và phiên bản backend trước khi kết luận registry hoặc UI sai.
 - Typecheck và kiểm tra cú pháp/diff giúp xác nhận source nhưng không thay thế kiểm tra UI. Preview không có phiên Super Admin sẽ redirect về login/“Not Authorized”; không thể xác nhận thao tác trực tiếp khi chưa có phiên hợp lệ. Các hành vi phụ thuộc DPAPI/WinSW phải được kiểm tra trên host Windows phù hợp.
 - Không đổi cờ vận hành thành `true` chỉ vì Tunnel/DNS đang tồn tại bên ngoài ứng dụng. Chỉ báo “đang chạy” khi có probe hoặc nguồn kiểm tra thực trạng; nếu chỉ có cờ quản lý, đặt nhãn giải thích rõ phạm vi của cờ.
+
+## Định hướng đa nền tảng và đa nhà cung cấp
+
+Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối tác dịch vụ theo từng nhóm rõ ràng, không gom tất cả vào một mục Cloudflare hoặc một biểu mẫu cấu hình chung. Mỗi nhóm có trang/mục riêng, hiển thị danh sách một hoặc vài nhà cung cấp được chọn ở giai đoạn đầu; cấu trúc phải cho phép bổ sung nhà cung cấp khác về sau.
+
+### Các nhóm quản lý
+
+- **Email**: nhà cung cấp gửi email và cấu hình kết nối tương ứng.
+- **Thanh toán**: từng phương thức/đối tác thanh toán, trạng thái bật/tắt và cấu hình riêng.
+- **Vận chuyển**: từng đối tác vận chuyển, trạng thái khả dụng và cấu hình riêng.
+- **Nền tảng triển khai (Deploy)**: các nền tảng triển khai ứng dụng; Cloudflare là nền tảng mục tiêu ban đầu theo định hướng sản phẩm. Phải xác định rõ thao tác nào thực sự được tích hợp (deploy, cấu hình domain/DNS, Tunnel hoặc health check), không suy diễn từ việc đã có Cloudflare AI, R2 hay script Tunnel.
+- **Lưu trữ R2**: tách thành nhóm độc lập để quản lý tài khoản/bucket, thông tin truy cập được che an toàn và chính sách tải lên; không gộp vào Deploy chỉ vì R2 thuộc Cloudflare.
+- **Bảo mật**: quản lý trạng thái kho bí mật, quyền truy cập, nhật ký kiểm toán và các thao tác nhạy cảm. Đây là nhóm bảo vệ xuyên suốt, không phải một nhà cung cấp dịch vụ.
+- **Thương hiệu cửa hàng**: tiếp tục là nhóm riêng cho thông tin nhận diện và liên hệ của cửa hàng.
+
+### Nguyên tắc đa nhà cung cấp
+
+- Mỗi nhà cung cấp/phương thức là một mục riêng có tên, mã ổn định, mô tả, trạng thái, cấu hình riêng và thông tin năng lực; không dùng một tập trường chung để giả định mọi provider có cùng cách hoạt động.
+- Super Admin có thể quản lý các mục mà backend hỗ trợ; thao tác bật/tắt phải ảnh hưởng thật đến luồng liên quan. Ẩn/xóa nên giữ tham chiếu lịch sử khi có giao dịch hoặc đơn hàng liên quan.
+- Chỉ hiển thị là **đang kết nối/khả dụng** khi adapter và kiểm tra trạng thái tương ứng đã tồn tại. Nhà cung cấp mới chưa có adapter không được giả lập là đã cấu hình hoặc có thể xử lý giao dịch.
+- Giai đoạn đầu chỉ cần hiển thị một hoặc vài nhà cung cấp hiện có trong từng nhóm. Có thể bổ sung provider sau theo từng adapter; việc thêm một bản ghi vào giao diện không tự tạo khả năng tích hợp backend.
+- Khi thiết kế hoặc nghiệm thu, phân biệt rõ ba trạng thái: nhà cung cấp được liệt kê, thông tin đã cấu hình, và dịch vụ thực sự có thể xử lý yêu cầu.
+
+### Nhà cung cấp khởi đầu và hiện trạng tích hợp
+
+- **Email**: SMTP là tích hợp hiện có; SendGrid chỉ được hiển thị là tùy chọn dùng được sau khi xác minh luồng cấu hình và gửi độc lập.
+- **Thanh toán**: COD và VNPay là hai phương thức hiện có; provider khác cần adapter thanh toán, callback và kiểm tra an toàn trước khi được bật.
+- **Vận chuyển**: GHN là tích hợp tính phí vận chuyển hiện có; các provider khác chỉ được bật sau khi có adapter tính phí/luồng xử lý tương ứng. Bản ghi provider chung không đồng nghĩa backend đã hỗ trợ provider đó.
+- **Deploy**: Cloudflare là lựa chọn mục tiêu để phát triển tích hợp; hiện trạng Tunnel/DNS chưa được Settings quản lý như một adapter deploy hoàn chỉnh. Không báo deploy thành công nếu chưa có API/adapter, tác vụ apply và health check cho nền tảng đó.
+- **Lưu trữ R2**: Cloudflare R2 là tích hợp lưu trữ hiện có và được quản lý riêng với Deploy.
+- **Cloudflare AI**: là cấu hình dịch vụ AI, không phải bằng chứng cho tích hợp Deploy. Cần xác định nhóm sản phẩm riêng hoặc phạm vi hiển thị phù hợp khi thiết kế lại menu.
+
+### Phạm vi cấu hình và an toàn
+
+Việc mở rộng giao diện đa provider không được mở quyền sửa tùy ý biến môi trường. Mỗi provider phải có registry/allowlist, validation, quản lý secret an toàn, phân quyền Super Admin, audit và quy trình áp dụng/rollback phù hợp. Provider cần năng lực vận hành thật mới được cung cấp nút bật, kiểm tra kết nối, deploy hoặc áp dụng cấu hình.
+
+Các lựa chọn provider ngoài nhà cung cấp khởi đầu, phạm vi cụ thể của tích hợp Cloudflare Deploy, và vị trí quản lý Cloudflare AI cần được xác nhận trước khi triển khai CRUD/tích hợp tương ứng.
