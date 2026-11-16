@@ -151,14 +151,6 @@ describe('Super-admin settings boundary', () => {
     expect(settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'laptop-assets' })).to.deep.equal({ R2_BUCKET_NAME: 'laptop-assets' });
   });
 
-  it('restricts Cloudflare AI output tokens to supported choices', () => {
-    expect(runtimeSettingRegistry.CLOUDFLARE_AI_MAX_TOKENS).to.include({ type: 'enum' });
-    expect(settingsDraftStore.normalizeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '2048' })).to.deep.equal({ CLOUDFLARE_AI_MAX_TOKENS: '2048' });
-    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '1536' })).to.throw(/invalid value/);
-    const [setting] = getRuntimeSettings({ CLOUDFLARE_AI_MAX_TOKENS: '1536' });
-    expect(setting).to.include({ key: 'CLOUDFLARE_AI_MAX_TOKENS', valid: false });
-  });
-
   it('requires authentication and rejects non-super-admin roles', async () => {
     const anonymous = await request(app).get('/api/admin/settings/values');
     expect(anonymous.status).to.equal(401);

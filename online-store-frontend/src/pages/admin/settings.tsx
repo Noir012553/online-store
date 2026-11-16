@@ -91,6 +91,7 @@ type SettingsStatus = {
 };
 type SettingsGroup = { section: 'email' | 'payment' | 'storage' | 'ai'; title: string; keys: string[] };
 type ProviderCategory = 'email' | 'payment' | 'shipping' | 'deployment' | 'storage';
+type ProviderChoice = { code: string; name: string };
 type ProviderDirectoryEntry = {
   id: string;
   category: ProviderCategory;
@@ -104,10 +105,17 @@ type ProviderDirectoryEntry = {
 };
 type ShippingProviderEntry = { _id: string; code: string; name: string; description?: string; isActive: boolean; isDeleted?: boolean };
 
+const providerChoices: Record<ProviderCategory, ProviderChoice[]> = {
+  email: [{ code: 'smtp', name: 'SMTP' }, { code: 'sendgrid', name: 'SendGrid' }, { code: 'mailgun', name: 'Mailgun' }, { code: 'resend', name: 'Resend' }],
+  payment: [{ code: 'momo', name: 'MoMo' }, { code: 'zalopay', name: 'ZaloPay' }, { code: 'stripe', name: 'Stripe' }, { code: 'paypal', name: 'PayPal' }],
+  shipping: [{ code: 'ghn', name: 'GHN' }, { code: 'ghtk', name: 'GHTK' }, { code: 'viettel-post', name: 'Viettel Post' }, { code: 'jt-express', name: 'J&T Express' }],
+  deployment: [{ code: 'cloudflare-tunnel', name: 'Cloudflare Tunnel' }, { code: 'cloudflare-pages', name: 'Cloudflare Pages' }, { code: 'vercel', name: 'Vercel' }, { code: 'netlify', name: 'Netlify' }, { code: 'render', name: 'Render' }],
+  storage: [{ code: 'cloudflare-r2', name: 'Cloudflare R2' }, { code: 'aws-s3', name: 'AWS S3' }, { code: 'backblaze-b2', name: 'Backblaze B2' }, { code: 'wasabi', name: 'Wasabi' }],
+};
+
 const r2NumberedKeys = (base: string) => [base, ...Array.from({ length: 8 }, (_, index) => `${base}_${index + 2}`)];
 const r2AccountRoleKeys = ['R2_ACCOUNT_ROLE', ...['GENERAL', 'PRODUCT', 'MAIN', 'GALLERY', 'DESCRIPTION', 'BANNER', 'BRAND', 'ABOUT_REVIEWER', 'ABOUT_LOADING', 'ABOUT_TEAM', 'ABOUT_HERO'].map(role => `R2_ACCOUNT_ROLE_${role}`)];
 const aiModelKeys = ['CLOUDFLARE_AI_MODEL', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_AI_MODEL_${index + 1}`)];
-const aiOutputTokenOptions = ['512', '1024', '2048', '4096'];
 const cloudflareAccountKeys = ['CLOUDFLARE_ACCOUNT_ID', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_ACCOUNT_ID_${index + 1}`)];
 const cloudflareTokenKeys = ['CLOUDFLARE_API_TOKEN', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_API_TOKEN_${index + 1}`)];
 const runtimeSecretKeys = [
@@ -138,7 +146,7 @@ const fieldLabels: Record<string, string> = {
   R2_MAX_UPLOAD_COUNT: 'Số tệp tối đa', R2_MAX_UPLOAD_BYTES: 'Dung lượng tối đa', R2_MAX_RETRIES: 'Số lần thử lại',
   R2_MAX_IMAGE_BYTES: 'Dung lượng ảnh tối đa', R2_MAX_VIDEO_BYTES: 'Dung lượng video tối đa', CLOUDFLARE_AI_ENABLED: 'Bật Cloudflare AI',
   CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'Số yêu cầu tối đa mỗi ngày', CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: 'Số ký tự đầu vào tối đa mỗi ngày',
-  CLOUDFLARE_AI_MAX_TOKENS: 'Số token đầu ra', CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tốc độ (ms)',
+  CLOUDFLARE_AI_MAX_TOKENS: 'Số token tối đa', CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tốc độ (ms)',
   CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tối đa (ms)', CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS: 'Ngân sách thời gian chờ (ms)',
   CLOUDFLARE_MAX_PARALLEL_PER_KEY: 'Số yêu cầu đồng thời tối đa mỗi khóa', CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Số yêu cầu tối đa mỗi giây',
   CLOUDFLARE_MAX_PARALLEL_REQUESTS: 'Số yêu cầu đồng thời tối đa', CLOUDFLARE_AI_MODEL: 'Mô hình AI',
@@ -656,7 +664,7 @@ function SettingsPage() {
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
               return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
                 <span className="min-w-0"><label htmlFor={`settings-${key}`} className="block text-sm font-medium text-gray-700">{label}</label><code className="break-all text-[11px] text-gray-400">{key}</code></span>
-                {key === 'CLOUDFLARE_AI_MAX_TOKENS' ? <select id={`settings-${key}`} aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"><option value="">Chọn số token đầu ra</option>{(values[key] && !aiOutputTokenOptions.includes(values[key]) ? [values[key], ...aiOutputTokenOptions] : aiOutputTokenOptions).map((option, index) => <option key={option} value={option} disabled={index === 0 && !aiOutputTokenOptions.includes(option)}>{aiOutputTokenOptions.includes(option) ? `${Number(option).toLocaleString('vi-VN')} token` : `Giá trị hiện tại ${option} — hãy chọn lại`}</option>)}</select> : secret ? <span className="min-w-0">
+                {secret ? <span className="min-w-0">
                   <input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
                     setSecretInputs(current => ({ ...current, [key]: event.target.value }));
                     setSecretResets(current => ({ ...current, [key]: false }));
@@ -752,15 +760,21 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   const [editingId, setEditingId] = useState('');
   const [form, setForm] = useState({ code: '', name: '', description: '', managementUrl: '' });
   const categoryEntries = entries.filter(entry => entry.category === category);
+  const existingCodes = new Set(categoryEntries.map(entry => entry.code));
+  const editingChoice = providerChoices[category].find(choice => choice.code === form.code);
+  const selectChoices = editingId && (!editingChoice || editingChoice.name !== form.name)
+    ? [{ code: form.code, name: form.name }, ...providerChoices[category]]
+    : providerChoices[category].filter(choice => editingId || !existingCodes.has(choice.code));
   const resetForm = () => {
     setEditingId('');
     setForm({ code: '', name: '', description: '', managementUrl: '' });
   };
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const choice = providerChoices[category].find(option => option.code === form.code);
     const saved = editingId
       ? await onUpdate(editingId, { name: form.name, description: form.description, managementUrl: form.managementUrl })
-      : await onCreate({ category, code: form.code, name: form.name, description: form.description, managementUrl: form.managementUrl });
+      : choice ? await onCreate({ category, code: choice.code, name: choice.name, description: form.description, managementUrl: form.managementUrl }) : false;
     if (saved) resetForm();
   };
 
@@ -783,8 +797,7 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
       </div>;
     })}</div>}
     <form onSubmit={submit} className="grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
-      <label className="space-y-1 text-sm font-medium text-gray-700"><span>{editingId ? 'Mã đối tác' : 'Mã đối tác'}</span><input required minLength={2} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9-]+" value={form.code} disabled={Boolean(editingId) || saving} onChange={event => setForm(current => ({ ...current, code: event.target.value }))} placeholder="provider-code" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm disabled:bg-gray-100" /></label>
-      <label className="space-y-1 text-sm font-medium text-gray-700"><span>Tên đối tác</span><input required minLength={2} maxLength={80} value={form.name} disabled={saving} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="Tên hiển thị" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
+      <label className="space-y-1 text-sm font-medium text-gray-700"><span>{category === 'deployment' ? 'Nền tảng' : category === 'storage' ? 'Dịch vụ lưu trữ' : 'Đối tác'}</span><select required value={form.code} disabled={Boolean(editingId) || saving} onChange={event => { const choice = providerChoices[category].find(option => option.code === event.target.value); setForm(current => ({ ...current, code: choice?.code ?? '', name: choice?.name ?? '' })); }} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100"><option value="">Chọn {category === 'deployment' ? 'nền tảng' : 'đối tác'}</option>{selectChoices.map(choice => <option key={choice.code} value={choice.code} disabled={!editingId && existingCodes.has(choice.code)}>{choice.name}{!editingId && existingCodes.has(choice.code) ? ' (đã có)' : ''}</option>)}</select></label>
       <label className="space-y-1 text-sm font-medium text-gray-700 sm:col-span-2"><span>Mô tả</span><input maxLength={500} value={form.description} disabled={saving} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} placeholder="Thông tin ngắn về đối tác" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
       <label className="space-y-1 text-sm font-medium text-gray-700 sm:col-span-2"><span>Trang quản lý chính thức (HTTPS, không bắt buộc)</span><input type="url" pattern="https://.*" maxLength={500} value={form.managementUrl} disabled={saving} onChange={event => setForm(current => ({ ...current, managementUrl: event.target.value }))} placeholder="https://partner.example.com" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
       <div className="flex flex-wrap gap-2 sm:col-span-2"><button type="submit" disabled={saving} className="inline-flex h-10 items-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">{saving ? 'Đang lưu…' : editingId ? 'Lưu thay đổi' : 'Thêm đối tác'}</button>{editingId && <button type="button" disabled={saving} onClick={resetForm} className="h-10 rounded-lg border border-gray-300 px-4 text-sm font-semibold text-gray-700">Hủy</button>}</div>
