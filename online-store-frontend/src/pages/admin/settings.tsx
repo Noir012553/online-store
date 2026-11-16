@@ -588,6 +588,7 @@ function SettingsPage() {
     editRuntimeSetting(setting);
   };
   const isSecretConfigured = (key: string) => secretConfigured[key] ?? false;
+  const isRuntimeSecretConfigured = (key: string) => runtimeSettings.some(setting => setting.key === key && setting.secret && setting.configured);
   const isSecretResetSaved = (key: string) => {
     const value = draft?.settings[key];
     return typeof value === 'object' && value !== null && value.reset === true;
@@ -673,7 +674,7 @@ function SettingsPage() {
   const renderEditableSettings = () => (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="editable-settings-title">
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div><h3 id="editable-settings-title" className="text-lg font-bold text-gray-900">Thay đổi chờ áp dụng</h3><p className="mt-1 text-sm text-gray-600">Thay đổi được lưu riêng và chỉ có hiệu lực sau khi chọn “Áp dụng cấu hình”. Trước đó hệ thống vẫn dùng cấu hình đang chạy. Bí mật chỉ có thể thay mới; giá trị hiện tại không được hiển thị.</p></div>
+        <div><h3 id="editable-settings-title" className="text-lg font-bold text-gray-900">Thay đổi chờ áp dụng</h3><p className="mt-1 text-sm text-gray-600">Thay đổi được lưu riêng và chỉ có hiệu lực sau khi chọn “Áp dụng cấu hình”. Trước đó hệ thống vẫn dùng cấu hình đang chạy. Secret hiện tại được che mặc định; dùng nút mắt để reveal, còn ô bên dưới chỉ dùng để nhập hoặc xoay vòng.</p></div>
         <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{draft ? `Cấu hình phiên bản ${draft.version}` : 'Chưa có cấu hình chờ áp dụng'}</span>
       </div>
       {status && !securityReady && <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Kho bí mật được mã hóa chưa khả dụng. Không thể lưu hoặc áp dụng cấu hình.</p>}
@@ -688,12 +689,13 @@ function SettingsPage() {
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
               return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
                 <span className="min-w-0"><label htmlFor={`settings-${key}`} className="block text-sm font-medium text-gray-700">{label}</label><code className="break-all text-[11px] text-gray-400">{key}</code></span>
-                {secret ? <span className="min-w-0">
-                  <input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
+                {secret ? <div className="min-w-0 space-y-2">
+                  {valuesLoading ? <p className="text-xs text-gray-500">Đang tải trạng thái secret runtime…</p> : valuesError ? <p role="alert" className="text-xs text-red-700">Không thể xác định trạng thái secret runtime.</p> : <SecretDataField icon={KeyRound} label="Secret runtime hiện tại" configured={isRuntimeSecretConfigured(key)} value={revealedSecrets[key]} revealed={Object.hasOwn(revealedSecrets, key)} loading={secretRevealLoading[key] ?? false} error={secretRevealErrors[key] ?? ''} onToggle={() => void toggleSecretReveal(key)} />}
+                  <input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} mới (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
                     setSecretInputs(current => ({ ...current, [key]: event.target.value }));
                     setSecretResets(current => ({ ...current, [key]: false }));
                   }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} />
-                  <span className="mt-1 block text-xs text-gray-500">{secretResets[key] ? 'Sẽ xóa bí mật được quản lý khi lưu; giá trị môi trường có thể được dùng lại.' : isSecretResetSaved(key) ? 'Override được quản lý đã bị xóa; giá trị môi trường có thể vẫn được dùng.' : isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Bí mật hiện tại không thể xem lại.' : 'Trạng thái: chưa cấu hình.'}</span>
+                  <span className="block text-xs text-gray-500">{secretResets[key] ? 'Sẽ xóa bí mật được quản lý khi lưu; giá trị môi trường có thể được dùng lại.' : isSecretResetSaved(key) ? 'Override được quản lý đã bị xóa; giá trị môi trường có thể vẫn được dùng.' : isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Ô này chỉ dùng để nhập secret mới.' : 'Trạng thái: chưa cấu hình.'}</span>
                   {(secretResets[key] && !isSecretResetSaved(key)) || (!secretResets[key] && isSecretDraftConfigured(key)) ? <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
                     if (secretResets[key]) {
                       setSecretResets(current => ({ ...current, [key]: false }));
@@ -702,7 +704,7 @@ function SettingsPage() {
                       setSecretResets(current => ({ ...current, [key]: true }));
                     }
                   }} className="mt-1 text-xs font-medium text-red-700 underline disabled:opacity-50">{secretResets[key] ? 'Hủy xóa' : 'Xóa cấu hình quản lý'}</button> : null}
-                </span> : <input id={`settings-${key}`} type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
+                </div> : <input id={`settings-${key}`} type="text" aria-label={`${label} (${key})`} value={values[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(key, event.target.value)} className="h-10 w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />}
               </div>;
             })}
           </div>
