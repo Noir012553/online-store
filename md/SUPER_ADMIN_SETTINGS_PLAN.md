@@ -34,8 +34,9 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 4. **Cloudflare**
    - Tách riêng Cloudflare R2 (account, bucket, access key, secret, public base URL), Cloudflare AI (account ID, token, model/policy), Tunnel và DNS vì quyền/mục đích khác nhau.
    - Tunnel: xem tunnels/hostname routes đã chọn, cấu hình hostname/service/ingress đã cho phép; kiểm tra xung đột hostname và khả năng kết nối. Không hiển thị tunnel token.
-   - DNS/domain: quản lý zone được allowlist, xem/thêm/sửa DNS record; mặc định không hỗ trợ xóa zone, chuyển nameserver, đổi registrar hoặc tắt proxy. Xác nhận riêng cho thay đổi có thể làm gián đoạn truy cập.
-   - Domain ở đây nghĩa là DNS/hostname trên Cloudflare; mua, gia hạn hay chuyển quyền sở hữu domain cần tích hợp riêng với registrar.
+   - DNS/domain: quản lý zone được allowlist, xem/thêm/sửa DNS record; Super Admin có thể thêm hoặc chuyển ứng dụng sang domain mới đã có quyền sở hữu/quản lý. Mặc định không hỗ trợ xóa zone, chuyển nameserver, đổi registrar hoặc tắt proxy. Xác nhận riêng cho thay đổi có thể làm gián đoạn truy cập.
+   - Trước khi gắn/chuyển domain, xác minh quyền kiểm soát domain và DNS, kiểm tra bản ghi xung đột, TLS/HTTPS và khả năng truy cập. Hiển thị trước các thành phần bị ảnh hưởng (frontend, backend/API, CORS/cookie, callback thanh toán, email links và Tunnel ingress); chỉ chuyển primary domain sau khi cấu hình mới qua health check. Duy trì domain cũ trong giai đoạn chuyển tiếp và hỗ trợ rollback.
+   - Domain mới ở đây là domain Super Admin đã sở hữu hoặc có thể xác minh quyền quản lý; không bao gồm mua, gia hạn hay chuyển quyền sở hữu domain tại registrar. DNS chỉ được thao tác qua provider/zone đã được cho phép.
    - Hiển thị cấu hình đã có/chưa có, không bao giờ trả key/token hiện tại về trình duyệt; kiểm tra zone/account/permissions trước khi áp dụng.
 
 ## Kiến trúc đề xuất
@@ -62,8 +63,9 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 ### Cloudflare operations
 
 - Dùng API token riêng cho từng phạm vi với quyền tối thiểu, tách Tunnel, DNS, R2 và AI token; không dùng Global API Key.
-- Chỉ cho phép các account/zone/tunnel được cấu hình sẵn trong allowlist; validate hostname, service URL, record type/content, TTL và quyền trước khi gửi API.
-- Thay đổi Tunnel/DNS phải hiển thị diff trước khi áp dụng, yêu cầu xác nhận lại, lưu version/audit và lưu cấu hình trước đó để rollback.
+- Chỉ cho phép các account/zone/tunnel và domain đã xác minh được cấu hình trong allowlist; validate hostname, service URL, record type/content, TTL và quyền trước khi gửi API.
+- Thêm/chuyển domain phải có preview diff cho DNS, frontend/backend URLs, CORS/cookie, callback và Tunnel ingress liên quan; xác nhận lại, lưu version/audit và cấu hình trước đó để rollback. Giữ domain cũ hoạt động cho đến khi domain mới qua kiểm tra DNS, TLS và health check.
+- Không tự động sửa URL/callback bên thứ ba nếu không có API/adapter tương ứng; liệt kê rõ thao tác cần Super Admin cập nhật thủ công trước khi hoàn tất chuyển đổi.
 - Tách “cấu hình trên Cloudflare API” khỏi “dịch vụ cloudflared đang chạy”: thay đổi ingress chỉ có hiệu lực nếu tunnel agent có thể nhận cấu hình; xác minh cơ chế cập nhật hiện có trước khi cam kết thao tác runtime.
 - Không cho phép xóa zone/tunnel hoặc đổi nameserver trong bản đầu. DNS record destructive changes cần xác nhận rõ và có rollback; domain registrar operations không thuộc phạm vi ban đầu.
 
@@ -123,7 +125,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Cần xác định hosting/deployment platform có API cập nhật env + redeploy hay không. Nếu chưa có, chỉ hỗ trợ app-managed runtime overrides cho key được thiết kế hot-reload; key cần restart sẽ ở trạng thái pending, không tự thay host env.
 - Cần chọn secret manager/KMS hoặc bootstrap key an toàn trước khi lưu credentials mã hóa.
 - Cần xác định Cloudflare account/zone/tunnel scope, quyền API tối thiểu và cách cloudflared nhận config mới; Cloudflare API thay đổi không tự bảo đảm service agent reload.
-- Cần xác nhận `domain management` trong bản đầu là DNS/hostname trên Cloudflare, không bao gồm mua/gia hạn/chuyển domain tại registrar.
+- Cần xác nhận provider DNS/domain ban đầu và phạm vi allowlist. Bản đầu cho phép gắn/chuyển sang domain mới mà Super Admin đã sở hữu hoặc xác minh quyền quản lý; không bao gồm mua/gia hạn/chuyển domain tại registrar. Chuyển primary domain cần xác nhận tác động, kiểm tra DNS/TLS/health và có rollback.
 - Thay credentials Cloudflare có thể ảnh hưởng R2, AI, Tunnel hoặc DNS; giữ các token tách biệt và hỗ trợ rollback.
 - Thay VNPay/SMTP trong lúc đang có giao dịch hoặc email gửi dở cần versioning và đổi cấu hình có hiệu lực an toàn.
 
