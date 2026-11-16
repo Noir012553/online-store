@@ -158,7 +158,10 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - Mỗi nhà cung cấp/phương thức là một mục riêng có tên, mã ổn định, mô tả, trạng thái, cấu hình riêng và thông tin năng lực; không dùng một tập trường chung để giả định mọi provider có cùng cách hoạt động.
 - Super Admin có thể quản lý các mục mà backend hỗ trợ; thao tác bật/tắt phải ảnh hưởng thật đến luồng liên quan. Ẩn/xóa nên giữ tham chiếu lịch sử khi có giao dịch hoặc đơn hàng liên quan.
 - Chỉ hiển thị là **đang kết nối/khả dụng** khi adapter và kiểm tra trạng thái tương ứng đã tồn tại. Nhà cung cấp mới chưa có adapter không được giả lập là đã cấu hình hoặc có thể xử lý giao dịch.
-- Giai đoạn đầu chỉ cần hiển thị một hoặc vài nhà cung cấp hiện có trong từng nhóm. Có thể bổ sung provider sau theo từng adapter; việc thêm một bản ghi vào giao diện không tự tạo khả năng tích hợp backend.
+- Giai đoạn đầu chỉ cần có sẵn một vài thông tin cơ bản và một hoặc vài nhà cung cấp ban đầu trong mỗi nhóm; không cần khai báo đầy đủ mọi nhà cung cấp ngay từ đầu.
+- Super Admin có thể thêm nhà cung cấp/phương thức qua form input riêng trong nhóm tương ứng. Form thu thập thông tin nhận diện và các trường cấu hình theo loại provider; không cho nhập tên biến môi trường tùy ý hoặc dùng một bộ trường chung cho mọi đối tác.
+- Chỉ cho phép cấu hình và kích hoạt provider có loại/adapter được backend hỗ trợ. Nếu Super Admin thêm thông tin cho loại chưa có adapter, có thể lưu như mục chưa kết nối nếu sản phẩm cần ghi nhận, nhưng phải hiển thị rõ chưa thể xử lý nghiệp vụ và không đưa vào checkout/luồng vận hành.
+- Secret được nhập hoặc xoay vòng qua form an toàn, không trả lại đầy đủ về trình duyệt; quyền thao tác và thay đổi phải được kiểm tra phía backend, có audit phù hợp.
 - Khi thiết kế hoặc nghiệm thu, phân biệt rõ ba trạng thái: nhà cung cấp được liệt kê, thông tin đã cấu hình, và dịch vụ thực sự có thể xử lý yêu cầu.
 
 ### Nhà cung cấp khởi đầu và hiện trạng tích hợp
