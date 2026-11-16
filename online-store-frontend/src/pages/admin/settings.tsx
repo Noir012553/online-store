@@ -749,8 +749,20 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   onRestore: (entry: ProviderDirectoryEntry) => Promise<void>;
 }) {
   const [editingId, setEditingId] = useState('');
+  const [selectedId, setSelectedId] = useState('');
   const [form, setForm] = useState({ code: '', name: '', description: '', managementUrl: '' });
   const categoryEntries = entries.filter(entry => entry.category === category);
+  const selectedEntry = categoryEntries.find(entry => entry.id === selectedId);
+  const categoryLabel = category === 'payment' ? 'đối tác thanh toán' : category === 'shipping' ? 'nhà vận chuyển' : category === 'deployment' ? 'nền tảng triển khai' : 'đối tác';
+  const managementUrl = (() => {
+    if (!selectedEntry?.managementUrl) return null;
+    try {
+      const url = new URL(selectedEntry.managementUrl);
+      return url.protocol === 'https:' && !url.username && !url.password ? url : null;
+    } catch {
+      return null;
+    }
+  })();
   const resetForm = () => {
     setEditingId('');
     setForm({ code: '', name: '', description: '', managementUrl: '' });
@@ -764,23 +776,14 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   };
 
   return <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-    <div><h3 className="font-bold text-gray-900">Danh sách đối tác</h3><p className="mt-1 text-sm text-gray-600">Mục được thêm ở đây chỉ là hồ sơ tham khảo; chưa kết nối xử lý nghiệp vụ cho đến khi có adapter tương ứng.</p></div>
+    <div><h3 className="font-bold text-gray-900">Danh sách đối tác</h3><p className="mt-1 text-sm text-gray-600">Mục được thêm ở đây chỉ là hồ sơ tham khảo; chọn đối tác không bật tích hợp nghiệp vụ khi chưa có adapter tương ứng.</p></div>
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-    {loading ? <p className="text-sm text-gray-500">Đang tải danh sách đối tác…</p> : categoryEntries.length === 0 ? <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">Chưa có đối tác bổ sung.</p> : <div className="space-y-3">{categoryEntries.map(entry => {
-      const managementUrl = (() => {
-        try {
-          const url = new URL(entry.managementUrl);
-          return url.protocol === 'https:' && !url.username && !url.password ? url : null;
-        } catch {
-          return null;
-        }
-      })();
-      return <div key={entry.id} className={`rounded-lg border p-4 ${entry.isDeleted ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}>
-        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-gray-900">{entry.name}</h4><StatusBadge tone="neutral">Chưa kết nối</StatusBadge>{entry.isDeleted && <StatusBadge tone="neutral">Đã ẩn</StatusBadge>}</div><p className="mt-1 text-sm text-gray-600">{entry.description || 'Chưa có mô tả'}</p><p className="mt-1 text-xs text-gray-400">Mã: {entry.code}</p>{managementUrl && <p className="mt-2 break-all text-xs text-gray-500">Trang đối tác: {managementUrl.host}</p>}</div>
-          <div className="flex flex-wrap gap-2">{managementUrl && !entry.isDeleted && <a href={managementUrl.href} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang bên ngoài ${managementUrl.host}? Bạn sẽ tự đăng nhập trực tiếp với đối tác.`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">Mở trang đối tác</a>}{entry.isDeleted ? <button type="button" onClick={() => void onRestore(entry)} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục</button> : <><button type="button" onClick={() => { setEditingId(entry.id); setForm({ code: entry.code, name: entry.name, description: entry.description, managementUrl: entry.managementUrl }); }} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Sửa</button><button type="button" onClick={() => void onArchive(entry)} className="rounded-lg border border-red-200 px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Ẩn</button></>}</div>
-        </div>
-      </div>;
-    })}</div>}
+    <label className="block space-y-1 text-sm font-medium text-gray-700"><span>Chọn {categoryLabel}</span><select value={selectedId} disabled={loading || categoryEntries.length === 0} onChange={event => setSelectedId(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100"><option value="">{loading ? 'Đang tải danh sách đối tác…' : `Chọn ${categoryLabel}`}</option>{categoryEntries.map(entry => <option key={entry.id} value={entry.id}>{entry.name} · {entry.code}{entry.isDeleted ? ' (Đã ẩn)' : ''}</option>)}</select></label>
+    {selectedEntry && <div className={`rounded-lg border p-4 ${selectedEntry.isDeleted ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-gray-900">{selectedEntry.name}</h4><StatusBadge tone="neutral">Chưa kết nối</StatusBadge>{selectedEntry.isDeleted && <StatusBadge tone="neutral">Đã ẩn</StatusBadge>}</div><p className="mt-1 text-sm text-gray-600">{selectedEntry.description || 'Chưa có mô tả'}</p><p className="mt-1 text-xs text-gray-400">Mã: {selectedEntry.code}</p>{managementUrl && <p className="mt-2 break-all text-xs text-gray-500">Trang đối tác: {managementUrl.host}</p>}</div>
+        <div className="flex flex-wrap gap-2">{managementUrl && !selectedEntry.isDeleted && <a href={managementUrl.href} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang bên ngoài ${managementUrl.host}? Bạn sẽ tự đăng nhập trực tiếp với đối tác.`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">Mở trang đối tác</a>}{selectedEntry.isDeleted ? <button type="button" onClick={() => void onRestore(selectedEntry)} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục</button> : <><button type="button" onClick={() => { setEditingId(selectedEntry.id); setForm({ code: selectedEntry.code, name: selectedEntry.name, description: selectedEntry.description, managementUrl: selectedEntry.managementUrl }); }} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Sửa</button><button type="button" onClick={() => void onArchive(selectedEntry)} className="rounded-lg border border-red-200 px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Ẩn</button></>}</div>
+      </div>
+    </div>}
     <form onSubmit={submit} className="grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
       <label className="space-y-1 text-sm font-medium text-gray-700"><span>{editingId ? 'Mã đối tác' : 'Mã đối tác'}</span><input required minLength={2} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9-]+" value={form.code} disabled={Boolean(editingId) || saving} onChange={event => setForm(current => ({ ...current, code: event.target.value }))} placeholder="provider-code" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm disabled:bg-gray-100" /></label>
       <label className="space-y-1 text-sm font-medium text-gray-700"><span>Tên đối tác</span><input required minLength={2} maxLength={80} value={form.name} disabled={saving} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="Tên hiển thị" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
