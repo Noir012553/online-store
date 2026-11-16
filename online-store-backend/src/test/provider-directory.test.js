@@ -63,14 +63,14 @@ describe('provider directory controller', () => {
   });
 
   it('rejects unsupported categories and insecure management URLs', async () => {
+    const create = sandbox.stub(ProviderDirectoryEntry, 'create');
     const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
 
     await controller.createProvider({ body: { category: 'payment', code: 'other-pay', name: 'Other Pay', managementUrl: 'javascript:alert(1)' } }, res);
     await controller.createProvider({ body: { category: 'unknown', code: 'other-pay', name: 'Other Pay' } }, res);
 
-    expect(res.status.callCount).to.equal(2);
-    expect(res.status.alwaysCalledWith(400)).to.equal(true);
-    expect(ProviderDirectoryEntry.create.called).to.equal(false);
+    expect(res.status.args.map(([status]) => status)).to.deep.equal([400, 400]);
+    expect(create.called).to.equal(false);
   });
 
   it('returns conflict when a category already has the same provider code', async () => {
