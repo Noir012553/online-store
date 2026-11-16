@@ -148,7 +148,7 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - **Email**: nhà cung cấp gửi email và cấu hình kết nối tương ứng.
 - **Thanh toán**: từng phương thức/đối tác thanh toán, trạng thái bật/tắt và cấu hình riêng.
 - **Vận chuyển**: từng đối tác vận chuyển, trạng thái khả dụng và cấu hình riêng.
-- **Nền tảng triển khai (Deploy)**: các nền tảng triển khai ứng dụng; Cloudflare là nền tảng mục tiêu ban đầu theo định hướng sản phẩm. Phải xác định rõ thao tác nào thực sự được tích hợp (deploy, cấu hình domain/DNS, Tunnel hoặc health check), không suy diễn từ việc đã có Cloudflare AI, R2 hay script Tunnel.
+- **Nền tảng triển khai (Deploy)**: các nền tảng triển khai ứng dụng. Super Admin cần có thể chọn nền tảng độc lập cho frontend và backend; hai thành phần có thể cùng nền tảng hoặc ở hai nền tảng khác nhau. Cloudflare là một lựa chọn mục tiêu ban đầu theo định hướng sản phẩm. Phải xác định rõ thao tác nào thực sự được tích hợp (build/deploy, cấu hình domain/DNS, Tunnel hoặc health check), không suy diễn từ việc đã có Cloudflare AI, R2 hay script Tunnel.
 - **Lưu trữ R2**: tách thành nhóm độc lập để quản lý tài khoản/bucket, thông tin truy cập được che an toàn và chính sách tải lên; không gộp vào Deploy chỉ vì R2 thuộc Cloudflare.
 - **Bảo mật**: quản lý trạng thái kho bí mật, quyền truy cập, nhật ký kiểm toán và các thao tác nhạy cảm. Đây là nhóm bảo vệ xuyên suốt, không phải một nhà cung cấp dịch vụ.
 - **Thương hiệu cửa hàng**: tiếp tục là nhóm riêng cho thông tin nhận diện và liên hệ của cửa hàng.
@@ -159,6 +159,8 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - Super Admin có thể quản lý các mục mà backend hỗ trợ; thao tác bật/tắt phải ảnh hưởng thật đến luồng liên quan. Ẩn/xóa nên giữ tham chiếu lịch sử khi có giao dịch hoặc đơn hàng liên quan.
 - Chỉ hiển thị là **đang kết nối/khả dụng** khi adapter và kiểm tra trạng thái tương ứng đã tồn tại. Nhà cung cấp mới chưa có adapter không được giả lập là đã cấu hình hoặc có thể xử lý giao dịch.
 - Giai đoạn đầu chỉ cần có sẵn một vài thông tin cơ bản và một hoặc vài nhà cung cấp ban đầu trong mỗi nhóm; không cần khai báo đầy đủ mọi nhà cung cấp ngay từ đầu.
+- Với Deploy, cấu hình provider và trạng thái triển khai phải gắn riêng theo thành phần **frontend** hoặc **backend**. Super Admin có thể chọn/đổi provider cho từng thành phần độc lập; hệ thống phải kiểm tra tương thích URL/API, callback, CORS, health check và kết nối giữa frontend với backend trước khi báo triển khai thành công.
+- Cloudflare Tunnel là lớp kết nối/định tuyến tới service (ingress), cần được quản lý tách biệt với nơi build và chạy frontend/backend. Thay provider deploy của một thành phần không được tự ý làm thay đổi Tunnel hoặc thành phần còn lại nếu không có thao tác/ảnh hưởng được xác nhận rõ.
 - Super Admin có thể thêm nhà cung cấp/phương thức qua form input riêng trong nhóm tương ứng. Form thu thập thông tin nhận diện và các trường cấu hình theo loại provider; không cho nhập tên biến môi trường tùy ý hoặc dùng một bộ trường chung cho mọi đối tác.
 - Chỉ cho phép cấu hình và kích hoạt provider có loại/adapter được backend hỗ trợ. Nếu Super Admin thêm thông tin cho loại chưa có adapter, có thể lưu như mục chưa kết nối nếu sản phẩm cần ghi nhận, nhưng phải hiển thị rõ chưa thể xử lý nghiệp vụ và không đưa vào checkout/luồng vận hành.
 - Secret được nhập hoặc xoay vòng qua form an toàn, không trả lại đầy đủ về trình duyệt; quyền thao tác và thay đổi phải được kiểm tra phía backend, có audit phù hợp.
@@ -169,7 +171,7 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - **Email**: SMTP là tích hợp hiện có; SendGrid chỉ được hiển thị là tùy chọn dùng được sau khi xác minh luồng cấu hình và gửi độc lập.
 - **Thanh toán**: COD và VNPay là hai phương thức hiện có; provider khác cần adapter thanh toán, callback và kiểm tra an toàn trước khi được bật.
 - **Vận chuyển**: GHN là tích hợp tính phí vận chuyển hiện có; các provider khác chỉ được bật sau khi có adapter tính phí/luồng xử lý tương ứng. Bản ghi provider chung không đồng nghĩa backend đã hỗ trợ provider đó.
-- **Deploy**: Cloudflare là lựa chọn mục tiêu để phát triển tích hợp; hiện trạng Tunnel/DNS chưa được Settings quản lý như một adapter deploy hoàn chỉnh. Không báo deploy thành công nếu chưa có API/adapter, tác vụ apply và health check cho nền tảng đó.
+- **Deploy**: hiện trạng cần ghi nhận riêng nơi chạy/build frontend, backend và vai trò Cloudflare Tunnel đang kết nối/định tuyến tới chúng. Định hướng cho phép Super Admin chọn nền tảng độc lập cho frontend và backend, kể cả khác nhà cung cấp. Cloudflare là một lựa chọn mục tiêu để phát triển tích hợp; hiện trạng Tunnel/DNS chưa được Settings quản lý như adapter deploy hoàn chỉnh. Không báo deploy thành công nếu chưa có API/adapter, tác vụ apply và health check cho từng thành phần.
 - **Lưu trữ R2**: Cloudflare R2 là tích hợp lưu trữ hiện có và được quản lý riêng với Deploy.
 - **Cloudflare AI**: là cấu hình dịch vụ AI, không phải bằng chứng cho tích hợp Deploy. Cần xác định nhóm sản phẩm riêng hoặc phạm vi hiển thị phù hợp khi thiết kế lại menu.
 
