@@ -106,6 +106,22 @@ const TEST_SUITES = {
     ],
   },
 
+  'payment-methods': {
+    name: 'Payment Method Availability Tests',
+    category: 'LAYER 2',
+    importance: 'HIGH',
+    tags: ['payments', 'payment-methods', 'admin'],
+    files: ['services/paymentMethodService.test.js'],
+  },
+
+  providers: {
+    name: 'Super Admin Provider Directory Tests',
+    category: 'LAYER 2',
+    importance: 'HIGH',
+    tags: ['providers', 'settings', 'admin'],
+    files: ['provider-directory.test.js'],
+  },
+
   backend: {
     name: 'Backend Endpoints & Phase Tests',
     category: 'LAYER 2',

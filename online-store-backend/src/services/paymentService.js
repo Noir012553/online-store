@@ -11,6 +11,7 @@
 
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
+const PaymentMethod = require('../models/PaymentMethod');
 const VnpayAdapter = require('../adapters/payment/VnpayAdapter');
 const { broadcastPaymentSuccess, broadcastOrderStatusUpdate } = require('../socket/socketHandler');
 const { getMessage } = require('../i18n/messages');
@@ -90,9 +91,16 @@ class PaymentService {
       }
 
       // Kiểm tra gateway được support
-      const adapter = this.adapters[gateway.toLowerCase()];
+      const normalizedGateway = gateway.toLowerCase();
+      const adapter = this.adapters[normalizedGateway];
       if (!adapter) {
         throw new Error(getMessage(lang, 'checkout.error_unsupported_gateway'));
+      }
+      const method = await PaymentMethod.findOne({ code: normalizedGateway }).lean();
+      if (!method?.isEnabled || method.isDeleted) {
+        const error = new Error('Selected payment method is unavailable.');
+        error.code = 'PAYMENT_METHOD_UNAVAILABLE';
+        throw error;
       }
 
       // Kiểm tra order tồn tại
@@ -104,6 +112,11 @@ class PaymentService {
       // Kiểm tra order chưa thanh toán
       if (order.isPaid) {
         throw new Error(getMessage(lang, 'checkout.error_order_already_paid'));
+      }
+      if (order.paymentMethod !== normalizedGateway) {
+        const error = new Error('Selected payment method does not match the order.');
+        error.code = 'PAYMENT_METHOD_UNAVAILABLE';
+        throw error;
       }
 
       if (order.inventoryStatus === 'released' || order.inventoryStatus === 'needs_review') {

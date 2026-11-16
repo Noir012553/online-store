@@ -16,15 +16,30 @@ export function Step3Payment() {
   const { formData, goBack, setFormData, couponCode, checkoutSummary } = useCheckout();
   const { items } = useCart();
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<Array<{ code: 'cod' | 'vnpay'; name: string; description: string }>>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
+  const [paymentMethodsError, setPaymentMethodsError] = useState(false);
   const { t, loadNamespace } = useTranslation();
   const { currencyCode } = useCurrencyContext();
   const { locale } = useLanguage();
-  const supportsVnpay = true;
+  const supportsCod = paymentMethods.some(method => method.code === 'cod');
+  const supportsVnpay = paymentMethods.some(method => method.code === 'vnpay');
 
   useEffect(() => {
     loadNamespace('orders');
     loadNamespace('payment');
   }, [loadNamespace, locale]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPaymentMethodsLoading(true);
+    setPaymentMethodsError(false);
+    apiCall<{ success: boolean; data: { methods: Array<{ code: 'cod' | 'vnpay'; name: string; description: string }> } }>('/payments/methods', { skipCache: true, skipErrorToast: true })
+      .then(response => { if (!cancelled) setPaymentMethods(response.data.methods); })
+      .catch(() => { if (!cancelled) { setPaymentMethods([]); setPaymentMethodsError(true); } })
+      .finally(() => { if (!cancelled) setPaymentMethodsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Track idempotency keys for each payment method
   const codIdempotencyKeyRef = useRef<string | null>(null);
@@ -41,13 +56,14 @@ export function Step3Payment() {
   }, []);
 
   useEffect(() => {
-    if (!supportsVnpay && formData.paymentMethod === 'vnpay') {
-      setFormData({ paymentMethod: 'cod' });
+    if (paymentMethodsLoading) return;
+    if (!paymentMethods.some(method => method.code === formData.paymentMethod)) {
+      setFormData({ paymentMethod: paymentMethods[0]?.code });
     }
-  }, [formData.paymentMethod, setFormData, supportsVnpay]);
+  }, [formData.paymentMethod, paymentMethods, paymentMethodsLoading, setFormData]);
 
   const handleSelectPaymentMethod = (method: 'cod' | 'vnpay') => {
-    if (method === 'vnpay' && !supportsVnpay) return;
+    if (!paymentMethods.some(available => available.code === method)) return;
     setFormData({ paymentMethod: method });
   };
 
@@ -310,6 +326,10 @@ export function Step3Payment() {
         </div>
 
         <div className="space-y-4">
+          {paymentMethodsLoading && <p role="status" className="text-sm text-gray-500">Đang tải phương thức thanh toán…</p>}
+          {paymentMethodsError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">Không thể tải phương thức thanh toán. Vui lòng thử lại.</p>}
+          {!paymentMethodsLoading && !paymentMethodsError && paymentMethods.length === 0 && <p role="status" className="text-sm text-gray-500">Hiện chưa có phương thức thanh toán khả dụng.</p>}
+          {supportsCod && <>
           {/* COD Option */}
           <button
             type="button"
@@ -325,14 +345,15 @@ export function Step3Payment() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <Truck className="w-5 h-5 text-green-600" />
-                  <h3 className="font-bold text-gray-900">{t('payment_method_cod', 'orders')}</h3>
+                  <h3 className="font-bold text-gray-900">{paymentMethods.find(method => method.code === 'cod')?.name || t('payment_method_cod', 'orders')}</h3>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  {t('payment_method_cod_desc', 'orders')}
+                  {paymentMethods.find(method => method.code === 'cod')?.description || t('payment_method_cod_desc', 'orders')}
                 </p>
               </div>
             </div>
           </button>
+          </>}
 
           {supportsVnpay && (
             <button
@@ -349,10 +370,10 @@ export function Step3Payment() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <img src="/assets/vnpay.svg" alt={t('vnpay_logo', 'checkout')} className="h-6 w-auto" />
-                    <h3 className="font-bold text-gray-900">{t('payment_method_vnpay', 'orders')}</h3>
+                    <h3 className="font-bold text-gray-900">{paymentMethods.find(method => method.code === 'vnpay')?.name || t('payment_method_vnpay', 'orders')}</h3>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {t('payment_method_vnpay_desc', 'orders')}
+                    {paymentMethods.find(method => method.code === 'vnpay')?.description || t('payment_method_vnpay_desc', 'orders')}
                   </p>
                 </div>
               </div>
@@ -385,7 +406,7 @@ export function Step3Payment() {
                 handleVNPAY();
               }
             }}
-            disabled={isLoading || !selectedMethod || !checkoutSummary}
+            disabled={isLoading || paymentMethodsLoading || paymentMethodsError || paymentMethods.length === 0 || !selectedMethod || !checkoutSummary}
             className="min-h-11 w-full whitespace-normal bg-red-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-red-700 disabled:opacity-50 sm:flex-1 sm:px-8"
           >
             {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : t('confirm_order_button', 'checkout')}

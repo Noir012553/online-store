@@ -17,6 +17,7 @@ const Order = require('../models/Order');
 const { getClientIp } = require('../utils/getClientIp');
 const { getMessage } = require('../i18n/messages');
 const { formatPayments } = require('../utils/currencyResponseFormatter');
+const paymentMethodService = require('../services/paymentMethodService');
 
 const formatPaymentResponse = async (payment, lang) => (await formatPayments([payment], lang))[0];
 
@@ -103,6 +104,12 @@ const initiatePayment = asyncHandler(async (req, res) => {
     }, req.lang);
   }
 
+  const methodAvailable = await paymentMethodService.isPaymentMethodAvailable(gateway);
+  if (!methodAvailable || order.paymentMethod !== gateway) {
+    res.status(409);
+    throw createPaymentError({ code: 'PAYMENT_METHOD_UNAVAILABLE' }, req.lang);
+  }
+
   // Lấy IP từ Cloudflare Tunnel
   const clientIp = getClientIp(req);
   if (!clientIp || clientIp === '0.0.0.0') {
@@ -139,7 +146,8 @@ const initiatePayment = asyncHandler(async (req, res) => {
  * @access Public
  */
 const getSupportedGateways = asyncHandler(async (req, res) => {
-  const gateways = paymentService.getSupportedGateways();
+  const methods = await paymentMethodService.listAvailablePaymentMethods();
+  const gateways = methods.filter(method => method.code !== 'cod').map(method => method.code);
 
   res.status(200).json({
     success: true,
@@ -148,6 +156,12 @@ const getSupportedGateways = asyncHandler(async (req, res) => {
       count: gateways.length,
     },
   });
+});
+
+const getAvailablePaymentMethods = asyncHandler(async (_req, res) => {
+  const available = await paymentMethodService.listAvailablePaymentMethods();
+  res.set({ 'Cache-Control': 'no-store, private', Pragma: 'no-cache' });
+  res.status(200).json({ success: true, data: { methods: available.map(({ code, name, description }) => ({ code, name, description })) } });
 });
 
 /**
@@ -385,6 +399,7 @@ const getAllPayments = asyncHandler(async (req, res) => {
 module.exports = {
   initiatePayment,
   getSupportedGateways,
+  getAvailablePaymentMethods,
   confirmPayment,
   handleWebhook,
   getPaymentHistory,
