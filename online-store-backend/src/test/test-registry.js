@@ -122,6 +122,14 @@ const TEST_SUITES = {
     files: ['provider-directory.test.js'],
   },
 
+  'deployment-targets': {
+    name: 'Super Admin Deployment Target Tests',
+    category: 'LAYER 2',
+    importance: 'HIGH',
+    tags: ['deployment', 'settings', 'admin'],
+    files: ['deployment-targets.test.js'],
+  },
+
   backend: {
     name: 'Backend Endpoints & Phase Tests',
     category: 'LAYER 2',
